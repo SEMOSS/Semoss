@@ -96,7 +96,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 	private void sendEmail(User user, String databaseId, String permission) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
-			List<String> databaseOwners = SecurityEngineUtils.getDatabaseOwners(databaseId);
+			List<String> databaseOwners = SecurityEngineUtils.getEngineOwners(databaseId);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userName = token.getName() != null ? token.getName(): "";	
 			String userEmail = token.getEmail() != null ? token.getEmail(): "";	

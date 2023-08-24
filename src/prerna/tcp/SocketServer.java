@@ -55,7 +55,7 @@ public class SocketServer implements Runnable {
 		
 		if(args == null || args.length == 0) {
 			args = new String[5];
-			args[0] = "C:\\workspace\\Semoss_Dev\\InsightCache\\a244017315817400529";
+			args[0] = "C:\\workspace\\Semoss_Dev\\InsightCache\\z1";
 			args[1] = "C:\\workspace\\Semoss_Dev\\RDF_Map.prop";;
 			args[2] = "9999";
 			args[3] = "r";
