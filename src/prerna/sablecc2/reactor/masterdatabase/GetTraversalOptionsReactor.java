@@ -36,7 +36,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 			}
 		}
 		
-		List<String> engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());;
+		List<String> engineFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());;
 		
 		if(logicals != null && !logicals.isEmpty()) {
 			Map<String, Object> traversalOptions = new HashMap<String, Object>();

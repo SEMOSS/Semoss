@@ -104,7 +104,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addDatabaseOwner(modelId, user.getAccessToken(ap).getId());
+					SecurityEngineUtils.addEngineOwner(modelId, user.getAccessToken(ap).getId());
 				}
 			}
 			
