@@ -42,10 +42,10 @@ public class RequestableDatabasesReactor extends AbstractReactor {
 		List<String> userGroupDbs = SecurityGroupEngineUtils.getAllUserGroupDatabases(user);
 		allUserDbs.addAll(userGroupDbs);
 		// get info for all dbs the user has access to
-		List<Map<String, Object>> dbAccessInfo = SecurityEngineUtils.getDatabaseInfo(allUserDbs);
+		List<Map<String, Object>> dbAccessInfo = SecurityEngineUtils.getEngineInfo(allUserDbs);
 		dbs.put("HAS_PERMISSION", dbAccessInfo);
 		// get the dbs that the user does not have access to but can request access
-		List<Map<String, Object>> requestableDbs = SecurityEngineUtils.getUserRequestableDatabases(allUserDbs);
+		List<Map<String, Object>> requestableDbs = SecurityEngineUtils.getUserRequestableEngines(allUserDbs);
 		dbs.put("CAN_REQUEST", requestableDbs);
 		return new NounMetadata(dbs, PixelDataType.MAP);
 	}

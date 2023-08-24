@@ -104,7 +104,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addDatabaseOwner(storageId, user.getAccessToken(ap).getId());
+					SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
 				}
 			}
 			

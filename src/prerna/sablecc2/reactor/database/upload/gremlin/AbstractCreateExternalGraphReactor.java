@@ -104,7 +104,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityEngineUtils.addDatabaseOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
+					SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
 				}
 			}
 			

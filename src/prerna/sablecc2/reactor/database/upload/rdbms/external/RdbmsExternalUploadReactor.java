@@ -223,7 +223,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addDatabaseOwner(this.databaseId, user.getAccessToken(ap).getId());
+				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
 			}
 		}
 
