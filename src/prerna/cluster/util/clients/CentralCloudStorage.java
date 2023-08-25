@@ -965,7 +965,7 @@ public class CentralCloudStorage implements ICloudClient {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			centralStorageEngine.syncStorageToLocal(storageProjectFolder, localProjectFolder, sharedRCloneConfig);
-			centralStorageEngine.copyToLocal(storageSmssFolder, localSmssFilePath, sharedRCloneConfig);
+			centralStorageEngine.copyToLocal(storageSmssFolder, PROJECT_FOLDER, sharedRCloneConfig);
 		} finally {
 			try {
 				// Re-open the project - if already loaded
