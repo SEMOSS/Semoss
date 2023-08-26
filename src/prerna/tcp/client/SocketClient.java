@@ -159,7 +159,7 @@ public class SocketClient implements Runnable {
     		if(!ps.response) {
     			requestMap.put(id, ps);
     		}
-    		
+    		logger.info("Outgoing epoc " + ps.epoc);
     		writePayload(ps);
 	    	// send the message
 			
@@ -240,6 +240,7 @@ public class SocketClient implements Runnable {
     	if(isConnected()) {
 	    	PayloadStruct ps = new PayloadStruct();
 	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+	    	ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>"};
 	    	writePayload(ps);
     	}
     	
