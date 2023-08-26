@@ -3,10 +3,9 @@ package prerna.tcp.client;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
@@ -116,7 +115,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	            logger.info("CLIENT Connection Failed !!!!!!!");
 	            killall = true;
 	            connected = false;
-	            ready = true;
+	            ready = false;
 	            synchronized(this)
 	            {
 	            	this.notifyAll();
@@ -127,7 +126,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	// this is the read portion
     	if(connected)
     	{
-    		StringBuffer outputAssimilator = new StringBuffer("");
+    		StringBuilder outputAssimilator = new StringBuilder("");
     		while (!killall) 
     		{
     			try {
@@ -153,63 +152,74 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				String message = new String(msg);
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
-	    				
-
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
+	    				//logger.info("incoming payload " + ps.epoc);
 
-	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null)
+	    				// std out no questions
+	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
 	    				{
-	    					logger.info(ps.payload[0]);
-	    					outputAssimilator.append(ps.payload[0]);
+	    					//logger.info(ps.payload[0]);
+	    					//logger.info("Standard output");
+
+	    					//outputAssimilator.append(ps.payload[0]);
 	    					if(lock != null)
 	    						exposeLog((String)ps.payload[0], lock.insightId);
 	    				}
 	    				
 	       				// need some way to say this is the output from the actual python vs. something that is a logger
 	    				// this is done through interim and operations
-	    				if(ps.response || ps.operation == ps.operation.STDOUT)
+	    				// partial stdout
+	    				// i.e. response is true and it is being sent as a stdout
+	    				else if(ps.response && ps.operation == ps.operation.STDOUT)
 	    				{
-		    				if(ps.interim) // this is interim.. 
-		    				{
-		    					// need to return output here
-		    					outputAssimilator.append(ps.payload[0]);
-		    				}
-		    				else if(ps.response)// interim is over
-		    				{
-		    					// we are going to force the output since that is they may have requested
-			    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
-		    					if(outputAssimilator.length() > 0 && ((String)ps.payload[0]).equalsIgnoreCase("NONE")) 
-		    						ps.payload[0] = outputAssimilator;
-		    					
-		    					// try to convert it into a full object
-		    					// need to check if it is primitive before converting
-		    					// try to convert it into a full object
-		    					try
-		    					{
-			    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
-			    					ps.payload[0] = obj;
-		    					}catch(Exception ignored)
-		    					{
-		    						
-		    					}
-		    					
-		    					logger.info("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
+	    					//logger.info("Partial Response from the py");
+	    					// need to return output here
+	    					if(ps.payload != null && !((String)ps.payload[0]).equalsIgnoreCase("NONE"))
+	    					{
+	    						outputAssimilator.append(ps.payload[0] + "");
+	    						if(lock != null && lock.insightId != null)
+	    							JobManager.getManager().addPartialOut(lock.insightId, ps.payload[0]+"");
+	    					}
+	    					if(!ps.interim)
+	    					{
+	    						//System.err.println("Final message.. ");
+		    					logger.info("FINAL PARTIALs OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
 		    					// re-initialize it
-		    					outputAssimilator = new StringBuffer("");
-	
-		    					// put it in response
-		    					responseMap.put(ps.epoc, ps);
-		    					if(lock != null)
-		    					{
-		    						synchronized(lock)
-		    						{
-		    							lock.notifyAll();
-		    						}
-		    					}
-		    				}
+		    					outputAssimilator = new StringBuilder("");
+	    					}
 	    				}
-	    				else
+	    				// this is the response.. i.e. the full response
+	    				else if(ps.response)
 	    				{
+	    					//logger.info("Response from the py");
+	    					//System.err.println("This is working as designed");
+		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
+
+	    					// try to convert it into a full object
+	    					// need to check if it is primitive before converting
+	    					// try to convert it into a full object
+	    					try
+	    					{
+		    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
+		    					ps.payload[0] = obj;
+	    					}catch(Exception ignored)
+	    					{
+	    						
+	    					}
+	    					// put it in response
+	    					responseMap.put(ps.epoc, ps);
+	    					if(lock != null)
+	    					{
+	    						synchronized(lock)
+	    						{
+	    							lock.notifyAll();
+	    						}
+	    					}
+	    				}
+	    				// this is a request
+	    				else if(ps.operation != ps.operation.ENGINE)
+	    				{
+	    					//logger.info("reverse request for data");
 	    					// this is a request we need to process
 	    					// need a way here to also push the payload classes
 	    					// will come to it in a bit
@@ -217,17 +227,39 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					ps = convertPayloadClasses(ps);
 	    					processRequest(ps);
 	    				}
+	    				// unhandled pieces.. nothing we can do here.. just give the response back
+	    				// so we dont choke the thread
+	    				else
+	    				{
+	    					logger.info("message not handled by py server");
+		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
+	    					responseMap.put(ps.epoc, ps);
+	    					if(lock != null)
+	    					{
+	    						synchronized(lock)
+	    						{
+	    							lock.notifyAll();
+	    						}
+	    					}
+
+	    				}
     				}
     				else
     				{
     					killall = true;
     					break;
     				}
-    			} catch (Exception ex) {
+    			}catch (SocketException ex1)
+    			{
+    				ex1.printStackTrace();
+    				crash();
+    				break;
+    				
+    			}catch (Exception ex) {
     				ex.printStackTrace();
-    				//killall = true;
-    				//connected=false;
-    				//break;
+//    				killall = true;
+//    				connected=false;
+//    				break;
     			}
     		}
     		connected = false;
@@ -435,6 +467,10 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	if(isConnected()) {
 	    	PayloadStruct ps = new PayloadStruct();
 	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+	    	ps.epoc = "stop_all";
+	    	ps.hasReturn = false;
+	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+	    	ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>"};
 	    	writePayload(ps);
     	}
     	
@@ -462,6 +498,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	closeStream(this.clientSocket);
     	this.connected = false;
     	this.killall = true;
+    	this.ready = false;
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     }
     
