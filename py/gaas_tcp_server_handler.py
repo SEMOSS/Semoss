@@ -9,6 +9,15 @@ import threading
 from clean import PyFrame
 import gaas_server_proxy as gsp
 
+import numpy as np
+import pandas as pd
+import gc as gc
+import sys
+
+import string
+import random
+import datetime
+
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
   
@@ -87,7 +96,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       #print(f"PAYLOAD.. {payload}")
       # do payload manipulation here 
       payload = json.loads(payload)
-      
       local = threading.local()
       local.payload = payload
 
@@ -109,10 +117,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
       if command == 'stop':
         self.stop_request()
+
       elif command == 'prefix':
         self.prefix = output_file
         print("set the prefix to .. " + self.prefix)
-        self.send_output("prefix set", payload, response=True)
+        self.send_output("prefix set", payload, operation="PYTHON", response=True)
+
+      elif command == 'CLOSE_ALL_LOGOUT<o>':
+        # shut down the server
+        self.stop_request()
+
       #elif command == 'core':
       #  exec('core_server=s
       #  print("set the core " + self.prefix)
@@ -205,11 +219,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
           condition.release()
       
       else:
-        output = f"This is a python only instance. Command {command.encode('utf-8')} is not supported"
+        output = f"This is a python only instance. Command {str(command).encode('utf-8')} is not supported"
         output = str(output)
-        print(f"{command.encode('utf-8')} = {output}")
+        print(f"{str(command).encode('utf-8')} = {output}")
         #output = "Response.. " + data.decode("utf-8")
-        self.send_output(output, payload, operation=payload["operation"], response=True)
+        self.send_output(output, payload, operation=payload["operation"], response=True, exception=True)
     except Exception as e:
       output = ''.join(tb.format_exception(None, e, e.__traceback__))
       payload = {
@@ -229,17 +243,25 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
   def send_output(self, output, orig_payload, operation = "STDOUT", response=False, interim=False, exception=False):
     # Do not write any prints here
     # since the console is captured it will go into recursion
+
+    # Stdout = true, response = true = partial
+    # interim = true are the parts
+
+    # stdout = false, response = true <-- actual response
+
         
     #print("sending output " + output)
     # make it back into payload just for epoch
     # if this comes with prefix. it is part of the response
     if self.prefix != "" and str(output).startswith(self.prefix):
-      output.replace(self.prefix, "")
-      operation=orig_payload["operation"]
+      output = output.replace(self.prefix, "")
+      operation="STDOUT" #orig_payload["operation"]
       response=True
+      interim = True
 
     if(str(output).endswith("D.O.N.E")):
-      str(output).replace("D.O.N.E", "")
+      #print("Finishing execution")
+      output = str(output).replace("D.O.N.E", "")
       interim = False
 
     payload = {
