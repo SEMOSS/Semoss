@@ -36,7 +36,8 @@ class ServerProxy():
       "methodName": method_name,
       "payload": method_args,
       "payloadClassNames":method_arg_types,
-      "insightId": insight_id
+      "insightId": insight_id,
+      "operation":"ENGINE"
     }
     # adds itself to the monitor block
     self.server.monitors.update({epoc:self.condition})
@@ -67,10 +68,12 @@ class ServerProxy():
     print(new_payload_struct)
     # if exception
     # convert exception and give back
+    
     if 'ex' in new_payload_struct:
       raise Exception(new_payload_struct['ex']) 
       #return new_payload_struct['ex']
     else:
+      #new_payload_struct = process_payload(new_payload_struct['payload'])
       return new_payload_struct['payload']
 
   def test(self):
@@ -91,5 +94,24 @@ class ServerProxy():
     if 'ex' in new_payload_struct:
       return new_payload_struct['ex']
     else:
+      # if we get to the point for json pickle we can do that
+      #new_payload_struct = process_payload(new_payload_struct)
       return new_payload_struct['payload']
-
+      
+  def process_payload(self, payload_struct):
+    # try to see if the types are pickle
+    # if so unpickle it
+    import jsonpickle as jp
+    payload_data = None
+    if 'payload' in payload_struct:
+      payload_data = payload_struct['payload']
+    if payload_data is not None and isinstance(payload_data, list):
+      for data in payload_data:
+        index = payload_data.index(data)
+        try:
+          orig_obj = data
+          obj = jp.loads(orig_obj)
+          payload_struct['payload'][index] = obj
+        except Exception as e:
+          pass
+    return payload_struct
