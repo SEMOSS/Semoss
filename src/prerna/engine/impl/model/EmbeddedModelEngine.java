@@ -37,6 +37,8 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		if(context != null)
 			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
 		
+		
+		
 		if(parameters != null) {
 			if (parameters.containsKey("ROOM_ID")) { //always have to remove roomId so we dont pass it to py client
 				String roomId = (String) parameters.get("ROOM_ID");
@@ -63,6 +65,10 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 				}
 			}
 		}
+		// also set the prefix if one exists
+		if(this.prefix != null)
+			callMaker.append(", prefix='").append(prefix).append("'");
+		
 		callMaker.append(")");
 		System.err.println("call maker.. " + callMaker);
 		
@@ -87,14 +93,14 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		eng.startServer();
 		
 		Map <String, Object> params = new HashMap<String, Object>();
-		params.put("max_new_tokens", 200);
+		params.put("max_new_tokens", 2000);
 		params.put("temperature", 0.01);
 		
 		Map<String, String> output = eng.ask("What is the capital of India ?", null, null, params);
 		
 		//PyTranslator pyt = eng.getClient();
 		
-		System.err.println(output);
+		//System.err.println(output);
 		
 		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
 		
