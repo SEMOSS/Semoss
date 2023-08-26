@@ -22,6 +22,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
+import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -139,7 +140,22 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		pyt = new TCPPyTranslator();
 		pyt.setClient(socketClient);
 		pyt.runEmptyPy(commands);	
+		
+		// run a prefix command
+		setPrefix(this.prefix);
 	}
+	
+	private void setPrefix(String prefix)
+	{
+		String [] alldata = new String[] {"prefix", prefix};
+		PayloadStruct prefixPayload = new PayloadStruct();
+		prefixPayload.payload = alldata;
+		prefixPayload.operation = PayloadStruct.OPERATION.PYTHON;
+		PayloadStruct ps = (PayloadStruct)socketClient.executeCommand(prefixPayload);
+		//System.err.println(ps);
+		
+	}
+	
 
 	/**
 	 * Abstract method, child classes should construct their input / output here
