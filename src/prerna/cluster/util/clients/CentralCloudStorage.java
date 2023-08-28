@@ -35,6 +35,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.ProjectSyncUtility;
+import prerna.util.SMSSModelWatcher;
+import prerna.util.SMSSStorageWatcher;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -1368,6 +1370,11 @@ public class CentralCloudStorage implements ICloudClient {
 				storage.close();
 			}
 			centralStorageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
+			// Catalog the storage if it is new
+			if (!storageAlreadyLoaded) {
+				classLogger.info("Synchronizing the storage metadata for " + aliasAndStorageId);
+				SMSSStorageWatcher.catalogEngine(localSmssFileName, STORAGE_FOLDER);
+			}
 		} finally {
 			try {
 				// Re-open the storage
@@ -1505,7 +1512,7 @@ public class CentralCloudStorage implements ICloudClient {
 			// Catalog the model if it is new
 			if (!modelAlreadyLoaded) {
 				classLogger.info("Synchronizing the model metadata for " + aliasAndModelId);
-				SMSSWebWatcher.catalogEngine(localSmssFileName, MODEL_FOLDER);
+				SMSSModelWatcher.catalogEngine(localSmssFileName, MODEL_FOLDER);
 			}
 		} finally {
 			try {
