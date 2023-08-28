@@ -998,73 +998,89 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public boolean requirePublish(boolean pullFromCloud) {
+		// is portal enabled in SMSS?
+		boolean enableForProject = (smssProp != null && Boolean.parseBoolean(smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
+		
+		// check in security DB when we last published
+		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
+		boolean outOfDate = false;
+		if(lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
+			outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPortalPublishDate.getLocalDateTime());
+		}
+		if(outOfDate || this.lastPortalPublishDate == null) {
+			// just pull to make sure we have the latest in case project was loaded
+			// but not published
+			if(pullFromCloud) {
+				classLogger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
+				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
+			}
+		}
+		
+		// if this are true we want to republish
+		// we just add the additional logic above if we have to pull from cloud
+		return this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal);
+	}
+	
+	@Override
 	/**
 	 * Publish the portals folder to public_home
 	 */
-	public boolean publish(String publicHomeFilePath) {
+	public boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
+		if(publicHomeFilePath == null) {
+			return false;
+		}
+		
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
-		if(publicHomeFilePath != null) {
-			boolean enableForProject = (smssProp != null && Boolean.parseBoolean(smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
-			SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
-			boolean outOfDate = false;
-			if(lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
-				outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPortalPublishDate.getLocalDateTime());
-			}
-			// just pull to make sure we have the latest in case project was loaded
-			// but not published
-			if(outOfDate || this.lastPortalPublishDate == null) {
-				classLogger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
-				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
-			}
-			try {
-				if(this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal)) {
-					Path sourcePortalsProjectPath = Paths.get(this.projectPortalFolder);
-					Path targetPublicHomeProjectPortalsPath = Paths.get(publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
-		
-					File targetPublicHomeProjectPortalsDir = targetPublicHomeProjectPortalsPath.toFile();
-					// if the target directory exists
-					// we have to delete it before 
-					if(targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
-						FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
-					}
-					
-					rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html");
-					
-					// do we physically copy of link?
-					// first smss file
-					// second rdf map
-					boolean copy = true;
-					if(smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
-						copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
-					} else if(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null) {
-						copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");	
-					}
-					
-					// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
-					if(copy) {
-						if(!targetPublicHomeProjectPortalsDir.exists()) {
-							targetPublicHomeProjectPortalsDir.mkdir();
-						}
-						FileUtils.copyDirectory(sourcePortalsProjectPath.toFile(), targetPublicHomeProjectPortalsDir);
-					}
-					// this is where we create symbolic link
-					else if(!targetPublicHomeProjectPortalsDir.exists() && !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
-						Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
-					}
-					targetPublicHomeProjectPortalsDir.deleteOnExit();
-					this.publishedPortal = true;
-					this.republishPortal = false;
-					this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
-					classLogger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
+		boolean requirePublish = requirePublish(pullFromCloud);
+		try {
+			if(requirePublish) {
+				Path sourcePortalsProjectPath = Paths.get(this.projectPortalFolder);
+				Path targetPublicHomeProjectPortalsPath = Paths.get(publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
+	
+				File targetPublicHomeProjectPortalsDir = targetPublicHomeProjectPortalsPath.toFile();
+				// if the target directory exists
+				// we have to delete it before 
+				if(targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
+					FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
 				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				this.publishedPortal = false;
-				this.lastPortalPublishDate = null;
+				
+				rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html");
+				
+				// do we physically copy of link?
+				// first smss file
+				// second rdf map
+				boolean copy = true;
+				if(smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
+					copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
+				} else if(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null) {
+					copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");	
+				}
+				
+				// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
+				if(copy) {
+					if(!targetPublicHomeProjectPortalsDir.exists()) {
+						targetPublicHomeProjectPortalsDir.mkdir();
+					}
+					FileUtils.copyDirectory(sourcePortalsProjectPath.toFile(), targetPublicHomeProjectPortalsDir);
+				}
+				// this is where we create symbolic link
+				else if(!targetPublicHomeProjectPortalsDir.exists() && !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
+					Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
+				}
+				targetPublicHomeProjectPortalsDir.deleteOnExit();
+				this.publishedPortal = true;
+				this.republishPortal = false;
+				this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
+				classLogger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
 			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			this.publishedPortal = false;
+			this.lastPortalPublishDate = null;
 		}
 		
 		return this.publishedPortal;
