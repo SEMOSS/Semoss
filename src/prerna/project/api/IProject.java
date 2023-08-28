@@ -128,12 +128,20 @@ public interface IProject extends IEngine, Closeable {
 	// to enable this - you need to put the property public_home_enable on the smss file
 
 	/**
+	 * See if we need to republish. If requested pull from cloud
 	 * 
-	 * @param location
-	 * @param contextPath
+	 * @param pullFromCloud
 	 * @return
 	 */
-	boolean publish(String location);
+	boolean requirePublish(boolean pullFromCloud);
+	
+	/**
+	 * 
+	 * @param location
+	 * @param pullFromCloud
+	 * @return
+	 */
+	boolean publish(String location, boolean pullFromCloud);
 	
 	/**
 	 * 
