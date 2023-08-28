@@ -1486,7 +1486,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String modelName = SecurityEngineUtils.getEngineAliasForId(modelId);
 		String aliasAndModelId = SmssUtilities.getUniqueName(modelName, modelId);
 		String localSmssFileName = SmssUtilities.getUniqueName(modelName, modelId) + ".smss";
-		String localSmssFilePath = Utility.normalizePath(STORAGE_FOLDER + FILE_SEPARATOR + localSmssFileName);
+		String localSmssFilePath = Utility.normalizePath(MODEL_FOLDER + FILE_SEPARATOR + localSmssFileName);
 		
 		String modelSmssFolder = MODEL_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
 
@@ -1502,8 +1502,14 @@ public class CentralCloudStorage implements ICloudClient {
 				model.close();
 			}
 			centralStorageEngine.copyToLocal(modelSmssFolder, MODEL_FOLDER);
+			// Catalog the model if it is new
+			if (!modelAlreadyLoaded) {
+				classLogger.info("Synchronizing the model metadata for " + aliasAndModelId);
+				SMSSWebWatcher.catalogEngine(localSmssFileName, MODEL_FOLDER);
+			}
 		} finally {
 			try {
+
 				// Re-open the model
 				Utility.getModel(modelId, false);
 			} catch(Exception e) {
