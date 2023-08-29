@@ -64,15 +64,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
-		Properties prop = Utility.loadProperties(smssFile);
-		
-		boolean global = true;
-		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
-			global = false;
-		}
-		
-		addEngine(engineId, global, user);
+		// default engine is not global
+		addEngine(engineId, false, user);
 	}
 	
 	/**
