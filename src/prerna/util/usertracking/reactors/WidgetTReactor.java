@@ -6,13 +6,13 @@ import java.util.UUID;
 import java.util.Vector;
 
 import prerna.auth.User;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -39,7 +39,7 @@ public class WidgetTReactor extends AbstractReactor {
 			// FE runs this on an empty insight
 			// so they are passing me an insight id that is being droped
 			// but i should be able to user the correct session id and user id from the empty insight
-			sessionId = RdbmsQueryBuilder.escapeForSQLStatement(ThreadStore.getSessionId());
+			sessionId = AbstractSqlQueryUtil.escapeForSQLStatement(ThreadStore.getSessionId());
 			User user = this.insight.getUser();
 			if(user != null) {
 				if(!user.getLogins().isEmpty()) {
@@ -61,7 +61,7 @@ public class WidgetTReactor extends AbstractReactor {
 					
 					// get the values
 					Map m = (Map) mObj;
-					insightId = RdbmsQueryBuilder.escapeForSQLStatement(m.get("insightID").toString());
+					insightId = AbstractSqlQueryUtil.escapeForSQLStatement(m.get("insightID").toString());
 					time = m.get("time").toString();
 					if(m.get("change") != null  && m.get("change") instanceof Map) {
 						Map inMap = (Map) m.get("change");

@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.AbstractDatabaseEngine;
@@ -36,10 +35,11 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class TableUserTracker implements IUserTracker {
 
-	private static final Logger logger = LogManager.getLogger(TableUserTracker.class);
+	private static final Logger classLogger = LogManager.getLogger(TableUserTracker.class);
 
 	/**
 	 * Send the request for tracking
@@ -94,9 +94,9 @@ public class TableUserTracker implements IUserTracker {
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);
-		String sessionId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0] + "");
-		String insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1] + "");
-		String userId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2] + "");
+		String sessionId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[0] + "");
+		String insightId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[1] + "");
+		String userId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[2] + "");
 		String time = insightDetails[3];
 		
 		for (String panelId : taskOptions.getPanelIds()) {
@@ -193,9 +193,9 @@ public class TableUserTracker implements IUserTracker {
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);
-		String sessionId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0] + "");
-		String insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1] + "");
-		String userId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2] + "");
+		String sessionId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[0] + "");
+		String insightId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[1] + "");
+		String userId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[2] + "");
 		String time = insightDetails[3];
 		
 		if(keyValue == null || keyValue.isEmpty()) {
@@ -363,9 +363,9 @@ public class TableUserTracker implements IUserTracker {
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);
-		String sessionId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0] + "");
-		String insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1] + "");
-		String userId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2] + "");
+		String sessionId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[0] + "");
+		String insightId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[1] + "");
+		String userId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[2] + "");
 		String time = insightDetails[3];
 		
 		// we are currently only tracking the selector information
@@ -716,13 +716,13 @@ public class TableUserTracker implements IUserTracker {
 		List<Object[]> rows = new Vector<>();
 		String[] insightDetails = getInsightDetailsString(in);
 		Object[] row = new Object[7];
-		row[0] = RdbmsQueryBuilder.escapeForSQLStatement(in.getProjectId());
-		row[1] = RdbmsQueryBuilder.escapeForSQLStatement(in.getProjectName());
-		row[2] = RdbmsQueryBuilder.escapeForSQLStatement(in.getRdbmsId());
-		row[3] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0]);
-		row[4] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1]);
-		row[5] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2]);
-		row[6] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[3]);
+		row[0] = AbstractSqlQueryUtil.escapeForSQLStatement(in.getProjectId());
+		row[1] = AbstractSqlQueryUtil.escapeForSQLStatement(in.getProjectName());
+		row[2] = AbstractSqlQueryUtil.escapeForSQLStatement(in.getRdbmsId());
+		row[3] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[0]);
+		row[4] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[1]);
+		row[5] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[2]);
+		row[6] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[3]);
 		rows.add(row);
 		sendTrackRequest("insight", rows);
 	}
@@ -732,11 +732,11 @@ public class TableUserTracker implements IUserTracker {
 		List<Object[]> rows = new Vector<>();
 		String[] insightDetails = getInsightDetailsString(in);
 		Object[] row = new Object[6];
-		row[0] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0]);
-		row[1] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1]);
-		row[2] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2]);
-		row[3] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[3]);
-		row[4] = RdbmsQueryBuilder.escapeForSQLStatement(pixel);
+		row[0] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[0]);
+		row[1] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[1]);
+		row[2] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[2]);
+		row[3] = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[3]);
+		row[4] = AbstractSqlQueryUtil.escapeForSQLStatement(pixel);
 		row[5] = meta;
 		rows.add(row);
 		sendTrackRequest("pixel", rows);
@@ -796,7 +796,7 @@ public class TableUserTracker implements IUserTracker {
 					}
 				} catch(Exception e) {
 					// will just print the error message but return null as the count
-					logger.error("StackTrace: ", e);
+					classLogger.error("StackTrace: ", e);
 				}
 			}
 		}
@@ -810,9 +810,9 @@ public class TableUserTracker implements IUserTracker {
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);
-		String sessionId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0] + "");
-		String insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1] + "");
-		String userId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2] + "");
+		String sessionId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[0] + "");
+		String insightId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[1] + "");
+		String userId = AbstractSqlQueryUtil.escapeForSQLStatement(insightDetails[2] + "");
 		String time = insightDetails[3];
 		
 		Object[] row = new Object[14];
