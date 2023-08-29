@@ -25,17 +25,13 @@ public class OpenAiEngine extends AbstractModelEngine {
 		if(context != null)
 			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
 		
+		if (Utility.isModelInferenceLogsEnabled() && !parameters.containsKey("full_prompt")) { // have to check that inference logs are enabled so that query works
+			String history = getConversationHistory(insight.getUserId(), insight.getInsightId());
+			if(history != null) //could still be null if its the first question in the convo
+				callMaker.append(",").append("history=").append(history);
+		}
+		
 		if(parameters != null) {
-			if (parameters.containsKey("ROOM_ID")) { //always have to remove roomId so we dont pass it to py client
-				String roomId = (String) parameters.get("ROOM_ID");
-				parameters.remove("ROOM_ID");
-				if (Utility.isModelInferenceLogsEnabled() && !parameters.containsKey("full_prompt")) { // have to check that inference logs are enabled so that query works
-					String history = getConversationHistory(insight.getUserId(), roomId);
-					if(history != null) //could still be null if its the first question in the convo
-						callMaker.append(",").append("history=").append(history);
-				}
-			}
-
 			Iterator <String> paramKeys = parameters.keySet().iterator();
 			while(paramKeys.hasNext()) {
 				String key = paramKeys.next();
@@ -51,9 +47,11 @@ public class OpenAiEngine extends AbstractModelEngine {
 				}
 			}
 		}
+		if(this.prefix != null)
+			callMaker.append(", prefix='").append(prefix).append("'");
 		callMaker.append(")");
 		classLogger.info("Running >>>" + callMaker.toString());
-		Object output = pyt.runScript(callMaker.toString());
+		Object output = pyt.runScript(callMaker.toString(), insight);
 		return (String) output;
 	}
 

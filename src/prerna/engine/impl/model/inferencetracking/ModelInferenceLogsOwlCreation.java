@@ -65,7 +65,7 @@ public class ModelInferenceLogsOwlCreation {
 			);
 		
 		this.roomColumns = Arrays.asList(
-				Pair.of("ROOM_ID", "VARCHAR(50)"),
+				Pair.of("INSIGHT_ID", "VARCHAR(50)"),
 				Pair.of("ROOM_NAME", "VARCHAR(255)"),
 				Pair.of("ROOM_CONTEXT", "VARCHAR(255)"),
 				//Pair.of("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
@@ -86,7 +86,6 @@ public class ModelInferenceLogsOwlCreation {
 				Pair.of("MESSAGE_METHOD", "VARCHAR(50)"),
 				Pair.of("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("ROOM_ID", "VARCHAR(50)"),
 				Pair.of("AGENT_ID", "VARCHAR(50)"),
 				Pair.of("INSIGHT_ID", "VARCHAR(50)"),
 				Pair.of("SESSIONID", "VARCHAR(255)"),
@@ -113,7 +112,7 @@ public class ModelInferenceLogsOwlCreation {
 		// returns ArrayList so its ordered
 		this.primaryKeys = Arrays.asList(
 				Pair.of("AGENT", Pair.of(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.of("ROOM", Pair.of(Arrays.asList("ROOM_ID"), Arrays.asList("VARCHAR(50)"))),
+				Pair.of("ROOM", Pair.of(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
 				Pair.of("MESSAGE", Pair.of(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)")))
 			);
 	}
@@ -121,7 +120,7 @@ public class ModelInferenceLogsOwlCreation {
 	public void defineForeignKeys() {
 		this.foreignKeys = Arrays.asList(
 				Pair.of("ROOM", Pair.of(Arrays.asList("AGENT_ID"), Pair.of(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
-				Pair.of("MESSAGE", Pair.of(Arrays.asList("ROOM_ID","AGENT_ID"), Pair.of(Arrays.asList("ROOM","AGENT"), Arrays.asList("ROOM_ID","AGENT_ID")))),
+				Pair.of("MESSAGE", Pair.of(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.of(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
 				Pair.of("FEEDBACK", Pair.of(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.of(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"))))
 			);
 	}
