@@ -30,6 +30,9 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
             throw new IllegalArgumentException("You are not properly logged in");
         }
         String projectId = this.keyValue.get(this.keysToGet[0]);
+        if (projectId == null) {
+        	projectId = this.insight.getContextProjectId();
+        } 
         List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(user.getPrimaryLoginToken().getId(), projectId);
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
