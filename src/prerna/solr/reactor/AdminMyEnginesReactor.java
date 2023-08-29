@@ -54,8 +54,8 @@ public class AdminMyEnginesReactor extends AbstractReactor {
 		List<String> engineIdFilters = getEngineIdFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
-		
 		Map<String, Object> engineMetadataFilter = getMetaMap();
+
 		List<Map<String, Object>> engineInfo = adminUtils.getAllEngineSettings(engineIdFilters, engineTypes, engineMetadataFilter, searchTerm, limit, offset);
 
 		if(!engineInfo.isEmpty() && (!noMeta || includeUserT)) {
@@ -214,8 +214,8 @@ public class AdminMyEnginesReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if(key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "This is an optional database filter";
+		} else if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "This is an optional engine filter";
 		}
 		return super.getDescriptionForKey(key);
 	}
