@@ -30,7 +30,7 @@ import prerna.util.Utility;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
-	private static final Logger logger = LogManager.getLogger(WorkspaceAssetUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(WorkspaceAssetUtils.class);
 
 	public static final String WORKSPACE_APP_NAME = "Workspace";
 	public static final String ASSET_APP_NAME = "Asset";
@@ -137,12 +137,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws SQLException 
 	 */
 	public static void registerUserWorkspaceProject(AccessToken token, String projectId) throws SQLException {
-		/*String[] colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
-		String[] types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
-		String insertQuery = RdbmsQueryBuilder.makeInsert("WORKSPACEENGINE", colNames, types, 
-				new String[] {	token.getProvider().name(), 
-								token.getId(), 
-								projectId});*/
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("INSERT INTO WORKSPACEENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
@@ -155,13 +149,10 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		// INSERT INTO WORKSPACEENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?);
-		/*securityDb.insertData(insertQuery);
-		securityDb.commit();*/
 	}
 	
 	/**
@@ -194,7 +185,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -243,13 +234,13 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return rs.toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -296,13 +287,13 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				//return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -338,13 +329,13 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return isAssetProject(projectId);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -366,13 +357,13 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
