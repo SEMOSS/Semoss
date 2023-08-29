@@ -72,7 +72,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		this.engineAbstractReactor = new StorageReactor();
 		Map<String, String> usageMap = new HashMap<String, String>();
 		usageMap.put(PYTHON,"from gaas_gpt_storage import StorageEngine\r\n" + 
-				"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}'))\r\n" +
+				"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 				"storageEngine.list(path = '/your/path/')\r\n" + 
 				"storageEngine.listDetails(path = '/your/path/')\r\n" + 
 				"storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" +
@@ -91,7 +91,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		
 		Map<String, String> usageMap = new HashMap<String, String>();
 		usageMap.put(PYTHON,"from gaas_gpt_database import DatabaseEngine\r\n" + 
-				"databaseEngine = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}'))\r\n" +
+				"databaseEngine = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 				"databaseEngine.execQuery(query = 'SELECT * FROM table_name')\r\n" + 
 				"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
 				"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')");
