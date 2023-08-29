@@ -516,6 +516,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
@@ -536,7 +537,7 @@ public class ModelInferenceLogsUtils {
 	
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID","ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID","MODEL_ID"));
