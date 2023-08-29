@@ -23,7 +23,6 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -33,13 +32,14 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 @Deprecated
 public class RDBMSReader extends AbstractCSVFileReader {
 
-	private static final Logger logger = LogManager.getLogger(RDBMSReader.class);
+	private static final Logger classLogger = LogManager.getLogger(RDBMSReader.class);
 
 	// Need to create a unique id that includes the row number
 	private int rowCounter;
@@ -88,7 +88,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	 */
 	public IDatabaseEngine importFileWithOutConnection(ImportOptions options) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
-		Configurator.setLevel(logger.getName(), Level.WARN);
+		Configurator.setLevel(classLogger.getName(), Level.WARN);
 
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
@@ -172,7 +172,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		}
 
 		long end = System.currentTimeMillis();
-		logger.info((end - start)/1000 + " seconds to load...");
+		classLogger.info((end - start)/1000 + " seconds to load...");
 
 		return engine;
 	}
@@ -203,7 +203,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		queryUtil = SqlQueryUtilFactory.initialize(dbType);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
 
-		Configurator.setLevel(logger.getName(), Level.WARN);
+		Configurator.setLevel(classLogger.getName(), Level.WARN);
 		try {
 			openEngineWithConnection(engineName);
 			openScriptFile(engineName);
@@ -258,7 +258,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		}
 
 		long end = System.currentTimeMillis();
-		logger.info((end - start)/1000 + " seconds to load...");
+		classLogger.info((end - start)/1000 + " seconds to load...");
 	}
 
 	private void processData(boolean noExistingData) throws IOException {
@@ -317,7 +317,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		propMap.put(concept, conceptType);
 
 		sqlBuilder.append(")");
-		logger.info("CREATE TABLE SQL: " + Utility.cleanLogString(sqlBuilder.toString()));
+		classLogger.info("CREATE TABLE SQL: " + Utility.cleanLogString(sqlBuilder.toString()));
 		insertData(sqlBuilder.toString());
 
 		addedTables.add(cleanConceptName);
@@ -379,7 +379,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			}
 			alterSql.append(")");
 
-			logger.info("ALTER TABLE SQL: " + Utility.cleanLogString(alterSql.toString()));
+			classLogger.info("ALTER TABLE SQL: " + Utility.cleanLogString(alterSql.toString()));
 			insertData(alterSql.toString());
 		} else {
 			// see if all the columns are accoutned for in the table
@@ -389,13 +389,13 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			if(existingConceptTable.keySet().size() == (newColsForConcept.keySet().size() + newRelsForConcept.size())) {
 				existingTableWithAllColsAccounted.add(concept);
 			} else {
-				logger.warn("Number of existing concepts not equal to new cols plus new rels");
+				classLogger.warn("Number of existing concepts not equal to new cols plus new rels");
 			}
 		}
 	}
 
 	private void processCSVTable(boolean noExistingData) throws IOException{
-		Configurator.setLevel(logger.getName(), Level.INFO);
+		Configurator.setLevel(classLogger.getName(), Level.INFO);
 		long start = System.currentTimeMillis();
 		
 		// Reset rowCounter to 0
@@ -410,7 +410,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			rowCounter += 1;
 			
 			if (rowCounter % 10000 == 0) {
-				logger.info(">>>>>Processing row " + rowCounter + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck)/1000 + " sec");
+				classLogger.info(">>>>>Processing row " + rowCounter + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck)/1000 + " sec");
 				lastTimeCheck = System.currentTimeMillis();
 			}
 			
@@ -735,7 +735,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	}
 
 	private void cleanUpDBTables(String engineName, boolean allowDuplicates){
-		Configurator.setLevel(logger.getName(), Level.INFO);
+		Configurator.setLevel(classLogger.getName(), Level.INFO);
 		//fill up the availableTables and availableTablesInfo maps
 		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 		Set<String> alteredTables = allConcepts.keySet();
@@ -793,7 +793,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 						}
 					} else {
 						//This REALLY shouldnt happen, but its here just in case...
-						logger.error("**** Error***** occurred during database clean up on table " + Utility.cleanLogString(tableName));
+						classLogger.error("**** Error***** occurred during database clean up on table " + Utility.cleanLogString(tableName));
 						continue;
 					}
 				} catch (Exception e) {
@@ -822,13 +822,13 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			//create indexes for ALL tables since we deleted all indexes before
 			Long lastTimeCheck = System.currentTimeMillis();
 			if (createIndexes) {
-				logger.info("Creating indexes for " + Utility.cleanLogString(tableName));
+				classLogger.info("Creating indexes for " + Utility.cleanLogString(tableName));
 				for(String singleIndex: createIndex){
 					insertData(singleIndex);
-					logger.info(">>>>>" + Utility.cleanLogString(singleIndex) + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck)/1000 + " sec");
+					classLogger.info(">>>>>" + Utility.cleanLogString(singleIndex) + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck)/1000 + " sec");
 				}
 			} else {
-				logger.info("Will not create indexes for " + Utility.cleanLogString(tableName));
+				classLogger.info("Will not create indexes for " + Utility.cleanLogString(tableName));
 			}
 		}
 	}
@@ -874,7 +874,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 
 		type = type.toUpperCase();
 		if(type.contains("VARCHAR")) {
-			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
+			return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
 		} else if(type.contains("FLOAT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("INT") || type.contains("LONG") || type.contains("BIGINT")
 				|| type.contains("TINYINT") || type.contains("SMALLINT")){
 			return value;
@@ -882,7 +882,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			return "'" + value + "'";
 		}
 
-		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(value.toString()) + "'";
+		return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(value.toString()) + "'";
 	}
 
 	private Map<String, String> getDefaultInsertStatements() {
