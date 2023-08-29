@@ -38,8 +38,16 @@ public class OpenUserRoomReactor extends AbstractInsightReactor {
 				if (projectId != null && !projectId.isEmpty()) {
 					newInsight.setProjectId(projectId);
 				}
+			} else {
+				if (this.insight.getProjectId() != null && !this.insight.getProjectId().isEmpty()) {
+					newInsight.setProjectId(this.insight.getProjectId());
+				} 
 			}
 		}
+		
+		if (this.insight.getContextProjectId() != null && !this.insight.getContextProjectId().isEmpty()) {
+			newInsight.setContextProjectId(this.insight.getContextProjectId());
+		} 
 		
 		newInsight.setCacheInWorkspace(true);
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
