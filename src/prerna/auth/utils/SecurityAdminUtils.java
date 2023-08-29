@@ -1052,23 +1052,77 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get all project options
+	 * 
+	 * @param projectFilter
+	 * @param projectMetadataFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllProjectSettings() {
-		return getAllProjectSettings(null);
-	}
-	
-	public List<Map<String, Object>> getAllProjectSettings(String projectFilter) {
+	public List<Map<String, Object>> getAllProjectSettings(
+			List<String> projectFilter, 
+			Map<String, Object> projectMetadataFilter, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
+		
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
+		String projectPrefix = "PROJECT__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		// selectors
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTID", "project_id"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		// dont forget reactors/portal information
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHED", "project_portal_published_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDUSER", "project_published_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDTYPE", "project_published_user_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILED", "project_reactors_compiled_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		// for sort
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
+		
 		if(projectFilter != null && !projectFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
 		}
+		if(hasSearchTerm) {
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, projectPrefix+"PROJECTNAME", searchTerm);
+		}
+		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
+		if (projectMetadataFilter!=null && !projectMetadataFilter.isEmpty()) {
+			for (String k : projectMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAVALUE", "==", projectMetadataFilter.get(k)));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "==", subQs));
+			}
+		}
+		
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 

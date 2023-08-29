@@ -1940,6 +1940,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Get the list of the engine information that the user has access to
 	 * 
 	 * @param user
+	 * @param projectIdFilters
 	 * @param favoritesOnly
 	 * @param portalsOnly
 	 * @param projectMetadataFilter
@@ -1948,10 +1949,20 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, boolean portalsOnly,
-			Map<String,Object> projectMetadataFilter, List<Integer> permissionFilters, String limit, String offset) {
-		Collection<String> userIds = getUserFiltersQs(user);
+	public static List<Map<String, Object>> getUserProjectList(
+			User user, 
+			List<String> projectIdFilters,
+			boolean favoritesOnly, 
+			boolean portalsOnly,
+			Map<String,Object> projectMetadataFilter, 
+			List<Integer> permissionFilters, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
 		
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
+		Collection<String> userIds = getUserFiltersQs(user);
 		
 		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
 		String projectPrefix = "PROJECT__";
@@ -2104,6 +2115,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		if(portalsOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+		}
+		if(hasSearchTerm) {
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, projectPrefix+"PROJECTNAME", searchTerm);
 		}
 		
 		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
