@@ -4,13 +4,13 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 
@@ -113,7 +113,7 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				}
 				
 				// get the first value
-				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+				String val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
 				if(isSearch && val.contains("\\")) {
 					myObj.append(leftWrapper).append(val.replace("\\","\\\\")).append(rightWrapper);
@@ -122,7 +122,7 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				}
 				i++;
 				for(; i < size; i++) {
-					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+					val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 					// get the other values
 					if(isSearch && val.contains("\\")) {
 						myObj.append(" , ").append(leftWrapper).append(val.replace("\\", "\\\\")).append(rightWrapper);
@@ -182,7 +182,7 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				}
 				
 				// get the first value
-				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+				String val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
 				if(isSearch && val.contains("\\")) {
 					myObj.append(leftWrapper).append(val.replace("\\","\\\\")).append(rightWrapper);
@@ -191,7 +191,7 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				}
 				i++;
 				for(; i < size; i++) {
-					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+					val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 					// get the first value
 					// get the other values
 					if(isSearch && val.contains("\\")) {
