@@ -9,13 +9,19 @@ import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class MosfetFile {
+
+	private static final Logger classLogger = LogManager.getLogger(MosfetFile.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String RECIPE_FILE = ".mosfet";
@@ -59,14 +65,14 @@ public class MosfetFile {
 	    		try {
 					fReader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 	    	}
 	    	if(jReader != null) {
 	    		try {
 					jReader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 	    	}
 	    }
@@ -102,7 +108,7 @@ public class MosfetFile {
 				try {
 					writer.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
