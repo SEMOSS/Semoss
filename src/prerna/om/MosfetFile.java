@@ -1,9 +1,11 @@
 package prerna.om;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,11 +48,10 @@ public class MosfetFile {
 	
 	public static MosfetFile generateFromFile(File file) throws IOException {
 		JsonReader jReader = null;
-		FileReader fReader = null;
+		BufferedReader fReader = null;
 		try {
 			Gson gson = new Gson();
-			
-			fReader = new FileReader(file);
+			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
 	        return gson.fromJson(jReader, MosfetFile.class);
 	    } finally {
