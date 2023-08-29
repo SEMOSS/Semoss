@@ -74,15 +74,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public static void addProject(String projectId, User user) throws Exception {
-		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
-		Properties prop = Utility.loadProperties(smssFile);
-		
-		boolean global = true;
-		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
-			global = false;
-		}
-		
-		addProject(projectId, global, user);
+		// default project is not global
+		addProject(projectId, false, user);
 	}
 	
 	/**
