@@ -19,7 +19,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private static final String MESSAGE_CONTENT = "content";
 	private static final String ROLE = "role";
 	
-	private String roomId;
 	private String messageId;
 	private String messageMethod;
     private AbstractModelEngine engine;
@@ -30,14 +29,13 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     private String response;
     private LocalDateTime responseTime;
     
-    public ModelEngineInferenceLogsWorker(String roomId, String messageId, String messageMethod, AbstractModelEngine engine,
+    public ModelEngineInferenceLogsWorker(String messageId, String messageMethod, AbstractModelEngine engine,
 			   Insight insight, 
 			   String context,
 			   String question,
 			   LocalDateTime inputTime,
 			   String response,
 			   LocalDateTime responseTime) {
-    	this.roomId = roomId;
     	this.messageId = messageId;
     	this.messageMethod = messageMethod;
     	this.engine = engine;
@@ -83,14 +81,14 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getModelType().toString(), user.getPrimaryLoginToken().getId());
 		}
 		
-		if (roomId != null && !ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
+		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
 			String roomName = null;
 			if (Boolean.parseBoolean((String) engine.getSmssProp().get("GENERATE_ROOM_NAME")) == true) {
 				roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
 			} else {
 				roomName = question.substring(0, Math.min(question.length(), 100));
 			}
-			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, this.context, user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
+			ModelInferenceLogsUtils.doCreateNewConversation(insightId, roomName, this.context, user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
 		}
 				
 		if(engine.keepsConversationHistory()) {
@@ -104,7 +102,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					ModelInferenceLogsUtils.getTokenSizeString(question),
 					millisecondsDouble,
 					inputTime,
-					roomId,
 					engine.getEngineId(),
 					insightId,
 					sessionId,
@@ -119,7 +116,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					ModelInferenceLogsUtils.getTokenSizeString(response),
 					millisecondsDouble,
 					responseTime,
-					roomId,
 					engine.getEngineId(),
 					insightId,
 					sessionId,
@@ -133,7 +129,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					ModelInferenceLogsUtils.getTokenSizeString(question),
 					millisecondsDouble,
 					inputTime,
-					roomId,
 					engine.getEngineId(),
 					insightId,
 					sessionId,
@@ -146,7 +141,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					ModelInferenceLogsUtils.getTokenSizeString(response),
 					millisecondsDouble,
 					responseTime,
-					roomId,
 					engine.getEngineId(),
 					insightId,
 					sessionId,
