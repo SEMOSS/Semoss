@@ -178,18 +178,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		String response = null;
 		String messageId = UUID.randomUUID().toString();
-		String roomId = null;
 
 		if (Utility.isModelInferenceLogsEnabled()) {
 			if(parameters == null) {
 				parameters = new HashMap<String, Object>();
-			}
-			roomId = (String) parameters.get("ROOM_ID");
-
-			// everything should be recorded so we always need a roomId
-			if (roomId == null) {
-				roomId = UUID.randomUUID().toString();
-				parameters.put("ROOM_ID",roomId);
 			}
 			
 			LocalDateTime inputTime = LocalDateTime.now();
@@ -204,12 +196,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				outputMap.put(ROLE, "assistant");
 				outputMap.put(MESSAGE_CONTENT, response);
 		        
-				if (chatHistory.containsKey(roomId)) {
-			        chatHistory.get(roomId).add(inputMap);
-			        chatHistory.get(roomId).add(outputMap);
+				if (chatHistory.containsKey(insight.getInsightId())) {
+			        chatHistory.get(insight.getInsightId()).add(inputMap);
+			        chatHistory.get(insight.getInsightId()).add(outputMap);
 				}
 			}
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "ask", this, insight, context, question, inputTime, response, outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "ask", this, insight, context, question, inputTime, response, outputTime);
 			inferenceRecorder.run();
 		} else {
 			response = askQuestion(question, context, insight, parameters);
@@ -218,7 +210,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		Map<String, String> retMap = new HashMap<>();
 		retMap.put("response", response);
 		retMap.put("messageId", messageId);
-		retMap.put("roomId", roomId);
+		retMap.put("roomId", insight.getInsightId());
 		return retMap;
 	}
 
@@ -230,33 +222,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".embeddings(");
 		callMaker.append("question=\"").append(question).append("\"").append(")");
 		Object output;
-		if (Utility.isModelInferenceLogsEnabled()) {
-			String roomId = null;
-			if(parameters != null) {
-				if (parameters.containsKey("ROOM_ID")) { 
-					roomId = (String) parameters.get("ROOM_ID");
-				}
-			}
-			// everything should be recorded so we always need a roomId
-			if (roomId == null) {
-				roomId = insight.getInsightId();
-			}
-			
+		if (Utility.isModelInferenceLogsEnabled()) {			
 			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
 			output = pyt.runScript(callMaker.toString());
 			LocalDateTime outputTime = LocalDateTime.now();
-			
-			if (keepConversationHistory) {
-				Map<String, Object> inputMap = new HashMap<String, Object>();
-				Map<String, Object> outputMap = new HashMap<String, Object>();
-				inputMap.put(ROLE, "user");
-				inputMap.put(MESSAGE_CONTENT, question);
-				outputMap.put(ROLE, "assistant");
-				outputMap.put(MESSAGE_CONTENT, output);
-			}
-			
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "embeddings", this, insight, null, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "embeddings", this, insight, null, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
 			inferenceRecorder.run();
 		} else {
 			output = pyt.runScript(callMaker.toString());
@@ -303,8 +274,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return this.keepConversationHistory;
 	}
 	
-	public String getConversationHistoryFromInferenceLogs(String roomId, String userId){
-		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, roomId, "ASC");
+	public String getConversationHistoryFromInferenceLogs(String insightId, String userId){
+		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, insightId, "ASC");
 		if (convoHistoryFromDb.size() > 0) {
 			for (Map<String, Object> record : convoHistoryFromDb) {
 				Object messageData = record.get("MESSAGE_DATA");
@@ -319,9 +290,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					mapHistory.put(ROLE, "user");
 					mapHistory.put(MESSAGE_CONTENT, messageData);
 				}
-		        chatHistory.get(roomId).add(mapHistory);
+		        chatHistory.get(insightId).add(mapHistory);
 			}
-			ArrayList<Map<String, Object>> convoHistory = chatHistory.get(roomId);
+			ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
 			StringBuilder convoList = new StringBuilder("[");
 			boolean isFirstElement = true;
 			for (Map<String, Object> record : convoHistory) {
@@ -339,10 +310,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return null;
 	}
 	
-	public String getConversationHistory(String userId, String roomId){
+	public String getConversationHistory(String userId, String insightId){
 		if (keepConversationHistory){
-			if (chatHistory.containsKey(roomId)) {
-				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(roomId);
+			if (chatHistory.containsKey(insightId)) {
+				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
 				StringBuilder convoList = new StringBuilder("[");
 				boolean isFirstElement = true;
 				for (Map<String, Object> record : convoHistory) {
@@ -360,8 +331,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			else {
 				// we want to start a conversation
 				ArrayList<Map<String, Object>> userNewChat = new ArrayList<Map<String, Object>>();
-				chatHistory.put(roomId, userNewChat);
-				String dbConversation = getConversationHistoryFromInferenceLogs(roomId, userId);
+				chatHistory.put(insightId, userNewChat);
+				String dbConversation = getConversationHistoryFromInferenceLogs(insightId, userId);
 				return dbConversation;
 			}
 		}

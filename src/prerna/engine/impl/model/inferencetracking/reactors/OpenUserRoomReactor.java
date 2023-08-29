@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,7 +31,14 @@ public class OpenUserRoomReactor extends AbstractInsightReactor {
 		
 		String insightId = this.keyValue.get(this.keysToGet[2]);
 		if (insightId != null && !insightId.isEmpty() && !InsightStore.getInstance().containsKey(insightId)) {
-			newInsight.setInsightId(insightId);
+			List<Map<String, Object>> output = ModelInferenceLogsUtils.doVerifyConversation(this.insight.getUserId(), insightId);
+			if (output.size() > 0) {
+				newInsight.setInsightId(insightId);
+				String projectId = (String) output.get(0).get("PROJECT_ID");
+				if (projectId != null && !projectId.isEmpty()) {
+					newInsight.setProjectId(projectId);
+				}
+			}
 		}
 		
 		newInsight.setCacheInWorkspace(true);
