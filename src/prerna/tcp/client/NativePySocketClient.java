@@ -153,7 +153,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
-	    				//logger.info("incoming payload " + ps.epoc);
+	    				logger.info("incoming payload " + ps.epoc);
 
 	    				// std out no questions
 	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
@@ -217,7 +217,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					}
 	    				}
 	    				// this is a request
-	    				else if(ps.operation != ps.operation.ENGINE)
+	    				else if(ps.operation == ps.operation.ENGINE)
 	    				{
 	    					//logger.info("reverse request for data");
 	    					// this is a request we need to process
@@ -356,6 +356,8 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     			requestMap.put(id, ps);
     		}
     		writePayload(ps);
+			logger.info("outgoing payload " + ps.epoc);
+
 	    	// send the message
     		// time to wait = average time * 10
     		// if this is a request wait for it
@@ -471,6 +473,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    	ps.hasReturn = false;
 	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
 	    	ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>"};
+	    	ps.operation = PayloadStruct.OPERATION.CMD;
 	    	writePayload(ps);
     	}
     	
