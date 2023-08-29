@@ -9,7 +9,7 @@ class OpenAiClient(BaseClient):
   # prefix
   #'vicuna-7b-v1.3'
   # openai.api_base = "https://play.semoss.org/fastchat/v1/"
-  def __init__(self, template=None, endpoint=None, model_name='gpt-3.5-turbo', api_key="EMPTY", **kwargs):
+  def __init__(self, template=None, endpoint=None, model_name='gpt-3.5-turbo', api_key="EMPTY", template_name = None, **kwargs):
     super().__init__(template=template)
     self.kwargs = kwargs
     self.model_name = model_name
@@ -24,16 +24,34 @@ class OpenAiClient(BaseClient):
     self.chat_type = 'chat-completion'
     if 'chat_type' in kwargs.keys():
       self.chat_type = kwargs.pop('chat_type')
+    self.template_name = template_name
     
-  def ask(self, question:str=None, context=None, template_name=None, history:list=None, page_size=100, max_new_tokens=100, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
+  def ask(self, 
+          question:str=None, 
+          context:str=None, 
+          template_name:str=None, 
+          history:list=None, 
+          page_size=100, 
+          stop_sequences=["#", ";"], 
+          temperature_val=0.01, 
+          top_p_val=0.5,
+          prefix="", 
+          **kwargs):
     openai_base = openai.api_base
     # forcing the api_key to a dummy value
     if openai.api_key is None:
       openai.api_key = self.api_key
     openai.api_base = self.endpoint
+
+    if ('max_new_tokens' in kwargs.keys()):
+      kwargs['max_tokens'] = kwargs.pop('max_new_tokens')
+
+    if template_name == None:
+       template_name = self.template_name
+
     # first we determine the type of completion, since this determines how we
     # structure the payload
-    final_query = "Please specify a valid completion type. Use 'chat-completion' or 'completion'"
+    final_query = ""
     if self.chat_type == 'chat-completion':
       # the list to construct the payload from
       message_payload = []
@@ -65,9 +83,13 @@ class OpenAiClient(BaseClient):
         # add the message payload as a kwarg
         kwargs['messages'] = message_payload
         
-        completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
-        response = completion.choices[0].message.content
-        final_query = response
+        responses = openai.ChatCompletion.create(model=self.model_name, stream = True, **kwargs)
+        for chunk in responses:
+          response = chunk.choices[0].get('delta', {}).get('content')
+          if response != None:
+            final_query += response
+            print(prefix+response, end ='')
+        final_query = final_query
       else:
         full_prompt = kwargs.pop('full_prompt')
         if isinstance(full_prompt, list):
@@ -115,10 +137,20 @@ class OpenAiClient(BaseClient):
       final_query = question
       tokens = 0
       finish = False
+
+      ## TODO - remove this. Tempory solution until fastchat endpoints are up again
+      if ('max_tokens' in kwargs.keys()):
+        max_new_tokens = kwargs.pop('max_tokens')
+      else:
+        max_new_tokens = 100
+
+      print('Prompt is:',prompt)
+      print('Q is:',question)
       while tokens < max_new_tokens and not finish:
         full_prompt = f"{prompt}{final_query}"
         response = openai.Completion.create(model=self.model_name, prompt=full_prompt, temperature=temperature_val, max_tokens=page_size, top_p=top_p_val, stop=stop_sequences, **kwargs)
         output=response.choices[0].text
+        print(prefix+output)
         final_query = f"{final_query}{output}"
         tokens = tokens + page_size
         finish = response.choices[0].finish_reason == "stop"
