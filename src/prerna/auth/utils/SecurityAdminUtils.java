@@ -972,19 +972,38 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Get all databases options
+	 * 
+	 * @param engineFilter
+	 * @param engineTypes
+	 * @param engineMetadataFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllEngineSettings() {
-		return getAllEngineSettings(null, null);
-	}
-	
-	public List<Map<String, Object>> getAllEngineSettings(String engineFilter, List<String> engineTypes) {
+	public List<Map<String, Object>> getAllEngineSettings(
+			List<String> engineFilter, 
+			List<String> engineTypes,
+			Map<String, Object> engineMetadataFilter, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
+		
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_engine_name"));
+		
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
@@ -994,13 +1013,41 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
+		
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
 		}
 		if(engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 		}
+		if(hasSearchTerm) {
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
+		}
+		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
+		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+			for (String k : engineMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
+			}
+		}
+		
+		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
