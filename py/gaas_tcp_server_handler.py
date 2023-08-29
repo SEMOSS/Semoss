@@ -115,15 +115,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       #print("command set to " + command)
       #print(command_list)
 
-      if command == 'stop':
+      if command == 'stop' and payload['operation'] == 'CMD':
         self.stop_request()
-
-      elif command == 'prefix':
+      
+      # handle setting prefix
+      elif command == 'prefix' and payload['operation'] == 'CMD':
         self.prefix = output_file
         print("set the prefix to .. " + self.prefix)
         self.send_output("prefix set", payload, operation="PYTHON", response=True)
-
-      elif command == 'CLOSE_ALL_LOGOUT<o>':
+      
+      # handle log out
+      elif command == 'CLOSE_ALL_LOGOUT<o>' and payload['operation'] == 'CMD':
         # shut down the server
         self.stop_request()
 
@@ -218,6 +220,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
           condition.notifyAll()
           condition.release()
       
+      # nothing to do here. Unfortunately this is a py instance so we cannot anything
       else:
         output = f"This is a python only instance. Command {str(command).encode('utf-8')} is not supported"
         output = str(output)
@@ -299,8 +302,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       self.log_file.flush()
       if response and not interim:
         self.log_file.write("\n")
-
-    
     # send it out
     self.request.sendall(ret_array)
 
