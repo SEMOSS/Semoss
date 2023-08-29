@@ -1,8 +1,11 @@
 package prerna.solr.reactor;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -39,10 +42,10 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 		
 		Map<String, Object> metadata = null;
 		JsonReader jReader = null;
-		FileReader fReader = null;
+		BufferedReader fReader = null;
 		try {
 			Gson gson = new Gson();
-			fReader = new FileReader(fileLocation);
+			fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
 			metadata = gson.fromJson(jReader, Map.class);
 	    } catch(IOException e) {
