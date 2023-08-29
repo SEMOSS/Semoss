@@ -8,7 +8,7 @@ from string import Template
 class TextGenClient(BaseClient):
   params = list(inspect.signature(Client.generate).parameters.keys())[1:]
 
-  def __init__(self, template=None, endpoint=None, model_name="guanaco", **kwargs):
+  def __init__(self, template=None, endpoint=None, model_name="guanaco", template_name = None, **kwargs):
     assert endpoint is not None
     super().__init__(template=template)
     self.kwargs = kwargs
@@ -16,6 +16,7 @@ class TextGenClient(BaseClient):
     self.model_name = model_name
     self.model_list_endpoint=endpoint
     self.available_models = []
+    self.template_name = template_name
     
   def ask(self, 
           question:str=None, 
@@ -23,6 +24,7 @@ class TextGenClient(BaseClient):
           history:list=[],
           template_name:str=None,
           max_new_tokens:int=100,
+          prefix = "",
           **kwargs:dict
           )->str:
     # start the prompt as an empty string
@@ -34,6 +36,9 @@ class TextGenClient(BaseClient):
     # assert that the question is not None. We can do this or put an assert statement
     if question is None:
       return "Please ask me a question"
+    
+    if template_name == None:
+       template_name = self.template_name
 
     # attempt to pull in the context
     sub_occured = False
@@ -63,10 +68,10 @@ class TextGenClient(BaseClient):
         content.append('\n')
     
       # append the user asked question to the content
-      content.append('user:')
+      content.append('System:\n')
       content.append(question)
       content.append('\n')
-      content.append('system:')
+      content.append('User:\n')
 
     else: # oterhwise the gave how the want the response to come back, so we reverse order - history first
       histContent = []
@@ -82,7 +87,12 @@ class TextGenClient(BaseClient):
     #print(prompt)
     # ask the question and apply the additional params
     responses = self.client.generate_stream(prompt, max_new_tokens=max_new_tokens, **kwargs)
-    return ''.join(response.token.text for response in responses)
+    final_response = ""
+    for response in responses:
+       chunk = response.token.text
+       print(prefix+chunk,end='')
+       final_response += chunk
+    return final_response
 
   def get_available_models(self)->list:
     if len(self.available_models) == 0:
