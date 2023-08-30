@@ -228,8 +228,7 @@ public abstract class AbstractHttpHelper {
 	 * @param nameOfToken
 	 * @return
 	 */
-	public static AccessToken getAccessToken(String input, String nameOfToken)
-	{
+	public static AccessToken getAccessToken(String input, String nameOfToken) {
 		String accessToken = null;
 		String [] tokens = input.split("&");
 		for(int tokenIndex = 0;tokenIndex < tokens.length;tokenIndex++) {
@@ -272,7 +271,6 @@ public abstract class AbstractHttpHelper {
 	 */
 	public static AccessToken getJAccessToken(String json, String nameOfToken) {
 		AccessToken tok = new AccessToken();
-
 		try {
 			JmesPath<JsonNode> jmespath = new JacksonRuntime();
 			// Expressions need to be compiled before you can search. Compiled expressions
@@ -310,30 +308,25 @@ public abstract class AbstractHttpHelper {
 
 
 	// makes the call to every resource going forward with the specified keys as get
-	public static String makeGetCall(String url_str, String accessToken)
-	{
-		return makeGetCall(url_str, accessToken, null, true);
+	public static String makeGetCall(String urlStr, String accessToken) {
+		return makeGetCall(urlStr, accessToken, null, true);
 	}
 
 	// makes the call to every resource going forward with the specified keys as get
-	public static String makeGetCall(String url_str, String accessToken, Hashtable params, boolean auth)
-	{
+	public static String makeGetCall(String urlStr, String accessToken, Hashtable params, boolean auth) {
 		String retString = null;
-		
 		// fill the params on the get since it is not null
-		if(params != null)
-		{
-			StringBuffer urlBuf = new StringBuffer(url_str);
+		if(params != null) {
+			StringBuffer urlBuf = new StringBuffer(urlStr);
 			urlBuf.append("?");
 			Enumeration keys = params.keys();
 			boolean first = true;
-			while(keys.hasMoreElements())
-			{
+			while(keys.hasMoreElements()) {
 				Object key = keys.nextElement() +"";
 				Object value = params.get(key);
-				
-				if(!first)
+				if(!first) {
 					urlBuf.append("&");
+				}
 				
 				try {
 					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
@@ -343,21 +336,21 @@ public abstract class AbstractHttpHelper {
 				
 				first = false;
 			}
-			url_str = urlBuf.toString();
+			urlStr = urlBuf.toString();
 		}
 		
 		try {
-			
 			HttpURLConnection con = null;
-			URL url = new URL(url_str);
+			URL url = new URL(urlStr);
 		    con = ( HttpURLConnection )url.openConnection();
 		    con.setDoInput(true);
 		    con.setDoOutput(true);
 		    con.setUseCaches(false);
 		    con.setRequestMethod("GET");
 		    con.setRequestProperty("User-Agent", "SEMOSS");
-		    if(auth)
+		    if(auth) {
 		    	con.setRequestProperty("Authorization","Bearer " + accessToken);
+		    }
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
 
@@ -379,24 +372,19 @@ public abstract class AbstractHttpHelper {
 	}
 
 	// makes the call to every resource going forward with the specified keys as get
-	public static BufferedReader getHttpStream(String url_str, String accessToken, Hashtable params, boolean auth)
-	{
-		String retString = null;
-		
+	public static BufferedReader getHttpStream(String url_str, String accessToken, Hashtable params, boolean auth) {
 		// fill the params on the get since it is not null
-		if(params != null)
-		{
+		if(params != null) {
 			StringBuffer urlBuf = new StringBuffer(url_str);
 			urlBuf.append("?");
 			Enumeration keys = params.keys();
 			boolean first = true;
-			while(keys.hasMoreElements())
-			{
+			while(keys.hasMoreElements()) {
 				Object key = keys.nextElement() +"";
 				Object value = params.get(key);
-				
-				if(!first)
+				if(!first) {
 					urlBuf.append("&");
+				}
 				
 				try {
 					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
@@ -410,7 +398,6 @@ public abstract class AbstractHttpHelper {
 		}
 		
 		try {
-			
 			HttpURLConnection con = null;
 			URL url = new URL(url_str);
 		    con = ( HttpURLConnection )url.openConnection();
@@ -425,7 +412,6 @@ public abstract class AbstractHttpHelper {
 		    con.connect();
 
 		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream(), "UTF-8" ));
-		    
 		    return br;
 		} catch (MalformedURLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -438,8 +424,7 @@ public abstract class AbstractHttpHelper {
 
 	// make a post call
 	
-	public static String makePostCall(String url, String accessToken, Object input,  boolean json)
-	{
+	public static String makePostCall(String url, String accessToken, Object input,  boolean json) {
 		CloseableHttpClient httpclient = null;
 		try {
 			httpclient = HttpClients.createDefault();
@@ -448,25 +433,18 @@ public abstract class AbstractHttpHelper {
 			httppost.addHeader("Content-Type","application/json; charset=utf-8");
 			Hashtable params = null;
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-			if(!json)
-			{
+			if(!json) {
 				params = (Hashtable)input;
-
 				Enumeration<String> keys = params.keys();
-				
-				int paramIndex = 0;
-				
 				while (keys.hasMoreElements()) {
 					String key = keys.nextElement();
 					String value = (String) params.get(key);
 					paramList.add(new BasicNameValuePair(key, value));
-					paramIndex++;
 				}
 				httppost.setEntity(new UrlEncodedFormEntity(paramList));
-
 			}
-			else // this is a json input
-			{
+			// this is a json input
+			else {
 				String inputJson = mapper.writeValueAsString(input);
 				httppost.setEntity(new StringEntity(inputJson));
 			}
@@ -476,7 +454,6 @@ public abstract class AbstractHttpHelper {
 			
 			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
 			
-			int status = response.getStatusLine().getStatusCode();
 			BufferedReader rd = new BufferedReader(new InputStreamReader( response.getEntity().getContent(), "UTF-8"));
 			StringBuffer result = new StringBuffer();
 			String line = "";
@@ -484,8 +461,7 @@ public abstract class AbstractHttpHelper {
 				result.append(line);
 			}
 			return result.toString();
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		} finally {
 			if(httpclient != null) {
@@ -627,23 +603,25 @@ public abstract class AbstractHttpHelper {
 	
 	// makes the call to every resource going forward with the specified keys as post
 	
-	public static String [] getCodes(String queryStr)
-	{
-		String [] retString = new String[2];
-		
+	public static String [] getCodes(String queryStr) {
+	 	String [] retString = new String[2];
 		String[] inputCodes = queryStr.split("&");
-		String state = null, newcode = null;
-		for(int inputIndex = 0;inputIndex < inputCodes.length;inputIndex++)
-		{
+		for(int inputIndex = 0;inputIndex < inputCodes.length;inputIndex++) {
 			String thisToken = inputCodes[inputIndex];
-			if(thisToken.startsWith("state"))
+			if(thisToken.startsWith("state")) {
 				retString[1] = thisToken.replaceAll("state=", "");
-			if(thisToken.startsWith("code"))
+			}
+			if(thisToken.startsWith("code")) {
 				retString[0] = thisToken.replaceAll("code=", "");
+			}
 		}
 		
 		return retString;
 	}
+	
+	
+	//////////////////////////////////////////////////////////////////
+	
 	
 	/**
 	 * Get a custom client using the info passed in
@@ -660,7 +638,6 @@ public abstract class AbstractHttpHelper {
 		}
 		
 		TrustStrategy trustStrategy = new TrustStrategy() {
-			
 			@Override
 			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
 				return true;
@@ -668,7 +645,6 @@ public abstract class AbstractHttpHelper {
 		};
 		
 		HostnameVerifier verifier = new NoopHostnameVerifier();
-		
 		SSLConnectionSocketFactory connFactory = null;
 		try {
 			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
