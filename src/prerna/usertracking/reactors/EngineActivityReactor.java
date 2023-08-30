@@ -49,7 +49,8 @@ public class EngineActivityReactor extends AbstractReactor {
 			}
 		}
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId) 
+				&& !SecurityEngineUtils.engineIsDiscoverable(engineId)) {
 			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to engine");
 		}
 			
