@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.utils;
 
 import java.util.Map;
 
-import prerna.om.AwsSecretsManager;
+import prerna.aws.AwsSecretsManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
