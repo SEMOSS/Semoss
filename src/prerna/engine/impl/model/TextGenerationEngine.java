@@ -41,6 +41,8 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 				}
 			}
 		}
+		if(this.prefix != null)
+			callMaker.append(", prefix='").append(prefix).append("'");
 		callMaker.append(")");
 		System.out.println(callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString());
