@@ -1632,7 +1632,7 @@ public class CentralCloudStorage implements ICloudClient {
 		// We need to push the folder alias__projectId and the file alias__projectId.smss
 		String alias = project.getProjectName();
 
-		String aliasAndUserAssetWorkspaceId = alias + "__" + projectId;
+		String aliasAndUserAssetWorkspaceId = SmssUtilities.getUniqueName(alias, projectId);
 		String localUserAndAssetFolder = USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetWorkspaceId;
 		String storageUserAssetWorkspaceFolder = USER_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
