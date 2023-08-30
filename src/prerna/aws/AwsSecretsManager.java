@@ -1,4 +1,4 @@
-package prerna.om;
+package prerna.aws;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
