@@ -32,7 +32,8 @@ public class PostRequestReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(PostRequestReactor.class);
 
 	public PostRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "bodyMap", "useApplicationCert"};
+		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "bodyMap", 
+				ReactorKeysEnum.USE_APPLICATION_CERT.getKey()};
 	}
 	
 	@Override
@@ -133,8 +134,6 @@ public class PostRequestReactor extends AbstractReactor {
 			return "Map containing key-value pairs to send in the POST request";
 		} else if(key.equals("bodyMap")) {
 			return "Map containing key-value pairs to send in the body of the POST request";
-		} else if(key.equals("useApplicationCert")) {
-			return "Boolean if we should use the default application certificate when making the request";
 		}
 		return super.getDescriptionForKey(key);
 	}
