@@ -63,14 +63,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         size = int.from_bytes(data, "big")
         epoc_size = 20
         epoc = self.request.recv(epoc_size)
+        epoc = epoc.decode('utf-8')
         #print(f"epoc {epoc} {epoc.decode('utf-8')}")
         data = self.request.recv(size)
         #print(f"process the data ---- {data.decode('utf-8')}")
         #payload = data.decode('utf-8')   
         if self.server.blocking:
-          self.get_final_output(data)
+          self.get_final_output(data, epoc)
         else:
-          runner = threading.Thread(target=self.get_final_output, kwargs=({'data':data}))
+          runner = threading.Thread(target=self.get_final_output, kwargs=({'data':data, 'epoc':epoc}))
           runner.start()
         #self.get_final_output(data)
         if not data: 
@@ -85,6 +86,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     #self.get_final_output(data)
   
   def get_final_output(self, data=None, epoc=None):
+    if self.log_file is not None:
+      self.log_file.write(f"{data}")
+    print(data)
     payload = ""
     #payload = data
     # if this fails.. there is nothing you can do.. 
@@ -228,6 +232,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         #output = "Response.. " + data.decode("utf-8")
         self.send_output(output, payload, operation=payload["operation"], response=True, exception=True)
     except Exception as e:
+      print(f"in the exception block  {epoc}")
       output = ''.join(tb.format_exception(None, e, e.__traceback__))
       payload = {
       "epoc": epoc,
@@ -241,7 +246,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         condition.notifyAll()
         condition.release()
       else:
-        self.send_output(output, payload, response=True, exception=True)
+        self.send_output(output, payload, operation="PYTHON", response=True, exception=True)
       
   def send_output(self, output, orig_payload, operation = "STDOUT", response=False, interim=False, exception=False):
     # Do not write any prints here
