@@ -32,9 +32,6 @@ class OpenAiClient(BaseClient):
           template_name:str=None, 
           history:list=None, 
           page_size=100, 
-          stop_sequences=["#", ";"], 
-          temperature_val=0.01, 
-          top_p_val=0.5,
           prefix="", 
           **kwargs):
     openai_base = openai.api_base
@@ -43,8 +40,13 @@ class OpenAiClient(BaseClient):
       openai.api_key = self.api_key
     openai.api_base = self.endpoint
 
+    # TODO - make this better or pass the correct keys to the FE
     if ('max_new_tokens' in kwargs.keys()):
-      kwargs['max_tokens'] = kwargs.pop('max_new_tokens')
+      kwargs['max_tokens'] = int(kwargs.pop('max_new_tokens'))
+    if ('repetition_penalty' in kwargs.keys()):
+      kwargs['frequency_penalty'] = float(kwargs.pop('repetition_penalty'))
+    if ('stop_sequences' in kwargs.keys()):
+      kwargs['stop'] = kwargs.pop('stop_sequences')
 
     if template_name == None:
        template_name = self.template_name
@@ -148,7 +150,7 @@ class OpenAiClient(BaseClient):
       print('Q is:',question)
       while tokens < max_new_tokens and not finish:
         full_prompt = f"{prompt}{final_query}"
-        response = openai.Completion.create(model=self.model_name, prompt=full_prompt, temperature=temperature_val, max_tokens=page_size, top_p=top_p_val, stop=stop_sequences, **kwargs)
+        response = openai.Completion.create(model=self.model_name, prompt=full_prompt, max_tokens=page_size, **kwargs)
         output=response.choices[0].text
         print(prefix+output)
         final_query = f"{final_query}{output}"
