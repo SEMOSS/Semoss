@@ -38,7 +38,8 @@ public class GetRequestReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetRequestReactor.class);
 
 	public GetRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "useApplicationCert", "saveFile"};
+		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", 
+				ReactorKeysEnum.USE_APPLICATION_CERT.getKey(), "saveFile"};
 	}
 	
 	@Override
@@ -294,8 +295,6 @@ public class GetRequestReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals("headersMap")) {
 			return "Map containing key-value pairs to send in the GET request";
-		} else if(key.equals("useApplicationCert")) {
-			return "Boolean if we should use the default application certificate when making the request";
 		} else if(key.equals("saveFile")) {
 			return "Boolean if the request is returning a file and we should save the file to the insight space";
 		}
