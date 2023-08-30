@@ -2666,7 +2666,8 @@ public class Utility {
 			{
 				try {
 					Properties props = Utility.loadProperties(smssFilePath);
-					if(props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
+					boolean isAsset = Boolean.parseBoolean(props.getProperty(Constants.IS_ASSET_APP)+"");
+					if(!isAsset && props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
 						logger.info("Updating project smss to include public home property");
 						Map<String, String> mods = new HashMap<>();
 						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
@@ -2935,10 +2936,10 @@ public class Utility {
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			logger.info("Applying lock for project " + projectId);
+			logger.info("Applying lock for user asset/workspace " + projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
-			logger.info("Project "+ projectId + " is locked");
+			logger.info("User asset/workspace "+ projectId + " is locked");
 
 			try {
 				// Need to do a double check here,
@@ -2962,20 +2963,19 @@ public class Utility {
 				} else {
 					folderName = "Workplace";
 				}
-				String smssFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + 
-						Constants.USER_FOLDER + "/" + SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
-
+				String smssFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+						+ "/" + Constants.USER_FOLDER + "/" + SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
 				// Start up the engine using the details in the smss
 				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
 					// actual load engine process
 					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
-					logger.debug("There is no SMSS File for the project " + projectId + "...");
+					logger.debug("There is no SMSS File for the user asset/workspace " + projectId + "...");
 				}
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				logger.info("User asset/workspace "+ projectId + " is unlocked");
 			}
 		}
 		
