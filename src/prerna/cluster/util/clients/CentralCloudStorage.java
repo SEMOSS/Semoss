@@ -963,6 +963,12 @@ public class CentralCloudStorage implements ICloudClient {
 				project.close();
 			}
 			
+			// Make the project directory (if it doesn't already exist)
+			File localProjectF = new File(Utility.normalizePath(localProjectFolder));
+			if(!localProjectF.exists() || !localProjectF.isDirectory()) {
+				localProjectF.mkdirs(); 
+			}
+			
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
