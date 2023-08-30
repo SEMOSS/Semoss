@@ -13,6 +13,7 @@ public class GetAwsSecretManagerValueReactor extends AbstractReactor {
 
 	public GetAwsSecretManagerValueReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), 
+				"accessKey", "secretKey",
 				"secretId", "versionId", "versionStage",
 				ReactorKeysEnum.USE_APPLICATION_CERT.getKey()};
 	}
@@ -20,15 +21,20 @@ public class GetAwsSecretManagerValueReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String url = this.keyValue.get(this.keysToGet[0]);
+		String url = this.keyValue.get(ReactorKeysEnum.URL.getKey());
 		Utility.checkIfValidDomain(url);
-		String secretId = this.keyValue.get(this.keysToGet[1]);
-		String versionId = this.keyValue.get(this.keysToGet[2]);
-		String versionStage = this.keyValue.get(this.keysToGet[3]);
-		boolean useApplicationCerts = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]) + "");
+		String accessKey = this.keyValue.get("accessKey");
+		String secretKey = this.keyValue.get("secretKey");
+		
+		String secretId = this.keyValue.get("secretId");
+		String versionId = this.keyValue.get("versionId");
+		String versionStage = this.keyValue.get("versionStage");
+		boolean useApplicationCerts = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.USE_APPLICATION_CERT.getKey()) + "");
 
 		AwsSecretsManager manager = new AwsSecretsManager();
 		manager.setUrl(url);
+		manager.setAccessKey(accessKey);
+		manager.setSecretKey(secretKey);
 		manager.setSecretId(secretId);
 		manager.setVersionId(versionId);
 		manager.setVersionStage(versionStage);

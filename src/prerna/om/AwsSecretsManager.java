@@ -1,6 +1,8 @@
 package prerna.om;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 
 import org.apache.http.HttpEntity;
@@ -21,25 +23,30 @@ public class AwsSecretsManager {
 
 	private static final Logger classLogger = LogManager.getLogger(AwsSecretsManager.class);
 
+	// https://docs.aws.amazon.com/secretsmanager/latest/userguide/endpoints.html
 	private String url;
 	private boolean useApplicationCerts = false;
 	private String keyStore;
 	private String keyStorePass;
 	private String keyPass;
+
+	// security
+	private String accessKey;
+	private String secretKey;
 	
 	// inputs
 	private String secretId;
 	private String versionId;
 	private String versionStage;
-	
+
 	// output 
 	private String responseData;
 	private Map<String, Object> responseJson;
-	
+
 	public AwsSecretsManager() {
-		
+
 	}
-	
+
 	/**
 	 * Once inputs passed in make the request
 	 */
@@ -48,16 +55,16 @@ public class AwsSecretsManager {
 			throw new NullPointerException("Must define the url");
 		}
 		if(this.secretId == null || (this.secretId=this.secretId.trim()).isEmpty()) {
-			throw new NullPointerException("Must define the ARN of the secret key");
+			throw new NullPointerException("Must define the ARN of the secret");
 		}
-		
+
 		CloseableHttpResponse response = null;
 		CloseableHttpClient httpClient = null;
 		HttpEntity entity = null;
 		try {
 			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(url);
-			
+
 			// add the secret id
 			httpGet.addHeader("SecretId", this.secretId);
 			if(this.versionId != null && !(this.versionId=this.versionId.trim()).isEmpty()) {
@@ -67,17 +74,22 @@ public class AwsSecretsManager {
 				httpGet.addHeader("VersionStage", this.versionStage);
 			}
 			
+			if(this.accessKey != null && this.secretKey != null) {
+				String authorization = createAuthorizationHeader(accessKey, secretKey);
+				httpGet.setHeader("Authorization", authorization);
+			}
+
 			response = httpClient.execute(httpGet);
 			int statusCode = response.getStatusLine().getStatusCode();
 			entity = response.getEntity();
-            if (statusCode >= 200 && statusCode < 300) {
-                this.responseData = entity != null ? EntityUtils.toString(entity) : null;
-            } else {
-            	this.responseData = entity != null ? EntityUtils.toString(entity) : "";
-    			throw new IllegalArgumentException("Connected to " + this.url + " but received error = " + this.responseData);
-            }
-            
-            this.responseJson = new Gson().fromJson(this.responseData, Map.class);
+			if (statusCode >= 200 && statusCode < 300) {
+				this.responseData = entity != null ? EntityUtils.toString(entity) : null;
+			} else {
+				this.responseData = entity != null ? EntityUtils.toString(entity) : "";
+				throw new IllegalArgumentException("Connected to " + this.url + " but received error = " + this.responseData);
+			}
+
+			this.responseJson = new Gson().fromJson(this.responseData, Map.class);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
@@ -106,6 +118,21 @@ public class AwsSecretsManager {
 		}
 	}
 
+	/**
+	 * 
+	 * @param accessKey
+	 * @param secretKey
+	 * @return
+	 */
+	private static String createAuthorizationHeader(String accessKey, String secretKey) {
+		String credentials = accessKey + ":" + secretKey;
+		String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+		return "Basic " + encodedCredentials;
+	}
+
+	//////////////////////////////////
+
+
 	public String getUrl() {
 		return url;
 	}
@@ -114,6 +141,22 @@ public class AwsSecretsManager {
 		this.url = url;
 	}
 	
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	public void setAccessKey(String accessKey) {
+		this.accessKey = accessKey;
+	}
+
+	public String getSecretKey() {
+		return secretKey;
+	}
+
+	public void setSecretKey(String secretKey) {
+		this.secretKey = secretKey;
+	}
+
 	public boolean isUseApplicationCerts() {
 		return useApplicationCerts;
 	}
@@ -190,5 +233,5 @@ public class AwsSecretsManager {
 	public void setResponseJson(Map<String, Object> responseJson) {
 		this.responseJson = responseJson;
 	}
-	
+
 }
