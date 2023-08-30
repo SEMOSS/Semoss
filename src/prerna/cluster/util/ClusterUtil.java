@@ -12,8 +12,6 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.cluster.util.clients.ICloudClient;
 import prerna.engine.api.IDatabaseEngine;
@@ -25,7 +23,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.insight.TextToGraphic;
+import prerna.util.DefaultImageGeneratorUtil;
 
 public class ClusterUtil {
 
@@ -953,14 +951,16 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases" + DIR_SEPARATOR + databaseId + ".png";
 
-					if(alias != null) {
-						TextToGraphic.makeImage(alias, imageFilePath);
-					} else{
-						TextToGraphic.makeImage(databaseId, imageFilePath);
-					}
+//					String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
+//					if(alias != null) {
+//						TextToGraphic.makeImage(alias, imageFilePath);
+//					} else{
+//						TextToGraphic.makeImage(databaseId, imageFilePath);
+//					}
+					
+					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
 					getCentralStorageClient().pushDatabaseImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
@@ -1020,14 +1020,16 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityEngineUtils.getEngineAliasForId(storageId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "storages" + DIR_SEPARATOR + storageId + ".png";
 
-					if(alias != null) {
-						TextToGraphic.makeImage(alias, imageFilePath);
-					} else{
-						TextToGraphic.makeImage(storageId, imageFilePath);
-					}
+//					String alias = SecurityEngineUtils.getEngineAliasForId(storageId);
+//					if(alias != null) {
+//						TextToGraphic.makeImage(alias, imageFilePath);
+//					} else{
+//						TextToGraphic.makeImage(storageId, imageFilePath);
+//					}
+					
+					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
 					getCentralStorageClient().pushStorageImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
@@ -1087,14 +1089,16 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityEngineUtils.getEngineAliasForId(modelId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "models" + DIR_SEPARATOR + modelId + ".png";
 
-					if(alias != null) {
-						TextToGraphic.makeImage(alias, imageFilePath);
-					} else{
-						TextToGraphic.makeImage(modelId, imageFilePath);
-					}
+//					String alias = SecurityEngineUtils.getEngineAliasForId(modelId);
+//					if(alias != null) {
+//						TextToGraphic.makeImage(alias, imageFilePath);
+//					} else{
+//						TextToGraphic.makeImage(modelId, imageFilePath);
+//					}
+					
+					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
 					getCentralStorageClient().pushModelImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
@@ -1157,14 +1161,16 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects" + DIR_SEPARATOR + projectId + ".png";
 
-					if(alias != null) {
-						TextToGraphic.makeImage(alias, imageFilePath);
-					} else{
-						TextToGraphic.makeImage(projectId, imageFilePath);
-					}
+//					String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+//					if(alias != null) {
+//						TextToGraphic.makeImage(alias, imageFilePath);
+//					} else{
+//						TextToGraphic.makeImage(projectId, imageFilePath);
+//					}
+					
+					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
 					getCentralStorageClient().pushProjectImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
