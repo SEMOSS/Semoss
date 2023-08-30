@@ -136,7 +136,7 @@ class OpenAiClient(BaseClient):
       if history is not None:
         prompt = f"{prompt} {history}"
 
-      final_query = question
+      final_query = question + " "
       tokens = 0
       finish = False
 
@@ -146,16 +146,24 @@ class OpenAiClient(BaseClient):
       else:
         max_new_tokens = 100
 
-      print('Prompt is:',prompt)
-      print('Q is:',question)
-      while tokens < max_new_tokens and not finish:
-        full_prompt = f"{prompt}{final_query}"
-        response = openai.Completion.create(model=self.model_name, prompt=full_prompt, max_tokens=page_size, **kwargs)
-        output=response.choices[0].text
-        print(prefix+output)
-        final_query = f"{final_query}{output}"
-        tokens = tokens + page_size
-        finish = response.choices[0].finish_reason == "stop"
+      #print('Prompt is:',prompt)
+      #print('Q is:',question)
+      print(prefix+final_query, end ='')
+      responses = openai.Completion.create(model=self.model_name, prompt=question, stream = True, **kwargs)
+      for chunk in responses:
+        response = chunk.choices[0].text
+        if response != None:
+           final_query += response
+           print(prefix+response, end ='')
+      final_query = final_query
+      # while tokens < max_new_tokens and not finish:
+      #   full_prompt = f"{prompt}{final_query}"
+      #   response = openai.Completion.create(model=self.model_name, prompt=full_prompt, max_tokens=page_size, **kwargs)
+      #   output=response.choices[0].text
+      #   print(prefix+output)
+      #   final_query = f"{final_query}{output}"
+      #   tokens = tokens + page_size
+      #   finish = response.choices[0].finish_reason == "stop"
     openai.api_base = openai_base  
     return final_query
 
