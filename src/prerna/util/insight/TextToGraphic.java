@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 
 import prerna.algorithm.nlp.TextHelper;
 
+@Deprecated
 public class TextToGraphic {
 
 	private static Random rand = new Random();
