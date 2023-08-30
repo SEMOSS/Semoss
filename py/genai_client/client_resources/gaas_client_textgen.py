@@ -8,7 +8,7 @@ from string import Template
 class TextGenClient(BaseClient):
   params = list(inspect.signature(Client.generate).parameters.keys())[1:]
 
-  def __init__(self, template=None, endpoint=None, model_name="guanaco", template_name = None, **kwargs):
+  def __init__(self, template=None, endpoint:str=None, model_name:str="guanaco", template_name:str = None, stop_sequences:list = None, **kwargs):
     assert endpoint is not None
     super().__init__(template=template)
     self.kwargs = kwargs
@@ -17,13 +17,14 @@ class TextGenClient(BaseClient):
     self.model_list_endpoint=endpoint
     self.available_models = []
     self.template_name = template_name
+    self.stop_sequences = stop_sequences
     
   def ask(self, 
           question:str=None, 
           context:str=None,
           history:list=[],
           template_name:str=None,
-          max_new_tokens:int=100,
+          max_new_tokens:int=1000,
           prefix = "",
           **kwargs:dict
           )->str:
@@ -39,6 +40,9 @@ class TextGenClient(BaseClient):
     
     if template_name == None:
        template_name = self.template_name
+
+    if self.stop_sequences != None and 'kwargs' not in kwargs.keys():
+       kwargs['stop_sequences'] = self.stop_sequences
 
     # attempt to pull in the context
     sub_occured = False
