@@ -511,6 +511,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_USERID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_TIMESTAMP"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION"));
@@ -520,6 +523,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__APPROVER_TIMESTAMP"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
+		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
