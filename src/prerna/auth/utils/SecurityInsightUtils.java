@@ -3176,6 +3176,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
         qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__ID"));
         qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_USERID"));
         qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
         qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_TIMESTAMP"));
         qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__PROJECTID"));
         qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__INSIGHTID"));
@@ -3187,6 +3190,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
         qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__PROJECTID", "==", projectId));
         qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__INSIGHTID", "==", insightId));
         qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+		qs.addRelation("INSIGHTACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
+		qs.addRelation("INSIGHTACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
         return QueryExecutionUtility.flushRsToMap(securityDb, qs);
     }
 	
