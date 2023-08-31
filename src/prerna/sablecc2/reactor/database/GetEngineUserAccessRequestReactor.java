@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -26,7 +27,8 @@ public class GetEngineUserAccessRequestReactor extends AbstractReactor {
 		}
 		// check user permission for the database
 		User user = this.insight.getUser();
-		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+		if(!SecurityAdminUtils.userIsAdmin(user) && 
+				!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this engine");
 		}
 		List<Map<String, Object>> requests = SecurityEngineUtils.getUserAccessRequestsByEngine(engineId);
