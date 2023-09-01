@@ -126,6 +126,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	// this is the read portion
     	if(connected)
     	{
+    		StringBuilder partialAssimilator = new StringBuilder("");
     		StringBuilder outputAssimilator = new StringBuilder("");
     		while (!killall) 
     		{
@@ -153,7 +154,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
-	    				logger.info("incoming payload " + ps.epoc);
+	    				logger.debug("incoming payload " + ps.epoc);
 
 	    				// std out no questions
 	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
@@ -161,7 +162,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					//logger.info(ps.payload[0]);
 	    					//logger.info("Standard output");
 
-	    					//outputAssimilator.append(ps.payload[0]);
+	    					outputAssimilator.append(ps.payload[0]);
 	    					if(lock != null)
 	    						exposeLog((String)ps.payload[0], lock.insightId);
 	    				}
@@ -176,16 +177,16 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					// need to return output here
 	    					if(ps.payload != null && !((String)ps.payload[0]).equalsIgnoreCase("NONE"))
 	    					{
-	    						outputAssimilator.append(ps.payload[0] + "");
+	    						partialAssimilator.append(ps.payload[0] + "");
 	    						if(lock != null && lock.insightId != null)
 	    							JobManager.getManager().addPartialOut(lock.insightId, ps.payload[0]+"");
 	    					}
 	    					if(!ps.interim)
 	    					{
 	    						//System.err.println("Final message.. ");
-		    					logger.info("FINAL PARTIALs OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
+		    					logger.info("FINAL PARTIALs OUTPUT <<<<<<<" + partialAssimilator + ">>>>>>>>>>>>");
 		    					// re-initialize it
-		    					outputAssimilator = new StringBuilder("");
+
 	    					}
 	    				}
 	    				// this is the response.. i.e. the full response
@@ -193,6 +194,13 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				{
 	    					//logger.info("Response from the py");
 	    					//System.err.println("This is working as designed");
+	    					if(ps != null && ps.payload !=null && ps.payload.length > 0 && ps.payload[0].toString().equalsIgnoreCase("None"))
+	    					{
+	    						if(partialAssimilator.length() > 0)
+	    							ps.payload = new String[] {partialAssimilator.toString()};
+	    						else 
+	    							ps.payload = new String[] {outputAssimilator.toString()};
+	    					}
 		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
 
 	    					// try to convert it into a full object
@@ -215,6 +223,9 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    							lock.notifyAll();
 	    						}
 	    					}
+	    					outputAssimilator = new StringBuilder("");
+	    					partialAssimilator = new StringBuilder("");
+
 	    				}
 	    				// this is a request
 	    				else if(ps.operation == ps.operation.ENGINE)
@@ -356,7 +367,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     			requestMap.put(id, ps);
     		}
     		writePayload(ps);
-			logger.info("outgoing payload " + ps.epoc);
+			logger.debug("outgoing payload " + ps.epoc);
 
 	    	// send the message
     		// time to wait = average time * 10
