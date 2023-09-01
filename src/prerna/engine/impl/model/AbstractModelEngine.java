@@ -36,12 +36,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	private static final String DIR_SEPERATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	public static final String PY_COMMAND_SEPARATOR = ";";
-	public static final String CUR_DIR = "CUR_DIR";
-	public static final String ENGINE_DIR = "ENGINE_DIR";
-	public static final String MESSAGE_CONTENT = "content";
-	public static final String ROLE = "role";
-	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -50,6 +44,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	protected String [] requiredVars = new String [] {Settings.VAR_NAME, Settings.PROMPT_STOPPER};
 	protected boolean keepConversationHistory = false;
+	protected boolean keepInputOutput = false;
 
 	// python server
 	TCPPyTranslator pyt = null;
@@ -84,15 +79,23 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				this.smssProp.put(var, randomString);
 			}
 		}
-		if (!this.smssProp.containsKey(CUR_DIR)) {
+		if (!this.smssProp.containsKey(ModelEngineConstants.CUR_DIR)) {
 			String curDir = new File(smssFilePath).getParent().replace(FILE_SEPARATOR, DIR_SEPERATOR);
-			this.smssProp.put(CUR_DIR, curDir);
+			this.smssProp.put(ModelEngineConstants.CUR_DIR, curDir);
 		}
-		if (!this.smssProp.containsKey(ENGINE_DIR)) {
-			this.smssProp.put("ENGINE_DIR", this.smssProp.get(CUR_DIR) + "/" + this.engineName + "__" + this.engineId);
+		if (!this.smssProp.containsKey(ModelEngineConstants.ENGINE_DIR)) {
+			this.smssProp.put(ModelEngineConstants.ENGINE_DIR, this.smssProp.get(ModelEngineConstants.CUR_DIR) + "/" + this.engineName + "__" + this.engineId);
 		}
 		
-		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty("KEEP_CONTEXT"));
+		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_CONVERSATION_HISTORY));
+		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_INPUT_OUTPUT));
+		
+		
+		if (this.smssProp.containsKey(ModelEngineConstants.KEEP_CONTEXT)) {
+			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_CONTEXT));
+			this.keepConversationHistory = keepContext;
+			this.keepInputOutput = keepContext;
+		}
 		
 		// create a generic folder
 		this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
@@ -118,7 +121,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		String initCommands = (String) smssProp.get(Constants.INIT_MODEL_ENGINE);
 		
 		// break the commands seperated by ;
-		String [] commands = initCommands.split(PY_COMMAND_SEPARATOR);
+		String [] commands = initCommands.split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
 		
 		// replace the Vars
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
@@ -191,10 +194,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			if (keepConversationHistory) {
 				Map<String, Object> inputMap = new HashMap<String, Object>();
 				Map<String, Object> outputMap = new HashMap<String, Object>();
-				inputMap.put(ROLE, "user");
-				inputMap.put(MESSAGE_CONTENT, question);
-				outputMap.put(ROLE, "assistant");
-				outputMap.put(MESSAGE_CONTENT, response);
+				inputMap.put(ModelEngineConstants.ROLE, "user");
+				inputMap.put(ModelEngineConstants.MESSAGE_CONTENT, question);
+				outputMap.put(ModelEngineConstants.ROLE, "assistant");
+				outputMap.put(ModelEngineConstants.MESSAGE_CONTENT, response);
 		        
 				if (chatHistory.containsKey(insight.getInsightId())) {
 			        chatHistory.get(insight.getInsightId()).add(inputMap);
@@ -217,7 +220,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public Object embeddings(String question, Insight insight, Map <String, Object> parameters) {
 		if(!this.socketClient.isConnected())
 			this.startServer();
-		String varName = (String) smssProp.get("VAR_NAME");
+		String varName = (String) smssProp.get(ModelEngineConstants.VAR_NAME);
 	
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".embeddings(");
 		callMaker.append("question=\"").append(question).append("\"").append(")");
@@ -270,10 +273,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return resolvedString;
 	}
 	
-	public boolean keepsConversationHistory() {
-		return this.keepConversationHistory;
-	}
-	
 	public String getConversationHistoryFromInferenceLogs(String insightId, String userId){
 		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, insightId, "ASC");
 		if (convoHistoryFromDb.size() > 0) {
@@ -282,13 +281,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				Map<String, Object> mapHistory = new HashMap<String, Object>();
 				if (record.get("MESSAGE_TYPE").equals("RESPONSE")) {
 
-					mapHistory.put(ROLE, "assistant");
-					mapHistory.put(MESSAGE_CONTENT, messageData);
+					mapHistory.put(ModelEngineConstants.ROLE, "assistant");
+					mapHistory.put(ModelEngineConstants.MESSAGE_CONTENT, messageData);
 			            
 
 				} else {
-					mapHistory.put(ROLE, "user");
-					mapHistory.put(MESSAGE_CONTENT, messageData);
+					mapHistory.put(ModelEngineConstants.ROLE, "user");
+					mapHistory.put(ModelEngineConstants.MESSAGE_CONTENT, messageData);
 				}
 		        chatHistory.get(insightId).add(mapHistory);
 			}
@@ -337,6 +336,14 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			}
 		}
 		return null;
+	}
+	
+	public boolean keepsConversationHistory() {
+		return this.keepConversationHistory;
+	}
+	
+	public boolean keepInputOutput() {
+		return this.keepInputOutput;
 	}
 	
 	@Override
