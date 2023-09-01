@@ -12,12 +12,10 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.AbstractModelEngine;
+import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 
 public class ModelEngineInferenceLogsWorker implements Runnable {
-	
-	private static final String MESSAGE_CONTENT = "content";
-	private static final String ROLE = "role";
 	
 	private String messageId;
 	private String messageMethod;
@@ -83,7 +81,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
 			String roomName = null;
-			if (Boolean.parseBoolean((String) engine.getSmssProp().get("GENERATE_ROOM_NAME")) == true) {
+			if (Boolean.parseBoolean((String) engine.getSmssProp().get(ModelEngineConstants.GENERATE_ROOM_NAME)) == true) {
 				roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
 			} else {
 				roomName = question.substring(0, Math.min(question.length(), 100));
@@ -91,12 +89,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			ModelInferenceLogsUtils.doCreateNewConversation(insightId, roomName, this.context, user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
 		}
 				
-		if(engine.keepsConversationHistory()) {
+		if(engine.keepInputOutput()) {
 			Map<String, Object> inputOutputMap = new HashMap<String, Object>();
-			inputOutputMap.put(ROLE, "user");
-			inputOutputMap.put(MESSAGE_CONTENT, question);
+			inputOutputMap.put(ModelEngineConstants.ROLE, "user");
+			inputOutputMap.put(ModelEngineConstants.MESSAGE_CONTENT, question);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					"INPUT",
+					ModelEngineConstants.INPUT,
 					question.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
@@ -107,10 +105,10 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					sessionId,
 					userId
 					);
-			inputOutputMap.put(ROLE, "assistant");
-			inputOutputMap.put(MESSAGE_CONTENT, response);
+			inputOutputMap.put(ModelEngineConstants.ROLE, "assistant");
+			inputOutputMap.put(ModelEngineConstants.MESSAGE_CONTENT, response);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					"RESPONSE",
+					ModelEngineConstants.RESPONSE,
 					response.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
@@ -123,7 +121,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					"INPUT",
+					ModelEngineConstants.INPUT,
 					null,
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
@@ -135,7 +133,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					userId
 					);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					"RESPONSE",
+					ModelEngineConstants.RESPONSE,
 					null,
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
