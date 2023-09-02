@@ -79,6 +79,9 @@ public class GitlabUtility {
 	 * @param personalOAuthToken
 	 * @param privateToken
 	 * @param useApplicationCert
+	 * @param saveFilePath
+	 * @param saveFileName
+	 * @return
 	 */
 	public static File pullJobArtifact(String host, String gitProjectId, String jobId, String personalOAuthToken, String privateToken, boolean useApplicationCert, String saveFilePath, String saveFileName) {
 		String url = host;
