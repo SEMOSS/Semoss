@@ -63,12 +63,43 @@ public class GitlabUtility {
 	}
 	
 	/**
-	 * From a job map - parse out id 
-	 * @param jobMap
+	 * 
+	 * @param host
+	 * @param gitProjectId
+	 * @param personalOAuthToken
+	 * @param privateToken
+	 * @param useApplicationCert
 	 * @return
 	 */
-	public static String getJobIdFromJobMap(Map<String, Object> jobMap) {
-		return (String) jobMap.get("id");
+	public static List<Map<String, Object>> getGitlabBranches(String host, String gitProjectId, String personalOAuthToken, String privateToken, boolean useApplicationCert) {
+		String url = host;
+		if(url.endsWith("/")) {
+			url += "api/v4/projects/"+gitProjectId+"/repository/branches";
+		} else {
+			url += "/api/v4/projects/"+gitProjectId+"/repository/branches";
+		}
+		
+		String keyStore = null;
+		String keyStorePass = null;
+		String keyPass = null;
+		if(useApplicationCert) {
+			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+		}
+		
+		List<Map<String, String>> headersMap = new ArrayList<>();
+		Map<String, String> authMap = new HashMap<>();
+		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
+			authMap.put("Authorization: Bearer", personalOAuthToken);
+		} else if(privateToken != null && !privateToken.isEmpty()) {
+			authMap.put("PRIVATE-TOKEN", privateToken);
+		}
+		headersMap.add(authMap);
+		
+		String responseData = AbstractHttpHelper.getRequest(headersMap, url, keyStore, keyStorePass, keyPass);
+		Gson gson = new Gson();
+        return gson.fromJson(responseData, List.class);
 	}
 	
 	/**
@@ -179,7 +210,9 @@ public class GitlabUtility {
 	
 	
 	
-	
+	/**
+	 * 
+	 */
 	private GitlabUtility() {
 		
 	}
