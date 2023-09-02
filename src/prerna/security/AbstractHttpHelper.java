@@ -1,8 +1,11 @@
 package prerna.security;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -17,6 +20,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -24,13 +28,16 @@ import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -45,6 +52,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,12 +63,13 @@ import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.auth.AccessToken;
+import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractHttpHelper {
 
-	private static final Logger logger = LogManager.getLogger(AbstractHttpHelper.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(AbstractHttpHelper.class.getName());
 	private static ObjectMapper mapper = new ObjectMapper();
 	
 	/////////////////////////////////////////////////////
@@ -97,10 +106,10 @@ public abstract class AbstractHttpHelper {
 
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			int status = response.getStatusLine().getStatusCode();
-			logger.info("Request for access token at " + url + " returned status code = " + status);
+			classLogger.info("Request for access token at " + url + " returned status code = " + status);
 
 			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			logger.info("Request response = " + Utility.cleanLogString(result));
+			classLogger.info("Request response = " + Utility.cleanLogString(result));
 			
 			// this will set the token to use
 			if(status == 200 && extract) {
@@ -111,25 +120,25 @@ public abstract class AbstractHttpHelper {
 				}
 			}
 		} catch (UnsupportedEncodingException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (ClientProtocolException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UnsupportedOperationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 				try {
 					httpclient.close();
 				} catch(IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 
 		if(tok != null && tok.getAccess_token() == null) {
-			logger.warn("Error occurred grabbing the access token: " + Utility.cleanLogString(result));
+			classLogger.warn("Error occurred grabbing the access token: " + Utility.cleanLogString(result));
 		}
 		
 		// send back the token
@@ -164,10 +173,10 @@ public abstract class AbstractHttpHelper {
 
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			int status = response.getStatusLine().getStatusCode();
-			logger.info("Request for access token at " + url + " returned status code = " + status);
+			classLogger.info("Request for access token at " + url + " returned status code = " + status);
 
 			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			logger.info("Request response = " + Utility.cleanLogString(result));
+			classLogger.info("Request response = " + Utility.cleanLogString(result));
 			
 			// this will set the token to use
 			if(status == 200 && extract) {
@@ -178,25 +187,25 @@ public abstract class AbstractHttpHelper {
 				}
 			}
 		} catch (UnsupportedEncodingException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (ClientProtocolException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UnsupportedOperationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 				try {
 					httpclient.close();
 				} catch(IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 
 		if(tok != null && tok.getAccess_token() == null) {
-			logger.warn("Error occurred grabbing the id token: " + Utility.cleanLogString(result));
+			classLogger.warn("Error occurred grabbing the id token: " + Utility.cleanLogString(result));
 		}
 		
 		// send back the token
@@ -291,7 +300,7 @@ public abstract class AbstractHttpHelper {
 			}
 			tok.init();
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return tok;
 	}
@@ -331,7 +340,7 @@ public abstract class AbstractHttpHelper {
 				try {
 					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				
 				first = false;
@@ -363,9 +372,9 @@ public abstract class AbstractHttpHelper {
 		    retString = str.toString();
 		    System.out.println(retString);	
 		} catch (MalformedURLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retString;
@@ -389,7 +398,7 @@ public abstract class AbstractHttpHelper {
 				try {
 					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				
 				first = false;
@@ -414,9 +423,9 @@ public abstract class AbstractHttpHelper {
 		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream(), "UTF-8" ));
 		    return br;
 		} catch (MalformedURLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -468,7 +477,7 @@ public abstract class AbstractHttpHelper {
 		          try {
 		            httpclient.close();
 		          } catch(IOException e) {
-		              logger.error(Constants.STACKTRACE, e);
+		              classLogger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
@@ -509,7 +518,7 @@ public abstract class AbstractHttpHelper {
 			          try {
 			            httpclient.close();
 			          } catch(IOException e) {
-			              logger.error(Constants.STACKTRACE, e);
+			              classLogger.error(Constants.STACKTRACE, e);
 			          }
 			        }
 			}
@@ -551,7 +560,7 @@ public abstract class AbstractHttpHelper {
 		          try {
 		            httpclient.close();
 		          } catch(IOException e) {
-		              logger.error(Constants.STACKTRACE, e);
+		              classLogger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
@@ -592,7 +601,7 @@ public abstract class AbstractHttpHelper {
 		          try {
 		            httpclient.close();
 		          } catch(IOException e) {
-		              logger.error(Constants.STACKTRACE, e);
+		              classLogger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
@@ -653,7 +662,7 @@ public abstract class AbstractHttpHelper {
 			if(keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
 				File keyStoreF = new File(keyStore);
 				if(!keyStoreF.exists() && !keyStoreF.isFile()) {
-					logger.warn("Defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
+					classLogger.warn("Defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
 				} else {
 					if(keyPass == null || keyPass.isEmpty()) {
 						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
@@ -676,22 +685,205 @@ public abstract class AbstractHttpHelper {
 //			}
 			;
 		} catch (KeyManagementException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchAlgorithmException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (KeyStoreException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UnrecoverableKeyException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (CertificateException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		builder.setSSLSocketFactory(connFactory);
 		return builder.build();
 	}
 	
+	/**
+	 * 
+	 * @param headersMap
+	 * @param url
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String getRequest(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass) {
+		CloseableHttpResponse response = null;
+		CloseableHttpClient httpClient = null;
+		HttpEntity entity = null;
+		String responseData = null;
+		try {
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpGet httpGet = new HttpGet(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(int i = 0; i < headersMap.size(); i++) {
+					Map<String, String> head = headersMap.get(i);
+					for(String key : head.keySet()) {
+						httpGet.addHeader(key, head.get(key));
+					}
+				}
+			}
+			response = httpClient.execute(httpGet);
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity) : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity) : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} finally {
+			if(entity != null) {
+				try {
+					EntityUtils.consume(entity);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 
+	/**
+	 * 
+	 * @param headersMap
+	 * @param url
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @param saveFilePath
+	 * @param saveFileName
+	 * @return
+	 */
+	public static File getRequestFileDownload(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
+		String fileName = saveFileName;
+		if(fileName == null) {
+			// if not passed in, see if we can grab it from the URL
+			String[] pathSeparated = url.split("/");
+			fileName = pathSeparated[pathSeparated.length - 1];
+			if (fileName == null) {
+				throw new IllegalArgumentException("Url path does not end in a file name");
+			}
+		}
+		
+		CloseableHttpResponse response = null;
+		CloseableHttpClient httpClient = null;
+		InputStream is = null;
+		// used if virus scanning
+		ByteArrayOutputStream baos = null;
+		ByteArrayInputStream bais = null;
+		HttpEntity entity = null;
+
+		try {
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpGet httpGet = new HttpGet(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(int i = 0; i < headersMap.size(); i++) {
+					Map<String, String> head = headersMap.get(i);
+					for(String key : head.keySet()) {
+						httpGet.addHeader(key, head.get(key));
+					}
+				}
+			}
+			response = httpClient.execute(httpGet);
+			
+			File fileDir = new File(saveFilePath);
+			if (!fileDir.exists()) {
+				Boolean success = fileDir.mkdirs();
+				if(!success) {
+					classLogger.warn("Unable to make the directory to save the file at location: " + Utility.cleanLogString(saveFilePath));
+					throw new IllegalArgumentException("Directory to save the file download does not exist and could not be created");
+				}
+			}
+			
+			String fileLocation = Utility.getUniqueFilePath(saveFilePath, fileName);
+			File savedFile = new File(fileLocation);
+
+			entity = response.getEntity(); 
+			is = entity.getContent();
+			
+			if (Utility.isVirusScanningEnabled()) {
+				try {
+					baos = new ByteArrayOutputStream();
+		            IOUtils.copy(is, baos);
+		            bais = new ByteArrayInputStream(baos.toByteArray());
+		            
+					Map<String, Collection<String>> viruses = VirusScannerUtils.getViruses(fileName, bais);
+					if (!viruses.isEmpty()) {	
+						String error = "File contained " + viruses.size() + " virus";
+						if (viruses.size() > 1) {
+							error = error + "es";
+						}
+						
+						throw new IllegalArgumentException(error);
+					}
+					
+					bais.reset();
+					FileUtils.copyInputStreamToFile(bais, savedFile);
+				} catch (IOException e) {
+					throw new IllegalArgumentException("Could not read file item.", e);
+				}
+			} else {
+				FileUtils.copyInputStreamToFile(is, savedFile);
+			}
+			
+			return savedFile;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} finally {
+			if(is != null) {
+				IOUtils.closeQuietly(is);
+			}
+			if(bais != null) {
+				IOUtils.closeQuietly(bais);
+			}
+			if(baos != null) {
+				IOUtils.closeQuietly(baos);
+			}
+			if(entity != null) {
+				try {
+					EntityUtils.consume(entity);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 }
