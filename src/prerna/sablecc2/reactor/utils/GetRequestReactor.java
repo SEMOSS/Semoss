@@ -84,8 +84,11 @@ public class GetRequestReactor extends AbstractReactor {
 		File savedFile = AbstractHttpHelper.getRequestFileDownload(headersMap, url, keyStore, keyStorePass, keyPass, filePath, null);
 		String savedFilePath = savedFile.getAbsolutePath();
 		String savedFileName = FilenameUtils.getName(savedFilePath);
-		this.runCommitAssetReactor(savedFilePath, savedFileName);
-		return new NounMetadata(savedFileName, PixelDataType.CONST_STRING);			
+		// we only commit if its a saved insight
+		if(this.insight.isSavedInsight()) {
+			this.runCommitAssetReactor(savedFilePath, savedFileName);
+		}
+		return new NounMetadata(savedFileName, PixelDataType.CONST_STRING);
 	}
 	
 	/**
