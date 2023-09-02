@@ -117,6 +117,59 @@ public class GitlabUtility {
 		return artifact;
 	}
 	
+	/**
+	 * 
+	 * @param host
+	 * @param gitProjectId
+	 * @param branch
+	 * @param jobName
+	 * @param personalOAuthToken
+	 * @param privateToken
+	 * @param useApplicationCert
+	 * @param saveFilePath
+	 * @param saveFileName
+	 * @return
+	 */
+	public static File pullLastSuccessfulJobArtifact(String host, String gitProjectId, String branch, String jobName, String personalOAuthToken, String privateToken, boolean useApplicationCert, String saveFilePath, String saveFileName) {
+		if(branch == null || (branch=branch.trim()).isEmpty()) {
+			throw new NullPointerException("Must provide the branch name");
+		}
+		if(jobName == null || (jobName=jobName.trim()).isEmpty()) {
+			throw new NullPointerException("Must provide the job name");
+		}
+		String url = host;
+		if(url.endsWith("/")) {
+			url += "api/v4/projects/"+gitProjectId+"/jobs/artifacts/"+branch+"/download?job="+jobName;
+		} else {
+			url += "/api/v4/projects/"+gitProjectId+"/jobs/artifacts/"+branch+"/download?job="+jobName;
+		}
+		
+		String keyStore = null;
+		String keyStorePass = null;
+		String keyPass = null;
+		if(useApplicationCert) {
+			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+		}
+		
+		List<Map<String, String>> headersMap = new ArrayList<>();
+		Map<String, String> authMap = new HashMap<>();
+		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
+			authMap.put("Authorization: Bearer", personalOAuthToken);
+		} else if(privateToken != null && !privateToken.isEmpty()) {
+			authMap.put("PRIVATE-TOKEN", privateToken);
+		}
+		headersMap.add(authMap);
+
+		if(saveFileName == null || saveFileName.isEmpty()) {
+			saveFileName = "artifact.zip";
+		}
+		
+		File artifact = AbstractHttpHelper.getRequestFileDownload(headersMap, url, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+		return artifact;
+	}
+	
 	
 	
 	
