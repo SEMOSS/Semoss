@@ -9,9 +9,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class GitlabPullJobArtifactReactor extends AbstractReactor {
+public class GitlabPullJobArtifactByIdReactor extends AbstractReactor {
 
-	public GitlabPullJobArtifactReactor() {
+	public GitlabPullJobArtifactByIdReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.GITLAB_PROJECT_ID.getKey(),
 				ReactorKeysEnum.GITLAB_JOB_ID.getKey(),
