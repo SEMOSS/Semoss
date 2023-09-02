@@ -39,4 +39,11 @@ public class GitlabPullLastSuccessfulJobArtifactReactor extends AbstractReactor 
 		return new NounMetadata(artifactFileName, PixelDataType.CONST_STRING);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor pulls the latest successful artifact for a GitLab project. "
+				+ "Specifically, its pulls the last successful pipeline execution for a specific branch and for a specific job name "
+				+ "as the pipeline might produce multiple artifacts based on the stages";
+	}
+	
 }

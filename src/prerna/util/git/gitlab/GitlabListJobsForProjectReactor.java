@@ -30,4 +30,9 @@ public class GitlabListJobsForProjectReactor extends AbstractReactor {
 		return new NounMetadata(responseData, PixelDataType.VECTOR);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor returns a list of JSON maps for the last 20 pipeline jobs that ran for a GitLab project";
+	}
+	
 }
