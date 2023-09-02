@@ -1,15 +1,12 @@
 package prerna.aws;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -57,65 +54,24 @@ public class AwsSecretsManager {
 		if(this.secretId == null || (this.secretId=this.secretId.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the ARN of the secret");
 		}
-
-		CloseableHttpResponse response = null;
-		CloseableHttpClient httpClient = null;
-		HttpEntity entity = null;
-		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
-			HttpGet httpGet = new HttpGet(url);
-
-			// add the secret id
-			httpGet.addHeader("SecretId", this.secretId);
-			if(this.versionId != null && !(this.versionId=this.versionId.trim()).isEmpty()) {
-				httpGet.addHeader("VersionId", this.versionId);
-			}
-			if(this.versionStage != null && !(this.versionStage=this.versionStage.trim()).isEmpty()) {
-				httpGet.addHeader("VersionStage", this.versionStage);
-			}
-			
-			if(this.accessKey != null && this.secretKey != null) {
-				String authorization = createAuthorizationHeader(accessKey, secretKey);
-				httpGet.setHeader("Authorization", authorization);
-			}
-
-			response = httpClient.execute(httpGet);
-			int statusCode = response.getStatusLine().getStatusCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				this.responseData = entity != null ? EntityUtils.toString(entity) : null;
-			} else {
-				this.responseData = entity != null ? EntityUtils.toString(entity) : "";
-				throw new IllegalArgumentException("Connected to " + this.url + " but received error = " + this.responseData);
-			}
-
-			this.responseJson = new Gson().fromJson(this.responseData, Map.class);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} finally {
-			if(entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+		
+		List<Map<String, String>> headersMap = new ArrayList<>();
+		Map<String, String> authMap = new HashMap<>();
+		authMap.put("SecretId", this.secretId);
+		if(this.versionId != null && !(this.versionId=this.versionId.trim()).isEmpty()) {
+			authMap.put("VersionId", this.versionId);
 		}
+		if(this.versionStage != null && !(this.versionStage=this.versionStage.trim()).isEmpty()) {
+			authMap.put("VersionStage", this.versionStage);
+		}
+		if(this.accessKey != null && this.secretKey != null) {
+			String authorization = createAuthorizationHeader(accessKey, secretKey);
+			authMap.put("Authorization", authorization);
+		}
+		headersMap.add(authMap);
+
+		this.responseData = AbstractHttpHelper.getRequest(headersMap, url, keyStore, keyStorePass, keyPass);
+		this.responseJson = new Gson().fromJson(this.responseData, Map.class);
 	}
 
 	/**
