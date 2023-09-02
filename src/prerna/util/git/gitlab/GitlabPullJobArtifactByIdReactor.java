@@ -38,4 +38,10 @@ public class GitlabPullJobArtifactByIdReactor extends AbstractReactor {
 		return new NounMetadata(artifactFileName, PixelDataType.CONST_STRING);
 	}
 
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor pulls the artifact for a specific GitLab project job execution";
+	}
+	
 }
