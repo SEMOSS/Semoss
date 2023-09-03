@@ -42,9 +42,16 @@ import prerna.util.Utility;
 
 public class User implements Serializable {
 
-	private static Logger logger = LogManager.getLogger(User.class);
+	private static Logger classLogger = LogManager.getLogger(User.class);
+	
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	// main object storing the users access tokens
+	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	private List<AuthProvider> loggedInProfiles = new Vector<>();
+	// storing the timezone the user is in
+	private TimeZone timeZone;
+	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
 	
@@ -70,13 +77,6 @@ public class User implements Serializable {
 	
 	private transient Object assetSyncObject = null;
 	private transient Object workspaceSyncObject = null;
-
-	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private List<AuthProvider> loggedInProfiles = new Vector<>();
-	
-	// storing the timezone the user is in
-	private TimeZone timeZone;
 
 	// keeps the secret for every insight
 	private Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
@@ -258,7 +258,7 @@ public class User implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			this.workspaceProjectMap.put(token, projectId);
@@ -289,7 +289,7 @@ public class User implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			this.assetProjectMap.put(token, projectId);
@@ -881,10 +881,10 @@ public class User implements Serializable {
 									logSleeper++;
 								} catch (InterruptedException e) 
 								{
-									logger.error(Constants.STACKTRACE, e);
+									classLogger.error(Constants.STACKTRACE, e);
 								}
 							}
-							logger.info("Jep Start is Complete");
+							classLogger.info("Jep Start is Complete");
 						}
 					}
 					// check to see if the py translator needs to be set ?
@@ -964,7 +964,7 @@ public class User implements Serializable {
 	public void startTCPServer() {
 		if (tcpServer == null || !tcpServer.isConnected())  // start only if it not already in progress
 		{
-			logger.info("Starting TCP Server for User = " + User.getSingleLogginName(this));
+			classLogger.info("Starting TCP Server for User = " + User.getSingleLogginName(this));
 			
 			// first preference given to user
 			if(forcePort > 0) {
@@ -1028,9 +1028,9 @@ public class User implements Serializable {
 						try 
 						{
 							socketClient.wait();
-							logger.info("Setting the socket client ");
+							classLogger.info("Setting the socket client ");
 						} catch (InterruptedException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}								
 					}
 				}
@@ -1039,7 +1039,7 @@ public class User implements Serializable {
 			}
 			catch(Exception e)
 			{
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
