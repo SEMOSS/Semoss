@@ -1,5 +1,7 @@
 package prerna.theme;
 
+import java.io.UnsupportedEncodingException;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,16 +12,18 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
 	
-	private static final Logger logger = LogManager.getLogger(AdminThemeUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminThemeUtils.class);
 
 	private static AdminThemeUtils instance = new AdminThemeUtils();
 
@@ -55,7 +59,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 			retVal = flushRsToMap(wrapper);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		if (retVal == null || retVal.isEmpty()) {
@@ -82,7 +86,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 			return flushRsToMap(wrapper);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return new ArrayList<>();
@@ -102,7 +106,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(query);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		return true;
@@ -119,7 +123,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(query);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		return true;
@@ -136,19 +140,24 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 */
 	public String createAdminTheme(String themeName, String themeMap, boolean isActive) {
 		String themeId = UUID.randomUUID().toString();
-		themeName = RdbmsQueryBuilder.escapeForSQLStatement(themeName);
-		themeMap = RdbmsQueryBuilder.escapeForSQLStatement(themeMap);
-
-		String[] colNames = new String[] { "id", "theme_name", "theme_map", "is_active" };
-		String[] types = new String[] { "varchar(255)", "varchar(255)", "clob", "boolean" };
-		Object[] data = new Object[] { themeId, themeName, themeMap, isActive };
-		String insertQuery = RdbmsQueryBuilder.makeInsert("ADMIN_THEME", colNames, types, data);
+		
+		PreparedStatement ps = null;
 		try {
-			themeDb.insertData(insertQuery);
-			themeDb.commit();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			ps = themeDb.getPreparedStatement("INSERT INTO ADMIN_THEME (id, theme_name, theme_map, is_active) VALUES (?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, themeId);
+			ps.setString(parameterIndex++, themeName);
+			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++, new Gson());
+			ps.setBoolean(parameterIndex++, isActive);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (UnsupportedEncodingException | SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			return null;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
 		if (isActive) {
@@ -167,17 +176,24 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean editAdminTheme(String themeId, String themeName, String themeMap, boolean isActive) {
-		themeName = RdbmsQueryBuilder.escapeForSQLStatement(themeName);
-		themeMap = RdbmsQueryBuilder.escapeForSQLStatement(themeMap);
-
-		String updateQuery = "UPDATE ADMIN_THEME SET theme_name='" + themeName + "', theme_map='" + themeMap
-				+ "', is_active=" + isActive + " WHERE id='" + themeId + "';";
+		
+		PreparedStatement ps = null;
 		try {
-			themeDb.insertData(updateQuery);
-			themeDb.commit();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			ps = themeDb.getPreparedStatement("UPDATE ADMIN_THEME SET theme_name=?, theme_map=?, is_active=? WHERE id=? ");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, themeName);
+			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++, new Gson());
+			ps.setBoolean(parameterIndex++, isActive);
+			ps.setString(parameterIndex++, themeId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (UnsupportedEncodingException | SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
 		if (isActive) {
@@ -193,15 +209,22 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean deleteAdminTheme(String themeId) {
-		RdbmsQueryBuilder.escapeForSQLStatement(themeId);
-		String deleteQuery = "DELETE FROM ADMIN_THEME WHERE id='" + themeId + "'";
+		
+		PreparedStatement ps = null;
 		try {
-			themeDb.removeData(deleteQuery);
-			themeDb.commit();
+			ps = themeDb.getPreparedStatement("DELETE FROM ADMIN_THEME WHERE id=?");
+			ps.setString(1, themeId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
+		
 		return true;
 	}
 }
