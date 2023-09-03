@@ -38,6 +38,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -66,7 +67,7 @@ public class MasterDatabaseUtility {
 			logger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			closeResources(database, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(database, conn, null, null);
 		}
 	}
 	
@@ -2422,31 +2423,6 @@ public class MasterDatabaseUtility {
 		return databaseId;
 	}
 
-
-	private static void closeResources(IRDBMSEngine engine, Connection conn, Statement stmt, ResultSet rs) {
-		try {
-			if(rs != null) {
-				rs.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if(stmt != null) {
-				stmt.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if(engine != null && engine.isConnectionPooling() && conn != null) {
-				conn.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-	}
-
 	/**
 	 * Get a list of the conceptual names 
 	 * @param databaseFilters optional filter based on engines
@@ -2671,7 +2647,7 @@ public class MasterDatabaseUtility {
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			closeResources(engine, conn, stmt, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
 		return map;
 	}
@@ -2937,7 +2913,7 @@ public class MasterDatabaseUtility {
 		} catch (SQLException ex) {
 			// Don't print stack trace... xrayConfigList table is missing if no config file exists
 		} finally {
-			closeResources(engine, conn, stmt, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
 		return configMap;
 	}
@@ -2971,7 +2947,7 @@ public class MasterDatabaseUtility {
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			closeResources(engine, conn, stmt, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
 		return configFile;
 	}
@@ -3061,7 +3037,7 @@ public class MasterDatabaseUtility {
 		} finally {
 			// do not close the stmt
 			// reuse it below
-			closeResources(null, null, null, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(null, null, null, rs);
 		}
 
 		String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e WHERE e.id=er.engine AND "
@@ -3115,7 +3091,7 @@ public class MasterDatabaseUtility {
 		} catch (SQLException ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			closeResources(engine, conn, stmt, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
 
 		return finalHash;
@@ -3145,7 +3121,7 @@ public class MasterDatabaseUtility {
         } catch (Exception ex) {
             logger.error(Constants.STACKTRACE, ex);
         } finally {
-			closeResources(engine, conn, stmt, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
         return retDate;
     }
@@ -3186,7 +3162,7 @@ public class MasterDatabaseUtility {
 		        	logger.error(Constants.STACKTRACE, e);
 				}
         	}
-        	closeResources(engine, conn, null, null);
+        	ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null);
         }
     }
     
@@ -3226,8 +3202,8 @@ public class MasterDatabaseUtility {
     		logger.error("Could save metamodel positions", e);
     		throw e;
     	} finally {
-			closeResources(null, null, remove, null);
-			closeResources(null, null, add, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(null, null, remove, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(null, null, add, null);
     	}
     }
     
