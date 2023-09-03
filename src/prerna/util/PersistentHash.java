@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -10,13 +11,12 @@ import java.util.Hashtable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class PersistentHash {
 
-	private static final Logger logger = LogManager.getLogger(PersistentHash.class);
+	private static final Logger classLogger = LogManager.getLogger(PersistentHash.class);
 
 	// simple hash table that saves and gets values from the database
 	private static final String TABLE_NAME = "KVSTORE";
@@ -50,14 +50,14 @@ public class PersistentHash {
 				}	
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (engine.isConnectionPooling() && conn != null) {
 					conn.close();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -79,32 +79,32 @@ public class PersistentHash {
 	public void persistBack() {
 		if(engine != null && this.dirty) {
 			Connection conn = null;
+			Statement stmt = null;
+			PreparedStatement ps = null;
 			try {
 				conn = engine.getConnection();
-				try(Statement stmt = conn.createStatement()) {
-					String [] colNames = {"K","V"};
-					String [] types = {"varchar(800)", "varchar(800)"};
-					Enumeration <String> keys = thisHash.keys();
-					stmt.execute("DELETE from " + TABLE_NAME);
-					while(keys.hasMoreElements()) {
-						String key = keys.nextElement();
-						String value = thisHash.get(key);
-						String [] values = {key, value};
-						String insertString = RdbmsQueryBuilder.makeInsert(TABLE_NAME, colNames, types, values);
-						stmt.execute(insertString);
-					}
-					this.dirty = false;
+				stmt = conn.createStatement();
+				stmt.execute("DELETE FROM " + TABLE_NAME);
+				Enumeration <String> keys = thisHash.keys();
+				ps = conn.prepareStatement("INSERT KVSTORE(K, V) VALUES(?, ?)");
+				while(keys.hasMoreElements()) {
+					String key = keys.nextElement();
+					String value = thisHash.get(key);
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, key);
+					ps.setString(parameterIndex++, value);
+					ps.addBatch();
 				}
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				ps.executeBatch();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+				this.dirty = false;
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				try {
-					if (engine.isConnectionPooling() && conn != null) {
-						conn.close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
+				ConnectionUtils.closeStatement(stmt);
+				ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);
 			}
 		}
 	}
@@ -127,14 +127,14 @@ public class PersistentHash {
 			// make sure the KVSTORE table exists
 			return queryUtil.tableExists(conn, TABLE_NAME, engine.getDatabase(), engine.getSchema());
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(engine.isConnectionPooling() && conn != null) {
 					conn.close();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return false;
