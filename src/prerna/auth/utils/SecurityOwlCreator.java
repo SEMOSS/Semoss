@@ -28,6 +28,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("INSIGHTFRAMES");
 		conceptsRequired.add("USERINSIGHTPERMISSION");
 		conceptsRequired.add("SMSS_USER");
+		conceptsRequired.add("SMSS_USER_ACCESS_KEYS");
 		conceptsRequired.add("PERMISSION");
 		conceptsRequired.add("PROJECT");
 		conceptsRequired.add("PROJECTPERMISSION");
@@ -372,7 +373,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTFRAMES", "COLUMNTYPE", "VARCHAR(255)");
 		owler.addProp("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
 		
-		// USER
+		// SMSS_USER
 		owler.addConcept("SMSS_USER", null, null);
 		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "NAME", "VARCHAR(255)");
@@ -392,6 +393,16 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "PHONEEXTENSION", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "COUNTRYCODE", "VARCHAR(255)");
 		
+		// SMSS_USER_ACCESS_KEYS
+		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "ID", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "TYPE", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "ACCESSKEY", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "SECRETKEY", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "SECRETSALT", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "DATECREATED", "TIMESTAMP");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "LASTUSED", "TIMESTAMP");
+
 		// TOKEN
 		owler.addConcept("TOKEN", null, null);
 		owler.addProp("TOKEN", "IPADDR", "VARCHAR(255)");

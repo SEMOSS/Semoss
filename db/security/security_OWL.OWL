@@ -1515,6 +1515,111 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">COUNTRYCODE</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SMSS_USER_ACCESS_KEYS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ACCESSKEY/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ACCESSKEY/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ACCESSKEY/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ACCESSKEY/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ACCESSKEY</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECRETKEY/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECRETKEY/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECRETKEY/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECRETKEY/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SECRETKEY</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECRETSALT/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECRETSALT/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECRETSALT/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECRETSALT/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SECRETSALT</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATECREATED/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATECREATED/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATECREATED/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATECREATED/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATECREATED</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LASTUSED/SMSS_USER_ACCESS_KEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LASTUSED/SMSS_USER_ACCESS_KEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LASTUSED/SMSS_USER_ACCESS_KEYS">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LASTUSED/SMSS_USER_ACCESS_KEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LASTUSED</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
@@ -3065,7 +3170,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:08:03 11:37:16</TIME>
+	<TIME xmlns="ENGINE:">2023:09:03 13:37:45</TIME>
 </rdf:Description>
 
 </rdf:RDF>
