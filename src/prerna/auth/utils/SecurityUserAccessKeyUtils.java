@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -23,11 +24,12 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 
 public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityUserAccessKeyUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityUserAccessKeyUtils.class);
 
 	private static final String SMSS_USER_ACCESS_KEYS_TABLE_NAME = "SMSS_USER_ACCESS_KEYS";
 	private static final String USERID_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__ID";
@@ -35,7 +37,9 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	private static final String ACCESS_KEY_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__ACCESSKEY";
 	private static final String SECRET_KEY_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__SECRETKEY";
 	private static final String SECRET_KEY_SALT_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__SECRETSALT";
-	
+	private static final String DATE_CREATED_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__DATECREATED";
+	private static final String LAST_USED_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__LASTUSED";
+
 	private SecurityUserAccessKeyUtils() {
 
 	}
@@ -70,13 +74,13 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				loginType = (String) values[3];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -135,7 +139,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -143,6 +147,21 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		details.put("accessKey", accessKey);
 		details.put("secretKey", secretKey);
 		return details;
+	}
+	
+	/**
+	 * 
+	 * @param token
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserAccessKeyInfo(AccessToken token) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ACCESS_KEY_COL));
+		qs.addSelector(new QueryColumnSelector(DATE_CREATED_COL));
+		qs.addSelector(new QueryColumnSelector(LAST_USED_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", token.getProvider().toString()));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 }

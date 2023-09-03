@@ -125,7 +125,7 @@ public class ConnectionUtils {
 		closeAllConnections(null, null, rs);
 	}
 
-	public static void closePreparedStatement(Statement ps){
+	public static void closeStatement(Statement ps){
 		closeAllConnections(null, ps, null);
 	}
 
