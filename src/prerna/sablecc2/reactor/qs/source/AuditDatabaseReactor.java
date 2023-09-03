@@ -197,8 +197,8 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			throw err;
 		} finally {
 			ConnectionUtils.closeAllConnections(null, stmt, rs);
-			ConnectionUtils.closePreparedStatement(insertPS);
-			ConnectionUtils.closePreparedStatement(updatePS);
+			ConnectionUtils.closeStatement(insertPS);
+			ConnectionUtils.closeStatement(updatePS);
 		}
 
 		this.insight.setDataMaker(frame);
