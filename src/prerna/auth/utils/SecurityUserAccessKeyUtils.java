@@ -107,7 +107,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
 	/**
 	 * 
-	 * @param name
+	 * @param token
 	 * @return
 	 */
 	public static Map<String, String> createUserAccessToken(AccessToken token) {
@@ -152,6 +152,34 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param token
+	 * @param accessKey
+	 * @return
+	 */
+	public static boolean deleteUserAccessToken(AccessToken token, String accessKey) {
+		String insertQuery = "DELETE FROM "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" WHERE ID=? AND TYPE=? AND ACCESSKEY=?";
+		PreparedStatement ps = null;
+		try {
+			int parameterIndex = 1;
+			ps = securityDb.getPreparedStatement(insertQuery);
+			ps.setString(parameterIndex++, token.getId()); 
+			ps.setString(parameterIndex++, token.getProvider().toString()); 
+			ps.setString(parameterIndex++, accessKey); 
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param token
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserAccessKeyInfo(AccessToken token) {
@@ -164,4 +192,6 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
+	
+	
 }
