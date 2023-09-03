@@ -201,1166 +201,1047 @@ public abstract class AbstractSecurityUtils {
 		String database = securityDb.getDatabase();
 		String schema = securityDb.getSchema();
 		Connection conn = securityDb.getConnection();
-		String[] colNames = null;
-		String[] types = null;
-		Object[] defaultValues = null;
-		/*
-		 * Currently used
-		 */
-
-		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
-		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
-		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
-
-		// 2021-08-06
-		// on h2 when you renmae a column it doens't update/change anything on the index name
-		// also had some invalid indexes on certain tables
-		if(allowIfExistsIndexs) {
-			String sql = queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT");
-			logger.info("Running sql " + sql);
-			securityDb.removeData(sql);
-			sql = queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT");
-			logger.info("Running sql " + sql);
-			securityDb.removeData(sql);
-			sql = queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA");
-			logger.info("Running sql " + sql);
-			securityDb.removeData(sql);
-			sql = queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION");
-			logger.info("Running sql " + sql);
-			securityDb.removeData(sql);
-
-			// these are right name - but were added to wrong table
-			// so will do an exists check anyway
-			try {
+		try {
+			String[] colNames = null;
+			String[] types = null;
+			Object[] defaultValues = null;
+			/*
+			 * Currently used
+			 */
+	
+			AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+			boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+			final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+			final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+			final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+	
+			// 2021-08-06
+			// on h2 when you renmae a column it doens't update/change anything on the index name
+			// also had some invalid indexes on certain tables
+			if(allowIfExistsIndexs) {
+				String sql = queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
+				sql = queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
+				sql = queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
+				sql = queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
+	
+				// these are right name - but were added to wrong table
+				// so will do an exists check anyway
+				try {
+					if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
+						sql = queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT");
+						logger.info("Running sql " + sql);
+						securityDb.removeData(sql);
+					}
+					if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
+						sql = queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT");
+						logger.info("Running sql " + sql);
+						securityDb.removeData(sql);
+					}
+				} catch(UnsupportedOperationException ignore) {
+					// ignore
+				}
+			} else {
+				// see if index exists
+				if(queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", database, schema)) {
+					String sql = queryUtil.dropIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
+				}
+				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", database, schema)) {
+					String sql = queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
+				}
+				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA", database, schema)) {
+					String sql = queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
+				}
+				if(queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
+					String sql = queryUtil.dropIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
+				}
 				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
-					sql = queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT");
+					String sql = queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT");
 					logger.info("Running sql " + sql);
 					securityDb.removeData(sql);
 				}
 				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
-					sql = queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT");
+					String sql = queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT");
 					logger.info("Running sql " + sql);
 					securityDb.removeData(sql);
 				}
-			} catch(UnsupportedOperationException ignore) {
-				// ignore
 			}
-		} else {
-			// see if index exists
-			if(queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", database, schema)) {
-				String sql = queryUtil.dropIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT");
-				logger.info("Running sql " + sql);
-				securityDb.removeData(sql);
-			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", database, schema)) {
-				String sql = queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT");
-				logger.info("Running sql " + sql);
-				securityDb.removeData(sql);
-			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA", database, schema)) {
-				String sql = queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA");
-				logger.info("Running sql " + sql);
-				securityDb.removeData(sql);
-			}
-			if(queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
-				String sql = queryUtil.dropIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION");
-				logger.info("Running sql " + sql);
-				securityDb.removeData(sql);
-			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
-				String sql = queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT");
-				logger.info("Running sql " + sql);
-				securityDb.removeData(sql);
-			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
-				String sql = queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT");
-				logger.info("Running sql " + sql);
-				securityDb.removeData(sql);
-			}
-		}
-
-		// ENGINE
-		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
-				"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
-				"ENGINETYPE", "ENGINESUBTYPE", "COST" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
-				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINE", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("ENGINE", colNames, types);
+	
+			// ENGINE
+			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
+					"ENGINETYPE", "ENGINESUBTYPE", "COST" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+			if(allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				logger.info("Running sql " + sql);
 				securityDb.insertData(sql);
-			}
-		}
-		// UPDATE TO CHECK ALL COLUMNS! - ADDED 07/07/2023
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINE", database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn("ENGINE", col, types[i]);
-					logger.info("Running sql " + addColumnSql);
-					securityDb.insertData(addColumnSql);
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "ENGINE", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("ENGINE", colNames, types);
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
 				}
 			}
-
-			// if type columns exist, remove it - ADDED 07/18/2023
+			// UPDATE TO CHECK ALL COLUMNS! - ADDED 07/07/2023
 			{
-				if(allCols.contains("TYPE") || allCols.contains("type")) {
-					String dropTypeColumn = queryUtil.alterTableDropColumn("ENGINE", "TYPE");
-					logger.info("Running sql " + dropTypeColumn);
-					securityDb.insertData(dropTypeColumn);
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("ENGINE", col, types[i]);
+						logger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
 				}
-			}
-
-			securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='"+IEngine.CATALOG_TYPE.DATABASE.toString()+"' WHERE ENGINETYPE IS NULL");
-		}
-		if(allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINE_DISCOVERABLE_INDEX", "ENGINE", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-		}
-
-		// ENGINEMETA
-		// check if column exists
-		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEMETA", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("METAORDER") && !allCols.contains("metaorder")) {
-				if(allowIfExistsTable) {
-					String sql = queryUtil.dropTableIfExists("ENGINEMETA");
-					logger.info("Running sql " + sql);
-					securityDb.removeData(sql);
-				} else if(queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
-					String sql = queryUtil.dropTable("ENGINEMETA");
-					logger.info("Running sql " + sql);
-					securityDb.removeData(sql);
+	
+				// if type columns exist, remove it - ADDED 07/18/2023
+				{
+					if(allCols.contains("TYPE") || allCols.contains("type")) {
+						String dropTypeColumn = queryUtil.alterTableDropColumn("ENGINE", "TYPE");
+						logger.info("Running sql " + dropTypeColumn);
+						securityDb.insertData(dropTypeColumn);
+					}
 				}
+	
+				securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='"+IEngine.CATALOG_TYPE.DATABASE.toString()+"' WHERE ENGINETYPE IS NULL");
 			}
-		}
-		colNames = new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
-		if(allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types);
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("ENGINEMETA", colNames, types);
+			if(allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
 				logger.info("Running sql " + sql);
 				securityDb.insertData(sql);
-			}
-		}
-		if(allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID");
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
 				logger.info("Running sql " + sql);
 				securityDb.insertData(sql);
-			}
-		}
-
-		// ENGINEPERMISSION
-		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
-		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-		defaultValues = new Object[]{null, null, null, true, false};
-		if(allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINEPERMISSION", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("ENGINEPERMISSION", colNames, types);
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
 				logger.info("Running sql " + sql);
 				securityDb.insertData(sql);
-			}
-		}
-		// TEMPORARY CHECK! - ADDED 03/17/2021
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEPERMISSION", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
-				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-					String sql = queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
 					logger.info("Running sql " + sql);
 					securityDb.insertData(sql);
-				} else {
-					String sql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINE_DISCOVERABLE_INDEX", "ENGINE", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
 					logger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
 			}
-		}
-		if(allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
-			logger.info("Running sql " + sql);
-			securityDb.insertData(sql);
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
-				logger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			}
-		}
-
-
-		/*
-		 * 
-		 * 
-		 * ADDING IN INITIAL PROJECT TABLES
-		 * 
-		 */
-
-		// PROJECT
-		// Type and cost are the main questions - 
-		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
-		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", 
-				"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
-				"TYPE", "COST", "CATALOGNAME", 
-				"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
-				"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
-		};
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
-				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
-				BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-				TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECT", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECT", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PROJECT", colNames, types));
-			}
-		}
-		// 2023-01-31
-		// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
-		{
-			List<String> projectCols = queryUtil.getTableColumns(conn, "PROJECT", database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if(!projectCols.contains(col) && !projectCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn("PROJECT", col, types[i]);
-					securityDb.insertData(addColumnSql);
-				}
-			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_DISCOVERABLE_INDEX", "PROJECT", "DISCOVERABLE"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
-			}
-			if(!queryUtil.indexExists(securityDb, "PROJECT_DISCOVERABLE_INDEX", "PROJECT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECT_DISCOVERABLE_INDEX", "PROJECT", "DISCOVERABLE"));
-			}
-			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTENAME_INDEX", "PROJECT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
-			}
-			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
-			}
-		}
-
-		List<String> newProjectsAutoAdded = new ArrayList<>();
-		if(!projectExists) {
-			IRawSelectWrapper wrapper2 = null;
-			try {
-				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global, discoverable from engine");
-				while(wrapper2.hasNext()) {
-					Object[] values = wrapper2.next().getValues();
-					// insert into project table
-					securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], values[3], null, null}));
-
-					// store this so we also move over permissions
-					// this is the engine id which is the same as the project id
-					newProjectsAutoAdded.add(values[0] + "");
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper2 != null) {
-					try {
-						wrapper2.close();
-					} catch(IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+	
+			// ENGINEMETA
+			// check if column exists
+			// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEMETA", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(!allCols.contains("METAORDER") && !allCols.contains("metaorder")) {
+					if(allowIfExistsTable) {
+						String sql = queryUtil.dropTableIfExists("ENGINEMETA");
+						logger.info("Running sql " + sql);
+						securityDb.removeData(sql);
+					} else if(queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
+						String sql = queryUtil.dropTable("ENGINEMETA");
+						logger.info("Running sql " + sql);
+						securityDb.removeData(sql);
 					}
 				}
 			}
-		}
-
-		// PROJECTMETA
-		// check if column exists
-		colNames = new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTMETA", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECTMETA", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PROJECTMETA", colNames, types));
-			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
-			}
-		}
-
-		// PROJECTPERMISSION
-		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
-		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
-		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-		defaultValues = new Object[]{null, null, null, true, false};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PROJECTPERMISSION", colNames, types));
-			}
-		}
-
-		if(!projectPermissionExists) {
-			IRawSelectWrapper wrapper2 = null;
-			try {
-				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select userid, permission, engineid, visibility, favorite from enginepermission");
-				while(wrapper2.hasNext()) {
-					Object[] values = wrapper2.next().getValues();
-					// if the project exists - we will insert it
-					if(newProjectsAutoAdded.contains(values[2])) {
-						// insert into project permission table
-						securityDb.insertData(queryUtil.insertIntoTable("PROJECTPERMISSION", colNames, types, values));
-					}
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper2 != null) {
-					try {
-						wrapper2.close();
-					} catch(IOException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
+			colNames = new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+			if(allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types);
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("ENGINEMETA", colNames, types);
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
 				}
 			}
-		}
-
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
+			if(allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
+	
+			// ENGINEPERMISSION
+			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
+			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[]{null, null, null, true, false};
+			if(allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "ENGINEPERMISSION", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("ENGINEPERMISSION", colNames, types);
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+			// TEMPORARY CHECK! - ADDED 03/17/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEPERMISSION", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
+					if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+						String sql = queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
+						logger.info("Running sql " + sql);
+						securityDb.insertData(sql);
+					} else {
+						String sql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
+						logger.info("Running sql " + sql);
+						securityDb.insertData(sql);
+					}
+				}
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+			if(allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+	
+				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
-			}
-		}
-
-		/**
-		 * 
-		 * END PROJECT TABLES
-		 * 
-		 */
-
-		// WORKSPACEENGINE
-		colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
-		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "WORKSPACEENGINE", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("WORKSPACEENGINE", colNames, types));
-			}
-		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("WORKSPACEENGINE", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
-			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
-			}
-			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
-			}			
-		}
-
-
-		// ASSETENGINE
-		colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
-		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "ASSETENGINE", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("ASSETENGINE", colNames, types));
-			}
-		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("ASSETENGINE", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
-			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
-			}
-			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
-			}
-		}
-
-
-		// INSIGHT
-		colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", 
-				"CACHEABLE", "CACHEMINUTES", "CACHECRON", "CACHEDON", "CACHEENCRYPT", "RECIPE", "SCHEMANAME" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", 
-				BOOLEAN_DATATYPE_NAME, "INT", "VARCHAR(25)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME, "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHT", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("INSIGHT", colNames, types));
-			}
-		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		{
-			List<String> insightCols = queryUtil.getTableColumns(conn, "INSIGHT", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!insightCols.contains("PROJECTID") && !insightCols.contains("projectid")) && (insightCols.contains("ENGINEID") || insightCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("INSIGHT", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
+	
+	
+			/*
+			 * 
+			 * 
+			 * ADDING IN INITIAL PROJECT TABLES
+			 * 
+			 */
+	
+			// PROJECT
+			// Type and cost are the main questions - 
+			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
+			colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", 
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
+					"TYPE", "COST", "CATALOGNAME", 
+					"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
+					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
+			};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
+					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECT", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PROJECT", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PROJECT", colNames, types));
+				}
 			}
 			// 2023-01-31
 			// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if(!insightCols.contains(col) && !insightCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn("INSIGHT", col, types[i]);
-					securityDb.insertData(addColumnSql);
+			{
+				List<String> projectCols = queryUtil.getTableColumns(conn, "PROJECT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!projectCols.contains(col) && !projectCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("PROJECT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
-			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_GLOBAL_INDEX", "INSIGHT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
-			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_PROJECTID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
-			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
-			}
-		}
-
-		// USERINSIGHTPERMISSION
-		colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "USERINSIGHTPERMISSION", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
-			}
-		}
-		// TEMPORARY CHECK! - ADDED 03/17/2021
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
-				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
-				} else {
-					securityDb.insertData(queryUtil.alterTableAddColumn("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_DISCOVERABLE_INDEX", "PROJECT", "DISCOVERABLE"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECT_DISCOVERABLE_INDEX", "PROJECT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECT_DISCOVERABLE_INDEX", "PROJECT", "DISCOVERABLE"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTENAME_INDEX", "PROJECT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
 				}
 			}
-		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("USERINSIGHTPERMISSION", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
+	
+			List<String> newProjectsAutoAdded = new ArrayList<>();
+			if(!projectExists) {
+				IRawSelectWrapper wrapper2 = null;
+				try {
+					wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global, discoverable from engine");
+					while(wrapper2.hasNext()) {
+						Object[] values = wrapper2.next().getValues();
+						// insert into project table
+						securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], values[3], null, null}));
+	
+						// store this so we also move over permissions
+						// this is the engine id which is the same as the project id
+						newProjectsAutoAdded.add(values[0] + "");
+					}
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(wrapper2 != null) {
+						try {
+							wrapper2.close();
+						} catch(IOException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
 			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
-			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
-			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
-			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
-			}
-		}
-
-		// INSIGHTMETA
-		colNames = new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHTMETA", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
-			}
-		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("INSIGHTMETA", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
-			}
-		}
-		//END MODIFICATION
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
-			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
-			}
-		}
-
-		// INSIGHTFRAMES
-		colNames = new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE", "ADDITIONALTYPE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTFRAMES", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHTFRAMES", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("INSIGHTFRAMES", colNames, types));
-			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", "PROJECTID"));
-			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", "INSIGHTID"));
-			}
-		}
-
-		// Altering table to store additional types for frames. 
-		// added on 10-26-2022
-		List<String> insightFramesCols = queryUtil.getTableColumns(conn, "INSIGHTFRAMES", database, schema);
-		if(!insightFramesCols.contains("ADDITIONALTYPE") && !insightFramesCols.contains("additionaltype")) {
-			String addColumnSql = queryUtil.alterTableAddColumn("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
-			securityDb.insertData(addColumnSql);
-		}
-
-		// SMSS_USER
-		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
-				"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", 
-				"LOCKED", "PHONE", "PHONEEXTENSION", "COUNTRYCODE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
-				BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-				BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
-		// but some rdbms types (postgres) does not allow it
-		// so i am going ahead and moving over user to smss_user
-		if(queryUtil.tableExists(conn, "USER", database, schema)) {
-			performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, database, schema, allowIfExistsTable);
-		} else {
+	
+			// PROJECTMETA
+			// check if column exists
+			colNames = new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
 			if(allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTMETA", colNames, types));
 			} else {
 				// see if table exists
-				if(!queryUtil.tableExists(conn, "SMSS_USER", database, schema)) {
+				if(!queryUtil.tableExists(conn, "PROJECTMETA", database, schema)) {
 					// make the table
-					securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
+					securityDb.insertData(queryUtil.createTable("PROJECTMETA", colNames, types));
 				}
 			}
-		}
-		// 2023-01-31
-		// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
-		{
-			List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if(!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", col, types[i]);
-					securityDb.insertData(addColumnSql);
-				}
-			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "SMSS_USER_ID_INDEX", "SMSS_USER", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
-			}
-		}
-
-		/*
-		 * We need to store when a user comes in
-		 * if they are part of a group
-		 * what level of permission does this give the user
-		 * for a respective database or project or insight
-		 * 
-		 * We do not need to store the user -> group mapping (yet - will think about future custom groups)
-		 * The SOT will be the IDP that will give us the updated groups each time the user logs in
-		 */
-
-		// GROUP TABLE
-		colNames = new String[] { "ID", "TYPE", "DESCRIPTION" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "SMSS_GROUP", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("SMSS_GROUP", colNames, types));
-			}
-		}
-		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
-		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
-		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
-		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
-		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "SMSS_GROUP", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("DESCRIPTION") && !allCols.contains("description")) {
-				String addDescriptionColumn = queryUtil.alterTableAddColumn("SMSS_GROUP", "DESCRIPTION", CLOB_DATATYPE_NAME);
-				securityDb.insertData(addDescriptionColumn);
-			}
-		}
-
-		// GROUP DATABASE PERMISSION
-		// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
-		colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "GROUPENGINEPERMISSION", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("GROUPENGINEPERMISSION", colNames, types));
-			}
-		}
-
-		// GROUP PROJECT PERMISSION
-		// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
-		colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "GROUPPROJECTPERMISSION", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("GROUPPROJECTPERMISSION", colNames, types));
-			}
-		}
-
-		// GROUP INSIGHT PERMISSION
-		colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
-
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
-			}
-		}
-
-		// ACCESSREQUEST [LEGACY]
-		colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "ACCESSREQUEST", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
-			}
-		}
-
-		{
-			// 2023-08-03
-			// RENAME DATABASEACCESSREQUEST TO ENGINEACCESSREQUEST
-			if(allowIfExistsTable) {
-				securityDb.removeData(queryUtil.dropTableIfExists("DATABASEACCESSREQUEST"));
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
 			} else {
-				if(queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
-					securityDb.removeData(queryUtil.dropTable("DATABASEACCESSREQUEST"));
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
 				}
 			}
-		}
-		// ENGINEACCESSREQUEST 
-		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEACCESSREQUEST ", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINEACCESSREQUEST ", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("ENGINEACCESSREQUEST ", colNames, types));
+	
+			// PROJECTPERMISSION
+			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
+			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
+			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[]{null, null, null, true, false};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PROJECTPERMISSION", colNames, types));
+				}
 			}
-		}
-		//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEACCESSREQUEST", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("ID") && !allCols.contains("id")) {
-				String addIdColumn = queryUtil.alterTableAddColumn("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
-				securityDb.insertData(addIdColumn);
+	
+			if(!projectPermissionExists) {
+				IRawSelectWrapper wrapper2 = null;
+				try {
+					wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select userid, permission, engineid, visibility, favorite from enginepermission");
+					while(wrapper2.hasNext()) {
+						Object[] values = wrapper2.next().getValues();
+						// if the project exists - we will insert it
+						if(newProjectsAutoAdded.contains(values[2])) {
+							// insert into project permission table
+							securityDb.insertData(queryUtil.insertIntoTable("PROJECTPERMISSION", colNames, types, values));
+						}
+					}
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(wrapper2 != null) {
+						try {
+							wrapper2.close();
+						} catch(IOException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
 			}
-		}
-
-		// PROJECTACCESSREQUEST 
-		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTACCESSREQUEST ", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECTACCESSREQUEST ", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PROJECTACCESSREQUEST ", colNames, types));
+	
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+				}
+				if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
+				}
 			}
-		}
-
-		// INSIGHTACCESSREQUEST 
-		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTACCESSREQUEST ", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHTACCESSREQUEST ", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("INSIGHTACCESSREQUEST ", colNames, types));
+	
+			/**
+			 * 
+			 * END PROJECT TABLES
+			 * 
+			 */
+	
+			// WORKSPACEENGINE
+			colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
+			types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "WORKSPACEENGINE", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("WORKSPACEENGINE", colNames, types));
+				}
 			}
-		}
-
-		// TOKEN
-		colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("TOKEN", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("TOKEN", colNames, types));
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+					String updateColName = queryUtil.modColumnName("WORKSPACEENGINE", "ENGINEID", "PROJECTID");
+					securityDb.insertData(updateColName);
+				}
 			}
-		}
-		//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
-				String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", "VARCHAR(255)");
-				securityDb.insertData(addIdColumn);
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
+				}
+				if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
+				}			
 			}
-		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
+	
+	
+			// ASSETENGINE
+			colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
+			types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "ASSETENGINE", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("ASSETENGINE", colNames, types));
+				}
 			}
-		}
-
-		// PERMISSION
-		colNames = new String[] { "ID", "NAME" };
-		types = new String[] { "INT", "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PERMISSION", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+					String updateColName = queryUtil.modColumnName("ASSETENGINE", "ENGINEID", "PROJECTID");
+					securityDb.insertData(updateColName);
+				}
 			}
-		}
-		if(allowIfExistsIndexs) {
-			List<String> iCols = new Vector<String>();
-			iCols.add("ID");
-			iCols.add("NAME");
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", database, schema)) {
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
+				}
+				if(!queryUtil.indexExists(securityDb, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
+				}
+			}
+	
+	
+			// INSIGHT
+			colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", 
+					"CACHEABLE", "CACHEMINUTES", "CACHECRON", "CACHEDON", "CACHEENCRYPT", "RECIPE", "SCHEMANAME" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", 
+					BOOLEAN_DATATYPE_NAME, "INT", "VARCHAR(25)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME, "VARCHAR(255)" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "INSIGHT", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("INSIGHT", colNames, types));
+				}
+			}
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			{
+				List<String> insightCols = queryUtil.getTableColumns(conn, "INSIGHT", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if((!insightCols.contains("PROJECTID") && !insightCols.contains("projectid")) && (insightCols.contains("ENGINEID") || insightCols.contains("engineid") )) {
+					String updateColName = queryUtil.modColumnName("INSIGHT", "ENGINEID", "PROJECTID");
+					securityDb.insertData(updateColName);
+				}
+				// 2023-01-31
+				// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!insightCols.contains(col) && !insightCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("INSIGHT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
+				}
+				if(!queryUtil.indexExists(securityDb, "INSIGHT_GLOBAL_INDEX", "INSIGHT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
+				}
+				if(!queryUtil.indexExists(securityDb, "INSIGHT_PROJECTID_INDEX", "INSIGHT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
+				}
+				if(!queryUtil.indexExists(securityDb, "INSIGHT_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
+				}
+			}
+	
+			// USERINSIGHTPERMISSION
+			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "USERINSIGHTPERMISSION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
+				}
+			}
+			// TEMPORARY CHECK! - ADDED 03/17/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
+					if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+						securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+					} else {
+						securityDb.insertData(queryUtil.alterTableAddColumn("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+					}
+				}
+			}
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+					String updateColName = queryUtil.modColumnName("USERINSIGHTPERMISSION", "ENGINEID", "PROJECTID");
+					securityDb.insertData(updateColName);
+				}
+			}
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
+				}
+				if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
+				}
+				if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+				}
+				if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
+				}
+			}
+	
+			// INSIGHTMETA
+			colNames = new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "INSIGHTMETA", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
+				}
+			}
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+					String updateColName = queryUtil.modColumnName("INSIGHTMETA", "ENGINEID", "PROJECTID");
+					securityDb.insertData(updateColName);
+				}
+			}
+			//END MODIFICATION
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+				}
+				if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
+				}
+			}
+	
+			// INSIGHTFRAMES
+			colNames = new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE", "ADDITIONALTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTFRAMES", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "INSIGHTFRAMES", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("INSIGHTFRAMES", colNames, types));
+				}
+			}
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", "PROJECTID"));
+				}
+				if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", "INSIGHTID"));
+				}
+			}
+	
+			// Altering table to store additional types for frames. 
+			// added on 10-26-2022
+			List<String> insightFramesCols = queryUtil.getTableColumns(conn, "INSIGHTFRAMES", database, schema);
+			if(!insightFramesCols.contains("ADDITIONALTYPE") && !insightFramesCols.contains("additionaltype")) {
+				String addColumnSql = queryUtil.alterTableAddColumn("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
+				securityDb.insertData(addColumnSql);
+			}
+	
+			// SMSS_USER
+			colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
+					"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", 
+					"LOCKED", "PHONE", "PHONEEXTENSION", "COUNTRYCODE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
+			// but some rdbms types (postgres) does not allow it
+			// so i am going ahead and moving over user to smss_user
+			if(queryUtil.tableExists(conn, "USER", database, schema)) {
+				performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, database, schema, allowIfExistsTable);
+			} else {
+				if(allowIfExistsTable) {
+					securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
+				} else {
+					// see if table exists
+					if(!queryUtil.tableExists(conn, "SMSS_USER", database, schema)) {
+						// make the table
+						securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
+					}
+				}
+			}
+			// 2023-01-31
+			// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
+			{
+				List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "SMSS_USER_ID_INDEX", "SMSS_USER", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
+				}
+			}
+	
+			// SMSS_USER_ACCESS_KEYS
+			colNames = new String[] { "ID", "TYPE", "ACCESSKEY", "SECRETKEY", "SECRETSALT", "DATECREATED", "LASTUSED"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER_ACCESS_KEYS", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "SMSS_USER_ACCESS_KEYS", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("SMSS_USER_ACCESS_KEYS", colNames, types));
+				}
+			}
+			{
+				List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER_ACCESS_KEYS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER_ACCESS_KEYS", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+	
+			
+			/*
+			 * We need to store when a user comes in
+			 * if they are part of a group
+			 * what level of permission does this give the user
+			 * for a respective database or project or insight
+			 * 
+			 * We do not need to store the user -> group mapping (yet - will think about future custom groups)
+			 * The SOT will be the IDP that will give us the updated groups each time the user logs in
+			 */
+	
+			// GROUP TABLE
+			colNames = new String[] { "ID", "TYPE", "DESCRIPTION" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "SMSS_GROUP", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("SMSS_GROUP", colNames, types));
+				}
+			}
+			//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+			//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+			//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+			//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+			//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "SMSS_GROUP", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(!allCols.contains("DESCRIPTION") && !allCols.contains("description")) {
+					String addDescriptionColumn = queryUtil.alterTableAddColumn("SMSS_GROUP", "DESCRIPTION", CLOB_DATATYPE_NAME);
+					securityDb.insertData(addDescriptionColumn);
+				}
+			}
+	
+			// GROUP DATABASE PERMISSION
+			// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
+			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "GROUPENGINEPERMISSION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("GROUPENGINEPERMISSION", colNames, types));
+				}
+			}
+	
+			// GROUP PROJECT PERMISSION
+			// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
+			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "GROUPPROJECTPERMISSION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("GROUPPROJECTPERMISSION", colNames, types));
+				}
+			}
+	
+			// GROUP INSIGHT PERMISSION
+			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
+	
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
+				}
+			}
+	
+			// ACCESSREQUEST [LEGACY]
+			colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "ACCESSREQUEST", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
+				}
+			}
+	
+			{
+				// 2023-08-03
+				// RENAME DATABASEACCESSREQUEST TO ENGINEACCESSREQUEST
+				if(allowIfExistsTable) {
+					securityDb.removeData(queryUtil.dropTableIfExists("DATABASEACCESSREQUEST"));
+				} else {
+					if(queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
+						securityDb.removeData(queryUtil.dropTable("DATABASEACCESSREQUEST"));
+					}
+				}
+			}
+			// ENGINEACCESSREQUEST 
+			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEACCESSREQUEST ", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "ENGINEACCESSREQUEST ", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("ENGINEACCESSREQUEST ", colNames, types));
+				}
+			}
+			//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEACCESSREQUEST", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(!allCols.contains("ID") && !allCols.contains("id")) {
+					String addIdColumn = queryUtil.alterTableAddColumn("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
+					securityDb.insertData(addIdColumn);
+				}
+			}
+	
+			// PROJECTACCESSREQUEST 
+			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTACCESSREQUEST ", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PROJECTACCESSREQUEST ", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PROJECTACCESSREQUEST ", colNames, types));
+				}
+			}
+	
+			// INSIGHTACCESSREQUEST 
+			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTACCESSREQUEST ", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "INSIGHTACCESSREQUEST ", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("INSIGHTACCESSREQUEST ", colNames, types));
+				}
+			}
+	
+			// TOKEN
+			colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("TOKEN", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("TOKEN", colNames, types));
+				}
+			}
+			//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
+					String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", "VARCHAR(255)");
+					securityDb.insertData(addIdColumn);
+				}
+			}
+			if(allowIfExistsIndexs) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
+			} else {
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
+					securityDb.insertData(queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
+				}
+			}
+	
+			// PERMISSION
+			colNames = new String[] { "ID", "NAME" };
+			types = new String[] { "INT", "VARCHAR(255)" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PERMISSION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
+				}
+			}
+			if(allowIfExistsIndexs) {
 				List<String> iCols = new Vector<String>();
 				iCols.add("ID");
 				iCols.add("NAME");
-				securityDb.insertData(queryUtil.createIndex("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
-			}
-		}
-
-		{
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
-				if(wrapper.hasNext()) {
-					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-					if(numrows > 3) {
-						securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-					} else if(numrows == 0) {
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-					}
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					try {
-						wrapper.close();
-					} catch(IOException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		}
-
-		// PASSWORD RULES
-		colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
-				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT", "DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING" };
-		types = new String[] { "INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-				"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT", "INT", "INT" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RULES", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_RULES", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PASSWORD_RULES", colNames, types));
-			}
-		}
-		// see if there are any default values
-		{
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from password_rules");
-				if(wrapper.hasNext()) {
-					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-					if(numrows == 0) {
-						securityDb.insertData(queryUtil.insertIntoTable("PASSWORD_RULES", colNames, types, 
-								new Object[]{8, true, true, true, true, 90, false, true, 10, 0, 14}));
-					}
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					try {
-						wrapper.close();
-					} catch(IOException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		}
-		// 2022-03-03
-		{
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			List<String> passwordRulesCols = queryUtil.getTableColumns(conn, "PASSWORD_RULES", database, schema);
-			if(!passwordRulesCols.contains("DAYS_TO_LOCK") && !passwordRulesCols.contains("days_to_lock")) {
-				String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
-				securityDb.insertData(addColumnSql);
-			}
-			if(!passwordRulesCols.contains("DAYS_TO_LOCK_WARNING") && !passwordRulesCols.contains("days_to_lock_warning")) {
-				String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK_WARNING", "INT");
-				securityDb.insertData(addColumnSql);
-			}
-		}
-		// 2022-02-16
-		// renamed permission rules to password rules
-		if(queryUtil.tableExists(conn, "PERMISSION_RULES", database, schema)) {
-			securityDb.insertData(queryUtil.dropTable("PERMISSION_RULES"));
-		}
-
-		// PASSWORD HISTORY
-		colNames = new String[] { "ID", "USERID", "TYPE", "PASSWORD", "SALT", "DATE_ADDED" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_HISTORY", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_HISTORY", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PASSWORD_HISTORY", colNames, types));
-			}
-		}
-		List<String> passReuseCols = queryUtil.getTableColumns(conn, "PASSWORD_HISTORY", database, schema);
-		// 2022-02-16
-		// this should return in all upper case
-		// ... but sometimes it is not -_- i.e. postgres always lowercases
-		if(!passReuseCols.contains("USERID") && !passReuseCols.contains("userid")) {
-			String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_HISTORY", "USERID", "VARCHAR(255)");
-			securityDb.insertData(addColumnSql);
-		}
-		// 2022-02-16
-		// renamed + old had a typo.... -_-
-		if(queryUtil.tableExists(conn, "PASSWORD_RESUSE", database, schema)) {
-			securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
-		}
-
-		// PASSWORD RESET
-		colNames = new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESET", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_RESET", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
-			}
-		}
-
-		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
-		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
-		for(String tableName : metaKeyTableNames) {
-			// all have the same columns and default values
-			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS"};
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)"};
-			defaultValues = new Object[]{null, null, null, true, false};
-			if(allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists(tableName, colNames, types));
+				securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
 			} else {
-				// see if table exists
-				if(!queryUtil.tableExists(conn, tableName, database, schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable(tableName, colNames, types));
+				// see if index exists
+				if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", database, schema)) {
+					List<String> iCols = new Vector<String>();
+					iCols.add("ID");
+					iCols.add("NAME");
+					securityDb.insertData(queryUtil.createIndex("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
 				}
 			}
-			// see if there are any default values
-			boolean fresh = false;
+	
 			{
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from " + tableName);
+					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
 					if(wrapper.hasNext()) {
 						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-						if(numrows < 4) {
-							securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
-							int order = 0;
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
-							fresh = true;
+						if(numrows > 3) {
+							securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+						} else if(numrows == 0) {
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
 						}
 					}
 				} catch (Exception e) {
@@ -1375,68 +1256,212 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-			// DATE 2022-09-06
-			if(!fresh) {
+	
+			// PASSWORD RULES
+			colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
+					"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT", "DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING" };
+			types = new String[] { "INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT", "INT", "INT" };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RULES", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PASSWORD_RULES", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PASSWORD_RULES", colNames, types));
+				}
+			}
+			// see if there are any default values
+			{
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select DISPLAYOPTIONS from " + tableName + " where metakey='domain'");
+					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from password_rules");
 					if(wrapper.hasNext()) {
-						String display = wrapper.next().getValues()[0] + "";
-						if(!display.equals("multi-typeahead")) {
-							securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
-							int order = 0;
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
+						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+						if(numrows == 0) {
+							securityDb.insertData(queryUtil.insertIntoTable("PASSWORD_RULES", colNames, types, 
+									new Object[]{8, true, true, true, true, 90, false, true, 10, 0, 14}));
 						}
 					}
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(wrapper != null) {
-						wrapper.close();
+						try {
+							wrapper.close();
+						} catch(IOException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
-		}
-
-		// 2022-04-01
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
+			// 2022-03-03
+			{
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				List<String> passwordRulesCols = queryUtil.getTableColumns(conn, "PASSWORD_RULES", database, schema);
+				if(!passwordRulesCols.contains("DAYS_TO_LOCK") && !passwordRulesCols.contains("days_to_lock")) {
+					String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
+					securityDb.insertData(addColumnSql);
+				}
+				if(!passwordRulesCols.contains("DAYS_TO_LOCK_WARNING") && !passwordRulesCols.contains("days_to_lock_warning")) {
+					String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK_WARNING", "INT");
+					securityDb.insertData(addColumnSql);
+				}
+			}
+			// 2022-02-16
+			// renamed permission rules to password rules
+			if(queryUtil.tableExists(conn, "PERMISSION_RULES", database, schema)) {
+				securityDb.insertData(queryUtil.dropTable("PERMISSION_RULES"));
+			}
+	
+			// PASSWORD HISTORY
+			colNames = new String[] { "ID", "USERID", "TYPE", "PASSWORD", "SALT", "DATE_ADDED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_HISTORY", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PASSWORD_HISTORY", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PASSWORD_HISTORY", colNames, types));
+				}
+			}
+			List<String> passReuseCols = queryUtil.getTableColumns(conn, "PASSWORD_HISTORY", database, schema);
+			// 2022-02-16
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(allCols.contains("LIMIT") || allCols.contains("limit")) {
-				securityDb.removeData(queryUtil.dropTable("API_KEY"));
+			if(!passReuseCols.contains("USERID") && !passReuseCols.contains("userid")) {
+				String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_HISTORY", "USERID", "VARCHAR(255)");
+				securityDb.insertData(addColumnSql);
+			}
+			// 2022-02-16
+			// renamed + old had a typo.... -_-
+			if(queryUtil.tableExists(conn, "PASSWORD_RESUSE", database, schema)) {
+				securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
+			}
+	
+			// PASSWORD RESET
+			colNames = new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESET", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "PASSWORD_RESET", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
+				}
+			}
+	
+			// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
+			List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
+			for(String tableName : metaKeyTableNames) {
+				// all have the same columns and default values
+				colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS"};
+				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)"};
+				defaultValues = new Object[]{null, null, null, true, false};
+				if(allowIfExistsTable) {
+					securityDb.insertData(queryUtil.createTableIfNotExists(tableName, colNames, types));
+				} else {
+					// see if table exists
+					if(!queryUtil.tableExists(conn, tableName, database, schema)) {
+						// make the table
+						securityDb.insertData(queryUtil.createTable(tableName, colNames, types));
+					}
+				}
+				// see if there are any default values
+				boolean fresh = false;
+				{
+					IRawSelectWrapper wrapper = null;
+					try {
+						wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from " + tableName);
+						if(wrapper.hasNext()) {
+							int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+							if(numrows < 4) {
+								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
+								int order = 0;
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
+								fresh = true;
+							}
+						}
+					} catch (Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(wrapper != null) {
+							try {
+								wrapper.close();
+							} catch(IOException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					}
+				}
+				// DATE 2022-09-06
+				if(!fresh) {
+					IRawSelectWrapper wrapper = null;
+					try {
+						wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select DISPLAYOPTIONS from " + tableName + " where metakey='domain'");
+						if(wrapper.hasNext()) {
+							String display = wrapper.next().getValues()[0] + "";
+							if(!display.equals("multi-typeahead")) {
+								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
+								int order = 0;
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
+							}
+						}
+					} catch (Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(wrapper != null) {
+							wrapper.close();
+						}
+					}
+				}
+			}
+	
+			// 2022-04-01
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(allCols.contains("LIMIT") || allCols.contains("limit")) {
+					securityDb.removeData(queryUtil.dropTable("API_KEY"));
+				}
+			}
+	
+			// apikey
+			// I am in dual mind whether to create this in security db or in 
+			// allows api keys to be set on insight
+			// consumerid is optional - the idea is you can have one api key per consumer if you choose to
+			// replace time with timestamp
+			colNames = new String[] {"CREATOR_ID", "PROJECT_ID", "INSIGHT_ID", "API_KEY", "CREATED_ON", "API_LIMIT", "COUNT", "DISABLED", "EXPIRES_ON", "DISABLED_ON", "CONSUMER_ID"};
+			types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "DATE", "BIGINT", "BIGINT" , BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)"};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("API_KEY", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "API_KEY", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
+				}
+			}
+	
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} finally {
+			// clean up the connection used for this method
+			if(conn != null && securityDb.isConnectionPooling()) {
+				conn.close();
 			}
 		}
-
-		// apikey
-		// I am in dual mind whether to create this in security db or in 
-		// allows api keys to be set on insight
-		// consumerid is optional - the idea is you can have one api key per consumer if you choose to
-		// replace time with timestamp
-		colNames = new String[] {"CREATOR_ID", "PROJECT_ID", "INSIGHT_ID", "API_KEY", "CREATED_ON", "API_LIMIT", "COUNT", "DISABLED", "EXPIRES_ON", "DISABLED_ON", "CONSUMER_ID"};
-		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "DATE", "BIGINT", "BIGINT" , BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)"};
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("API_KEY", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "API_KEY", database, schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
-			}
-		}
-
-		if(!conn.getAutoCommit()) {
-			conn.commit();
-		}
-
-		// clean up the connection used for this method
-		if(securityDb.isConnectionPooling()) {
-			conn.close();
-		}
-
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
