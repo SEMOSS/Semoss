@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import gc as gc
 import sys
+import re
 
 import string
 import random
@@ -54,6 +55,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       self.log_file = open(f"{self.insight_folder}/log.txt", "a", encoding='utf-8')
     print("Ready to start server")  
     print(f"Server is {self.server}")
+    self.orig_mount_points = {}
+    self.cur_mount_points = {}
+    self.cmd_monitor = threading.Condition()
   
   def handle(self):
     while not self.stop:
@@ -88,7 +92,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
   def get_final_output(self, data=None, epoc=None):
     if self.log_file is not None:
       self.log_file.write(f"{data}")
-    print(data)
+    #print(data)
     payload = ""
     #payload = data
     # if this fails.. there is nothing you can do.. 
@@ -145,86 +149,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
    
       # If this is a python payload 
       elif payload['operation'] == 'PYTHON':
-        is_exception = False
-        print(f"Executing command {command.encode('utf-8')}")
-        # old smss calls
-        if command.endswith(".py") or command.startswith('smssutil'):
-          try:
-            output = eval(command, globals(), self.my_var)
-          except Exception as e:
-            try:
-              exec(command, globals(), self.my_var)
-              output = f"executed command {command.encode('utf-8')}"
-            except Exception as e:
-              print(e)
-              output = str(e)
-              is_exception = True
-          print(f"executing file.. {command.encode('utf-8')}")
-          output = str(output)
-          self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
-
-        # all new
-        else:
-          # same trick - try to eval if it fails run as exec
-          import contextlib
-          globals()['core_server'] = self
-          import semoss_console as console
-          c = console.SemossConsole(socket_handler=self, payload=payload)
-          with contextlib.redirect_stdout(c), contextlib.redirect_stderr(c):
-            try:
-              output = eval(command, globals(), self.my_var)
-            except Exception as e:
-              try:
-                exec(command, globals(), self.my_var)
-                output = f"executed command {command.encode('utf-8')}"
-              except Exception as e:
-                # user is probably trying to call a 'global' variable inside a function call
-                # add all user defined variables to globals
-                globals().update(self.my_var)
-
-                # store the removal keys in case of assignment
-                removal_keys = list(self.my_var.keys())
-                try:
-                  output = eval(command, globals(), self.my_var)
-                except Exception as e:
-                  try:
-                    exec(command, globals(), self.my_var)
-                    output = f"executed command {command.encode('utf-8')}"
-                  except Exception as last_exec_error:
-                    #output =  ''.join(tb.format_exception(None, e, e.__traceback__))
-                    #error_message = tb.format_exception_only(type(last_exec_error), last_exec_error)
-                    #output = "".join(error_message)
-                    traceback = sys.exc_info()[2]                    
-                    full_trace = ['Traceback (most recent call last):\n']
-                    full_trace = full_trace + tb.format_tb(traceback)[1:] + tb.format_exception_only(type(last_exec_error), last_exec_error)
-                    output = ''.join(full_trace)
-                    is_exception = True
-                    
-                # remove all user defined variables to globals
-                for key in removal_keys:
-                  del globals()[key]
-                
-          output = str(output)
-          self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
-      
+        self.handle_python(payload, command)
       # this is when it is a response 
       elif payload['response']:
-        print("In the response block")
-        # this is a response coming back from a request from the java container
-        if payload['epoc'] in self.monitors:
-          # log this payload
-          if self.log_file is not None:
-            self.log_file.write(f"Payload Response {payload}")
-            self.log_file.write("\n")
-            self.log_file.flush()
-
-          condition = self.monitors[payload['epoc']]
-          self.monitors.update({payload['epoc']: payload})
-          condition.acquire()
-          condition.notifyAll()
-          condition.release()
-      
+        self.handle_response(payload)
       # nothing to do here. Unfortunately this is a py instance so we cannot anything
+      elif payload['operation'] == 'CMD':
+        self.handle_shell(payload)
       else:
         output = f"This is a python only instance. Command {str(command).encode('utf-8')} is not supported"
         output = str(output)
@@ -235,7 +166,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       print(f"in the exception block  {epoc}")
       output = ''.join(tb.format_exception(None, e, e.__traceback__))
       payload = {
-      "epoc": epoc,
+      "epoc": str(epoc),
       "ex": [output]
       }
       # there is a possibility this is a response from the previous  
@@ -372,6 +303,258 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       condition.acquire()
       condition.notifyAll()
       condition.release()
+      
+      
+  def handle_python(self, payload, command):
+    is_exception = False
+    print(f"Executing command {command.encode('utf-8')}")
+    # old smss calls
+    if command.endswith(".py") or command.startswith('smssutil'):
+      try:
+        output = eval(command, globals(), self.my_var)
+      except Exception as e:
+        try:
+          exec(command, globals(), self.my_var)
+          output = f"executed command {command.encode('utf-8')}"
+        except Exception as e:
+          print(e)
+          output = str(e)
+          is_exception = True
+      print(f"executing file.. {command.encode('utf-8')}")
+      output = str(output)
+      self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
+
+    # all new
+    else:
+      # same trick - try to eval if it fails run as exec
+      import contextlib
+      globals()['core_server'] = self
+      import semoss_console as console
+      c = console.SemossConsole(socket_handler=self, payload=payload)
+      with contextlib.redirect_stdout(c), contextlib.redirect_stderr(c):
+        try:
+          output = eval(command, globals(), self.my_var)
+        except Exception as e:
+          try:
+            exec(command, globals(), self.my_var)
+            output = f"executed command {command.encode('utf-8')}"
+          except Exception as e:
+            # user is probably trying to call a 'global' variable inside a function call
+            # add all user defined variables to globals
+            globals().update(self.my_var)
+
+            # store the removal keys in case of assignment
+            removal_keys = list(self.my_var.keys())
+            try:
+              output = eval(command, globals(), self.my_var)
+            except Exception as e:
+              try:
+                exec(command, globals(), self.my_var)
+                output = f"executed command {command.encode('utf-8')}"
+              except Exception as last_exec_error:
+                #output =  ''.join(tb.format_exception(None, e, e.__traceback__))
+                #error_message = tb.format_exception_only(type(last_exec_error), last_exec_error)
+                #output = "".join(error_message)
+                traceback = sys.exc_info()[2]                    
+                full_trace = ['Traceback (most recent call last):\n']
+                full_trace = full_trace + tb.format_tb(traceback)[1:] + tb.format_exception_only(type(last_exec_error), last_exec_error)
+                output = ''.join(full_trace)
+                is_exception = True
+                
+            # remove all user defined variables to globals
+            for key in removal_keys:
+              del globals()[key]
+            
+      output = str(output)
+      self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
+  
+  def handle_response(self, payload):
+    #print("In the response block")
+    # this is a response coming back from a request from the java container
+    if payload['epoc'] in self.monitors:
+      # log this payload
+      if self.log_file is not None:
+        self.log_file.write(f"Payload Response {payload}")
+        self.log_file.write("\n")
+        self.log_file.flush()
+
+      condition = self.monitors[payload['epoc']]
+      self.monitors.update({payload['epoc']: payload})
+      condition.acquire()
+      condition.notifyAll()
+      condition.release()
+      
+  def handle_shell(self, payload):
+    # get the method name
+    try:
+      # we can look at changing it to a lower point
+      self.cmd_monitor.acquire()
+      method_name = payload['methodName']
+      print(f"insight id is {payload['insightId']}")
+      mount_name, mount_dir = payload['insightId'].split("__", 1)
+      if method_name == 'constructor':
+        # set the mount point
+        # execute this once so that you know it even exists
+        cmd_payload = ["cd", mount_dir]
+        if mount_name not in self.orig_mount_points:
+          mount_dir = self.exec_cd(mount_name=mount_name, payload=cmd_payload, check=False)
+          self.orig_mount_points.update({mount_name:mount_dir})
+          self.cur_mount_points.update({mount_name:mount_dir})
+        self.send_output(mount_dir, payload, operation=payload["operation"], response=True)
+
+      if method_name == 'removeMount':
+        # set the mount point
+        # execute this once so that you know it even exists
+        if mount_name not in self.orig_mount_points:
+          self.orig_mount_points.pop(mount_name)
+          self.cur_mount_points.pop(mount_name)
+        self.send_output("Mount point removed", payload, operation=payload["operation"], response=True)
+
+        #return "completed constructor"
+      if method_name == 'executeCommand':
+        # get the insight id
+        # get the mount dir 
+        # see what the command is and execute accordingly
+        # need to see the process of cd etc. 
+        cur_dir = self.get_cd(mount_name)
+        commands = payload['payload'][0].split(" ")
+        commands = [command for command in commands if len(command) > 0]
+        command = commands[0]
+        output = "Command not allowed"
+        #mounts = 
+        if command == 'cd' or command.startswith("cd"):
+          output = self.exec_cd(mount_name=mount_name, payload=commands)
+        elif command == 'dir' or command == 'ls':
+          output = self.exec_dir(mount_name=mount_name, payload=commands)
+        elif command == 'cp' or command == 'copy':
+          output = self.exec_cp(mount_name=mount_name, payload=commands)
+        elif command == 'mv' or command == 'move':
+          output = self.exec_cp(mount_name=mount_name, payload=commands)
+        elif command == 'git':
+          output = self.exec_generic(mount_name=mount_name, payload=commands)
+        elif command == 'mvn':
+          output = self.exec_generic(mount_name=mount_name, payload=commands)
+        elif command == 'rm' or command == 'del':
+          # if commands has -r
+          # get the third argument and try to see it can resolve to a directory
+          # if so remove that
+          dir_name = commands[1]
+          #dir_name = self.exec_cd(mount_name = mount_name, payload=["cd", dir_name])
+          #if not dir_name.startswith("Sorry"):
+          output = self.exec_generic(mount_name=mount_name, payload=commands)
+          #else:
+          #  output = dir_name
+        elif command == 'pwd':
+          output = self.exec_generic(mount_name=mount_name, payload=commands)
+        elif command == 'deltree':
+          output = self.exec_generic(mount_name=mount_name, payload=commands)
+        elif command == 'mkdir':
+          dir_name = commands[1]
+          dir_name = self.exec_cd(mount_name = mount_name, payload=["cd", dir_name])
+          if not dir_name.startswith("Sorry"):
+            output = self.exec_generic(mount_name=mount_name, payload=commands)
+          else:
+            output = dir_name
+        elif command == 'pnpm':
+          output = self.exec_generic(mount_name=mount_name, payload=commands)
+        else:
+          output = "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, deltree, pwd, git, mvn (Experimental), mkdir, pnpm(Experimental)"
+
+        # replace the mount point / hide it
+        output = output.replace("\\", "/")
+        orig_dir = self.orig_mount_points[mount_name]
+        orig_dir_opt1 = orig_dir.replace("\\","/")
+        insensitive_orig_dir = re.compile(re.escape(orig_dir), re.IGNORECASE)
+        output = insensitive_orig_dir.sub('_', output)
+        insensitive_orig_dir = re.compile(re.escape(orig_dir_opt1), re.IGNORECASE)
+        output = insensitive_orig_dir.sub('_', output)
+
+        # send the output
+        self.send_output(output, payload, operation=payload["operation"], response=True)
+        #if command == 'ls' or command == 'dir':
+        #  exec_cd(mount_name=mount_name, payload=payload['payload'])
+      self.cmd_monitor.release()
+    except Exception:
+      self.cmd_monitor.release()
+      raise
+
+  
+  def get_cd(self, mount_name):
+    cur_dir = ""
+    if mount_name in self.cur_mount_points:
+      cur_dir = self.cur_mount_points[mount_name]
+      return cur_dir
+    else:
+      # raise exception
+      raise Exception(f"There is no mount point for {mount_name}")
+      
+  def exec_cd(self, mount_name=None, payload=None, check=True):
+    import subprocess
+    # there is only 2 arguments I need to accomodate for
+    # cd <space>
+    # ideally we should just append it to the cd call it a day
+    orig_mount_dir = ""
+    if len(payload) == 1: # this is the case of cd.. or something
+      payload.append(payload[0].replace("cd",""))
+
+    if check:
+      cur_mount_dir = self.get_cd(mount_name)
+      orig_mount_dir = self.orig_mount_points[mount_name] 
+      appender = payload[1]
+      cur_mount_dir = cur_mount_dir + "/" + appender
+    else: # do it for the first time
+      cur_mount_dir = payload[1]
+    import subprocess
+    # throw the exception
+    #try:
+    proc = subprocess.Popen(['cd'], cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
+    new_dir = proc.stdout.read().decode('utf-8').replace("\r\n", "")
+    if check and new_dir.startswith(orig_mount_dir): # we are in the scope all is set
+      print("updating mount points")
+      self.cur_mount_points.update({mount_name:new_dir})
+    elif not new_dir.startswith(orig_mount_dir):
+      new_dir = "Sorry, you are trying to cd outside of the mount sandbox which is not allowed"
+    return new_dir
+    #except NotADirectoryError:
+    #  raise Exception
+
+  def exec_dir(self, mount_name=None, payload=None):
+    import subprocess
+    # there is only 2 arguments I need to accomodate for
+    # cd <space>
+    # ideally we should just append it to the cd call it a day
+    cur_mount_dir = self.get_cd(mount_name)
+
+    # throw the exception
+    # need to accomodate for secondary arguments like ls - ls etc. - done
+    proc = subprocess.Popen(payload, cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
+    output = proc.stdout.read().decode('utf-8')
+    return output
+
+  def exec_cp(self, mount_name=None, payload=None):
+    import subprocess
+
+    cur_mount_dir = self.get_cd(mount_name)
+    orig_mount_dir = self.orig_mount_points[mount_name]
+    # copy from and to
+    
+    from_file = f"{cur_mount_dir}/{payload[1]}"
+    to_file = f"{cur_mount_dir}/{payload[2]}"
+    # check to see if this is from the mount space
+    # the possibility here is the user does a file space of ../.. etc.. we need to catch eventually
+    # execute copy
+    proc = subprocess.Popen(payload, cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
+    output = proc.stdout.read().decode('utf-8').replace("\r\n", "")
+    return output
+    
+  def exec_generic(self, mount_name=None, payload=None):
+    import subprocess
+    cur_mount_dir = self.get_cd(mount_name)
+    orig_mount_dir = self.orig_mount_points[mount_name]
+    # execute git
+    proc = subprocess.Popen(payload, cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
+    output = proc.stdout.read().decode('utf-8')
+    return output
 
 
       
