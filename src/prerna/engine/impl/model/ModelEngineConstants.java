@@ -17,4 +17,6 @@ public class ModelEngineConstants {
 	public static final String INPUT = "INPUT";
 	public static final String MESSAGE_ID = "messageId";
 	public static final String ROOM_ID = "roomId";
+	
+	public static final String OPEN_AI_KEY = "OPEN_AI_KEY";
 }
