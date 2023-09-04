@@ -790,10 +790,11 @@ public class SmssUtilities {
 		String[] currentSmssLines = currentSmssContent.split("\n");
 		
 		String[] keysToFind = new String[] {
+				// standard
 				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
 				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 				
-				// model engine
+				// model
 				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
 				
 				// storage
@@ -841,10 +842,11 @@ public class SmssUtilities {
 		CaseInsensitiveProperties allUpperProps = new CaseInsensitiveProperties(newProperties);
 		
 		String[] keysToFind = new String[] {
+				// standard
 				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
 				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 				
-				// model engine
+				// model
 				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
 				
 				// storage
