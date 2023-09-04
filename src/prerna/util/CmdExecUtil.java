@@ -29,6 +29,7 @@ public class CmdExecUtil {
 	String pwdCommand = "pwd";
 	SocketClient tcpClient = null;
 	String insightId = null;
+	boolean init = false;
 
 	
 	public CmdExecUtil(String mountName, String mountDir, SocketClient tcpClient) {
@@ -47,14 +48,19 @@ public class CmdExecUtil {
 	
 	public void pushMountToSocket()
 	{
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+		if(	//(tcpClient != null && !(tcpClient instanceof NativePySocketClient))
+				//&&
+				(DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))
+		   )
 		{
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = ps.operation.CMD;
 			ps.payload = new Object[] {mountName, mountDir};
 			ps.methodName = "constructor";
 			ps.hasReturn = false;
-			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);			
+			ps.insightId = mountName + "__" + mountDir;
+			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);	
+			//init = true;
 		}
 	}
 	
@@ -63,7 +69,10 @@ public class CmdExecUtil {
 		String output = null;
 		
 		// may be do the check to see if tcp server is there
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+		if(	//(tcpClient != null && !(tcpClient instanceof NativePySocketClient))
+			//		&&
+				(DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))
+		   )
 		{
 			if(tcpClient == null)
 			{
