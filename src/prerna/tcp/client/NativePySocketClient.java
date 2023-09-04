@@ -154,7 +154,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
-	    				logger.debug("incoming payload " + ps.epoc);
+	    				logger.debug("incoming payload " + ps);
 
 	    				// std out no questions
 	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
@@ -201,6 +201,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    						else 
 	    							ps.payload = new String[] {outputAssimilator.toString()};
 	    					}
+	    					ps.epoc = ps.epoc.trim();
 		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
 
 	    					// try to convert it into a full object
