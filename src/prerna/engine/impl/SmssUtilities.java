@@ -14,7 +14,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.storage.AzureBlobStorageEngine;
+import prerna.engine.impl.storage.MinioStorageEngine;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -787,8 +791,16 @@ public class SmssUtilities {
 		
 		String[] keysToFind = new String[] {
 				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
-				AbstractSqlQueryUtil.ACCESS_KEY.toUpperCase(),
-				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase()
+				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
+				
+				// model engine
+				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
+				
+				// storage
+				S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
+				MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
+				AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
+				AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
 		};
 		
 		for(String curLine : currentSmssLines) {
@@ -830,8 +842,16 @@ public class SmssUtilities {
 		
 		String[] keysToFind = new String[] {
 				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
-				AbstractSqlQueryUtil.ACCESS_KEY.toUpperCase(),
-				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase()
+				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
+				
+				// model engine
+				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
+				
+				// storage
+				S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
+				MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
+				AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
+				AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
 		};
 		
 		boolean requireProcessing = false;
