@@ -10,4 +10,4 @@ DRIVER org.h2.Driver
 USERNAME        sa
 PASSWORD        abcd
 CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
-# USE_CONNECTION_POOLING                true
+USE_CONNECTION_POOLING	false
