@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,10 +16,12 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.api.IDatabaseEngine;
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
@@ -57,26 +60,40 @@ public class GenerateMetamodelUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getOwlMetamodelPositions(String databaseId) {
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
+		// if on cloud - we have to pull these files so they exist
+		// even if we dont need the full database object
+		if(ClusterUtil.IS_CLUSTER) {
+			Utility.getDatabase(databaseId);
+		}
+		
 		Map<String, Object> positions = new HashMap<>();
-		if(database == null) {
-			classLogger.error("Could not load database '"+databaseId+"'");
-			classLogger.error("Could not load database '"+databaseId+"'");
-			classLogger.error("Could not load database '"+databaseId+"'");
-			classLogger.error("Could not load database '"+databaseId+"'");
-			classLogger.error("Could not load database '"+databaseId+"'");
+		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
+		if(!new File(smssFile).exists()) {
+			classLogger.warn("Could not find database smss '"+smssFile+"'");
+			classLogger.warn("Could not find database smss '"+smssFile+"'");
+			classLogger.warn("Could not find database smss '"+smssFile+"'");
+			return positions;
+		}
+		Properties smssProp = Utility.loadProperties(smssFile);
+		if(smssProp == null) {
+			classLogger.warn("Could not load smss at '"+smssFile+"'");
+			classLogger.warn("Could not load smss at '"+smssFile+"'");
+			classLogger.warn("Could not load smss at '"+smssFile+"'");
 			return positions;
 		}
 		// if the file is present, pull it and load
-		File owlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		File owlF = SmssUtilities.getOwlFile(smssProp);
 		if(owlF != null && owlF.isFile()) {
-			File positionFile = database.getOwlPositionFile();
+			// position file is in same folder as OWL
+			String baseFolder = owlF.getParent();
+			String positionJson = baseFolder + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
+			File positionFile = new File(positionJson);
 			// try to make the file
 			if(!positionFile.exists() && !positionFile.isFile()) {
 				try {
-					classLogger.info("Generating metamodel layout for database " + database.getEngineId());
+					classLogger.info("Generating metamodel layout for database " + databaseId);
 					classLogger.info("This process may take some time");
-					GenerateMetamodelLayout.generateLayout(database.getEngineId());
+					GenerateMetamodelLayout.generateLayout(databaseId);
 					classLogger.info("Metamodel layout has been generated");
 				} catch(Exception e) {
 					classLogger.info("Exception in creating database metamodel layout");
@@ -92,7 +109,7 @@ public class GenerateMetamodelUtility {
 				Path path = positionFile.toPath();
 				try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
 					positions = gson.fromJson(reader, Map.class);
-					EngineSyncUtility.setMetamodelPositions(database.getEngineId(), positions);
+					EngineSyncUtility.setMetamodelPositions(databaseId, positions);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
