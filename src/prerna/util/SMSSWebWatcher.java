@@ -285,7 +285,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String themeDBName = Constants.THEMING_DB + this.extension;
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
-		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
+//		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
@@ -293,7 +293,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			try {
 				String fileName = fileNames[fileIdx];
 				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) 
-						|| fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName) || fileName.equals(modelInferenceLogsDB)) {
+						|| fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName) 
+//						|| fileName.equals(modelInferenceLogsDB)
+					) {
 					// ignore - we have already loaded these
 					continue;
 				}

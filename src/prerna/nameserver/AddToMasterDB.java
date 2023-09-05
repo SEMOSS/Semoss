@@ -87,14 +87,14 @@ public class AddToMasterDB {
 	 */
 
     public boolean registerEngineLocal(Properties prop) {
-        String engineUniqueId = prop.getProperty(Constants.ENGINE);
-        if (engineUniqueId == null) {
-            engineUniqueId = UUID.randomUUID().toString();
+        String engineId = prop.getProperty(Constants.ENGINE);
+        if (engineId == null) {
+            engineId = UUID.randomUUID().toString();
         }
-        return registerEngineLocal(prop, engineUniqueId);
+        return registerEngineLocal(prop, engineId);
     }
 
-    public boolean registerEngineLocal(Properties prop, String engineUniqueId) {
+    public boolean registerEngineLocal(Properties prop, String engineId) {
         // grab the local master engine
     	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
         // establish the connection
@@ -104,6 +104,9 @@ public class AddToMasterDB {
             conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
             
             String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+            if(engineName == null) {
+            	engineName = engineId;
+            }
             
             // we want to load in the OWL for the engine we want to synchronize into the
             // the local master
@@ -148,12 +151,16 @@ public class AddToMasterDB {
                 engineTypeString = "TYPE:RDF";
             }
 
-            this.conceptIdHash.put(engineName + "_ENGINE", engineUniqueId);
+            this.conceptIdHash.put(engineName + "_ENGINE", engineId);
             String enginePsQuery = "INSERT INTO ENGINE (ID, ENGINENAME, MODIFIEDDATE, TYPE) VALUES (?,?,?,?)";
             try(PreparedStatement ps = conn.prepareStatement(enginePsQuery)) {
             	int parameterIndex = 1;
-				ps.setString(parameterIndex++, engineUniqueId);
-				ps.setString(parameterIndex++, engineName);
+				ps.setString(parameterIndex++, engineId);
+				if(engineName == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(parameterIndex++, engineName);
+				}
 				ps.setTimestamp(parameterIndex++, new java.sql.Timestamp(modDate.getTime()));
 				ps.setString(parameterIndex++, engineTypeString);
 				ps.execute();
@@ -198,9 +205,9 @@ public class AddToMasterDB {
             }
             
             // sync metamodel position
-            Map<String, Object> positions = GenerateMetamodelUtility.getOwlMetamodelPositions(engineUniqueId);
+            Map<String, Object> positions = GenerateMetamodelUtility.getOwlMetamodelPositions(engineId);
             if (positions.size() > 0) {
-            	MasterDatabaseUtility.saveMetamodelPositions(engineUniqueId, positions, conn);
+            	MasterDatabaseUtility.saveMetamodelPositions(engineId, positions, conn);
             }
             
             // execute all of the inserts
