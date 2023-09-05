@@ -134,7 +134,7 @@ public class AddToMasterDB {
             IDatabaseEngine.DATABASE_TYPE dbType = null;
             String engineTypeString = null;
             String propEngType = prop.getProperty("ENGINE_TYPE");
-            if (propEngType.contains("RDBMS") || propEngType.contains("Impala")) {
+            if (propEngType.contains("RDBMS") || propEngType.contains("H2EmbeddedServerEngine") || propEngType.contains("Impala")) {
                 dbType = IDatabaseEngine.DATABASE_TYPE.RDBMS;
                 engineTypeString = "TYPE:RDBMS";
             } else if (propEngType.contains("Tinker")) {
