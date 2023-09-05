@@ -141,9 +141,9 @@ public class UploadUtilities {
 	 * @param erroredProjectId
 	 */
 	public static void removeProjectFromDIHelper(String erroredProjectId) {
-		DIHelper.getInstance().removeEngineProperty(erroredProjectId + "_" + Constants.STORE);
-		DIHelper.getInstance().removeEngineProperty(erroredProjectId);
-		String projectIds = (String) DIHelper.getInstance().getEngineProperty(Constants.PROJECTS);
+		DIHelper.getInstance().removeProjectProperty(erroredProjectId + "_" + Constants.STORE);
+		DIHelper.getInstance().removeProjectProperty(erroredProjectId);
+		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		projectIds = projectIds.replace(";"+erroredProjectId+";", ";");
 		projectIds = projectIds.replace(";"+erroredProjectId, "");
 		DIHelper.getInstance().setEngineProperty(Constants.PROJECTS, projectIds);
