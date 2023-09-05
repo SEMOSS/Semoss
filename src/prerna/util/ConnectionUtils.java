@@ -56,7 +56,7 @@ public class ConnectionUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		if(engine.isConnectionPooling()) {
+		if(engine!=null && engine.isConnectionPooling()) {
 			if(con!=null){
 				try{
 					con.close();
@@ -82,7 +82,7 @@ public class ConnectionUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		if(engine.isConnectionPooling()) {
+		if(engine!=null && engine.isConnectionPooling()) {
 			try{
 				if(ps!=null && ps.getConnection()!=null){
 					ps.getConnection().close();
