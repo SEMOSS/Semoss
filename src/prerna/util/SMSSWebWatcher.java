@@ -63,8 +63,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		ignoreSmssList.add(Constants.THEMING_DB);
 		ignoreSmssList.add(Constants.SCHEDULER_DB);
 		ignoreSmssList.add(Constants.USER_TRACKING_DB);
-		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
-
+//		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
 	}
 	
 	private static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class);
@@ -295,7 +294,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String fileName = fileNames[fileIdx];
 				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) 
 						|| fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName) || fileName.equals(modelInferenceLogsDB)) {
-					// again, ignore local master + security
+					// ignore - we have already loaded these
 					continue;
 				}
 				
