@@ -2497,9 +2497,9 @@ public class Utility {
 			boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
 			boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
-			boolean isModelInferenceLogs = engineId.equals(Constants.MODEL_INFERENCE_LOGS_DB);
+//			boolean isModelInferenceLogs = engineId.equals(Constants.MODEL_INFERENCE_LOGS_DB);
 
-			if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking && !isModelInferenceLogs) {
+			if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {// && !isModelInferenceLogs) {
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
 				// need to do a check to see if this is socket side here
