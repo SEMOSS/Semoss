@@ -1,16 +1,13 @@
-Base Properties 
+#Base Properties 
 ENGINE	ModelInferenceLogsDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
-RDBMS_TYPE	H2_DB
 OWL	db/ModelInferenceLogsDatabase/ModelInferenceLogsDatabase_OWL.OWL
-PIXEL_UPDATE	true
-RDBMS_INSIGHTS	db/ModelInferenceLogsDatabase/insights_database
 
+RDBMS_TYPE	H2_DB
 DATABASE
 SCHEMA PUBLIC
 DRIVER	org.h2.Driver
 USERNAME	sa
 PASSWORD	
 CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
-USE_OUTER_JOINS	false
-# USE_CONNECTION_POOLING	true
+USE_CONNECTION_POOLING	false
