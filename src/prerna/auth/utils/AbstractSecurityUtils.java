@@ -1839,7 +1839,8 @@ public abstract class AbstractSecurityUtils {
 
 
 	public static boolean ignoreDatabase(String databaseId) {
-		if(databaseId.equals(Constants.LOCAL_MASTER_DB_NAME) || databaseId.equals(Constants.SECURITY_DB) || databaseId.equals(Constants.SCHEDULER_DB) || databaseId.equals(Constants.USER_TRACKING_DB) ) {
+		if(databaseId.equals(Constants.LOCAL_MASTER_DB_NAME) || databaseId.equals(Constants.SECURITY_DB) 
+				|| databaseId.equals(Constants.SCHEDULER_DB) || databaseId.equals(Constants.USER_TRACKING_DB) ) {
 			// dont add local master or security db to security db
 			return true;
 		}
