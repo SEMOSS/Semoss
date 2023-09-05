@@ -82,8 +82,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		if(engineName == null) {
-			engineName = engineId;
-		}
+        	engineName = engineId;
+        }
 		
 		boolean engineExists = containsDatabaseId(engineId);
 		if(engineExists) {
@@ -158,15 +158,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 */
 	public static void addEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
-		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
+		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, engineName);
 			ps.setString(parameterIndex++, engineId);
+			if(engineName == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, engineName);
+			}
 			ps.setString(parameterIndex++, engineType.toString());
 			ps.setString(parameterIndex++, engineSubType);
 			ps.setString(parameterIndex++, engineCost);
