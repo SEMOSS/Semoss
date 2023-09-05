@@ -41,7 +41,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsUtils {
 	
-	private static Logger logger = LogManager.getLogger(ModelInferenceLogsUtils.class);
+	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
+	
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
 	
@@ -160,13 +161,13 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -205,13 +206,13 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -235,7 +236,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
@@ -257,7 +258,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
@@ -277,7 +278,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
@@ -335,7 +336,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -357,7 +358,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -380,7 +381,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -413,7 +414,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -478,7 +479,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -494,14 +495,14 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, roomId);
 			ps.executeUpdate();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		} finally {
 			if(modelInferenceLogsDb.isConnectionPooling()) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -560,9 +561,9 @@ public class ModelInferenceLogsUtils {
 			modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
 			connection = modelInferenceLogsDb.getConnection();
 		} catch (SQLException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 
 		if (connection == null) {
@@ -654,7 +655,7 @@ public class ModelInferenceLogsUtils {
 				try {
 					executeSql(conn, notNullQuery);
 				} catch (SQLException se) {
-					logger.error(Constants.STACKTRACE, se);
+					classLogger.error(Constants.STACKTRACE, se);
 					// We can't change it to NOT NULL so probably can't create the PRIMARY KEY
 					return true;
 				}
@@ -665,7 +666,7 @@ public class ModelInferenceLogsUtils {
 				try {
 					executeSql(conn, primaryKeyQuery);
 				} catch (SQLException se) {
-					logger.error(Constants.STACKTRACE, se);
+					classLogger.error(Constants.STACKTRACE, se);
 				}
 			} else {
 				String primaryKeyQuery = "ALTER TABLE " + tableName + " ADD CONSTRAINT " + primaryKeyConstraintName + " PRIMARY KEY ( " + String.join(",", primaryKeyNames) +  " );";
@@ -674,7 +675,7 @@ public class ModelInferenceLogsUtils {
 						executeSql(conn, primaryKeyQuery);
 					}
 				} catch (SQLException se) {
-					logger.error(Constants.STACKTRACE, se);
+					classLogger.error(Constants.STACKTRACE, se);
 				}
 			}
 		}
@@ -705,7 +706,7 @@ public class ModelInferenceLogsUtils {
 					try {
 						executeSql(conn, sqlStatement);
 					} catch (SQLException se) {
-						logger.error(Constants.STACKTRACE, se);
+						classLogger.error(Constants.STACKTRACE, se);
 						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
 					}
 				} else {
@@ -717,7 +718,7 @@ public class ModelInferenceLogsUtils {
 							executeSql(conn, sqlStatement);
 						}
 					} catch (SQLException se) {
-						logger.error(Constants.STACKTRACE, se);
+						classLogger.error(Constants.STACKTRACE, se);
 						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
 					}
 				}
@@ -727,7 +728,7 @@ public class ModelInferenceLogsUtils {
 	
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
-			logger.info("Running sql " + sql);
+			classLogger.info("Running sql " + sql);
 			stmt.execute(sql);
 		}
 	}
