@@ -577,6 +577,8 @@ public class ModelInferenceLogsUtils {
 		ModelInferenceLogsOwlCreation modelInfCreator = new ModelInferenceLogsOwlCreation(modelInferenceLogsDb);
 		if(modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
+			// reset the local master metadata for model engine if we remade the OWL
+			Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB);
 		}
 		
 		Connection conn = null;
