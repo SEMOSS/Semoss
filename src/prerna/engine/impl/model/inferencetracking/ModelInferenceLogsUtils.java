@@ -33,19 +33,17 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-
-
 
 public class ModelInferenceLogsUtils {
 	
 	private static Logger logger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
-	
 	
 	// this is good for python dictionaries but also for making sure we can easily construct 
 	// the logs into model inference python list, since everything is python at this point.
@@ -239,7 +237,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
 	}
 	
@@ -261,7 +259,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
 	}
 	
@@ -281,7 +279,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}	
 	}
 	
@@ -339,7 +337,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 	
@@ -361,7 +359,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
 	}
@@ -384,7 +382,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
 	}
@@ -417,7 +415,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 	
@@ -482,7 +480,7 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(modelInferenceLogsDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 	
@@ -590,7 +588,7 @@ public class ModelInferenceLogsUtils {
 				addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
 			}
 		} finally {
-			closeResources(modelInferenceLogsDb, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
 		initialized = true;
 	}
@@ -725,41 +723,6 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
-	/**
-	 * 
-	 * @param engine
-	 * @param conn
-	 * @param stmt
-	 * @param rs
-	 */
-	private static void closeResources(IRDBMSEngine engine, Connection conn, Statement stmt, ResultSet rs) {
-		try {
-			if (rs != null) {
-				rs.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if (stmt != null) {
-				stmt.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if (engine != null && engine.isConnectionPooling()) {
-				if(conn != null) {
-					conn.close();
-				} else if(stmt != null) {
-					stmt.getConnection().close();
-				}
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-	}
-
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
 			logger.info("Running sql " + sql);
