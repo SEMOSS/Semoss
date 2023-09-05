@@ -10,4 +10,4 @@ DRIVER org.h2.Driver
 USERNAME	sa
 PASSWORD	
 CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
-# USE_CONNECTION_POOLING	true
+USE_CONNECTION_POOLING	false
