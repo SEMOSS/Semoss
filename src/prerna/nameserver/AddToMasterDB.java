@@ -59,6 +59,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelUtility;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
@@ -103,7 +104,7 @@ public class AddToMasterDB {
             conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
             
             String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-
+            
             // we want to load in the OWL for the engine we want to synchronize into the
             // the local master
             // get the owl relative path from the base folder to get the full path
@@ -202,7 +203,6 @@ public class AddToMasterDB {
             	MasterDatabaseUtility.saveMetamodelPositions(engineUniqueId, positions, conn);
             }
             
-
             // execute all of the inserts
             conceptPs.executeBatch();
             engineConceptPs.executeBatch();
@@ -217,15 +217,7 @@ public class AddToMasterDB {
             logger.error(Constants.STACKTRACE, e);
             throw new IllegalArgumentException("An error occurred establishing a connection to the local master database");
         } finally {
-    		if(localMaster.isConnectionPooling()) {
-    			try {
-    				if(conn != null) {
-    					conn.close();
-    				}
-				} catch (SQLException e) {
-		            logger.error(Constants.STACKTRACE, e);
-				}
-    		}
+        	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, null, null);
         }
     }
 
