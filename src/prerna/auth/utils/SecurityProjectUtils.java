@@ -1974,6 +1974,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"DISCOVERABLE", "project_discoverable"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
@@ -2283,6 +2284,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
