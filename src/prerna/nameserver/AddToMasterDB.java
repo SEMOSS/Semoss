@@ -34,7 +34,6 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -703,48 +702,33 @@ public class AddToMasterDB {
     public void addXrayConfig(String config, String fileName) {
         // make statements
         // create table to local master
-        String tableName = "xrayconfigs";
-        String[] colNames = new String[]{"filename", "config"};
-        String[] types = new String[]{"varchar(800)", "varchar(20000)"};
-
         // check if fileName exists
         IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement ps = null;
         try {
         	conn = localMaster.makeConnection();
-        	stmt = conn.createStatement();
             String configFile = MasterDatabaseUtility.getXrayConfigFile(fileName);
             if (configFile.length() > 0) {
                 // create update statement
-                String update = "UPDATE xrayconfigs SET config = '" + config + "' WHERE fileName = '" + fileName + "';";
-                stmt.executeUpdate(update);
+                ps = conn.prepareStatement("UPDATE xrayconfigs SET config=? WHERE filename=?");
+                ps.setString(1, config);
+                ps.setString(2, fileName);
+                ps.execute();
             } else {
                 // make new insert
-                String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types,
-                        new Object[]{fileName, config});
-                insertString += ";";
-                stmt.execute(insertString);
+				ps = conn.prepareStatement("INSERT INTO xrayconfig (filename, config) VALUES(?, ?)");
+				ps.setString(1, fileName);
+				ps.setString(2, config);
+                ps.execute();
             }
+            if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
         } catch (Exception e) {
             logger.error(Constants.STACKTRACE, e);
         } finally {
-        	if(stmt != null) {
-        		try {
-					stmt.close();
-				} catch (SQLException e) {
-		            logger.error(Constants.STACKTRACE, e);
-				}
-        	}
-        	if(localMaster.isConnectionPooling()) {
-        		try {
-        			if(conn != null) {
-    					conn.close();
-    				}
-				} catch (SQLException e) {
-		            logger.error(Constants.STACKTRACE, e);
-				}
-        	}
+        	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, ps, null);
         }
     }
 
@@ -805,22 +789,7 @@ public class AddToMasterDB {
         } catch (UnsupportedEncodingException e) {
         	logger.error(Constants.STACKTRACE, e);
 		} finally {
-        	try {
-        		if(stmt != null) {
-        			stmt.close();
-        		}
-        	} catch (SQLException e) {
-            	logger.error(Constants.STACKTRACE, e);
-        	}
-        	if(localMaster.isConnectionPooling()) {
-        		try {
-            		if(conn != null) {
-                		conn.close();
-            		}
-            	} catch (SQLException e) {
-                	logger.error(Constants.STACKTRACE, e);
-            	}
-        	}
+        	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, stmt, null);
         }
 		return valid;
 	}
@@ -869,12 +838,6 @@ public class AddToMasterDB {
         AddToMasterDB adder = new AddToMasterDB();
         adder.registerEngineLocal(engineProp);
         adder.registerEngineLocal(engineProp2);
-
-        // adder.close();
-
-        // test the master db
-
-        // adder.testMaster(localMaster);
     }
 
     private static Properties loadEngineProp(final String DB_DIRECTORY, String engineName) throws IOException {
