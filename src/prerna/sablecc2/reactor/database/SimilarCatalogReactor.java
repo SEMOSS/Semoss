@@ -37,9 +37,13 @@ public class SimilarCatalogReactor extends AbstractReactor {
 			String alias = MasterDatabaseUtility.getDatabaseAliasForId(s);
 			List<Object[]> tac = MasterDatabaseUtility.getAllTablesAndColumns(s);
 			String keywords = tac.stream().map(t -> (String) t[1]).map(t -> "'" + t + "'")
-					.reduce((a, b) -> a + "," + b).get();
+					.reduce((a, b) -> a + "," + b).orElse("");
 			alias = "'" + alias + "'";
-			keywords = alias + "," + keywords;
+			if (!keywords.isEmpty()) {
+				keywords = alias + "," + keywords;
+			} else {
+				keywords = alias;
+			}
 			metadatas = metadatas + alias + ":" + "(" + keywords + "),";
 		}
 		metadatas = metadatas.substring(0, metadatas.length() - 1);
