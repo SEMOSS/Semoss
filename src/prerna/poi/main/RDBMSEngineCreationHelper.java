@@ -16,7 +16,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ISelectWrapper;
@@ -330,7 +329,7 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	public static boolean conceptExists(IDatabaseEngine engine, String tableName, String colName, Object instanceValue) {
-		String query = "SELECT DISTINCT " + colName + " FROM " + tableName + " WHERE " + colName + "='" + RdbmsQueryBuilder.escapeForSQLStatement(instanceValue + "") + "'";
+		String query = "SELECT DISTINCT " + colName + " FROM " + tableName + " WHERE " + colName + "='" + AbstractSqlQueryUtil.escapeForSQLStatement(instanceValue + "") + "'";
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
