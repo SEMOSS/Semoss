@@ -1,6 +1,9 @@
 package prerna.forms;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -12,14 +15,16 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractFormBuilder {
 
@@ -45,7 +50,7 @@ public abstract class AbstractFormBuilder {
 	protected AbstractFormBuilder(IDatabaseEngine engine) {
 		this.formEng = Utility.getDatabase(FORM_BUILDER_ENGINE_NAME);
 		this.engine = engine;
-		this.auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
+		this.auditLogTableName = AbstractSqlQueryUtil.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
 		generateEngineAuditLog(this.auditLogTableName);
 	}
 	
@@ -127,12 +132,22 @@ public abstract class AbstractFormBuilder {
 			owler.addProp("FORMS_USER_ACCESS", "IS_SYS_ADMIN", "BOOLEAN");
 
 			logger.info("CREATING PERMISSION TABLE!!!");
-			String query = RdbmsQueryBuilder.makeCreate("FORMS_USER_ACCESS", new String[]{"USER_ID", "INSTANCE_NAME", "IS_SYS_ADMIN"}, new String[]{"VARCHAR(100)", "VARCHAR(255)", "BOOLEAN"});
+			String query = "CREATE TABLE FORM_USER_ACCESS (USER_ID VARCHAR(100), INSTANCE_NAME VARCHAR(255), IS_SYS_ADMIN BOOLEAN)";
+			IRDBMSEngine rdbmsEng = (IRDBMSEngine) formEng;
 			logger.info("SQL SCRIPT >>> " + query);
+			Connection conn = null;
+			Statement stmt = null;
 			try {
-				formEng.insertData(query);
+				conn = rdbmsEng.getConnection();
+				stmt = conn.createStatement();
+				stmt.execute(query);
+				if(!stmt.getConnection().getAutoCommit()) {
+					stmt.getConnection().commit();
+				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
 			}
 			owler.commit();
 			try {
@@ -241,12 +256,19 @@ public abstract class AbstractFormBuilder {
 			
 			// 3) perform an update
 			if(colsToAdd.size() > 0) {
-				String alterQuery = RdbmsQueryBuilder.makeAlter(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
+				IRDBMSEngine rdbmsEng = (IRDBMSEngine) this.formEng;
+				Connection conn = null;
+				Statement stmt = null;
+				String alterQuery = rdbmsEng.getQueryUtil().alterTableAddColumns(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
 				logger.info("ALTERING TABLE: " + Utility.cleanLogString(alterQuery));
 				try {
-					this.formEng.insertData(alterQuery);
+					conn = rdbmsEng.getConnection();
+					stmt = conn.createStatement();
+					stmt.execute(alterQuery);
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
 				}
 				logger.info("DONE ALTER TABLE");
 				
@@ -306,27 +328,33 @@ public abstract class AbstractFormBuilder {
 		String cleanUser = null;
 		// TODO: FE NEEDS TO PASS IN USER!
 		if(this.user != null) {
-			cleanUser = RdbmsQueryBuilder.escapeForSQLStatement(this.user);
+			cleanUser = this.user;
 		} else {
 			cleanUser = "User Information Not Submitted";
 		}
+		IRDBMSEngine rdbmsEng = (IRDBMSEngine) formEng;
 		
-		startNode = RdbmsQueryBuilder.escapeForSQLStatement(startNode);
-		relName = RdbmsQueryBuilder.escapeForSQLStatement(relName);
-		endNode = RdbmsQueryBuilder.escapeForSQLStatement(endNode);
-		propName = RdbmsQueryBuilder.escapeForSQLStatement(propName);
-		propValue = RdbmsQueryBuilder.escapeForSQLStatement(propValue);
+		PreparedStatement ps = null;
 
-		String valuesBreak = "', '";
-		StringBuilder insertLogStatement = new StringBuilder("INSERT INTO ");
-		insertLogStatement.append(this.auditLogTableName).append("(USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES('")
-						.append(cleanUser).append(valuesBreak).append(action).append(valuesBreak).append(startNode).append(valuesBreak)
-						.append(relName).append(valuesBreak).append(endNode).append(valuesBreak).append(propName).append(valuesBreak)
-						.append(propValue).append(valuesBreak).append(timeStamp).append("')");
 		try {
-			this.formEng.insertData(insertLogStatement.toString());
+			ps = rdbmsEng.getPreparedStatement("INSERT INTO "+this.auditLogTableName+" (USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?,?,?,?,?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, cleanUser);
+			ps.setString(parameterIndex++, action);
+			ps.setString(parameterIndex++, startNode);
+			ps.setString(parameterIndex++, relName);
+			ps.setString(parameterIndex++, endNode);
+			ps.setString(parameterIndex++, propName);
+			ps.setString(parameterIndex++, propValue);
+			ps.setString(parameterIndex++, timeStamp);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, ps);
 		}
 	}
 

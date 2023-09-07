@@ -48,7 +48,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
@@ -756,21 +755,14 @@ public class AddToMasterDB {
 			// check if key exists
 			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineId, concept, key);
 			if (duplicateCheck == null) {
-//				String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, new Object[] { localConceptID, key, value });
-//				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
-//				if (validInsert > 0) {
-//					valid = true;
-//				}
-				stmt = conn.prepareStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+				stmt = conn.prepareStatement(queryUtil.createInsertPreparedStatementString(tableName, colNames));
 				stmt.setString(1, localConceptID);
 				stmt.setString(2, key);
 				queryUtil.handleInsertionOfClob(conn, stmt, value, 3, new Gson());
 				valid = stmt.execute();
-			} // update
+			} 
+			// update
 			else {
-//				String update = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
-//						+ value + "\' WHERE " + Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and "
-//						+ Constants.KEY + " = \'" + key + "\'";
 				String updateSql = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.LM_META_VALUE + " = ? "
 						+ " WHERE " + Constants.LM_PHYSICAL_NAME_ID + " = ? " + " AND " + Constants.LM_META_KEY
 						+ " = ? ";
@@ -778,7 +770,6 @@ public class AddToMasterDB {
 				queryUtil.handleInsertionOfClob(conn, stmt, value, 1, new Gson());
 				stmt.setString(2, localConceptID);
 				stmt.setString(3, key);
-				//int validInsert = conn.createStatement().executeUpdate(update + ";");
 				int validInsert = stmt.executeUpdate();
 				if (validInsert > 0) {
 					valid = true;
