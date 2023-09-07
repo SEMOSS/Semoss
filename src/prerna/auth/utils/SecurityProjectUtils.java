@@ -581,7 +581,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
 		
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
-		
 		{
 			boolean error = false;
 			PreparedStatement insertPs = null;
