@@ -1,14 +1,17 @@
 package prerna.sablecc2.reactor.database.upload.rdbms;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.ConnectionUtils;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -99,22 +102,31 @@ public class RdbmsUploadReactorUtility {
 				sqlTypes[i + 1] = "TIMESTAMP ";
 			}
 		}
-
-		if (replace) {
-			try {
-				String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
-				engine.insertData(createTable);
-			} catch (Exception e) {
-				String dropTable = RdbmsQueryBuilder.makeDropTable(tableName);
-				engine.removeData(dropTable);
-				String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
-				engine.insertData(createTable);
+		
+		IRDBMSEngine rdbmsEng = (IRDBMSEngine) engine;
+		AbstractSqlQueryUtil queryUtil = rdbmsEng.getQueryUtil();
+		Connection conn = null;
+		Statement stmt = null;
+		try {
+			conn = rdbmsEng.getConnection();
+			stmt = conn.createStatement();
+			if (replace) {
+				try {
+					String createTable = queryUtil.createTable(tableName, newHeaders, sqlTypes);
+					stmt.executeQuery(createTable);
+				} catch (Exception e) {
+					String dropTable = queryUtil.dropTable(tableName);
+					stmt.executeQuery(dropTable);
+					String createTable = queryUtil.createTable(tableName, newHeaders, sqlTypes);
+					stmt.executeQuery(createTable);
+				}
+			} else {
+				String createTable = queryUtil.createTableIfNotExists(tableName, newHeaders, sqlTypes);
+				stmt.executeQuery(createTable);
 			}
-		} else {
-			String createTable = RdbmsQueryBuilder.makeOptionalCreate(tableName, newHeaders, sqlTypes);
-			engine.insertData(createTable);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
 		}
-
 
 		return sqlTypes;
 	}
