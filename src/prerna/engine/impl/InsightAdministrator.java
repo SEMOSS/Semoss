@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -152,22 +153,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 
 		// return the new rdbms id
@@ -284,13 +270,7 @@ public class InsightAdministrator {
 			} catch(Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
+				ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 			}
 		}
 	}
@@ -331,13 +311,7 @@ public class InsightAdministrator {
 			} catch(Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
+				ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 			}
 		}
 	}
@@ -379,20 +353,8 @@ public class InsightAdministrator {
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insertStatement != null) {
-				try {
-					insertStatement.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeStatement(insertStatement);
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -463,22 +425,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -511,22 +458,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -552,22 +484,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -613,22 +530,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -660,22 +562,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -700,22 +587,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(insightEngine.isConnectionPooling()) {
-				try {
-					if(ps!=null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
 		}
 	}
 
@@ -735,22 +607,43 @@ public class InsightAdministrator {
 	 * Drop specific insights from the insight
 	 * @param insightIDs
 	 */
-	public void dropInsight(String... insightIDs) {		
-		String idsString = createString(insightIDs);
-		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
+	public void dropInsight(String... insightIDs) {
+		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID=?";
 		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
+		PreparedStatement ps = null;
 		try {
-			insightEngine.removeData(deleteQuery);
+			ps = insightEngine.getPreparedStatement(deleteQuery);
+			for(String id : insightIDs) {
+				ps.setString(1, id);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeStatement(ps);
 		}
 
-		deleteQuery = "DELETE FROM INSIGHTMETA WHERE INSIGHTID IN " + idsString;
+		deleteQuery = "DELETE FROM INSIGHTMETA WHERE INSIGHTID=?";
 		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
+		PreparedStatement stmt = null;
 		try {
-			insightEngine.removeData(deleteQuery);
+			stmt = insightEngine.getPreparedStatement(deleteQuery);
+			for(String id : insightIDs) {
+				stmt.setString(1, id);
+				stmt.addBatch();
+			}
+			stmt.executeBatch();
+			if(!stmt.getConnection().getAutoCommit()) {
+				stmt.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, stmt);
 		}
 	}
 
@@ -759,11 +652,25 @@ public class InsightAdministrator {
 	 * @param insightIDs
 	 * @throws Exception 
 	 */
-	public void dropInsight(Collection<String> insightIDs) throws Exception {		
-		String idsString = createString(insightIDs);
-		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
+	public void dropInsight(Collection<String> insightIDs) throws Exception {
+		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID=?";
 		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
-		insightEngine.removeData(deleteQuery);
+		PreparedStatement ps = null;
+		try {
+			ps = insightEngine.getPreparedStatement(deleteQuery);
+			for(String id : insightIDs) {
+				ps.setString(1, id);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(insightEngine, ps);
+		}
 	}
 	
 	/**
@@ -787,11 +694,14 @@ public class InsightAdministrator {
 		return ps;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public PreparedStatement getAddInsightMetaPreparedStatement() {
 		PreparedStatement ps = null;
 		try {
-			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
-					"INSIGHTMETA", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+			ps = insightEngine.bulkInsertPreparedStatement(new String[] {"INSIGHTMETA", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred generating the prepared statement to insert the insight metadata");
@@ -801,63 +711,19 @@ public class InsightAdministrator {
 	}
 
 	/**
-	 * Genereate the sql portion that uses a set of insight ids
-	 * @param ids
+	 * 
+	 * @param pixelRecipeToSave
 	 * @return
 	 */
-	private String createString(String... ids){
-		String idsString = "(";
-		for(String id : ids){
-			idsString = idsString + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(id) + "', ";
-		}
-		idsString = idsString.substring(0, idsString.length() - 2) + ")";
-
-		return idsString;
-	}
-
-	private String createString(Collection<String> ids) {
-		StringBuilder b = new StringBuilder("(");
-		Iterator<String> iterator = ids.iterator();
-		if(iterator.hasNext()) {
-			b.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(iterator.next())).append("'");
-		}
-		while(iterator.hasNext()) {
-			b.append(", '").append(AbstractSqlQueryUtil.escapeForSQLStatement(iterator.next())).append("'");
-		}
-		b.append(")");
-		return b.toString();
-	}
-
-	public static String getArraySqlSyntax(String[] pixelRecipeToSave) {
-		StringBuilder sql = new StringBuilder("(");
-		int numPixels = pixelRecipeToSave.length;
-		for(int i = 0; i < numPixels; i++) {
-			sql.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
-			if(i+1 != numPixels) {
-				sql.append(",");
-			}
-		}
-		sql.append(")");
-		return sql.toString();
-	}
-
-	public static String getArraySqlSyntax(Collection<String> pixelRecipeToSave) {
-		StringBuilder sql = new StringBuilder("(");
-		Iterator<String> it = pixelRecipeToSave.iterator();
-		if(it.hasNext()) {
-			sql.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(it.next())).append("'");
-		}
-		while(it.hasNext()) {
-			sql.append(",'").append(AbstractSqlQueryUtil.escapeForSQLStatement(it.next())).append("'");
-		}
-		sql.append(")");
-		return sql.toString();
-	}
-
 	public static String getClobRecipeSyntax(String[] pixelRecipeToSave) {
 		return gson.toJson(pixelRecipeToSave);
 	}
 
+	/**
+	 * 
+	 * @param pixelRecipeToSave
+	 * @return
+	 */
 	public static String getClobRecipeSyntax(Collection<String> pixelRecipeToSave) {
 		return getClobRecipeSyntax(pixelRecipeToSave.toArray(new String[pixelRecipeToSave.size()]));
 	}
