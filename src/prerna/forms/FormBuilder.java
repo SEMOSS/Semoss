@@ -1,6 +1,7 @@
 package prerna.forms;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -20,16 +21,20 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.ds.util.RdbmsQueryBuilder;
+import com.google.gson.Gson;
+
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 //import prerna.semoss.web.form.FormResource;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public final class FormBuilder {
 
@@ -61,7 +66,7 @@ public final class FormBuilder {
 			throw new IOException("Engine cannot be found");
 		}
 		
-		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
+		String auditLogTableName = AbstractSqlQueryUtil.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
 		IDatabaseEngine formEng = Utility.getDatabase(FORM_BUILDER_ENGINE_NAME);
 		// create audit table if doesn't exist
 		boolean auditTableExists = false;
@@ -85,7 +90,16 @@ public final class FormBuilder {
 		}
 		
 		if(!auditTableExists) {
-			String createAuditTable = "CREATE TABLE " + auditLogTableName + " (ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP)";
+			String createAuditTable = "CREATE TABLE " + auditLogTableName + " ("
+					+ "ID IDENTITY, "
+					+ "USER VARCHAR(255), "
+					+ "ACTION VARCHAR(100), "
+					+ "START_NODE VARCHAR(255), "
+					+ "REL_NAME VARCHAR(255), "
+					+ "END_NODE VARCHAR(255), "
+					+ "PROP_NAME VARCHAR(255), "
+					+ "PROP_VALUE CLOB, "
+					+ "TIME TIMESTAMP)";
 			try {
 				formEng.insertData(createAuditTable);
 			} catch (Exception e) {
@@ -1171,7 +1185,7 @@ public final class FormBuilder {
 				String type = types.get(i);
 				if(type.contains("VARCHAR")) {
 					insertQuery.append("'");
-					insertQuery.append(RdbmsQueryBuilder.escapeForSQLStatement(propertyValue.toString()));
+					insertQuery.append(AbstractSqlQueryUtil.escapeForSQLStatement(propertyValue.toString()));
 					insertQuery.append("'");
 				} else if(type.contains("INT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("LONG") || type.contains("BIGINT")
 						|| type.contains("TINYINT") || type.contains("SMALLINT")){
@@ -1229,7 +1243,7 @@ public final class FormBuilder {
 			insertQuery.append("=");
 			if(type.contains("VARCHAR")) {
 				insertQuery.append("'");
-				insertQuery.append(RdbmsQueryBuilder.escapeForSQLStatement(propertyValue.toString()));
+				insertQuery.append(AbstractSqlQueryUtil.escapeForSQLStatement(propertyValue.toString()));
 				insertQuery.append("'");
 			} else if(type.contains("INT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("LONG") || type.contains("BIGINT")
 					|| type.contains("TINYINT") || type.contains("SMALLINT")){
@@ -1277,29 +1291,36 @@ public final class FormBuilder {
 		if(formEng == null || auditLogTableName == null || auditLogTableName.isEmpty()) {
 			return;
 		}
-		user = RdbmsQueryBuilder.escapeForSQLStatement(user);
-		startNode = RdbmsQueryBuilder.escapeForSQLStatement(startNode);
-		relName = RdbmsQueryBuilder.escapeForSQLStatement(relName);
-		endNode = RdbmsQueryBuilder.escapeForSQLStatement(endNode);
-		propName = RdbmsQueryBuilder.escapeForSQLStatement(propName);
-		propValue = RdbmsQueryBuilder.escapeForSQLStatement(propValue);
-
-		String valuesBreak = "', '";
-		StringBuilder insertLogStatement = new StringBuilder("INSERT INTO ");
-		insertLogStatement.append(auditLogTableName).append("(USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES('")
-						.append(user).append(valuesBreak).append(action).append(valuesBreak).append(startNode).append(valuesBreak)
-						.append(relName).append(valuesBreak).append(endNode).append(valuesBreak).append(propName).append(valuesBreak)
-						.append(propValue).append(valuesBreak).append(timeStamp).append("')");
+		
+		IRDBMSEngine rdbmsEng = (IRDBMSEngine) formEng;
+		AbstractSqlQueryUtil queryUtil = rdbmsEng.getQueryUtil();
+		PreparedStatement ps = null;
+		String queryString = "INSERT INTO " + auditLogTableName + "(USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
 		try {
-			formEng.insertData(insertLogStatement.toString());
+			ps = rdbmsEng.getPreparedStatement(queryString);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, user);
+			ps.setString(parameterIndex++, action);
+			ps.setString(parameterIndex++, startNode);
+			ps.setString(parameterIndex++, relName);
+			ps.setString(parameterIndex++, endNode);
+			ps.setString(parameterIndex++, propName);
+			queryUtil.handleInsertionOfClob(ps.getConnection(), ps, propValue, parameterIndex++, new Gson());
+			ps.setString(parameterIndex++, timeStamp);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, ps);
 		}
 	}
 
 	public static Map<String, Object> getAuditDataForEngine(String engineName) {
 		Map<String, Object> retMap = new Hashtable<String, Object>();
-		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + AUDIT_FORM_SUFFIX;
+		String auditLogTableName = AbstractSqlQueryUtil.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + AUDIT_FORM_SUFFIX;
 		IDatabaseEngine formEng = Utility.getDatabase(FORM_BUILDER_ENGINE_NAME);
 		
 		String query = "SELECT * FROM " + auditLogTableName;
