@@ -193,7 +193,11 @@ public class BasicIteratorTask extends AbstractTask {
 					headerMap.put("header", headers[i]);
 					// TODO: will eventually stop sending type and doing the above processing
 					headerMap.put("type", Utility.getCleanDataType(types[i]));
-					headerMap.put("dataType", sTypes[i].toString());
+					if(sTypes[i] != null)
+						headerMap.put("dataType", sTypes[i].toString());
+					else
+						headerMap.put("dataType", SemossDataType.STRING.toString());
+						
 					this.headerInfo.add(headerMap);
 				}
 			}
