@@ -1356,7 +1356,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			sqliteConnectionName = "conn_" + frameName;
 			String [] commands = new String[3];
 			commands[0] = "import sqlite3";
-			commands[1] = sqliteConnectionName + " = sqlite3.connect(':memory:')";
+			commands[1] = sqliteConnectionName + " = sqlite3.connect(':memory:', check_same_thread=False)";
 			commands[2] = frameName + ".to_sql('" + frameName + "', " + sqliteConnectionName + ", if_exists='replace', index=False)";
 			
 			this.pyt.runEmptyPy(commands);
