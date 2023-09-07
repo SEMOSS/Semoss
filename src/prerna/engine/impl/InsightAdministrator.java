@@ -2,7 +2,6 @@ package prerna.engine.impl;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -17,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -110,13 +108,10 @@ public class InsightAdministrator {
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
 		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
-
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-
 		PreparedStatement ps = null;
 		try {
 			ps = getAddInsightPreparedStatement();
-
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, insightName);
@@ -357,27 +352,43 @@ public class InsightAdministrator {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
-		insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightId);
-		String query = "UPDATE INSIGHTMETA SET METAVALUE='" 
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
-				+ "WHERE METAKEY='description' AND INSIGHTID='" + insightId + "'";
-		Statement stmt = null;
+		PreparedStatement insertStatement = null;
+		PreparedStatement ps = null;
 		try {
-			stmt = this.insightEngine.execUpdateAndRetrieveStatement(query, false);
-			if(stmt.getUpdateCount() == 0) {
+			ps = this.insightEngine.getPreparedStatement("UPDATE INSIGHTMETA SET METAVALUE=? WHERE METAKEY=? AND INSIGHTID=?");
+			ps.setString(1, description);
+			ps.setString(2, "description");
+			ps.setString(3, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			if(ps.getUpdateCount() == 0) {
 				// need to perform an insert
-				query = this.queryUtil.insertIntoTable("INSIGHTMETA", 
-						new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"}, 
-						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
-						new Object[]{insightId, "description", description, 0});
-				this.insightEngine.insertData(query);
+				insertStatement = insightEngine.getPreparedStatement("INSERT INTO INSIGHTMETA(INSIGHTID, METAKEY, METAVALUE, METAORDER) VALUES(?,?,?,?)");
+				int parameterIndex=1;
+				insertStatement.setString(parameterIndex++, insightId);
+				insertStatement.setString(parameterIndex++, "description");
+				insertStatement.setString(parameterIndex++, description);
+				insertStatement.setInt(parameterIndex++, 0);
+				insertStatement.execute();
+				if(!insertStatement.getConnection().getAutoCommit()) {
+					insertStatement.getConnection().commit();
+				}
 			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if(ps != null) {
 				try {
-					stmt.close();
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insertStatement != null) {
+				try {
+					insertStatement.close();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -797,7 +808,7 @@ public class InsightAdministrator {
 	private String createString(String... ids){
 		String idsString = "(";
 		for(String id : ids){
-			idsString = idsString + "'" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', ";
+			idsString = idsString + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(id) + "', ";
 		}
 		idsString = idsString.substring(0, idsString.length() - 2) + ")";
 
@@ -808,10 +819,10 @@ public class InsightAdministrator {
 		StringBuilder b = new StringBuilder("(");
 		Iterator<String> iterator = ids.iterator();
 		if(iterator.hasNext()) {
-			b.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
+			b.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(iterator.next())).append("'");
 		}
 		while(iterator.hasNext()) {
-			b.append(", '").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
+			b.append(", '").append(AbstractSqlQueryUtil.escapeForSQLStatement(iterator.next())).append("'");
 		}
 		b.append(")");
 		return b.toString();
@@ -821,7 +832,7 @@ public class InsightAdministrator {
 		StringBuilder sql = new StringBuilder("(");
 		int numPixels = pixelRecipeToSave.length;
 		for(int i = 0; i < numPixels; i++) {
-			sql.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
+			sql.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
 			if(i+1 != numPixels) {
 				sql.append(",");
 			}
@@ -834,10 +845,10 @@ public class InsightAdministrator {
 		StringBuilder sql = new StringBuilder("(");
 		Iterator<String> it = pixelRecipeToSave.iterator();
 		if(it.hasNext()) {
-			sql.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(it.next())).append("'");
+			sql.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(it.next())).append("'");
 		}
 		while(it.hasNext()) {
-			sql.append(",'").append(RdbmsQueryBuilder.escapeForSQLStatement(it.next())).append("'");
+			sql.append(",'").append(AbstractSqlQueryUtil.escapeForSQLStatement(it.next())).append("'");
 		}
 		sql.append(")");
 		return sql.toString();
