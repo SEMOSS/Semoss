@@ -3,19 +3,25 @@ package prerna.engine.impl.model;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
 public class TextGenerationEngine  extends AbstractModelEngine {
 
+	private static final Logger classLogger = LogManager.getLogger(TextGenerationEngine.class);
+	
 	@Override
 	public String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
 		
 		String varName = (String) smssProp.get("VAR_NAME");
 		
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
+		callMaker.append("question=\"\"\"").append(question.replace("\"", "\\\"")).append("\"\"\"");
 		if(context != null)
 			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");
 		
@@ -31,21 +37,24 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 				String key = paramKeys.next();
 				callMaker.append(",").append(key).append("=");
 				Object value = parameters.get(key);
-				if(value instanceof String)
+				if (key.equals("full_prompt"))
 				{
+					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
+				}
+				else if(value instanceof String){
 					callMaker.append("'").append(value+"").append("'");
 				}
 				else
 				{
-					callMaker.append(value+"");
+					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
 				}
 			}
 		}
 		if(this.prefix != null)
 			callMaker.append(", prefix='").append(prefix).append("'");
 		callMaker.append(")");
-		System.out.println(callMaker.toString());
-		Object output = pyt.runScript(callMaker.toString());
+		classLogger.info("Running >>>" + callMaker.toString());
+		Object output = pyt.runScript(callMaker.toString(), insight);
 		return output+"";
 	}
 

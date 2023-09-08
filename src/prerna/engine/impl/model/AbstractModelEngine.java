@@ -155,8 +155,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		prefixPayload.payload = alldata;
 		prefixPayload.operation = PayloadStruct.OPERATION.PYTHON;
 		PayloadStruct ps = (PayloadStruct)socketClient.executeCommand(prefixPayload);
-		//System.err.println(ps);
-		
 	}
 	
 
