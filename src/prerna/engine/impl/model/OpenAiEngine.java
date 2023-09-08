@@ -21,7 +21,7 @@ public class OpenAiEngine extends AbstractModelEngine {
 		String varName = (String) smssProp.get("VAR_NAME");
 	
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
+		callMaker.append("question=\"\"\"").append(question.replace("\"", "\\\"")).append("\"\"\"");
 		if(context != null)
 			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
 		
@@ -52,7 +52,13 @@ public class OpenAiEngine extends AbstractModelEngine {
 		callMaker.append(")");
 		classLogger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString(), insight);
-		return (String) output;
+		// TODO - need to decide where we are going to add this
+//		if (output instanceof com.google.gson.internal.StringMap) {
+//            String returnString = ModelInferenceLogsUtils.constructPyDictFromMap((Map<String, Object>) output);
+//            System.out.print(returnString);
+//            return returnString;
+//        }
+		return output + "";
 	}
 
 	@Override
