@@ -31,7 +31,7 @@ class BaseClient():
     
     print("Templates loaded")
 
-  def get_template(self, template_name=None):
+  def get_template(self, template_name=None, **kwargs):
     if template_name in self.templates.keys():
       return self.templates[template_name]
     elif f"{self.model_name}.default.context" in self.templates:
@@ -58,13 +58,13 @@ class BaseClient():
       
   def fill_template(self, template_name=None, **kwargs):
     assert template_name is not None
-    this_template = self.get_template(template_name)
+    this_template = self.get_template(template_name, **kwargs)
     if this_template is not None:
       return self.fill_context(this_template, **kwargs)
     else:
       return None, False
   
-  # not, kwargs here is just a dictionary -- not a dictionary construction
+  # note, kwargs here is just a dictionary -- not a dictionary construction
   def fill_context(self, theContext, **kwargs):
     template = Template(theContext)
     output = template.substitute(**kwargs)
