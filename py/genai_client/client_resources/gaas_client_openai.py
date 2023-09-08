@@ -109,6 +109,14 @@ class OpenAiClient(BaseClient):
         kwargs['messages'] = message_payload
         completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
         response = completion.choices[0].message.content
+        # TODO - need a way to define return type
+        # print(type(response))
+        # try:
+        #   json_output = json.loads(response)
+        #   print('OpenAI response:',json_output)
+        #   return json_output
+        # except:
+        #   pass
         final_query = response
 
     elif self.chat_type == 'completion':
