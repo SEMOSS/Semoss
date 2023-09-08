@@ -33,7 +33,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		String varName = (String) smssProp.get(Settings.VAR_NAME);
 		
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
+		callMaker.append("question=\"\"\"").append(question.replace("\"", "\\\"")).append("\"\"\"");
 		if(context != null)
 			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
 		
