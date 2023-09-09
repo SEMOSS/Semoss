@@ -128,8 +128,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			commands[commandIndex] = fillVars(commands[commandIndex]);
 		}
 		port = Utility.findOpenPort();
+		
+		String timeout = "15";
+		if(smssProp.containsKey(Constants.IDLE_TIMEOUT))
+			timeout = smssProp.getProperty(Constants.IDLE_TIMEOUT);
 
-		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port);
+		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, timeout);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
@@ -153,7 +157,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		String [] alldata = new String[] {"prefix", prefix};
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = alldata;
-		prefixPayload.operation = PayloadStruct.OPERATION.PYTHON;
+		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
 		PayloadStruct ps = (PayloadStruct)socketClient.executeCommand(prefixPayload);
 	}
 	
