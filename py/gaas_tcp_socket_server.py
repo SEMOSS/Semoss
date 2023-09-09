@@ -51,7 +51,6 @@ class Server(socketserver.ThreadingTCPServer):
       self.timeout = timeout
       #self.socket.settimeout(timeout*60)
     else:
-      timeout = None
       print(f"Setting timeout to .. {timeout}")
       self.socket.settimeout(None)
     
