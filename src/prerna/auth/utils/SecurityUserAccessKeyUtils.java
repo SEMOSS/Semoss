@@ -49,8 +49,9 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @param accessKey
 	 * @param secretKey
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static User validateKeysAndReturnUser(String accessKey, String secretKey) {
+	public static User validateKeysAndReturnUser(String accessKey, String secretKey) throws IllegalAccessException {
 		String saltedSecretKey = null;
 		String salt = null;
 		String userId = null;
@@ -86,19 +87,19 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		}
 
 		if(saltedSecretKey == null || salt == null) {
-			throw new IllegalAccessError("Invalid access key");
+			throw new IllegalAccessException("Invalid access key");
 		}
 
 		String typedHash = hash(secretKey, salt);
 		boolean validCredentials = saltedSecretKey.equals(typedHash);
 		if(!validCredentials) {
-			throw new IllegalAccessError("Invalid credentials");
+			throw new IllegalAccessException("Invalid credentials");
 		}
 		
 		// TODO: should load in all the user details from the User table
 		User user = new User();
 		AccessToken token = new AccessToken();
-		AuthProvider provider = AuthProvider.valueOf(loginType);
+		AuthProvider provider = AuthProvider.getProviderFromString(loginType);
 		token.setProvider(provider);
 		token.setId(userId);
 		user.setAccessToken(token);
@@ -148,6 +149,38 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		details.put("secretKey", secretKey);
 		return details;
 	}
+
+	/**
+	 * 
+	 * @param accessKey
+	 * @param token
+	 */
+	public static void updateAccessTokenLastUsed(String accessKey, AccessToken token) {
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
+		String insertQuery = "UPDATE "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" SET LASTUSED=? WHERE ID=? AND TYPE=? AND ACCESSKEY=?";
+
+		PreparedStatement ps = null;
+		try {
+			int parameterIndex = 1;
+			ps = securityDb.getPreparedStatement(insertQuery);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setString(parameterIndex++, token.getId()); 
+			ps.setString(parameterIndex++, token.getProvider().toString()); 
+			ps.setString(parameterIndex++, accessKey); 
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	
 	
 	/**
 	 * 
