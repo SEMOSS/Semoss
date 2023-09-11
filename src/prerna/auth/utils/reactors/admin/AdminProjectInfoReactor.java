@@ -1,8 +1,11 @@
-package prerna.sablecc2.reactor.project;
+package prerna.auth.utils.reactors.admin;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,14 +14,19 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class ProjectInfoReactor extends AbstractReactor {
+public class AdminProjectInfoReactor extends AbstractReactor {
 	
-	public ProjectInfoReactor() {
+	public AdminProjectInfoReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if(adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		
@@ -26,14 +34,7 @@ public class ProjectInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you dont have access
-			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-		}
-		List<Map<String, Object>> baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
-		
+		List<Map<String, Object>> baseInfo = adminUtils.getAllProjectSettings(Arrays.asList(projectId), null, null, null, null);
 		if(baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any project data");
 		}
