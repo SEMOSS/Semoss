@@ -247,48 +247,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Get all current user requests
-	 * @param user
-	 * @return
-	 */
-	public static List<Map<String, Object>> getUserAccessRequests(User user) {
-//		String filter = getUserFilters(user);
-//		String query = "SELECT DISTINCT ID, ENGINE, PERMISSION FROM ACCESSREQUEST "
-//				+ "WHERE SUBMITTEDBY IN " + filter;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__ID"));
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ACCESSREQUEST__SUBMITTEDBY", "==", getUserFiltersQs(user)));
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	/**
-	 * Get all user requests including specific user id
-	 * @param user
-	 * @return
-	 */
-	public static List<Map<String, Object>> getUserAccessRequestsByProvider(User user, String databaseFilter) {
-//		String filter = getUserFilters(user);
-//		String query = "SELECT DISTINCT ID, SUBMITTEDBY, ENGINE, PERMISSION FROM ACCESSREQUEST "
-//				+ "WHERE ENGINE='" + engineFilter + "' AND SUBMITTEDBY IN " + filter;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__ID"));
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__SUBMITTEDBY"));
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ACCESSREQUEST__ENGINE", "==", databaseFilter));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ACCESSREQUEST__SUBMITTEDBY", "==", getUserFiltersQs(user)));
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	/**
 	 * Determine if the user has publisher rights
 	 * @param user
 	 * @return
