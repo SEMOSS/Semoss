@@ -844,6 +844,33 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get markdown for a given project
+	 * @param user
+	 * @param projectId
+	 * @return
+	 */
+	public static String getProjectMarkdown(User user, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", Constants.MARKDOWN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectId));
+		{
+			SelectQueryStruct qs1 = new SelectQueryStruct();
+			qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+			{
+				OrQueryFilter orFilter = new OrQueryFilter();
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+				qs1.addExplicitFilter(orFilter);
+			}
+			qs1.addRelation("PROJECT", "PROJECTPERMISSION", "join");
+			IRelation subQuery = new SubqueryRelationship(qs1, "PROJECT", "join", new String[] {"PROJECT__PROJECTID", "PROJECTMETA__PROJECTID", "="});
+			qs.addRelation(subQuery);
+		}
+		return QueryExecutionUtility.flushToString(securityDb, qs);
+	}
+	
+	/**
 	 * Get the project permissions for a specific user
 	 * @param singleUserId
 	 * @param projectId
