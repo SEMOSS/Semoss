@@ -1719,10 +1719,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Get the wrapper for additional project metadata
 	 * @param projectId
 	 * @param metaKeys
+	 * @param ignoreMarkdown
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static IRawSelectWrapper getProjectMetadataWrapper(Collection<String> projectId, List<String> metaKeys) throws Exception {
+	public static IRawSelectWrapper getProjectMetadataWrapper(Collection<String> projectId, List<String> metaKeys, boolean ignoreMarkdown) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
@@ -1736,6 +1737,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if(metaKeys != null && !metaKeys.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", metaKeys));
 		}
+		// exclude markdown metadata due to potential large data size
+		if(ignoreMarkdown) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "!=", Constants.MARKDOWN));
+		}
 		// order
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAORDER"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -1748,7 +1753,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @return
 	 */
-	public static Map<String, Object> getAggregateProjectMetadata(String projectId) {
+	public static Map<String, Object> getAggregateProjectMetadata(String projectId, List<String> metaKeys, boolean ignoreMarkdown) {
 		Map<String, Object> retMap = new HashMap<String, Object>();
 
 		List<String> projectIds = new ArrayList<>();
@@ -1756,7 +1761,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = getProjectMetadataWrapper(projectIds, null);
+			wrapper = getProjectMetadataWrapper(projectIds, metaKeys, ignoreMarkdown);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String metaKey = (String) data[1];

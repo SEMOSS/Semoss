@@ -1,4 +1,4 @@
-package prerna.solr.reactor;
+package prerna.auth.utils.reactors.admin;
 
 import java.io.IOException;
 import java.util.ArrayList;
