@@ -3553,5 +3553,32 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
+	
+	/**
+	 * Get markdown for a given project
+	 * @param projectId
+	 * @return
+	 */
+	public String getProjectMarkdown(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", Constants.MARKDOWN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushToString(securityDb, qs);
+	}
+	
+	/**
+	 * Get markdown for a given engine
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static String getEngineMarkdown(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", Constants.MARKDOWN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
+		return QueryExecutionUtility.flushToString(securityDb, qs);
+	}
 
 }

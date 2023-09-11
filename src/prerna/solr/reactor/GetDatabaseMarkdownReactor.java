@@ -7,6 +7,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+@Deprecated
 public class GetDatabaseMarkdownReactor extends AbstractReactor {
 	
 	public GetDatabaseMarkdownReactor() {
@@ -21,7 +22,7 @@ public class GetDatabaseMarkdownReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the database to get the markdown from");
 		}
 		
-		String databaseMarkdown = SecurityEngineUtils.getDatabaseMarkdown(this.insight.getUser(), databaseId);
+		String databaseMarkdown = SecurityEngineUtils.getEngineMarkdown(this.insight.getUser(), databaseId);
 		return new NounMetadata(databaseMarkdown, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
