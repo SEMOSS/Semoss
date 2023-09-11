@@ -1,17 +1,11 @@
-Base Properties 
+#Base Properties 
 ENGINE	form_builder_engine
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
-RDBMS_TYPE	H2_DB
 OWL	db/form_builder_engine/form_builder_engine_OWL.OWL
-RDBMS_INSIGHTS	db/form_builder_engine/insights_database
-DREAMER	db/form_builder_engine/form_builder_engine_Questions.properties
 
-HIDDEN_DATABASE	true
-FILL_EMPTY_DATATYPES	false
-
+RDBMS_TYPE	H2_DB
 DRIVER	org.h2.Driver
 USERNAME	sa
 PASSWORD	
 CONNECTION_URL	jdbc:h2:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
-USE_OUTER_JOINS	false
-# USE_CONNECTION_POOLING	true
+USE_CONNECTION_POOLING	false
