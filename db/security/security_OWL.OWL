@@ -696,6 +696,83 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAORDER</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECTDEPENDENCIES</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECTID/PROJECTDEPENDENCIES">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECTID/PROJECTDEPENDENCIES"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECTID/PROJECTDEPENDENCIES">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECTID/PROJECTDEPENDENCIES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECTID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/PROJECTDEPENDENCIES">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/PROJECTDEPENDENCIES"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/PROJECTDEPENDENCIES">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/PROJECTDEPENDENCIES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/PROJECTDEPENDENCIES">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/PROJECTDEPENDENCIES"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/PROJECTDEPENDENCIES">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/PROJECTDEPENDENCIES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/PROJECTDEPENDENCIES">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/PROJECTDEPENDENCIES"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/PROJECTDEPENDENCIES">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/PROJECTDEPENDENCIES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/PROJECTDEPENDENCIES">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTDEPENDENCIES">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/PROJECTDEPENDENCIES"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/PROJECTDEPENDENCIES">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/PROJECTDEPENDENCIES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATEADDED</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/WORKSPACEENGINE">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
@@ -3296,7 +3373,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:09:11 17:37:59</TIME>
+	<TIME xmlns="ENGINE:">2023:09:11 19:17:26</TIME>
 </rdf:Description>
 
 </rdf:RDF>

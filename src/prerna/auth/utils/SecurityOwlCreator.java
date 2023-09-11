@@ -35,6 +35,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PROJECTPERMISSION");
 		conceptsRequired.add("PROJECTMETA");
 		conceptsRequired.add("PROJECTMETAKEYS");
+		conceptsRequired.add("PROJECTDEPENDENCIES");
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
@@ -190,7 +191,7 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("ENGINEPERMISSION", "FAVORITE", "BOOLEAN");
 
-		//PROJECT
+		// PROJECT
 		owler.addConcept("PROJECT", null, null);
 		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECT", "PROJECTNAME", "VARCHAR(255)");
@@ -211,7 +212,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "CREATEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "DATECREATED", "TIMESTAMP");
 		
-		//PROJECTPERMISSION
+		// PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);
 		owler.addProp("PROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECTPERMISSION", "USERID", "VARCHAR(255)");
@@ -219,13 +220,21 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("PROJECTPERMISSION", "FAVORITE", "BOOLEAN");
 		
-		//PROJECTMETA
+		// PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
 		owler.addProp("PROJECTMETA", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECTMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("PROJECTMETA", "METAVALUE", "CLOB");
 		owler.addProp("PROJECTMETA", "METAORDER", "INT");
 		
+		// PROJECTDEPENDENCIES
+		owler.addConcept("PROJECTDEPENDENCIES", null, null);
+		owler.addProp("PROJECTDEPENDENCIES", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("PROJECTDEPENDENCIES", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("PROJECTDEPENDENCIES", "USERID", "VARCHAR(255)");
+		owler.addProp("PROJECTDEPENDENCIES", "TYPE", "VARCHAR(255)");
+		owler.addProp("PROJECTDEPENDENCIES", "DATEADDED", "TIMESTAMP");
+
 		// WORKSPACEENGINE
 		owler.addConcept("WORKSPACEENGINE", null, null);
 		owler.addProp("WORKSPACEENGINE", "PROJECTID", "VARCHAR(255)");
