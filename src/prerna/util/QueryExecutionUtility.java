@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -117,7 +116,7 @@ public class QueryExecutionUtility {
 	 * @return
 	 */
 	public static List<String> flushToListString(IDatabaseEngine engine, SelectQueryStruct qs) {
-		List<String> values = new Vector<String>();
+		List<String> values = new ArrayList<String>();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
