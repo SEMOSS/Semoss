@@ -71,7 +71,7 @@ public class MyProjectsReactor extends AbstractReactor {
 			if(!noMeta) {
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys());
+					wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys(), true);
 					while(wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String projectId = (String) data[0];
