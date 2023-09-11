@@ -1103,6 +1103,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
