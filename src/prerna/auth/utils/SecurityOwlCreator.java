@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
@@ -82,7 +83,7 @@ public class SecurityOwlCreator {
 		 * Not doing anything with columns but should eventually do that
 		 */
 		
-		List<String> cleanConcepts = new Vector<String>();
+		List<String> cleanConcepts = new ArrayList<String>();
 		List<String> concepts = securityDb.getPhysicalConcepts();
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {
@@ -94,103 +95,11 @@ public class SecurityOwlCreator {
 		
 		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
 		if(check1) {
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINESUBTYPE/ENGINE")) {
-				return true;
-			}
+			// dont need to keep adding a million things to this list
+			// just need the latest change ...
 			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEMETA");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USERINSIGHTPERMISSION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/FAVORITE/USERINSIGHTPERMISSION")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/FAVORITE/ENGINEPERMISSION")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/INSIGHT");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECTID/INSIGHT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEMINUTES/INSIGHT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEENCRYPT/INSIGHT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHECRON/INSIGHT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEDON/INSIGHT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/RECIPE/INSIGHT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SCHEMANAME/INSIGHT")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/SMSS_GROUP")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_USER");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/LOCKED/SMSS_USER")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PHONE/SMSS_USER")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PHONEEXTENSION/SMSS_USER")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/COUNTRYCODE/SMSS_USER")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PASSWORD_RULES");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK/PASSWORD_RULES")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK_WARNING/PASSWORD_RULES")) {
-				return true;
-			}
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DISCOVERABLE/ENGINE")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CREATEDBY/ENGINE")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ID/ENGINEACCESSREQUEST")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECT");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/REACTORSCOMPILED/PROJECT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CREATEDBY/PROJECT")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/TOKEN");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN")) {
-				return true;
-			}
-			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PASSWORD_RESET");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/TYPE/PASSWORD_RESET")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/REQUEST_REASON/ENGINEACCESSREQUEST")) {
 				return true;
 			}
 		}
@@ -453,10 +362,13 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
 		owler.addProp("ENGINEACCESSREQUEST", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("ENGINEACCESSREQUEST", "PERMISSION", "INT");
+		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_REASON", "CLOB");
 		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
 		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
 		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
 		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
+		owler.addProp("ENGINEACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
 		
 		// PROJECTACCESSREQUEST 
 		owler.addConcept("PROJECTACCESSREQUEST", null, null);
@@ -466,10 +378,13 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
 		owler.addProp("PROJECTACCESSREQUEST", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECTACCESSREQUEST", "PERMISSION", "INT");
+		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_REASON", "CLOB");
 		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
 		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
 		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
+		owler.addProp("PROJECTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
 		
 		// INSIGHTACCESSREQUEST 
 		owler.addConcept("INSIGHTACCESSREQUEST", null, null);
@@ -480,11 +395,13 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTACCESSREQUEST", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "INSIGHTID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "PERMISSION", "INT");
+		owler.addProp("INSIGHTACCESSREQUEST", "REQUEST_REASON", "CLOB");
 		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
-		
+		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
+		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
 		
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
