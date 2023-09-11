@@ -1671,6 +1671,61 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return true;
 	}
 
+	
+	/*
+	 * Project Dependencies
+	 */
+	
+	/**
+	 * Update the project dependencies
+	 * Will delete existing values and then perform a bulk insert
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngineIds
+	 */
+	public static void updateProjectDependencies(User user, String projectId, List<String> dependentEngineIds) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			int parameterIndex = 1;
+			deletePs.setString(parameterIndex++, projectId);
+			deletePs.execute();
+			ConnectionUtils.commitConnection(deletePs.getConnection());
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+		
+		if(dependentEngineIds != null && !dependentEngineIds.isEmpty()) {
+			AccessToken token = user.getPrimaryLoginToken();
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			// now we do the new insert with the order of the tags
+			String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTDEPENDENCIES", new String[]{"PROJECTID", "ENGINEID", "USERID", "TYPE", "DATEADDED"});
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(query);
+				for(String depEngineId : dependentEngineIds) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, depEngineId);
+					ps.setString(parameterIndex++, token.getId());
+					ps.setString(parameterIndex++, token.getName());
+					ps.setTimestamp(parameterIndex++, timestamp, cal);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+				ConnectionUtils.commitConnection(ps.getConnection());
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		}
+	}
 
 	/*
 	 * Project Metadata
