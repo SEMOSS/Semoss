@@ -1084,7 +1084,6 @@ public abstract class AbstractSecurityUtils {
 	
 			// GROUP INSIGHT PERMISSION
 			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
-	
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
@@ -1093,19 +1092,6 @@ public abstract class AbstractSecurityUtils {
 				if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", database, schema)) {
 					// make the table
 					securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
-				}
-			}
-	
-			// ACCESSREQUEST [LEGACY]
-			colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
-			if(allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
-			} else {
-				// see if table exists
-				if(!queryUtil.tableExists(conn, "ACCESSREQUEST", database, schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
 				}
 			}
 	
@@ -1121,8 +1107,10 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			// ENGINEACCESSREQUEST 
-			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "REQUEST_REASON",
+					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
+					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEACCESSREQUEST ", colNames, types));
 			} else {
@@ -1132,20 +1120,24 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("ENGINEACCESSREQUEST ", colNames, types));
 				}
 			}
-			//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
+			// 2023-09-11
+			// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
 			{
 				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEACCESSREQUEST", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if(!allCols.contains("ID") && !allCols.contains("id")) {
-					String addIdColumn = queryUtil.alterTableAddColumn("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
-					securityDb.insertData(addIdColumn);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEACCESSREQUEST", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
 	
 			// PROJECTACCESSREQUEST 
-			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "REQUEST_REASON",
+					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
+					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTACCESSREQUEST ", colNames, types));
 			} else {
@@ -1155,10 +1147,24 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("PROJECTACCESSREQUEST ", colNames, types));
 				}
 			}
-	
+			// 2023-09-11
+			// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "PROJECTACCESSREQUEST", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTACCESSREQUEST", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			
 			// INSIGHTACCESSREQUEST 
-			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "REQUEST_REASON",
+					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
+					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTACCESSREQUEST ", colNames, types));
 			} else {
@@ -1168,7 +1174,19 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("INSIGHTACCESSREQUEST ", colNames, types));
 				}
 			}
-	
+			// 2023-09-11
+			// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTACCESSREQUEST", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("INSIGHTACCESSREQUEST", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			
 			// TOKEN
 			colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
