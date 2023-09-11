@@ -7,12 +7,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
-import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
-import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -577,106 +572,4 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		return true;
 	}
 	
-	/*
-	 * Engines
-	 */
-	
-	/**
-	 * Set if the database is public to all users on this instance
-	 * @param user
-	 * @param databaseId
-	 * @param isPublic
-	 * @return
-	 * @throws SQLException 
-	 */
-	public static boolean makeRequest(User user, String databaseId, int requestedPermission) throws SQLException {
-		// make sure this person isn't requesting multiple times
-		if(!SecurityEngineUtils.getGlobalEngineIds().contains(databaseId)) {
-			throw new IllegalArgumentException("Cannot request access to an app that is not public");
-		}
-		
-		StringBuilder builder = new StringBuilder();
-		PreparedStatement ps = null;
-		ps = securityDb.getPreparedStatement("INSERT INTO ACCESSREQUEST (ID, SUBMITTEDBY, ENGINE, PERMISSION) VALUES(?,?,?,?)");
-		List<Map<String, Object>> existingRequests = SecurityQueryUtils.getUserAccessRequestsByProvider(user, databaseId);
-		if(existingRequests.isEmpty()) {
-			// brand new requests
-			String requestId = UUID.randomUUID().toString();
-			List<AuthProvider> logins = user.getLogins();
-			System.out.println(logins);
-			for(AuthProvider provider : logins) {
-				Object[] data = new Object[]{requestId, user.getAccessToken(provider).getId(), databaseId, requestedPermission};
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, requestId);
-				ps.setString(parameterIndex++, user.getAccessToken(provider).getId());
-				ps.setString(parameterIndex++, databaseId);
-				ps.setInt(parameterIndex++, requestedPermission);
-				ps.addBatch();
-			}
-			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} else {
-			// are there new logins for this request that are needed, or not?
-			List<String> userIds = new Vector<>();
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider provider : logins) {
-				userIds.add(user.getAccessToken(provider).getId());
-			}
-			
-			Set<String> uniqueRequestIds = new HashSet<>();
-			List<String> curUserIds = new Vector<>();
-			for(Map<String, Object> requestObj : existingRequests) {
-				uniqueRequestIds.add(requestObj.get("ID").toString());
-				curUserIds.add(requestObj.get("SUBMITTEDBY").toString());
-			}
-			
-			// do a minus
-			userIds.removeAll(curUserIds);
-			if(userIds.isEmpty()) {
-				// nothing to add
-				// return false that we have done nothing
-				return false;
-			} else {
-				if(uniqueRequestIds.size() == 1) {
-					String requestId = uniqueRequestIds.iterator().next();
-					for(String userId : userIds) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, requestId);
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, databaseId);
-						ps.setInt(parameterIndex++, requestedPermission);
-						ps.addBatch();
-					}
-					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} else {
-					// we will update all the ids to be the same
-					String newRequestId = UUID.randomUUID().toString();
-					// first insert the new records
-					for(String userId : userIds) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, newRequestId);
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, databaseId);
-						ps.setInt(parameterIndex++, requestedPermission);
-						ps.addBatch();
-					}
-					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-					
-					// now update the old ones since we have the same user
-					String updateQuery = "UPDATE ACCESSREQUEST SET ID='" + newRequestId + "' WHERE ID IN " + createFilter(uniqueRequestIds);
-					securityDb.insertData(updateQuery);
-				}
-			}
-		}
-		
-		return true;
-	}
 }
