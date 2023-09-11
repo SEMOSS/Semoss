@@ -1684,6 +1684,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param dependentEngineIds
 	 */
 	public static void updateProjectDependencies(User user, String projectId, List<String> dependentEngineIds) {
+		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
+		}
+		
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;
@@ -1725,6 +1729,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @return
+	 */
+	public static List<String> getProjectDependencies(User user, String projectId) {
+		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
+		}
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 
 	/*
