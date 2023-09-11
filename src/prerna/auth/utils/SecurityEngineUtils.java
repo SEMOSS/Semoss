@@ -294,14 +294,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get markdown for a given engine
-	 * @param user, databaseId
+	 * @param user
+	 * @param engineId
 	 * @return
 	 */
-	public static String getDatabaseMarkdown(User user, String databaseId) {
+	public static String getEngineMarkdown(User user, String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", Constants.MARKDOWN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
 		{
 			SelectQueryStruct qs1 = new SelectQueryStruct();
 			qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
