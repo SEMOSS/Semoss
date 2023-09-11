@@ -2175,45 +2175,6 @@ public abstract class AbstractSecurityUtils {
 
 	/**
 	 * Returns a list of values given a query with one column/variable.
-	 * @param query		Query to be executed
-	 * @return			
-	 */
-	static List<Map<String, Object>> getSimpleQuery(String query) {
-		List<Map<String, Object>> ret = new ArrayList<Map<String, Object>>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			while(wrapper.hasNext()) {
-				IHeadersDataRow row = wrapper.next();
-				String[] headers = row.getHeaders();
-				Object[] values = row.getValues();
-				Map<String, Object> rowData = new HashMap<String, Object>();
-				for(int idx = 0; idx < headers.length; idx++){
-					if(values[idx] == null) {
-						rowData.put(headers[idx].toLowerCase(), "null");
-					} else {
-						rowData.put(headers[idx].toLowerCase(), values[idx]);
-					}
-				}
-				ret.add(rowData);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return ret;
-	}
-
-	/**
-	 * Returns a list of values given a query with one column/variable.
 	 * @param qs		Query Struct to be executed
 	 * @return			
 	 */
