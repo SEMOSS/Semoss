@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
@@ -34,6 +36,8 @@ import prerna.util.upload.UploadUtilities;
 
 public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadTableReactor.class);
+	
 	/*
 	 * There are quite a few things that we need
 	 * 1) database -> name of the database to create
@@ -154,7 +158,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		try {
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.database, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
@@ -228,7 +232,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			try {
 				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.database, tableToInsertInto, uniqueRowId, headers, types, replace);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Done create table");
@@ -418,7 +422,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			logger.info("Completed " + count + " number of rows");
 			ps.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String errorMessage = "";
 			if (nextRow == null) {
 				errorMessage = "Error occurred while performing insert on csv row number = " + count;

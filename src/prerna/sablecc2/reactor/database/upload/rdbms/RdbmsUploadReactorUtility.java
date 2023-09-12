@@ -113,16 +113,16 @@ public class RdbmsUploadReactorUtility {
 			if (replace) {
 				try {
 					String createTable = queryUtil.createTable(tableName, newHeaders, sqlTypes);
-					stmt.executeQuery(createTable);
+					stmt.execute(createTable);
 				} catch (Exception e) {
 					String dropTable = queryUtil.dropTable(tableName);
-					stmt.executeQuery(dropTable);
+					stmt.execute(dropTable);
 					String createTable = queryUtil.createTable(tableName, newHeaders, sqlTypes);
-					stmt.executeQuery(createTable);
+					stmt.execute(createTable);
 				}
 			} else {
 				String createTable = queryUtil.createTableIfNotExists(tableName, newHeaders, sqlTypes);
-				stmt.executeQuery(createTable);
+				stmt.execute(createTable);
 			}
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
