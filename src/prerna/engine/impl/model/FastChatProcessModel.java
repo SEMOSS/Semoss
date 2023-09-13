@@ -1,13 +1,13 @@
 package prerna.engine.impl.model;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
@@ -16,6 +16,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class FastChatProcessModel extends AbstractModelEngine {
+	
+	private static Logger classLogger = LogManager.getLogger(FastChatProcessModel.class);
 	
     private String workerAddress;
     private String controllerAddress;
@@ -81,12 +83,12 @@ public class FastChatProcessModel extends AbstractModelEngine {
 			process = processBuilder.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
     }
     
     @Override
-    public void stopModel() {
+    public void close() {
         if (process != null) {
             // Attempt to gracefully shut down the Python process first
             process.destroy();
@@ -97,7 +99,7 @@ public class FastChatProcessModel extends AbstractModelEngine {
                     try {
                         process.waitFor();
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        classLogger.error(Constants.STACKTRACE, e);
                     }
                 });
 
@@ -114,7 +116,7 @@ public class FastChatProcessModel extends AbstractModelEngine {
                 }
 
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                classLogger.error(Constants.STACKTRACE, e);
             }
         }
     }
