@@ -236,19 +236,20 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private void generateNewDatabase(User user) throws Exception {
 		Logger logger = getLogger(CLASS_NAME);
 		
+		File originalFileLocation = null;
 		Map<String, Object> connectionDetails = getConDetails();
 		if(connectionDetails != null) {
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
 			if(host != null && !(host=host.trim()).isEmpty()) {
 				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
-				File f = new File(testUpdatedHost);
-				if (f.exists()) {
+				originalFileLocation = new File(testUpdatedHost);
+				if (originalFileLocation.exists()) {
 					// move the file
 					// and then update the host value
 					String newLocation = this.databaseFolder.getAbsolutePath() + DIR_SEPARATOR
-							+ FilenameUtils.getName(f.getAbsolutePath());
+							+ FilenameUtils.getName(originalFileLocation.getAbsolutePath());
 					try {
-						Files.move(f, new File(newLocation));
+						Files.copy(originalFileLocation, new File(newLocation));
 					} catch (IOException e) {
 						throw new IOException("Unable to relocate database to correct database folder");
 					}
@@ -336,6 +337,16 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		UploadUtilities.updateMetadata(this.databaseId, user);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
+		
+		if(originalFileLocation != null && originalFileLocation.exists()) {
+			try {
+				FileUtils.forceDelete(originalFileLocation);
+			} catch (IOException e) {
+				// ignore but log
+				classLogger.error(Constants.STACKTRACE);
+				classLogger.warn("After successful upload, unable to delete sql database file uploaded into temp location");
+			}
+		}
 	}
 	
 	/**
