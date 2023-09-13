@@ -108,7 +108,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 			
 		// vars for string substitution
-		this.vars = new HashMap(this.smssProp);
+		this.vars = new HashMap<>(this.smssProp);
 	}
 
 	@Override
@@ -241,7 +241,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 	
 	@Override
-	public void stopModel() {
+	public void close() {
 		try {
 			socketClient.crash();
 			FileUtils.deleteDirectory(cacheFolder);
@@ -409,11 +409,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	public String getWorkingDirectoryBasePath() {
 		return this.workingDirectoryBasePath;
-	}
-	
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
 	}
 	
 	@Override
