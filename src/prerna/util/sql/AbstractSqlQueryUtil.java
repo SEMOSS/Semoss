@@ -239,7 +239,7 @@ public abstract class AbstractSqlQueryUtil {
 		// create the iterator
 		Connection conn;
 		try {
-			if (userName == null || password == null) {
+			if (userName == null && password == null) {
 				conn = DriverManager.getConnection(connectionUrl);
 			} else {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
