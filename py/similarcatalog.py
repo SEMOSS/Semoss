@@ -89,8 +89,8 @@ domain = build_domain()
 bag = encode_catalog(domain)
 out = get_sim_datasets(alias, bag)
 
-has_results = False
-result = ""
 if len(out) != 0:
     has_results = True
     result = out['Title'].values.tolist()
+else:
+	result = []
