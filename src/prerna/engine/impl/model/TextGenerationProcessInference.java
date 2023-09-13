@@ -24,7 +24,8 @@ import prerna.util.Utility;
 
 public class TextGenerationProcessInference extends TextGenerationEngine {
 	
-	private static Logger logger = LogManager.getLogger(TextGenerationProcessInference.class);
+	private static Logger classLogger = LogManager.getLogger(TextGenerationProcessInference.class);
+	
 	private HashMap<String,String> launchArguments = new HashMap<String,String>();
 	private Process process;
     private String workerAddress;
@@ -36,7 +37,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 	public void open(String smssFilePath) {
 		try {
 			if (smssFilePath != null) {
-				logger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(smssFilePath)));
+				classLogger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(smssFilePath)));
 				setSmssFilePath(smssFilePath);
 				setSmssProp(Utility.loadProperties(smssFilePath));
 			}
@@ -80,9 +81,9 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 				cacheFolder.mkdir();
 			
 			// vars for string substitution
-			vars = new HashMap(smssProp);
+			vars = new HashMap<>(smssProp);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Unable to load model details from the SMSS file");
 		}
 	}
@@ -111,7 +112,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 			this.process = processBuilder.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
         
         // Wait for the process to finish loading
@@ -124,23 +125,23 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
             String line;
             while ((line = reader.readLine()) != null) {
                 // Check if the line matches the log pattern
-            	logger.info(line);
+            	classLogger.info(line);
                 Matcher matcher = pattern.matcher(line);
                 if (matcher.find() || line.endsWith("Connected")) {
                     // Process the matching log line, if needed
-                	logger.info("Process has finished loading");
+                	classLogger.info("Process has finished loading");
                     break;
                 }
             }
         } catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+        	classLogger.error(Constants.STACKTRACE, e);
 		}
+        
         super.startServer();
 	}
 	
 	@Override
-	public void stopModel() {
+	public void close() {
         if (process != null) {
             // Attempt to gracefully shut down the Python process first
             process.destroy();
@@ -151,7 +152,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
                     try {
                         process.waitFor();
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        classLogger.error(Constants.STACKTRACE, e);
                     }
                 });
 
@@ -168,10 +169,10 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
                 }
 
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                classLogger.error(Constants.STACKTRACE, e);
             }
         }
-        super.stopModel();
+        super.close();
 	}
 	
 
