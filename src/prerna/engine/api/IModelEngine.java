@@ -21,23 +21,39 @@ public interface IModelEngine extends IEngine {
 	// ModelDeployMatchFinder - finds it based on GPU memory etc. 
 	// StopModel
 	
-	public ModelTypeEnum getModelType();
+	/**
+	 * 
+	 * @return
+	 */
+	ModelTypeEnum getModelType();
 	
 	//TODO change this to startModel() 
 	/**
 	 * 
 	 */
-	public void startServer();
+	void startServer();
 	
 	// need to change this to model client
 	// I dont know if I should give this or just have a ask
 	//public PyTranslator getClient();
 	
-	// ask 
-	public Map<String, String> ask(String question, String context, Insight insight, Map <String, Object> parameters);
+	/**
+	 * 
+	 * @param question
+	 * @param context
+	 * @param insight
+	 * @param parameters
+	 * @return
+	 */
+	Map<String, String> ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
-	public Object embeddings(String question, Insight insight, Map <String, Object> parameters);
-	
-	public void stopModel();
+	/**
+	 * 
+	 * @param question
+	 * @param insight
+	 * @param parameters
+	 * @return
+	 */
+	Object embeddings(String question, Insight insight, Map <String, Object> parameters);
 	
 }
