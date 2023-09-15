@@ -6,6 +6,9 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.annotations.BREAKOUT;
+
+@BREAKOUT
 public class RoadmapTimelineStatsPlaySheet extends RoadmapCleanTableComparisonPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(RoadmapTimelineStatsPlaySheet.class.getName());

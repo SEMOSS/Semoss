@@ -11,7 +11,9 @@ import org.apache.logging.log4j.Logger;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
+import prerna.annotations.BREAKOUT;
 
+@BREAKOUT
 public class SystemRoadmapOptimizer extends LPOptimizer{
 
 	//TODO: loop for multiple runs of optimization
