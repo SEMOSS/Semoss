@@ -2,8 +2,10 @@ package prerna.ui.components.specific.ousd;
 
 import java.util.Map;
 
+import prerna.annotations.BREAKOUT;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
+@BREAKOUT
 public class BudgetInflationPlaySheet extends GridPlaySheet{
 
 	private static Double inflationRate = 0.0;

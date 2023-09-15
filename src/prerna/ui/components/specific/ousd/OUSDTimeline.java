@@ -12,8 +12,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.annotations.BREAKOUT;
 import prerna.util.Utility;
 
+@BREAKOUT
 public class OUSDTimeline {
 
 	// NAMING
