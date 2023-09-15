@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.annotations.BREAKOUT;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.TablePlaySheet;
@@ -19,6 +20,7 @@ import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
+@BREAKOUT
 public final class OUSDPlaysheetHelper {
 
 	protected static final Logger logger = LogManager.getLogger(OUSDPlaysheetHelper.class);

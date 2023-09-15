@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.annotations.BREAKOUT;
+
+@BREAKOUT
 public class ActivityGroupRiskCalculator {
 
 	double placeholderFailureChance = 0.05;

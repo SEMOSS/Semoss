@@ -11,7 +11,9 @@ import org.apache.logging.log4j.Logger;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
+import prerna.annotations.BREAKOUT;
 
+@BREAKOUT
 public class ActivityGroupOptimizer extends LPOptimizer{
 
 	protected static final Logger LOGGER = LogManager.getLogger(BLUSystemOptimizer.class.getName());

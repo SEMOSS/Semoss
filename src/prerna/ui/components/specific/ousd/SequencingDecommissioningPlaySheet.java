@@ -38,6 +38,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.annotations.BREAKOUT;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -46,6 +47,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
+@BREAKOUT
 public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(SequencingDecommissioningPlaySheet.class);

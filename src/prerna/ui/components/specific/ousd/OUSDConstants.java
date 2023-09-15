@@ -27,9 +27,12 @@
  *******************************************************************************/
 package prerna.ui.components.specific.ousd;
 
+import prerna.annotations.BREAKOUT;
+
 /**
  * This class contains all of the constants referenced elsewhere in the code.
  */
+@BREAKOUT
 public class OUSDConstants {
 
 	// COST CONSTANTS

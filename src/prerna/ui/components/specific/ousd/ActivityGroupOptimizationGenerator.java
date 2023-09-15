@@ -12,9 +12,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import lpsolve.LpSolveException;
+import prerna.annotations.BREAKOUT;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 
+@BREAKOUT
 public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 
