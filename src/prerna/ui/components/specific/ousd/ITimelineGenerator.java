@@ -1,7 +1,9 @@
 package prerna.ui.components.specific.ousd;
 
+import prerna.annotations.BREAKOUT;
 import prerna.engine.api.IDatabaseEngine;
 
+@BREAKOUT
 public interface ITimelineGenerator {
 
 	public void createTimeline();

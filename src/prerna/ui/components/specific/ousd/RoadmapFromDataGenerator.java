@@ -5,11 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.annotations.BREAKOUT;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
+@BREAKOUT
 public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 	OUSDTimeline timeline = new OUSDTimeline();

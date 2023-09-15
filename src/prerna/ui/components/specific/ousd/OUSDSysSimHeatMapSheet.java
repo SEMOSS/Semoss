@@ -38,13 +38,12 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.annotations.BREAKOUT;
 import prerna.ui.components.specific.tap.SimilarityFunctions;
 import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
 import prerna.util.Utility;
 
-
-/**
- */
+@BREAKOUT
 public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	boolean createSystemBindings = true;
 	String systemListBindings = "BINDINGS ?System ";
