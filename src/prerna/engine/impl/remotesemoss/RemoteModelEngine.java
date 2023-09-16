@@ -141,10 +141,4 @@ public class RemoteModelEngine implements IModelEngine {
 		return null;
 	}
 
-	@Override
-	public void stopModel() {
-		// TODO Auto-generated method stub
-
-	}
-
 }
