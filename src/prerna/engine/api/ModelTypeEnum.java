@@ -5,7 +5,8 @@ public enum ModelTypeEnum {
 	EMBEDDED("EMBEDDED","prerna.engine.impl.model.EmbeddedModelEngine"),
 	FAST_CHAT("FAST_CHAT","prerna.engine.impl.model.FastChatProcessModel"),
 	OPEN_AI("OPEN_AI","prerna.engine.impl.model.OpenAiEngine"),
-	TEXT_GENERATION("TEXT_GENERATION","prerna.engine.impl.model.TextGenerationEngine");
+	TEXT_GENERATION("TEXT_GENERATION","prerna.engine.impl.model.TextGenerationEngine"),
+	REMOTE("REMOTE","prerna.engine.impl.remotesemoss.RemoteModelEngine");
 	
 	private String modelName;
 	private String modelClass;
