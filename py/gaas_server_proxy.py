@@ -9,6 +9,13 @@ class ServerProxy():
     self.condition = threading.Condition()
     from gaas_tcp_server_handler import TCPServerHandler
     self.server = TCPServerHandler.da_server
+    self.rest = False
+    # try to see if there is a rest api exposed
+    if self.server is None:
+      from gaas_rest_server import RESTServer
+      self.server = RESTServer.da_server
+      self.rest = True
+    print(f"set the server to .. {self.server}")
     self.globals = g
     self.locals = l
 
@@ -41,15 +48,27 @@ class ServerProxy():
     }
     # adds itself to the monitor block
     self.server.monitors.update({epoc:self.condition})
-    # acquires and goes into wait
-    self.condition.acquire()
-    # send the request
-    self.server.send_request(payload)
-    self.condition.wait()
-    self.condition.release()
-    # once it gets the response removes it from the monitors
+    if not self.rest:
+      # acquires and goes into wait
+      self.condition.acquire()
+      # send the request
+      self.server.send_request(payload)
+      self.condition.wait()
+      self.condition.release()
+      # once it gets the response removes it from the monitors
+    else:
+      self.server.send_request(payload)
+  
 
   def call(self, epoc=None, engine_type='Storage', engine_id=None, method_name='None', method_args=None, method_arg_types=None, insight_id=None):
+    #print("doing call.. ")
+    if self.rest:
+      return self.call_sync(epoc=epoc, engine_type=engine_type, engine_id=engine_id, method_name=method_name, method_args=method_args, method_arg_types=method_arg_types, insight_id=insight_id)
+    else:
+      return self.call_async(epoc=epoc, engine_type=engine_type, engine_id=engine_id, method_name=method_name, method_args=method_args, method_arg_types=method_arg_types, insight_id=insight_id)
+
+
+  def call_async(self, epoc=None, engine_type='Storage', engine_id=None, method_name='None', method_args=None, method_arg_types=None, insight_id=None):
     #epoc = self.get_next_epoc()
     if insight_id is None:
       return "Insight Id cannot be none"
@@ -64,6 +83,8 @@ class ServerProxy():
               })
     thread.start()
     thread.join()
+    #else
+    #  thread.join
     new_payload_struct = self.server.monitors.pop(epoc)
     print(new_payload_struct)
     # if exception
@@ -75,6 +96,29 @@ class ServerProxy():
     else:
       #new_payload_struct = process_payload(new_payload_struct['payload'])
       return new_payload_struct['payload']
+
+  def call_sync(self, epoc=None, engine_type='Storage', engine_id=None, method_name='None', method_args=None, method_arg_types=None, insight_id=None):
+    #epoc = self.get_next_epoc()
+    #print("running sync.. ")
+    if insight_id is None:
+      return "Insight Id cannot be none"
+    self.comm(epoc=epoc, engine_type=engine_type, engine_id=engine_id, method_name=method_name, method_args = method_args, method_arg_types=method_arg_types, insight_id=insight_id)
+    #else
+    #  thread.join
+    new_payload_struct = self.server.monitors.pop(epoc)
+    print(new_payload_struct)
+    # if exception
+    # convert exception and give back
+    
+    if 'ex' in new_payload_struct:
+      raise Exception(new_payload_struct['ex']) 
+      #return new_payload_struct['ex']
+    else:
+      #new_payload_struct = process_payload(new_payload_struct['payload'])
+      print(f"answer is .. {new_payload_struct['payload']}")
+      return new_payload_struct['payload']
+
+
 
   def test(self):
     epoc = self.get_next_epoc()
@@ -88,7 +132,7 @@ class ServerProxy():
     thread.start()
     thread.join()
     new_payload_struct = self.server.monitors.pop(epoc)
-    print(new_payload_struct)
+    #print(new_payload_struct)
     # if exception
     # convert exception and give back
     if 'ex' in new_payload_struct:
@@ -115,3 +159,4 @@ class ServerProxy():
         except Exception as e:
           pass
     return payload_struct
+    
