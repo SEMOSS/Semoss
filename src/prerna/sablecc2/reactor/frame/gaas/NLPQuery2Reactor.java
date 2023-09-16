@@ -315,7 +315,13 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						outputString.append("\n");
 						retListForFrames.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
 					}
-					this.insight.getPyTranslator().runScript("del " + frameName);
+					try
+					{
+						this.insight.getPyTranslator().runScript("del " + frameName + " , sqldf");
+					}catch(Exception ignored)
+					{
+						
+					}
 				}
 				else
 				{
@@ -329,7 +335,13 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						outputString.append("Query did not yield any results... ");
 						retListForFrames.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));	
 					}
-					this.insight.getPyTranslator().runScript("del " + frameName + " , sqldf");
+					try
+					{
+						this.insight.getPyTranslator().runScript("del " + frameName + " , sqldf");
+					}catch(Exception ignored)
+					{
+						
+					}
 				}
 			}		
 			else if (thisFrame instanceof RDataTable)
