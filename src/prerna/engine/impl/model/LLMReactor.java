@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -22,30 +23,35 @@ public class LLMReactor extends AbstractReactor {
 		this.keyRequired = new int[] {1, 1, 0, 0};
 	}
 	
-	// execute method - GREEDY translation
+	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+		}
 		
-		String modelId = this.keyValue.get(this.keysToGet[0]);
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		String context = this.keyValue.get(this.keysToGet[2]);
 		if (context != null) {
 			context = Utility.decodeURIComponent(context);
 		}
 		
-		Map paramMap = getMap();
-		IModelEngine eng = Utility.getModel(modelId);
-		//Map <String, Object> params = new HashMap<String, Object>();
+		Map<String, Object> paramMap = getMap();
+		IModelEngine eng = Utility.getModel(engineId);
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
 		
 		Map<String, String> output = eng.ask(question, context, this.insight, paramMap);
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}	
+	}
 	
-	private Map<String, Object> getMap() 
-	{
+	/**
+	 * 
+	 * @return
+	 */
+	private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
