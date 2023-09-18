@@ -891,8 +891,8 @@ public class SmssUtilities {
 						// write the key with the original value in the current smss file
 						// value might be an empty string which could return a null
 						Object value = "";
-						if(allUpperCurrentSmss.get(keysToFind) != null) {
-							value = allUpperCurrentSmss.get(keysToFind);
+						if(allUpperCurrentSmss.get(key) != null) {
+							value = allUpperCurrentSmss.get(key);
 						}
 						constructedSmssContent.append(key).append("\t").append(value);
 					} else {
