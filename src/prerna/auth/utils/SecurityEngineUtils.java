@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -50,6 +52,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
@@ -1728,10 +1731,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static void setUserAccessRequest(String userId, String userType, String engineId, int permission) {
+	public static void setUserAccessRequest(String userId, String userType, String engineId, String requestReasonComment, int permission) {
 		// first mark previously undecided requests as old
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
+		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
 		try {
 			int index = 1;
 			updatePs = securityDb.getPreparedStatement(updateQ);
@@ -1750,7 +1754,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new insert 
-		String insertQ = "INSERT INTO ENGINEACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, ENGINEID, PERMISSION, APPROVER_DECISION) VALUES (?,?,?,?,?,?, 'NEW_REQUEST')";
+		String insertQ = "INSERT INTO ENGINEACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, ENGINEID, PERMISSION, APPROVER_DECISION) VALUES (?,?,?,?,?,?,?, 'NEW_REQUEST')";
 		PreparedStatement insertPs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -1762,6 +1766,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
 			insertPs.setTimestamp(index++, timestamp, cal);
+			securityQueryUtil.handleInsertionOfClob(insertPs.getConnection(), insertPs, requestReasonComment, index++, new Gson());
 			insertPs.setString(index++, engineId);
 			insertPs.setInt(index++, permission);
 			insertPs.execute();

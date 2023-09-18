@@ -31,7 +31,7 @@ public class RequestProjectReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(RequestProjectReactor.class);
 
 	public RequestProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PERMISSION.getKey(),  ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
 
 	@Override
@@ -40,7 +40,7 @@ public class RequestProjectReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
-
+		String requestComment = this.keyValue.get(this.keysToGet[2]);
 		User user = this.insight.getUser();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata("User must be signed into an account in order to request a project",
@@ -79,8 +79,8 @@ public class RequestProjectReactor extends AbstractReactor {
 		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestPermission);
-			sendEmail(user, projectId, permission);
+			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission);
+			sendEmail(user, projectId, permission, requestComment);
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {
 			return NounMetadata.getErrorNounMessage("Unable to request the project");
@@ -88,7 +88,7 @@ public class RequestProjectReactor extends AbstractReactor {
 		}
 	}
 
-	private void sendEmail(User user, String projectId, String permission) {
+	private void sendEmail(User user, String projectId, String permission, String requestComment) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
 			List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
@@ -99,6 +99,9 @@ public class RequestProjectReactor extends AbstractReactor {
 			if (permission.length() == 1) {
 				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
+			if(requestComment == null || requestComment.isEmpty()) {
+				requestComment = "I'd like access, please.";
+			}
 			if (projectOwners != null && !projectOwners.isEmpty()) {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
@@ -106,11 +109,13 @@ public class RequestProjectReactor extends AbstractReactor {
 				final String PERMISSION_REPLACEMENT = "$permission$";
 				final String USER_NAME_REPLACEMENT = "$userName$";
 				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
+				final String REQUEST_REASON_COMMENT = "$requestReason$";
 				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
 				emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
 				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
 				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
 				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+				emailReplacements.put(REQUEST_REASON_COMMENT, requestComment);
 				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
 				EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
 						SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Project Access Request", message,

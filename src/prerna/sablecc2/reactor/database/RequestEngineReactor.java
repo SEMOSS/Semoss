@@ -32,7 +32,7 @@ public class RequestEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(RequestEngineReactor.class);
 
 	public RequestEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PERMISSION.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
 
 	@Override
@@ -40,6 +40,7 @@ public class RequestEngineReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
+		String requestComment = this.keyValue.get(this.keysToGet[2]);
 		// turn permission into an integer in case it was added as the string version of the value
 		int requestPermission = -1;
 		try {
@@ -78,8 +79,8 @@ public class RequestEngineReactor extends AbstractReactor {
 		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(engineId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestPermission);
-			sendEmail(user, engineId, permission);
+			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestComment, requestPermission);
+			sendEmail(user, engineId, permission, requestComment);
 			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}
 
@@ -92,7 +93,7 @@ public class RequestEngineReactor extends AbstractReactor {
 	 * @param databaseId
 	 * @param permission
 	 */
-	private void sendEmail(User user, String databaseId, String permission) {
+	private void sendEmail(User user, String databaseId, String permission, String requestComment) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
 			List<String> databaseOwners = SecurityEngineUtils.getEngineOwners(databaseId);
@@ -103,6 +104,9 @@ public class RequestEngineReactor extends AbstractReactor {
 			if (permission.length() == 1) {
 				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
+			if(requestComment == null || requestComment.isEmpty()) {
+				requestComment = "I'd like access, please.";
+			}
 			if (databaseOwners != null && !databaseOwners.isEmpty()) {
 				String engineName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
@@ -110,11 +114,13 @@ public class RequestEngineReactor extends AbstractReactor {
 				final String PERMISSION_REPLACEMENT = "$permission$";
 				final String USER_NAME_REPLACEMENT = "$userName$";
 				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
+				final String REQUEST_REASON_COMMENT = "$requestReason$";
 				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
 				emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
 				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
 				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
 				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+				emailReplacements.put(REQUEST_REASON_COMMENT, requestComment);
 				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
 				EmailUtility.sendEmail(emailSession, databaseOwners.toArray(new String[0]), null, null,
 						SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Database Access Request", message,
