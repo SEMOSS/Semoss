@@ -266,7 +266,7 @@ public class PixelUnit {
 	private static void loadDatabases() throws Exception {
 
 		// Local master database
-		SMSSWebWatcher.loadNewEngine(Constants.LOCAL_MASTER_DB_NAME + ".smss", BASE_DB_DIRECTORY);
+		SMSSWebWatcher.loadNewEngine(Constants.LOCAL_MASTER_DB + ".smss", BASE_DB_DIRECTORY);
 		MasterDatabaseUtility.initLocalMaster();
 
 		// Security
@@ -295,7 +295,7 @@ public class PixelUnit {
 			}
 		}
 
-		IDatabaseEngine localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+		IDatabaseEngine localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		if (localMaster != null) {
 			try {
 				localMaster.close();
@@ -323,7 +323,7 @@ public class PixelUnit {
 		}
 
 		DIHelper.getInstance().removeLocalProperty(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
-		DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB_NAME);
+		DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB);
 		DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);
 		DIHelper.getInstance().removeLocalProperty(Constants.THEMING_DB);
 	}
