@@ -28,10 +28,13 @@
 package prerna.rdf.engine.wrappers;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.ds.RawGemlinSelectWrapper;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IDatabaseEngine;
@@ -40,12 +43,13 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.json.JsonWrapper;
 import prerna.engine.impl.json.JsonWrapper2;
 import prerna.engine.impl.web.WebWrapper;
+import prerna.om.ThreadStore;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
+import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class WrapperManager {
 
@@ -56,9 +60,28 @@ public class WrapperManager {
 	// I need to make this completely through reflection
 	// I will do that later
 
-	private static final Logger logger = LogManager.getLogger(WrapperManager.class);
+	private static final Logger classLogger = LogManager.getLogger(WrapperManager.class);
 	private static WrapperManager manager = null;
+	private static List<String> ignoreDatabases = new ArrayList<>();
+	{
+		ignoreDatabases.add(Constants.LOCAL_MASTER_DB);
+		ignoreDatabases.add(Constants.LOCAL_MASTER_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
+		
+		ignoreDatabases.add(Constants.SECURITY_DB);
+		ignoreDatabases.add(Constants.SECURITY_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
+		
+		ignoreDatabases.add(Constants.SCHEDULER_DB);
+		ignoreDatabases.add(Constants.SCHEDULER_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
 
+		ignoreDatabases.add(Constants.THEMING_DB);
+		ignoreDatabases.add(Constants.THEMING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
+		
+		ignoreDatabases.add(Constants.USER_TRACKING_DB);
+		ignoreDatabases.add(Constants.USER_TRACKING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
+		
+		ignoreDatabases.add(Constants.OWL_TEMPORAL_ENGINE_META);
+	}
+	
 	private WrapperManager() {
 
 	}
@@ -77,160 +100,309 @@ public class WrapperManager {
 	}
 
 	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, SelectQueryStruct qs, boolean delayExecIfPossible) throws Exception {
-		IRawSelectWrapper returnWrapper = null;
-		boolean genQueryString = true;
-		switch(engine.getDatabaseType()) {
-			case SESAME : {
-				returnWrapper = new RawSesameSelectWrapper();
-				break;
-			}
-			case JENA : {
-				returnWrapper = new RawJenaSelectWrapper();
-				break;
-			}
-			case RDBMS : {
-				returnWrapper = new RawRDBMSSelectWrapper();
-				break;
-			}
-			case IMPALA : {
-				returnWrapper = new RawImpalaSelectWrapper(qs);
-				break;
-			}
-			case R : {
-				long start = System.currentTimeMillis();
-				genQueryString = false;
-				returnWrapper = new RawRSelectWrapper();
-				IQueryInterpreter interpreter = engine.getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				String query = interpreter.composeQuery();
-				logger.debug("Executing query on engine " + engine.getEngineId());
-				returnWrapper.setEngine(engine);
-				returnWrapper.setQuery(query);
-				// we need to pass the qs to properly set the limit/offset
-				// since R will still run even if the limit+offset is > numRows and return null entries
-				((RawRSelectWrapper) returnWrapper).execute(qs);
-				long end = System.currentTimeMillis();
-				logger.debug("Engine execution time = " + (end-start) + "ms");
-				break;
-			}
-			case JSON : {
-				returnWrapper = new JsonWrapper();
-				break;
-			}
-			case JSON2 : {
-				returnWrapper = new JsonWrapper2();
-				break;
-			}
-	//		case JMES_API : {
-	//			returnWrapper = new JmesWrapper();
-	//			break;
-	//		}
-			case WEB : {
-				returnWrapper = new WebWrapper();
-				break;
-			}
-			case TINKER : {
-				long start = System.currentTimeMillis();
-				genQueryString = false;
-				// since we dont do math on gremlin
-				// right now, we will just construct and return a QSExpressionIterator
-				GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
-				gdi.execute();
-				returnWrapper = new QueryStructExpressionIterator(gdi, qs);
-				returnWrapper.execute();
-				long end = System.currentTimeMillis();
-				logger.debug("Engine execution time = " + (end-start) + "ms");
-				break;
-			}
-			case JANUS_GRAPH : {
-				long start = System.currentTimeMillis();
-				genQueryString = false;
-				// since we dont do math on gremlin
-				// right now, we will just construct and return a QSExpressionIterator
-				GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
-				gdi.execute();
-				returnWrapper = new QueryStructExpressionIterator(gdi, qs);
-				returnWrapper.execute();
-				long end = System.currentTimeMillis();
-				logger.debug("Engine execution time = " + (end-start) + "ms");
-				break;
-			}
-			case DATASTAX_GRAPH : {
-				long start = System.currentTimeMillis();
-				genQueryString = false;
-				// since we dont do math on gremlin
-				// right now, we will just construct and return a QSExpressionIterator
-				GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
-				gdi.execute();
-				returnWrapper = new QueryStructExpressionIterator(gdi, qs);
-				returnWrapper.execute();
-				long end = System.currentTimeMillis();
-				logger.debug("Engine execution time = " + (end-start) + "ms");
-				break;
-			}
-			case REMOTE_SEMOSS : {
-				// TODO >>>timb: REST - either replace with rest remote or remove this
-			}
-			case NEO4J_EMBEDDED : {
-				returnWrapper = new Neo4jWrapper();
-				break;
-			}
-			case NEO4J : {
-				returnWrapper = new RawRDBMSSelectWrapper();
-				break;
-			}
-			default: {
-				//TODO: build iterator
-				break;
-			}
+		String engineId = engine.getEngineId();
+		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId) || engineId.endsWith(Constants.OWL_ENGINE_SUFFIX);
+		
+		User user = ThreadStore.getUser();
+		UserQueryTrackingThread queryT = null;
+		if(!ignoreQueryLogging) {
+			queryT = new UserQueryTrackingThread(user, engineId);
 		}
-
-		if (returnWrapper == null) {
-			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
-		}
-
-		if(genQueryString) {
-			boolean error = false;
-			String query = null;
-			try {
-				long start = System.currentTimeMillis();
-				IQueryInterpreter interpreter = engine.getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				query = interpreter.composeQuery();
-				String appId = engine.getEngineId();
-				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)  
-						|| Constants.SCHEDULER_DB.equals(appId) || Constants.THEMING_DB.equals(appId) 
-						|| Constants.USER_TRACKING_DB.equals(appId)) {
+		try {
+			IRawSelectWrapper returnWrapper = null;
+			boolean genQueryString = true;
+			switch(engine.getDatabaseType()) {
+				case SESAME : {
+					returnWrapper = new RawSesameSelectWrapper();
+					break;
+				}
+				case JENA : {
+					returnWrapper = new RawJenaSelectWrapper();
+					break;
+				}
+				case RDBMS : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
+				case IMPALA : {
+					returnWrapper = new RawImpalaSelectWrapper(qs);
+					break;
+				}
+				case R : {
+					long start = System.currentTimeMillis();
+					genQueryString = false;
+					returnWrapper = new RawRSelectWrapper();
+					IQueryInterpreter interpreter = engine.getQueryInterpreter();
+					interpreter.setQueryStruct(qs);
+					String query = interpreter.composeQuery();
+					classLogger.debug("Executing query on engine " + engine.getEngineId());
 					returnWrapper.setEngine(engine);
 					returnWrapper.setQuery(query);
-					if(!delayExecIfPossible) {
-						logger.debug("Executing query on engine " + engine.getEngineId());
-						returnWrapper.execute();
-						long end = System.currentTimeMillis();
-						logger.debug("Engine execution time = " + (end-start) + "ms");
+					// we need to pass the qs to properly set the limit/offset
+					// since R will still run even if the limit+offset is > numRows and return null entries
+					((RawRSelectWrapper) returnWrapper).execute(qs);
+					long end = System.currentTimeMillis();
+					classLogger.debug("Engine execution time = " + (end-start) + "ms");
+					break;
+				}
+				case JSON : {
+					returnWrapper = new JsonWrapper();
+					break;
+				}
+				case JSON2 : {
+					returnWrapper = new JsonWrapper2();
+					break;
+				}
+		//		case JMES_API : {
+		//			returnWrapper = new JmesWrapper();
+		//			break;
+		//		}
+				case WEB : {
+					returnWrapper = new WebWrapper();
+					break;
+				}
+				case TINKER : {
+					long start = System.currentTimeMillis();
+					genQueryString = false;
+					// since we dont do math on gremlin
+					// right now, we will just construct and return a QSExpressionIterator
+					GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
+					interpreter.setQueryStruct(qs);
+					RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+					gdi.execute();
+					returnWrapper = new QueryStructExpressionIterator(gdi, qs);
+					returnWrapper.execute();
+					long end = System.currentTimeMillis();
+					classLogger.debug("Engine execution time = " + (end-start) + "ms");
+					break;
+				}
+				case JANUS_GRAPH : {
+					long start = System.currentTimeMillis();
+					genQueryString = false;
+					// since we dont do math on gremlin
+					// right now, we will just construct and return a QSExpressionIterator
+					GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
+					interpreter.setQueryStruct(qs);
+					RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+					gdi.execute();
+					returnWrapper = new QueryStructExpressionIterator(gdi, qs);
+					returnWrapper.execute();
+					long end = System.currentTimeMillis();
+					classLogger.debug("Engine execution time = " + (end-start) + "ms");
+					break;
+				}
+				case DATASTAX_GRAPH : {
+					long start = System.currentTimeMillis();
+					genQueryString = false;
+					// since we dont do math on gremlin
+					// right now, we will just construct and return a QSExpressionIterator
+					GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
+					interpreter.setQueryStruct(qs);
+					RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+					gdi.execute();
+					returnWrapper = new QueryStructExpressionIterator(gdi, qs);
+					returnWrapper.execute();
+					long end = System.currentTimeMillis();
+					classLogger.debug("Engine execution time = " + (end-start) + "ms");
+					break;
+				}
+				case REMOTE_SEMOSS : {
+					// TODO >>>timb: REST - either replace with rest remote or remove this
+				}
+				case NEO4J_EMBEDDED : {
+					returnWrapper = new Neo4jWrapper();
+					break;
+				}
+				case NEO4J : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
+				default: {
+					//TODO: build iterator
+					break;
+				}
+			}
+	
+			if (returnWrapper == null) {
+				throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
+			}
+	
+			if(genQueryString) {
+				boolean error = false;
+				String query = null;
+				try {
+					long start = System.currentTimeMillis();
+					
+					IQueryInterpreter interpreter = engine.getQueryInterpreter();
+					interpreter.setQueryStruct(qs);
+					query = interpreter.composeQuery();
+					if(ignoreQueryLogging) {
+						returnWrapper.setEngine(engine);
+						returnWrapper.setQuery(query);
+						if(!delayExecIfPossible) {
+							classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+							returnWrapper.execute();
+							
+							long end = System.currentTimeMillis();
+							long execTime = end - start;
+							classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
+						} else {
+							classLogger.debug("Delaying query execution");
+						}
 					} else {
-						logger.debug("Delaying query execution");
+						returnWrapper.setEngine(engine);
+						returnWrapper.setQuery(query);
+						// set the query for tracking
+						queryT.setQuery(query);
+						if(!delayExecIfPossible) {
+							classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+							// set the start time
+							queryT.setStartTimeNow();
+							// run
+							returnWrapper.execute();
+							// set the end time
+							queryT.setEndTimeNow();
+							
+							long end = System.currentTimeMillis();
+							long execTime = end - start;
+							classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
+						} else {
+							classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " with delayed execution");
+						}
 					}
-				} else {
-					returnWrapper.setEngine(engine);
-					returnWrapper.setQuery(query);
-					if(!delayExecIfPossible) {
-						logger.info("Executing query on engine " + engine.getEngineId());
-						returnWrapper.execute();
-						long end = System.currentTimeMillis();
-						logger.info("Engine execution time = " + (end-start) + "ms");
-					} else {
-						logger.info("Delaying query execution");
+				} catch(Exception e) {
+					queryT.setFailed();
+					classLogger.error(Constants.STACKTRACE, e);
+					error = true;
+					throw e;
+				} finally {
+					// clean up errors 
+					// if the wrapper is created
+					// but not returned
+					if(error && returnWrapper != null) {
+						if(classLogger.isDebugEnabled()) {
+							classLogger.error("Error occurred executing query on engine " + engine.getEngineId() + " with query = " + query);
+						}
+						try {
+							returnWrapper.close();
+						} catch(IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
+			}
+			
+			return returnWrapper;
+		} finally {
+			if(queryT != null && !ignoreQueryLogging && !delayExecIfPossible) {
+				new Thread(queryT).start();
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param engine
+	 * @param query
+	 * @return
+	 * @throws Exception
+	 */
+	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, String query) throws Exception {
+		String engineId = engine.getEngineId();
+		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId) || engineId.endsWith(Constants.OWL_ENGINE_SUFFIX);
+		
+		User user = ThreadStore.getUser();
+		UserQueryTrackingThread queryT = null;
+		if(!ignoreQueryLogging) {
+			queryT = new UserQueryTrackingThread(user, engineId);
+		}
+		try {
+			IRawSelectWrapper returnWrapper = null;
+			switch(engine.getDatabaseType()) {
+				case SESAME : {
+					returnWrapper = new RawSesameSelectWrapper();
+					break;
+				}
+				case JENA : {
+					returnWrapper = new RawJenaSelectWrapper();
+					break;
+				}
+				case RDBMS : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
+				case IMPALA : {
+					returnWrapper = new RawImpalaSelectWrapper();
+					break;
+				}
+				case R : {
+					returnWrapper = new RawRSelectWrapper();
+					break;
+				}
+				case JSON : {
+					returnWrapper = new JsonWrapper();
+					break;
+				}
+				case JSON2 : {
+					returnWrapper = new JsonWrapper2();
+					break;
+				}
+		//		case JMES_API : {
+		//			returnWrapper = new JmesWrapper();
+		//			break;
+		//		}
+				case WEB : {
+					returnWrapper = new WebWrapper();
+					break;
+				}
+				case REMOTE_SEMOSS : {
+					// TODO >>>timb: REST - either replace with rest remote or remove this
+					//TODO: build iterator
+					break;
+				}
+				case NEO4J_EMBEDDED : {
+					returnWrapper = new Neo4jWrapper();
+					break;
+				}
+				case NEO4J: {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
+				default: {
+		
+				}
+			}
+	
+			if (returnWrapper == null) {
+				throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
+			}
+
+			boolean error = false;
+			try {
+				returnWrapper.setEngine(engine);
+				returnWrapper.setQuery(query);
+				classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+
+				long start = System.currentTimeMillis();
+				if(ignoreQueryLogging) {
+					returnWrapper.execute();
+				} else {
+					// set the query for tracking
+					queryT.setQuery(query);
+					// set the start time
+					queryT.setStartTimeNow();
+					// run
+					returnWrapper.execute();
+					// set the end time
+					queryT.setEndTimeNow();
+				}
+				
+				long end = System.currentTimeMillis();
+				long execTime = end - start;
+				classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
 			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				queryT.setFailed();
+				classLogger.error(Constants.STACKTRACE, e);
 				error = true;
 				throw e;
 			} finally {
@@ -238,89 +410,23 @@ public class WrapperManager {
 				// if the wrapper is created
 				// but not returned
 				if(error && returnWrapper != null) {
-					if(logger.isDebugEnabled()) {
-						logger.error("Error occurred executing query on engine " + engine.getEngineId() + " with query = " + query);
+					if(classLogger.isDebugEnabled()) {
+						classLogger.error("Error occurred executing query on engine " + engine.getEngineId() + " with query = " + query);
 					}
 					try {
 						returnWrapper.close();
 					} catch(IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
-		}
-
-		return returnWrapper;
-	}
-
-	// TODO >>>timb: REST - here add another engine type REMOTE or REST
-	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, String query) throws Exception {
-		IRawSelectWrapper returnWrapper = null;
-		switch(engine.getDatabaseType()) {
-			case SESAME : {
-				returnWrapper = new RawSesameSelectWrapper();
-				break;
-			}
-			case JENA : {
-				returnWrapper = new RawJenaSelectWrapper();
-				break;
-			}
-			case RDBMS : {
-				returnWrapper = new RawRDBMSSelectWrapper();
-				break;
-			}
-			case IMPALA : {
-				returnWrapper = new RawImpalaSelectWrapper();
-				break;
-			}
-			case R : {
-				returnWrapper = new RawRSelectWrapper();
-				break;
-			}
-			case JSON : {
-				returnWrapper = new JsonWrapper();
-				break;
-			}
-			case JSON2 : {
-				returnWrapper = new JsonWrapper2();
-				break;
-			}
-	//		case JMES_API : {
-	//			returnWrapper = new JmesWrapper();
-	//			break;
-	//		}
-			case WEB : {
-				returnWrapper = new WebWrapper();
-				break;
-			}
-			case REMOTE_SEMOSS : {
-				// TODO >>>timb: REST - either replace with rest remote or remove this
-				//TODO: build iterator
-				break;
-			}
-			case NEO4J_EMBEDDED : {
-				returnWrapper = new Neo4jWrapper();
-				break;
-			}
-			case NEO4J: {
-				returnWrapper = new RawRDBMSSelectWrapper();
-				break;
-			}
-			default: {
-	
+			
+			return returnWrapper;
+		} finally {
+			if(!ignoreQueryLogging && queryT != null) {
+				new Thread(queryT).start();
 			}
 		}
-
-		if (returnWrapper == null) {
-			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
-		}
-
-		logger.debug(returnWrapper.getClass() + " executing query: " + Utility.cleanLogString(query));
-		returnWrapper.setEngine(engine);
-		returnWrapper.setQuery(query);
-		returnWrapper.execute();
-
-		return returnWrapper;
 	}
 	
 	/////////////////////////////////////////////////////////////////////
@@ -361,13 +467,13 @@ public class WrapperManager {
 			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
 		}
 
-		logger.debug(returnWrapper.getClass() + " executing query: " + query);
+		classLogger.debug(returnWrapper.getClass() + " executing query: " + query);
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		returnWrapper.getDisplayVariables();
 		returnWrapper.getPhysicalVariables();
@@ -409,7 +515,7 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return returnWrapper;
 	}
@@ -449,7 +555,7 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return returnWrapper;
 	}

@@ -2492,7 +2492,7 @@ public class Utility {
 				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
 			}
 
-			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
+			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB);
 			boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
 			boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
@@ -2734,7 +2734,7 @@ public class Utility {
 		 */
 
 		// grab the local master engine
-		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB_NAME);
+		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB);
 		if (localMaster == null) {
 			logger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
