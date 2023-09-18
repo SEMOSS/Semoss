@@ -23,6 +23,7 @@ public class UserTrackingOwlCreator {
 	private List<Pair<String, String>> userCatalogVotes = null;
 	private List<Pair<String, String>> emailTracking = null;
 	private List<Pair<String, String>> insightOpens = null;
+	private List<Pair<String, String>> queryTrackingColumns = null;
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 	
@@ -36,6 +37,7 @@ public class UserTrackingOwlCreator {
 		conceptsRequired.add("USER_CATALOG_VOTES");
 		conceptsRequired.add("EMAIL_TRACKING");
 		conceptsRequired.add("INSIGHT_OPENS");
+		conceptsRequired.add("QUERY_TRACKING");
 	}
 	
 	private IRDBMSEngine sessionDb;
@@ -105,13 +107,26 @@ public class UserTrackingOwlCreator {
 				Pair.of("ORIGIN", "VARCHAR(2000)")
 				);
 		
-		allSchemas = Arrays.asList(
+		this.queryTrackingColumns = Arrays.asList(
+				Pair.of("ID", "VARCHAR(255)"),
+				Pair.of("USERID", "VARCHAR(255)"),
+				Pair.of("USERTYPE", "VARCHAR(255)"),
+				Pair.of("DATABASEID", "VARCHAR(255)"),
+				Pair.of("QUERY_EXECUTED", CLOB_DATATYPE_NAME),
+				Pair.of("START_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("END_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("TOTAL_EXECUTION_TIME", "BIGINT"),
+				Pair.of("FAILED_EXECUTION", BOOLEAN_DATATYPE_NAME)
+				);
+		
+		this.allSchemas = Arrays.asList(
 				Pair.of("USER_TRACKING", userTrackingColumns),
 				Pair.of("ENGINE_VIEWS", engineViewsColumns),
 				Pair.of("ENGINE_USES", engineUsesColumns),
 				Pair.of("USER_CATALOG_VOTES", userCatalogVotes),
 				Pair.of("EMAIL_TRACKING", emailTracking),
-				Pair.of("INSIGHT_OPENS", insightOpens)
+				Pair.of("INSIGHT_OPENS", insightOpens),
+				Pair.of("QUERY_TRACKING", queryTrackingColumns)
 			);
 	}
 	

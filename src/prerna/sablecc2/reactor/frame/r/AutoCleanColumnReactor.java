@@ -19,7 +19,6 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 
-
 	public AutoCleanColumnReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}

@@ -1096,7 +1096,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	public PersistentHash getConceptIdHash() {
-		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId)) {
+		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB.equals(this.engineId)) {
 			Connection conn = null;
 			try {
 				conn = getConnection();

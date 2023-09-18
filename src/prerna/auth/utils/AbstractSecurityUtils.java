@@ -26,7 +26,6 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -81,9 +80,6 @@ public abstract class AbstractSecurityUtils {
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
 		}
-		// Update OWL
-		OwlSeparatePixelFromConceptual.fixOwl(securityDb.getSmssProp());
-
 		initialize();
 
 		Object anonymousUsers = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_ALLOWED);
@@ -1967,7 +1963,7 @@ public abstract class AbstractSecurityUtils {
 
 
 	public static boolean ignoreDatabase(String databaseId) {
-		if(databaseId.equals(Constants.LOCAL_MASTER_DB_NAME) || databaseId.equals(Constants.SECURITY_DB) 
+		if(databaseId.equals(Constants.LOCAL_MASTER_DB) || databaseId.equals(Constants.SECURITY_DB) 
 				|| databaseId.equals(Constants.SCHEDULER_DB) || databaseId.equals(Constants.USER_TRACKING_DB) ) {
 			// dont add local master or security db to security db
 			return true;
