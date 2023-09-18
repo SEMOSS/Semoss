@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermissionEnum;
@@ -3239,10 +3241,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static void setUserAccessRequest(String userId, String userType, String projectId, String insightId, int permission) {
+	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason, String insightId, int permission) {
 		// first do a delete
 		String deleteQ = "DELETE FROM INSIGHTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND INSIGHTID=? AND APPROVER_DECISION IS NULL";
 		PreparedStatement deletePs = null;
+		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
+
 		try {
 			int index = 1;
 			deletePs = securityDb.getPreparedStatement(deleteQ);
@@ -3262,7 +3266,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new insert 
-		String insertQ = "INSERT INTO INSIGHTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO INSIGHTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -3274,6 +3278,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
 			insertPs.setTimestamp(index++, timestamp, cal);
+			securityQueryUtil.handleInsertionOfClob(insertPs.getConnection(), insertPs, requestReason, index++, new Gson());
 			insertPs.setString(index++, projectId);
 			insertPs.setString(index++, insightId);
 			insertPs.setInt(index++, permission);

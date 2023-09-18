@@ -31,7 +31,7 @@ public class RequestInsightReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(RequestInsightReactor.class);
 
 	public RequestInsightReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PERMISSION.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
 
 	@Override
@@ -41,7 +41,7 @@ public class RequestInsightReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String insightId = this.keyValue.get(this.keysToGet[1]);
 		String permission = this.keyValue.get(this.keysToGet[2]);
-
+		String requestComment = this.keyValue.get(this.keysToGet[3]);
 		User user = this.insight.getUser();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata("User must be signed into an account in order to request a insight",
@@ -78,12 +78,12 @@ public class RequestInsightReactor extends AbstractReactor {
 		}
 
 		String userType = token.getProvider().toString();
-		SecurityInsightUtils.setUserAccessRequest(userId, userType, projectId, insightId, requestPermission);
-		sendEmail(user, projectId, insightId, permission);
-		return NounMetadata.getSuccessNounMessage("Successfully requested the project");
+		SecurityInsightUtils.setUserAccessRequest(userId, userType, projectId, requestComment, insightId, requestPermission);
+		sendEmail(user, projectId, insightId, permission, requestComment);
+		return NounMetadata.getSuccessNounMessage("Successfully requested the insight");
 	}
 
-	private void sendEmail(User user, String projectId, String insightId, String permission) {
+	private void sendEmail(User user, String projectId, String insightId, String permission, String requestComment) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
 			List<String> insightOwners = SecurityInsightUtils.getInsightOwners(projectId, insightId);
@@ -94,6 +94,9 @@ public class RequestInsightReactor extends AbstractReactor {
 			if (permission.length() == 1) {
 				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
+			if(requestComment == null || requestComment.isEmpty()) {
+				requestComment = "I'd like access, please.";
+			}
 			if (insightOwners != null && !insightOwners.isEmpty()) {
 				String insightName = SecurityInsightUtils.getInsightAliasForId(projectId, insightId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
@@ -101,11 +104,13 @@ public class RequestInsightReactor extends AbstractReactor {
 				final String PERMISSION_REPLACEMENT = "$permission$";
 				final String USER_NAME_REPLACEMENT = "$userName$";
 				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
+				final String REQUEST_REASON_COMMENT = "$requestReason$";
 				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
 				emailReplacements.put(INSIGHT_NAME_REPLACEMENT, insightName);
 				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
 				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
 				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+				emailReplacements.put(REQUEST_REASON_COMMENT, requestComment);
 				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
 				EmailUtility.sendEmail(emailSession, insightOwners.toArray(new String[0]), null, null,
 						SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Insight Access Request", message,
