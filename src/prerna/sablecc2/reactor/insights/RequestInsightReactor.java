@@ -36,7 +36,6 @@ public class RequestInsightReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String insightId = this.keyValue.get(this.keysToGet[1]);
@@ -117,7 +116,6 @@ public class RequestInsightReactor extends AbstractReactor {
 						true, null);
 			}
 		}
-
 	}
 
 	private String getTemplateString() {

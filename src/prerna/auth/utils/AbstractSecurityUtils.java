@@ -432,17 +432,12 @@ public abstract class AbstractSecurityUtils {
 			// TEMPORARY CHECK! - ADDED 03/17/2021
 			{
 				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEPERMISSION", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
-					if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-						String sql = queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
-						classLogger.info("Running sql " + sql);
-						securityDb.insertData(sql);
-					} else {
-						String sql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
-						classLogger.info("Running sql " + sql);
-						securityDb.insertData(sql);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
 					}
 				}
 			}
@@ -659,7 +654,19 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 	
-			if(!projectPermissionExists) {
+			// TEMPORARY CHECK! - ADDED 09/18/2023
+			if(projectPermissionExists) {
+				List<String> allCols = queryUtil.getTableColumns(conn, "PROJECTPERMISSION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTPERMISSION", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			} else {
+				// copy over engine permission to project permission for legacy installations
 				IRawSelectWrapper wrapper2 = null;
 				try {
 					wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select userid, permission, engineid, visibility, favorite from enginepermission");
