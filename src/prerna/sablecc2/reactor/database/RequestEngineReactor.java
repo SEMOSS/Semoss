@@ -41,14 +41,6 @@ public class RequestEngineReactor extends AbstractReactor {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
 		String requestComment = this.keyValue.get(this.keysToGet[2]);
-		// turn permission into an integer in case it was added as the string version of the value
-		int requestPermission = -1;
-		try {
-			requestPermission = Integer.parseInt(permission);
-		} catch(NumberFormatException ignore) {
-			requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
-		}
-					
 		User user = this.insight.getUser();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata("User must be signed into an account in order to request an engine",
@@ -62,7 +54,15 @@ public class RequestEngineReactor extends AbstractReactor {
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
-		
+				
+		// turn permission into an integer in case it was added as the string version of the value
+		int requestPermission = -1;
+		try {
+			requestPermission = Integer.parseInt(permission);
+		} catch(NumberFormatException ignore) {
+			requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
+		}
+					
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
 		// check user permission for the database
