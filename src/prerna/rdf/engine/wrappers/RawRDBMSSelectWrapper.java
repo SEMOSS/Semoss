@@ -21,15 +21,18 @@ import org.apache.logging.log4j.Logger;
 import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
+import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -340,49 +343,27 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		if(this.closedConnection) {
 			return;
 		}
-		try {
-			if(this.rs != null) {
-				this.rs.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+		// if using a datasource
+		// we need to close the connection
+		// to give it back to the pool
+		if(this.dataSource != null || this.closeConnectionAfterExecution) {
+			ConnectionUtils.closeAllConnections(this.conn, this.stmt, this.rs);
+		} else {
+			ConnectionUtils.closeAllConnections(null, this.stmt, this.rs);
 		}
-		try {
-			if(this.stmt != null) {
-				this.stmt.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		if(this.closeConnectionAfterExecution) {
-			try {
-				if(this.conn != null) {
-					this.conn.close();
-				}
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if(this.dataSource != null) {
-			// if using a datasource
-			// we need to close the connection
-			// to give it back to the pool
-			try {
-				if(this.conn != null) {
-					this.conn.close();
-				}
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
+		
 		this.closedConnection = true;
 	}
 	
 	@Override
 	public long getNumRows() {
 		if(this.numRows == 0) {
+			UserQueryTrackingThread queryT = null;
 			// since we pass via the engine object
 			if(this.engine != null) {
+				User user = ThreadStore.getUser();
+				queryT = new UserQueryTrackingThread(user, this.engine.getEngineId());
+				
 				// account for multi rdbms engine as well as base rdmbs engine
 				IRDBMSEngine activeEngine = (IRDBMSEngine) this.engine;
 				if(this.dataSource == null) {
@@ -412,6 +393,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			if(query.endsWith(";")) {
 				query = query.substring(0, query.length()-1);
 			}
+			
 			query = "select count(*) from (" + query + ") t";
 			Connection connection = null;
 			Statement statement = null;
@@ -426,36 +408,23 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					throw new NullPointerException("The connection is not defined (null)");
 				}
 				statement = connection.createStatement();
+				if(queryT != null) { queryT.setStartTimeNow(); };
+				if(queryT != null) { queryT.setQuery(query); };
 				resultSet = statement.executeQuery(query);
+				if(queryT != null) { queryT.setEndTimeNow(); };
 				if(resultSet.next()) {
 					this.numRows = resultSet.getLong(1);
 				}
 			} catch (SQLException e) {
+				if(queryT != null) { queryT.setFailed(); };
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(resultSet != null) {
-					try {
-						resultSet.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-				if(statement != null) {
-					try {
-						statement.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
 				if(this.dataSource != null) {
-					try {
-						if (connection != null) {
-							connection.close();
-						}
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
+					ConnectionUtils.closeAllConnections(null, statement, resultSet);
+				} else {
+					ConnectionUtils.closeAllConnections(connection, statement, resultSet);
 				}
+				if(queryT != null) { new Thread(queryT).start(); };
 			}
 		}
 		return this.numRows;
@@ -517,17 +486,28 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	 * @throws Exception 
 	 */
 	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn, SelectQueryStruct qs, boolean closeIfFail) throws Exception {
+		String engineId = database.getEngineId();
+		User user = ThreadStore.getUser();
+		UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, engineId);
 		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
 		try {
 			IQueryInterpreter interpreter = database.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			wrapper.query = interpreter.composeQuery();
+			// set the query used
+			queryT.setQuery(wrapper.query);
 			wrapper.conn = conn;
 			wrapper.stmt = wrapper.conn.createStatement();
+			// set the start time
+			queryT.setStartTimeNow();
 			wrapper.rs = wrapper.stmt.executeQuery(wrapper.query);
 			wrapper.setVariables();
+			// set the end time
+			queryT.setEndTimeNow();
+			
 			return wrapper;
 		} catch(Exception e) {
+			queryT.setFailed();
 			logger.error(Constants.STACKTRACE, e);
 			if(closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
@@ -535,6 +515,10 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
 			}
 			throw e;
+		} finally {
+			if(queryT != null) {
+				new Thread(queryT).start();
+			}
 		}
 	}
 	

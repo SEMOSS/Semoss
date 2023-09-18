@@ -48,7 +48,7 @@ public class DeleteFromMasterDB {
 
 	public boolean deleteEngineRDBMS(String engineId) {
 		logger.info("Removing engine from Local Master " + Utility.cleanLogString(engineId));
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
 			conn = engine.makeConnection();
@@ -165,7 +165,7 @@ public class DeleteFromMasterDB {
 //		boolean success = false;
 //		try
 //		{
-//			IEngine localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+//			IEngine localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 //			// delete queries are sooooooo slow :(
 //			// need to store the triples and directly delete 
 //			// from the rc

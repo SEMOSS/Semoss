@@ -93,7 +93,9 @@ public class Constants {
 	public static final String BASE_FOLDER = "BaseFolder";
 	public static final String SHARED_FILE_PATH = "SHARED_FILE_PATH";
 
-	public static final String LOCAL_MASTER_DB_NAME = "LocalMasterDatabase";
+	public static final String LOCAL_MASTER_DB = "LocalMasterDatabase";
+	
+	public static final String OWL_TEMPORAL_ENGINE_META = "OWL_TEMPORAL_ENGINE_META";
 	
 	// graphplaysheet option constants
 	// layouts
@@ -370,8 +372,10 @@ public class Constants {
 	public static final String GLITEM_CORE_LOADING_SHEET = "LoadingSheets1.xlsx";
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
+
 	public static final String OWL = "OWL";
-	
+	public static final String OWL_ENGINE_SUFFIX = "?OWL";
+
 	// folder names on engines / projects
 	public static final String DB_FOLDER = "db";
 	public static final String STORAGE_FOLDER = "storage";
