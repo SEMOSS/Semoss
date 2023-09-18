@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -2997,10 +2999,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static void setUserAccessRequest(String userId, String userType, String projectId, int permission) {
+	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason, int permission) {
 		// first mark previously undecided requests as old
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
+		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
 		try {
 			int index = 1;
 			updatePs = securityDb.getPreparedStatement(updateQ);
@@ -3019,7 +3022,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new insert 
-		String insertQ = "INSERT INTO PROJECTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, PROJECTID, PERMISSION, APPROVER_DECISION) VALUES (?, ?,?,?,?,?,'NEW_REQUEST')";
+		String insertQ = "INSERT INTO PROJECTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, PROJECTID, PERMISSION, APPROVER_DECISION) VALUES (?, ?,?,?,?,?,?,'NEW_REQUEST')";
 		PreparedStatement insertPs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -3031,6 +3034,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
 			insertPs.setTimestamp(index++, timestamp, cal);
+			securityQueryUtil.handleInsertionOfClob(insertPs.getConnection(), insertPs, requestReason, index++, new Gson());
 			insertPs.setString(index++, projectId);
 			insertPs.setInt(index++, permission);
 			insertPs.execute();
