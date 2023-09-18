@@ -1,4 +1,3 @@
-
 package prerna.sablecc2.reactor.masterdatabase;
 
 import prerna.ds.rdbms.h2.H2Frame;
@@ -20,7 +19,7 @@ public class GetPhysicalToLogicalMapping extends AbstractReactor {
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-		qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME));
+		qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB));
 		
 		H2Frame frame = new H2Frame();
 		RdbmsImporter importer = new RdbmsImporter(frame, qs);
