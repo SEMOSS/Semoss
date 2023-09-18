@@ -94,7 +94,7 @@ public class AddToMasterDB {
 
     public boolean registerEngineLocal(Properties prop, String engineId) {
         // grab the local master engine
-    	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+    	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
         // establish the connection
         Connection conn = null;
         try {
@@ -702,7 +702,7 @@ public class AddToMasterDB {
         // make statements
         // create table to local master
         // check if fileName exists
-        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
         Connection conn = null;
         PreparedStatement ps = null;
         try {
@@ -746,7 +746,7 @@ public class AddToMasterDB {
 		String[] colNames = new String[]{Constants.LM_PHYSICAL_NAME_ID, Constants.LM_META_KEY, Constants.LM_META_VALUE};
 		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
 		
-		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		AbstractSqlQueryUtil queryUtil = localMaster.getQueryUtil();
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -801,8 +801,8 @@ public class AddToMasterDB {
         final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
 
         // load the local master database
-        Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME);
-        IDatabaseEngine localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
+        Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB);
+        IDatabaseEngine localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB), localMasterProp);
 
         // test loading in a new engine to the master database
 

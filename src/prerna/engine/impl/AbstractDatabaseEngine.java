@@ -357,7 +357,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		
 		if(this.baseDataEngine != null) {
 			if(this.baseDataEngine.getEngineId() == null) {
-				this.baseDataEngine.setEngineId(this.engineId + "_OWL");
+				this.baseDataEngine.setEngineId(this.engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
 			}
 		}
 	}
