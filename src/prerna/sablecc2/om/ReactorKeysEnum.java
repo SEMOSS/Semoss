@@ -214,7 +214,7 @@ public enum ReactorKeysEnum {
 	SHEET_NAME("sheetName",										"The name of the excel sheet"),
 	SLIDE_LAYOUT("slideLayout",									"Name of the slide layout name to use for the capture"),
 	SORT("sort", 												"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
-	SPACE("space", 												"The space to work with assets (user, insight, app)."),
+	SPACE("space", 												"The space to work with assets (user project space, current insight space, project id space)."),
 	SQL("sql", 													"The SQL query"),
 	START("start",												"Start value for a between reactor"),
 	START_ROW("startRow",										"The starting row number to import from a file."),
