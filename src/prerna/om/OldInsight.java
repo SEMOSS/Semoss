@@ -656,7 +656,7 @@ public class OldInsight extends Insight {
 	
 	public DataMakerComponent getLastComponent() {
 		if(getDataMakerComponents().isEmpty()){
-			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB, Constants.EMPTY);
 			this.dmComponents.add(empty);
 		}
 		

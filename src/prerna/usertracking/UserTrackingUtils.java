@@ -3,9 +3,9 @@ package prerna.usertracking;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -16,10 +16,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.parquet.Strings;
 
+import com.google.gson.Gson;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.OwlSeparatePixelFromConceptual;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -30,42 +32,83 @@ public class UserTrackingUtils {
 
 	static IRDBMSEngine userTrackingDb;
 	
+	/**
+	 * 
+	 * @param queriedDatabaseIds
+	 * @param insightId
+	 * @param projectId
+	 */
 	public static void addEngineUsage(Set<String> queriedDatabaseIds, String insightId, String projectId) {
 		if (Utility.isUserTrackingEnabled()) {
 			EngineUsageUtils.add(queriedDatabaseIds, insightId, projectId);
 		}
 	}
 	
+	/**
+	 * 
+	 * @param queriedDatabaseIds
+	 * @param insightId
+	 * @param projectId
+	 */
 	public static void updateEngineUsage(Set<String> queriedDatabaseIds, String insightId, String projectId) {
 		if (Utility.isUserTrackingEnabled()) {
 			EngineUsageUtils.update(queriedDatabaseIds, insightId, insightId);
 		}
 	}
 	
+	/**
+	 * 
+	 * @param engineId
+	 */
 	public static void addEngineViews(String engineId) {
 		if (Utility.isUserTrackingEnabled()) {
 			EngineViewsUtils.add(engineId);
 		}
 	}
 
+	/**
+	 * 
+	 * @param engineId
+	 */
 	public static void deleteEngine(String engineId) {
 		if (Utility.isUserTrackingEnabled()) {
 			doDeleteEngine(engineId);
 		}
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 */
 	public static void deleteProject(String projectId) {
 		if (Utility.isUserTrackingEnabled()) {
 			doDeleteProject(projectId);
 		}
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 */
 	public static void deleteInsight(String projectId, String insightId) {
 		if (Utility.isUserTrackingEnabled()) {
 			doDeleteInsight(projectId, insightId);
 		}
 	}
 	
+	/**
+	 * 
+	 * @param toRecipients
+	 * @param ccRecipients
+	 * @param bccRecipients
+	 * @param from
+	 * @param subject
+	 * @param emailMessage
+	 * @param isHtml
+	 * @param attachments
+	 * @param successful
+	 */
 	public static void trackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, 
 			String from, String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
 		if (Utility.isUserTrackingEnabled()) {
@@ -73,12 +116,24 @@ public class UserTrackingUtils {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param insightId
+	 * @param userId
+	 * @param origin
+	 */
 	public static void trackInsightOpen(String insightId, String userId, String origin) {
 		if (Utility.isUserTrackingEnabled()) {
 			doTrackInsightOpen(insightId, userId, origin);
 		}
 	}
 
+	/**
+	 * 
+	 * @param insightId
+	 * @param userId
+	 * @param origin
+	 */
 	private static void doTrackInsightOpen(String insightId, String userId, String origin) {
 		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) "
 				+ "VALUES (?, ?, ?, ?)";
@@ -99,11 +154,22 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(userTrackingDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}		
-		
 	}
 
+	/**
+	 * 
+	 * @param toRecipients
+	 * @param ccRecipients
+	 * @param bccRecipients
+	 * @param from
+	 * @param subject
+	 * @param emailMessage
+	 * @param isHtml
+	 * @param attachments
+	 * @param successful
+	 */
 	private static void doTrackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, String from,
 			String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
 		boolean allowClob = userTrackingDb.getQueryUtil().allowClobJavaObject();
@@ -198,10 +264,14 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(userTrackingDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}		
 	}
 
+	/**
+	 * 
+	 * @param engineId
+	 */
 	private static void doDeleteEngine(String engineId) {
 		String[] queries = { 
 				"DELETE FROM ENGINE_USES where ENGINEID = ?",
@@ -214,6 +284,11 @@ public class UserTrackingUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param query
+	 * @param engineId
+	 */
 	private static void doDeleteEngine(String query, String engineId) {
 		PreparedStatement ps = null;
 		try {
@@ -228,10 +303,14 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(userTrackingDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 */
 	private static void doDeleteProject(String projectId) {
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ?";
 
@@ -248,10 +327,15 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(userTrackingDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 */
 	private static void doDeleteInsight(String projectId, String insightId) {
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ? AND INSIGHTID = ?";
 
@@ -269,12 +353,84 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeResources(userTrackingDb, null, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
-
-	// Start of user tracking methods
-
+	
+	/**
+	 * 
+	 * @param user
+	 * @param databaseId
+	 * @param queryExecuted
+	 * @param startTime
+	 * @return
+	 */
+	public static void trackQueryExecution(User user, String databaseId, String queryExecuted, Timestamp startTime, Timestamp endTime, Long executionTime, boolean fail) {
+		if (Utility.isUserTrackingEnabled()) {
+			doTrackQueryExecution(user, databaseId, queryExecuted, startTime, endTime, executionTime, fail);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param databaseId
+	 * @param queryExecuted
+	 * @param startTime
+	 * @return
+	 */
+	private static void doTrackQueryExecution(User user, String databaseId, String queryExecuted, 
+			Timestamp startTime, Timestamp endTime, Long executionTime, boolean failed) {
+		String insertQuery = "INSERT INTO QUERY_TRACKING "
+				+ "(ID, USERID, USERTYPE, DATABASEID, QUERY_EXECUTED, START_TIME, END_TIME, TOTAL_EXECUTION_TIME, FAILED_EXECUTION) "
+				+ "VALUES(?,?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
+		String userId = null;
+		String userType = null;
+		String id = UUID.randomUUID().toString();
+		if (user != null) {
+			List<Pair<String, String>> userIdType = User.getPrimaryUserIdAndType(user);
+			userId = userIdType.get(0).getKey();
+			userType = userIdType.get(0).getValue();
+		}
+ 		try {
+			ps = userTrackingDb.getPreparedStatement(insertQuery);
+			int index = 1;
+			ps.setString(index++, id);
+			ps.setString(index++, userId);
+			ps.setString(index++, userType);
+			ps.setString(index++, databaseId);
+			userTrackingDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, queryExecuted, index++, new Gson());
+			ps.setTimestamp(index++, startTime);
+			if(endTime == null) {
+				ps.setNull(index++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(index++, endTime);
+			}
+			if(executionTime == null) {
+				ps.setNull(index++, java.sql.Types.BIGINT);
+			} else {
+				ps.setLong(index++, executionTime);
+			}
+			ps.setBoolean(index++, failed);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param sessionId
+	 * @param ip
+	 * @param user
+	 * @param ap
+	 */
 	public static void registerLogin(String sessionId, String ip, User user, AuthProvider ap) {
 		if (Utility.isUserTrackingEnabled()) {
 			long start = System.currentTimeMillis();
@@ -324,14 +480,15 @@ public class UserTrackingUtils {
 			utoc.remakeOwl();
 		}
 
-		OwlSeparatePixelFromConceptual.fixOwl(userTrackingDb.getSmssProp());
-
 		Connection conn = null;
 		try {
 			conn = userTrackingDb.makeConnection();
 			executeInitUserTracker(userTrackingDb, conn, utoc.getDBSchema());
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} finally {
-			closeResources(userTrackingDb, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
 		}
 	}
 
@@ -380,39 +537,10 @@ public class UserTrackingUtils {
 
 	/**
 	 * 
-	 * @param engine
 	 * @param conn
-	 * @param stmt
-	 * @param rs
+	 * @param sql
+	 * @throws SQLException
 	 */
-	private static void closeResources(IRDBMSEngine engine, Connection conn, Statement stmt, ResultSet rs) {
-		try {
-			if (rs != null) {
-				rs.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if (stmt != null) {
-				stmt.close();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			if (engine != null && engine.isConnectionPooling()) {
-				if(conn != null) {
-					conn.close();
-				} else if(stmt != null) {
-					stmt.getConnection().close();
-				}
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-	}
-
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
 			logger.info("Running sql " + sql);

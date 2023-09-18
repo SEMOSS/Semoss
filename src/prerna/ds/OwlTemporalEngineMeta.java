@@ -49,7 +49,7 @@ import prerna.util.Constants;
 
 public class OwlTemporalEngineMeta {
 
-	private static final Logger logger = LogManager.getLogger(OwlTemporalEngineMeta.class);
+	private static final Logger classLogger = LogManager.getLogger(OwlTemporalEngineMeta.class);
 
 	private InMemorySesameEngine myEng;
 	
@@ -87,12 +87,13 @@ public class OwlTemporalEngineMeta {
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		// set the rc in the in-memory engine
 		this.myEng = new InMemorySesameEngine();
 		this.myEng.setRepositoryConnection(rc);
+		this.myEng.setEngineId(Constants.OWL_TEMPORAL_ENGINE_META);
 	}
 	
 	public OwlTemporalEngineMeta(String filePath, Cipher cipher) {
@@ -115,16 +116,17 @@ public class OwlTemporalEngineMeta {
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RDFParseException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		// set the rc in the in-memory engine
 		this.myEng = new InMemorySesameEngine();
 		this.myEng.setRepositoryConnection(rc);
+		this.myEng.setEngineId(Constants.OWL_TEMPORAL_ENGINE_META);
 	}
 	
 	public boolean isOpen() {
@@ -551,13 +553,13 @@ public class OwlTemporalEngineMeta {
 				eIds.add(eId);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -620,13 +622,13 @@ public class OwlTemporalEngineMeta {
 				retList.add(split);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -664,13 +666,13 @@ public class OwlTemporalEngineMeta {
 				ret.add(split);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -705,13 +707,13 @@ public class OwlTemporalEngineMeta {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -739,13 +741,13 @@ public class OwlTemporalEngineMeta {
 				uNames.add(it.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -773,13 +775,13 @@ public class OwlTemporalEngineMeta {
 				return it.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -809,13 +811,13 @@ public class OwlTemporalEngineMeta {
 				retMap.put(values[0].toString(), values[1].toString());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -846,13 +848,13 @@ public class OwlTemporalEngineMeta {
 				return values[1].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -886,13 +888,13 @@ public class OwlTemporalEngineMeta {
 				return it.next().getValues();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -935,13 +937,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -985,13 +987,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1021,13 +1023,13 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1057,13 +1059,13 @@ public class OwlTemporalEngineMeta {
 				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1097,13 +1099,13 @@ public class OwlTemporalEngineMeta {
 				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1137,13 +1139,13 @@ public class OwlTemporalEngineMeta {
 				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1174,13 +1176,13 @@ public class OwlTemporalEngineMeta {
 				returnMap.put(row[0].toString(), SemossDataType.convertStringToDataType(row[1].toString()));
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1211,13 +1213,13 @@ public class OwlTemporalEngineMeta {
 				returnMap.put(row[0].toString(), row[1].toString());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1265,13 +1267,13 @@ public class OwlTemporalEngineMeta {
 				return SemossDataType.convertStringToDataType(row[1].toString());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1319,13 +1321,13 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1370,13 +1372,13 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1421,13 +1423,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1473,13 +1475,13 @@ public class OwlTemporalEngineMeta {
 				returnMap.put(header, new String[] {alias, dataType, qsInfo, qType, qJson});
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1526,13 +1528,13 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1711,13 +1713,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1742,13 +1744,13 @@ public class OwlTemporalEngineMeta {
 				relList.add(rel);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1896,13 +1898,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1934,13 +1936,13 @@ public class OwlTemporalEngineMeta {
 				relList.add(rel);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2064,13 +2066,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2099,13 +2101,13 @@ public class OwlTemporalEngineMeta {
 				edgeHash.put(endName + "-" + endName, newEdge);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2179,13 +2181,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2238,13 +2240,13 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2350,13 +2352,13 @@ public class OwlTemporalEngineMeta {
 				propertyInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2443,13 +2445,13 @@ public class OwlTemporalEngineMeta {
 			}
 			
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2481,13 +2483,13 @@ public class OwlTemporalEngineMeta {
 				headerProperties.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2512,13 +2514,13 @@ public class OwlTemporalEngineMeta {
 				upstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2543,13 +2545,13 @@ public class OwlTemporalEngineMeta {
 				downstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2695,13 +2697,13 @@ public class OwlTemporalEngineMeta {
 				headerInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2733,13 +2735,13 @@ public class OwlTemporalEngineMeta {
 				headerProperties.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2764,13 +2766,13 @@ public class OwlTemporalEngineMeta {
 				upstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2795,13 +2797,13 @@ public class OwlTemporalEngineMeta {
 				downstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2917,13 +2919,13 @@ public class OwlTemporalEngineMeta {
 				propertyInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2995,13 +2997,13 @@ public class OwlTemporalEngineMeta {
 				newMeta.myEng.addStatement(new Object[]{subUri, predUri, obj, isConcept});
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -3049,7 +3051,7 @@ public class OwlTemporalEngineMeta {
 	
 	@Override
 	protected void finalize() throws Throwable {
-		logger.info("ITableDataFrame Metadata is being gc'd");
+		classLogger.info("ITableDataFrame Metadata is being gc'd");
 	}
 
 //	public void load(String fileName){

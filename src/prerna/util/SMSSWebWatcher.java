@@ -42,8 +42,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
-import prerna.engine.impl.OwlPrettyPrintFixer;
-import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -58,7 +56,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	private static List<String> ignoreSmssList = new ArrayList<>();
 	static {
-		ignoreSmssList.add(Constants.LOCAL_MASTER_DB_NAME);
+		ignoreSmssList.add(Constants.LOCAL_MASTER_DB);
 		ignoreSmssList.add(Constants.SECURITY_DB);
 		ignoreSmssList.add(Constants.THEMING_DB);
 		ignoreSmssList.add(Constants.SCHEDULER_DB);
@@ -97,10 +95,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
 			
-			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
-			OwlPrettyPrintFixer.fixOwl(prop);
+			// TO FIX ERRORS WITH PRETTY PRINT METHOD
+//			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
-			OwlSeparatePixelFromConceptual.fixOwl(prop);
+//			OwlSeparatePixelFromConceptual.fixOwl(prop);
 			
 			engineId = prop.getProperty(Constants.ENGINE);
 			if(ignoreSmssList.contains(engineId)) {
@@ -135,10 +133,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(prop == null) {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
-			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
-			OwlPrettyPrintFixer.fixOwl(prop);
+			
+			// TO FIX ERRORS WITH PRETTY PRINT METHOD
+//			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
-			OwlSeparatePixelFromConceptual.fixOwl(prop);
+//			OwlSeparatePixelFromConceptual.fixOwl(prop);
 			
 			engineId = prop.getProperty(Constants.ENGINE);
 			
@@ -163,7 +162,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String[] fileNames = dir.list(this);
 
 		// find the local master
-		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
+		String localMasterDBName = Constants.LOCAL_MASTER_DB + this.extension;
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
 		loadExistingEngine(fileNames[localMasterIndex]);
 		// initialize the local master
@@ -172,7 +171,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
-			DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB_NAME);
+			DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB);
 			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -280,7 +279,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] engineIds = new String[fileNames.length];
-		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
+		String localMasterDBName = Constants.LOCAL_MASTER_DB + this.extension;
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		String themeDBName = Constants.THEMING_DB + this.extension;
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;

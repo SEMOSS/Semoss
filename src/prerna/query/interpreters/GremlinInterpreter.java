@@ -723,4 +723,12 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		return interp;
 	}
 	
+	/**
+	 * Get the string representation of the traversal
+	 * @return
+	 */
+	public String getQueryString() {
+		return this.gt.toString();
+	}
+	
 }
