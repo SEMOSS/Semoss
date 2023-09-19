@@ -198,8 +198,6 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-
-	
 	
 	/**
 	 * 
@@ -231,8 +229,6 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	
 	
 	/**
 	 * 
