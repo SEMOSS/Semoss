@@ -1077,8 +1077,12 @@ public abstract class AbstractSecurityUtils {
 			}
 	
 			// SMSS_USER_ACCESS_KEYS
-			colNames = new String[] { "ID", "TYPE", "ACCESSKEY", "SECRETKEY", "SECRETSALT", "DATECREATED", "LASTUSED"};
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME};
+			colNames = new String[] { "USERID", "TYPE", "ACCESSKEY", "SECRETKEY", "SECRETSALT", 
+					"DATECREATED", "LASTUSED", 
+					"TOKENNAME", "TOKENDESCRIPTION"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
+					"VARCHAR(255)", "VARCHAR(500)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER_ACCESS_KEYS", colNames, types));
 			} else {
