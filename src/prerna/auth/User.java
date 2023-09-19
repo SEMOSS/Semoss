@@ -981,6 +981,8 @@ public class User implements Serializable {
 			if (port == null) 
 			{
 				port = Utility.findOpenPort();
+				boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
+						&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
 				if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 					//unique user is just for testing so when i ls on R, I can see it is me and not someone else
 					mountHelper = getUserMountHelper();
@@ -988,7 +990,11 @@ public class User implements Serializable {
 					//maker.mountTarget(userLoginName);
 					//pyTupleSpace = mountTuple;
 					//pyTupleSpace = mountTuple + DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+					if(nativePyServer) {
+						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePyChroot(this, mountTuple,  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
+					} else {
 					pyTupleSpace = PyUtils.getInstance().startTCPServe(this, mountTuple, DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
+					}
 				} else {
 					if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 						pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
@@ -996,8 +1002,7 @@ public class User implements Serializable {
 					else {
 						pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 					}
-					boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
-							&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
+
 					if(nativePyServer)
 						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePy(this, pyTupleSpace, port);
 					else
