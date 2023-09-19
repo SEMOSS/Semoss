@@ -236,9 +236,9 @@ public class WrapperManager {
 					IQueryInterpreter interpreter = engine.getQueryInterpreter();
 					interpreter.setQueryStruct(qs);
 					query = interpreter.composeQuery();
+					returnWrapper.setEngine(engine);
+					returnWrapper.setQuery(query);
 					if(ignoreQueryLogging) {
-						returnWrapper.setEngine(engine);
-						returnWrapper.setQuery(query);
 						if(!delayExecIfPossible) {
 							classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
 							returnWrapper.execute();
@@ -250,8 +250,6 @@ public class WrapperManager {
 							classLogger.debug("Delaying query execution");
 						}
 					} else {
-						returnWrapper.setEngine(engine);
-						returnWrapper.setQuery(query);
 						// set the query for tracking
 						queryT.setQuery(query);
 						if(!delayExecIfPossible) {
@@ -267,11 +265,11 @@ public class WrapperManager {
 							long execTime = end - start;
 							classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
 						} else {
-							classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " with delayed execution");
+							classLogger.info(User.getSingleLogginName(user) + " Delayed query execution on " + engine.getEngineId());
 						}
 					}
 				} catch(Exception e) {
-					queryT.setFailed();
+					if(queryT != null) { queryT.setFailed(); };
 					classLogger.error(Constants.STACKTRACE, e);
 					error = true;
 					throw e;
@@ -381,8 +379,11 @@ public class WrapperManager {
 			try {
 				returnWrapper.setEngine(engine);
 				returnWrapper.setQuery(query);
-				classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
-
+				if(ignoreQueryLogging) {
+					classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+				} else {
+					classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+				}
 				long start = System.currentTimeMillis();
 				if(ignoreQueryLogging) {
 					returnWrapper.execute();
@@ -399,9 +400,15 @@ public class WrapperManager {
 				
 				long end = System.currentTimeMillis();
 				long execTime = end - start;
-				classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
+				
+				if(ignoreQueryLogging) {
+					classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
+				} else {
+					classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId() + " finished execution time = " + execTime + "ms");
+				}
+				
 			} catch(Exception e) {
-				queryT.setFailed();
+				if(queryT != null) { queryT.setFailed(); };
 				classLogger.error(Constants.STACKTRACE, e);
 				error = true;
 				throw e;
