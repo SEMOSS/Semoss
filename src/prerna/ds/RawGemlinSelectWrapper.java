@@ -23,7 +23,7 @@ import prerna.util.Constants;
 
 public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
-	private Logger logger = LogManager.getLogger(RawGemlinSelectWrapper.class);
+	private Logger classLogger = LogManager.getLogger(RawGemlinSelectWrapper.class);
 	
 	private GremlinInterpreter interp;
 	private SelectQueryStruct qs;
@@ -171,7 +171,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		try {
 			baseIterator.close();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Unable to close traversal with message = " + e.getMessage());
 		}
 	}
@@ -181,7 +181,6 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		if(this.numRows == 0) {
 			GremlinInterpreter interp = this.interp.copy();
 			GraphTraversal it = interp.composeIterator();
-			
 			GraphTraversal<Vertex, Long> numValues = it.count();
 			try {
 				if(numValues.hasNext()) {
@@ -191,7 +190,13 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 				try {
 					numValues.close();
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				try {
+					it.close();
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+
 				}
 			}
 		}
@@ -208,7 +213,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		try {
 			close();
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		this.interp.reset();
 		this.baseIterator = this.interp.composeIterator();
