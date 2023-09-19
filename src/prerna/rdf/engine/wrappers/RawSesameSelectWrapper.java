@@ -23,10 +23,13 @@ import org.openrdf.query.parser.sparql.SPARQLParser;
 import org.openrdf.sail.memory.model.BooleanMemLiteral;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
+import prerna.om.ThreadStore;
+import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -210,20 +213,30 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public void close() throws IOException {
-		try {
-			tqr.close();
-		} catch (QueryEvaluationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException(e);
+		if(this.tqr != null) {
+			try {
+				tqr.close();
+			} catch (QueryEvaluationException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IOException(e);
+			}
 		}
 	}
 
 	@Override
 	public long getNumRows() throws Exception {
 		if(this.numRows == 0) {
+			User user = ThreadStore.getUser();
+			UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, this.engine.getEngineId());
+			
 			String query = "select (count(*) as ?count) where { " + this.query + "}";
-			TupleQueryResult tqr = (TupleQueryResult) engine.execQuery(query);
+			TupleQueryResult tqr = null;
 			try {
+				queryT.setQuery(query);
+				queryT.setStartTimeNow();
+				
+				tqr = (TupleQueryResult) engine.execQuery(query);
+				queryT.setEndTimeNow();
 				if(tqr.hasNext()) {
 					BindingSet bindSet = tqr.next();
 					Object val = bindSet.getValue("count");
@@ -233,7 +246,16 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					}
 				}
 			} catch (QueryEvaluationException e) {
+				queryT.setFailed();
 				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				try {
+					tqr.close();
+				} catch (QueryEvaluationException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				
+				new Thread(queryT).start();
 			}
 		}
 
