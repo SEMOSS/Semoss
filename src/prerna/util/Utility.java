@@ -5587,6 +5587,97 @@ public class Utility {
 				timeout = otherProps[0];
 			
 			String[] commands = new String[] {py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
+	
+			// need to make sure we are not windows cause ulimit will not work
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commands) {
+					sb.append(str).append(" ");
+				}
+				sb.substring(0, sb.length() - 1);
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+			}
+			
+			// do I need this ?
+			//String[] starterFile = writeStarterFile(commands, finalDir);
+			ProcessBuilder pb = new ProcessBuilder(commands);
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			try {
+				p.waitFor(500, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				logger.error(Constants.STACKTRACE, ie);
+			}
+			logger.info("came out of the waiting for process");
+			thisProcess = p;
+
+			// System.out.println("Process started with .. " + p.exitValue());
+			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
+			// + " " + argList);
+			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
+			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+			// thisProcess = pb.start();
+		} catch (IOException ioe) {
+			logger.error(Constants.STACKTRACE, ioe);
+		}
+
+		return new Object[] {thisProcess, prefix};
+	}
+	
+	public static Object [] startTCPServerNativePyChroot(String insightFolder, String chrootDir, String port, String ...otherProps ) {
+		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
+		// this basically starts a java process
+		// the string is an identifier for this process
+		// do I need this insight folder anymore ?
+		
+		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
+		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
+		String prefix = "";
+		Process thisProcess = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			String py = System.getenv(Settings.PYTHONHOME);
+			if(py == null) {
+				py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+			}
+			if(py == null) {
+				System.getenv(Settings.PY_HOME);
+			}
+			if (py == null) {
+				py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+			}
+			if(py == null) {
+				throw new NullPointerException("Must define python home");
+			}
+			
+			if (SystemUtils.IS_OS_WINDOWS) {
+				py = py + "/python.exe";
+			} else {
+				py = py + "/bin/python3";
+			}
+			
+			py = py.replace("\\", "/");
+
+			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+			pyBase = pyBase.replace("\\", "/");
+			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
+
+			prefix = Utility.getRandomString(5);
+			prefix = "p_"+ prefix;
+			
+			String outputFile =chrootDir + finalDir + "/console.txt";
+			
+			String timeout = "15";
+			if(otherProps!= null && otherProps.length > 0)
+				timeout = otherProps[0];
+			
+			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot", chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
+
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
