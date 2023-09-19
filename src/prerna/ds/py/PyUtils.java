@@ -245,6 +245,51 @@ public class PyUtils {
 		return null;
 	}
 
+	public String startTCPServeNativePyChroot(User user, String chrootDir,  String dir, String port)
+	{
+		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
+		{
+			try {
+				LOGGER.info(">>>STARTING PyServe USER<<<");
+				// going to create this in insight cache dir
+				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); // /opt/kunal__sessionid/
+				Path mainCachePath = Paths.get(chrootDir+dir); // /opt/semosshome
+				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
+				String relative = chrootPath.relativize(tempDirForUser).toString();
+				if(!relative.startsWith("/")) {
+					relative ="/"+relative;
+				}
+				LOGGER.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
+				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
+				userTupleMap.put(user, tempDirForUser.toString());
+				// this should possibly also launch the thread
+				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+				if(cp == null)
+					LOGGER.info("Unable to see class path ");
+				// dont want to pass the user object into utility
+				// going to write the prefix and read it
+				Object[] output = Utility.startTCPServerNativePyChroot(relative.toString(), chrootDir, port);
+				Process  p = (Process)output[0];
+				user.prefix = (String)output[1];
+				
+				if(p != null) {
+					userProcessMap.put(user,  p);
+					
+					// set the py process into the user
+					if(user instanceof User)
+						((User)user).setPyProcess(p);
+				}
+				LOGGER.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
+				return tempDirForUser.toString();
+			} catch (Exception e) {
+				LOGGER.error(Constants.STACKTRACE, e);
+			}
+		}
+		else
+			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+		return null;
+	}
 	
 	public void killTempTupleSpace(Object user) {
 		// kill the process

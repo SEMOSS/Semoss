@@ -343,8 +343,15 @@ public class MountHelper {
 				baseFolder + FILE_SEPARATOR + Constants.R_BASE_FOLDER, true);
 		mountFolder(baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER,
 				baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER, true);
-		mountFolder(getCP(), getCP(), true);
 		
+		boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
+				&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
+		if(!nativePyServer) {
+			// MOUNTING CP IS NEEDED FOR TCP with java/jvm
+			mountFolder(getCP(), getCP(), true);
+			
+		}
+
 		
 		String m2Location = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
 		File m2LocationF = new File(m2Location);
