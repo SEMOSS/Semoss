@@ -99,7 +99,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		}
 		
 		if(!hasOuter) {
-			return super.composeQuery();	
+			return super.composeQuery();
 		}
 		
 		addJoins();
