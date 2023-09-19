@@ -13,7 +13,6 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
@@ -54,16 +53,19 @@ public class ExportEngineReactor extends AbstractReactor {
 			}
 		}
 
+		IEngine engine = Utility.getEngine(engineId);
 		logger.info("Exporting engine... ");
 		// remove the database
 		String zipFilePath = null;
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
-		lock.lock();
+		ReentrantLock lock = null;
+		if(engine.holdsFileLocks()) {
+			lock = EngineSyncUtility.getEngineLock(engineId);
+			lock.lock();
+		}
 		boolean closed = false;
 		try {
-			IEngine engine = Utility.getEngine(engineId);
-			if(engine instanceof IDatabaseEngine) {
-				logger.info("Stopping the database engine... ");
+			if(lock != null) {
+				logger.info("Stopping the engine... ");
 				DIHelper.getInstance().removeEngineProperty(engineId);
 				try {
 					engine.close();
@@ -76,19 +78,20 @@ public class ExportEngineReactor extends AbstractReactor {
 			}
 			
 			String engineName = engine.getEngineName();
-			String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
-			String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(engineName, engineId);
-			zipFilePath = OUTPUT_PATH + "/" + engineName + "_database.zip";
+			String outputDir = this.insight.getInsightFolder();
+			String engineFolder = getEngineFolder(engine.getCatalogType()) ;
+			String thisEngineDir = engineFolder + "/" + SmssUtilities.getUniqueName(engineName, engineId);
+			zipFilePath = outputDir + "/" + engineName + "_database.zip";
 			
 			// zip database
 			ZipOutputStream zos = null;
 			try {
 				// zip db folder
 				logger.info("Zipping engine files...");
-				zos = ZipUtils.zipFolder(engineDir, zipFilePath);
+				zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath);
 				logger.info("Done zipping engine folder");
 				// add smss file
-				File smss = new File(engineDir + "/../" + SmssUtilities.getUniqueName(engineName, engineId) + ".smss");
+				File smss = new File(engineFolder + "/" + SmssUtilities.getUniqueName(engineName, engineId) + ".smss");
 				logger.info("Adding smss file...");
 				ZipUtils.addToZipFile(smss, zos);
 				logger.info("Done adding smss file");
@@ -110,13 +113,15 @@ public class ExportEngineReactor extends AbstractReactor {
 			// open it back up
 			try {
 				if(closed) {
-					logger.info("Reconnecting to the database...");
+					logger.info("Opening the engine again...");
 					Utility.getDatabase(engineId);
-					logger.info("Reconnected to the database");
+					logger.info("Opened the engine");
 				}
 			} finally {
-				// in case opening up causing an issue - we always want to unlock
-				lock.unlock();
+				if(lock != null) {
+					// in case opening up causing an issue - we always want to unlock
+					lock.unlock();
+				}
 			}
 		}
 
@@ -129,6 +134,23 @@ public class ExportEngineReactor extends AbstractReactor {
 		insightFile.setFilePath(zipFilePath);
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	private String getEngineFolder(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.DB_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.STORAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.MODEL_FOLDER;
+		}
+		
+		throw new IllegalArgumentException("Unknown engine type " + type);
 	}
 
 }
