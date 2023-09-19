@@ -64,7 +64,6 @@ public class SecurityOwlCreator {
 		relationshipsRequired.add(new String[] {"PROJECT", "GROUPPROJECTPERMISSION", "PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID"});
 		relationshipsRequired.add(new String[] {"INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID"});
 		relationshipsRequired.add(new String[] {"INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID"});
-
 	}
 	
 	private IDatabaseEngine securityDb;
@@ -98,9 +97,8 @@ public class SecurityOwlCreator {
 		if(check1) {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/REQUEST_REASON/ENGINEACCESSREQUEST")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/TOKENNAME/SMSS_USER_ACCESS_KEYS")) {
 				return true;
 			}
 		}
@@ -313,13 +311,17 @@ public class SecurityOwlCreator {
 		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
+		// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "ID", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "ACCESSKEY", "VARCHAR(255)");
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "SECRETKEY", "VARCHAR(255)");
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "SECRETSALT", "VARCHAR(255)");
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "DATECREATED", "TIMESTAMP");
 		owler.addProp("SMSS_USER_ACCESS_KEYS", "LASTUSED", "TIMESTAMP");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "TOKENNAME", "VARCHAR(255)");
+		owler.addProp("SMSS_USER_ACCESS_KEYS", "TOKENDESCRIPTION", "VARCHAR(500)");
 
 		// TOKEN
 		owler.addConcept("TOKEN", null, null);

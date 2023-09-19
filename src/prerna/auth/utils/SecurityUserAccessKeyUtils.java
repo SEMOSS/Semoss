@@ -19,6 +19,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -32,13 +33,18 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityUserAccessKeyUtils.class);
 
 	private static final String SMSS_USER_ACCESS_KEYS_TABLE_NAME = "SMSS_USER_ACCESS_KEYS";
-	private static final String USERID_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__ID";
+	@Deprecated
+	private static final String OLD_USERID_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__ID";
+	private static final String USERID_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__USERID";
 	private static final String TYPE_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__TYPE";
 	private static final String ACCESS_KEY_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__ACCESSKEY";
 	private static final String SECRET_KEY_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__SECRETKEY";
 	private static final String SECRET_KEY_SALT_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__SECRETSALT";
 	private static final String DATE_CREATED_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__DATECREATED";
 	private static final String LAST_USED_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__LASTUSED";
+
+	private static final String TOKEN_NAME_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__TOKENNAME";
+	private static final String TOKEN_DESCRIPTION_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__TOKENDESCRIPTION";
 
 	private SecurityUserAccessKeyUtils() {
 
@@ -60,7 +66,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_SALT_COL));
-		qs.addSelector(new QueryColumnSelector(USERID_COL));
+		qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
 		qs.addSelector(new QueryColumnSelector(TYPE_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
 
@@ -108,11 +114,11 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
 	/**
 	 * 
-	 * @param token
+	 * @param accessToken
 	 * @return
+	 * @throws SQLException 
 	 */
-	public static Map<String, String> createUserAccessToken(AccessToken token) {
-		Map<String, String> details = new HashMap<>();
+	public static Map<String, String> createUserAccessToken(AccessToken accessToken, String tokenName, String tokenDescription) throws SQLException {
 		String salt = AbstractSecurityUtils.generateSalt();
 		String accessKey = UUID.randomUUID().toString();
 		String secretKey = UUID.randomUUID().toString();
@@ -121,32 +127,47 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-		String insertQuery = "INSERT INTO "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" (ID, TYPE, ACCESSKEY, SECRETKEY, SECRETSALT, DATECREATED, LASTUSED) "
-				+ "VALUES (?,?,?,?,?,?,?)";
+		String insertQuery = "INSERT INTO "+SMSS_USER_ACCESS_KEYS_TABLE_NAME +
+				" (USERID, TYPE, ACCESSKEY, SECRETKEY, SECRETSALT, DATECREATED, LASTUSED, TOKENNAME, TOKENDESCRIPTION) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, token.getId()); 
-			ps.setString(parameterIndex++, token.getProvider().toString()); 
+			ps.setString(parameterIndex++, accessToken.getId()); 
+			ps.setString(parameterIndex++, accessToken.getProvider().toString()); 
 			ps.setString(parameterIndex++, accessKey); 
 			ps.setString(parameterIndex++, saltedSecretKey); 
 			ps.setString(parameterIndex++, salt); 
 			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			if(tokenName == null || (tokenName=tokenName.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, tokenName); 
+			}
+			if(tokenDescription == null || (tokenDescription=tokenDescription.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, tokenDescription); 
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
+		Map<String, String> details = new HashMap<>();
 		details.put("accessKey", accessKey);
 		details.put("secretKey", secretKey);
+		details.put("tokenName", tokenName);
+		details.put("tokenDescription", tokenDescription);
 		return details;
 	}
 
@@ -155,20 +176,18 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @param accessKey
 	 * @param token
 	 */
-	public static void updateAccessTokenLastUsed(String accessKey, AccessToken token) {
+	public static void updateAccessTokenLastUsed(String accessKey) {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-		String insertQuery = "UPDATE "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" SET LASTUSED=? WHERE ID=? AND TYPE=? AND ACCESSKEY=?";
+		String insertQuery = "UPDATE "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" SET LASTUSED=? WHERE ACCESSKEY=?";
 
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
 			ps.setTimestamp(parameterIndex++, timestamp, cal);
-			ps.setString(parameterIndex++, token.getId()); 
-			ps.setString(parameterIndex++, token.getProvider().toString()); 
-			ps.setString(parameterIndex++, accessKey); 
+			ps.setString(parameterIndex++, accessKey);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -189,13 +208,16 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean deleteUserAccessToken(AccessToken token, String accessKey) {
-		String insertQuery = "DELETE FROM "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" WHERE ID=? AND TYPE=? AND ACCESSKEY=?";
+		// validate user has this access key
+		List<Map<String, Object>> validateAssignedToUser = getUserAccessKeyInfo(token, accessKey);
+		if(validateAssignedToUser == null || validateAssignedToUser.isEmpty()) {
+			throw new IllegalArgumentException("Access key does not exist for this user");
+		}
+		String insertQuery = "DELETE FROM "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" WHERE ACCESSKEY=?";
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, token.getId()); 
-			ps.setString(parameterIndex++, token.getProvider().toString()); 
 			ps.setString(parameterIndex++, accessKey); 
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
@@ -210,21 +232,43 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	
+	
 	/**
 	 * 
 	 * @param token
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserAccessKeyInfo(AccessToken token) {
+		return getUserAccessKeyInfo(token, null);
+	}
+	
+	/**
+	 * 
+	 * @param token
+	 * @param accessKey
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserAccessKeyInfo(AccessToken token, String accessKey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TOKEN_NAME_COL));
+		qs.addSelector(new QueryColumnSelector(TOKEN_DESCRIPTION_COL));
 		qs.addSelector(new QueryColumnSelector(ACCESS_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(DATE_CREATED_COL));
 		qs.addSelector(new QueryColumnSelector(LAST_USED_COL));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
+		{
+			// account for legacy table structure
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(OLD_USERID_COL, "==", token.getId()));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
+			qs.addExplicitFilter(or);
+		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", token.getProvider().toString()));
+		if(accessKey != null && !(accessKey=accessKey.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
+		}
+		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-
-	
 	
 }
