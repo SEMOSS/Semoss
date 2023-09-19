@@ -164,10 +164,10 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		}
 
 		Map<String, String> details = new HashMap<>();
-		details.put("accessKey", accessKey);
-		details.put("secretKey", secretKey);
-		details.put("tokenName", tokenName);
-		details.put("tokenDescription", tokenDescription);
+		details.put("ACCESSKEY", accessKey);
+		details.put("SECRETKEY", secretKey);
+		details.put("TOKENNAME", tokenName);
+		details.put("TOKENDESCRIPTION", tokenDescription);
 		return details;
 	}
 
