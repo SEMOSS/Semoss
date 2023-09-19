@@ -561,6 +561,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
 			}
 		}
+		// optional filters
+		// on the project
+		if(hasProjectFilters) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "PROJECTID", "==", projectFilter));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectFilter));
+		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
 			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
