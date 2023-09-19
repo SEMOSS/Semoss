@@ -507,8 +507,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     import subprocess
     # throw the exception
     #try:
-    proc = subprocess.Popen(['cd'], cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
-    new_dir = proc.stdout.read().decode('utf-8').replace("\r\n", "")
+    proc = subprocess.Popen(['pwd'], cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
+    new_dir = proc.stdout.read().decode('utf-8').replace("\r\n", "").replace("\n", "")
     if check and new_dir.startswith(orig_mount_dir): # we are in the scope all is set
       print("updating mount points")
       self.cur_mount_points.update({mount_name:new_dir})
@@ -544,7 +544,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # the possibility here is the user does a file space of ../.. etc.. we need to catch eventually
     # execute copy
     proc = subprocess.Popen(payload, cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
-    output = proc.stdout.read().decode('utf-8').replace("\r\n", "")
+    output = proc.stdout.read().decode('utf-8').replace("\r\n", "").replace("\n", "")
     return output
     
   def exec_generic(self, mount_name=None, payload=None):
