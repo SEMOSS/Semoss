@@ -14,16 +14,18 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
+import prerna.om.ThreadStore;
+import prerna.usertracking.UserQueryTrackingThread;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelectWrapper {
 
-	private static final Logger logger = LogManager.getLogger(RawJenaSelectWrapper.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
+	private static final Logger classLogger = LogManager.getLogger(RawJenaSelectWrapper.class);
 	private ResultSet rs = null;
 
 	@Override
@@ -93,10 +95,10 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 
 	private Object getRealValue(RDFNode node){
 		if(node.isAnon()) {
-			logger.debug("Ok.. an anon node");
+			classLogger.debug("Ok.. an anon node");
 			return Utility.getNextID();
 		} else {
-			logger.debug("Raw data JENA For Column ");
+			classLogger.debug("Raw data JENA For Column ");
 			return Utility.getInstanceName(node + "");
 		}
 	}
@@ -121,7 +123,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 					}
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
 					this.types[i] = SemossDataType.STRING;
@@ -139,10 +141,16 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	@Override
 	public long getNumRows() {
 		if(this.numRows == 0) {
+			User user = ThreadStore.getUser();
+			UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, this.engine.getEngineId());
+			
 			String query = "select count(*) where { " + this.query + "}";
 			ResultSet resultSet = null;
 			try {
+				queryT.setQuery(query);
+				queryT.setStartTimeNow();
 				resultSet = (ResultSet) engine.execQuery(query);
+				queryT.setEndTimeNow();
 				if(resultSet != null && resultSet.hasNext()) {
 					QuerySolution row = resultSet.next();
 					RDFNode node = row.get("count");
@@ -152,7 +160,10 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 					}
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				queryT.setFailed();
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				new Thread(queryT).start();
 			}
 		}
 		return this.numRows;
