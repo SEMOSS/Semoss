@@ -607,4 +607,21 @@ def compose_prompt_orca(system='You are an AI assistant that follows instruction
       prompt = f"### System:\n{system}\n\n### User:\n{instruction}\n\n### Response:\n"
 
   return prompt
+
+def load_module_from_file(module_name=None, file_path=None):
+  import importlib.util
+  import sys
+  # delete the module if it exists
+  prev_module = module_name
+  try:
+    #sys.modules.pop(module_name)
+    del prev_module
+  except Exception as e:
+    pass
+  spec = importlib.util.spec_from_file_location(module_name, file_path)
+  module = importlib.util.module_from_spec(spec)
+  #sys.modules[module_name] = module
+  spec.loader.exec_module(module)
+  return module
+  #import module_name
   
