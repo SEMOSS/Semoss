@@ -60,15 +60,13 @@ public class ExportProjectReactor extends AbstractReactor {
 		logger.info("Exporting project now...");
 		logger.info("Stopping the project...");
 
-		String zipFilePath = null;
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
-		String OUTPUT_PATH = baseFolder + "/export/ZIPs";
-		String projectDir = baseFolder + "/project/" + SmssUtilities.getUniqueName(projectName, projectId);
-		// String projectDir = baseFolder + "/project/" +
-		// SmssUtilities.getUniqueName(engineName, project);
-		zipFilePath = OUTPUT_PATH + "/" + projectName + "_project.zip";
+		String projectDir = baseFolder + "/" + Constants.PROJECT_FOLDER + "/" + SmssUtilities.getUniqueName(projectName, projectId);
+
+		String outputDir = this.insight.getInsightFolder();
+		String zipFilePath = outputDir + "/" + projectName + "_project.zip";
 
 		Lock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
