@@ -420,9 +420,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(this.dataSource != null) {
-					ConnectionUtils.closeAllConnections(null, statement, resultSet);
-				} else {
 					ConnectionUtils.closeAllConnections(connection, statement, resultSet);
+				} else {
+					ConnectionUtils.closeAllConnections(null, statement, resultSet);
 				}
 				if(queryT != null) { new Thread(queryT).start(); };
 			}
