@@ -66,7 +66,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AddToMasterDB {
 
-    private static final Logger logger = LogManager.getLogger(AddToMasterDB.class);
+    private static final Logger classLogger = LogManager.getLogger(AddToMasterDB.class);
 
     private PersistentHash conceptIdHash = null;
 
@@ -97,6 +97,11 @@ public class AddToMasterDB {
     	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
         // establish the connection
         Connection conn = null;
+        PreparedStatement conceptPs = null;
+        PreparedStatement engineConceptPs = null;
+        PreparedStatement conceptMetaDataPs = null;
+        PreparedStatement relationPs = null;
+        PreparedStatement engineRelationPs = null;
         try {
             conn = localMaster.makeConnection();
             conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
@@ -126,7 +131,7 @@ public class AddToMasterDB {
             // insert the engine first
             // engine is a type of engine
             // keep the engine URI
-    		logger.info("Starting to synchronize engine ::: " + Utility.cleanLogString(engineName));
+    		classLogger.info("Starting to synchronize engine ::: " + Utility.cleanLogString(engineName));
 
             // grab the engine type
             // if it is RDBMS vs RDF
@@ -169,8 +174,8 @@ public class AddToMasterDB {
             // false denotes getting the physical names
             List<String> concepts = helper.getPhysicalConcepts();
             List<String[]> relationships = helper.getPhysicalRelationships();
-    		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
-    		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
+    		classLogger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
+    		classLogger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
 
             String conceptPsQuery = "INSERT INTO CONCEPT (LOCALCONCEPTID, CONCEPTUALNAME, LOGICALNAME, DOMAINNAME, GLOBALID) VALUES (?,?,?,?,?)";
             String engineConceptPsQuery = "INSERT INTO ENGINECONCEPT (ENGINE, PARENTSEMOSSNAME, SEMOSSNAME, PARENTPHYSICALNAME, "
@@ -179,14 +184,14 @@ public class AddToMasterDB {
             String conceptMetadataPsQuery = "INSERT INTO CONCEPTMETADATA ("+Constants.LM_PHYSICAL_NAME_ID
             		+", "+Constants.LM_META_KEY+", "+Constants.LM_META_VALUE + ") VALUES (?,?,?)";
     		
-            PreparedStatement conceptPs = conn.prepareStatement(conceptPsQuery);
-            PreparedStatement engineConceptPs = conn.prepareStatement(engineConceptPsQuery);
-            PreparedStatement conceptMetaDataPs = conn.prepareStatement(conceptMetadataPsQuery);
+            conceptPs = conn.prepareStatement(conceptPsQuery);
+            engineConceptPs = conn.prepareStatement(engineConceptPsQuery);
+            conceptMetaDataPs = conn.prepareStatement(conceptMetadataPsQuery);
 
             // iterate through all the concepts to insert into the local master
             for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
                 String conceptPhysicalUri = concepts.get(conceptIndex);
-                logger.debug("Processing concept ::: " + conceptPhysicalUri);
+                classLogger.debug("Processing concept ::: " + conceptPhysicalUri);
                 masterConcept(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, conceptPhysicalUri, helper, dbType);
             }
 
@@ -194,12 +199,12 @@ public class AddToMasterDB {
             String engineRelationPsQuery = "INSERT INTO ENGINERELATION (Engine, RelationID, InstanceRelationID, SourceConceptID, "
             		+ "TargetConceptID, SourceProperty, TargetProperty, RelationName) VALUES (?,?,?,?,?,?,?,?)";
             
-            PreparedStatement relationPs = conn.prepareStatement(relationPsQuery);
-            PreparedStatement engineRelationPs = conn.prepareStatement(engineRelationPsQuery);
+            relationPs = conn.prepareStatement(relationPsQuery);
+            engineRelationPs = conn.prepareStatement(engineRelationPsQuery);
             
             for (int relIndex = 0; relIndex < relationships.size(); relIndex++) {
                 String[] relationshipToInsert = relationships.get(relIndex);
-                logger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
+                classLogger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
                 masterRelationship(relationPs, engineRelationPs, engineName, relationshipToInsert, helper);
             }
             
@@ -220,9 +225,14 @@ public class AddToMasterDB {
             }
             return true;
         } catch (Exception e) {
-            logger.error(Constants.STACKTRACE, e);
+            classLogger.error(Constants.STACKTRACE, e);
             throw new IllegalArgumentException("An error occurred establishing a connection to the local master database");
         } finally {
+        	ConnectionUtils.closeStatement(conceptPs);
+        	ConnectionUtils.closeStatement(engineConceptPs);
+        	ConnectionUtils.closeStatement(conceptMetaDataPs);
+        	ConnectionUtils.closeStatement(relationPs);
+        	ConnectionUtils.closeStatement(engineRelationPs);
         	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, null, null);
         }
     }
@@ -386,7 +396,7 @@ public class AddToMasterDB {
         List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
         for (int propIndex = 0; propIndex < properties.size(); propIndex++) {
             String propertyPhysicalUri = properties.get(propIndex);
-            logger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
+            classLogger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
             masterProperty(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, 
             		conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
                     conceptPhysicalInstance, conceptGuid, semossName, helper, dbType);
@@ -726,7 +736,7 @@ public class AddToMasterDB {
 				ps.getConnection().commit();
 			}
         } catch (Exception e) {
-            logger.error(Constants.STACKTRACE, e);
+            classLogger.error(Constants.STACKTRACE, e);
         } finally {
         	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, ps, null);
         }
@@ -777,9 +787,9 @@ public class AddToMasterDB {
 				}
 			}
         } catch (SQLException e) {
-        	logger.error(Constants.STACKTRACE, e);
+        	classLogger.error(Constants.STACKTRACE, e);
         } catch (UnsupportedEncodingException e) {
-        	logger.error(Constants.STACKTRACE, e);
+        	classLogger.error(Constants.STACKTRACE, e);
 		} finally {
         	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, stmt, null);
         }
