@@ -52,6 +52,7 @@ public class ProjectUtils {
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setBasic(true);
 		insightEngine.open(insightSmssProp);
+		insightEngine.setEngineId(projectId + Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
 
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;
@@ -197,7 +198,7 @@ public class ProjectUtils {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static RDBMSNativeEngine generateInsightsDatabase(RdbmsTypeEnum rdbmsType, String folderLocation) throws Exception {
+	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, RdbmsTypeEnum rdbmsType, String folderLocation) throws Exception {
 		if(rdbmsType == null) {
 			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 			if(rdbmsTypeStr == null) {
@@ -215,6 +216,7 @@ public class ProjectUtils {
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setBasic(true);
 		insightEngine.open(insightSmssProp);
+		insightEngine.setEngineId(projectId + Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
 
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;
