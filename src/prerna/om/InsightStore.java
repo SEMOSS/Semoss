@@ -10,7 +10,8 @@ import org.apache.logging.log4j.Logger;
 
 public class InsightStore extends Hashtable<String, Insight> {
 
-	private static final Logger logger = LogManager.getLogger(InsightStore.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(InsightStore.class);
+	
 	private Map<String, Set<String>> sessionIdHash = new Hashtable<String, Set<String>>();
 	
 	// required for thick client
@@ -86,21 +87,21 @@ public class InsightStore extends Hashtable<String, Insight> {
 		sessionIdHash.put(sessionID, insightIDs);
 	}
 	
-	public boolean removeFromSessionHash(String sessionID, String insightID) {
-		if(!sessionIdHash.containsKey(sessionID)) {
+	public boolean removeFromSessionHash(String sessionId, String insightId) {
+		if(!sessionIdHash.containsKey(sessionId)) {
 			return false;
 		}
-		Set<String> insightIDs = sessionIdHash.get(sessionID);
-		if(insightIDs.contains(insightID)) {
-			insightIDs.remove(insightID);
+		Set<String> insightIDs = sessionIdHash.get(sessionId);
+		if(insightIDs.contains(insightId)) {
+			insightIDs.remove(insightId);
 			return true;
 		} 
 
 		return false;
 	}
 	
-	public Set<String> getInsightIDsForSession(String sessionID) {
-		return sessionIdHash.get(sessionID);
+	public Set<String> getInsightIDsForSession(String sessionId) {
+		return sessionIdHash.get(sessionId);
 	}
 	
 	public Insight findInsightInStore(String engineName, String rdbmsId) {
@@ -123,8 +124,8 @@ public class InsightStore extends Hashtable<String, Insight> {
 		activeInsight = insight;
 	}
 	
-	public void setActiveInsight(String insightID) {
-		activeInsight = this.get(insightID);
+	public void setActiveInsight(String insightId) {
+		activeInsight = this.get(insightId);
 	}
 
 	public Insight getActiveInsight() {
