@@ -121,6 +121,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
@@ -166,6 +167,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.sablecc2.reactor.IReactor;
@@ -2638,6 +2640,9 @@ public class Utility {
 			logger.error(Constants.STACKTRACE, iae);
 		} catch (ClassNotFoundException cnfe) {
 			logger.error(Constants.STACKTRACE, cnfe);
+		} catch (SemossPixelException spe) {
+			logger.error(Constants.STACKTRACE, spe);
+			throw spe;
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -4054,6 +4059,124 @@ public class Utility {
 		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
 
 		return f;
+	}
+	
+
+	public static JSONArray writeResultToJsonObject(Iterator<IHeadersDataRow> it,
+			Map<String, SemossDataType> typesMap, IStringExportProcessor... exportProcessors) {
+		long start = System.currentTimeMillis();
+		 
+		JSONArray jsonArray = new JSONArray();
+		try {
+			// store some variables and just reset
+			// should be faster than creating new ones each time
+			int i = 0;
+			int size = 0;
+			// create typesArr as an array for faster searching
+			String[] headers = null;
+			SemossDataType[] typesArr = null;
+	
+			// we need to iterate and write the headers during the first time
+			if (it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				// generate the header row
+				// and define constants used throughout like size, and types
+				i = 0;
+				headers = row.getHeaders();
+				size = headers.length;
+				typesArr = new SemossDataType[size];
+				for (; i < size; i++) {
+					if (typesMap == null) {
+						typesArr[i] = SemossDataType.STRING;
+					} else {
+						typesArr[i] = typesMap.get(headers[i]);
+						if (typesArr[i] == null) {
+							typesArr[i] = SemossDataType.STRING;
+						}
+					}
+				}
+	
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				i = 0;
+				JSONObject json = new JSONObject();
+				for (; i < size; i++) {
+					if (typesArr[i] == SemossDataType.STRING) {
+						// use empty quotes
+						if(dataRow[i] == null) {
+							json.put(headers[i], "");
+						} else {
+							String thisStringVal = null;
+							if(dataRow[i] instanceof Object[]) {
+								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
+							} else {
+								thisStringVal = dataRow[i] + "";
+							}
+							if(exportProcessors != null) {
+								for(IStringExportProcessor process : exportProcessors) {
+									thisStringVal = process.processString(thisStringVal);
+								}
+							}
+							json.put(headers[i], thisStringVal);
+						}
+					} else {
+						// print out null
+						if(dataRow[i] == null) {
+							json.put(headers[i], "null");
+						} else {
+							json.put(headers[i], dataRow[i]);
+						}
+					}
+				}
+				jsonArray.put(json);
+			}
+		
+			// now loop through all the data
+			while (it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				i = 0;
+				
+				JSONObject json = new JSONObject();
+				for (; i < size; i++) {
+					if (typesArr[i] == SemossDataType.STRING) {
+						// use empty quotes
+						if(dataRow[i] == null) {
+							json.put(headers[i], "");
+						} else {
+							String thisStringVal = null;
+							if(dataRow[i] instanceof Object[]) {
+								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
+							} else {
+								thisStringVal = dataRow[i] + "";
+							}
+							if(exportProcessors != null) {
+								for(IStringExportProcessor process : exportProcessors) {
+									thisStringVal = process.processString(thisStringVal);
+								}
+							}
+							json.put(headers[i], thisStringVal);
+						}
+					} else {
+						// print out null
+						if(dataRow[i] == null) {
+							json.put(headers[i], "null");
+						} else {
+							json.put(headers[i], dataRow[i]);
+						}
+					}
+				}
+				// write row to file
+				jsonArray.put(json);
+			}
+		} catch (Exception e) {
+			throw e;
+		}
+		
+		long end = System.currentTimeMillis();
+		logger.info("Time to output file = " + (end - start) + " ms.");
+		return jsonArray;
 	}
 
 	public static String encodeURIComponent(String s) {
@@ -5613,6 +5736,25 @@ public class Utility {
 				logger.error(Constants.STACKTRACE, ie);
 			}
 			logger.info("came out of the waiting for process");
+			if (!p.isAlive()) {
+				// if it crashed here, then the outputFile will contain the error. Read file and send error back
+				// it should not contain anything else since we are trying to start the server here
+	        	BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+				StringBuilder errorMsg = new StringBuilder();
+	            String line;
+	            while ((line = reader.readLine()) != null ) {
+	                // get the runtime error
+	            	if (line.startsWith("Traceback")) {
+	            		errorMsg.append(line).append("\n");
+	            		while ((line = reader.readLine()) != null ) {
+	            			errorMsg.append(line).append("\n");
+	            		}
+	            	}
+	            }
+	            reader.close();
+	            if (!errorMsg.toString().isEmpty())
+	            	throw new IllegalStateException(errorMsg.toString());
+			}
 			thisProcess = p;
 
 			// System.out.println("Process started with .. " + p.exitValue());

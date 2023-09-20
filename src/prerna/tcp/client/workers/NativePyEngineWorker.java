@@ -18,6 +18,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.IStringExportProcessor;
 import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
@@ -72,17 +73,29 @@ public class NativePyEngineWorker implements Runnable {
 						{
 							// do the logic of converting it into 
 							String fileLocation = null;
-							if(this.insight != null)
-								fileLocation = insight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".csv";
+							if(this.insight == null || (ps.payload.length > 1 && ps.payload[1].equals("json"))) {
+								JSONArray jsonPayload = Utility.writeResultToJsonObject(wrapper, null, new IStringExportProcessor() {
+									// we need to replace all inner quotes with ""
+									@Override
+									public String processString(String input) {
+										return input.replace("\"", "\\\"");
+									}
+								});
+								ps.payload = new Object[] {jsonPayload};
+							}
 							else
 							{
-								fileLocation = user.getTupleSpace();
-								fileLocation = Files.createTempFile(Paths.get(fileLocation), "t", null, null).toString();
+								fileLocation = insight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".json";
+								Utility.writeResultToJson(fileLocation, wrapper, null, new IStringExportProcessor() {
+									// we need to replace all inner quotes with ""
+									@Override
+									public String processString(String input) {
+										return input.replace("\"", "\\\"");
+									}
+								});
+								fileLocation = fileLocation.replace("\\","/");
+								ps.payload = new Object[] {fileLocation};
 							}
-							//Utility.writeResultToFile(fileLocation, wrapper);
-							Utility.writeResultToJson(fileLocation, wrapper, null, null);
-							fileLocation = fileLocation.replace("\\","/");
-							ps.payload = new Object[] {fileLocation};
 						}
 					}
 				}
