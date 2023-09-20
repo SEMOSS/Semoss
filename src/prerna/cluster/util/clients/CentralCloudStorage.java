@@ -1622,16 +1622,22 @@ public class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
 		IProject project = null;
+		String alias = null;
 		if (projectAlreadyLoaded) {
 			project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
 			if (project == null) {
 				throw new IllegalArgumentException("User asset/workspace project not found...");
 			}
+			alias = project.getProjectName();
+		} else {
+			if(isAsset) {
+				alias = WorkspaceAssetUtils.ASSET_APP_NAME;
+			} else {
+				alias = WorkspaceAssetUtils.WORKSPACE_APP_NAME;
+			}
 		}
 
-		// We need to push the folder alias__projectId and the file alias__projectId.smss
-		String alias = project.getProjectName();
-
+		// We need to pull the folder alias__projectId and the file alias__projectId.smss
 		String aliasAndUserAssetWorkspaceId = SmssUtilities.getUniqueName(alias, projectId);
 		String localUserAndAssetFolder = USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetWorkspaceId;
 		String storageUserAssetWorkspaceFolder = USER_CONTAINER_PREFIX + projectId;
