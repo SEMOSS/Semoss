@@ -579,7 +579,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 		
-		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(insightType, folderPath);
+		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(projectId, insightType, folderPath);
 		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
 		
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
