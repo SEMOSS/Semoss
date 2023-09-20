@@ -58,7 +58,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		usageMap.put(PYTHON,"from gaas_gpt_model import ModelEngine\r\n" + 
 				"question = 'Sample Question'\r\n" +
 				"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
-				"model.ask(question = question)");
+				"output = model.ask(question = question)");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IModelEngine;\r\n" + 
 				"IModelEngine eng = Utility.getModel(\""+engineId+"\");");
