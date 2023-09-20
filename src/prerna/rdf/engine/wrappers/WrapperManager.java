@@ -101,7 +101,9 @@ public class WrapperManager {
 
 	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, SelectQueryStruct qs, boolean delayExecIfPossible) throws Exception {
 		String engineId = engine.getEngineId();
-		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId) || engineId.endsWith(Constants.OWL_ENGINE_SUFFIX);
+		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId) 
+				|| engineId.endsWith(Constants.OWL_ENGINE_SUFFIX)
+				|| engineId.endsWith(Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
 		
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = null;
@@ -307,7 +309,9 @@ public class WrapperManager {
 	 */
 	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, String query) throws Exception {
 		String engineId = engine.getEngineId();
-		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId) || engineId.endsWith(Constants.OWL_ENGINE_SUFFIX);
+		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId) 
+				|| engineId.endsWith(Constants.OWL_ENGINE_SUFFIX)
+				|| engineId.endsWith(Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
 		
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = null;
