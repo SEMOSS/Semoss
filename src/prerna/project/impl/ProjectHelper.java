@@ -258,7 +258,7 @@ public class ProjectHelper {
 		insightSmssProp.put(Constants.CONNECTION_URL, connURL);
 		insightsRdbms.setBasic(true);
 		insightsRdbms.open(insightSmssProp);
-		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
+		insightsRdbms.setEngineId(projectId + Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
 
 		AbstractSqlQueryUtil queryUtil = insightsRdbms.getQueryUtil();
 		String tableExistsQuery = queryUtil.tableExistsQuery("QUESTION_ID", insightsRdbms.getDatabase(), insightsRdbms.getSchema());
