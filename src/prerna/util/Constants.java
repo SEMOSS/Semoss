@@ -607,7 +607,8 @@ public class Constants {
 	public static final String RDBMS_INSIGHTS_TYPE = "RDBMS_INSIGHTS_TYPE";
 	public static final String RDBMS_INSIGHTS_CONNECTION_URL_END = "RDBMS_INSIGHTS_CONNECTION_URL_END";
 	public static final String DEFAULT_INSIGHTS_RDBMS = "DEFAULT_INSIGHTS_RDBMS";
-
+	public static final String RDBMS_INSIGHTS_ENGINE_SUFFIX = "$INSIGHTS_RDBMS";
+	
 	//SOLR specific
 	public static final String RELOAD_INSIGHTS = "RELOAD_INSIGHTS";
 //	public static final String SOLR_RELOAD = "SOLR_RELOAD";

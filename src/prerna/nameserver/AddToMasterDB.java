@@ -113,6 +113,7 @@ public class AddToMasterDB {
 
             // owl is stored as RDF/XML file
             RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+            rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
             rfse.openFile(owlFile, null, null);
             // we create the meta helper to facilitate querying the engine OWL
             MetaHelper helper = new MetaHelper(rfse, null, null);

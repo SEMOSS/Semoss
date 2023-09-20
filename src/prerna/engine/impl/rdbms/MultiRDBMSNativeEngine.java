@@ -372,8 +372,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 	
 	@Override
-	public void setBaseData(RDFFileSesameEngine eng) {
-		super.setBaseData(eng);
+	public void setBaseDataEngine(RDFFileSesameEngine eng) {
+		super.setBaseDataEngine(eng);
 		// also set for all the inner ones
 		for(String contextName : this.contextToConnectionMap.keySet()) {
 			RDBMSNativeEngine engine = this.contextToConnectionMap.get(contextName);

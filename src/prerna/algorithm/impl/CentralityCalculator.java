@@ -328,7 +328,7 @@ public final class CentralityCalculator {
 		String id = coreEngine.getEngineId() + "-Metamodel";
 		AbstractDatabaseEngine eng = ((AbstractDatabaseEngine)coreEngine).getBaseDataEngine();
 		eng.setEngineId(id);
-		eng.setBaseData((RDFFileSesameEngine) eng);
+		eng.setBaseDataEngine((RDFFileSesameEngine) eng);
 		Hashtable<String, String> filterHash = new Hashtable<String, String>();
 		filterHash.put("http://semoss.org/ontologies/Relation", "http://semoss.org/ontologies/Relation");
 		eng.setBaseHash(filterHash);
@@ -344,7 +344,7 @@ public final class CentralityCalculator {
 
 		//TODO: this is really bad.. 
 		//undo the setting of the eng to get gdm to run
-		eng.setBaseData(null);
+		eng.setBaseDataEngine(null);
 		eng.setBaseHash(null);
 
 		return playSheet;

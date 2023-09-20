@@ -572,6 +572,10 @@ public class ReactorFactory {
 				String packageName = classes.get(classIndex).getPackageName();
 				Class actualClass = classes.get(classIndex).loadClass();
 
+				if(name.equals("PyReactor")) {
+					System.out.println(name);
+				}
+				
 				// ignore abstract
 				if(!Modifier.isAbstract( actualClass.getModifiers() )) {
 					String [] packagePaths = packageName.split("\\.");

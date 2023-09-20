@@ -348,21 +348,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 
 	/**
-	 * Sets the base data engine.
-	 * 
-	 * @param eng 	The base data engine that this is being set to
-	 */
-	public void setBaseData(RDFFileSesameEngine eng) {
-		this.baseDataEngine = eng;
-		
-		if(this.baseDataEngine != null) {
-			if(this.baseDataEngine.getEngineId() == null) {
-				this.baseDataEngine.setEngineId(this.engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
-			}
-		}
-	}
-	
-	/**
 	 * Gets the base data engine.
 	 * 
 	 * @return RDFFileSesameEngine - the base data engine
@@ -380,6 +365,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	@Override
 	public void setBaseDataEngine(RDFFileSesameEngine baseDataEngine) {
 		this.baseDataEngine = baseDataEngine;
+		if(this.baseDataEngine.getEngineId() == null) {
+			this.baseDataEngine.setEngineId(this.engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+		}
 		this.owlHelper = new MetaHelper(this.baseDataEngine, getDatabaseType(), this.engineId);
 	}
 
@@ -440,7 +428,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			}
 			setBaseHash(baseHash);
 			baseRelEngine.commit();
-			setBaseData(baseRelEngine);
+			setBaseDataEngine(baseRelEngine);
 		} catch (Exception e) {
 			classLogger.warn("Error occurred loading the OWL file for the database");
 			classLogger.error(Constants.STACKTRACE, e);
