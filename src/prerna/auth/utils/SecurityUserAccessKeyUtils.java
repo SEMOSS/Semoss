@@ -61,11 +61,13 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		String saltedSecretKey = null;
 		String salt = null;
 		String userId = null;
+		String oldUserId = null;
 		String loginType = null;
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_SALT_COL));
+		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
 		qs.addSelector(new QueryColumnSelector(TYPE_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
@@ -78,7 +80,8 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				saltedSecretKey = (String) values[0];
 				salt = (String) values[1];
 				userId = (String) values[2];
-				loginType = (String) values[3];
+				oldUserId = (String) values[3];
+				loginType = (String) values[4];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -107,7 +110,11 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		AccessToken token = new AccessToken();
 		AuthProvider provider = AuthProvider.getProviderFromString(loginType);
 		token.setProvider(provider);
-		token.setId(userId);
+		if(userId == null) {
+			token.setId(oldUserId);
+		} else {
+			token.setId(userId);
+		}
 		user.setAccessToken(token);
 		return user;
 	}
