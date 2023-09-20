@@ -6,7 +6,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Utility;
 
 public class PushDatabaseToCloudReactor extends AbstractReactor {
 	
@@ -26,10 +25,10 @@ public class PushDatabaseToCloudReactor extends AbstractReactor {
 		// make sure valid id for user
 		if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
 			// you dont have access
-			throw new IllegalArgumentException("Database does not exist or user is not an owner to force pulling from cloud storage");
+			throw new IllegalArgumentException("Database does not exist or user is not an owner to force pushing to cloud storage");
 		}
 		
-		ClusterUtil.pullDatabase(databaseId, Utility.isEngineLoaded(databaseId));
+		ClusterUtil.pushDatabase(databaseId);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
