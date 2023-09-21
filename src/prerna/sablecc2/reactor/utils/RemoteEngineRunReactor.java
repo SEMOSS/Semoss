@@ -12,6 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
+import prerna.util.Utility;
 
 public class RemoteEngineRunReactor extends AbstractReactor {
 
@@ -37,11 +38,11 @@ public class RemoteEngineRunReactor extends AbstractReactor {
 		*/
 		
 		organizeKeys();
-		String message = keyValue.get(keysToGet[0]);
+		String message = Utility.decodeURIComponent(keyValue.get(keysToGet[0]));
 		Gson gson = new Gson();
 		PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
 		ps = convertPayloadClasses(ps);
-		NativePyEngineWorker pyw = new NativePyEngineWorker(this.insight.getUser(), ps);
+		NativePyEngineWorker pyw = new NativePyEngineWorker(this.insight.getUser(), ps, this.insight);
 		pyw.run();
 		String strOutput = "Evaluating";
 		PayloadStruct output = null;
