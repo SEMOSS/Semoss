@@ -409,9 +409,12 @@ public abstract class AbstractSecurityUtils {
 			}
 	
 			// ENGINEPERMISSION
-			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
-			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-			defaultValues = new Object[]{null, null, null, true, false};
+			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE", 
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED" };
+			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[]{null, null, null, true, false, 
+					null, null, null};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
 				classLogger.info("Running sql " + sql);
@@ -633,9 +636,12 @@ public abstract class AbstractSecurityUtils {
 	
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
-			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
-			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-			defaultValues = new Object[]{null, null, null, true, false};
+			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE", 
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED" };
+			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[]{null, null, null, true, false, 
+					null, null, null};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues);
 				classLogger.info("Running sql " + sql);
@@ -901,8 +907,12 @@ public abstract class AbstractSecurityUtils {
 			}
 	
 			// USERINSIGHTPERMISSION
-			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME };
+			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE", 
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME, 
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[]{null, null, null, null, false, 
+					null, null, null};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 			} else {
@@ -910,19 +920,6 @@ public abstract class AbstractSecurityUtils {
 				if(!queryUtil.tableExists(conn, "USERINSIGHTPERMISSION", database, schema)) {
 					// make the table
 					securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
-				}
-			}
-			// TEMPORARY CHECK! - ADDED 03/17/2021
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
-					if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-						securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
-					} else {
-						securityDb.insertData(queryUtil.alterTableAddColumn("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
-					}
 				}
 			}
 			//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
@@ -938,6 +935,19 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(updateColName);
 				}
 			}
+			// TEMPORARY CHECK! - ADDED 09/19/2021
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("USERINSIGHTPERMISSION", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
 			if(allowIfExistsIndexs) {
 				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
 				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
