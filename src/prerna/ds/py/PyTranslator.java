@@ -136,7 +136,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public int getInt(String script) {
-		Long x = getLong(script);
+		Double x = getLong(script);
 		return x.intValue();
 	}
 
@@ -146,9 +146,21 @@ public class PyTranslator {
 	 * @param script
 	 * @return
 	 */
-	public Long getLong(String script) {
-		Long x = (Long) runScript(script);
-		return x;
+	public Double getLong(String script) {
+		// TODO remove if else once we no longer use JEP
+		// JEP -> Long
+		// PyServer -> Double
+		Object x = runScript(script);
+		if (x instanceof Long) {
+			Long y = (Long) x;
+			return y.doubleValue();
+		} else if (x instanceof Double) {
+			return (Double) x;
+		} else if (x instanceof String){
+			return Double.valueOf((String) x);
+		} else {
+			return null;
+		}
 	}
 
 	/**
