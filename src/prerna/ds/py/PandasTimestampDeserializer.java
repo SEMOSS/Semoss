@@ -80,7 +80,6 @@ public class PandasTimestampDeserializer extends SimpleModule {
             String timestampReplacement = matcher.group(3);
             //String afterDelimiter = matcher.group(4);
             String replacement = beforeDelimiter + "\'" + timestampReplacement + "\'";
-            System.out.println(replacement);
             matcher.appendReplacement(modifiedJson, replacement);
         }
         matcher.appendTail(modifiedJson);
