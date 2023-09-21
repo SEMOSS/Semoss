@@ -12,9 +12,9 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -549,7 +549,7 @@ public class User implements Serializable {
 		if (user.getLogins() != null) {
 			for (AuthProvider login : user.getLogins()) {
 				String userid = user.getAccessToken(login).getId();
-				Pair<String, String> added = Pair.of(userid, login.name());
+				Pair<String, String> added = Pair.with(userid, login.name());
 				creds.add(added);
 			}
 		}
@@ -561,6 +561,24 @@ public class User implements Serializable {
 		return creds;
 	}
 
+	public static Pair<String, String> getPrimaryUserIdAndTypePair(User user) {
+		if (user == null) {
+			throw new IllegalArgumentException("User cannot be null.");
+		}
+
+		if (user.isAnonymous()) {
+			throw new IllegalArgumentException("User cannot be anonymous.");
+		}
+
+		AuthProvider login = user.getPrimaryLogin();
+		if (login == null) {
+			throw new IllegalArgumentException("User must have primary login");
+		}
+		String userid = user.getAccessToken(login).getId();
+		return Pair.with(userid, login.name());
+	}
+	
+	@Deprecated
 	public static List<Pair<String, String>> getPrimaryUserIdAndType(User user) {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null.");
@@ -577,7 +595,7 @@ public class User implements Serializable {
 			throw new IllegalArgumentException("User must have primary login");
 		}
 		String userid = user.getAccessToken(login).getId();
-		creds.add(Pair.of(userid, login.name()));
+		creds.add(Pair.with(userid, login.name()));
 
 		if (creds.size() == 0) {
 			throw new IllegalArgumentException("User needs to be logged in.");

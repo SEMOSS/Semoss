@@ -473,12 +473,12 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public boolean isBasic() {
-		return false;
+		return true;
 	}
 
 	@Override
 	public void setBasic(boolean isBasic) {
-		// TODO Auto-generated method stub
+		// this is always basic - used only for OWL
 	}
 
 	@Override

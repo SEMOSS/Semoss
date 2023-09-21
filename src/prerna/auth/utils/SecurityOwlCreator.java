@@ -97,8 +97,8 @@ public class SecurityOwlCreator {
 		if(check1) {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/TOKENNAME/SMSS_USER_ACCESS_KEYS")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USERINSIGHTPERMISSION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBYTYPE/USERINSIGHTPERMISSION")) {
 				return true;
 			}
 		}
@@ -188,6 +188,9 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "PERMISSION", "INT");
 		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("ENGINEPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+		owler.addProp("ENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);
@@ -217,6 +220,10 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("PROJECTPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("PROJECTPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
+		
 		
 		// PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
@@ -270,6 +277,9 @@ public class SecurityOwlCreator {
 		owler.addProp("USERINSIGHTPERMISSION", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("USERINSIGHTPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("USERINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("USERINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+		owler.addProp("USERINSIGHTPERMISSION", "DATEADDED", "TIMESTAMP");
 
 		// INSIGHTMETA
 		owler.addConcept("INSIGHTMETA", null, null);

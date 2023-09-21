@@ -149,7 +149,7 @@ public class ProjectHelper {
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityProjectUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
+					SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 				}
 			}
 

@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import com.google.gson.Gson;
 
@@ -886,10 +887,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 */
 	public static void addUserInsightCreator(User user, String projectId, String insightId) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		List<AuthProvider> logins = user.getLogins();
-		
 		int ownerId = AccessPermissionEnum.OWNER.getId();
-		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?)";
+		
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -900,6 +902,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setInt(parameterIndex++, ownerId);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1463,6 +1468,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void addInsightUser(User user, String newUserId, String projectId, String insightId, String permission) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1484,15 +1491,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
-		
+
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, newUserId);
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
-			ps.setInt(parameterIndex, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1516,6 +1526,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId, String newPermission) throws IllegalAccessException {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1547,10 +1559,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE USERINSIGHTPERMISSION SET PERMISSION=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?");
+			ps = securityDb.getPreparedStatement("UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?");
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
@@ -1577,6 +1592,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editInsightUserPermissions(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1607,7 +1624,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
+		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE= ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -1615,6 +1632,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
@@ -2889,6 +2909,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void addInsightUserPermissions(User user, String projectId, String insightId, List<Map<String,String>> permission) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -2909,8 +2931,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("As a non-owner, you cannot add owner user access.");
 			}
 		}
+		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -2920,6 +2943,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setString(parameterIndex++, insightId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -2929,20 +2955,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 	}
 	
@@ -3002,6 +3015,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 */
 	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3045,8 +3060,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
+		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?,?)";
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -3056,6 +3072,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setString(parameterIndex++, insightId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();

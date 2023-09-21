@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.commons.lang3.tuple.Pair;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
@@ -52,81 +52,81 @@ public class UserTrackingOwlCreator {
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		this.userTrackingColumns = Arrays.asList(
-				Pair.of("SESSIONID", "VARCHAR(255)"),
-				Pair.of("USERID", "VARCHAR(255)"),
-				Pair.of("TYPE", "VARCHAR(255)"),
-				Pair.of("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("ENDED_ON", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("IP_ADDR", "VARCHAR(255)"),
-				Pair.of("IP_LAT", "VARCHAR(255)"),
-				Pair.of("IP_LONG", "VARCHAR(255)"),
-				Pair.of("IP_COUNTRY", "VARCHAR(255)"),
-				Pair.of("IP_STATE", "VARCHAR(255)"),
-				Pair.of("IP_CITY", "VARCHAR(255)")            
+				Pair.with("SESSIONID", "VARCHAR(255)"),
+				Pair.with("USERID", "VARCHAR(255)"),
+				Pair.with("TYPE", "VARCHAR(255)"),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("IP_ADDR", "VARCHAR(255)"),
+				Pair.with("IP_LAT", "VARCHAR(255)"),
+				Pair.with("IP_LONG", "VARCHAR(255)"),
+				Pair.with("IP_COUNTRY", "VARCHAR(255)"),
+				Pair.with("IP_STATE", "VARCHAR(255)"),
+				Pair.with("IP_CITY", "VARCHAR(255)")            
 			);
 		
 		this.engineViewsColumns = Arrays.asList(
-				Pair.of("ENGINEID", "VARCHAR(255)"),
-				Pair.of("DATE", "DATE"),
-				Pair.of("VIEWS", "INT")
+				Pair.with("ENGINEID", "VARCHAR(255)"),
+				Pair.with("DATE", "DATE"),
+				Pair.with("VIEWS", "INT")
 			);
 		
 		this.engineUsesColumns = Arrays.asList(
-				Pair.of("ENGINEID", "VARCHAR(255)"),
-				Pair.of("INSIGHTID", "VARCHAR(255)"),
-				Pair.of("PROJECTID", "VARCHAR(255)"),
-				Pair.of("DATE", "DATE")
+				Pair.with("ENGINEID", "VARCHAR(255)"),
+				Pair.with("INSIGHTID", "VARCHAR(255)"),
+				Pair.with("PROJECTID", "VARCHAR(255)"),
+				Pair.with("DATE", "DATE")
 			);
 		
 		this.userCatalogVotes = Arrays.asList(
-				Pair.of("USERID", "VARCHAR(255)"),
-				Pair.of("TYPE", "VARCHAR(255)"),
-				Pair.of("ENGINEID", "VARCHAR(255)"),
-				Pair.of("VOTE", "INT"),
-				Pair.of("LAST_MODIFIED", TIMESTAMP_DATATYPE_NAME)
+				Pair.with("USERID", "VARCHAR(255)"),
+				Pair.with("TYPE", "VARCHAR(255)"),
+				Pair.with("ENGINEID", "VARCHAR(255)"),
+				Pair.with("VOTE", "INT"),
+				Pair.with("LAST_MODIFIED", TIMESTAMP_DATATYPE_NAME)
 			);
 		
 		this.emailTracking = Arrays.asList(
-				Pair.of("ID", "VARCHAR(255)"),
-				Pair.of("SENT_TIME", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("SUCCESSFUL", BOOLEAN_DATATYPE_NAME),
-				Pair.of("E_FROM", "VARCHAR(255)"),
-				Pair.of("E_TO", CLOB_DATATYPE_NAME),
-				Pair.of("E_CC", CLOB_DATATYPE_NAME),
-				Pair.of("E_BCC", CLOB_DATATYPE_NAME),
-				Pair.of("E_SUBJECT", "VARCHAR(1000)"),
-				Pair.of("BODY", CLOB_DATATYPE_NAME),
-				Pair.of("ATTACHMENTS", CLOB_DATATYPE_NAME),
-				Pair.of("IS_HTML", BOOLEAN_DATATYPE_NAME)
+				Pair.with("ID", "VARCHAR(255)"),
+				Pair.with("SENT_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("SUCCESSFUL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("E_FROM", "VARCHAR(255)"),
+				Pair.with("E_TO", CLOB_DATATYPE_NAME),
+				Pair.with("E_CC", CLOB_DATATYPE_NAME),
+				Pair.with("E_BCC", CLOB_DATATYPE_NAME),
+				Pair.with("E_SUBJECT", "VARCHAR(1000)"),
+				Pair.with("BODY", CLOB_DATATYPE_NAME),
+				Pair.with("ATTACHMENTS", CLOB_DATATYPE_NAME),
+				Pair.with("IS_HTML", BOOLEAN_DATATYPE_NAME)
 			);
 		
 		this.insightOpens = Arrays.asList(
-				Pair.of("INSIGHTID", "VARCHAR(255)"),
-				Pair.of("USERID", "VARCHAR(255)"),
-				Pair.of("OPENED_ON", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("ORIGIN", "VARCHAR(2000)")
+				Pair.with("INSIGHTID", "VARCHAR(255)"),
+				Pair.with("USERID", "VARCHAR(255)"),
+				Pair.with("OPENED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ORIGIN", "VARCHAR(2000)")
 				);
 		
 		this.queryTrackingColumns = Arrays.asList(
-				Pair.of("ID", "VARCHAR(255)"),
-				Pair.of("USERID", "VARCHAR(255)"),
-				Pair.of("USERTYPE", "VARCHAR(255)"),
-				Pair.of("DATABASEID", "VARCHAR(255)"),
-				Pair.of("QUERY_EXECUTED", CLOB_DATATYPE_NAME),
-				Pair.of("START_TIME", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("END_TIME", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("TOTAL_EXECUTION_TIME", "BIGINT"),
-				Pair.of("FAILED_EXECUTION", BOOLEAN_DATATYPE_NAME)
+				Pair.with("ID", "VARCHAR(255)"),
+				Pair.with("USERID", "VARCHAR(255)"),
+				Pair.with("USERTYPE", "VARCHAR(255)"),
+				Pair.with("DATABASEID", "VARCHAR(255)"),
+				Pair.with("QUERY_EXECUTED", CLOB_DATATYPE_NAME),
+				Pair.with("START_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("END_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("TOTAL_EXECUTION_TIME", "BIGINT"),
+				Pair.with("FAILED_EXECUTION", BOOLEAN_DATATYPE_NAME)
 				);
 		
 		this.allSchemas = Arrays.asList(
-				Pair.of("USER_TRACKING", userTrackingColumns),
-				Pair.of("ENGINE_VIEWS", engineViewsColumns),
-				Pair.of("ENGINE_USES", engineUsesColumns),
-				Pair.of("USER_CATALOG_VOTES", userCatalogVotes),
-				Pair.of("EMAIL_TRACKING", emailTracking),
-				Pair.of("INSIGHT_OPENS", insightOpens),
-				Pair.of("QUERY_TRACKING", queryTrackingColumns)
+				Pair.with("USER_TRACKING", userTrackingColumns),
+				Pair.with("ENGINE_VIEWS", engineViewsColumns),
+				Pair.with("ENGINE_USES", engineUsesColumns),
+				Pair.with("USER_CATALOG_VOTES", userCatalogVotes),
+				Pair.with("EMAIL_TRACKING", emailTracking),
+				Pair.with("INSIGHT_OPENS", insightOpens),
+				Pair.with("QUERY_TRACKING", queryTrackingColumns)
 			);
 	}
 	
@@ -159,9 +159,9 @@ public class UserTrackingOwlCreator {
 		
 		// check all columns
 		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
-			String tableName = tableWithColumns.getLeft();
-			String[] columnNames = tableWithColumns.getRight().stream()
-					.map(Pair::getLeft).toArray(String[]::new);
+			String tableName = tableWithColumns.getValue0();
+			String[] columnNames = tableWithColumns.getValue1().stream()
+					.map(Pair::getValue0).toArray(String[]::new);
 
 			for (String columnName : columnNames) {
 				if (columnChecks(tableName, columnName)) {
@@ -226,10 +226,10 @@ public class UserTrackingOwlCreator {
 
 		// ENGINE	
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
-			String tableName = columns.getLeft();
+			String tableName = columns.getValue0();
 			owler.addConcept(tableName, null, null);
-			for (Pair<String, String> x : columns.getRight()) {	
-				owler.addProp(tableName, x.getLeft(), x.getRight());
+			for (Pair<String, String> x : columns.getValue1()) {	
+				owler.addProp(tableName, x.getValue0(), x.getValue1());
 			}
 		}
 		

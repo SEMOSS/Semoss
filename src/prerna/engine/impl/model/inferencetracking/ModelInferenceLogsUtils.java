@@ -17,9 +17,9 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
@@ -615,9 +615,9 @@ public class ModelInferenceLogsUtils {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getLeft();
-			String[] colNames = tableSchema.getRight().stream().map(Pair::getLeft).toArray(String[]::new);
-			String[] types = tableSchema.getRight().stream().map(Pair::getRight).toArray(String[]::new);
+			String tableName = tableSchema.getValue0();
+			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				executeSql(conn, sql);
@@ -642,10 +642,10 @@ public class ModelInferenceLogsUtils {
 	private static boolean addAllPrimaryKeys(IRDBMSEngine engine, Connection conn, List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys) {
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		for (Pair<String, Pair<List<String>, List<String>>> tablePrimaryKeys : primaryKeys) {
-			String tableName = tablePrimaryKeys.getLeft();
-			Pair<List<String>, List<String>> primaryKeyInfo = tablePrimaryKeys.getRight();
-			List<String> primaryKeyNames = primaryKeyInfo.getLeft();
-			List<String> primaryKeyTypes = primaryKeyInfo.getRight();
+			String tableName = tablePrimaryKeys.getValue0();
+			Pair<List<String>, List<String>> primaryKeyInfo = tablePrimaryKeys.getValue1();
+			List<String> primaryKeyNames = primaryKeyInfo.getValue0();
+			List<String> primaryKeyTypes = primaryKeyInfo.getValue1();
 			
 			// first try make sure its not null
 			for (int i = 0; i < primaryKeyNames.size(); i++) {
@@ -685,12 +685,12 @@ public class ModelInferenceLogsUtils {
 	private static void addAllForeignKeys(IRDBMSEngine engine, Connection conn, 
 			List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> foreignKeys) {
 		ATTEMPT_TO__ADD_FOREIGN_KEY : for (Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>> tableForeignKeys : foreignKeys) {
-			String tableName = tableForeignKeys.getLeft();
-			Pair<List<String>, Pair<List<String>, List<String>>> foreignKeyInfo = tableForeignKeys.getRight();
-			List<String> tableColumns = foreignKeyInfo.getLeft();
-			Pair<List<String>, List<String>> referenceDetails = foreignKeyInfo.getRight();
-			List<String> referenceTables = referenceDetails.getLeft();
-			List<String> referenceColumns = referenceDetails.getRight();
+			String tableName = tableForeignKeys.getValue0();
+			Pair<List<String>, Pair<List<String>, List<String>>> foreignKeyInfo = tableForeignKeys.getValue1();
+			List<String> tableColumns = foreignKeyInfo.getValue0();
+			Pair<List<String>, List<String>> referenceDetails = foreignKeyInfo.getValue1();
+			List<String> referenceTables = referenceDetails.getValue0();
+			List<String> referenceColumns = referenceDetails.getValue1();
 			
 			for (int i = 0; i < tableColumns.size(); i++) {
 				String tableColumn = tableColumns.get(i);
