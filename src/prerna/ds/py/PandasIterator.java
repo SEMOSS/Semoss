@@ -1,5 +1,6 @@
 package prerna.ds.py;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -17,16 +18,18 @@ public class PandasIterator implements Iterator<IHeadersDataRow>{
 	private String query = null;
 
 	// Current implementation.. pulls the data into the memory.. we will change it after
-	public List fullData = null;
+	public List fullData = new ArrayList<Object>();;
 	public SemossDataType[] colTypes = null;
 	public int initSize = 0;
 	
 	public PandasIterator(String [] headers, List fullData, SemossDataType [] colTypes) {
 		this.headers = headers;
-		this.fullData = fullData;
 		this.colTypes = colTypes;
-
-		this.initSize = fullData.size();
+		
+		if (fullData != null) {
+			this.fullData = fullData;
+			this.initSize = fullData.size();
+		}
 	}
 	
 	// set actual headers and transform

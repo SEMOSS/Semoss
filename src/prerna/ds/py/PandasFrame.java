@@ -43,6 +43,7 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PandasFrame extends AbstractTableDataFrame {
@@ -188,7 +189,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(!loaded) {
 			// default behavior is to just write this to a csv file
 			// and read it back in
-			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".json";
 			
 			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 				Insight in = this.pyt.insight;
@@ -197,10 +198,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 				if(in.getUser() != null) {
 					in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
 				}
-				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".csv";
+				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".json";
 			}
 			
-			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap, ",", new IStringExportProcessor() {
+			File newFile = Utility.writeResultToJson(newFileLoc, it, dataTypeMap, new IStringExportProcessor() {
 				// we need to replace all inner quotes with ""
 				@Override
 				public String processString(String input) {
@@ -213,9 +214,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 			// generate the script
 			String fileLocation = newFile.getAbsolutePath();
-			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
-					fileLocation, tableName, ",", "\"", "\\\\", pyt.getCurEncoding(), dataTypeMap);
-			
+			String loadS = PandasSyntaxHelper.getJsonFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, fileLocation, tableName, dataTypeMap);
+			//String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
+			//		fileLocation, tableName, ",", "\"", "\\\\", pyt.getCurEncoding(), dataTypeMap);
+
 			// what if its not above 10,000 but there is still a limit
 			if (limit > -1) {
 				String rowLimits = String.valueOf(limit);
@@ -223,10 +225,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 			}
 			
 			String modHeaders = null;
-			// update the headers to be cleaned
+			String[] cleanHeaders = null;
 			if(it instanceof IRawSelectWrapper) {
 				String[] headers = ((IRawSelectWrapper) it).getHeaders();
-				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
+				cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
 				modHeaders = PandasSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
 			} else if(it instanceof BasicIteratorTask) {
 				List<Map<String, Object>> taskHeaders = ((BasicIteratorTask) it).getHeaderInfo();
@@ -237,7 +239,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 					String alias = (String) headerInfo.get("alias");
 					headers[i] = alias;
 				}
-				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
+				cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
 				modHeaders = PandasSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
 			}
 			
@@ -249,6 +251,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 			pyt.runEmptyPy(importPandasS, importNumpyS, loadS, modHeaders, makeWrapper);
 			// delete the generated file
 			
+			Double rowCount = pyt.getLong(tableName + ".shape[0]");
+			if(rowCount == 0) {
+				String frameColumns = "columns = " + "['" + String.join("','", cleanHeaders) + "']";
+				String createDataFrame = frameName + " = pd.DataFrame("+frameColumns+")";
+				this.pyt.runScript(createDataFrame);
+			}
+			
 			// dont delete.. we probably need to test the file py
 			newFile.delete();
 		}
@@ -259,6 +268,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		syncHeaders();
 		// need to get a pandas frame types and then see if this is the same as 
+		
 		if(!isEmpty(tableName)) {
 			adjustDataTypes(tableName, dataTypeMap);
 		}
@@ -692,7 +702,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			String sql  = ((HardSelectQueryStruct)qs).getQuery();
 			sql = sql.replace("\"", "\\\"");
-
+			boolean pandasImported = (boolean) this.pyt.runScript("'pd' in dir()");
+			if (!pandasImported) {
+				this.pyt.runEmptyPy("import pandas as pd");
+			}
 			String frameMaker = targetFrame + " = pd.read_sql(\"" + sql + "\", " + getSQLite() + ")";
 //			String loadsqlDF = "from pandasql import sqldf";
 //			this.pyt.runEmptyPy(loadsqlDF);
@@ -702,7 +715,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 		else
 		{
-			query = interp.composeQuery();	
+			query = interp.composeQuery();
 		}
 		
 		// assign query to frame
@@ -724,6 +737,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// run the query
 			Object output = pyt.runScript(query);
 			
+			// if using native py server, and cant'structure output, try convert.
+			if (DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
+					&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true") 
+					&& output instanceof String) {
+				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
+			}
+					        
 			// need to see if this is a parquet format as well
 			String format = "grid"; 
 			if(qs.getPragmap() != null && qs.getPragmap().containsKey("format"))
@@ -967,8 +987,15 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public boolean isEmpty(String tableName) {
 		String command = "('" + PandasSyntaxHelper.createFrameWrapperName(tableName) + "' in vars() and len(" + PandasSyntaxHelper.createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
 		
-		Boolean notEmpty = (Boolean) pyt.runScript(command);
-		return !notEmpty;
+		Object notEmpty = pyt.runScript(command);
+		Boolean notEmptyResult = null;
+		try {
+			notEmptyResult = (Boolean) notEmpty;
+		} catch (java.lang.ClassCastException e) {
+			notEmptyResult = Boolean.valueOf((String) notEmpty);
+		}
+		
+		return !notEmptyResult;
 	}
 	
 	@Override
@@ -1464,5 +1491,4 @@ public class PandasFrame extends AbstractTableDataFrame {
 //		this.dataTypeMap = dataTypeMap;
 //		interp.setDataTypeMap(dataTypeMap);
 //	}
-	
 }
