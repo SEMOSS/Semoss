@@ -259,6 +259,77 @@ public class PandasSyntaxHelper {
 	}
 	
 	/**
+	 * Reads a JSON using pandas. less greedy / dynamic version. 
+	 * @param pandasImportVar
+	 * @param numpyImportVar
+	 * @param fileLocation
+	 * @param tableName
+	 * @param dataTypeMaps
+	 * @return
+	 */
+	public static String getJsonFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, Map<String, ?> dataTypeMaps) {
+		StringBuffer script = new StringBuffer();
+		if (dataTypeMaps == null || dataTypeMaps.isEmpty()) {
+			script.append(tableName).append("=").append(pandasImportVar).append(".read_json('").append(fileLocation.replaceAll("\\\\+", "/"));
+		} else {
+			script = buildReadJson(pandasImportVar, numpyImportVar, fileLocation, tableName, dataTypeMaps);
+		}
+		return script.toString();
+	}
+	
+	/**
+	 * Builds the pandas JSON read method. Less greedy approach that accounts for date parsing. 
+	 * https://pandas.pydata.org/pandas-docs/version/0.15.1/generated/pandas.read_csv.html
+	 * @param pandasImportVar
+	 * @param numpyImportVar
+	 * @param fileLocation
+	 * @param tableName
+	 * @param sep
+	 * @param quoteChar		
+	 * @param escapeChar
+	 * @param encoding
+	 * @param dataTypeMaps
+	 * @return
+	 */
+	public static StringBuffer buildReadJson(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, Map<String, ?> dataTypeMaps) {
+		StringBuffer sb = new StringBuffer();
+		StringBuffer dataMap = new StringBuffer();
+		StringBuffer dateList = new StringBuffer();
+
+		for (String column : dataTypeMaps.keySet()) {
+			Object inputType = dataTypeMaps.get(column);
+			SemossDataType dataType = null;
+			if(inputType instanceof SemossDataType) {
+				dataType = (SemossDataType) inputType;
+			} else {
+				dataType = SemossDataType.convertStringToDataType(inputType + "");
+			}
+			
+			if (dataType == null) {
+				continue;
+			}
+			if (dataType == SemossDataType.DATE || dataType == SemossDataType.TIMESTAMP) {
+				if (dateList.length() > 0) {
+					dateList.append(",");
+				}
+				dateList.append("'").append(column).append("'");
+			} else {
+				if (dataMap.length() > 0) {
+					dataMap.append(",");
+				}
+				dataMap.append("'").append(column).append("':").append(convertSemossDataType(numpyImportVar, dataType));
+			}
+		}
+		dataMap = new StringBuffer("{").append(dataMap).append("}");
+		dateList = new StringBuffer("[").append(dateList).append("]");
+		
+		sb.append(tableName).append("=").append(pandasImportVar).append(".read_json('").append(fileLocation.replaceAll("\\\\+", "/"))
+		  .append("',dtype="+ dataMap.toString()).append(",convert_dates=").append(dateList).append(")");
+		
+		return sb;
+	}
+	
+	/**
 	 * Maps Semoss data types to Pandas / Numpy data types. 
 	 * @param numpyImportVar
 	 * @param type
@@ -613,7 +684,7 @@ public class PandasSyntaxHelper {
 	// get all types
 	// this needs to be used in combination with get columns
 	public static String getTypes(String tableName) {
-		String types = tableName + ".dtypes.tolist()";
+		String types = "list(" + tableName + ".dtypes.astype(str))";
 		return types;
 	}
 
