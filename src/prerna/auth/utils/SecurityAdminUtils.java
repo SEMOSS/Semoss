@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
@@ -1384,7 +1385,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addEngineUser(String newUserId, String engineId, String permission) {
+	public void addEngineUser(String newUserId, String engineId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user doesn't already exist for this database
 		if(SecurityUserEngineUtils.getUserEnginePermission(newUserId, engineId) != null) {
 			// that means there is already a value
@@ -1392,8 +1395,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
-		PreparedStatement ps = null;
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?, ?,?,?,?,?,?)";
+		PreparedStatement ps = null;	
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
 			int parameterIndex = 1;
@@ -1401,6 +1404,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, engineId);
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
 			ps.setBoolean(parameterIndex++, true);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1420,7 +1426,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addEngineUserPermissions(String databaseId, List<Map<String,String>> permission) {
+	public void addEngineUserPermissions(String databaseId, List<Map<String,String>> permission, User user) {
 		// first, check to make sure these users do not already have permissions to database
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
@@ -1430,8 +1436,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1441,6 +1449,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, databaseId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1462,7 +1473,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addProjectUserPermissions(String projectId, List<Map<String,String>> permission) {
+	public void addProjectUserPermissions(String projectId, List<Map<String,String>> permission, User user) {
 		// first, check to make sure these users do not already have permissions to project
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
@@ -1472,8 +1483,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The following users already have access to this project. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1483,6 +1496,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, projectId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1504,7 +1520,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addInsightUserPermissions(String projectId, String insightId, List<Map<String,String>> permission) {
+	public void addInsightUserPermissions(String projectId, String insightId, List<Map<String,String>> permission, User user) {
 		// first, check to make sure these users do not already have permissions to insight
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
@@ -1513,8 +1529,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (!existingUserPermission.isEmpty()) {
 			throw new IllegalArgumentException("The following users already have access to this insight. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
+
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1524,6 +1543,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1545,15 +1567,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addProjectUser(String newUserId, String projectId, String permission) {
+	public void addProjectUser(String newUserId, String projectId, String permission, User user) {
 		// make sure user doesn't already exist for this project
 		if(SecurityUserProjectUtils.getUserProjectPermission(newUserId, projectId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?, ?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1562,6 +1586,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectId);
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
 			ps.setBoolean(parameterIndex++, true);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1626,15 +1653,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isAddNew 		boolean - 	If false, modifying existing project permissions to the new permission level
 	 * 									If true, adding new projects with the permission level specified
 	 */
-	public void grantAllProjects(String userId, String permission, boolean isAddNew) {
+	public void grantAllProjects(String userId, String permission, boolean isAddNew, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		if(isAddNew) {
 			List<String> currentProjectAccess = getProjectsUserHasExplicitAccess(userId);
 			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
-			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?, ?,?,?,?,?,?)";
 			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 			boolean visible = true;
 			PreparedStatement ps = null;
-
 			try {
 				ps = securityDb.getPreparedStatement(insertQuery);
 				// add new permission for projects
@@ -1648,6 +1676,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setBoolean(parameterIndex++, visible);
 					ps.setInt(parameterIndex++, permissionLevel);
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -1688,7 +1719,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			// now add
 			{
 				// now we insert the values
-				String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+				String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 				int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 				PreparedStatement ps = null;
 
@@ -1702,6 +1733,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, projectId);
 						ps.setBoolean(parameterIndex++, visible);
 						ps.setInt(parameterIndex++, permissionLevel);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -1779,13 +1813,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * 									If true, adding new projects with the permission level specified
 	 * @param engineTypes
 	 */
-	public void grantAllEngines(String userId, String permission, boolean isAddNew, List<String> engineTypes) {
+	public void grantAllEngines(String userId, String permission, boolean isAddNew, List<String> engineTypes, User user) {
 		String logETypes = (engineTypes == null || engineTypes.isEmpty()) ? "[ALL]" : ("[" + String.join(", ", engineTypes) + "]");
 
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		if(isAddNew) {
 			List<String> currentEngineAccess = getEnginesUserHasExplicitAccess(userId, engineTypes);
 			List<String> engineIds = SecurityEngineUtils.getAllEngineIds();
-			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 			boolean visible = true;
 			PreparedStatement ps = null;
@@ -1803,6 +1838,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, databaseId);
 					ps.setBoolean(parameterIndex++, visible);
 					ps.setInt(parameterIndex++, permissionLevel);
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -1843,7 +1881,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			// now add
 			{
 				// now we insert the values
-				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 				int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 				PreparedStatement ps = null;
 
@@ -1857,6 +1895,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, databaseId);
 						ps.setBoolean(parameterIndex++, visible);
 						ps.setInt(parameterIndex++, permissionLevel);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -1879,8 +1920,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param permission
 	 */
-	public void grantNewUsersEngineAccess(String engineId, String permission) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+	public void grantNewUsersEngineAccess(String engineId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		PreparedStatement ps = null;
 		try {
@@ -1894,6 +1937,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, engineId);
 				ps.setInt(parameterIndex++, permissionLevel);
 				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1908,8 +1954,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public void grantNewUsersProjectAccess(String projectId, String permission) {
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+	public void grantNewUsersProjectAccess(String projectId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		PreparedStatement ps = null;
 		try {
@@ -1923,6 +1971,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, projectId);
 				ps.setInt(parameterIndex++, permissionLevel);
 				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1943,12 +1994,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @param permission
 	 */
-	public void grantAllProjectInsights(String projectId, String userId, String permission) {
+	public void grantAllProjectInsights(String projectId, String userId, String permission, User user) {
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// delete all previous permissions for the user
 		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=?";
-		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 
 		PreparedStatement deletePs = null;
 		PreparedStatement insertPs = null;
@@ -1968,6 +2020,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setString(parameterIndex++, insightId);
 				insertPs.setInt(parameterIndex++, permissionLevel);
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -1994,20 +2049,25 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newPermission
 	 * @return
 	 */
-	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission) {
+	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the engine");
 		}
 		
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, engineId);
@@ -2032,7 +2092,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editEngineUserPermissions(String engineId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void editEngineUserPermissions(String engineId, List<Map<String, String>> requests, User user) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 	    for(Map<String,String> i:requests){
@@ -2049,8 +2109,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the engine: "+String.join(",", toRemoveUserIds));
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2058,6 +2120,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, engineId);
@@ -2083,21 +2148,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newPermission
 	 * @return
 	 */
-	public void editProjectUserPermission(String existingUserId, String projectId, String newPermission) {
+	public void editProjectUserPermission(String existingUserId, String projectId, String newPermission, User user) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// update user permissions in bulk
-		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ?";
+		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
@@ -2122,7 +2192,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 	    for(Map<String,String> i:requests){
@@ -2139,8 +2209,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the project: "+String.join(",", toRemoveUserIds));
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// update user permissions in bulk
-		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ?";
+		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2148,6 +2220,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
@@ -2172,7 +2247,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 * @throws IllegalAccessException
 	 */
-	public static void editInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void editInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> requests, User user) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 	    for(Map<String,String> i:requests){
@@ -2189,8 +2264,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the insight: "+String.join(",", toRemoveUserIds));
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
+		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2198,6 +2275,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
@@ -2522,14 +2602,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addInsightUser(String newUserId, String projectId, String insightId, String permission) {
+	public void addInsightUser(String newUserId, String projectId, String insightId, String permission, User user) {
 		// make sure user doesn't already exist for this insight
 		if(SecurityInsightUtils.getUserInsightPermission(newUserId, projectId, insightId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
 		}
 		
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -2538,6 +2620,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -2557,9 +2642,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addAllInsightUsers(String projectId, String insightId, String permission) {
+	public void addAllInsightUsers(String projectId, String insightId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		String inertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		String inertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(inertQ);
@@ -2572,6 +2659,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, insightId);
 					ps.setInt(parameterIndex++, permissionLevel);
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -2579,7 +2669,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 				// update existing permissions for users
-				updateInsightUserPermissions(projectId, insightId, permission);
+				updateInsightUserPermissions(projectId, insightId, permission, user);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -2597,7 +2687,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newPermission
 	 * @return
 	 */
-	public void editInsightUserPermission(String existingUserId, String projectId, String insightId, String newPermission) {
+	public void editInsightUserPermission(String existingUserId, String projectId, String insightId, String newPermission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
 		if(existingUserPermission == null) {
@@ -2605,13 +2697,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		
 		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
+		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
@@ -2780,14 +2875,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param newPermission
 	 */
-	public void updateEngineUserPermissions(String engineId, String newPermission) {
-		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=? WHERE ENGINEID=?";
+	public void updateEngineUserPermissions(String engineId, String newPermission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			// SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			// WHERE
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
@@ -2807,14 +2907,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param newPermission
 	 */
-	public void updateProjectUserPermissions(String projectId, String newPermission) {
-		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=? WHERE PROJECTID=?";
+	public void updateProjectUserPermissions(String projectId, String newPermission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			// SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			// WHERE
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
@@ -2834,8 +2939,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param permission
 	 */
-	public void addAllEngineUsers(String engineId, String permission) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+	public void addAllEngineUsers(String engineId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		PreparedStatement ps = null;
 		try {
@@ -2849,6 +2956,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, engineId);
 					ps.setInt(parameterIndex++, permissionLevel);
 					ps.setBoolean(parameterIndex++, true);
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -2856,7 +2966,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 				// update existing user permissions
-				updateEngineUserPermissions(engineId, permission);
+				updateEngineUserPermissions(engineId, permission, user);
 			}
 		} catch (SQLException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);
@@ -2872,8 +2982,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param permission
 	 */
-	public void addAllProjectUsers(String projectId, String permission) {
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+	public void addAllProjectUsers(String projectId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		PreparedStatement ps = null;
 		try {
@@ -2887,6 +2999,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setInt(parameterIndex++, permissionLevel);
 					ps.setBoolean(parameterIndex++, true);
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -2894,7 +3009,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 				// update existing user permissions
-				updateProjectUserPermissions(projectId, permission);
+				updateProjectUserPermissions(projectId, permission, user);
 			}
 		} catch (SQLException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);
@@ -2910,14 +3025,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param newPermission
 	 */
-	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission) {
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=? WHERE PROJECTID=? AND INSIGHTID=?";
+	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
+		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE PROJECTID=? AND INSIGHTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
 			// SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			// WHERE
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
@@ -2951,9 +3071,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param permission
 	 */
-	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission) {
+	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission, User user) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId);
-		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		PreparedStatement ps = null;
 		try {
@@ -2965,6 +3087,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setInt(parameterIndex++, permissionLevel);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -3219,7 +3344,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -3229,6 +3354,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, engineId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.setString(parameterIndex++, userId);
+				insertPs.setString(parameterIndex++, userType);
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -3343,7 +3471,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -3353,6 +3481,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.setString(parameterIndex++, userId);
+				insertPs.setString(parameterIndex++, userType);
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -3467,7 +3598,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -3477,6 +3608,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setString(parameterIndex++, insightId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				insertPs.setString(parameterIndex++, userId);
+				insertPs.setString(parameterIndex++, userType);
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();

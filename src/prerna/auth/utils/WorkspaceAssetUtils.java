@@ -96,7 +96,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		// Add the project to security db
 		if(!isAsset) {
 			SecurityProjectUtils.addProject(projectId, false, user);
-			SecurityProjectUtils.addProjectOwner(projectId, token.getId());
+			SecurityProjectUtils.addProjectOwner(user, projectId, token.getId());
 		}
 		
 		// Create the project
