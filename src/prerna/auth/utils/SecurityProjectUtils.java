@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import com.google.gson.Gson;
 
@@ -492,9 +493,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void addProjectOwner(String projectId, String userId) {
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY) VALUES (?,?,?,?)";
+	public static void addProjectOwner(User user, String projectId, String userId) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -503,6 +505,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 			ps.setString(parameterIndex++, projectId);
 			ps.setBoolean(parameterIndex++, true);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1280,6 +1285,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addProjectUser(User user, String newUserId, String projectId, String permission) throws IllegalAccessException {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1302,15 +1309,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
 			}
 		}
-
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, newUserId);
 			ps.setString(parameterIndex++, projectId);
 			ps.setBoolean(parameterIndex++, true);
-			ps.setInt(parameterIndex, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1333,6 +1342,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editProjectUserPermission(User user, String existingUserId, String projectId, String newPermission) throws IllegalAccessException {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1361,13 +1372,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
 			}
 		}
-
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET PERMISSION=? WHERE USERID=? AND PROJECTID=?");
+			ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE USERID=? AND PROJECTID=?");
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
@@ -1393,6 +1406,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editProjectUserPermissions(User user, String projectId, List<Map<String, String>> requests) throws IllegalAccessException {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1427,11 +1442,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ?");
+			ps = securityDb.getPreparedStatement("UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ?");
 			for(int i=0; i<requests.size(); i++) {
 				int parameterIndex = 1;
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
@@ -3085,7 +3103,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 */
 	public static void approveProjectUserAccessRequests(User user, String projectId, List<Map<String, String>> requests) throws IllegalAccessException {
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3129,7 +3148,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -3139,6 +3158,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -3246,7 +3268,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void addProjectUserPermissions(User user, String projectId, List<Map<String,String>> permission) throws IllegalAccessException {
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// make sure user can edit the project
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3273,13 +3296,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)");
 			for(int i=0; i<permission.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, permission.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
