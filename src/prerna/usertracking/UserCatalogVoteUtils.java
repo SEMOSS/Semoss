@@ -14,9 +14,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -30,7 +30,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
-
 
 public class UserCatalogVoteUtils extends UserTrackingUtils {
 
@@ -55,8 +54,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		OrQueryFilter of = new OrQueryFilter();
 		for (Pair<String, String> cred : creds) {
 			AndQueryFilter af = new AndQueryFilter();
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getLeft()));
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getRight()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getValue0()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getValue1()));
 			of.addFilter(af);
 		}
 		qs.addExplicitFilter(of);
@@ -72,7 +71,7 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				Object[] values = headerRow.getValues();
 				
 				if (values[0] != null && values[1] != null && values[2] != null) {
-					Pair<String, String> credential = Pair.of(values[0].toString(), values[1].toString());
+					Pair<String, String> credential = Pair.with(values[0].toString(), values[1].toString());
 					Integer vote = ((Number) values[2]).intValue();
 					votes.put(credential, vote);
 				}
@@ -108,8 +107,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		OrQueryFilter of = new OrQueryFilter();
 		for (Pair<String, String> cred : creds) {
 			AndQueryFilter af = new AndQueryFilter();
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getLeft()));
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getRight()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getValue0()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getValue1()));
 			of.addFilter(af);
 		}
 		qs.addExplicitFilter(of);
@@ -127,7 +126,7 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				
 				if (values[0] != null && values[1] != null && values[2] != null && values[3] != null) {
 					String engine = values[0].toString();
-					Pair<String, String> credential = Pair.of(values[1].toString(), values[2].toString());
+					Pair<String, String> credential = Pair.with(values[1].toString(), values[2].toString());
 					Integer vote = ((Number) values[3]).intValue();
 					
 					if (mappy.containsKey(engine)) {
@@ -323,8 +322,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				int index = 1;
 				ps.setInt(index, vote);
 				ps.setTimestamp(index, Timestamp.valueOf(LocalDateTime.now()), cal);
-				ps.setString(index++, cred.getLeft());
-				ps.setString(index++, cred.getRight());
+				ps.setString(index++, cred.getValue0());
+				ps.setString(index++, cred.getValue1());
 				ps.setString(index++, catalogId);
 				ps.addBatch();
 			}
@@ -362,8 +361,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 			ps = userTrackingDb.getPreparedStatement(query);
 			for (Pair<String, String> cred : creds) {
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, cred.getLeft());
-				ps.setString(parameterIndex++, cred.getRight());
+				ps.setString(parameterIndex++, cred.getValue0());
+				ps.setString(parameterIndex++, cred.getValue1());
 				ps.setString(parameterIndex++, catalogId);
 				ps.addBatch();
 			}
@@ -404,8 +403,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 			
 			for (Pair<String, String> cred : creds) {
 				int index = 1;
-				ps.setString(index++, cred.getLeft());
-				ps.setString(index++, cred.getRight());
+				ps.setString(index++, cred.getValue0());
+				ps.setString(index++, cred.getValue1());
 				ps.setString(index++, cid);
 				ps.setInt(index++, vote);
 				ps.setTimestamp(index++, Timestamp.valueOf(LocalDateTime.now()), cal);

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import com.google.gson.Gson;
 
@@ -398,8 +399,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
 			for(int i=0; i<requests.size(); i++) {
@@ -408,6 +411,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, engineId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -755,15 +761,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				throw new IllegalAccessException("Cannot give owner level access to this engine since you are not currently an owner.");
 			}
 		}
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, newUserId);
 			ps.setString(parameterIndex++, engineId);
 			ps.setBoolean(parameterIndex++, true);
-			ps.setInt(parameterIndex, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -808,9 +817,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("As a non-owner, you cannot add owner user access.");
 			}
 		}
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -820,6 +830,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, engineId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -872,12 +885,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET PERMISSION=? WHERE USERID=? AND ENGINEID=?");
+			ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE USERID=? AND ENGINEID=?");
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, engineId);
@@ -933,9 +950,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("As a non-owner, you cannot edit access of an owner.");
 			}
 		}
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -943,6 +961,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				//SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, engineId);
