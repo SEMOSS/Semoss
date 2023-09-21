@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.commons.lang3.tuple.Pair;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
@@ -56,72 +56,72 @@ public class ModelInferenceLogsOwlCreation {
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 		this.agentColumns = Arrays.asList(
-				Pair.of("AGENT_ID", "VARCHAR(50)"),
-				Pair.of("AGENT_NAME", "VARCHAR(255)"),
-				Pair.of("DESCRIPTION", "VARCHAR(255)"),
-				Pair.of("AGENT_TYPE", "VARCHAR(50)"),
-				Pair.of("AUTHOR", "VARCHAR(255)"),
-				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
+				Pair.with("AGENT_ID", "VARCHAR(50)"),
+				Pair.with("AGENT_NAME", "VARCHAR(255)"),
+				Pair.with("DESCRIPTION", "VARCHAR(255)"),
+				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+				Pair.with("AUTHOR", "VARCHAR(255)"),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
 			);
 		
 		this.roomColumns = Arrays.asList(
-				Pair.of("INSIGHT_ID", "VARCHAR(50)"),
-				Pair.of("ROOM_NAME", "VARCHAR(255)"),
-				Pair.of("ROOM_CONTEXT", "VARCHAR(255)"),
-				//Pair.of("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
-				Pair.of("USER_ID", "VARCHAR(255)"),
-				Pair.of("AGENT_TYPE", "VARCHAR(50)"),
-				Pair.of("IS_ACTIVE",BOOLEAN_DATATYPE_NAME),
-				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("PROJECT_ID", "VARCHAR(50)"),
-				Pair.of("PROJECT_NAME", "VARCHAR(255)"),
-				Pair.of("AGENT_ID", "VARCHAR(50)")
+				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+				Pair.with("ROOM_NAME", "VARCHAR(255)"),
+				Pair.with("ROOM_CONTEXT", "VARCHAR(255)"),
+				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
+				Pair.with("USER_ID", "VARCHAR(255)"),
+				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
+				Pair.with("IS_ACTIVE",BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PROJECT_ID", "VARCHAR(50)"),
+				Pair.with("PROJECT_NAME", "VARCHAR(255)"),
+				Pair.with("AGENT_ID", "VARCHAR(50)")
 			);
 		
 		this.messageColumns = Arrays.asList(
-				Pair.of("MESSAGE_ID", "VARCHAR(50)"),
-				Pair.of("MESSAGE_TYPE", "VARCHAR(50)"),
-				Pair.of("MESSAGE_DATA", CLOB_DATATYPE_NAME),
-				Pair.of("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
-				Pair.of("MESSAGE_METHOD", "VARCHAR(50)"),
-				Pair.of("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
-				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("AGENT_ID", "VARCHAR(50)"),
-				Pair.of("INSIGHT_ID", "VARCHAR(50)"),
-				Pair.of("SESSIONID", "VARCHAR(255)"),
-				Pair.of("USER_ID", "VARCHAR(255)")
+				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
+				Pair.with("MESSAGE_DATA", CLOB_DATATYPE_NAME),
+				Pair.with("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("MESSAGE_METHOD", "VARCHAR(50)"),
+				Pair.with("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("AGENT_ID", "VARCHAR(50)"),
+				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+				Pair.with("SESSIONID", "VARCHAR(255)"),
+				Pair.with("USER_ID", "VARCHAR(255)")
 			);
 		
 		this.feedbackColumns = Arrays.asList(
-				Pair.of("MESSAGE_ID", "VARCHAR(50)"),
-				Pair.of("MESSAGE_TYPE", "VARCHAR(50)"),
-				Pair.of("FEEDBACK_TEXT", "VARCHAR(MAX)"),
-				Pair.of("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("RATING", BOOLEAN_DATATYPE_NAME)
+				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
+				Pair.with("FEEDBACK_TEXT", "VARCHAR(MAX)"),
+				Pair.with("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);
 		
 		this.allSchemas = Arrays.asList(
-				Pair.of("AGENT", agentColumns),
-				Pair.of("ROOM", roomColumns),
-				Pair.of("MESSAGE", messageColumns),
-				Pair.of("FEEDBACK", feedbackColumns)
+				Pair.with("AGENT", agentColumns),
+				Pair.with("ROOM", roomColumns),
+				Pair.with("MESSAGE", messageColumns),
+				Pair.with("FEEDBACK", feedbackColumns)
 			);
 	}
 	
 	public void definePrimaryKeys() {
 		// returns ArrayList so its ordered
 		this.primaryKeys = Arrays.asList(
-				Pair.of("AGENT", Pair.of(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.of("ROOM", Pair.of(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.of("MESSAGE", Pair.of(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)")))
+				Pair.with("AGENT", Pair.with(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
+				Pair.with("ROOM", Pair.with(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
+				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)")))
 			);
 	}
 	
 	public void defineForeignKeys() {
 		this.foreignKeys = Arrays.asList(
-				Pair.of("ROOM", Pair.of(Arrays.asList("AGENT_ID"), Pair.of(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
-				Pair.of("MESSAGE", Pair.of(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.of(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
-				Pair.of("FEEDBACK", Pair.of(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.of(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"))))
+				Pair.with("ROOM", Pair.with(Arrays.asList("AGENT_ID"), Pair.with(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
+				Pair.with("MESSAGE", Pair.with(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.with(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
+				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"))))
 			);
 	}
 	
@@ -154,9 +154,9 @@ public class ModelInferenceLogsOwlCreation {
 		
 		// check all columns
 		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
-			String tableName = tableWithColumns.getLeft();
-			String[] columnNames = tableWithColumns.getRight().stream()
-					.map(Pair::getLeft).toArray(String[]::new);
+			String tableName = tableWithColumns.getValue0();
+			String[] columnNames = tableWithColumns.getValue1().stream()
+					.map(Pair::getValue0).toArray(String[]::new);
 
 			for (String columnName : columnNames) {
 				if (columnChecks(tableName, columnName)) {
@@ -221,10 +221,10 @@ public class ModelInferenceLogsOwlCreation {
 
 		// ENGINE	
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
-			String tableName = columns.getLeft();
+			String tableName = columns.getValue0();
 			owler.addConcept(tableName, null, null);
-			for (Pair<String, String> x : columns.getRight()) {	
-				owler.addProp(tableName, x.getLeft(), x.getRight());
+			for (Pair<String, String> x : columns.getValue1()) {	
+				owler.addProp(tableName, x.getValue0(), x.getValue1());
 			}
 		}
 		

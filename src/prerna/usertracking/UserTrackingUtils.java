@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.parquet.Strings;
+import org.javatuples.Pair;
 
 import com.google.gson.Gson;
 
@@ -389,9 +389,9 @@ public class UserTrackingUtils {
 		String userType = null;
 		String id = UUID.randomUUID().toString();
 		if (user != null) {
-			List<Pair<String, String>> userIdType = User.getPrimaryUserIdAndType(user);
-			userId = userIdType.get(0).getKey();
-			userType = userIdType.get(0).getValue();
+			Pair<String, String> userIdType = User.getPrimaryUserIdAndTypePair(user);
+			userId = userIdType.getValue0();
+			userType = userIdType.getValue1();
 		}
  		try {
 			ps = userTrackingDb.getPreparedStatement(insertQuery);
@@ -511,9 +511,9 @@ public class UserTrackingUtils {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getLeft();
-			String[] colNames = tableSchema.getRight().stream().map(Pair::getLeft).toArray(String[]::new);
-			String[] types = tableSchema.getRight().stream().map(Pair::getRight).toArray(String[]::new);
+			String tableName = tableSchema.getValue0();
+			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				executeSql(conn, sql);
