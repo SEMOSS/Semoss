@@ -177,7 +177,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public Map<String, String> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		//Map<String, String> output = new HashMap<String, String>();
 		//TODO turn into threads
-		if(!this.socketClient.isConnected()) {
+		if(this.socketClient == null || !this.socketClient.isConnected()) {
 			this.startServer();
 		}
 		
