@@ -19,6 +19,12 @@ public class NewDirReactor extends AbstractReactor {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	/*
+	 * TODO:
+	 * DONT BELIEVE THIS WORKS WITH CLOUD ? 
+	 * 
+	 * 
+	 */
 
 	public NewDirReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey() };
@@ -67,7 +73,7 @@ public class NewDirReactor extends AbstractReactor {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				ClusterUtil.pushDatabase(assetProjectId);
+				ClusterUtil.pushEngine(assetProjectId);
 			}
 		}
 
