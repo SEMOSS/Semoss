@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.AbstractCloudClient;
+import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.PixelDataType;
@@ -120,7 +120,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						
 						// Delete from cluster
 						try {
-							ClusterUtil.deleteDatabase(databaseId);
+							ClusterUtil.deleteEngine(databaseId);
 							
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
@@ -146,7 +146,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			Map<String, Object> removedContainersMap = new HashMap<>();
 			if (cleanUpCloudStorage) {
 				try {
-					List<String> allContainers = AbstractCloudClient.getClient().listAllBlobContainers();
+					List<String> allContainers = CentralCloudStorage.getInstance().listAllBlobContainers();
 					for (String container : allContainers) {
 						String cleanedContainerName = container.replaceAll("-smss", "").replaceAll("/", "");
 						//we now have configuration blobs like the image blob we dont want to delete
@@ -158,7 +158,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 							if (!dryRun) {
 								// Actually remove
 								try {
-									AbstractCloudClient.getClient().deleteContainer(container);
+									CentralCloudStorage.getInstance().deleteContainer(container);
 
 									// Successful cleanup
 									removedContainersMap.put(container, "removed");
@@ -176,7 +176,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 							removedContainersMap.put(container, "preserved");
 						}
 					}
-				} catch (IOException | InterruptedException e) {
+				} catch (Exception e) {
 					logger.error(STACKTRACE, e);
 					// Error reading the cloud storage account
 					removedContainersMap.put("error", "failed to list containers in cloud storage account");

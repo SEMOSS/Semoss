@@ -144,7 +144,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 		// no errors
 		// we can do normal clean up of files
 		// TODO:
-		ClusterUtil.pushDatabase(databaseId);
+		ClusterUtil.pushEngine(databaseId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

@@ -3,23 +3,113 @@ package prerna.cluster.util.clients;
 import java.io.IOException;
 import java.util.List;
 
+import prerna.engine.api.IEngine;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public interface ICloudClient {
 
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
-	 * Database
+	 * Moving away from specific types and going to engine interface
+	 * 
 	 */
 	
 	/**
 	 * 
-	 * @param databaseId
+	 * @param engineId
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushDatabase(String databaseId) throws IOException, InterruptedException;
+	void pushEngine(String engineId) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngine(String engineId) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @param engineAlreadyLoaded
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineAlreadyLoaded) throws IOException, InterruptedException;
+	
+	/**
+	 * Push only the smss file for a engine
+	 * 
+	 * @param engineId
+	 * @throws Exception 
+	 */
+	void pushEngineSmss(String engineId) throws IOException, InterruptedException; 
+	
+	/**
+	 * Push only the smss file for a engine
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException; 
+	
+	/**
+	 * Pull only the smss file for a engine
+	 * 
+	 * @param engineId
+	 * @throws Exception
+	 */
+	void pullEngineSmss(String engineId) throws IOException, InterruptedException;
+	
+	/**
+	 * Pull only the smss file for a engine
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException; 
+	
+	/**
+	 * Delete the engine from cloud storage
+	 * 
+	 * @param engineId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void deleteEngine(String engineId) throws IOException, InterruptedException;
+
+	/**
+	 * Delete the engine from cloud storage
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void deleteEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Database
+	 */
 	
 	/**
 	 * 
@@ -33,45 +123,12 @@ public interface ICloudClient {
 	/**
 	 * 
 	 * @param databaseId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullDatabase(String databaseId) throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param databaseId
-	 * @param databaseAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws IOException, InterruptedException; 
-	
-	/**
-	 * 
-	 * @param databaseId
 	 * @param rdbmsType
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
 	void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException;
 
-	/**
-	 * Push only the SMSS file for a database
-	 * 
-	 * @param databaseId
-	 * @throws Exception 
-	 */
-	void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException;
-	
-	/**
-	 * Pull only the SMSS file for a database
-	 * 
-	 * @param databaseId
-	 * @throws Exception 
-	 */
-	void pullDatabaseSmss(String databaseId) throws IOException, InterruptedException;
-	
 	/**
 	 * 
 	 * @param databaseId
@@ -101,14 +158,6 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pushDatabaseImageFolder() throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param databaseId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void deleteDatabase(String databaseId) throws IOException, InterruptedException; 
 	
 	/**
 	 * 
@@ -303,54 +352,6 @@ public interface ICloudClient {
 	
 	/**
 	 * 
-	 * @param storageId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushStorage(String storageId) throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param storageId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullStorage(String storageId) throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param storageId
-	 * @param storageAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullStorage(String storageId, boolean storageAlreadyLoaded) throws IOException, InterruptedException; 
-	
-	/**
-	 * Push only the smss file for a storage
-	 * 
-	 * @param storageId
-	 * @throws Exception 
-	 */
-	void pushStorageSmss(String storageId) throws IOException, InterruptedException; 
-	
-	/**
-	 * Pull only the smss file for a storage
-	 * 
-	 * @param storageId
-	 * @throws Exception
-	 */
-	void pullStorageSmss(String storageId) throws IOException, InterruptedException; 
-
-	/**
-	 * 
-	 * @param storageId
-	 * @throws Exception
-	 */
-	void deleteStorage(String storageId) throws IOException, InterruptedException; 
-
-	/**
-	 * 
 	 */
 	void pullStorageImageFolder() throws IOException, InterruptedException; 
 	
@@ -369,54 +370,6 @@ public interface ICloudClient {
 	
 	/**
 	 * 
-	 * @param modelId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushModel(String modelId) throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param modelId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullModel(String modelId) throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param modelId
-	 * @param modelAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullModel(String modelId, boolean modelAlreadyLoaded) throws IOException, InterruptedException; 
-	
-	/**
-	 * Push only the smss file for a model
-	 * 
-	 * @param modelId
-	 * @throws Exception 
-	 */
-	void pushModelSmss(String modelId) throws IOException, InterruptedException; 
-	
-	/**
-	 * Pull only the smss file for a model
-	 * 
-	 * @param modelId
-	 * @throws Exception
-	 */
-	void pullModelSmss(String modelId) throws IOException, InterruptedException; 
-	
-	/**
-	 * 
-	 * @param modelId
-	 * @throws Exception
-	 */
-	void deleteModel(String modelId) throws IOException, InterruptedException; 
-	
-	/**
-	 * 
 	 */
 	void pullModelImageFolder() throws IOException, InterruptedException; 
 	
@@ -431,35 +384,6 @@ public interface ICloudClient {
 	/*
 	 * Legacy
 	 */
-	
-	
-	/**
-	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
-	 * @param appId
-	 * @throws IOException 
-	 * @throws InterruptedException 
-	 */
-	@Deprecated
-	void fixLegacyDbStructure(String appId) throws IOException, InterruptedException;
-	
-	/**
-	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
-	 * @throws IOException 
-	 * @throws InterruptedException 
-	 */
-	@Deprecated
-	void fixLegacyImageStructure() throws IOException, InterruptedException;
-	
-	/**
-	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
-	 * @param appId
-	 * @param isAsset
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	@Deprecated
-	void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException;
-
 	
 	@Deprecated
 	// TODO: need to make sep for db and project

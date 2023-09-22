@@ -3005,6 +3005,16 @@ public class Utility {
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		return getEngine(engineId, type, pullIfNeeded);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IEngine getEngine(String engineId, IEngine.CATALOG_TYPE type, boolean pullIfNeeded) {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			return getDatabase(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
@@ -3100,7 +3110,7 @@ public class Utility {
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullDatabase(databaseId);
+						ClusterUtil.pullEngine(databaseId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file
@@ -3249,7 +3259,7 @@ public class Utility {
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullStorage(storageId);
+						ClusterUtil.pullEngine(storageId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file
@@ -3398,7 +3408,7 @@ public class Utility {
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullModel(modelId);
+						ClusterUtil.pullEngine(modelId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file

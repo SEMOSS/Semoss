@@ -108,7 +108,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 				}
 			}
 			
-			ClusterUtil.pushModel(modelId);
+			ClusterUtil.pushEngine(modelId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(model, modelId, tempSmss, smssFile);
