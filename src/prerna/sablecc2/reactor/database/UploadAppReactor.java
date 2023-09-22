@@ -227,7 +227,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			}
 		}
 
-		ClusterUtil.pushDatabase(appId);
+		ClusterUtil.pushEngine(appId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), appId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);	

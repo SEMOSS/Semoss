@@ -28,7 +28,7 @@ public class PushDatabaseToCloudReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Database does not exist or user is not an owner to force pushing to cloud storage");
 		}
 		
-		ClusterUtil.pushDatabase(databaseId);
+		ClusterUtil.pushEngine(databaseId);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
