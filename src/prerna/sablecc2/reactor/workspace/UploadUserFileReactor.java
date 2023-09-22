@@ -23,6 +23,13 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	/*
+	 * TODO:
+	 * DONT BELIEVE THIS WORKS WITH CLOUD ? 
+	 * 
+	 * 
+	 */
+	
 	public UploadUserFileReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.RELATIVE_PATH.getKey()};
 	}
@@ -88,7 +95,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		try {
 			FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + relativeFilePath + DIR_SEPARATOR + uploadedFile.getName()));
-			ClusterUtil.pushDatabase(assetProjectId);
+			ClusterUtil.pushEngine(assetProjectId);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Unable to copy file");

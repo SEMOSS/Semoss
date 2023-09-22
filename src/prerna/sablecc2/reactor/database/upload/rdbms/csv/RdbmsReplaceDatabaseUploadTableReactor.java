@@ -120,7 +120,7 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReac
 		// no errors
 		// we can do normal clean up of files
 		// TODO:
-		ClusterUtil.pushDatabase(this.databaseId);
+		ClusterUtil.pushEngine(this.databaseId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
