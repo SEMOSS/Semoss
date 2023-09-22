@@ -21,19 +21,7 @@ public class DeleteEngineRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			if(IEngine.CATALOG_TYPE.DATABASE == ENGINE_TYPE) {
-				ClusterUtil.deleteDatabase(ENGINE_ID);
-			} else if(IEngine.CATALOG_TYPE.STORAGE == ENGINE_TYPE) {
-				ClusterUtil.deleteStorage(ENGINE_ID);
-			} else if(IEngine.CATALOG_TYPE.MODEL == ENGINE_TYPE) {
-				ClusterUtil.deleteModel(ENGINE_ID);
-			} else {
-				classLogger.warn("Unknown engine type '"+ENGINE_TYPE+"' with no method to delete from cloud");
-				classLogger.warn("Unknown engine type '"+ENGINE_TYPE+"' with no method to delete from cloud");
-				classLogger.warn("Unknown engine type '"+ENGINE_TYPE+"' with no method to delete from cloud");
-				classLogger.warn("Unknown engine type '"+ENGINE_TYPE+"' with no method to delete from cloud");
-				classLogger.warn("Unknown engine type '"+ENGINE_TYPE+"' with no method to delete from cloud");
-			}
+			ClusterUtil.deleteEngine(ENGINE_ID, ENGINE_TYPE);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}		

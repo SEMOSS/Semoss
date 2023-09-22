@@ -108,7 +108,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 				}
 			}
 			
-			ClusterUtil.pushStorage(storageId);
+			ClusterUtil.pushEngine(storageId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
