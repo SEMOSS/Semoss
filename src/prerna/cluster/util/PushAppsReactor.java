@@ -7,7 +7,8 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.cluster.util.clients.AbstractCloudClient;
+import prerna.cluster.util.clients.CentralCloudStorage;
+import prerna.cluster.util.clients.ICloudClient;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -44,7 +45,7 @@ public class PushAppsReactor extends AbstractReactor{
 		List<String> appIds = SecurityEngineUtils.getAllEngineIds();
 
 		try {
-			AbstractCloudClient cc = AbstractCloudClient.getClient();
+			ICloudClient cc = CentralCloudStorage.getInstance();
 			List<String> allContainers = cc.listAllBlobContainers();
 			List<String> cleanedNames = new ArrayList<String>();
 			for (String container : allContainers) {
@@ -59,7 +60,7 @@ public class PushAppsReactor extends AbstractReactor{
 				if(!cleanedNames.contains(appId)){
 					pushedApps.put(appId, "pushed");
 					if(!dryRun){
-						cc.pushDatabase(appId);
+						cc.pushEngine(appId);
 					}
 				} else{
 					pushedApps.put(appId, "Already exists");

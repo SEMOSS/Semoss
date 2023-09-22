@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.cluster.util.clients.ICloudClient;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,7 +32,7 @@ public class ClusterUtil {
 	// TODO >>>timb: make sure that everything cluster related starts with this,
 	// also introduces tracibility
 	
-	private static final Logger logger = LogManager.getLogger(ClusterUtil.class);
+	private static final Logger classLogger = LogManager.getLogger(ClusterUtil.class);
 
 	@Deprecated
 	public static final String DB_BLOB = "semoss-db";
@@ -78,7 +79,6 @@ public class ClusterUtil {
 			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTERED_SCHEDULER_KEY)) : (
 					(System.getenv().containsKey(IS_CLUSTERED_SCHEDULER_KEY)) 
 					? Boolean.parseBoolean(System.getenv(IS_CLUSTERED_SCHEDULER_KEY)) : IS_CLUSTER);
-			
 
 	/*
 	 * private static final String MULTIPLE_STORAGE_ACCOUNTS_KEY =
@@ -98,7 +98,7 @@ public class ClusterUtil {
 
 	public static boolean isSchedulerExecutor() {
 		if (ClusterUtil.IS_CLUSTER) {
-			logger.info("Checking if pod is leader");
+			classLogger.info("Checking if pod is leader");
 			//check rdf
 			if(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY) != null && !(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY).isEmpty())) {
 				return Boolean.parseBoolean(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY));
@@ -153,13 +153,30 @@ public class ClusterUtil {
 	 * 
 	 * @param databaseId
 	 */
-	public static void pullDatabase(String databaseId) {
+	public static void pullEngine(String engineId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullDatabase(databaseId);
+				getCentralStorageClient().pullEngine(engineId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull database '"+databaseId+"' from cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull engine '"+engineId+"' from cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 */
+	public static void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pullEngine(engineId, engineType);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull engine '"+engineId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -168,16 +185,16 @@ public class ClusterUtil {
 
 	/**
 	 * 
-	 * @param databaseId
-	 * @param databaseAlreadyLoaded
+	 * @param engineId
+	 * @param engineAlreadyLoaded
 	 */
-	public static void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) {
+	public static void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineAlreadyLoaded) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullDatabase(databaseId, databaseAlreadyLoaded);
+				getCentralStorageClient().pullEngine(engineId, engineType, engineAlreadyLoaded);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull database '"+databaseId+"' from cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull engine '"+engineId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -186,15 +203,15 @@ public class ClusterUtil {
 
 	/**
 	 * 
-	 * @param databaseId
+	 * @param engineId
 	 */
-	public static void pushDatabase(String databaseId) {
+	public static void pushEngine(String engineId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pushDatabase(databaseId);
+				getCentralStorageClient().pushEngine(engineId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push database '"+databaseId+"' to cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push engine '"+engineId+"' to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -203,15 +220,15 @@ public class ClusterUtil {
 	
 	/**
 	 * 
-	 * @param databaseId
+	 * @param engineId
 	 */
-	public static void pushDatabaseSmss(String databaseId) {
+	public static void pushEngineSmss(String engineId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pushDatabaseSmss(databaseId);
+				getCentralStorageClient().pushEngineSmss(engineId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push database '"+databaseId+"'smss to cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push engine '"+engineId+"'smss to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -220,15 +237,15 @@ public class ClusterUtil {
 	
 	/**
 	 * 
-	 * @param databaseId
+	 * @param engineId
 	 */
-	public static void deleteDatabase(String databaseId) {
+	public static void pushEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().deleteDatabase(databaseId);
+				getCentralStorageClient().pushEngineSmss(engineId, engineType);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to delete database '"+databaseId+"' from cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push engine '"+engineId+"'smss to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -237,15 +254,15 @@ public class ClusterUtil {
 	
 	/**
 	 * 
-	 * @param storageId
+	 * @param engineId
 	 */
-	public static void pullStorage(String storageId) {
+	public static void deleteEngine(String engineId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullStorage(storageId);
+				getCentralStorageClient().deleteEngine(engineId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull storage '"+storageId+"' from cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to delete engine '"+engineId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -254,159 +271,22 @@ public class ClusterUtil {
 	
 	/**
 	 * 
-	 * @param storageId
-	 * @param storageAlreadyLoaded
+	 * @param engineId
+	 * @param engineType
 	 */
-	public static void pullStorage(String storageId, boolean storageAlreadyLoaded) {
+	public static void deleteEngine(String engineId, IEngine.CATALOG_TYPE engineType) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullStorage(storageId, storageAlreadyLoaded);
+				getCentralStorageClient().deleteEngine(engineId, engineType);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull storage '"+storageId+"' from cloud storage");
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to delete engine '"+engineId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 	
-	/**
-	 * 
-	 * @param storageId
-	 */
-	public static void pushStorage(String storageId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushStorage(storageId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push storage '"+storageId+"' from cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param databaseId
-	 */
-	public static void pushStorageSmss(String storageId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushStorageSmss(storageId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push storage '"+storageId+"'smss to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param storageId
-	 */
-	public static void deleteStorage(String storageId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().deleteStorage(storageId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull storage '"+storageId+"' from cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param modelId
-	 */
-	public static void pullModel(String modelId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pullModel(modelId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull model '"+modelId+"' from cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param modelId
-	 * @param modelAlreadyLoaded
-	 */
-	public static void pullModel(String modelId, boolean modelAlreadyLoaded) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pullModel(modelId, modelAlreadyLoaded);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull model '"+modelId+"' from cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param modelId
-	 */
-	public static void pushModel(String modelId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushModel(modelId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push model '"+modelId+"' from cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param databaseId
-	 */
-	public static void pushModelSmss(String modelId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushModelSmss(modelId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push model '"+modelId+"'smss to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param modelId
-	 */
-	public static void deleteModel(String modelId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().deleteModel(modelId);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to delete model '"+modelId+"' from cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-
 	/**
 	 * 
 	 * @param projectId
@@ -416,7 +296,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullProject(projectId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -434,7 +314,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullProject(projectId, projectAlreadyLoaded);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -451,7 +331,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().deleteProject(projectId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to delete project '"+projectId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -468,7 +348,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullInsightsDB(projectId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' insight database from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -486,7 +366,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushInsightDB(projectId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push project '"+projectId+"' insight database to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -504,7 +384,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullOwl(databaseId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull owl for database '"+databaseId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -522,7 +402,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushOwl(databaseId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push owl for database '"+databaseId+"' to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -592,7 +472,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullDatabaseFolder(databaseId, absolutePath, remoteRelativePath);
 			}  catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull database '"+databaseId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -609,7 +489,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushProject(projectId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push project '"+projectId+"' to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -628,7 +508,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushProjectSmss(projectId);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push project '"+projectId+"' smss to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -740,7 +620,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
 			}  catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -775,7 +655,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullInsight(projectId, rdbmsId);
 			}  catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' insight '"+rdbmsId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -793,7 +673,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushUserAssetOrWorkspace(projectId, isAsset);
 			}  catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -811,7 +691,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
 			}  catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -829,7 +709,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullUserAssetOrWorkspace(projectId, isAsset, alreadyLoaded);
 			}  catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -845,7 +725,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushDatabaseImageFolder();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push database image folder to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -861,7 +741,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullDatabaseImageFolder();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull database image folder to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -877,7 +757,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushProjectImageFolder();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push project image folder to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -893,7 +773,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullProjectImageFolder();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull project image folder to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -906,7 +786,7 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushInsightImage(projectId, insightId, oldImageName, imageFileName);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push insight image to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -974,7 +854,7 @@ public class ClusterUtil {
 				}
 
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to fetch database image");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1043,7 +923,7 @@ public class ClusterUtil {
 				}
 
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to fetch storage image");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1112,7 +992,7 @@ public class ClusterUtil {
 				}
 
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to fetch model image");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1184,7 +1064,7 @@ public class ClusterUtil {
 				}
 
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to fetch project image");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1240,7 +1120,7 @@ public class ClusterUtil {
 		try {
 			hiddenFile.createNewFile();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

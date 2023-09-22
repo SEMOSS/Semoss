@@ -29,7 +29,7 @@ public class PullDatabaseFromCloudReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Database does not exist or user is not an owner to force pulling from cloud storage");
 		}
 		
-		ClusterUtil.pullDatabase(databaseId, Utility.isEngineLoaded(databaseId));
+		ClusterUtil.pullEngine(databaseId, null, Utility.isEngineLoaded(databaseId));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
