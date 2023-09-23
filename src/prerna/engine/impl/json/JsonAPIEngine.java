@@ -100,7 +100,7 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 							owlFileName = FilenameUtils.getName(owlFile);
 						}
 						
-						owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
+						owlFile = generateOwlFromFlatFile(this.engineId, dataFile, owlFile, owlFileName);
 					} else {
 						owlFile = null;
 					}
