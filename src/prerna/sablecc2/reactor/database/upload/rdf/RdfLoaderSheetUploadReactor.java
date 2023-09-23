@@ -91,7 +91,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
 		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
-		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getDatabaseType());
+		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), this.database.getDatabaseType());
 		owler.addCustomBaseURI(baseUri);
 		importFile(this.database, owler, filePath, baseUri);
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owler);
