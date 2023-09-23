@@ -31,10 +31,11 @@ public class BaseDatabaseCreator {
 	private final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
 	
 	//open without connection
-	public BaseDatabaseCreator(String owlFile) throws Exception {
+	public BaseDatabaseCreator(String engineId, String owlFile) throws Exception {
 		baseEng = new RDFFileSesameEngine();
 		baseEng.open(new Properties());
 		baseEng.setFileName(owlFile);
+		baseEng.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
 	}
 
 	//open with connection

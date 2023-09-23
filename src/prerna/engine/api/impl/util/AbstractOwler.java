@@ -60,11 +60,11 @@ public abstract class AbstractOwler {
 	 * @param type					The type of the engine the OWL file is being created for
 	 * @throws Exception 
 	 */
-	public AbstractOwler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
+	public AbstractOwler(String engineId, String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
 		this.owlPath = owlPath;
 		this.type = type;
 
-		engine = new BaseDatabaseCreator(owlPath);
+		engine = new BaseDatabaseCreator(engineId, owlPath);
 		String baseSubject = SEMOSS_URI_PREFIX + DEFAULT_NODE_CLASS ;
 		String baseRelation = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
 
