@@ -136,7 +136,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		this.helper.parse(filePath);
 		logger.info("Done loading excel file");
 
-		Owler owler = new Owler(owlFile.getAbsolutePath(), DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), DATABASE_TYPE.RDBMS);
 		// here is where we actually insert the data
 		processExcelSheets(this.database, owler, this.helper, dataTypesMap, 
 				additionalDataTypeMap, newHeaders, 

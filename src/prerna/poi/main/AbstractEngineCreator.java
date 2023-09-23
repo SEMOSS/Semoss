@@ -55,33 +55,33 @@ public class AbstractEngineCreator {
 		}
 	}
 	
-	protected void openRdfEngineWithoutConnection(String appName, String appID) throws Exception {
-		createNewRdfEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
+	protected void openRdfEngineWithoutConnection(String engineName, String engineId) throws Exception {
+		createNewRdfEngine(engineName, engineId);
+		openOWLWithOutConnection(engineId, owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) throws Exception {
-		createNewRDBMSEngine(appName, engineID);
-		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, this.customBaseURI);
+	protected void openRdbmsEngineWithoutConnection(String engineName, String engineId) throws Exception {
+		createNewRDBMSEngine(engineName, engineId);
+		openOWLWithOutConnection(engineId, owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
-	protected void openTinkerEngineWithoutConnection(String appName, String appID) throws Exception {
-		createNewTinkerEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
+	protected void openTinkerEngineWithoutConnection(String engineName, String engineId) throws Exception {
+		createNewTinkerEngine(engineName, engineId);
+		openOWLWithOutConnection(engineId, owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	protected void openREngineWithoutConnection(String appName, String appID) throws Exception {
-		createNewREngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
+	protected void openREngineWithoutConnection(String engineName, String engineId) throws Exception {
+		createNewREngine(engineName, engineId);
+		openOWLWithOutConnection(engineId, owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	private void createNewRDBMSEngine(String appName, String appID) throws Exception {
+	private void createNewRDBMSEngine(String engineName, String engineId) throws Exception {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineId(appID);
-		engine.setEngineName(appName);
+		engine.setEngineId(engineId);
+		engine.setEngineName(engineName);
 		Properties prop = new Properties();
 //		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(appName, appID)));
+//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(engineName, engineId)));
 		// open db will fill in the parameterization for us!
 		if(this.queryUtil == null || this.queryUtil.getConnectionUrl() == null || this.queryUtil.getConnectionUrl().isEmpty()) {
 			prop.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL2());
@@ -95,16 +95,16 @@ public class AbstractEngineCreator {
 			prop.put(Constants.DRIVER, queryUtil.getDriver());
 			prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 		}
-		prop.put(Constants.ENGINE, appID);
-		prop.put(Constants.ENGINE_ALIAS, appName);
+		prop.put(Constants.ENGINE, engineId);
+		prop.put(Constants.ENGINE_ALIAS, engineName);
 		prop.put("TEMP", "TRUE");
 		engine.open(prop);
 	}
 
-	private void createNewRdfEngine(String appName, String appID) throws Exception {
+	private void createNewRdfEngine(String engineName, String engineId) throws Exception {
 		engine = new BigDataEngine();
-		engine.setEngineId(appID);
-		engine.setEngineName(appName);
+		engine.setEngineId(engineId);
+		engine.setEngineName(engineName);
 		engine.open(smssPropFile);
 		
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
@@ -118,45 +118,45 @@ public class AbstractEngineCreator {
 		
 	}
 	
-	private void createNewTinkerEngine(String appName, String appID) throws Exception {
+	private void createNewTinkerEngine(String engineName, String engineId) throws Exception {
 		engine = new TinkerEngine();
-		engine.setEngineId(appID);
-		engine.setEngineName(appName);
+		engine.setEngineId(engineId);
+		engine.setEngineName(engineName);
 		engine.open(smssPropFile);
 		
 	}
 	
-	private void createNewREngine(String appName, String appID) throws Exception {
+	private void createNewREngine(String engineName, String engineId) throws Exception {
 		engine = new RNativeEngine();
-		engine.setEngineName(appName);
-		engine.setEngineId(appID);
+		engine.setEngineName(engineName);
+		engine.setEngineId(engineId);
 		engine.open(smssPropFile);
 	}
 	
 	//added for connect to external RDBMS workflow
-	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) throws Exception {
-		connectToExternalRDBMSEngine(schema,appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, this.customBaseURI);
+	protected void generateEngineFromRDBMSConnection(String schema, String engineName, String engineId) throws Exception {
+		connectToExternalRDBMSEngine(schema,engineName, engineId);
+		openOWLWithOutConnection(engineId, owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 //	//added for connect to external Impala workflow
-//	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) throws Exception {
-//		connectToExternalImpalaEngine(schema,dbName, appID);
+//	protected void generateEngineFromImpalaConnection(String schema, String dbName, String engineId) throws Exception {
+//		connectToExternalImpalaEngine(schema,dbName, engineId);
 //		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.IMPALA, this.customBaseURI);
 //	}
 	
 	//added for connect to external RDBMS workflow
-	private void connectToExternalRDBMSEngine(String schema, String appName, String appID) throws Exception {
+	private void connectToExternalRDBMSEngine(String schema, String engineName, String engineId) throws Exception {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineId(appID);
-		engine.setEngineName(appName);
+		engine.setEngineId(engineId);
+		engine.setEngineName(engineName);
 		Properties prop = new Properties();
 //		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(engineName, engineId)));
 		// grab from the query util 
 		prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
-		prop.put(Constants.ENGINE, appID);
-		prop.put(Constants.ENGINE_ALIAS, appName);
+		prop.put(Constants.ENGINE, engineId);
+		prop.put(Constants.ENGINE_ALIAS, engineName);
 		prop.put(Constants.USERNAME, queryUtil.getUsername());
 		prop.put(Constants.PASSWORD, queryUtil.getPassword());
 		prop.put(Constants.DRIVER, queryUtil.getDriver());
@@ -171,17 +171,17 @@ public class AbstractEngineCreator {
 	}
 
 //	//added for connect to external Impala workflow
-//	private void connectToExternalImpalaEngine(String schema, String appName, String appID) throws Exception {
+//	private void connectToExternalImpalaEngine(String schema, String engineName, String engineId) throws Exception {
 //		engine = new ImpalaEngine();
-//		engine.setEngineId(appID);
-//		engine.setEngineName(appName);
+//		engine.setengineId(engineId);
+//		engine.setEngineName(engineName);
 //		Properties prop = new Properties();
 ////		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-////		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+////		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(engineName, engineId)));
 //		// grab from the query util directly
 //		prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
-//		prop.put(Constants.ENGINE, appID);
-//		prop.put(Constants.ENGINE_ALIAS, appName);
+//		prop.put(Constants.ENGINE, engineId);
+//		prop.put(Constants.ENGINE_ALIAS, engineName);
 //		prop.put(Constants.USERNAME, queryUtil.getUsername());
 //		prop.put(Constants.PASSWORD, queryUtil.getPassword());
 //		prop.put(Constants.DRIVER,queryUtil.getDriver());
@@ -237,8 +237,8 @@ public class AbstractEngineCreator {
 	 * 
 	 * @throws EngineException
 	 */
-	protected void openOWLWithOutConnection(String owlFile, IDatabaseEngine.DATABASE_TYPE dbType, String customBaseURI) throws Exception {
-		owler = new Owler(owlFile, dbType);
+	protected void openOWLWithOutConnection(String engineId, String owlFile, IDatabaseEngine.DATABASE_TYPE dbType, String customBaseURI) throws Exception {
+		owler = new Owler(engineId, owlFile, dbType);
 		owler.addCustomBaseURI(customBaseURI);
 	}
 

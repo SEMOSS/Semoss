@@ -11,6 +11,7 @@ import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -217,7 +218,7 @@ public class ModelInferenceLogsOwlCreation {
 	 * @throws Exception 
 	 */
 	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(Constants.MODEL_INFERENCE_LOGS_DB, owlLocation, DATABASE_TYPE.RDBMS);
 
 		// ENGINE	
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {

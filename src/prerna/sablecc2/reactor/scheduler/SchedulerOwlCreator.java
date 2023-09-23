@@ -109,6 +109,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SchedulerOwlCreator {
@@ -222,7 +223,7 @@ public class SchedulerOwlCreator {
 	 * @throws Exception 
 	 */
 	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(Constants.SCHEDULER_DB, owlLocation, DATABASE_TYPE.RDBMS);
 
 		// QRTZ_CALENDARS
 		owler.addConcept(QRTZ_CALENDARS, null, null);

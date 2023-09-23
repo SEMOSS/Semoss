@@ -28,7 +28,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class UserTrackingUtils {
 
-	private static Logger logger = LogManager.getLogger(UserTrackingUtils.class);
+	private static Logger classLogger = LogManager.getLogger(UserTrackingUtils.class);
 
 	static IRDBMSEngine userTrackingDb;
 	
@@ -152,7 +152,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}		
@@ -262,7 +262,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}		
@@ -301,7 +301,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -325,7 +325,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -351,7 +351,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -418,7 +418,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -437,17 +437,17 @@ public class UserTrackingUtils {
 			IUserTracking ut = UserTrackingFactory.getUserTrackingConnector();
 
 			if (ut == null) {
-				logger.error("Could not find user tracker. User Session/IP Data will not be saved.");
+				classLogger.error("Could not find user tracker. User Session/IP Data will not be saved.");
 			} else {
 				try {
 					ut.registerLogin(sessionId, ip, user, ap);
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
-			logger.info("User Tracking took: {} ms", (end - start));
+			classLogger.info("User Tracking took: {} ms", (end - start));
 		}
 	}
 
@@ -543,7 +543,7 @@ public class UserTrackingUtils {
 	 */
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
-			logger.info("Running sql " + sql);
+			classLogger.info("Running sql " + sql);
 			stmt.execute(sql);
 		}
 	}
