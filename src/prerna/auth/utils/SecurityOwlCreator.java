@@ -159,7 +159,7 @@ public class SecurityOwlCreator {
 	 * @throws Exception 
 	 */
 	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(Constants.SECURITY_DB, owlLocation, DATABASE_TYPE.RDBMS);
 
 		// ENGINE
 		owler.addConcept("ENGINE", null, null);

@@ -68,7 +68,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.R);
+		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.R);
 		// table name is the file name
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		// add the table

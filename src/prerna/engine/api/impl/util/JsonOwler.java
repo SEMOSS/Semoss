@@ -19,8 +19,8 @@ public class JsonOwler extends AbstractOwler {
 	 * @param type					The type of the engine the OWL file is being created for
 	 * @throws Exception 
 	 */
-	public JsonOwler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
-		super(owlPath, type);
+	public JsonOwler(String engineId, String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
+		super(engineId, owlPath, type);
 	}
 	
 	/**
