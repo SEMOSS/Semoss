@@ -211,7 +211,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 						owlFileName = FilenameUtils.getName(owlFile);
 					}
 					
-					owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
+					owlFile = generateOwlFromFlatFile(this.engineId, dataFile, owlFile, owlFileName);
 				} 
 			}
 			// set the owl file
@@ -237,9 +237,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 * @return
 	 * @throws Exception 
 	 */
-	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) throws Exception {
+	protected String generateOwlFromFlatFile(String engineId, String dataFile, String owlFile, String owlFileName) throws Exception {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(dataFile, owlFile, getDatabaseType(), true);
+		maker.makeFlatOwl(engineId, dataFile, owlFile, getDatabaseType(), true);
 		if(owlFile.equals("REMAKE")) {
 			try {
 				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);

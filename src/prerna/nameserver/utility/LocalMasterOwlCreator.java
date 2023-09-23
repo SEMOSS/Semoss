@@ -8,6 +8,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class LocalMasterOwlCreator {
@@ -97,7 +98,7 @@ public class LocalMasterOwlCreator {
 	 * @throws Exception 
 	 */
 	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(Constants.LOCAL_MASTER_DB, owlLocation, DATABASE_TYPE.RDBMS);
 
 		// BITLY
 		owler.addConcept("BITLY", null, null);

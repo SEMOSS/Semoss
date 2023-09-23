@@ -168,7 +168,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.RDBMS);
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
