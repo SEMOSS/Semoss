@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,10 +29,13 @@ import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -486,28 +490,48 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static boolean doSetRoomToInactive(String userId, String roomId) {
-		Connection conn = connectToInferenceLogs();
-		String query = "UPDATE ROOM SET IS_ACTIVE = false WHERE USER_ID = ? AND INSIGHT_ID = ?";
-		try (PreparedStatement ps = conn.prepareStatement(query)) {
-			//ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, userId);
-			ps.setString(index++, roomId);
-			ps.executeUpdate();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			return false;
-		} finally {
-			if(modelInferenceLogsDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		return true;
-	}
+        Connection conn = connectToInferenceLogs();
+        
+        UpdateQueryStruct qs = new UpdateQueryStruct();
+        qs.setEngine(modelInferenceLogsDb);
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+        List<IQuerySelector> selectors = new Vector<>();
+        List<Object> values = new Vector<>();
+        selectors.add(new QueryColumnSelector("ROOM__IS_ACTIVE"));
+        values.add(false);
+        qs.setSelectors(selectors);
+        qs.setValues(values);
+        UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+        String updateQ = updateInterp.composeQuery();
+        try {
+            modelInferenceLogsDb.insertData(updateQ);
+        } catch (Exception e) {
+            classLogger.error(Constants.STACKTRACE, e);
+            return false;
+//      } 
+        
+//      String query = "UPDATE ROOM SET IS_ACTIVE = false WHERE USER_ID = ? AND INSIGHT_ID = ?";
+//      try (PreparedStatement ps = conn.prepareStatement(query)) {
+//          //ps = modelInferenceLogsDb.getPreparedStatement(query);
+//          int index = 1;
+//          ps.setString(index++, userId);
+//          ps.setString(index++, roomId);
+//          ps.executeUpdate();
+//      } catch (SQLException e) {
+//          classLogger.error(Constants.STACKTRACE, e);
+//          return false;
+        } finally {
+            if(modelInferenceLogsDb.isConnectionPooling()) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    classLogger.error(Constants.STACKTRACE, e);
+                }
+            }
+        }
+        return true;
+    }
 	
 	
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort) {
