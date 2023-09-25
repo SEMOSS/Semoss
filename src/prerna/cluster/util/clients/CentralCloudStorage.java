@@ -56,7 +56,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String MODEL_IMAGES_BLOB = "semoss-modelimagecontainer";
 	public static final String PROJECT_IMAGES_BLOB = "semoss-projectimagecontainer";
 
-	private static ICloudClient instance = null;
+	private static CentralCloudStorage instance = null;
 	private static AbstractRCloneStorageEngine centralStorageEngine = null;
 	
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -89,7 +89,7 @@ public class CentralCloudStorage implements ICloudClient {
 		buildStorageEngine();
 	}
 	
-	public static ICloudClient getInstance() throws Exception {
+	public static CentralCloudStorage getInstance() throws Exception {
 		if(instance != null) {
 			return instance;
 		}
@@ -576,17 +576,6 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushEngineImageFolder(IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException {
-		String cloudImageFolder = getCloudEngineImageBucket(engineType);
-		String localImagesFolderPath = getLocalEngineImageDirectory(engineType);
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, cloudImageFolder);
-	}
-	
-	@Override
 	public void pushEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
 		String cloudImageFolder = getCloudEngineImageBucket(engineType);
 		String localImagesFolderPath = getLocalEngineImageDirectory(engineType);
@@ -716,7 +705,6 @@ public class CentralCloudStorage implements ICloudClient {
 	/*
 	 * Database
 	 */
-	
 	
 	@Override
 	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException {
