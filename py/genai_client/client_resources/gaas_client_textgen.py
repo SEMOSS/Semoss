@@ -123,7 +123,8 @@ class TextGenClient(BaseClient):
         all_keys_set = {key for d in full_prompt for key in d.keys()}
         validOpenAiDictKey = sorted(all_keys_set) == ['content', 'role']
         if (validOpenAiDictKey == False):
-          raise ValueError("There are invalid OpenAI dictionary keys")
+          # this is because we are mimicing the OpenAI message payload structure
+          raise ValueError("There are invalid dictionary keys")
         # add it the message payload
         for roleContent in full_prompt:
           prompt += roleContent['role']
