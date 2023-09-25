@@ -74,7 +74,7 @@ public class CouchUtil {
 	public static final String INSIGHT = "insight";
 	public static final String PROJECT = "project";
 	
-	private static final Logger LOGGER = LogManager.getLogger(CouchUtil.class);
+	private static final Logger classLogger = LogManager.getLogger(CouchUtil.class);
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
@@ -204,7 +204,7 @@ public class CouchUtil {
 		try {
 			eTag = new String(Base64.encodeBase64(MessageDigest.getInstance("MD5").digest(attachmentBytes)));
 		} catch (NoSuchAlgorithmException e) {
-			LOGGER.error("Error building byte digest", e);
+			classLogger.error("Error building byte digest", e);
 		}
 		
 		ResponseBuilder builder = Response.ok(attachmentBytes)
@@ -276,7 +276,7 @@ public class CouchUtil {
 			updateDocument(documentId, revisionId, docJson, attachmentName, 
 					contentType, FileUtils.readFileToByteArray(imageFile), true);
 		} catch (IOException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing upload", e);
 		}
 	}
@@ -334,7 +334,7 @@ public class CouchUtil {
 			updateDocument(documentId, revisionId, docJson, attachmentName, 
 					imageFile.getContentType(), IOUtils.toByteArray(imageFile.getInputStream()), true);
 		} catch (IOException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing upload", e);
 		}
 	}
@@ -373,14 +373,14 @@ public class CouchUtil {
 			JsonNode docJson = findRespJson.path("docs").get(0);
 			if(docJson == null) {
 				// if it isn't found then deletion is unnecessary. return as if successful.
-				LOGGER.warn("Couch deletion call on missing document: " + selector);
+				classLogger.warn("Couch deletion call on missing document: " + selector);
 				return;
 			}
 			documentId = docJson.path("_id").textValue();
 			revisionId = docJson.path("_rev").textValue();
 			deleteDocument(documentId, revisionId);
 		} catch (JsonProcessingException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing delete", e);
 		}
 	}
@@ -407,7 +407,7 @@ public class CouchUtil {
 			ObjectNode docJson = (ObjectNode) searchRespJson.path("docs").get(0);
 			return docJson != null;
 		} catch (JsonProcessingException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing search", e);
 		}
 	}
@@ -571,7 +571,7 @@ public class CouchUtil {
 			updateDocument(documentId, revisionId, documentData, attachmentName, contentType, fileContent, false);
 			return fileContent;
 		} catch (IOException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing image creation", e);
 		}
 	}
@@ -592,7 +592,7 @@ public class CouchUtil {
 	private static CouchResponse retrieveDocumentInfo(String documentId) throws CouchException {
 		HttpHead documentInfoGet = new HttpHead(COUCH_ENDPOINT + documentId);
 		CouchResponse response = executeRequest(documentInfoGet);
-		LOGGER.debug("Successfully retrieved info: " + response.toString());
+		classLogger.debug("Successfully retrieved info: " + response.toString());
 		return response;
 	}
 	
@@ -676,7 +676,7 @@ public class CouchUtil {
 			}
 			docCreate.setEntity(new StringEntity(documentData.toString()));
 			CouchResponse response = executeRequest(docCreate);
-			LOGGER.debug("Successful document creation: " + response.toString());
+			classLogger.debug("Successful document creation: " + response.toString());
 			return response;
 		} catch (UnsupportedEncodingException e) {
 			throw new IllegalArgumentException("The document data encoding isn't supported", e);
@@ -709,7 +709,7 @@ public class CouchUtil {
 			// Explicitly tell CouchDB to expect a JSON to avoid 415 errors
 			findPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 			CouchResponse response = executeRequest(findPost);
-			LOGGER.debug("Successfully retrieved documents for selector: " + response.toString());
+			classLogger.debug("Successfully retrieved documents for selector: " + response.toString());
 			return response;
 		} catch (UnsupportedEncodingException e) {
 			throw new IllegalArgumentException("The selector encoding isn't supported", e);
@@ -736,7 +736,7 @@ public class CouchUtil {
 		// add accepts application/json to get the attachment data in the JSON structure instead of as multipart
 		documentGet.setHeader(HttpHeaders.ACCEPT, "application/json");
 		CouchResponse response = executeRequest(documentGet);
-		LOGGER.debug("Successful document retrieval: " + response.toString());
+		classLogger.debug("Successful document retrieval: " + response.toString());
 		return response;
 	}
 	
@@ -758,7 +758,7 @@ public class CouchUtil {
 	private static CouchResponse deleteDocument(String documentId, String revisionId) throws CouchException {
 		HttpDelete documentDelete = new HttpDelete(COUCH_ENDPOINT + documentId + "?rev=" + revisionId);
 		CouchResponse response = executeRequest(documentDelete);
-		LOGGER.debug("Successful document deletion: " + response.toString());
+		classLogger.debug("Successful document deletion: " + response.toString());
 		return response;
 	}
 	
