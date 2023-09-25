@@ -149,10 +149,10 @@ class OpenAiClient(BaseClient):
       finish = False
 
       ## TODO - remove this. Tempory solution until fastchat endpoints are up again
-      if ('max_tokens' in kwargs.keys()):
-        max_new_tokens = kwargs.pop('max_tokens')
-      else:
-        max_new_tokens = 100
+      # if ('max_tokens' in kwargs.keys()):
+      #   max_new_tokens = kwargs.pop('max_tokens')
+      # else:
+      #   max_new_tokens = 100
 
       #print('Prompt is:',prompt)
       #print('Q is:',question)
@@ -160,6 +160,7 @@ class OpenAiClient(BaseClient):
       responses = openai.Completion.create(model=self.model_name, prompt=question, stream = True, **kwargs)
       for chunk in responses:
         response = chunk.choices[0].text
+        #print('Printing reponses')
         if response != None:
            final_query += response
            print(prefix+response, end ='')
