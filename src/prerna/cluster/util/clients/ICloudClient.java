@@ -117,14 +117,6 @@ public interface ICloudClient {
 	/**
 	 * 
 	 * @param engineType
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushEngineImageFolder(CATALOG_TYPE engineType) throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param engineType
 	 * @param fileName
 	 * @throws IOException
 	 * @throws InterruptedException
