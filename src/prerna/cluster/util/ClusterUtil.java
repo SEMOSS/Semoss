@@ -13,7 +13,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.clients.CentralCloudStorage;
-import prerna.cluster.util.clients.ICloudClient;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -137,7 +136,7 @@ public class ClusterUtil {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static ICloudClient getCentralStorageClient() throws Exception {
+	public static CentralCloudStorage getCentralStorageClient() throws Exception {
 		return CentralCloudStorage.getInstance();
 	}
 	
@@ -328,23 +327,6 @@ public class ClusterUtil {
 				getCentralStorageClient().deleteEngineCloudFile(engineId, engineType, filePath);
 			}  catch (Exception e) {
 				SemossPixelException err = new SemossPixelException("Failed to delete storage file in engine '"+engineId+"'");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 * @param engineType
-	 */
-	public static void pushEngineImageFolder(IEngine.CATALOG_TYPE engineType) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushEngineImageFolder(engineType);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push database image folder to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -713,6 +695,57 @@ public class ClusterUtil {
 	
 	/**
 	 * 
+	 */
+	public static void pushProjectImageFolder() {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pushProjectImageFolder();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push project image folder to cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	public static void pullProjectImageFolder() {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pullProjectImageFolder();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull project image folder to cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	public static void pushInsightImage(String projectId, String insightId, String oldImageName, String imageFileName) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pushInsightImage(projectId, insightId, oldImageName, imageFileName);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push insight image to cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+
+	/*
+	 * 
+	 * USER ASSET / WORKSPACE
+	 * 
+	 */
+	
+	/**
+	 * 
 	 * @param project
 	 * @param isAsset
 	 */
@@ -767,272 +800,66 @@ public class ClusterUtil {
 	
 	/**
 	 * 
-	 */
-	public static void pushProjectImageFolder() {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushProjectImageFolder();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push project image folder to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 */
-	public static void pullProjectImageFolder() {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pullProjectImageFolder();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull project image folder to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	public static void pushInsightImage(String projectId, String insightId, String oldImageName, String imageFileName) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushInsightImage(projectId, insightId, oldImageName, imageFileName);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push insight image to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-
-	
-	
-	
-	
-	
-	
-	
-	/**
-	 * TODO:
-	 * TODO:
-	 * TODO:
-	 * TODO:
-	 * Need to consolidate the below into getEngineImage
-	 * 
-	 */
-	
-	
-	
-	
-	
-	/**
-	 * 
-	 * @param databaseId
-	 * @return
-	 */
-	public static File getDatabaseImage(String databaseId) {
-		File imageFile = null;
-		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases");
-		String imageFilePath; 
-		imageFolder.mkdirs();
-
-		//so i dont always know the extension, but every image should be named by the engineid which means i need to search the folder for something like the file
-		File[] images = imageFolder.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.contains(databaseId);
-			}
-		});
-		if(images!= null && images.length > 0){
-			//we got a file. hopefully there is only 1 file if there is more, return [0] for now
-			return images[0];
-		}	
-		else {
-			try {
-				//first try to pull the images folder, Return it after the pull, or else we make the file
-				getCentralStorageClient().pullEngineImageFolder(IEngine.CATALOG_TYPE.DATABASE);
-				//so i dont always know the extension, but every image should be named by the engineid which means i need to search the folder for something like the file
-				images = imageFolder.listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.contains(databaseId);
-					}
-				});
-				if(images.length > 0){
-					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
-					return images[0];
-				} else {
-					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases" + DIR_SEPARATOR + databaseId + ".png";
-
-//					String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
-//					if(alias != null) {
-//						TextToGraphic.makeImage(alias, imageFilePath);
-//					} else{
-//						TextToGraphic.makeImage(databaseId, imageFilePath);
-//					}
-					
-					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
-					getCentralStorageClient().pushEngineImageFolder(IEngine.CATALOG_TYPE.DATABASE);
-				}
-				//finally we will return it if it exists, and if it doesn't we return back the stock. 
-				imageFile = new File(imageFilePath);
-
-				if(imageFile.exists()){
-					return imageFile;
-				} else{
-					String stockImageDir = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "stock" + DIR_SEPARATOR + "color-logo.png";
-					imageFile = new File (stockImageDir);
-				}
-
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to fetch database image");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-		return imageFile;
-	}
-	
-	/**
-	 * 
 	 * @param storageId
 	 * @return
+	 * @throws Exception 
 	 */
-	public static File getStorageImage(String storageId) {
-		File imageFile = null;
-		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "storages");
-		String imageFilePath; 
-		imageFolder.mkdirs();
-
-		//so i dont always know the extension, but every image should be named by the engineid which means i need to search the folder for something like the file
-		File[] images = imageFolder.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.contains(storageId);
-			}
-		});
-		if(images!= null && images.length > 0){
-			//we got a file. hopefully there is only 1 file if there is more, return [0] for now
-			return images[0];
-		}	
-		else {
-			try {
-				//first try to pull the images folder, Return it after the pull, or else we make the file
-				getCentralStorageClient().pullEngineImageFolder(IEngine.CATALOG_TYPE.STORAGE);
-				//so i dont always know the extension, but every image should be named by the engineid which means i need to search the folder for something like the file
-				images = imageFolder.listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.contains(storageId);
-					}
-				});
-				if(images.length > 0){
-					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
-					return images[0];
-				} else {
-					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "storages" + DIR_SEPARATOR + storageId + ".png";
-
-//					String alias = SecurityEngineUtils.getEngineAliasForId(storageId);
-//					if(alias != null) {
-//						TextToGraphic.makeImage(alias, imageFilePath);
-//					} else{
-//						TextToGraphic.makeImage(storageId, imageFilePath);
-//					}
-					
-					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
-					getCentralStorageClient().pushEngineImageFolder(IEngine.CATALOG_TYPE.STORAGE);
-				}
-				//finally we will return it if it exists, and if it doesn't we return back the stock. 
-				imageFile = new File(imageFilePath);
-
-				if(imageFile.exists()){
-					return imageFile;
-				} else{
-					String stockImageDir = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "stock" + DIR_SEPARATOR + "color-logo.png";
-					imageFile = new File (stockImageDir);
-				}
-
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to fetch storage image");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
+	public static File getEngineImage(String engineId, IEngine.CATALOG_TYPE engineType) throws Exception {
+		File localEngineImageFolder = new File(getCentralStorageClient().getLocalEngineImageDirectory(engineType));
+		// if it doesn't exist locally
+		// pull from cloud storage
+		boolean pulled = false;
+		if(!localEngineImageFolder.exists() || !localEngineImageFolder.isDirectory()){
+			getCentralStorageClient().pullEngineImageFolder(engineType);
+			pulled = true;
 		}
-		return imageFile;
-	}
-	
-	/**
-	 * 
-	 * @param modelId
-	 * @return
-	 */
-	public static File getModelImage(String modelId) {
+		
 		File imageFile = null;
-		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "models");
-		String imageFilePath; 
-		imageFolder.mkdirs();
+		String imageFilePath = null;; 
 
-		//so i dont always know the extension, but every image should be named by the engineid which means i need to search the folder for something like the file
-		File[] images = imageFolder.listFiles(new FilenameFilter() {
+		// so i dont always know the extension
+		// but every image should be named by the engineid
+		// which means i need to search the folder for something like the file
+		File[] images = localEngineImageFolder.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
-				return name.contains(modelId);
+				return name.contains(engineId);
 			}
 		});
 		if(images!= null && images.length > 0){
-			//we got a file. hopefully there is only 1 file if there is more, return [0] for now
+			// we got a file hopefully there is only 1 file if there is more, return [0] for now
 			return images[0];
-		}	
+		}
 		else {
-			try {
-				//first try to pull the images folder, Return it after the pull, or else we make the file
-				getCentralStorageClient().pullEngineImageFolder(IEngine.CATALOG_TYPE.MODEL);
-				//so i dont always know the extension, but every image should be named by the engineid which means i need to search the folder for something like the file
-				images = imageFolder.listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.contains(modelId);
-					}
-				});
-				if(images.length > 0){
-					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
-					return images[0];
-				} else {
-					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "models" + DIR_SEPARATOR + modelId + ".png";
-
-//					String alias = SecurityEngineUtils.getEngineAliasForId(modelId);
-//					if(alias != null) {
-//						TextToGraphic.makeImage(alias, imageFilePath);
-//					} else{
-//						TextToGraphic.makeImage(modelId, imageFilePath);
-//					}
-					
-					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
-					getCentralStorageClient().pushEngineImageFolder(IEngine.CATALOG_TYPE.MODEL);
-				}
-				//finally we will return it if it exists, and if it doesn't we return back the stock. 
-				imageFile = new File(imageFilePath);
-
-				if(imageFile.exists()){
-					return imageFile;
-				} else{
-					String stockImageDir = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "stock" + DIR_SEPARATOR + "color-logo.png";
-					imageFile = new File (stockImageDir);
-				}
-
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to fetch model image");
-				err.setContinueThreadOfExecution(false);
-				throw err;
+			if(!pulled) {
+				// we haven't pulled the image
+				// maybe this was created in another container
+				// lets pull again just in case
+				getCentralStorageClient().pullEngineImageFolder(engineType);
 			}
+			
+			images = localEngineImageFolder.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.contains(engineId);
+				}
+			});
+			if(images.length > 0){
+				//we got a file. hopefully there is only 1 file if there is more, return [0] for now
+				return images[0];
+			} 
+			
+			// if i hit this point
+			// after pulling, i dont have the engine id
+			// so lets make the image
+			imageFilePath = localEngineImageFolder.getAbsolutePath() + DIR_SEPARATOR + engineId + ".png";
+			imageFile = new File(imageFilePath);
+			
+			DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
+			getCentralStorageClient().pushEngineImage(engineType, imageFile.getName());
+			
+			// TODO:
+			// need to also push to engine version folder?
 		}
 		return imageFile;
 	}
@@ -1043,10 +870,11 @@ public class ClusterUtil {
 	 * @return
 	 */
 	public static File getProjectImage(String projectId) {
-		File imageFile = null;
 		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects");
-		String imageFilePath; 
 		imageFolder.mkdirs();
+
+		File imageFile = null;
+		String imageFilePath = null;
 
 		// so i dont always know the extension, 
 		// but every image should be named by the projectid 
@@ -1088,6 +916,10 @@ public class ClusterUtil {
 					
 					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
 					getCentralStorageClient().pushProjectImageFolder();
+					
+					// TODO:
+					// need to also push to engine version folder?
+					
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
