@@ -21,6 +21,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -100,7 +101,7 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		}
 		if (repull) {
 			try {
-				ClusterUtil.pullDatabaseImageFolder();
+				ClusterUtil.pullEngineImageFolder(IEngine.CATALOG_TYPE.DATABASE);
 				ClusterUtil.pullProjectImageFolder();
 			} catch (Exception e) {
 				LOGGER.warn("Error pulling cloud image folders: " + e.getMessage(), e);
