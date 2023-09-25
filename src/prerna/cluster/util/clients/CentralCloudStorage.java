@@ -2,6 +2,8 @@ package prerna.cluster.util.clients;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -48,6 +50,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String MODEL_BLOB = "semoss-model";
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
+	// images
 	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
 	public static final String STORAGE_IMAGES_BLOB = "semoss-storageimagecontainer";
 	public static final String MODEL_IMAGES_BLOB = "semoss-modelimagecontainer";
@@ -64,13 +67,23 @@ public class CentralCloudStorage implements ICloudClient {
 	private static String MODEL_FOLDER = null;
 	private static String PROJECT_FOLDER = null;
 	private static String USER_FOLDER = null;
-	
+	// images
+	private static String DATABASE_IMAGE_FOLDER = null;
+	private static String STORAGE_IMAGE_FOLDER = null;
+	private static String MODEL_IMAGE_FOLDER = null;
+	private static String PROJECT_IMAGE_FOLDER = null;
+
 	// these can change based on the cloud client type
 	private static String DB_CONTAINER_PREFIX = "/" + DB_BLOB + "/";
 	private static String STORAGE_CONTAINER_PREFIX = "/" + STORAGE_BLOB + "/";
 	private static String MODEL_CONTAINER_PREFIX = "/" + MODEL_BLOB + "/";
 	private static String PROJECT_CONTAINER_PREFIX = "/" + PROJECT_BLOB + "/";
 	private static String USER_CONTAINER_PREFIX = "/" + USER_BLOB + "/";
+	
+	public static final String LOCAL_DATABASE_IMAGE_RELPATH = "images/databases";
+	public static final String LOCAL_STORAGE_IMAGE_RELPATH = "images/storages";
+	public static final String LOCAL_MODEL_IMAGE_RELPATH = "images/models";
+	public static final String LOCAL_PROJECT_IMAGE_RELPATH = "images/projects";
 	
 	private CentralCloudStorage() throws Exception {
 		buildStorageEngine();
@@ -87,12 +100,22 @@ public class CentralCloudStorage implements ICloudClient {
 					return instance;
 				}
 				
+				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+				baseFolder = baseFolder.replace("\\", "/");
+				if(!baseFolder.endsWith("/")) {
+					baseFolder += "/";
+				}
 				instance = new CentralCloudStorage();
-				CentralCloudStorage.DATABASE_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.DB_FOLDER;
-				CentralCloudStorage.STORAGE_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.STORAGE_FOLDER;
-				CentralCloudStorage.MODEL_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.MODEL_FOLDER;
-				CentralCloudStorage.PROJECT_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.PROJECT_FOLDER;
-				CentralCloudStorage.USER_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.USER_FOLDER;
+				CentralCloudStorage.DATABASE_FOLDER = baseFolder + Constants.DB_FOLDER;
+				CentralCloudStorage.STORAGE_FOLDER = baseFolder + Constants.STORAGE_FOLDER;
+				CentralCloudStorage.MODEL_FOLDER = baseFolder + Constants.MODEL_FOLDER;
+				CentralCloudStorage.PROJECT_FOLDER = baseFolder + Constants.PROJECT_FOLDER;
+				CentralCloudStorage.USER_FOLDER = baseFolder + Constants.USER_FOLDER;
+				
+				CentralCloudStorage.DATABASE_IMAGE_FOLDER = baseFolder + CentralCloudStorage.LOCAL_DATABASE_IMAGE_RELPATH;
+				CentralCloudStorage.STORAGE_IMAGE_FOLDER = baseFolder + CentralCloudStorage.LOCAL_STORAGE_IMAGE_RELPATH;
+				CentralCloudStorage.MODEL_IMAGE_FOLDER = baseFolder + CentralCloudStorage.LOCAL_MODEL_IMAGE_RELPATH;
+				CentralCloudStorage.PROJECT_IMAGE_FOLDER = baseFolder + CentralCloudStorage.LOCAL_PROJECT_IMAGE_RELPATH;
 			}
 		}
 		
@@ -210,7 +233,7 @@ public class CentralCloudStorage implements ICloudClient {
 	 * @param type
 	 * @return
 	 */
-	public String getEngineBaseDirectory(IEngine.CATALOG_TYPE type) {
+	public String getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE type) {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			return DATABASE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
@@ -224,7 +247,50 @@ public class CentralCloudStorage implements ICloudClient {
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
 	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public String getLocalEngineImageDirectory(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return DATABASE_IMAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return STORAGE_IMAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return MODEL_IMAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
+			return PROJECT_IMAGE_FOLDER;
+		}
+		
+		throw new IllegalArgumentException("Unhandled engine type = " + type);
+	}
 	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public String getCloudEngineImageBucket(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return DB_IMAGES_BLOB;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return STORAGE_IMAGES_BLOB;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return MODEL_IMAGES_BLOB;
+		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
+			return PROJECT_IMAGES_BLOB;
+		}
+		
+		throw new IllegalArgumentException("Unhandled engine type = " + type);
+	}
+	
+	/**
+	 * 
+	 * @param aliasAndEngineId
+	 * @param localSmssFileName
+	 * @param type
+	 */
 	public void catalogPulledEngine(String aliasAndEngineId, String localSmssFileName, IEngine.CATALOG_TYPE type) {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			classLogger.info("Synchronizing the database metadata for " + aliasAndEngineId);
@@ -263,7 +329,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 		
-		String localEngineBaseFolder = getEngineBaseDirectory(engineType);
+		String localEngineBaseFolder = getLocalEngineBaseDirectory(engineType);
 		String localEngineFolder = localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId;
 		{
 			// lets make sure this exists
@@ -346,7 +412,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 		
-		String localEngineBaseFolder = getEngineBaseDirectory(engineType);
+		String localEngineBaseFolder = getLocalEngineBaseDirectory(engineType);
 		String localEngineFolder = localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId;
 		String localSmssFileName = aliasAndEngineId + ".smss";
 		String localSmssFilePath = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName);
@@ -498,8 +564,154 @@ public class CentralCloudStorage implements ICloudClient {
 		centralStorageEngine.deleteFolderFromStorage(cloudSmssFolder, sharedRCloneConfig);
 	}
 	
+	@Override
+	public void pullEngineImageFolder(IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException {
+		String cloudImageFolder = getCloudEngineImageBucket(engineType);
+		String localImagesFolderPath = getLocalEngineImageDirectory(engineType);
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
+		}
+		centralStorageEngine.copyToLocal(cloudImageFolder, localImagesFolderPath);
+	}
+
+	@Override
+	public void pushEngineImageFolder(IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException {
+		String cloudImageFolder = getCloudEngineImageBucket(engineType);
+		String localImagesFolderPath = getLocalEngineImageDirectory(engineType);
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
+		}
+		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, cloudImageFolder);
+	}
 	
+	@Override
+	public void pushEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
+		String cloudImageFolder = getCloudEngineImageBucket(engineType);
+		String localImagesFolderPath = getLocalEngineImageDirectory(engineType);
+		String fileToPush = localImagesFolderPath + "/" + fileName;
+		centralStorageEngine.copyToStorage(fileToPush, cloudImageFolder);
+	}
 	
+	@Override
+	public void deleteEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
+		String cloudImageFolder = getCloudEngineImageBucket(engineType);
+		String fileToDelete = cloudImageFolder + "/" + fileName;
+		centralStorageEngine.deleteFromStorage(fileToDelete);
+	}
+	
+	@Override
+	public void copyLocalFileToEngineCloudFolder(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		
+		String engineName = engine.getEngineName();
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+
+		File absoluteFolder = new File(localFilePath);
+		if(absoluteFolder.isDirectory()) {
+			// this is adding a hidden file into every sub folder to make sure there is no empty directory
+			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
+		}
+		
+		// from the local file path
+		// determine where it should be in the cloud storage
+		String localEngineFolder = getLocalEngineBaseDirectory(engineType) + FILE_SEPARATOR + aliasAndEngineId;
+		Path localEnginePath = Paths.get(localEngineFolder);
+
+		Path storagePath = localEnginePath.relativize( absoluteFolder.toPath() );
+		String cloudStorageFolderPath = getCloudPrefixForEngine(engineType) + engineId + "/" + storagePath;
+
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to push local file " + localFilePath + " to cloud path " + cloudStorageFolderPath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pushing folder local=" + localFilePath + " to from remote=" + cloudStorageFolderPath);
+			centralStorageEngine.copyToStorage(localFilePath, cloudStorageFolderPath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+
+	@Override
+	public void copyEngineCloudFileToLocalFile(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		
+		String engineName = engine.getEngineName();
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+
+		File absoluteFolder = new File(localFilePath);
+		if(!absoluteFolder.exists()) {
+			if(absoluteFolder.isDirectory()) {
+				absoluteFolder.mkdirs();
+			} else {
+				absoluteFolder.getParentFile().mkdirs();
+			}
+		}
+		
+		// from the local file path
+		// determine where it should be in the cloud storage
+		String localEngineFolder = getLocalEngineBaseDirectory(engineType) + FILE_SEPARATOR + aliasAndEngineId;
+		Path localEnginePath = Paths.get(localEngineFolder);
+
+		Path storagePath = localEnginePath.relativize( absoluteFolder.toPath() );
+		String cloudStorageFolderPath = getCloudPrefixForEngine(engineType) + engineId + "/" + storagePath;
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to pull cloud path " + cloudStorageFolderPath + " to local file " + localFilePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pulling remote=" + cloudStorageFolderPath + " to folder local=" + localFilePath);
+			centralStorageEngine.copyToLocal(cloudStorageFolderPath, localFilePath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+	
+	@Override
+	public void deleteEngineCloudFile(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		
+		String engineName = engine.getEngineName();
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+
+		File absoluteFolder = new File(localFilePath);
+		// from the local file path
+		// determine where it should be in the cloud storage
+		String localEngineFolder = getLocalEngineBaseDirectory(engineType) + FILE_SEPARATOR + aliasAndEngineId;
+		Path localEnginePath = Paths.get(localEngineFolder);
+
+		Path storagePath = localEnginePath.relativize( absoluteFolder.toPath() );
+		String cloudStorageFolderPath = getCloudPrefixForEngine(engineType) + engineId + "/" + storagePath;
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to delete cloud path " + cloudStorageFolderPath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Deleting remote=" + cloudStorageFolderPath);
+			centralStorageEngine.deleteFromStorage(cloudStorageFolderPath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
 	
 	/*
 	 * Database
@@ -724,123 +936,6 @@ public class CentralCloudStorage implements ICloudClient {
 		}
 	}
 
-	@Override
-	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
-		String sharedRCloneConfig = null;
-		try {
-			if(centralStorageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
-			}
-			
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String localImagesFolderPath = baseFolder + "/images/databases";
-			File localImageF = new File(localImagesFolderPath);
-			if(!localImageF.exists() || !localImageF.isDirectory()) {
-				localImageF.mkdirs();
-			}
-			centralStorageEngine.copyToLocal(CentralCloudStorage.DB_IMAGES_BLOB, localImagesFolderPath);
-		} finally {
-			if(sharedRCloneConfig != null) {
-				try {
-					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
-				} catch(Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
-
-	@Override
-	public void pushDatabaseImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/databases";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB);
-	}
-	
-	@Override
-	public void pushDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
-		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
-		if (database == null) {
-			throw new IllegalArgumentException("Database not found...");
-		}
-		
-		if(storageRelativePath != null) {
-			storageRelativePath = storageRelativePath.replace("\\", "/");
-		}
-		if(storageRelativePath.startsWith("/")) {
-			storageRelativePath = storageRelativePath.substring(1);
-		}
-		
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
-		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-
-		File absoluteFolder = new File(localAbsoluteFilePath);
-		if(absoluteFolder.isDirectory()) {
-			//this is adding a hidden file into every sub folder to make sure there is no empty directory
-			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
-		}
-		
-		String storageDatabaseFolderPath = DB_CONTAINER_PREFIX + databaseId;
-		if(storageRelativePath != null) {
-			storageDatabaseFolderPath = storageDatabaseFolderPath + "/" + storageRelativePath;
-		}
-		
-		// adding a lock for now, but there may be times we don't need one and other times we do
-		// reaching h2 db from version folder vs static assets in asset database
-		// might need to also close if embedded engine?
-		
-		classLogger.info("Applying lock for database " + aliasAndDatabaseId + " to push database relative folder " + storageRelativePath);
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
-		lock.lock();
-		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
-		try {
-			classLogger.info("Pushing folder local=" + localAbsoluteFilePath + " to from remote=" + storageDatabaseFolderPath);
-			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageDatabaseFolderPath);
-		} finally {
-			// always unlock regardless of errors
-			lock.unlock();
-			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
-		}
-	}
-
-	@Override
-	public void pullDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
-		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
-		if (database == null) {
-			throw new IllegalArgumentException("Database not found...");
-		}
-		if(storageRelativePath != null) {
-			storageRelativePath = storageRelativePath.replace("\\", "/");
-		}
-		if(storageRelativePath.startsWith("/")) {
-			storageRelativePath = storageRelativePath.substring(1);
-		}
-		
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
-		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		
-		String storageDatabaseFolderPath = DB_CONTAINER_PREFIX + databaseId;
-		if(storageRelativePath != null) {
-			storageDatabaseFolderPath = storageDatabaseFolderPath + "/" + storageRelativePath;
-		}
-		classLogger.info("Applying lock for database " + aliasAndDatabaseId + " to pull database relative folder " + storageRelativePath);
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
-		lock.lock();
-		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
-		try {
-			classLogger.info("Pulling folder from remote=" + storageDatabaseFolderPath + " to local=" + localAbsoluteFilePath);
-			centralStorageEngine.syncStorageToLocal(storageDatabaseFolderPath, localAbsoluteFilePath);
-		} finally {
-			// always unlock regardless of errors
-			lock.unlock();
-			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
-		}
-	}
-	
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	/*
@@ -1308,63 +1403,6 @@ public class CentralCloudStorage implements ICloudClient {
 				}
 			}
 		}
-	}
-	
-	///////////////////////////////////////////////////////////////////////////////////
-	
-	
-	/*
-	 * Storage
-	 */
-	
-	@Override
-	public void pullStorageImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/storages";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.copyToLocal(CentralCloudStorage.STORAGE_IMAGES_BLOB, localImagesFolderPath);
-	}
-
-	@Override
-	public void pushStorageImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/storages";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.STORAGE_IMAGES_BLOB);
-	}
-	
-	///////////////////////////////////////////////////////////////////////////////////
-	
-	/*
-	 * Model
-	 */
-
-	@Override
-	public void pullModelImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/models";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.copyToLocal(CentralCloudStorage.MODEL_IMAGES_BLOB, localImagesFolderPath);
-	}
-
-	@Override
-	public void pushModelImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/models";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.MODEL_IMAGES_BLOB);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
