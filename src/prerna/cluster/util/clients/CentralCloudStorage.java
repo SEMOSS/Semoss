@@ -229,12 +229,15 @@ public class CentralCloudStorage implements ICloudClient {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			classLogger.info("Synchronizing the database metadata for " + aliasAndEngineId);
 			SMSSWebWatcher.catalogEngine(localSmssFileName, DATABASE_FOLDER);
+			return;
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
 			classLogger.info("Synchronizing the storage metadata for " + aliasAndEngineId);
 			SMSSStorageWatcher.catalogEngine(localSmssFileName, STORAGE_FOLDER);
+			return;
 		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
 			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
 			SMSSModelWatcher.catalogEngine(localSmssFileName, MODEL_FOLDER);
+			return;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return;
 		}
