@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public interface ICloudClient {
@@ -93,7 +94,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void deleteEngine(String engineId) throws IOException, InterruptedException;
+	void deleteEngine(String engineId) throws IOException, InterruptedException;
 
 	/**
 	 * Delete the engine from cloud storage
@@ -103,7 +104,77 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void deleteEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
+	void deleteEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param engineType
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngineImageFolder(CATALOG_TYPE engineType) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param engineType
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushEngineImageFolder(CATALOG_TYPE engineType) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param engineType
+	 * @param fileName
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushEngineImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param engineType
+	 * @param fileName
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void deleteEngineImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
+	
+	/**
+	 * Copy the engine local file to the corresponding storage location
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @param localFilePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void copyLocalFileToEngineCloudFolder(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException;
+
+	
+	/**
+	 * Copy engine file path to local file path, based on where the corresponding storage location should be
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @param storageRelativePath
+	 * @param localFilePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void copyEngineCloudFileToLocalFile(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException;
+	
+	
+	/**
+	 * Delete where the corresponding local file path would be from the corresponding storage location
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @param localFilePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void deleteEngineCloudFile(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException;
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	
@@ -145,41 +216,6 @@ public interface ICloudClient {
 	 */
 	void pullOwl(String databaseId) throws IOException, InterruptedException;
 
-	/**
-	 * 
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullDatabaseImageFolder() throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushDatabaseImageFolder() throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param databaseId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param databaseId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
-	
-	
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	/*
@@ -342,45 +378,8 @@ public interface ICloudClient {
 	 */
 	void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException;
 
-	
-	///////////////////////////////////////////////////////////////////////////////////
-	
-	
-	/*
-	 * Storage
-	 */
-	
-	/**
-	 * 
-	 */
-	void pullStorageImageFolder() throws IOException, InterruptedException; 
-	
-	
-	/**
-	 * 
-	 */
-	void pushStorageImageFolder() throws IOException, InterruptedException; 
-	
-	///////////////////////////////////////////////////////////////////////////////////
-	
-	
-	/*
-	 * Model
-	 */
-	
-	/**
-	 * 
-	 */
-	void pullModelImageFolder() throws IOException, InterruptedException; 
-	
-	/**
-	 * 
-	 */
-	void pushModelImageFolder() throws IOException, InterruptedException; 
-	
 	///////////////////////////////////////////////////////////////////////////////////
 
-	
 	/*
 	 * Legacy
 	 */
