@@ -2,6 +2,7 @@ package prerna.cluster.util.clients;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
@@ -370,6 +371,14 @@ public interface ICloudClient {
 	 */
 	void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException;
 
+	/**
+	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException; 
+	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	/*

@@ -24,7 +24,6 @@ import prerna.aws.s3.PushAssetToS3Reactor;
 import prerna.aws.s3.S3FileRetrieverReactor;
 import prerna.aws.s3.S3ListBucketsReactor;
 import prerna.aws.s3.S3ListFilesReactor;
-import prerna.cluster.util.PushAppsReactor;
 import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
 import prerna.comments.GetInsightCommentsReactor;
@@ -572,10 +571,6 @@ public class ReactorFactory {
 				String packageName = classes.get(classIndex).getPackageName();
 				Class actualClass = classes.get(classIndex).loadClass();
 
-				if(name.equals("PyReactor")) {
-					System.out.println(name);
-				}
-				
 				// ignore abstract
 				if(!Modifier.isAbstract( actualClass.getModifiers() )) {
 					String [] packagePaths = packageName.split("\\.");
@@ -1113,7 +1108,6 @@ public class ReactorFactory {
 		reactorHash.put("Version", VersionReactor.class);
 		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		//reactorHash.put("SyncRedis", SyncRedisReactor.class);
-		reactorHash.put("PushApps", PushAppsReactor.class);
 		//reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
 		
 		// User Space
