@@ -36,8 +36,8 @@ public class GenerateMetamodelLayout {
 	
 	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelLayout.class);
 	
-	public static void generateLayout(String appId) {
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(appId + "_" + Constants.STORE);
+	public static void generateLayout(String engineId) {
+		String smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
 		String owlFileLocation = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 		File owlF = new File(owlFileLocation);
@@ -47,6 +47,7 @@ public class GenerateMetamodelLayout {
 		try {
 			rfse = new RDFFileSesameEngine();
 			rfse.openFile(owlFileLocation, null, null);
+            rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
 			// we create the meta helper to facilitate querying the engine OWL
 			MetaHelper helper = new MetaHelper(rfse, null, null);
 	

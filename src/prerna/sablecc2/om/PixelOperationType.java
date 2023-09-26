@@ -194,10 +194,7 @@ public enum PixelOperationType {
 	// Cluster
 	OPEN_DATABASE,
 	USER_UPLOAD,
-	UPDATE_APP,
-	CLEANUP_APPS,
 	VERSION,
-	SYNC_APPS,
 	
 	// User Space
 	USER_DIR,

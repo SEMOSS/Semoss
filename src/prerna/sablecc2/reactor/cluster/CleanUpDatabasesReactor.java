@@ -184,6 +184,6 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 				cleanupAppsData.put("containers", removedContainersMap);
 			}
 		}
-		return new NounMetadata(cleanupAppsData, PixelDataType.MAP, PixelOperationType.CLEANUP_APPS);
+		return new NounMetadata(cleanupAppsData, PixelDataType.MAP);
 	}
 }

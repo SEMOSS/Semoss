@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
+	xmlns="http://www.w3.org/2000/01/rdf-schema#"
 	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
@@ -11,8 +12,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AGENT">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<domain>noData</domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT</Conceptual>
 </rdf:Description>
@@ -26,7 +27,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/AGENT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT_ID</Conceptual>
 </rdf:Description>
@@ -40,7 +41,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_NAME/AGENT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AGENT_NAME/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT_NAME</Conceptual>
 </rdf:Description>
@@ -54,7 +55,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/AGENT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DESCRIPTION</Conceptual>
 </rdf:Description>
@@ -68,7 +69,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/AGENT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT_TYPE</Conceptual>
 </rdf:Description>
@@ -82,7 +83,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AUTHOR/AGENT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AUTHOR/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AUTHOR</Conceptual>
 </rdf:Description>
@@ -96,14 +97,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/AGENT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/AGENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE_CREATED</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ROOM">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<domain>noData</domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ROOM</Conceptual>
 </rdf:Description>
@@ -117,7 +118,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSIGHT_ID</Conceptual>
 </rdf:Description>
@@ -131,7 +132,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ROOM_NAME/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ROOM_NAME/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ROOM_NAME</Conceptual>
 </rdf:Description>
@@ -145,7 +146,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ROOM_CONTEXT/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ROOM_CONTEXT/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ROOM_CONTEXT</Conceptual>
 </rdf:Description>
@@ -159,7 +160,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_ID</Conceptual>
 </rdf:Description>
@@ -173,7 +174,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT_TYPE</Conceptual>
 </rdf:Description>
@@ -187,7 +188,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_ACTIVE</Conceptual>
 </rdf:Description>
@@ -201,7 +202,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE_CREATED</Conceptual>
 </rdf:Description>
@@ -215,7 +216,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECT_ID</Conceptual>
 </rdf:Description>
@@ -229,7 +230,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECT_NAME</Conceptual>
 </rdf:Description>
@@ -243,14 +244,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/ROOM">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/ROOM"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT_ID</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MESSAGE">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<domain>noData</domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE</Conceptual>
 </rdf:Description>
@@ -264,7 +265,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_ID</Conceptual>
 </rdf:Description>
@@ -278,7 +279,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_TYPE</Conceptual>
 </rdf:Description>
@@ -292,7 +293,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_DATA/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<Class rdf:resource="TYPE:CLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_DATA/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_DATA</Conceptual>
 </rdf:Description>
@@ -306,7 +307,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TOKENS/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INT"/>
+	<Class rdf:resource="TYPE:INT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TOKENS/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_TOKENS</Conceptual>
 </rdf:Description>
@@ -320,7 +321,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_METHOD/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_METHOD/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_METHOD</Conceptual>
 </rdf:Description>
@@ -334,7 +335,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RESPONSE_TIME/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:DOUBLE"/>
+	<Class rdf:resource="TYPE:DOUBLE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RESPONSE_TIME/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RESPONSE_TIME</Conceptual>
 </rdf:Description>
@@ -348,7 +349,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE_CREATED</Conceptual>
 </rdf:Description>
@@ -362,7 +363,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AGENT_ID</Conceptual>
 </rdf:Description>
@@ -376,7 +377,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSIGHT_ID</Conceptual>
 </rdf:Description>
@@ -390,7 +391,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSIONID/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SESSIONID/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SESSIONID</Conceptual>
 </rdf:Description>
@@ -404,14 +405,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_ID</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FEEDBACK">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<domain>noData</domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FEEDBACK"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FEEDBACK</Conceptual>
 </rdf:Description>
@@ -425,7 +426,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_ID</Conceptual>
 </rdf:Description>
@@ -439,7 +440,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(50)"/>
+	<Class rdf:resource="TYPE:VARCHAR(50)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_TYPE</Conceptual>
 </rdf:Description>
@@ -453,7 +454,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FEEDBACK_TEXT/FEEDBACK">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(MAX)"/>
+	<Class rdf:resource="TYPE:VARCHAR(MAX)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FEEDBACK_TEXT/FEEDBACK"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FEEDBACK_TEXT</Conceptual>
 </rdf:Description>
@@ -467,7 +468,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FEEDBACK_DATE/FEEDBACK">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FEEDBACK_DATE/FEEDBACK"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FEEDBACK_DATE</Conceptual>
 </rdf:Description>
@@ -481,13 +482,149 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RATING/FEEDBACK">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RATING/FEEDBACK"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RATING</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:09:05 16:50:17</TIME>
+	<TIME xmlns="ENGINE:">2023:09:26 13:05:09</TIME>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FEEDBACK_TEXT/FEEDBACK">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/AGENT.AGENT_ID.MESSAGE.AGENT_ID">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AGENT">
+	<AGENT.AGENT_ID.MESSAGE.AGENT_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MESSAGE"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/AGENT.AGENT_ID.ROOM.AGENT_ID">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AGENT">
+	<AGENT.AGENT_ID.ROOM.AGENT_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ROOM"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MESSAGE.MESSAGE_ID.FEEDBACK.MESSAGE_ID">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MESSAGE">
+	<MESSAGE.MESSAGE_ID.FEEDBACK.MESSAGE_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FEEDBACK"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MESSAGE.MESSAGE_TYPE.FEEDBACK.MESSAGE_TYPE">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MESSAGE">
+	<MESSAGE.MESSAGE_TYPE.FEEDBACK.MESSAGE_TYPE xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FEEDBACK"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ROOM.INSIGHT_ID.MESSAGE.INSIGHT_ID">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ROOM">
+	<ROOM.INSIGHT_ID.MESSAGE.INSIGHT_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MESSAGE"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/AGENT">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/AGENT">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/AGENT">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_NAME/AGENT">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AUTHOR/AGENT">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ROOM_CONTEXT/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ROOM_NAME/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/ROOM">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/AGENT_ID/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSIONID/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_METHOD/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_TOKENS/MESSAGE">
+	<Class rdf:resource="TYPE:INTEGER"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/MESSAGE">
+	<Class rdf:resource="TYPE:VARCHAR"/>
 </rdf:Description>
 
 </rdf:RDF>
