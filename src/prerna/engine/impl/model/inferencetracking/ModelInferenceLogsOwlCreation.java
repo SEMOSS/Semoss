@@ -38,6 +38,7 @@ public class ModelInferenceLogsOwlCreation {
 		conceptsRequired.add("AGENT");
 		conceptsRequired.add("ROOM");
 		conceptsRequired.add("MESSAGE");
+		conceptsRequired.add("FEEDBACK");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
