@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -60,7 +63,7 @@ public class CentralCloudStorage implements ICloudClient {
 	private static AbstractRCloneStorageEngine centralStorageEngine = null;
 	
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String SMSS_POSTFIX = "-smss";
+	public static final String SMSS_POSTFIX = "-smss";
 
 	private static String DATABASE_FOLDER = null;
 	private static String STORAGE_FOLDER = null;
@@ -1594,6 +1597,36 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 		throw new IllegalArgumentException("There is no insight database for project: " + project.getProjectName());
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	@Override
+	public Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException {
+		Map<String, List<String>> allBuckets = new HashMap<String, List<String>>();
+		String sharedRCloneConfig = null;
+		try {
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
+			}
+			
+			List<String> buckets = Arrays.asList(DB_BLOB, STORAGE_BLOB, MODEL_BLOB, PROJECT_BLOB);
+			
+			for(String b : buckets) {
+				List<String> cloudFiles = centralStorageEngine.list(b, sharedRCloneConfig);
+				allBuckets.put(b, cloudFiles);
+			}
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return allBuckets;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
