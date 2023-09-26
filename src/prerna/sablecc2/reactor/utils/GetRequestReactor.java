@@ -1,9 +1,8 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
@@ -34,7 +33,7 @@ public class GetRequestReactor extends AbstractReactor {
 		organizeKeys();
 		String url = this.keyValue.get(this.keysToGet[0]);
 		Utility.checkIfValidDomain(url);
-		List<Map<String, String>> headersMap = getHeadersMap();
+		Map<String, String> headersMap = getHeadersMap();
 		String keyStore = null;
 		String keyStorePass = null;
 		String keyPass = null;
@@ -51,9 +50,9 @@ public class GetRequestReactor extends AbstractReactor {
 		}
 		
 		if (saveFile) {
-			return file(headersMap, url, keyStore, keyStorePass, keyPass);	
+			return file(url, headersMap, keyStore, keyStorePass, keyPass);	
 		} else {
-			return nonFile(headersMap, url, keyStore, keyStorePass, keyPass);	
+			return nonFile(url, headersMap, keyStore, keyStorePass, keyPass);	
 		}	
 	}
 	
@@ -66,8 +65,8 @@ public class GetRequestReactor extends AbstractReactor {
 	 * @param keyPass
 	 * @return
 	 */
-	private NounMetadata nonFile(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass) {
-		return new NounMetadata(AbstractHttpHelper.getRequest(headersMap, url, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
+	private NounMetadata nonFile(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
+		return new NounMetadata(AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
 	}
 	
 	/**
@@ -79,9 +78,9 @@ public class GetRequestReactor extends AbstractReactor {
 	 * @param keyPass
 	 * @return
 	 */
-	private NounMetadata file(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass) {
+	private NounMetadata file(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
 		String filePath = this.insight.getInsightFolder();
-		File savedFile = AbstractHttpHelper.getRequestFileDownload(headersMap, url, keyStore, keyStorePass, keyPass, filePath, null);
+		File savedFile = AbstractHttpHelper.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, filePath, null);
 		String savedFilePath = savedFile.getAbsolutePath();
 		String savedFileName = FilenameUtils.getName(savedFilePath);
 		// we only commit if its a saved insight
@@ -117,12 +116,12 @@ public class GetRequestReactor extends AbstractReactor {
 	 * Get headers to add to the request
 	 * @return
 	 */
-	private List<Map<String, String>> getHeadersMap() {
+	private Map<String, String> getHeadersMap() {
 		GenRowStruct headersGrs = this.store.getNoun(this.keysToGet[1]);
 		if(headersGrs != null && !headersGrs.isEmpty()) {
-			List<Map<String, String>> headers = new Vector<Map<String, String>>();
+			Map<String, String> headers = new HashMap<>();
 			for(int i = 0; i < headersGrs.size(); i++) {
-				headers.add( (Map<String, String>) headersGrs.get(i)); 
+				headers.putAll( (Map<String, String>) headersGrs.get(i)); 
 			}
 			return headers;
 		}
