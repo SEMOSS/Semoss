@@ -44,6 +44,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
@@ -71,6 +72,15 @@ public abstract class AbstractHttpHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractHttpHelper.class.getName());
 	private static ObjectMapper mapper = new ObjectMapper();
+	
+	public enum POST_BODY_ENTITY {
+			STRING_ENTITY, 
+			BYTE_ARRAY_ENTITY,
+			INPUT_STREAM_ENTITY,
+			URL_ENCODED_ENTITY,
+			SERIALIZABLE_ENTITY,
+			FILE_ENTITY,
+			};
 	
 	/////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
@@ -704,14 +714,14 @@ public abstract class AbstractHttpHelper {
 	
 	/**
 	 * 
-	 * @param headersMap
 	 * @param url
+	 * @param headerMap
 	 * @param keyStore
 	 * @param keyStorePass
 	 * @param keyPass
 	 * @return
 	 */
-	public static String getRequest(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass) {
+	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass, String keyPass) {
 		CloseableHttpResponse response = null;
 		CloseableHttpClient httpClient = null;
 		HttpEntity entity = null;
@@ -719,12 +729,9 @@ public abstract class AbstractHttpHelper {
 		try {
 			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(int i = 0; i < headersMap.size(); i++) {
-					Map<String, String> head = headersMap.get(i);
-					for(String key : head.keySet()) {
-						httpGet.addHeader(key, head.get(key));
-					}
+			if(headerMap != null && !headerMap.isEmpty()) {
+				for(String key : headerMap.keySet()) {
+					httpGet.addHeader(key, headerMap.get(key));
 				}
 			}
 			response = httpClient.execute(httpGet);
@@ -768,8 +775,8 @@ public abstract class AbstractHttpHelper {
 
 	/**
 	 * 
-	 * @param headersMap
 	 * @param url
+	 * @param headerMap
 	 * @param keyStore
 	 * @param keyStorePass
 	 * @param keyPass
@@ -777,7 +784,7 @@ public abstract class AbstractHttpHelper {
 	 * @param saveFileName
 	 * @return
 	 */
-	public static File getRequestFileDownload(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
+	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore, String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
 		String fileName = saveFileName;
 		if(fileName == null) {
 			// if not passed in, see if we can grab it from the URL
@@ -799,12 +806,9 @@ public abstract class AbstractHttpHelper {
 		try {
 			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(int i = 0; i < headersMap.size(); i++) {
-					Map<String, String> head = headersMap.get(i);
-					for(String key : head.keySet()) {
-						httpGet.addHeader(key, head.get(key));
-					}
+			if(headerMap != null && !headerMap.isEmpty()) {
+				for(String key : headerMap.keySet()) {
+					httpGet.addHeader(key, headerMap.get(key));
 				}
 			}
 			response = httpClient.execute(httpGet);
@@ -884,6 +888,99 @@ public abstract class AbstractHttpHelper {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param bodyMap
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap, Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpPost httpPost = new HttpPost(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpPost.addHeader(key, headersMap.get(key));
+				}
+			}
+			if(bodyMap != null && !bodyMap.isEmpty()) {
+				List<NameValuePair> params = new ArrayList<NameValuePair>();
+				for(String key : bodyMap.keySet()) {
+					params.add(new BasicNameValuePair(key, bodyMap.get(key)));
+				}
+				httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+			}
+			response = httpClient.execute(httpPost);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity) : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity) : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param body
+	 * @param contentType
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpPost httpPost = new HttpPost(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpPost.addHeader(key, headersMap.get(key));
+				}
+			}
+			if(body != null && !body.isEmpty()) {
+				httpPost.setEntity(new StringEntity(body, contentType));
+			}
+			response = httpClient.execute(httpPost);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity) : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity) : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 	}
 }
