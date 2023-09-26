@@ -1,10 +1,8 @@
 package prerna.aws;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -55,22 +53,20 @@ public class AwsSecretsManager {
 			throw new NullPointerException("Must define the ARN of the secret");
 		}
 		
-		List<Map<String, String>> headersMap = new ArrayList<>();
-		Map<String, String> authMap = new HashMap<>();
-		authMap.put("SecretId", this.secretId);
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put("SecretId", this.secretId);
 		if(this.versionId != null && !(this.versionId=this.versionId.trim()).isEmpty()) {
-			authMap.put("VersionId", this.versionId);
+			headersMap.put("VersionId", this.versionId);
 		}
 		if(this.versionStage != null && !(this.versionStage=this.versionStage.trim()).isEmpty()) {
-			authMap.put("VersionStage", this.versionStage);
+			headersMap.put("VersionStage", this.versionStage);
 		}
 		if(this.accessKey != null && this.secretKey != null) {
 			String authorization = createAuthorizationHeader(accessKey, secretKey);
-			authMap.put("Authorization", authorization);
+			headersMap.put("Authorization", authorization);
 		}
-		headersMap.add(authMap);
 
-		this.responseData = AbstractHttpHelper.getRequest(headersMap, url, keyStore, keyStorePass, keyPass);
+		this.responseData = AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
 		this.responseJson = new Gson().fromJson(this.responseData, Map.class);
 	}
 
