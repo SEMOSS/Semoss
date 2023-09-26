@@ -55,14 +55,15 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
 	protected static final String STORE_VALUES_FRAME = "store";
 
-	protected RDFFileSesameEngine loadOwlEngineFile(String appId) {
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(appId + "_" + Constants.STORE);
+	protected RDFFileSesameEngine loadOwlEngineFile(String engineId) {
+		String smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
 		String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 
 		// owl is stored as RDF/XML file
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owlFile, null, null);
+        rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
 		return rfse;
 	}
 
