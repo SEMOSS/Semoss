@@ -356,7 +356,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private void updateExistingDatabase() throws Exception {
 		this.logger.info("Bringing in metamodel");
 		Owler owler = new Owler(this.database);
-		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
+		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(this.databaseId, owler);
 		Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
 		if (newMetamodel == null) {
 			throw new IllegalArgumentException("Must define the metamodel portions to change");
