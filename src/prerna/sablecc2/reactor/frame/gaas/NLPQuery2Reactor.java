@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.gaas;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,10 +12,12 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
@@ -52,7 +55,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				ReactorKeysEnum.TOKEN_COUNT.getKey(), 
 				ReactorKeysEnum.FRAME.getKey(),
 				"allFrames",
-				"dialect"
+				"dialect", 
+				ReactorKeysEnum.ENGINE.getKey()
 		};
 	}
 
@@ -93,12 +97,20 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			dialect = "SQLite3";
 		}
 
+		IModelEngine engine = null;
 		
+		if(keyValue.containsKey(keysToGet[6]))
+		{
+			String engineId = this.keyValue.get(this.keysToGet[6]);
+			engine = (IModelEngine) Utility.getEngine(engineId);
+		}
 		String model = DIHelper.getInstance().getProperty(Constants.SQL_MOOSE_MODEL);
 		if(model == null || model.trim().isEmpty()) {
 			model = "gpt_3";
 		}
-
+		
+		if(engine != null)
+			model = "";
 
 		// create the prompt
 		// format
@@ -175,7 +187,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				}
 				finalQuery.append("Provide as markdown. SQL to list ").append(query);				
 			}
-			else
+			else if(engine == null)
 			{
 				finalDbString.append("### "+dialect+" SQL Tables, with their properties:");
 				finalDbString.append("\\n#\\n");
@@ -201,7 +213,34 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				logger.info("executing query " + finalDbString);
 
 			}
-			Object output;
+			else
+			{
+				//finalDbString.append("Write SQLite query to answer the following question given the database schema. Please wrap your code answer using ```: Schema: ");
+				finalDbString.append("Given Database Schema: ");
+				Map <String, SemossDataType> columnTypes = thisFrame.getMetaData().getHeaderToTypeMap();
+				finalDbString.append("CREATE TABLE ").append(thisFrame.getName()).append("(");
+				Iterator <String> columns = columnTypes.keySet().iterator();
+				while(columns.hasNext())
+				{
+					String thisColumn = columns.next();
+					SemossDataType colType = columnTypes.get(thisColumn);
+					
+					thisColumn = thisColumn.replace(thisFrame.getName() + "__", "");
+					String colTypeString = SemossDataType.convertDataTypeToString(colType);
+					if(colType == SemossDataType.DOUBLE || colType == SemossDataType.INT)
+						colTypeString = "NUMBER";
+					if(colType == SemossDataType.STRING)
+						colTypeString = "TEXT";
+					
+					finalDbString.append(thisColumn).append("  ").append(colTypeString).append(",");
+				}
+				finalDbString.append(")");
+				finalDbString.append(". Provide an SQL to list ").append(query);
+				finalDbString.append(". Be Concise. Provide as markdown");
+				logger.info(finalDbString + "");
+			}
+			
+			Object output = null;
 			if(model.equalsIgnoreCase("alpaca")) {
 				String endpoint = DIHelper.getInstance().getProperty(Constants.MOOSE_ENDPOINT);
 				if(endpoint == null || endpoint.trim().isEmpty()) {
@@ -253,8 +292,36 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				output = output.toString().replace("sql", "");
 				//insight.getPyTranslator().runScript("del " + client_name);
 			}
-			else {
+			else if(engine == null){
 				output = insight.getPyTranslator().runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + maxTokens + ")");
+			}
+			else
+			{
+				Map params = new HashMap();
+				params.put("temperature", "0.66");
+				Map<String, String> modelOutput = engine.ask(finalDbString +"", null, this.insight, params);
+				String response = modelOutput.get("response");
+				
+				// if it comes in with finalDBString take it out
+				response = response.replace(finalDbString, "");
+				
+				String markdown = "```";
+				int start = response.indexOf(markdown);
+				if(start >= 0)
+					response = response.substring(start + markdown.length());
+				// get the select also
+				start = response.indexOf("SELECT");
+				if(start >= 0)
+					response = response.substring(start);
+				// remove the end quotes
+				int end = response.indexOf("```");
+				if(end >= 0)
+					response = response.substring(0, end);
+				end = response.indexOf(";");
+				if(end >= 0)
+					response = response.substring(0, end);
+				logger.info(response);
+				output = response;
 			}
 			// get the string
 			// make a frame
