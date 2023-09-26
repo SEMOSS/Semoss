@@ -70,6 +70,7 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.upload.UploadUtilities;
 
 /**
  * An Abstract Engine that sets up the base constructs needed to create an
@@ -617,12 +618,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		}
 
 		// remove from DIHelper
-		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + this.engineId, "");
-		// in case we are at the start
-		engineIds = engineIds.replace(this.engineId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
-		DIHelper.getInstance().removeEngineProperty(this.engineId);
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override
