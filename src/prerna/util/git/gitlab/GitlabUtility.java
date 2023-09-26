@@ -1,7 +1,6 @@
 package prerna.util.git.gitlab;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,16 +47,14 @@ public class GitlabUtility {
 			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
-		List<Map<String, String>> headersMap = new ArrayList<>();
-		Map<String, String> authMap = new HashMap<>();
+		Map<String, String> headersMap = new HashMap<>();
 		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			authMap.put("Authorization: Bearer", personalOAuthToken);
+			headersMap.put("Authorization: Bearer", personalOAuthToken);
 		} else if(privateToken != null && !privateToken.isEmpty()) {
-			authMap.put("PRIVATE-TOKEN", privateToken);
+			headersMap.put("PRIVATE-TOKEN", privateToken);
 		}
-		headersMap.add(authMap);
 		
-		String responseData = AbstractHttpHelper.getRequest(headersMap, url, keyStore, keyStorePass, keyPass);
+		String responseData = AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
 		Gson gson = new Gson();
         return gson.fromJson(responseData, List.class);
 	}
@@ -88,16 +85,14 @@ public class GitlabUtility {
 			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
-		List<Map<String, String>> headersMap = new ArrayList<>();
-		Map<String, String> authMap = new HashMap<>();
+		Map<String, String> headersMap = new HashMap<>();
 		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			authMap.put("Authorization: Bearer", personalOAuthToken);
+			headersMap.put("Authorization: Bearer", personalOAuthToken);
 		} else if(privateToken != null && !privateToken.isEmpty()) {
-			authMap.put("PRIVATE-TOKEN", privateToken);
+			headersMap.put("PRIVATE-TOKEN", privateToken);
 		}
-		headersMap.add(authMap);
 		
-		String responseData = AbstractHttpHelper.getRequest(headersMap, url, keyStore, keyStorePass, keyPass);
+		String responseData = AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
 		Gson gson = new Gson();
         return gson.fromJson(responseData, List.class);
 	}
@@ -131,20 +126,18 @@ public class GitlabUtility {
 			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
-		List<Map<String, String>> headersMap = new ArrayList<>();
-		Map<String, String> authMap = new HashMap<>();
+		Map<String, String> headersMap = new HashMap<>();
 		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			authMap.put("Authorization: Bearer", personalOAuthToken);
+			headersMap.put("Authorization: Bearer", personalOAuthToken);
 		} else if(privateToken != null && !privateToken.isEmpty()) {
-			authMap.put("PRIVATE-TOKEN", privateToken);
+			headersMap.put("PRIVATE-TOKEN", privateToken);
 		}
-		headersMap.add(authMap);
 
 		if(saveFileName == null || saveFileName.isEmpty()) {
 			saveFileName = "artifact.zip";
 		}
 		
-		File artifact = AbstractHttpHelper.getRequestFileDownload(headersMap, url, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+		File artifact = AbstractHttpHelper.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
 		return artifact;
 	}
 	
@@ -184,20 +177,18 @@ public class GitlabUtility {
 			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
-		List<Map<String, String>> headersMap = new ArrayList<>();
-		Map<String, String> authMap = new HashMap<>();
+		Map<String, String> headersMap = new HashMap<>();
 		if(personalOAuthToken != null && !personalOAuthToken.isEmpty()) {
-			authMap.put("Authorization: Bearer", personalOAuthToken);
+			headersMap.put("Authorization: Bearer", personalOAuthToken);
 		} else if(privateToken != null && !privateToken.isEmpty()) {
-			authMap.put("PRIVATE-TOKEN", privateToken);
+			headersMap.put("PRIVATE-TOKEN", privateToken);
 		}
-		headersMap.add(authMap);
 
 		if(saveFileName == null || saveFileName.isEmpty()) {
 			saveFileName = "artifact.zip";
 		}
 		
-		File artifact = AbstractHttpHelper.getRequestFileDownload(headersMap, url, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+		File artifact = AbstractHttpHelper.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
 		return artifact;
 	}
 	
