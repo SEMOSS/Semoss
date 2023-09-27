@@ -3086,6 +3086,8 @@ public class Utility {
 			return getStorage(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
 			return getModel(engineId, pullIfNeeded);
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return getVectorDatabase(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
