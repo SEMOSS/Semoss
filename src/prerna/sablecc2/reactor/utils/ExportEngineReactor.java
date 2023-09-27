@@ -143,11 +143,15 @@ public class ExportEngineReactor extends AbstractReactor {
 	 */
 	private String getEngineFolder(IEngine.CATALOG_TYPE type) {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
-			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.DB_FOLDER;
+			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.DATABASE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
 			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.STORAGE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
 			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.MODEL_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.VECTOR_FOLDER;
+		}  else if(IEngine.CATALOG_TYPE.SERVICE == type) {
+			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.SERVICE_FOLDER;
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type " + type);
