@@ -1,13 +1,11 @@
 package prerna.engine.impl.service;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,25 +13,13 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IServiceEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.security.AbstractHttpHelper;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.upload.UploadUtilities;
 
-public class RESTServiceEngine implements IServiceEngine {
+public class RESTServiceEngine extends AbstractServiceEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RESTServiceEngine.class);
 
-	private String engineId;
-	private String engineName;
-	
-	private String smssFilePath;
-	private Properties smssProp;
-	
 	private String httpMethod;
 	private String url;
 	private Map<String, String> headers;
@@ -41,32 +27,6 @@ public class RESTServiceEngine implements IServiceEngine {
 	
 	private String contentType = "JSON";
 	
-	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
-
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
-
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-
-	@Override
-	public void open(String smssFilePath) throws Exception {
-		setSmssFilePath(smssFilePath);
-		open(Utility.loadProperties(smssFilePath));
-	}
-
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
@@ -98,39 +58,6 @@ public class RESTServiceEngine implements IServiceEngine {
 		if(smssProp.containsKey("CONTENT_TYPE")) {
 			this.contentType = smssProp.getProperty("CONTENT_TYPE");
 		}
-	}
-	
-	@Override
-	public void delete() throws IOException {
-		classLogger.debug("Delete database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch(IOException e) {
-			classLogger.warn("Error occurred trying to close service engine");
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		File engineFolder =new File(
-				DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "/" + Constants.SERVICE_FOLDER 
-				+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-
-		try {
-			FileUtils.deleteDirectory(engineFolder);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		classLogger.debug("Deleting smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override
@@ -167,47 +94,6 @@ public class RESTServiceEngine implements IServiceEngine {
 		}
 		return output;
 	}
-
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
-	}
-
-	@Override
-	public void setSmssProp(Properties smssProp) {
-		this.smssProp = smssProp;
-	}
-
-	@Override
-	public Properties getSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public CATALOG_TYPE getCatalogType() {
-		return IEngine.CATALOG_TYPE.SERVICE;
-	}
-
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return null;
-	}
-
-	@Override
-	public boolean holdsFileLocks() {
-		return false;
-	}
-
 	
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
