@@ -457,10 +457,10 @@ public class CentralCloudStorage implements ICloudClient {
 			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(aliasAndEngineId) + " to target=" + Utility.cleanLogString(localEngineFolder));
 
 			// Now pull the smss
-			classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(cloudEngineSmssFolder) + " to target=" + DATABASE_FOLDER);
+			classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(cloudEngineSmssFolder) + " to target=" + localEngineBaseFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			centralStorageEngine.copyToLocal(cloudEngineSmssFolder, DATABASE_FOLDER, sharedRCloneConfig);
-			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(cloudEngineSmssFolder) + " to target=" + DATABASE_FOLDER);
+			centralStorageEngine.copyToLocal(cloudEngineSmssFolder, localEngineBaseFolder, sharedRCloneConfig);
+			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(cloudEngineSmssFolder) + " to target=" + localEngineBaseFolder);
 
 			// Catalog the db if it is new
 			if (!engineAlreadyLoaded) {
@@ -499,7 +499,8 @@ public class CentralCloudStorage implements ICloudClient {
 		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 		String localSmssFileName = SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
-		String localSmssFilePath = Utility.normalizePath(MODEL_FOLDER + FILE_SEPARATOR + localSmssFileName);
+		String localEngineBaseFolder = getLocalEngineBaseDirectory(engineType);
+		String localSmssFilePath = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName);
 		
 		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
 		String cloudSmssFolder = cloudContainerPrefix + engineId + SMSS_POSTFIX;
