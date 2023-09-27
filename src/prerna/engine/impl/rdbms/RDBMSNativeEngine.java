@@ -961,7 +961,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			close();
 			if(this.dbType == RdbmsTypeEnum.H2_DB) {
 				String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-						+ "/" + Constants.DB_FOLDER 
+						+ "/" + Constants.DATABASE_FOLDER 
 						+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId);
 				DeleteDbFiles.execute(path, "database", false);
 			}

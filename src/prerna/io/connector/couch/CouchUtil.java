@@ -501,7 +501,7 @@ public class CouchUtil {
 					images = InsightUtility.findImageFile(imagePath, databaseId);
 				} else {
 					String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-							+ DIR_SEPARATOR + Constants.DB_FOLDER 
+							+ DIR_SEPARATOR + Constants.DATABASE_FOLDER 
 							+ DIR_SEPARATOR + SmssUtilities.getUniqueName(databaseName, databaseId) 
 							+ DIR_SEPARATOR + "app_root"
 							+ DIR_SEPARATOR + "version";

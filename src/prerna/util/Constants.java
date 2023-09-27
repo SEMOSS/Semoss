@@ -377,7 +377,7 @@ public class Constants {
 	public static final String OWL_ENGINE_SUFFIX = "?OWL";
 
 	// folder names on engines / projects
-	public static final String DB_FOLDER = "db";
+	public static final String DATABASE_FOLDER = "db";
 	public static final String STORAGE_FOLDER = "storage";
 	public static final String MODEL_FOLDER = "model";
 	public static final String SERVICE_FOLDER = "service";
@@ -794,7 +794,6 @@ public class Constants {
 	public static final String COMPOSITE_KEY_TYPE = "COMPOSITE";
 	public static final String META_KEY = "URI:KEY";
 	
-	public static final String DATABASE_FOLDER = "db";
 	public static final String SEMOSS_EXTENSION = ".smss";
 	public static final String HIDDEN_FILE_EXTENSION = ".hidden";
 	public static final String ENCRYPT_SMSS = "ENCRYPT_SMSS";

@@ -109,7 +109,7 @@ public class CentralCloudStorage implements ICloudClient {
 					baseFolder += "/";
 				}
 				instance = new CentralCloudStorage();
-				CentralCloudStorage.DATABASE_FOLDER = baseFolder + Constants.DB_FOLDER;
+				CentralCloudStorage.DATABASE_FOLDER = baseFolder + Constants.DATABASE_FOLDER;
 				CentralCloudStorage.STORAGE_FOLDER = baseFolder + Constants.STORAGE_FOLDER;
 				CentralCloudStorage.MODEL_FOLDER = baseFolder + Constants.MODEL_FOLDER;
 				CentralCloudStorage.PROJECT_FOLDER = baseFolder + Constants.PROJECT_FOLDER;
