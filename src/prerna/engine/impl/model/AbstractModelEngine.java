@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
@@ -53,7 +54,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	String port = null;
 	String prefix = null;
 	String workingDirecotry;
-	String workingDirectoryBasePath;
+	String workingDirectoryBasePath = null;
 	File cacheFolder;
 	
 	// string substitute vars
@@ -96,16 +97,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			this.keepConversationHistory = keepContext;
 			this.keepInputOutput = keepContext;
 		}
-		
-		// create a generic folder
-		this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
-		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
-		this.cacheFolder = new File(workingDirectoryBasePath);
-		
-		// make the folder if one does not exist
-		if(!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdir();
-		}
 			
 		// vars for string substitution
 		this.vars = new HashMap<>(this.smssProp);
@@ -133,6 +124,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		if(smssProp.containsKey(Constants.IDLE_TIMEOUT))
 			timeout = smssProp.getProperty(Constants.IDLE_TIMEOUT);
 
+		if (this.workingDirectoryBasePath == null) {
+			this.createCacheFolder();
+		}
+		
 		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, timeout);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
@@ -220,7 +215,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	public Object embeddings(String question, Insight insight, Map <String, Object> parameters) {
-		if(!this.socketClient.isConnected())
+		if(this.socketClient == null || !this.socketClient.isConnected())
 			this.startServer();
 		String varName = (String) smssProp.get(ModelEngineConstants.VAR_NAME);
 	
@@ -241,12 +236,28 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 	
 	@Override
-	public void close() {
-		try {
-			socketClient.crash();
-			FileUtils.deleteDirectory(cacheFolder);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+	public void close() throws IOException {
+		if (this.socketClient.isConnected() && this.p.isAlive()) {
+			this.socketClient.stopPyServe(cacheFolder.getAbsolutePath());
+			this.socketClient.disconnect();
+			this.socketClient.setConnected(false);
+			
+			// we delete this directory so need to reset
+			this.workingDirectoryBasePath = null;
+			
+			this.p.destroy();
+		}
+	}
+	
+	private void createCacheFolder() {
+		// create a generic folder
+		this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
+		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
+		this.cacheFolder = new File(workingDirectoryBasePath);
+		
+		// make the folder if one does not exist
+		if(!this.cacheFolder.exists()) {
+			this.cacheFolder.mkdir();
 		}
 	}
 	
@@ -413,8 +424,41 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	@Override
 	public void delete() {
-		// TODO Auto-generated method stub
+		classLogger.debug("Delete model engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		try {
+			this.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		File engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "/" + Constants.MODEL_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		if(engineFolder.exists()) {
+			classLogger.info("Delete model engine folder " + engineFolder);
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.info("Model engine folder " + engineFolder + " does not exist");
+		}
 		
+		classLogger.info("Deleting model engine smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch(IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// remove from DIHelper
+		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		engineIds = engineIds.replace(";" + this.engineId, "");
+		// in case we are at the start
+		engineIds = engineIds.replace(this.engineId + ";", "");
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+		DIHelper.getInstance().removeEngineProperty(this.engineId);
 	}
 	
 	@Override
