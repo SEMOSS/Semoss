@@ -360,7 +360,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 			close();
 			// see if any h2 files are here...
 			String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-					+ "/" + Constants.DB_FOLDER 
+					+ "/" + Constants.DATABASE_FOLDER 
 					+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId);
 			DeleteDbFiles.execute(path, "database", false);
 		} catch (Exception e) {
