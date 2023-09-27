@@ -113,7 +113,7 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 		}
 
 		File engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "/" + Constants.DB_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				+ "/" + Constants.STORAGE_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		if(engineFolder.exists()) {
 			classLogger.info("Delete storage engine folder " + engineFolder);
 			try {
