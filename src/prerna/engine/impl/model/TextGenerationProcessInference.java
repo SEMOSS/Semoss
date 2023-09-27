@@ -172,7 +172,11 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
                 classLogger.error(Constants.STACKTRACE, e);
             }
         }
-        super.close();
+        try {
+			super.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 	}
 	
 
