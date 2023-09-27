@@ -2,7 +2,7 @@ package prerna.engine.api;
 
 public enum VectorDatabaseTypeEnum {
 
-	FAISS("FAISS","prerna.engine.impl.model.EmbeddedModelEngine");
+	FAISS("FAISS","prerna.engine.impl.vector.FaissDatabaseEngine");
 	
 	private String vectorDbName;
 	private String vectorDbClass;
