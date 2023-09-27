@@ -2481,10 +2481,10 @@ public class Utility {
 			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
 			if(smssFilePath == null) {
-				engine.setSmssProp(smssProp);
+				engine.open(smssProp);
+			} else {
+				engine.open(smssFilePath);
 			}
-			engine.open(smssFilePath);
-
 			// set the engine in DIHelper
 			DIHelper.getInstance().setEngineProperty(engineId, engine);
 
@@ -2495,6 +2495,25 @@ public class Utility {
 					) {
 				engines = engines + ";" + engineId;
 				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
+			}
+			
+			if(DIHelper.getInstance().getLocalProp("core") == null 
+					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"")) {
+				// for database, load into local master as well
+				if(engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
+					boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB);
+					boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
+					boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
+					boolean isThemes = engineId.equals(Constants.THEMING_DB);
+					boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
+
+					if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
+						synchronizeEngineMetadata(engineId);
+					}
+				}
+				
+				// always load into security
+				SecurityEngineUtils.addEngine(engineId, null);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2517,24 +2536,7 @@ public class Utility {
 	public static IDatabaseEngine loadDatabase(String smssFilePath, Properties smssProp) {
 		IDatabaseEngine engine = null;
 		try {
-			String engineId = smssProp.getProperty(Constants.ENGINE);
 			engine = (IDatabaseEngine) loadEngine(smssFilePath, smssProp);
-
-			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB);
-			boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
-			boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
-			boolean isThemes = engineId.equals(Constants.THEMING_DB);
-			boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
-
-			if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
-				// sync up the engine metadata now
-				synchronizeEngineMetadata(engineId);
-				// need to do a check to see if this is socket side here
-				if((DIHelper.getInstance().getLocalProp("core") == null 
-						|| DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-					SecurityEngineUtils.addEngine(engineId, null);
-				}
-			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -2550,13 +2552,7 @@ public class Utility {
 	public static IStorageEngine loadStorage(String smssFilePath, Properties smssProp) {
 		IStorageEngine engine = null;
 		try {
-			String engineId = smssProp.getProperty(Constants.ENGINE);
 			engine = (IStorageEngine) loadEngine(smssFilePath, smssProp);
-
-			if((DIHelper.getInstance().getLocalProp("core") == null 
-					|| DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-				SecurityEngineUtils.addEngine(engineId, null);
-			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -2572,13 +2568,7 @@ public class Utility {
 	public static IModelEngine loadModel(String smssFilePath, Properties smssProp) {
 		IModelEngine engine = null;
 		try {
-			String engineId = smssProp.getProperty(Constants.ENGINE);
 			engine = (IModelEngine) loadEngine(smssFilePath, smssProp);
-
-			if((DIHelper.getInstance().getLocalProp("core") == null 
-					|| DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-				SecurityEngineUtils.addEngine(engineId, null);
-			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -2594,13 +2584,7 @@ public class Utility {
 	public static IVectorDatabaseEngine loadVectorDatabase(String smssFilePath, Properties smssProp) {
 		IVectorDatabaseEngine engine = null;
 		try {
-			String engineId = smssProp.getProperty(Constants.ENGINE);
 			engine = (IVectorDatabaseEngine) loadEngine(smssFilePath, smssProp);
-
-			if((DIHelper.getInstance().getLocalProp("core") == null
-					|| DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-				SecurityEngineUtils.addEngine(engineId, null);
-			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -2616,13 +2600,7 @@ public class Utility {
 	public static IServiceEngine loadServiceEngine(String smssFilePath, Properties smssProp) {
 		IServiceEngine engine = null;
 		try {
-			String engineId = smssProp.getProperty(Constants.ENGINE);
 			engine = (IServiceEngine) loadEngine(smssFilePath, smssProp);
-
-			if((DIHelper.getInstance().getLocalProp("core") == null
-					|| DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-				SecurityEngineUtils.addEngine(engineId, null);
-			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -3010,7 +2988,7 @@ public class Utility {
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return getVectorDatabase(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
-			return getVectorDatabase(engineId, pullIfNeeded);
+			return getServiceEngine(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
@@ -3018,33 +2996,24 @@ public class Utility {
 	
 	/**
 	 * 
-	 * @param engineId - engine to get
+	 * @param engineId
+	 * @param pullIfNeeded
 	 * @return
-	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IDatabaseEngine getDatabase(String engineId) {
-		return getDatabase(engineId, true);
-	}
-
-	/**
-	 * 
-	 * @param databaseId - engine to get
-	 * @return
-	 * 
-	 *         Use this method to get the engine when the engine hasn't been loaded
-	 */
-	public static IDatabaseEngine getDatabase(String databaseId, boolean pullIfNeeded) {
-		IDatabaseEngine database = null;
+	private static IEngine baseGetEngine(String engineId, boolean pullIfNeeded) {
+		IEngine engine = null;
 		
 		// Now that the database has been pulled, grab the smss file
 		String smssFile = null;
 		boolean reloadDB = false;
 		Properties prop = null;
 		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-		{
+		boolean runningInCore = DIHelper.getInstance().getLocalProp("core") == null 
+				|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"");
+		
+		if(runningInCore) {
 			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
+			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 		}
 		else // this is happening on the socket side
 		{
@@ -3054,9 +3023,9 @@ public class Utility {
 			// once reloaded it will be present in the DI Helper
 			// check DI Helper to see if this is needed
 			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(databaseId) == null) // if already loaded.. no need to load again
+			if(DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
 			{
-				prop = getEngineDetails(databaseId);
+				prop = getEngineDetails(engineId);
 				if(prop != null)
 				{
 					reloadDB = true; 
@@ -3072,62 +3041,58 @@ public class Utility {
 		
 		//logger.info("Reload DB is set to " + reloadDB);
 
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
-		{
+		if( runningInCore || reloadDB ) {
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getEngineProperty(databaseId) != null) {
-				database = (IDatabaseEngine) DIHelper.getInstance().getEngineProperty(databaseId);
+			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
+				engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 			} else {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for database " + Utility.cleanLogString(databaseId) + " to pull");
+				logger.info("Applying lock for engine " + Utility.cleanLogString(engineId) + " to pull");
 				ReentrantLock lock = null;
 				try {
-					lock = EngineSyncUtility.getEngineLock(databaseId);
+					lock = EngineSyncUtility.getEngineLock(engineId);
 					lock.lock();
-					logger.info("Database "+ Utility.cleanLogString(databaseId) + " is locked");
+					logger.info("Engine "+ Utility.cleanLogString(engineId) + " is locked");
 		
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
-					if (DIHelper.getInstance().getEngineProperty(databaseId) != null) {
-						return (IDatabaseEngine) DIHelper.getInstance().getEngineProperty(databaseId);
+					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
+						return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 					}
 					
-					// If in a clustered environment, then pull the app first
-					// TODO >>>timb: need to pull sec and lmd each time. They also need
-					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullEngine(databaseId);
+						ClusterUtil.pullEngine(engineId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
+					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 					
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
-						database = Utility.loadDatabase(smssFile, Utility.loadProperties(smssFile));
+						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
 					}
 					else if(prop != null)
 					{
-						database = Utility.loadDatabase(null, prop);	
+						engine = Utility.loadEngine(null, prop);	
 					} else {
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
+						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
 					}
 	
 					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
 					// TODO >>>timb: remove node exists error or catch it
 					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!(databaseId.startsWith("security") || databaseId.startsWith("LocalMasterDatabase")
-							|| databaseId.startsWith("form_builder_engine") || databaseId.startsWith("themes") || databaseId.startsWith("scheduler") 
-							|| databaseId.startsWith("UserTrackingDatabase") )) {
+					if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
+							|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
+							|| engineId.startsWith("UserTrackingDatabase") )) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -3148,7 +3113,7 @@ public class Utility {
 								
 								// we are in business
 								ZKClient client = ZKClient.getInstance();
-								client.publishDB(databaseId + "@" + host);
+								client.publishDB(engineId + "@" + host);
 							}
 						}
 					}
@@ -3156,7 +3121,7 @@ public class Utility {
 					// Make sure to unlock now
 					if(lock != null) {
 						lock.unlock();
-						logger.info("Database "+ Utility.cleanLogString(databaseId) + " is unlocked");
+						logger.info("Engine "+ Utility.cleanLogString(engineId) + " is unlocked");
 					}
 				}
 			}
@@ -3164,276 +3129,67 @@ public class Utility {
 		}
 		else // this is happening on the socket side
 		{
-			database = new EngineSocketWrapper(databaseId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
+			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
 		}
-		return database;
+		return engine;
 	}
 	
 	/**
 	 * 
-	 * @param engineId
+	 * @param engineId - engine to get
 	 * @return
+	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IStorageEngine getStorage(String storageId) {
-		return getStorage(storageId, true);
+	public static IDatabaseEngine getDatabase(String engineId) {
+		return getDatabase(engineId, true);
 	}
 
 	/**
 	 * 
-	 * @param storageId
+	 * @param engineId
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IStorageEngine getStorage(String storageId, boolean pullIfNeeded) {
-		IStorageEngine storage = null;
-		
-		// Now that the database has been pulled, grab the smss file
-		String smssFile = null;
-		boolean reloadDB = false;
-		Properties prop = null;
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-		{
-			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getEngineProperty(storageId + "_" + Constants.STORE);
-		}
-		else // this is happening on the socket side
-		{
-			// on the socket side
-			// it will pull the smss
-			// and reload the engine
-			// once reloaded it will be present in the DI Helper
-			// check DI Helper to see if this is needed
-			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(storageId) == null) // if already loaded.. no need to load again
-			{
-				prop = getEngineDetails(storageId);
-				if(prop != null)
-				{
-					reloadDB = true; 
-				}
-			}
-			else
-			{
-				// this is already a loaded engine
-				// engine socket wrapper is not persisted in the cache so we are all set here
-				reloadDB = true;
-			}
-		}
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
-		{
-			// If the engine has already been loaded, then return it
-			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getEngineProperty(storageId) != null) {
-				storage = (IStorageEngine) DIHelper.getInstance().getEngineProperty(storageId);
-			} else {
-				// Acquire the lock on the engine,
-				// don't want several calls to try and load the engine at the same
-				// time
-				logger.info("Applying lock for storage " + Utility.cleanLogString(storageId) + " to pull");
-				ReentrantLock lock = null;
-				try {
-					lock = EngineSyncUtility.getEngineLock(storageId);
-					lock.lock();
-					logger.info("Storage "+ Utility.cleanLogString(storageId) + " is locked");
-		
-					// Need to do a double check here,
-					// so if a different thread was waiting for the engine to load,
-					// it doesn't go through this process again
-					if (DIHelper.getInstance().getEngineProperty(storageId) != null) {
-						return (IStorageEngine) DIHelper.getInstance().getEngineProperty(storageId);
-					}
-					
-					// If in a clustered environment, then pull the app first
-					// TODO >>>timb: need to pull sec and lmd each time. They also need
-					// correct jdbcs...
-					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullEngine(storageId);
-					}
-					
-					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getEngineProperty(storageId + "_" + Constants.STORE);
-					
-					// Start up the engine using the details in the smss
-					if (smssFile != null) {
-						// actual load engine process
-						storage = Utility.loadStorage(smssFile, Utility.loadProperties(smssFile));
-					}
-					else if(prop != null)
-					{
-						storage = Utility.loadStorage(null, prop);	
-					} else {
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(storageId) + "...");
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(storageId) + "...");
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(storageId) + "...");
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(storageId) + "...");
-					}
-	
-//					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
-//					// TODO >>>timb: remove node exists error or catch it
-//					// TODO >>>cluster: tag
-//					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-//					if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
-//							|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
-//							|| engineId.startsWith("UserTrackingDatabase") )) {
-//						Map<String, String> envMap = System.getenv();
-//						if (envMap.containsKey(ZKClient.ZK_SERVER)
-//								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
-//							if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
-//	
-//								// Only publish if actually loading on this box
-//								// TODO >>>timb: this logic only works insofar as we are assuming a user-based
-//								// docker layer in addition to the app containers
-//								String host = "unknown";
-//	
-//								if (envMap.containsKey(ZKClient.HOST)) {
-//									host = envMap.get(ZKClient.HOST);
-//								}
-//								
-//								if (envMap.containsKey(ZKClient.HOST.toUpperCase())) {
-//									host = envMap.get(ZKClient.HOST.toUpperCase());
-//								}
-//								
-//								// we are in business
-//								ZKClient client = ZKClient.getInstance();
-//								client.publishDB(engineId + "@" + host);
-//							}
-//						}
-//					}
-				} finally {
-					// Make sure to unlock now
-					if(lock != null) {
-						lock.unlock();
-						logger.info("Storage "+ Utility.cleanLogString(storageId) + " is unlocked");
-					}
-				}
-			}
-			// send the information of engine to the smssfile to the socket
-		}
-//		else // this is happening on the socket side
-//		{
-//			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
-//		}
-		return storage;
+	public static IDatabaseEngine getDatabase(String engineId, boolean pullIfNeeded) {
+		return (IDatabaseEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
-
+	
 	/**
 	 * 
 	 * @param engineId
 	 * @return
 	 */
-	public static IModelEngine getModel(String modelId) {
-		return getModel(modelId, true);
+	public static IStorageEngine getStorage(String engineId) {
+		return getStorage(engineId, true);
 	}
 
 	/**
 	 * 
-	 * @param modelId
+	 * @param engineId
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IModelEngine getModel(String modelId, boolean pullIfNeeded) {
-		IModelEngine model = null;
-		
-		// Now that the database has been pulled, grab the smss file
-		String smssFile = null;
-		boolean reloadDB = false;
-		Properties prop = null;
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-		{
-			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getEngineProperty(modelId + "_" + Constants.STORE);
-		}
-		else // this is happening on the socket side
-		{
-			// on the socket side
-			// it will pull the smss
-			// and reload the engine
-			// once reloaded it will be present in the DI Helper
-			// check DI Helper to see if this is needed
-			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(modelId) == null) // if already loaded.. no need to load again
-			{
-				prop = getEngineDetails(modelId);
-				if(prop != null)
-				{
-					reloadDB = true; 
-				}
-			}
-			else
-			{
-				// this is already a loaded engine
-				// engine socket wrapper is not persisted in the cache so we are all set here
-				reloadDB = true;
-			}
-		}
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
-		{
-			// If the engine has already been loaded, then return it
-			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getEngineProperty(modelId) != null) {
-				model = (IModelEngine) DIHelper.getInstance().getEngineProperty(modelId);
-			} else {
-				// Acquire the lock on the engine,
-				// don't want several calls to try and load the engine at the same
-				// time
-				logger.info("Applying lock for model " + Utility.cleanLogString(modelId) + " to pull");
-				ReentrantLock lock = null;
-				try {
-					lock = EngineSyncUtility.getEngineLock(modelId);
-					lock.lock();
-					logger.info("Model "+ Utility.cleanLogString(modelId) + " is locked");
-		
-					// Need to do a double check here,
-					// so if a different thread was waiting for the engine to load,
-					// it doesn't go through this process again
-					if (DIHelper.getInstance().getEngineProperty(modelId) != null) {
-						return (IModelEngine) DIHelper.getInstance().getEngineProperty(modelId);
-					}
-					
-					// If in a clustered environment, then pull the app first
-					// TODO >>>timb: need to pull sec and lmd each time. They also need
-					// correct jdbcs...
-					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullEngine(modelId);
-					}
-					
-					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getEngineProperty(modelId + "_" + Constants.STORE);
-					
-					// Start up the engine using the details in the smss
-					if (smssFile != null) {
-						// actual load engine process
-						model = Utility.loadModel(smssFile, Utility.loadProperties(smssFile));
-					}
-					else if(prop != null)
-					{
-						model = Utility.loadModel(null, prop);	
-					} else {
-						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
-						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
-						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
-						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
-					}
-	
-				} finally {
-					// Make sure to unlock now
-					if(lock != null) {
-						lock.unlock();
-						logger.info("Model "+ Utility.cleanLogString(modelId) + " is unlocked");
-					}
-				}
-			}
-			// send the information of engine to the smssfile to the socket
-		}
-//		else // this is happening on the socket side
-//		{
-//			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
-//		}
-		return model;
+	public static IStorageEngine getStorage(String engineId, boolean pullIfNeeded) {
+		return (IStorageEngine) baseGetEngine(engineId, pullIfNeeded);
+	}
+
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IModelEngine getModel(String engineId) {
+		return getModel(engineId, true);
+	}
+
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IModelEngine getModel(String engineId, boolean pullIfNeeded) {
+		return (IModelEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	
@@ -3442,8 +3198,8 @@ public class Utility {
 	 * @param engineId
 	 * @return
 	 */
-	public static IVectorDatabaseEngine getVectorDatabase(String vectorDbId) {
-		return getVectorDatabase(vectorDbId, true);
+	public static IVectorDatabaseEngine getVectorDatabase(String engineId) {
+		return getVectorDatabase(engineId, true);
 	}
 
 	/**
@@ -3453,106 +3209,7 @@ public class Utility {
 	 * @return
 	 */
 	public static IVectorDatabaseEngine getVectorDatabase(String engineId, boolean pullIfNeeded) {
-		IVectorDatabaseEngine vectorDatabase = null;
-		
-		// Now that the database has been pulled, grab the smss file
-		String smssFile = null;
-		boolean reloadDB = false;
-		Properties prop = null;
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-		{
-			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		}
-		else // this is happening on the socket side
-		{
-			// on the socket side
-			// it will pull the smss
-			// and reload the engine
-			// once reloaded it will be present in the DI Helper
-			// check DI Helper to see if this is needed
-			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
-			{
-				prop = getEngineDetails(engineId);
-				if(prop != null)
-				{
-					reloadDB = true; 
-				}
-			}
-			else
-			{
-				// this is already a loaded engine
-				// engine socket wrapper is not persisted in the cache so we are all set here
-				reloadDB = true;
-			}
-		}
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
-		{
-			// If the engine has already been loaded, then return it
-			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-				vectorDatabase = (IVectorDatabaseEngine) DIHelper.getInstance().getEngineProperty(engineId);
-			} else {
-				// Acquire the lock on the engine,
-				// don't want several calls to try and load the engine at the same
-				// time
-				logger.info("Applying lock for vector db " + Utility.cleanLogString(engineId) + " to pull");
-				ReentrantLock lock = null;
-				try {
-					lock = EngineSyncUtility.getEngineLock(engineId);
-					lock.lock();
-					logger.info("Vector Db "+ Utility.cleanLogString(engineId) + " is locked");
-		
-					// Need to do a double check here,
-					// so if a different thread was waiting for the engine to load,
-					// it doesn't go through this process again
-					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-						return (IVectorDatabaseEngine) DIHelper.getInstance().getEngineProperty(engineId);
-					}
-					
-					// If in a clustered environment, then pull the app first
-					// TODO >>>timb: need to pull sec and lmd each time. They also need
-					// correct jdbcs...
-					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullEngine(engineId);
-					}
-					
-					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-					
-					// Start up the engine using the details in the smss
-					if (smssFile != null) {
-						// actual load engine process
-						vectorDatabase = Utility.loadVectorDatabase(smssFile, Utility.loadProperties(smssFile));
-					}
-					else if(prop != null)
-					{
-						vectorDatabase = Utility.loadVectorDatabase(null, prop);	
-					} else {
-						logger.info("There is no SMSS File for the vector db " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the vector db " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the vector db " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the vector db " + Utility.cleanLogString(engineId) + "...");
-					}
-	
-				} finally {
-					// Make sure to unlock now
-					if(lock != null) {
-						lock.unlock();
-						logger.info("Vector Db "+ Utility.cleanLogString(engineId) + " is unlocked");
-					}
-				}
-			}
-			// send the information of engine to the smssfile to the socket
-		}
-//		else // this is happening on the socket side
-//		{
-//			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
-//		}
-		return vectorDatabase;
+		return (IVectorDatabaseEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**
@@ -3571,112 +3228,23 @@ public class Utility {
 	 * @return
 	 */
 	public static IServiceEngine getServiceEngine(String engineId, boolean pullIfNeeded) {
-		IServiceEngine serviceEngine = null;
-		
-		// Now that the database has been pulled, grab the smss file
-		String smssFile = null;
-		boolean reloadDB = false;
-		Properties prop = null;
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-		{
-			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		}
-		else // this is happening on the socket side
-		{
-			// on the socket side
-			// it will pull the smss
-			// and reload the engine
-			// once reloaded it will be present in the DI Helper
-			// check DI Helper to see if this is needed
-			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
-			{
-				prop = getEngineDetails(engineId);
-				if(prop != null)
-				{
-					reloadDB = true; 
-				}
-			}
-			else
-			{
-				// this is already a loaded engine
-				// engine socket wrapper is not persisted in the cache so we are all set here
-				reloadDB = true;
-			}
-		}
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
-		{
-			// If the engine has already been loaded, then return it
-			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-				serviceEngine = (IServiceEngine) DIHelper.getInstance().getEngineProperty(engineId);
-			} else {
-				// Acquire the lock on the engine,
-				// don't want several calls to try and load the engine at the same
-				// time
-				logger.info("Applying lock for model " + Utility.cleanLogString(engineId) + " to pull");
-				ReentrantLock lock = null;
-				try {
-					lock = EngineSyncUtility.getEngineLock(engineId);
-					lock.lock();
-					logger.info("Service engine "+ Utility.cleanLogString(engineId) + " is locked");
-		
-					// Need to do a double check here,
-					// so if a different thread was waiting for the engine to load,
-					// it doesn't go through this process again
-					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-						return (IServiceEngine) DIHelper.getInstance().getEngineProperty(engineId);
-					}
-					
-					// If in a clustered environment, then pull the app first
-					// TODO >>>timb: need to pull sec and lmd each time. They also need
-					// correct jdbcs...
-					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						ClusterUtil.pullEngine(engineId);
-					}
-					
-					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-					
-					// Start up the engine using the details in the smss
-					if (smssFile != null) {
-						// actual load engine process
-						serviceEngine = Utility.loadServiceEngine(smssFile, Utility.loadProperties(smssFile));
-					}
-					else if(prop != null)
-					{
-						serviceEngine = Utility.loadServiceEngine(null, prop);	
-					} else {
-						logger.info("There is no SMSS File for the service engine " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the service engine " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the service engine " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the service engine " + Utility.cleanLogString(engineId) + "...");
-					}
-	
-				} finally {
-					// Make sure to unlock now
-					if(lock != null) {
-						lock.unlock();
-						logger.info("Service engine "+ Utility.cleanLogString(engineId) + " is unlocked");
-					}
-				}
-			}
-			// send the information of engine to the smssfile to the socket
-		}
-//		else // this is happening on the socket side
-//		{
-//			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
-//		}
-		return serviceEngine;
+		return (IServiceEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
 	public static boolean isEngineLoaded(String engineId) {
 		return DIHelper.getInstance().getEngineProperty(engineId) != null;
 	}
 	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
 	public static Properties getEngineDetails(String engineId)
 	{
 		// get the engine properties file
