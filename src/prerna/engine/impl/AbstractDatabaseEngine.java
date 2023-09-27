@@ -585,7 +585,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			engineFolder = owlFile.getParentFile();
 		} else {
 			engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-					+ "/" + Constants.DB_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					+ "/" + Constants.DATABASE_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 		folderName = engineFolder.getName();
 
