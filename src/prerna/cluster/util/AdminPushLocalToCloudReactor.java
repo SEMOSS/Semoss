@@ -59,7 +59,7 @@ public class AdminPushLocalToCloudReactor extends AbstractReactor{
 				pushedChanges.put(key, currentContainers.get(key));
 			}
 			
-			removeExisitngIds(CentralCloudStorage.DB_BLOB, currentContainers.get(CentralCloudStorage.DB_BLOB), dbIds);
+			removeExisitngIds(CentralCloudStorage.DATABASE_BLOB, currentContainers.get(CentralCloudStorage.DATABASE_BLOB), dbIds);
 			removeExisitngIds(CentralCloudStorage.STORAGE_BLOB, currentContainers.get(CentralCloudStorage.STORAGE_BLOB), storageIds);
 			removeExisitngIds(CentralCloudStorage.MODEL_BLOB, currentContainers.get(CentralCloudStorage.MODEL_BLOB), modelIds);
 			removeExisitngIds(CentralCloudStorage.PROJECT_BLOB, currentContainers.get(CentralCloudStorage.PROJECT_BLOB), projectIds);
