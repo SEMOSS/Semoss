@@ -3196,11 +3196,12 @@ public class MasterDatabaseUtility {
     		
     		add.executeBatch();
     	} catch (Exception e) {
-    		logger.error("Could save metamodel positions", e);
+    		logger.warn("Could save metamodel positions for database " + databaseId);
+    		logger.error(Constants.STACKTRACE, e);
     		throw e;
     	} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(null, null, remove, null);
-			ConnectionUtils.closeAllConnectionsIfPooling(null, null, add, null);
+			ConnectionUtils.closeStatement(remove);
+			ConnectionUtils.closeStatement(add);
     	}
     }
     
