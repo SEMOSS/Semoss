@@ -226,7 +226,7 @@ public class AddToMasterDB {
             return true;
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
-            throw new IllegalArgumentException("An error occurred establishing a connection to the local master database");
+            throw new IllegalArgumentException("An error occurred adding the database to local master. Detailed message = "+e.getMessage(), e);
         } finally {
         	ConnectionUtils.closeStatement(conceptPs);
         	ConnectionUtils.closeStatement(engineConceptPs);
