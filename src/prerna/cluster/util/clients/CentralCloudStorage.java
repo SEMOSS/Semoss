@@ -370,6 +370,11 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		// We need to pull the folder alias__databaseId and the file alias__databaseId.smss
 		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		// this is done for FE where something like ModelInferenceLogsDatabase 
+		// doesn't have an alias and its ID is loaded as the alias
+		if(engineId.equals(engineName)) {
+			engineName = null;
+		}
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 		
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
