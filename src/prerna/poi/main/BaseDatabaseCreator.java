@@ -1,7 +1,6 @@
 package prerna.poi.main;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -130,25 +129,6 @@ public class BaseDatabaseCreator {
 		}
 	}
 
-	public String exportBaseEngAsString(boolean addTimeStamp) throws IOException {
-		try {
-			//adding a time-stamp to the OWL file
-			StringWriter writer = new StringWriter();
-			if(addTimeStamp) {
-				deleteExisitngTimestamp();
-				Calendar cal = Calendar.getInstance();
-				String cleanObj = DATE_FORMATTER.format(cal.getTime());
-				baseEng.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
-			}
-			this.baseEng.exportDB(writer);
-			writer.flush();
-			return writer.toString();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Error in writing base engine db as OWL file");
-		}
-	}
-	
 	private void deleteExisitngTimestamp() {
 		String getAllTimestampQuery = "SELECT DISTINCT ?time ?val WHERE { "
 				+ "BIND(<http://semoss.org/ontologies/Concept/TimeStamp> AS ?time)"
