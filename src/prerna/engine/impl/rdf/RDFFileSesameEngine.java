@@ -30,7 +30,6 @@ package prerna.engine.impl.rdf;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -508,30 +507,11 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 	public void exportDB() throws Exception {
 		logger.info("Exporting database");
 		FileWriter writer = null;
+		RDFXMLWriter rdfWriter = null;
 		try{
 			writer = new FileWriter(Utility.normalizePath(fileName));
-			exportDB(writer);
-		} finally {
-			if(writer != null) {
-				try{
-					writer.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Method exportDB.  Exports the repository connection to the RDF database.
-	 * @throws IOException 
-	 * @throws RDFHandlerException 
-	 * @throws RepositoryException 
-	 */
-	public void exportDB(Writer writer) throws Exception {
-		logger.info("Exporting database");
-		try{
-			rc.export(new RDFXMLWriter(writer));
+			rdfWriter = new RDFXMLWriter(writer);
+			rc.export(rdfWriter);
 		} finally {
 			if(writer != null) {
 				try{
