@@ -71,6 +71,8 @@ public class CouchUtil {
 	public static final String DATABASE = "database";
 	public static final String STORAGE = "storage";
 	public static final String MODEL = "model";
+	public static final String VECTOR = "vector";
+	public static final String SERVICE = "service";
 	public static final String INSIGHT = "insight";
 	public static final String PROJECT = "project";
 	
