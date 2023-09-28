@@ -23,6 +23,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.DefaultImageGeneratorUtil;
+import prerna.util.EngineUtility;
 
 public class ClusterUtil {
 
@@ -805,7 +806,7 @@ public class ClusterUtil {
 	 * @throws Exception 
 	 */
 	public static File getEngineImage(String engineId, IEngine.CATALOG_TYPE engineType) throws Exception {
-		File localEngineImageFolder = new File(getCentralStorageClient().getLocalEngineImageDirectory(engineType));
+		File localEngineImageFolder = new File(EngineUtility.getLocalEngineImageDirectory(engineType));
 		// if it doesn't exist locally
 		// pull from cloud storage
 		boolean pulled = false;
