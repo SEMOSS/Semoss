@@ -1,7 +1,7 @@
 #This section is for properties
 
 ENGINE_WATCHER	SMSSWatcher
-ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher
+ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher
 PROJECT_WATCHER	ProjectWatcher
 
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss_Dev\\InsightCache
@@ -18,6 +18,10 @@ SMSSStorageWatcher_EXT	.smss
 SMSSModelWatcher	prerna.util.SMSSModelWatcher
 SMSSModelWatcher_DIR	C:\\workspace\\Semoss_Dev\\model
 SMSSModelWatcher_EXT	.smss
+
+SMSSVectorWatcher	prerna.util.SMSSVectorWatcher
+SMSSVectorWatcher_DIR	C:\\workspace\\Semoss_Dev\\vector
+SMSSVectorWatcher_EXT	.smss
 
 ProjectWatcher	prerna.util.ProjectWatcher
 ProjectWatcher_DIR		C:\\workspace\\Semoss_Dev\\project
