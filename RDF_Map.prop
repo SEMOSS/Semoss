@@ -1,7 +1,7 @@
 #This section is for properties
 
 ENGINE_WATCHER	SMSSWatcher
-ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher
+ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSServiceWatcher
 PROJECT_WATCHER	ProjectWatcher
 
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss_Dev\\InsightCache
@@ -10,18 +10,27 @@ CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
 SMSSWebWatcher_EXT	.smss
+SMSSWebWatcher_ETYPE	DATABASE
 
-SMSSStorageWatcher	prerna.util.SMSSStorageWatcher
+SMSSStorageWatcher	prerna.util.SMSSNoInitEngineWatcher
 SMSSStorageWatcher_DIR	C:\\workspace\\Semoss_Dev\\storage
 SMSSStorageWatcher_EXT	.smss
+SMSSStorageWatcher_ETYPE	STORAGE
 
-SMSSModelWatcher	prerna.util.SMSSModelWatcher
+SMSSModelWatcher	prerna.util.SMSSNoInitEngineWatcher
 SMSSModelWatcher_DIR	C:\\workspace\\Semoss_Dev\\model
 SMSSModelWatcher_EXT	.smss
+SMSSModelWatcher_ETYPE	MODEL
 
-SMSSVectorWatcher	prerna.util.SMSSVectorWatcher
+SMSSVectorWatcher	prerna.util.SMSSNoInitEngineWatcher
 SMSSVectorWatcher_DIR	C:\\workspace\\Semoss_Dev\\vector
 SMSSVectorWatcher_EXT	.smss
+SMSSVectorWatcher_ETYPE	VECTOR
+
+SMSSServiceWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSServiceWatcher_DIR	C:\\workspace\\Semoss_Dev\\service
+SMSSServiceWatcher_EXT	.smss
+SMSSServiceWatcher_ETYPE	SERVICE
 
 ProjectWatcher	prerna.util.ProjectWatcher
 ProjectWatcher_DIR		C:\\workspace\\Semoss_Dev\\project
@@ -130,7 +139,6 @@ LOCAL_DEPLOYMENT false
 #POSSIBLE VALUES INCLUDE strict, lax, none
 SAMESITE_COOKIE none
 
-
 #POST MESSAGE SPECIFIC KEYS
 PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD	password123
 
@@ -169,6 +177,8 @@ ADMIN_ONLY_INSIGHT_SET_PUBLIC	false
 
 USER_TRACKING_ENABLED	false
 USER_TRACKING_METHOD	GEOIP2
+
+MODEL_INFERENCE_LOGS_ENABLED false
 
 ##################################################
 ##################################################
