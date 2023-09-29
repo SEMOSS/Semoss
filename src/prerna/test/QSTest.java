@@ -24,6 +24,7 @@ import com.ibm.icu.util.StringTokenizer;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
@@ -138,26 +139,22 @@ public class QSTest {
 		StringTokenizer watchers = new StringTokenizer(watcherStr, ";");
 		try {		
 			while(watchers.hasMoreElements()) {
-				Object monitor = new Object();
 				String watcher = watchers.nextToken();
 				String watcherClass = DIHelper.getInstance().getProperty(watcher);
 				String folder = DIHelper.getInstance().getProperty(watcher + "_DIR");
 				String ext = DIHelper.getInstance().getProperty(watcher + "_EXT");
+				String engineType = DIHelper.getInstance().getProperty(watcher + "_ETYPE").trim();
 				AbstractFileWatcher watcherInstance = (AbstractFileWatcher) Class.forName(watcherClass).getConstructor(null).newInstance(null);
-
-				watcherInstance.setMonitor(monitor);
 				watcherInstance.setFolderToWatch(folder);
 				watcherInstance.setExtension(ext);
+				watcherInstance.setEngineType(IEngine.CATALOG_TYPE.valueOf(engineType));
 				watcherInstance.init();
-				synchronized(monitor)
-				{
-					//Thread thread = new Thread(watcherInstance);
-					//thread.start();
-					watcherInstance.shutdown();
-					watcherInstance.run();
-					
-					//watcherList.add(watcherInstance);
-				}
+				//Thread thread = new Thread(watcherInstance);
+				//thread.start();
+				watcherInstance.shutdown();
+				watcherInstance.run();
+				
+				//watcherList.add(watcherInstance);
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();

@@ -366,7 +366,6 @@ public class Constants {
 
 	public static final String COST_DB_BASE_URI_FIELD = "costDBBaseURIField";
 	public static final String GLITEM_LOADING_SHEET = "LoadingSheets1.xlsx";
-	public static final String WATCHERS = "WATCHERS";
 	public static final String ENGINE_WATCHER = "ENGINE_WATCHER";
 
 	public static final String GLITEM_CORE_LOADING_SHEET = "LoadingSheets1.xlsx";

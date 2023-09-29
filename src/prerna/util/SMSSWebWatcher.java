@@ -64,7 +64,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
 	}
 	
-	private static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class);
+	private static final Logger classLogger = LogManager.getLogger(SMSSWebWatcher.class);
 
 	/**
 	 * Processes SMSS files.
@@ -106,14 +106,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				Utility.loadDatabase(filePath, prop);
 			} else {
 				if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
-					logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+					classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 				} else {
 					String filePath = folderToWatch + "/" + newFile;
 					Utility.catalogEngineByType(filePath, prop, engineId);
 				}
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return engineId;
@@ -142,13 +142,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engineId = prop.getProperty(Constants.ENGINE);
 			
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
-				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch(Exception e){
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return engineId;
@@ -172,7 +172,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// we couldn't initialize the db
 			// remove it from DIHelper
 			DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB);
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
 					
@@ -187,7 +187,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// we couldn't initialize the db
 			// remove it from DIHelper
 			DIHelper.getInstance().removeEngineProperty(Constants.SECURITY_DB);
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
 		
@@ -202,7 +202,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// we couldn't initialize the db
 				// remove it from DIHelper
 				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -218,7 +218,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				} catch (Exception sqe) {
 					// we couldn't initialize the db remove it from DIHelper
 					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
-					logger.error(Constants.STACKTRACE, sqe);
+					classLogger.error(Constants.STACKTRACE, sqe);
 				}
 			}	
 		}
@@ -236,7 +236,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// we couldn't initialize the db
 					// remove it from DIHelper
 					DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB);
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -254,7 +254,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// we couldn't initialize the db
 					// remove it from DIHelper
 					DIHelper.getInstance().removeEngineProperty(Constants.MODEL_INFERENCE_LOGS_DB);
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -305,8 +305,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String loadedEngineId = catalogEngine(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
-				logger.error(Constants.STACKTRACE, ex);
-				logger.fatal("Database engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.fatal("Database engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
 		
@@ -317,7 +317,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					logger.info("Deleting the database engine from local master..... " + Utility.cleanLogString(engine));
+					classLogger.info("Deleting the database engine from local master..... " + Utility.cleanLogString(engine));
 					remover.deleteEngineRDBMS(engine);
 				}
 			}
@@ -325,22 +325,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.toString()));
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					logger.info("Deleting the database engine from security..... " + Utility.cleanLogString(engine));
+					classLogger.info("Deleting the database engine from security..... " + Utility.cleanLogString(engine));
 					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}
-		}
-	}
-
-	/**
-	 * Processes new SMSS files.
-	 */
-	@Override
-	public void run() {
-		logger.info("Starting SMSSWebWatcher thread");
-		synchronized(monitor) {
-			loadFirst();
-			super.run();
 		}
 	}
 
