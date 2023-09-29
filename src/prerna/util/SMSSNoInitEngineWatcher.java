@@ -37,14 +37,13 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
  */
-public class SMSSModelWatcher extends AbstractFileWatcher {
+public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 
-	private static final Logger logger = LogManager.getLogger(SMSSModelWatcher.class);
+	private static final Logger classLogger = LogManager.getLogger(SMSSNoInitEngineWatcher.class);
 
 	/**
 	 * Processes SMSS files.
@@ -77,13 +76,13 @@ public class SMSSModelWatcher extends AbstractFileWatcher {
 			
 			engineId = prop.getProperty(Constants.ENGINE);
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
-				logger.debug("Model " + folderToWatch + "<>" + newFile + " is already loaded...");
+				classLogger.debug("Engine " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return engineId;
@@ -104,20 +103,19 @@ public class SMSSModelWatcher extends AbstractFileWatcher {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
 			engineId = prop.getProperty(Constants.ENGINE);
-			
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
-				logger.debug("Model " + folderToWatch + "<>" + newFile + " is already loaded...");
+				classLogger.debug("Engine " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch(Exception e){
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return engineId;
 	}
-
+	
 	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
@@ -135,40 +133,26 @@ public class SMSSModelWatcher extends AbstractFileWatcher {
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-				
 				// I really dont want to load anything here
 				// I only want to keep track of what are the engine names and their corresponding SMSS files
 				// so we will catalog instead of load
 				String loadedEngineId = catalogEngine(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
-				logger.error(Constants.STACKTRACE, ex);
-				logger.fatal("Model engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
 		
 		// remove unused databases
 		if (!ClusterUtil.IS_CLUSTER) {
-			List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.MODEL.toString()));
+			List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(getEngineType().name()));
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					logger.info("Deleting the model engine from security..... " + Utility.cleanLogString(engine));
+					classLogger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
 					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}
 		}
 	}
-
-	/**
-	 * Processes new SMSS files.
-	 */
-	@Override
-	public void run() {
-		logger.info("Starting SMSSModelWatcher thread");
-		synchronized(monitor) {
-			loadFirst();
-			super.run();
-		}
-	}
-
 }
