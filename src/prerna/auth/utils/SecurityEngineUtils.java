@@ -57,7 +57,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityEngineUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityEngineUtils.class);
 	
 	/**
 	 * Add an entire database into the security db
@@ -93,7 +93,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if(engineExists) {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 			updateEngineTypeAndSubType(engineId, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1]);
-			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			classLogger.info("Security database already contains engine of type " 
+					+ typeAndCost[0] + " with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
@@ -106,7 +107,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 //			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
 //		}
 		
-		logger.info("Finished adding engine = " + Utility.cleanLogString(engineId));
+		classLogger.info("Finished adding engine = " + Utility.cleanLogString(engineId));
 	}
 	
 	/**
@@ -126,7 +127,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			engineType = emptyClass.getCatalogType();
 			engineSubType = emptyClass.getCatalogSubType(smssProp);
 		} catch(Exception e) {
-			logger.warn("Unknown class name = " + rawType);
+			classLogger.warn("Unknown class name = " + rawType);
 		}
 		
 		return new Object[]{engineType, engineSubType, engineCost};
@@ -195,7 +196,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -216,7 +217,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -238,7 +239,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -393,7 +394,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
@@ -421,7 +422,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -454,7 +455,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
@@ -507,7 +508,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -561,13 +562,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -778,7 +779,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -840,7 +841,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -903,7 +904,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -974,7 +975,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -1003,7 +1004,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1053,7 +1054,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1108,7 +1109,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1138,7 +1139,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1163,7 +1164,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1194,7 +1195,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1265,7 +1266,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1273,13 +1274,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 			
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1350,20 +1351,20 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1394,7 +1395,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the engine name");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1445,7 +1446,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -1482,7 +1483,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1558,13 +1559,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1623,14 +1624,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertTargetEnginePermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1652,7 +1653,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertTargetEnginePermissionStatement.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred transferring the engine permissions");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1731,13 +1732,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1768,7 +1769,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while marking old user access request with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
@@ -1795,7 +1796,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
@@ -2649,7 +2650,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
         } catch (SQLException e) {
-        	logger.error(Constants.STACKTRACE, e);
+        	classLogger.error(Constants.STACKTRACE, e);
         } finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
         }

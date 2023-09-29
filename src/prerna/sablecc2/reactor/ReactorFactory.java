@@ -870,7 +870,7 @@ public class ReactorFactory {
 		reactorHash.put("FederationBestMatches", FederationBestMatches.class);
 		
 		// app meta and local master utilities
-		reactorHash.put("ReloadAppOwl", ReloadDatabaseOwlReactor.class);
+		reactorHash.put("ReloadDatabaseOwl", ReloadDatabaseOwlReactor.class);
 		reactorHash.put("GetOwlMetamodel", GetOwlMetamodelReactor.class);
 		reactorHash.put("GetOwlDictionary", GetOwlDictionaryReactor.class);
 		// owl concepts
