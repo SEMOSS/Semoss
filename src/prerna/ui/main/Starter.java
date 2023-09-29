@@ -41,7 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.ibm.icu.util.StringTokenizer;
 
-import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.PlayPane;
 import prerna.util.AbstractFileWatcher;
 import prerna.util.Constants;
@@ -52,7 +52,7 @@ import prerna.util.Utility;
  * The Starter class is run to start the SEMOSS application.  This launches the Splash Screen and the base user interface.
  */
 public class Starter {
-	Object monitor = new Object();
+
 	private static String govWarningString ="You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only."
 			+"\n"
 			+"\n"
@@ -191,57 +191,14 @@ public class Starter {
 			String watcherClass = DIHelper.getInstance().getProperty(watcher);
 			String folder = DIHelper.getInstance().getProperty(watcher + "_DIR");
 			String ext = DIHelper.getInstance().getProperty(watcher + "_EXT");
+			String engineType = DIHelper.getInstance().getProperty(watcher + "_ETYPE").trim();
 			AbstractFileWatcher watcherInstance = (AbstractFileWatcher)Class.forName(watcherClass).getConstructor(null).newInstance(null);
-			watcherInstance.setMonitor(starter.monitor);
 			watcherInstance.setFolderToWatch(folder);
 			watcherInstance.setExtension(ext);
-			synchronized(starter.monitor)
-			{
-				watcherInstance.loadFirst();
-				Thread thread = new Thread(watcherInstance);
-				thread.start();
-			}
-		}
-		
-		// get this into a synchronized block
-		// so this guy will wait
-		// I do this so that I can get reference to the engine when I need it
-		synchronized(starter.monitor)
-		{
-			watcherStr = DIHelper.getInstance().getProperty(Constants.WATCHERS);
-			if(watcherStr != null )
-			{
-				watchers = new StringTokenizer(watcherStr, ";");
-				while(watchers.hasMoreElements())
-				{
-					String watcher = watchers.nextToken();
-					String watcherClass = DIHelper.getInstance().getProperty(watcher);
-					String folder = DIHelper.getInstance().getProperty(watcher + "_DIR");
-					String ext = DIHelper.getInstance().getProperty(watcher + "_EXT");
-					String engineName = DIHelper.getInstance().getProperty(watcher+"_ENGINE");
-					try
-					{
-						AbstractFileWatcher watcherInstance = (AbstractFileWatcher)Class.forName(watcherClass).getConstructor(null).newInstance(null);
-						// engines should be loaded by now
-						// hopefully :D
-						if(engineName != null && DIHelper.getInstance().getLocalProp(engineName) != null)
-						{
-							IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(engineName);
-							watcherInstance.setEngine(engine);
-						}
-						watcherInstance.setMonitor(starter.monitor);
-						watcherInstance.setFolderToWatch(folder);
-						watcherInstance.setExtension(ext);
-						watcherInstance.loadFirst();
-						Thread thread = new Thread(watcherInstance);
-						thread.start();
-					}catch(RuntimeException ex)
-					{
-						// ok dont do anything the file was not there
-						logger.debug(ex);
-					}
-				}
-			}
+			watcherInstance.setEngineType(IEngine.CATALOG_TYPE.valueOf(engineType));
+			watcherInstance.loadFirst();
+			Thread thread = new Thread(watcherInstance);
+			thread.start();
 		}
 		
 		ss.setVisible(false);
