@@ -14,7 +14,7 @@ import prerna.cluster.util.ClusterUtil;
 
 public class ProjectWatcher extends AbstractFileWatcher {
 	
-	private static final Logger logger = LogManager.getLogger(ProjectWatcher.class);
+	private static final Logger classLogger = LogManager.getLogger(ProjectWatcher.class);
 	
 	/**
 	 * Used in the starter class for processing SMSS files.
@@ -33,8 +33,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				String loadedProject = catalogProject(fileName, folderToWatch);
 				projectIds[fileIdx] = loadedProject;
 			} catch (RuntimeException ex) {
-				logger.error(Constants.STACKTRACE, ex);
-				logger.fatal("Project Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.fatal("Project Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
 		
@@ -68,7 +68,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			projectId = prop.getProperty(Constants.PROJECT);
 			
 			if(projects.startsWith(projectId) || projects.contains(";"+projectId+";") || projects.endsWith(";"+projectId)) {
-				logger.debug("Project " + folderToWatch + "<>" + newFile + " is already loaded...");
+				classLogger.debug("Project " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
 				DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, fileName);
@@ -82,14 +82,14 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch(Exception e){
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try{
 				if(fileIn != null) {
 					fileIn.close();
 				}
 			} catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -101,16 +101,4 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		catalogProject(fileName, folderToWatch);
 	}
 	
-	/**
-	 * Processes new project SMSS files.
-	 */
-	@Override
-	public void run() {
-		logger.info("Starting ProjectWatcher thread");
-		synchronized(monitor) {
-			loadFirst();
-			super.run();
-		}
-	}
-
 }

@@ -34,36 +34,33 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
+import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 
 /**
  * Interface that provides a common protocol for objects that wish to execute code while they are active. 
  * Used to filter filenames.
  * Opens up a thread and watches the file.
  */
-public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
-	
-	// opens up a thread and watches the file
-	// when available, it will upload it into the journal
-	// may be this is a good time to put this on tomcat
+public abstract class AbstractFileWatcher implements Runnable, FilenameFilter {
 
-
-	protected static final Logger logger = LogManager.getLogger(AbstractFileWatcher.class);
+	protected static final Logger classLogger = LogManager.getLogger(AbstractFileWatcher.class);
 	
 	// processes the files with the given extension
 	protected String folderToWatch = null;
 	protected String extension = null;
-	protected IDatabaseEngine engine = null;
-	Object monitor = null;
 	
 	// this is used for us to determine how to stop the thread
 	private boolean stop = false;
+	
+	// the type of engine for this
+	protected IEngine.CATALOG_TYPE engineType;
 	
 	/**
 	 * Sets folder to watch.
@@ -82,21 +79,21 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	}
 	
 	/**
-	 * Sets engine.
-	 * @param engine IDatabase		Engine to be set.
+	 * 
+	 * @return
 	 */
-	public void setEngine(IDatabaseEngine engine) {
-		this.engine = engine;
+	public IEngine.CATALOG_TYPE getEngineType() {
+		return engineType;
 	}
-	
+
 	/**
-	 * Sets monitor.
-	 * @param monitor Object		Object to be monitored.
+	 * 
+	 * @param engineType
 	 */
-	public void setMonitor(Object monitor) {
-		this.monitor = monitor;
+	public void setEngineType(IEngine.CATALOG_TYPE engineType) {
+		this.engineType = engineType;
 	}
-	
+
 	/**
 	 * Used in the starter class for loading files.
 	 */
@@ -122,11 +119,17 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	 */
 	@Override
 	public void run() {
+		classLogger.info("Starting Watcher Thread for type " 
+				+ this.engineType + " with class " 
+				+ this.getClass().getName() + " with ID " 
+				+ Thread.currentThread().getId());
+		loadFirst();
+
 		WatchService watcher = null;
 		try {
 			watcher = FileSystems.getDefault().newWatchService();
 		} catch(IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
 		
@@ -135,7 +138,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 		try {
 		    key = dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
 
@@ -143,18 +146,19 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 			try {
 				key = watcher.take();
 			} catch (InterruptedException x) {
+				classLogger.error(Constants.STACKTRACE, x);
 				if(watcher != null) {
 					try {
 						watcher.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				return;
 			}
 
 			for(WatchEvent<?> event: key.pollEvents()) {
-				WatchEvent.Kind kind = event.kind();
+				Kind<?> kind = event.kind();
 				if(kind == StandardWatchEventKinds.ENTRY_CREATE) {
 					String newFile = event.context() + "";
 					if(newFile.endsWith(extension)) {
@@ -164,25 +168,25 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 						try {
 							Thread.sleep(2000);
 						} catch (InterruptedException e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						
 						try {
 							process(newFile);
-						} catch(RuntimeException ex) {
-							ex.printStackTrace();
+						} catch(RuntimeException e) {
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					} else {
 						String filePath = folderToWatch + "/" + newFile;
 						File file = new File(filePath);
 						if(file.exists()) {
 							if(file.isDirectory()) {
-								logger.info("File Watcher Ignoring Folder " + newFile);
+								classLogger.info("File Watcher Ignoring Folder " + newFile);
 							} else {
-								logger.info("File Watcher Ignoring File " + newFile);
+								classLogger.info("File Watcher Ignoring File " + newFile);
 							}
 						} else {
-							logger.info("Ignoring Folder/File " + newFile + " that has already been removed");
+							classLogger.info("Ignoring Folder/File " + newFile + " that has already been removed");
 						}
 					}
 				}
@@ -201,7 +205,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 			try {
 				watcher.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}	

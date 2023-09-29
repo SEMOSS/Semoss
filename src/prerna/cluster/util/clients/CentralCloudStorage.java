@@ -39,8 +39,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
 import prerna.util.ProjectSyncUtility;
-import prerna.util.SMSSModelWatcher;
-import prerna.util.SMSSStorageWatcher;
+import prerna.util.SMSSNoInitEngineWatcher;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -258,11 +257,19 @@ public class CentralCloudStorage implements ICloudClient {
 			return;
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
 			classLogger.info("Synchronizing the storage metadata for " + aliasAndEngineId);
-			SMSSStorageWatcher.catalogEngine(localSmssFileName, EngineUtility.STORAGE_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.STORAGE_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
 			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
-			SMSSModelWatcher.catalogEngine(localSmssFileName, EngineUtility.MODEL_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.MODEL_FOLDER);
+			return;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.VECTOR_FOLDER);
+			return;
+		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
+			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.SERVICE_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return;
