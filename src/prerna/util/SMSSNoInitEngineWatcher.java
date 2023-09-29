@@ -146,11 +146,17 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 		
 		// remove unused databases
 		if (!ClusterUtil.IS_CLUSTER) {
-			List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(getEngineType().name()));
-			for(String engine : engines) {
-				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					classLogger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
-					SecurityEngineUtils.deleteEngine(engine);
+			if(getEngineType() == null) {
+				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+			} else {
+				List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(getEngineType().name()));
+				for(String engine : engines) {
+					if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+						classLogger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
+						SecurityEngineUtils.deleteEngine(engine);
+					}
 				}
 			}
 		}
