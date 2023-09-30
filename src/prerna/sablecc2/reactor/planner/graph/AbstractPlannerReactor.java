@@ -94,7 +94,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		List<String> returnPksls = new Vector<String>();
 
 		GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V()
-				.has(PixelPlanner.TINKER_ID, P.within(downstreamVertIds)).order().by(PixelPlanner.ORDER, Order.incr);
+				.has(PixelPlanner.TINKER_ID, P.within(downstreamVertIds)).order().by(PixelPlanner.ORDER, Order.asc);
 		while (newRootsTraversal.hasNext()) {
 			Vertex vert = newRootsTraversal.next();
 			returnPksls.add(getPksl(vert));
@@ -334,7 +334,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 																										// been
 																										// already
 																										// added
-						.order().by(PixelPlanner.ORDER, Order.incr).dedup(); // return
+						.order().by(PixelPlanner.ORDER, Order.asc).dedup(); // return
 																			// in
 																			// the
 																			// order
