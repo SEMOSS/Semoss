@@ -98,7 +98,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		owler.commit();
 		owler.export();
 		// commit the created database
-		this.database.setOWL(owler.getOwlPath());
+		this.database.setOwlFilePath(owler.getOwlPath());
 		this.database.commit();
 		((BigDataEngine) this.database).infer();
 

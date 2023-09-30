@@ -1697,9 +1697,9 @@ public class UploadUtilities {
 	 * @param headers
 	 * @return 
 	 */
-	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine, Owler owl, String[] headers) {
+	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine, Owler owler, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(databaseId, owl);
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owler);
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormSheetName(sheetName);
@@ -1939,11 +1939,8 @@ public class UploadUtilities {
 	 * @param owl
 	 * @return
 	 */
-	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(String engineId, Owler owl) {
-		// need to get property types from the owl
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		rfse.openFile(owl.getOwlPath(), null, null);
-        rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(Owler owler) {
+		RDFFileSesameEngine rfse = owler.getOwlEngine();
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
 		return getExistingMetamodel(helper);

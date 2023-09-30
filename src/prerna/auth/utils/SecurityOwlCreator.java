@@ -139,7 +139,7 @@ public class SecurityOwlCreator {
 		
 		// now delete the file if exists
 		// and we will make a new
-		String owlLocation = securityDb.getOWL();
+		String owlLocation = securityDb.getOwlFilePath();
 		
 		File f = new File(owlLocation);
 		if(f.exists()) {
@@ -150,7 +150,7 @@ public class SecurityOwlCreator {
 		writeNewOwl(owlLocation);
 		
 		// now reload into security db
-		securityDb.setOWL(owlLocation);
+		securityDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**

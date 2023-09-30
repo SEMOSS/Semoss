@@ -60,7 +60,7 @@ public class JsonOwler extends AbstractOwler {
 			// this is #1
 			String subject = BASE_NODE_URI + "/" + tableName;
 			// add the concept as a subclass of concept
-			engine.addToBaseEngine(subject, RDFS.SUBCLASSOF.stringValue(), BASE_NODE_URI);
+			this.addToBaseEngine(subject, RDFS.SUBCLASSOF.stringValue(), BASE_NODE_URI);
 			
 			// this is #2
 			// add the conceptual uri
@@ -69,12 +69,12 @@ public class JsonOwler extends AbstractOwler {
 				conceptualNode = Utility.cleanVariableString(tableName);
 			}
 			String conceptualSubject = BASE_NODE_URI + "/" + conceptualNode;
-			engine.addToBaseEngine(subject, CONCEPTUAL_RELATION_URI, conceptualSubject);
+			this.addToBaseEngine(subject, CONCEPTUAL_RELATION_URI, conceptualSubject);
 
 			// this is #3
 			// i think i have to add a data type for proper sync into the local master....
 			String typeObject = "TYPE:STRING";
-			engine.addToBaseEngine(subject, RDFS.CLASS.stringValue(), typeObject);
+			this.addToBaseEngine(subject, RDFS.CLASS.stringValue(), typeObject);
 			
 			// store it in the hash for future use
 			conceptHash.put(tableName, subject);
@@ -105,18 +105,18 @@ public class JsonOwler extends AbstractOwler {
 			
 			// this is #1
 			String propertyUri = BASE_PROPERTY_URI + "/" + propertyCol + "/" + tableName;
-			engine.addToBaseEngine(propertyUri, RDF.TYPE.stringValue(), BASE_PROPERTY_URI);
+			this.addToBaseEngine(propertyUri, RDF.TYPE.stringValue(), BASE_PROPERTY_URI);
 
 			// this is #2
 			String tableUri = BASE_NODE_URI + "/" + tableName;
-			engine.addToBaseEngine(tableUri, OWL.DatatypeProperty.toString(), propertyUri);
+			this.addToBaseEngine(tableUri, OWL.DatatypeProperty.toString(), propertyUri);
 
 			// this is #3
 			String typeObject = "TYPE:" + dataType;
-			engine.addToBaseEngine(propertyUri, RDFS.CLASS.stringValue(), typeObject);
+			this.addToBaseEngine(propertyUri, RDFS.CLASS.stringValue(), typeObject);
 			
 			// this is #4
-			engine.addToBaseEngine(propertyUri, JSON_SELECTOR_RELATION_URI, jsonPath, false);
+			this.addToBaseEngine(propertyUri, JSON_SELECTOR_RELATION_URI, jsonPath, false);
 
 			// this is #5
 			String conceptualProp = conceptual;
@@ -127,7 +127,7 @@ public class JsonOwler extends AbstractOwler {
 			// this is also present in normal OWLER.java
 			String conceptualPropertyName = conceptualProp + "/" +  Utility.cleanVariableString(tableName);
 			String conceptualProperty = BASE_PROPERTY_URI + "/" + conceptualPropertyName;
-			engine.addToBaseEngine(propertyUri, CONCEPTUAL_RELATION_URI, conceptualProperty);
+			this.addToBaseEngine(propertyUri, CONCEPTUAL_RELATION_URI, conceptualProperty);
 			
 			propHash.put(tableName + "%" + propertyCol, propertyUri);
 		}
