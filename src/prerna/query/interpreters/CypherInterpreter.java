@@ -124,8 +124,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 
-	//////////////////////////////////// start adding selectors
-	//////////////////////////////////// ////////////////////////////////////
+	//////////////////////////////////// start adding selectors ////////////////////////////////////
+
 	public void appendSelectors(StringBuilder query) {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
 		selectorCriteria = new StringBuilder();

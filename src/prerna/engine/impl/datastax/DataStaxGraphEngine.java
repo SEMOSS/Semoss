@@ -88,7 +88,7 @@ public class DataStaxGraphEngine extends AbstractDatabaseEngine {
 	}
 	
 	public IQueryInterpreter getQueryInterpreter() {
-		return new GremlinNoEdgeBindInterpreter(this.graphTraversalSession, this.typeMap, this.nameMap);
+		return new GremlinNoEdgeBindInterpreter(this.graphTraversalSession, this.typeMap, this.nameMap, this);
 	}
 	
 	@Override

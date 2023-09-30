@@ -49,7 +49,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 		R, 
 		TINKER, 
 		NEO4J, 
-		NEO4J_EMBEDDED, 
+//		NEO4J_EMBEDDED, 
 		DATASTAX_GRAPH, 
 		JANUS_GRAPH, 
 		JMES_API, 

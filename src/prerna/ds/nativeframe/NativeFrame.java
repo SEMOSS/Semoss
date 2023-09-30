@@ -60,13 +60,13 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
-	private static List<IDatabaseEngine.DATABASE_TYPE> cacheEngines = new Vector<>();
+	private static List<IDatabaseEngine.DATABASE_TYPE> cacheEngines = new ArrayList<>();
 	static {
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.SESAME);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.JENA);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.IMPALA);
-		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.NEO4J_EMBEDDED);
+//		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.NEO4J_EMBEDDED);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.NEO4J);
 	}
 
