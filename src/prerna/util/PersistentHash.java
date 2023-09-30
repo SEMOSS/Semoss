@@ -69,7 +69,6 @@ public class PersistentHash {
 
 	public boolean containsKey(String key) {
 		return this.thisHash.containsKey(key);
-
 	}
 
 	public String get(String key) {

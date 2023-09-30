@@ -219,7 +219,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			if(owlFile != null) {
 				owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
 				classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
-				setOWL(owlFile);
+				setOwlFilePath(owlFile);
 			}
 		}
 		
@@ -389,12 +389,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		return this.baseDataHash;
 	}
 
-	public void setOWL(String owl) {
-		this.owlFileLocation = owl;
-		createBaseRelationEngine();
-		this.owlHelper = new MetaHelper(baseDataEngine, getDatabaseType(), this.engineId);
-	}
-
 	/**
 	 * Checks for an OWL and adds it to the engine. Sets the base data hash from
 	 * the engine properties, commits the database, and creates the base
@@ -456,8 +450,16 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			return null;
 		return owlHelper.getNeighbors(nodeType, neighborHood);
 	}
+	
+	@Override
+	public void setOwlFilePath(String owl) {
+		this.owlFileLocation = owl;
+		createBaseRelationEngine();
+		this.owlHelper = new MetaHelper(baseDataEngine, getDatabaseType(), this.engineId);
+	}
 
-	public String getOWL() {
+	@Override
+	public String getOwlFilePath() {
 		return this.owlFileLocation;
 	}
 	
@@ -799,7 +801,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 * @return
 	 */
 	public File getOwlPositionFile() {
-		String owlFileLocation = getOWL();
+		String owlFileLocation = getOwlFilePath();
 		// put in same location
 		File owlF = new File(owlFileLocation);
 		String baseFolder = owlF.getParent();
@@ -1042,21 +1044,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			return smssProp.get("UDF").toString().split(";");
 		}
 		return null;
-	}
-	
-	public String getOwl()
-	{
-		String retOwl = null;
-		if(owlFileLocation != null)
-		{
-			try {
-				retOwl = FileUtils.readFileToString(new File(owlFileLocation));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return retOwl;
 	}
 	
 	@Override

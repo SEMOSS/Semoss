@@ -78,7 +78,7 @@ public class LocalMasterOwlCreator {
 		
 		// now delete the file if exists
 		// and we will make a new
-		String owlLocation = localMasterDb.getOWL();
+		String owlLocation = localMasterDb.getOwlFilePath();
 		
 		File f = new File(owlLocation);
 		if(f.exists()) {
@@ -89,7 +89,7 @@ public class LocalMasterOwlCreator {
 		writeNewOwl(owlLocation);
 		
 		// now reload into security db
-		localMasterDb.setOWL(owlLocation);
+		localMasterDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**

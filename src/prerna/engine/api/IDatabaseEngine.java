@@ -137,12 +137,6 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @return
 	 */
 	MetaHelper getMetaHelper();
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getOwl();
 
 }
 

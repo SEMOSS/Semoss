@@ -48,11 +48,10 @@ public interface IExplorable {
 	// gets the from and to nodes
 	Vector<String> getNeighbors(String nodeType, int neighborHood);
 	
-	// sets the owl
-	void setOWL(String owl);
+	String getOwlFilePath();
 	
-	// get the OWL file
-	String getOWL();
+	// sets the owl
+	void setOwlFilePath(String owlFilePath);
 	
 	// get the position file used to paint the metamodel
 	File getOwlPositionFile();
