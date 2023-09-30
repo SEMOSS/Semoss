@@ -592,7 +592,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add filters
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
-			RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs, this.metaData);
+			RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
 			it.execute();
 			List<Object> columnList = new ArrayList<>();
 			while(it.hasNext()) {
@@ -1135,7 +1135,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
 		logger.info("Generating Gremlin query...");
-		RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interp, qs, this.metaData);
+		RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interp, qs);
 		gdi.execute();
 		logger.info("Done generating query...");
 		

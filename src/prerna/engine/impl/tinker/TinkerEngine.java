@@ -1,5 +1,6 @@
 package prerna.engine.impl.tinker;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -74,6 +75,7 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 
 		// open normal tinker engine
 		String fileLocation = SmssUtilities.getTinkerFile(smssProp).getAbsolutePath();
+		File fileL = new File(fileLocation);
 		classLogger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(smssProp.getProperty(Constants.TINKER_DRIVER));
 		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
@@ -87,26 +89,30 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 				((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
 				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
 			}
+			if(!fileL.exists() || !fileL.isFile()) {
+				classLogger.info(SmssUtilities.getUniqueName(this.engineName, this.engineId) + " is an empty Tinker Engine");
+			} else {
 			if (tinkerDriver == TINKER_DRIVER.TG) {
-				// user kyro to de-serialize the cached graph
-				Builder<GryoIo> builder = GryoIo.build();
-				builder.graph(g);
-				builder.onMapper(new MyGraphIoMappingBuilder());
-				GryoIo reader = builder.create();
-				reader.readGraph(fileLocation);
-			} else if (tinkerDriver == TINKER_DRIVER.JSON) {
-				// user kyro to de-serialize the cached graph
-				Builder<GraphSONIo> builder = GraphSONIo.build();
-				builder.graph(g);
-				builder.onMapper(new MyGraphIoMappingBuilder());
-				GraphSONIo reader = builder.create();
-				reader.readGraph(fileLocation);
-			} else if (tinkerDriver == TINKER_DRIVER.XML) {
-				Builder<GraphMLIo> builder = GraphMLIo.build();
-				builder.graph(g);
-				builder.onMapper(new MyGraphIoMappingBuilder());
-				GraphMLIo reader = builder.create();
-				reader.readGraph(fileLocation);
+					// user kyro to de-serialize the cached graph
+					Builder<GryoIo> builder = GryoIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GryoIo reader = builder.create();
+					reader.readGraph(fileLocation);
+				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
+					// user kyro to de-serialize the cached graph
+					Builder<GraphSONIo> builder = GraphSONIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphSONIo reader = builder.create();
+					reader.readGraph(fileLocation);
+				} else if (tinkerDriver == TINKER_DRIVER.XML) {
+					Builder<GraphMLIo> builder = GraphMLIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphMLIo reader = builder.create();
+					reader.readGraph(fileLocation);
+				}
 			}
 		}
 	}
@@ -155,7 +161,7 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		GremlinNoEdgeBindInterpreter interp = new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap, this.nameMap);
+		GremlinNoEdgeBindInterpreter interp = new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap, this.nameMap, this);
 		interp.setUseLabel(useLabel);
 		return interp;
 	}

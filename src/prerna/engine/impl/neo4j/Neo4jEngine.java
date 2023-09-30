@@ -29,9 +29,9 @@ import prerna.util.Utility;
  * This is the connection to a remote neo4j graph database using the jdbc connection
  */
 public class Neo4jEngine extends AbstractDatabaseEngine {
-	
+
 	private static final Logger classLogger = LoggerFactory.getLogger(Neo4jEngine.class);
-	
+
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
 	protected boolean useLabel = false;
@@ -64,12 +64,12 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 		}
 		this.conn = getGraphDatabaseConnection();
 	}
-	
+
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
 		return IDatabaseEngine.DATABASE_TYPE.NEO4J;
 	}
-	
+
 	@Override
 	public Object execQuery(String query) {
 		PreparedStatement stmt = null;
@@ -94,17 +94,16 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
-		        	  try {
-						stmt.close();
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-		        }
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		return null;
 	}
-	
+
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		CypherInterpreter interp = new CypherInterpreter(this.typeMap, this.nameMap);
@@ -132,24 +131,24 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 
 	@Override
 	public void insertData(String query) throws Exception {
-		
+
 	}
 
 	@Override
 	public void removeData(String query) throws Exception {
-		
+
 	}
 
 	@Override
 	public void commit() {
-		
+
 	}
 
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
 		return null;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		super.close();
@@ -160,6 +159,6 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 	public boolean holdsFileLocks() {
 		return false;
 	}
-	
+
 }
 
