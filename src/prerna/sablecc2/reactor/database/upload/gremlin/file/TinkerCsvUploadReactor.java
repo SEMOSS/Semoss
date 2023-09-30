@@ -117,7 +117,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
-		this.database.setOWL(owler.getOwlPath());
+		this.database.setOwlFilePath(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 

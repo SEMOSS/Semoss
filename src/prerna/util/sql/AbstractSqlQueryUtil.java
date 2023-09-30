@@ -1893,9 +1893,7 @@ public abstract class AbstractSqlQueryUtil {
 
 	public static DatabaseUpdateMetadata performDatabaseDeletions(IRDBMSEngine rdbmsDb, Map<String, List<String>> updates, Logger logger) {
 		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
-		
 		Set<String> tableDeletes = new HashSet<>();
-		
 		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
 		
 		// validate that the tables and columns provided exist, and tag tables for removal if all or no columns given
@@ -1965,7 +1963,7 @@ public abstract class AbstractSqlQueryUtil {
 				// update the owl
 				logger.info("Updating metadata for table " + tableName);
 				if(deleteTable) {
-					owler.removeConcept(rdbmsDb.getEngineId(), tableName);
+					owler.removeConcept(tableName);
 				} else {
 					for(String column : updates.get(tableName)) {
 						owler.removeProp(tableName, column, null);
@@ -1981,7 +1979,6 @@ public abstract class AbstractSqlQueryUtil {
 		}
 		
 		meta.setCombinedErrors(errorMessages.toString());
-		
 		return meta;
 	}
 	

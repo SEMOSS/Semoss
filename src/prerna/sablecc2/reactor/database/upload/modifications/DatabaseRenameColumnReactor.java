@@ -66,9 +66,10 @@ public class DatabaseRenameColumnReactor extends AbstractReactor {
 		
 		// update owl
 		try {
-			owler.renameProp(databaseId, table, existingColumn, newColumn);
+			owler.renameProp(table, existingColumn, newColumn);
 			owler.commit();
 			owler.export();
+			database.setOwlFilePath(owler.getOwlPath());
 			SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
 			syncWithLocal.setInsight(this.insight);
 			syncWithLocal.setNounStore(this.store);
