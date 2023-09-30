@@ -19,6 +19,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -35,6 +36,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GremlinInterpreter extends AbstractQueryInterpreter {
 
+	protected IDatabaseEngine engine;
 	// reference for getting actual names for loops within frames
 	protected OwlTemporalEngineMeta meta;
 	// all the filters being used
@@ -54,11 +56,12 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	
 	protected boolean useLabel = false;
 		
-	public GremlinInterpreter(GraphTraversalSource g, Map<String, String> typeMap, Map<String, String> nameMap) {
+	public GremlinInterpreter(GraphTraversalSource g, Map<String, String> typeMap, Map<String, String> nameMap, IDatabaseEngine engine) {
 		this.g = g;
 		this.gt = g.V();
 		this.typeMap = typeMap;
 		this.nameMap = nameMap;
+		this.engine = engine;
 	}
 	
 	public GremlinInterpreter(GraphTraversalSource g, OwlTemporalEngineMeta meta) {
@@ -75,6 +78,17 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		setSelectors();
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			this.gt.dedup();
+		}
+		
+		long offset = ((SelectQueryStruct) this.qs).getOffset();
+		long limit = ((SelectQueryStruct) this.qs).getLimit();
+		
+		if(offset > 0) {
+			if(limit > 0) {
+				this.gt = this.gt.range(offset, offset+limit);
+			} else {
+				this.gt = this.gt.range(offset, -1);
+			}
 		}
 		
 		if(logger.isDebugEnabled()) {
@@ -608,18 +622,18 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 				if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
 					if(this.selectors.contains(tableName)) {
 						if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-							gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
+							gt = gt.select(tableName).order().by(getNodeName(tableName), Order.asc);
 						} else {
-							gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
+							gt = gt.select(tableName).order().by(getNodeName(tableName), Order.desc);
 						}
 					}
 				}
 				//order by for property
 				else {
 					if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-						gt = gt.select(tableName).order().by(columnName, Order.incr);
+						gt = gt.select(tableName).order().by(columnName, Order.asc);
 					} else {
-						gt = gt.select(tableName).order().by(columnName, Order.decr);
+						gt = gt.select(tableName).order().by(columnName, Order.desc);
 					}
 				}
 			}
@@ -697,6 +711,14 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 	
+	public OwlTemporalEngineMeta getMeta() {
+		return meta;
+	}
+	
+	public IDatabaseEngine getEngine() {
+		return engine;
+	}
+	
 	//////////////////////////////////////////////////////////
 	
 	/**
@@ -716,7 +738,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		if(this.meta != null) {
 			interp = new GremlinInterpreter(this.g, this.meta);
 		} else {
-			interp = new GremlinInterpreter(this.g, this.typeMap, this.nameMap);
+			interp = new GremlinInterpreter(this.g, this.typeMap, this.nameMap, this.engine);
 		}
 		interp.setQueryStruct(this.qs);
 		interp.setUseLabel(this.useLabel);

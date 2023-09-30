@@ -171,9 +171,12 @@ public class WrapperManager {
 					GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 					interpreter.setQueryStruct(qs);
 					RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+					queryT.setStartTimeNow();
 					gdi.execute();
+					queryT.setQuery(interpreter.getQueryString());
 					returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 					returnWrapper.execute();
+					queryT.setEndTimeNow();
 					long end = System.currentTimeMillis();
 					classLogger.debug("Engine execution time = " + (end-start) + "ms");
 					break;
@@ -211,10 +214,10 @@ public class WrapperManager {
 				case REMOTE_SEMOSS : {
 					// TODO >>>timb: REST - either replace with rest remote or remove this
 				}
-				case NEO4J_EMBEDDED : {
-					returnWrapper = new Neo4jWrapper();
-					break;
-				}
+//				case NEO4J_EMBEDDED : {
+//					returnWrapper = new Neo4jWrapper();
+//					break;
+//				}
 				case NEO4J : {
 					returnWrapper = new RawRDBMSSelectWrapper();
 					break;
@@ -362,10 +365,10 @@ public class WrapperManager {
 					//TODO: build iterator
 					break;
 				}
-				case NEO4J_EMBEDDED : {
-					returnWrapper = new Neo4jWrapper();
-					break;
-				}
+//				case NEO4J_EMBEDDED : {
+//					returnWrapper = new Neo4jWrapper();
+//					break;
+//				}
 				case NEO4J: {
 					returnWrapper = new RawRDBMSSelectWrapper();
 					break;

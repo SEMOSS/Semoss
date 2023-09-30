@@ -1,12 +1,12 @@
 package prerna.query.interpreters;
 
-import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.PBiPredicate;
 
-public class GremlinRegexMatch implements BiPredicate<Object, Object> {
+public class GremlinRegexMatch implements PBiPredicate<Object, Object> {
 
 	Pattern pattern = null;
 	private Mode mode;
@@ -44,7 +44,7 @@ public class GremlinRegexMatch implements BiPredicate<Object, Object> {
 	 * @return - the predicate
 	 */
 	 public static P<Object> regex(Object regex) {
-		 BiPredicate<Object, Object> b = new GremlinRegexMatch(regex.toString());
+		 PBiPredicate<Object, Object> b = new GremlinRegexMatch(regex.toString());
 		 return new P<Object>(b, regex);
 	 }
 }
