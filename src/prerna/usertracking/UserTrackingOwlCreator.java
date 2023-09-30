@@ -203,7 +203,7 @@ public class UserTrackingOwlCreator {
 		
 		// now delete the file if exists
 		// and we will make a new
-		String owlLocation = sessionDb.getOWL();
+		String owlLocation = sessionDb.getOwlFilePath();
 		
 		File f = new File(owlLocation);
 		if(f.exists()) {
@@ -214,7 +214,7 @@ public class UserTrackingOwlCreator {
 		writeNewOwl(owlLocation);
 		
 		// now reload into security db
-		sessionDb.setOWL(owlLocation);
+		sessionDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**

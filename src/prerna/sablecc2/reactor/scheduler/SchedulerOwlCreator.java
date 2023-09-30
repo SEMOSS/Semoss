@@ -200,7 +200,7 @@ public class SchedulerOwlCreator {
 
 		// now delete the file if exists
 		// and we will make a new
-		String owlLocation = schedulerDb.getOWL();
+		String owlLocation = schedulerDb.getOwlFilePath();
 
 		File f = new File(owlLocation);
 		if (f.exists()) {
@@ -213,7 +213,7 @@ public class SchedulerOwlCreator {
 		writeNewOwl(owlLocation);
 
 		// now reload into security db
-		schedulerDb.setOWL(owlLocation);
+		schedulerDb.setOwlFilePath(owlLocation);
 	}
 
 	/**

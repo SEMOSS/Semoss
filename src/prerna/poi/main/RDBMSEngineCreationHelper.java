@@ -131,13 +131,11 @@ public class RDBMSEngineCreationHelper {
 	/**
 	 * Get the existing RDBMS structure
 	 * All keys in the map are pixel values
-	 * @param owl
+	 * @param owler
 	 * @return
 	 */
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(String engineId, Owler owl) {
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		rfse.openFile(owl.getOwlPath(), null, null);
-        rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(String engineId, Owler owler) {
+		RDFFileSesameEngine rfse = owler.getOwlEngine();
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
 		List<String> conceptsList = helper.getPhysicalConcepts();
@@ -177,10 +175,8 @@ public class RDBMSEngineCreationHelper {
 	 * @param tablesToRetrieve
 	 * @return
 	 */
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(String engineId, Owler owl, Set<String> tablesToRetrieve) {
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		rfse.openFile(owl.getOwlPath(), null, null);
-        rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(String engineId, Owler owler, Set<String> tablesToRetrieve) {
+		RDFFileSesameEngine rfse = owler.getOwlEngine();
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
 		List<String> conceptsList = helper.getPhysicalConcepts();

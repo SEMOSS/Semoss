@@ -173,7 +173,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
-		this.database.setOWL(owlFile.getPath());
+		this.database.setOwlFilePath(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
@@ -247,7 +247,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			UploadUtilities.insertFlatOwlMetadata(owler, tableToInsertInto, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 			owler.commit();
 			owler.export();
-			this.database.setOWL(this.database.getOWL());
+			this.database.setOwlFilePath(owler.getOwlPath());
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 

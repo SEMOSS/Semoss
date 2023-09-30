@@ -827,7 +827,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		} finally {
 			try {
-				database.setOWL(localOwlFile);
+				database.setOwlFilePath(localOwlFile);
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
@@ -880,7 +880,7 @@ public class CentralCloudStorage implements ICloudClient {
 			centralStorageEngine.copyToLocal(storageDatabaseOwlPosition, localDatabaseFolder);
 		} finally {
 			try {
-				database.setOWL(localOwlFile);
+				database.setOwlFilePath(localOwlFile);
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
