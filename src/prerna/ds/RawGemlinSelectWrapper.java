@@ -28,6 +28,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	private GremlinInterpreter interp;
 	private SelectQueryStruct qs;
 	private Map<String,String> nameMap;
+	private IDatabaseEngine engine;
 	private OwlTemporalEngineMeta meta;
 
 	private GraphTraversal baseIterator;
@@ -36,13 +37,8 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		this.interp = interp;
 		this.nameMap = interp.getNameMap();
 		this.qs = qs;
-	}
-	
-	public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
-		this.interp = interp;
-		this.nameMap = interp.getNameMap();
-		this.qs = qs;
-		this.meta = meta;
+		this.engine = interp.getEngine();
+		this.meta = interp.getMeta();
 	}
 	
 	@Override
@@ -63,8 +59,8 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 				String qsName = header.getQueryStructName();
 
 				this.rawHeaders[index] = qsName;
-				this.headers[index] = getNodeAlias(meta, alias);
-				this.types[index] = getTypes(meta, qsName);
+				this.headers[index] = getNodeAlias(alias);
+				this.types[index] = getTypes(qsName);
 			}
 			else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				List<IQuerySelector> innerSelectorList = ((QueryFunctionSelector) header).getInnerSelector();
@@ -74,7 +70,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 						String qsName = innerSelector.getQueryStructName();
 						
 						this.rawHeaders[index] = qsName;
-						this.headers[index] = getNodeAlias(meta, alias);
+						this.headers[index] = getNodeAlias(alias);
 						this.types[index] = SemossDataType.convertStringToDataType(((QueryFunctionSelector) header).getDataType());
 					}
 				}
@@ -90,22 +86,22 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	 * @param node
 	 * @return
 	 */
-	private String getNodeAlias(OwlTemporalEngineMeta meta, String node) {
-		if(meta == null) {
+	private String getNodeAlias(String node) {
+		if(this.meta == null) {
 			return node;
 		}
-		return meta.getPhysicalName(node);
+		return this.meta.getPhysicalName(node);
 	}
 
 	/**
 	 * Get the type from the OWL if present
-	 * @param meta
 	 * @param qsName
 	 * @return
 	 */
-	private SemossDataType getTypes(OwlTemporalEngineMeta meta, String qsName) {
-		if(meta == null) {
-			return null;
+	private SemossDataType getTypes(String qsName) {
+		if(this.meta == null) {
+			String physicalUri = this.engine.getPhysicalUriFromPixelSelector(qsName);
+			return SemossDataType.convertStringToDataType( this.engine.getDataTypes(physicalUri) );
 		}
 		return meta.getHeaderTypeAsEnum(qsName);
 	}

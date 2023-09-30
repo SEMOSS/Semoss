@@ -2,10 +2,15 @@ package prerna.usertracking;
 
 import java.time.LocalDateTime;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 
 public class UserQueryTrackingThread implements Runnable {
 
+	private static final Logger classLogger = LogManager.getLogger(UserQueryTrackingThread.class);
+	
 	private User user = null;
 	private String engineId = null;
 	private String query = null;
@@ -30,7 +35,7 @@ public class UserQueryTrackingThread implements Runnable {
 			executionTime = endTime.getTime() - startTime.getTime();
 		}
 		if(this.startTime == null) {
-			System.out.println("no start time");
+			classLogger.warn("Storing query execution without a start time.");
 		}
 		UserTrackingUtils.trackQueryExecution(user, engineId, query, 
 				startTime, endTime, 

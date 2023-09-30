@@ -532,7 +532,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>tinkergraph-gremlin</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -543,7 +543,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-console</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -554,7 +554,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -565,7 +565,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-driver</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -576,7 +576,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-groovy</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -587,7 +587,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1364,10 +1364,10 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>neo4j-gremlin</artifactId>
-			<version>3.4.1</version>
+			<version>3.7.0</version>
 		</dependency>
-		<!-- neo4j-tinkerpop-api-impl is NOT Apache 2 licensed - more information 
-			below -->
+		<!-- neo4j-tinkerpop-api-impl is NOT Apache 2 licensed - more information below -->
+		<!-- 
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-tinkerpop-api-impl</artifactId>
@@ -1399,12 +1399,15 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.apache.shiro/shiro-core -->
+		<!-- 
 		<dependency>
 			<groupId>org.apache.shiro</groupId>
 			<artifactId>shiro-core</artifactId>
 			<version>1.10.0</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on -->
 		<dependency>
 		    <groupId>org.bouncycastle</groupId>
@@ -1524,7 +1527,7 @@
 		<dependency>
 			<groupId>com.datastax.dse</groupId>
 			<artifactId>dse-java-driver-graph</artifactId>
-			<version>1.4.0</version>
+			<version>1.9.0</version>
 			<exclusions>
 				<exclusion>  <!-- declare the exclusion here -->
 					<groupId>io.netty</groupId>

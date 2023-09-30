@@ -11,6 +11,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 
 public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
@@ -26,8 +27,8 @@ public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 	 */
 	
 	
-	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
-		super(gt, typeMap, nameMap);
+	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap, IDatabaseEngine engine) {
+		super(gt, typeMap, nameMap, engine);
 	}
 	
 	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
