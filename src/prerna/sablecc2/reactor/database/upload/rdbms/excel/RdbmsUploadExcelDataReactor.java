@@ -145,7 +145,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 				clean, replace);
 		this.helper.clear();
 		owler.export();
-		this.database.setOWL(owlFile.getPath());
+		this.database.setOwlFilePath(owlFile.getPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -293,7 +293,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 				null, null, 
 				clean, replace);
 		owler.export();
-		this.database.setOWL(this.database.getOWL());
+		this.database.setOwlFilePath(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

@@ -60,11 +60,11 @@ public class GenerateMetamodelUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getOwlMetamodelPositions(String databaseId) {
-		// if on cloud - we have to pull these files so they exist
-		// even if we dont need the full database object
-		if(ClusterUtil.IS_CLUSTER) {
-			Utility.getDatabase(databaseId);
-		}
+//		// if on cloud - we have to pull these files so they exist
+//		// even if we dont need the full database object
+//		if(ClusterUtil.IS_CLUSTER) {
+//			Utility.getDatabase(databaseId);
+//		}
 		
 		Map<String, Object> positions = new HashMap<>();
 		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";

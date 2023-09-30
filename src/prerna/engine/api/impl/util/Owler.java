@@ -83,30 +83,30 @@ public class Owler extends AbstractOwler {
 			// lets add the triples pertaining to those numbered above
 
 			// 1) adding the physical URI concept as a subClassOf the baseNodeURI
-			engine.addToBaseEngine(subject, RDFS.SUBCLASSOF.stringValue(), BASE_NODE_URI);
+			this.addToBaseEngine(subject, RDFS.SUBCLASSOF.stringValue(), BASE_NODE_URI);
 
 			// 2) now lets add the dataType of the concept
 			// this will only apply if it is RDF
 			if (dataType != null) {
 				String typeObject = "TYPE:" + dataType;
-				engine.addToBaseEngine(subject, RDFS.CLASS.stringValue(), typeObject);
+				this.addToBaseEngine(subject, RDFS.CLASS.stringValue(), typeObject);
 			}
 			if (MetadataUtility.ignoreConceptData(this.type)) {
 				// add an ignore data tag so we can easily query
-				engine.addToBaseEngine(subject, RDFS.DOMAIN.toString(), "noData", false);
+				this.addToBaseEngine(subject, RDFS.DOMAIN.toString(), "noData", false);
 			}
 
 			// 3) now lets add the physical URI to the pixel name URI
 			String pixelName = Utility.cleanVariableString(tableName);
 			pixelNames.add(pixelName);
 			String pixelUri = BASE_NODE_URI + "/" + pixelName;
-			engine.addToBaseEngine(subject, PIXEL_RELATION_URI, pixelUri);
+			this.addToBaseEngine(subject, PIXEL_RELATION_URI, pixelUri);
 
 			// 4) let us add the original table name as the conceptual name
 			if (conceptual == null) {
 				conceptual = tableName;
 			}
-			engine.addToBaseEngine(subject, CONCEPTUAL_RELATION_URI, conceptual, false);
+			this.addToBaseEngine(subject, CONCEPTUAL_RELATION_URI, conceptual, false);
 
 			// store it in the hash for future use
 			// NOTE : The hash contains the physical URI
@@ -157,10 +157,10 @@ public class Owler extends AbstractOwler {
 			// lets add the triples pertaining to those numbered above
 
 			// 1) now add the physical relationship URI
-			engine.addToBaseEngine(predicateSubject, RDFS.SUBPROPERTYOF.stringValue(), baseRelationURI);
+			this.addToBaseEngine(predicateSubject, RDFS.SUBPROPERTYOF.stringValue(), baseRelationURI);
 
 			// 2) now add the relationship between the two nodes
-			engine.addToBaseEngine(fromConceptURI, predicateSubject, toConceptURI);
+			this.addToBaseEngine(fromConceptURI, predicateSubject, toConceptURI);
 
 			// lastly, store it in the hash for future use
 			relationHash.put(fromTable + toTable + predicate, predicateSubject);
@@ -199,32 +199,32 @@ public class Owler extends AbstractOwler {
 			// lets add the triples pertaining to those numbered above
 
 			// 1) adding the property as type of base property URI
-			engine.addToBaseEngine(property, RDF.TYPE.stringValue(), BASE_PROPERTY_URI);
+			this.addToBaseEngine(property, RDF.TYPE.stringValue(), BASE_PROPERTY_URI);
 
 			// 2) adding the property to the concept
-			engine.addToBaseEngine(conceptURI, OWL.DatatypeProperty.toString(), property);
+			this.addToBaseEngine(conceptURI, OWL.DatatypeProperty.toString(), property);
 
 			// 3) adding the property data type
 			String typeObject = "TYPE:" + dataType;
-			engine.addToBaseEngine(property, RDFS.CLASS.stringValue(), typeObject);
+			this.addToBaseEngine(property, RDFS.CLASS.stringValue(), typeObject);
 
 			// 4) adding the property additional data type, if available
 			if (adtlDataType != null && !adtlDataType.isEmpty()) {
 				String adtlTypeObject = "ADTLTYPE:" + encodeAdtlDataType(adtlDataType);
-				engine.addToBaseEngine(property, ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, false);
+				this.addToBaseEngine(property, ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, false);
 			}
 
 			// 5) now lets add the physical URI to the pixel name URI
 			String pixelName = Utility.cleanVariableString(propertyCol);
 			String pixelFullName = pixelName + "/" + Utility.cleanVariableString(tableName);
 			String pixelUri = BASE_PROPERTY_URI + "/" + pixelFullName;
-			engine.addToBaseEngine(property, PIXEL_RELATION_URI, pixelUri);
+			this.addToBaseEngine(property, PIXEL_RELATION_URI, pixelUri);
 
 			// 5) let us add the original table name as the conceptual name
 			if (conceptual == null) {
 				conceptual = propertyCol;
 			}
-			engine.addToBaseEngine(property, CONCEPTUAL_RELATION_URI, conceptual, false);
+			this.addToBaseEngine(property, CONCEPTUAL_RELATION_URI, conceptual, false);
 
 			// lastly, store it in the hash for future use
 			// NOTE : The hash contains the physical URI
@@ -286,7 +286,7 @@ public class Owler extends AbstractOwler {
 					}
 					long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
 					String propertyPhysicalUri = queryEngine.getPhysicalUriFromPixelSelector(selectorPixel);
-					this.engine.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
+					this.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
@@ -301,11 +301,11 @@ public class Owler extends AbstractOwler {
 			}
 		}
 
-		this.engine.commit();
+		this.commit();
 		try {
-			this.engine.exportBaseEng(false);
+			this.export(false);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -317,7 +317,7 @@ public class Owler extends AbstractOwler {
 		if (physicalUri == null) {
 			physicalUri = addConcept(tableName, null, null);
 		}
-		this.engine.addToBaseEngine(physicalUri, AbstractOwler.LEGACY_PRIM_KEY_URI, columnName, false);
+		this.addToBaseEngine(physicalUri, AbstractOwler.LEGACY_PRIM_KEY_URI, columnName, false);
 	}
 
 	////////////////////////////////// ADDITIONAL METHODS TO INSERT INTO THE OWL //////////////////////////////////
@@ -333,7 +333,7 @@ public class Owler extends AbstractOwler {
 	public void addSubclass(String childType, String parentType) {
 		String childURI = addConcept(childType);
 		String parentURI = addConcept(parentType);
-		engine.addToBaseEngine(childURI, RDFS.SUBCLASSOF.stringValue(), parentURI);
+		this.addToBaseEngine(childURI, RDFS.SUBCLASSOF.stringValue(), parentURI);
 	}
 
 	////////////////////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL //////////////////////////////////
@@ -353,7 +353,7 @@ public class Owler extends AbstractOwler {
 	 * @param conceptual
 	 * @return
 	 */
-	public NounMetadata removeConcept(String appId, String tableName, String dataType, String conceptual) {
+	public NounMetadata removeConcept(String tableName, String dataType, String conceptual) {
 		// since RDF uses this multiple times, don't create it each time and just store
 		// it in a hash to send back
 		if (!conceptHash.containsKey(tableName)) {
@@ -361,8 +361,6 @@ public class Owler extends AbstractOwler {
 			// the base URI for the concept will be the baseNodeURI
 			String subject = BASE_NODE_URI + "/" + tableName;
 
-			IDatabaseEngine engine = Utility.getDatabase(appId);
-			RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 			String conceptPhysical = engine.getPhysicalUriFromPixelSelector(tableName);
 			List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
 			StringBuilder bindings = new StringBuilder();
@@ -494,32 +492,24 @@ public class Owler extends AbstractOwler {
 				throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
 			}
 
-			try {
-				owlEngine.exportDB();
-			} catch (Exception e) {
-				e.printStackTrace();
-				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired concept",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				return noun;
-			}
 			// remove it from the hash
 			conceptHash.remove(tableName, subject);
 		}
+		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 
-	public void removeConcept(String appId, String tableName, String dataType) {
-		removeConcept(appId, tableName, dataType, null);
+	public void removeConcept(String concept) {
+		removeConcept(concept, "STRING", null);
 	}
 
-	public void removeConcept(String appId, String concept) {
-		removeConcept(appId, concept, "STRING", null);
+	public void removeConcept(String tableName, String dataType) {
+		removeConcept(tableName, dataType, null);
 	}
-
+	
 	////////////////////////////////// END REMOVING CONCEPTS FROM THE OWL //////////////////////////////////
 
 
@@ -543,10 +533,10 @@ public class Owler extends AbstractOwler {
 		// lets add the triples pertaining to those numbered above
 
 		// 1) now add the physical relationship URI
-		engine.removeFromBaseEngine(predicateSubject, RDFS.SUBPROPERTYOF.stringValue(), baseRelationURI);
+		this.removeFromBaseEngine(predicateSubject, RDFS.SUBPROPERTYOF.stringValue(), baseRelationURI);
 
 		// 2) now add the relationship between the two nodes
-		engine.removeFromBaseEngine(fromConceptURI, predicateSubject, toConceptURI);
+		this.removeFromBaseEngine(fromConceptURI, predicateSubject, toConceptURI);
 
 		// lastly, store it in the hash for future use
 		relationHash.remove(fromTable + toTable + predicate);
@@ -578,17 +568,15 @@ public class Owler extends AbstractOwler {
 			property = BASE_PROPERTY_URI + "/" + propertyCol + "/" + tableName;
 		}
 
-		RDFFileSesameEngine owlEngine = engine.getBaseEng();
-
 		{
 			// remove everything downstream of the property
 			String downstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?s) " + "{?s ?p ?o} }";
 			IRawSelectWrapper it = null;
 			try {
-				it = WrapperManager.getInstance().getRawWrapper(owlEngine, downstreamQuery);
+				it = WrapperManager.getInstance().getRawWrapper(this.owlEngine, downstreamQuery);
 				while (it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+					executeRemoveQuery(headerRows, this.owlEngine);
 				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -608,10 +596,10 @@ public class Owler extends AbstractOwler {
 			String upstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?o) {?s ?p ?o} }";
 			IRawSelectWrapper it = null;
 			try {
-				it = WrapperManager.getInstance().getRawWrapper(owlEngine, upstreamQuery);
+				it = WrapperManager.getInstance().getRawWrapper(this.owlEngine, upstreamQuery);
 				while (it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+					executeRemoveQuery(headerRows, this.owlEngine);
 				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -624,16 +612,6 @@ public class Owler extends AbstractOwler {
 					}
 				}
 			}
-		}
-
-		try {
-			owlEngine.exportDB();
-		} catch (Exception e) {
-			e.printStackTrace();
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired property",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -675,8 +653,7 @@ public class Owler extends AbstractOwler {
 	 * @param newConceptName
 	 * @return
 	 */
-	public NounMetadata renameConcept(String appId, String oldConceptName, String newConceptName, String newConceptualName) {
-
+	public NounMetadata renameConcept(String oldConceptName, String newConceptName, String newConceptualName) {
 		// we need to take the table name and make the URL
 		String newConceptPhysicalUri = BASE_NODE_URI + "/" + newConceptName;
 
@@ -692,9 +669,7 @@ public class Owler extends AbstractOwler {
 		List<Object[]> oldTriplesToDelete = new ArrayList<>();
 
 		// then we need to change the property name as well to point to the new table name
-
-		IDatabaseEngine engine = Utility.getDatabase(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+		
 		String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
 		properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
 		StringBuilder bindings = new StringBuilder();
@@ -953,15 +928,6 @@ public class Owler extends AbstractOwler {
 			owlEngine.addStatement(data);
 		}
 
-		try {
-			owlEngine.exportDB();
-		} catch (Exception e) {
-			e.printStackTrace();
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired concept", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
-			
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
@@ -979,12 +945,10 @@ public class Owler extends AbstractOwler {
 	 * @param newPropName
 	 * @return
 	 */
-	public NounMetadata renameProp(String appId, String tableName, String oldPropName, String newPropName) {
+	public NounMetadata renameProp(String tableName, String oldPropName, String newPropName) {
 		// need to grab everything downstream of the node and edit it
 		// need to grab everything upstream of the node and edit it
 		
-		IDatabaseEngine engine = Utility.getDatabase(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String propPhysicalUri = BASE_PROPERTY_URI + "/" + oldPropName + "/" + tableName;
 		String newPropPhysicalUri = BASE_PROPERTY_URI + "/" + newPropName + "/" + tableName;
 
@@ -1116,15 +1080,6 @@ public class Owler extends AbstractOwler {
 			owlEngine.addStatement(data);
 		}
 		
-		try {
-			owlEngine.exportDB();
-		} catch (Exception e) {
-			e.printStackTrace();
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
-
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;

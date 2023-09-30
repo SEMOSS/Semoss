@@ -303,7 +303,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		logger.info(stepCounter + ". Create database store...");
 		database.setEngineId(this.databaseId);
 		database.setEngineName(this.databaseName);
-		database.setOWL(owlFile.getAbsolutePath());
+		database.setOwlFilePath(owlFile.getAbsolutePath());
 		Properties smssProps = Utility.loadProperties(tempSmss.getAbsolutePath());
 		smssProps.put("TEMP", "TRUE");
 		database.open(smssProps);
@@ -329,7 +329,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// commit and save the owl
 		owler.commit();
 		owler.export();
-		database.setOWL(owler.getOwlPath());
+		database.setOwlFilePath(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -356,7 +356,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private void updateExistingDatabase() throws Exception {
 		this.logger.info("Bringing in metamodel");
 		Owler owler = new Owler(this.database);
-		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(this.databaseId, owler);
+		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
 		if (newMetamodel == null) {
 			throw new IllegalArgumentException("Must define the metamodel portions to change");
@@ -395,7 +395,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
 				boolean tableRemoved = false;
 				if (!newRDBMSStructure.containsKey(existingTableName)) {
-					owler.removeConcept(this.databaseId, existingTableName, null);
+					this.logger.info("Removing table " + Utility.cleanLogString(existingTableName) + " from owl");
+					owler.removeConcept(existingTableName, null);
 					tableRemoved = true;
 				}
 				
@@ -406,40 +407,40 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 								SemossDataType.convertStringToDataType(newColumnNames.get(existingColumnName)) != existingDataType) {
 							// track removed properties
 							removedProperties.put(existingTableName, existingColumnName);
-							this.logger.info("removing relationships from owl");
-							removeRelationships(removedProperties, owlEngine);
-							this.logger.info("removing properties from owl");
+							this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName) + " for table " + Utility.cleanLogString(existingTableName) + " from owl");
 							owler.removeProp(existingTableName, existingColumnName, existingDataType + "", null, null);
 						}
 					});
+					this.logger.info("Removing relationships associated with " + Utility.cleanLogString(existingTableName) + " from owl");
+					removeRelationships(removedProperties, owlEngine);
 				}
 			});
 			
 			this.logger.info("Checking differences in metamodel to add");
 			// loop through new tables and column names and add them in to existing metamodel
 			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
-				this.logger.info("Adding table to OWL: " + Utility.cleanLogString(newTableName));
 				if (!existingMetamodel.containsKey(newTableName)) {
+					this.logger.info("Adding table " + Utility.cleanLogString(newTableName) + "to owl");
 					owler.addConcept(newTableName, null, null);
 				}
 
-				this.logger.info("Adding columns to OWL");
 				columnsFromNew.forEach((newColumnName, newDataType) -> {
+					this.logger.info("Adding column " + Utility.cleanLogString(newColumnName) + " to table " + Utility.cleanLogString(newTableName) + " from owl");
 					owler.addProp(newTableName, newColumnName, newDataType, null, null);
 				});
 
-				this.logger.info("Parsing relationships and writing to OWL");
+				this.logger.info("Adding relationships for new table " +  Utility.cleanLogString(newTableName));
 				parseRelationships(owler, relationships, newRDBMSStructure, nodesAndPrimKeys);
 			});
 
-			this.logger.info("committing and saving OWL");
+			this.logger.info("Committing and saving owl");
 			owler.commit();
-			this.logger.info("writing changes to OWL");
+			this.logger.info("Writing changes to owl");
 			owler.export();
-			this.logger.info("deleting OWL position map");
-			File owlF = this.database.getOwlPositionFile();
-			if(owlF.exists()) {
-				owlF.delete();
+			this.logger.info("Deleting current metamodel position map");
+			File owlPositionF = this.database.getOwlPositionFile();
+			if(owlPositionF.exists()) {
+				owlPositionF.delete();
 			}
 			
 			// also clear caching that is stored for the database
@@ -455,8 +456,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			String[] tablesAndPrimaryKeys = instanceName.split("\\.");
 
 			for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
-				String key = tablesAndPrimaryKeys[i], value = tablesAndPrimaryKeys[i+1], removedValue = removedProperties.get(key);
-
+				String key = tablesAndPrimaryKeys[i];
+				String value = tablesAndPrimaryKeys[i+1];
+				String removedValue = removedProperties.get(key);
+ 
 				if (removedValue != null && removedValue.equalsIgnoreCase(value)) {
 					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[0], relations[2], relations[1], true });
 					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
