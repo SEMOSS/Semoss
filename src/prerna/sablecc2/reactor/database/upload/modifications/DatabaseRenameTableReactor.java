@@ -56,9 +56,10 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 		
 		// update owl
 		try {
-			owler.renameConcept(databaseId, table, newTable, newTable);
+			owler.renameConcept(table, newTable, newTable);
 			owler.commit();
 			owler.export();
+			database.setOwlFilePath(owler.getOwlPath());
 			SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
 			syncWithLocal.setInsight(this.insight);
 			syncWithLocal.setNounStore(this.store);

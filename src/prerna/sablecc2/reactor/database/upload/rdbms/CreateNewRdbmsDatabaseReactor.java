@@ -219,7 +219,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		this.logger.info(stepCounter + ". Create database store...");
 		database.setEngineId(this.databaseId);
 		database.setEngineName(this.databaseName);
-		database.setOWL(owlFile.getAbsolutePath());
+		database.setOwlFilePath(owlFile.getAbsolutePath());
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
 		database.open(prop);

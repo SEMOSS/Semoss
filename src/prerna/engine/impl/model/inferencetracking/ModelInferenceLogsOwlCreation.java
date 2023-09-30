@@ -199,7 +199,7 @@ public class ModelInferenceLogsOwlCreation {
 		
 		// now delete the file if exists
 		// and we will make a new
-		String owlLocation = modelInferenceDb.getOWL();
+		String owlLocation = modelInferenceDb.getOwlFilePath();
 		
 		File f = new File(owlLocation);
 		if(f.exists()) {
@@ -210,7 +210,7 @@ public class ModelInferenceLogsOwlCreation {
 		writeNewOwl(owlLocation);
 		
 		// now reload into security db
-		modelInferenceDb.setOWL(owlLocation);
+		modelInferenceDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**

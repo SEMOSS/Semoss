@@ -124,12 +124,6 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public void setOWL(String owl) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public String getOWLDefinition() {
 		StringWriter output = new StringWriter();
 		try {
@@ -140,6 +134,18 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		return output.toString();
+	}
+	
+	@Override
+	public String getOwlFilePath() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setOwlFilePath(String owlFilePath) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	@Override
@@ -455,11 +461,6 @@ public class MetaHelper implements IExplorable {
 		return retObj;
 	}
 
-	@Override
-	public String getOWL() {
-		return null;
-	}
-	
 	@Override
 	public File getOwlPositionFile() {
 		// TODO Auto-generated method stub

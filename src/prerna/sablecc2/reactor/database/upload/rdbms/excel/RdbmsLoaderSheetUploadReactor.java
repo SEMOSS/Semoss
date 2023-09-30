@@ -102,7 +102,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Commit database metadata...");
 		owler.commit();
 		owler.export();
-		this.database.setOWL(owler.getOwlPath());
+		this.database.setOwlFilePath(owler.getOwlPath());
 		// if(scriptFile != null) {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();

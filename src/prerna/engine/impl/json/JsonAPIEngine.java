@@ -109,7 +109,7 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 				if(owlFile != null) {
 					owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
 					classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
-					setOWL(owlFile);
+					setOwlFilePath(owlFile);
 				}
 			}
 			// load properties object for db
