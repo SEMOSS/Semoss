@@ -4,9 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import org.apache.pdfbox.cos.COSDocument;
-import org.apache.pdfbox.io.RandomAccessFile;
-import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
@@ -28,33 +25,30 @@ public class PDFProcessor {
 	
 	public void process()
 	{
+		PDDocument pdDoc = null;
 		try {
 			File f = new File(fileName);
-			PDFParser parser = new PDFParser(new RandomAccessFile(f, "r"));
-			parser.parse();
-			
-			COSDocument cosDoc = parser.getDocument();
-			String source = getSource(fileName);
-			PDFTextStripper pdfStripper = new PDFTextStripper();
-			StringBuffer row = new StringBuffer();
-			PDDocument pdDoc = new PDDocument(cosDoc);
-			int totalPages = pdDoc.getNumberOfPages();
-			for(int pageIndex = 0;pageIndex < totalPages;pageIndex++)
-			{
-				//System.out.println("Processing Page " + pageIndex);
-				pdfStripper.setStartPage(pageIndex);
-				pdfStripper.setEndPage(pageIndex);
-				String parsedText = pdfStripper.getText(pdDoc);
-				writer.writeRow(source, pageIndex+"", parsedText, "");
-			}
-			cosDoc.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
+			try {
+				String source = getSource(fileName);
+				PDFTextStripper pdfStripper = new PDFTextStripper();
+				pdDoc = PDDocument.load(f);
+				int totalPages = pdDoc.getNumberOfPages();
+				for(int pageIndex = 0;pageIndex < totalPages;pageIndex++)
+				{
+					pdfStripper.setStartPage(pageIndex);
+					pdfStripper.setEndPage(pageIndex);
+					String parsedText = pdfStripper.getText(pdDoc);
+					writer.writeRow(source, pageIndex+"", parsedText, "");
+				}
+				
+	            pdDoc.close(); // Close PDDocument when done
+				} catch (FileNotFoundException e) {
+					pdDoc.close();
+					e.printStackTrace();
+				} 	
+			} catch (IOException e) {
+				e.printStackTrace();
+			}	
 	}	
 	
 	private String getSource(String fileName)
@@ -65,9 +59,7 @@ public class PDFProcessor {
 			source = file.getName();
 				
 		source = Utility.cleanString(source, true);
-		
+	
 		return source;
-
 	}
-
 }
