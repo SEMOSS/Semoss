@@ -20,8 +20,11 @@ public class DefaultImageGeneratorUtil {
 	 * @return
 	 */
 	public static File pickRandomImage(String fileLocation) {
-		String image = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String imageDir = image + File.separator + "images" + File.separator + "stock-engines";
+		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		if(!baseDirectory.endsWith("/")) {
+			baseDirectory = baseDirectory + "/";
+		}
+		String imageDir = baseDirectory + "images" + File.separator + "stock-engines";
 		File f = new File(imageDir);
 		String[] a = f.list();
 		Random rand = new Random();
