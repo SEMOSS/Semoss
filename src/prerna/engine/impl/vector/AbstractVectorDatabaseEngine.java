@@ -1,10 +1,12 @@
 package prerna.engine.impl.vector;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,7 +14,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RDBMSUtility;
 
@@ -30,6 +34,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected String encoderType = null;
 	protected String connectionURL = null;
 
+	protected int contentLength = 512;
+	protected int contentOverlap = 0;
+	
+	protected String indexClass;
 	
 	// string substitute vars
 	Map vars = new HashMap();
@@ -46,10 +54,27 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
+		if (!this.smssProp.containsKey("WORKING_DIR")) {
+			this.smssProp.put("WORKING_DIR", RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName));
+		}
+		
 		if(this.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS) {
 			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 		}
+
+		if (this.smssProp.containsKey("CONTENT_LENGTH")) {
+			this.contentLength = Integer.parseInt(this.smssProp.getProperty("CONTENT_LENGTH"));
+		}
+		if (this.smssProp.containsKey("CONTENT_OVERLAP")) {
+			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty("CONTENT_OVERLAP"));
+		}
+		this.indexClass = "default";
+		if (this.smssProp.containsKey("INDEX_CLASSES")) {
+			this.indexClass = this.smssProp.getProperty("INDEX_CLASSES");
+		}
+		this.encoderName = this.smssProp.getProperty("ENCODER_NAME");
+		this.encoderType = this.smssProp.getProperty("ENCODER_TYPE");
 	}
 	
 	@Override
@@ -90,8 +115,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	@Override
 	public Properties getSmssProp() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.smssProp;
 	}
 
 	@Override
@@ -111,9 +135,42 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	}
 	
 	@Override
-	public void delete() throws IOException {
-		// TODO Auto-generated method stub
+	public void delete() {
+		classLogger.debug("Delete vector database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		try {
+			this.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		File engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "/" + Constants.VECTOR_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		if(engineFolder.exists()) {
+			classLogger.info("Delete vector database engine folder " + engineFolder);
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.info("Vector Database engine folder " + engineFolder + " does not exist");
+		}
 		
+		classLogger.info("Deleting vector database engine smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch(IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// remove from DIHelper
+		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		engineIds = engineIds.replace(";" + this.engineId, "");
+		// in case we are at the start
+		engineIds = engineIds.replace(this.engineId + ";", "");
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+		DIHelper.getInstance().removeEngineProperty(this.engineId);
 	}
 	
 	@Override
