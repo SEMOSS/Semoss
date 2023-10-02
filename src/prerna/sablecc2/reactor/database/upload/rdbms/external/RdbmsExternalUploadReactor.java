@@ -29,6 +29,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -170,11 +171,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				this.databaseId = UUID.randomUUID().toString();
 				// validate database
 				this.logger.info("Start validating database");
-				UploadUtilities.validateDatabase(user, this.databaseName, this.databaseId);
+				UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.DATABASE, user, this.databaseName, this.databaseId);
 				this.logger.info("Done validating database");
 				// create database folder
 				this.logger.info("Start generating database folder");
-				this.databaseFolder = UploadUtilities.generateDatabaseFolder(this.databaseId, this.databaseName);
+				this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
 				this.logger.info("Complete");
 				generateNewDatabase(user);
 				// and rename .temp to .smss

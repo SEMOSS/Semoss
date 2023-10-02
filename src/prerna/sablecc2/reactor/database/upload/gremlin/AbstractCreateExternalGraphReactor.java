@@ -22,6 +22,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,7 +40,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	private Logger logger;
+	private Logger classLogger;
 
 	protected transient String newDatabaseId;
 	protected transient String newDatabaseName;
@@ -78,7 +79,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		
 		organizeKeys();
 		
-		this.logger = getLogger(this.getClass().getName());
+		this.classLogger = getLogger(this.getClass().getName());
 		this.newDatabaseId = UUID.randomUUID().toString();
 		this.newDatabaseName = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()).trim().replaceAll("\\s+", "_");
 		
@@ -110,7 +111,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			
 			ClusterUtil.pushEngine(this.newDatabaseId);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;
@@ -133,24 +134,24 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 	
 	private void generateNewDatabase(User user) throws Exception {
 		// start by validation
-		logger.info("Start validating database");
+		classLogger.info("Start validating database");
 		try {
-			UploadUtilities.validateDatabase(user, this.newDatabaseName, this.newDatabaseId);
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.DATABASE, user, this.newDatabaseName, this.newDatabaseId);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("Done validating database");
+		classLogger.info("Done validating database");
 
-		logger.info("Starting database creation");
+		classLogger.info("Starting database creation");
 
-		logger.info("1. Start generating database folder");
-		this.databaseFolder = UploadUtilities.generateDatabaseFolder(this.newDatabaseId, this.newDatabaseName);
-		logger.info("1. Complete");
+		classLogger.info("1. Start generating database folder");
+		this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE, this.newDatabaseId, this.newDatabaseName);
+		classLogger.info("1. Complete");
 		
-		logger.info("Generate new database");
-		logger.info("2. Create metadata for database...");
+		classLogger.info("Generate new database");
+		classLogger.info("2. Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(this.newDatabaseId, this.newDatabaseName);
-		logger.info("2. Complete");
+		classLogger.info("2. Complete");
 
 		////////////////////////////////
 		
@@ -227,19 +228,19 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		 * 
 		 */
 		
-		logger.info("3. Create properties file for database...");
+		classLogger.info("3. Create properties file for database...");
 		this.tempSmss = null;
 		try {
 			this.tempSmss = generateTempSmss(owlFile);
 			DIHelper.getInstance().setEngineProperty(this.newDatabaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("3. Complete");
+		classLogger.info("3. Complete");
 
 		// create owl file
-		logger.info("4. Start generating engine metadata...");
+		classLogger.info("4. Start generating engine metadata...");
 		Owler owler = new Owler(this.newDatabaseId, owlFile.getAbsolutePath(), DATABASE_TYPE.TINKER);
 		// add concepts
 		for (String concept : concepts) {
@@ -264,27 +265,27 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			owler.commit();
 			owler.export();
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			owler.closeOwl();
 		}
-		logger.info("4. Complete");
+		classLogger.info("4. Complete");
 
 
-		logger.info("5. Process database metadata to allow for traversing across databases	");
+		classLogger.info("5. Process database metadata to allow for traversing across databases	");
 		try {
 			UploadUtilities.updateMetadata(this.newDatabaseId, user);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		logger.info("5. Complete");
+		classLogger.info("5. Complete");
 
 		// rename .temp to .smss
 		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(this.tempSmss, this.smssFile);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		this.tempSmss.delete();
 		
@@ -330,7 +331,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 				FileUtils.forceDelete(this.databaseFolder);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
