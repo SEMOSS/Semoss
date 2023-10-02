@@ -16,6 +16,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
@@ -83,8 +84,13 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		String modelId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
+		File specificEngineFolder = null;
 		IModelEngine model = null;
 		try {
+			// validate engine
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.MODEL, user, modelName, modelId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelName, modelId);
+			
 			String modelClass = modelType.getModelClass();
 			model = (IModelEngine) Class.forName(modelClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryModelSmss(modelId, modelName, modelClass, modelDetails);
@@ -111,7 +117,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(modelId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(model, modelId, tempSmss, smssFile);
+			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
@@ -121,7 +127,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	/**
 	 * Delete all the corresponding files that are generated from the upload the failed
 	 */
-	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile) {
+	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile, File specificEngineFolder) {
 		try {
 			// close the DB so we can delete it
 			if (model != null) {
@@ -135,6 +141,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			// delete the .smss file
 			if (smssFile != null && smssFile.exists()) {
 				FileUtils.forceDelete(smssFile);
+			}
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
 			}
 			
 			UploadUtilities.removeEngineFromDIHelper(modelId);

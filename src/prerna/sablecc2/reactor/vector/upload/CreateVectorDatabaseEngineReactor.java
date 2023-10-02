@@ -17,6 +17,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
@@ -79,7 +80,6 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		
 		String vectorDbTypeStr = vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
 		
-		
 		if(vectorDbTypeStr == null || (vectorDbTypeStr=vectorDbTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
 		}
@@ -93,20 +93,19 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		String vectorDbId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
-		File baseFolder = null;
+		File specificEngineFolder = null;
 		IVectorDatabaseEngine vectorDb = null;
 		try {
+			// validate engine
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.VECTOR, user, vectorDbName, vectorDbId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbName, vectorDbId);
+			
 			String vectorDbClass = vectorDbType.getVectorDatabaseClass();
 			vectorDb = (IVectorDatabaseEngine) Class.forName(vectorDbClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryVectorDatabaseSmss(vectorDbId, vectorDbName, vectorDbClass, vectorDbDetails);
 			
-			// create the main folder
-			baseFolder = UploadUtilities.createBaseFolderInCatalogDirectory(tempSmss, vectorDbId, vectorDbName);
-			
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
 			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			
-			
 			vectorDb.open(tempSmss.getAbsolutePath());
 			
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -126,7 +125,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(vectorDbId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, baseFolder);
+			cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, specificEngineFolder);
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), vectorDbId);
@@ -136,7 +135,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	/**
 	 * Delete all the corresponding files that are generated from the upload the failed
 	 */
-	private void cleanUpCreateNewError(IVectorDatabaseEngine vectorEngine, String modelId, File tempSmss, File smssFile, File baseFolder) {
+	private void cleanUpCreateNewError(IVectorDatabaseEngine vectorEngine, String modelId, File tempSmss, File smssFile, File specificEngineFolder) {
 		try {
 			// close the DB so we can delete it
 			if (vectorEngine != null) {
@@ -150,9 +149,9 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			if (smssFile != null && smssFile.exists()) {
 				FileUtils.forceDelete(smssFile);
 			}
-			// delte the base folder
-			if (baseFolder != null && baseFolder.exists()) {
-				FileUtils.forceDelete(baseFolder);
+			// delete the engine folder
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
 			}
 			
 			UploadUtilities.removeEngineFromDIHelper(modelId);

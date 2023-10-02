@@ -16,6 +16,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
@@ -83,8 +84,13 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		String storageId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
+		File specificEngineFolder = null;
 		IStorageEngine storage = null;
 		try {
+			// validate engine
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.STORAGE, user, storageName, storageId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageName, storageId);
+			
 			String storageClass = storageType.getStorageClass();
 			storage = (IStorageEngine) Class.forName(storageClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
@@ -111,7 +117,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(storageId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
+			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
@@ -121,7 +127,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	/**
 	 * Delete all the corresponding files that are generated from the upload the failed
 	 */
-	private void cleanUpCreateNewError(IStorageEngine storage, String storageId, File tempSmss, File smssFile) {
+	private void cleanUpCreateNewError(IStorageEngine storage, String storageId, File tempSmss, File smssFile, File specificEngineFolder) {
 		try {
 			// close the DB so we can delete it
 			if (storage != null) {
@@ -135,6 +141,9 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			// delete the .smss file
 			if (smssFile != null && smssFile.exists()) {
 				FileUtils.forceDelete(smssFile);
+			}
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
 			}
 			
 			UploadUtilities.removeEngineFromDIHelper(storageId);
