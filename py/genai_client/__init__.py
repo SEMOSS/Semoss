@@ -1,8 +1,7 @@
 # Deloitte GenAI Python bindings.
-import os
-from contextvars import ContextVar
-from typing import Optional, TYPE_CHECKING
-from .utils._package_checker import check_pacakges
+# import os
+# from typing import Optional, TYPE_CHECKING
+# from .utils._package_checker import check_pacakges
 
 # utility to get the client
 def get_client(client_type = '', **kwargs):
@@ -13,9 +12,9 @@ def get_client(client_type = '', **kwargs):
     else:
         raise ValueError('Client type has not been defined.')
 
-check_pacakges()
+# check_pacakges()
 
-# register all the clients in the init
+# register all the clients in the init 
 from genai_client.client_resources import (
     OpenAiClient,
     TextGenClient,
