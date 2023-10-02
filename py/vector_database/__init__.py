@@ -7,8 +7,8 @@ from .encoders.huggingface_encoder import (
 from .encoders.openai_encoder import (
     OpenaiEncoderClass
 )
-from .faiss.faiss_client import (
-    FAISSSearcher
+from .faiss.faiss_database import (
+    FAISSDatabase
 )
 
 # make it easy to get the encoder
