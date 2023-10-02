@@ -2,12 +2,11 @@ import transformers
 from datasets import Dataset, concatenate_datasets, load_dataset
 import pandas as pd
 import faiss
-from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModel, AutoModelForSeq2SeqLM, AutoModelForQuestionAnswering, pipeline
 import numpy as np
-import smssutil
 from ..encoders.huggingface_encoder import HuggingFaceEncoder
 import pickle
+import os
+import glob
 
 # https://raw.githubusercontent.com/yashprakash13/datasets/master/arxiv_short.csv
 #from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
@@ -32,6 +31,7 @@ import pickle
 # text pattern = '\\s\\[1-9]+\\.\\d+[-]?\\d+'
 
 class FAISSSearcher():
+  '''this the primary class for a faiss database table (if that notion makes sense)'''
 
   def __init__(self, df=None, 
                ds=None, 
@@ -41,6 +41,7 @@ class FAISSSearcher():
                model_loader=transformers.AutoModel, 
                dpr=False,
                encoder_class=None,
+               base_path = None,
                ):
     # if df is None and ds is None:
     #  return "Both dataframe and dataset cannot be none"
@@ -66,6 +67,7 @@ class FAISSSearcher():
     self.vector_dimensions = None
     self.encoder_name = None
     self.encoder_class = encoder_class
+    self.base_path = base_path
    
   
   def concatenate_columns(self, row, columns_to_index=None, target_column=None, separator="\n"):
@@ -172,21 +174,28 @@ class FAISSSearcher():
       self.faiss_encoder_loaded = True
       self.encoder_name = encoder_name
     
-  def get_result_faiss(self, question, results=5, target_columns=None, json=True, print_result=False, index=None, ds=None):
-    if ds is None:
-      ds = self.ds
-    if(target_columns is None):
-      target_columns = list(ds.features)
+  def get_result_faiss(self, 
+                       question, 
+                       results=5, 
+                       columns_to_return:list = None, 
+                       json=True, 
+                       print_result=False,
+                       return_threshold = 1000, 
+                       ascending = False
+                       ):
+    if(columns_to_return is None):
+      columns_to_return = list(self.ds.features)
     self.load_faiss_encoder()
     search_vector = self.faiss_encoder.get_embeddings(question)
     _vector = np.array([search_vector])
-    faiss.normalize_L2(_vector)   
-    if index is None:
-      index = self.index
-    distances, ann = index.search(_vector, k=results)
+
+    if isinstance(self.encoder_class, HuggingFaceEncoder):
+      faiss.normalize_L2(_vector)  
+    distances, ann = self.index.search(_vector, k=results)
     #print("results.. ")
     samples_df = pd.DataFrame({'distances': distances[0], 'ann': ann[0]})
-    samples_df.sort_values("distances", ascending=False, inplace=True)
+    samples_df.sort_values("distances", ascending=ascending, inplace=True)
+    samples_df = samples_df[samples_df['distances'] <= return_threshold]
     #print(samples_df)
     
     final_output = []
@@ -196,14 +205,15 @@ class FAISSSearcher():
       output.update({'Score' : row['distances']})
       #print("-"*30)
       #print(row['ann'])
-      data_row = ds[int(row['ann'])]
+      data_row = self.ds[int(row['ann'])]
       #print(f"Score : {row['distances']}")
-      for col in target_columns:
+      for col in columns_to_return:
         if(print_result):
           print(f"{col} : {data_row[col]}")
         output.update({col:data_row[col]})
         docs.append(f"{col}:{data_row[col]}")
       final_output.append(output)
+      
     if json:
       return final_output
     else:
@@ -217,8 +227,14 @@ class FAISSSearcher():
     faiss.write_index(self.index, index_location)
 
   def load_dataset(self, dataset_location:str):
+    self.ds = self._load_dataset(dataset_location = dataset_location)
+
+  def _load_dataset(self, dataset_location:str):
     if (dataset_location.endswith('.csv')):
-      loaded_dataset = load_dataset('csv', data_files= dataset_location)
+      try:
+        loaded_dataset = load_dataset('csv', data_files= dataset_location)
+      except:
+        loaded_dataset = Dataset.from_csv(dataset_location, encoding='iso-8859-1')
     elif (dataset_location.endswith('.pkl')):
       with open(dataset_location, "rb") as file:
         loaded_dataset = pickle.load(file)
@@ -226,13 +242,21 @@ class FAISSSearcher():
       raise ValueError("Dataset creation for provided file type has not been defined")
     
     assert isinstance(loaded_dataset, Dataset)
-    self.ds = loaded_dataset
+    return loaded_dataset
 
   def save_dataset(self, dataset_location):
     with open(dataset_location, "wb") as file:
       pickle.dump(self.ds, file)
 
   def load_encoded_vectors(self, encoded_vectors_location:str):
+    self.encoded_vectors = self._load_encoded_vectors(encoded_vectors_location = encoded_vectors_location)
+    self.vector_dimensions = self.encoded_vectors.shape
+    self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
+    if isinstance(self.encoder_class, HuggingFaceEncoder):
+      faiss.normalize_L2(self.encoded_vectors)   
+    self.index.add(self.encoded_vectors)
+
+  def _load_encoded_vectors(self, encoded_vectors_location:str):
     if (encoded_vectors_location.endswith('.npy')):
       encoded_vectors = np.load(encoded_vectors_location)
     else:
@@ -240,7 +264,7 @@ class FAISSSearcher():
         encoded_vectors = pickle.load(file)
 
     assert isinstance(encoded_vectors, np.ndarray)
-    self.encoded_vectors = encoded_vectors
+    return encoded_vectors
 
   def save_encoded_vectors(self, encoded_vectors_location):
     with open(encoded_vectors_location, "wb") as file:
@@ -249,12 +273,33 @@ class FAISSSearcher():
 
   # TODO need to create a util function that writes out all the files (index, Dataset and vectors) based on a csv
   # it should also register it within the obj at the same time
-  def addDocumet(self, target_column:str, columns_to_index:list, documentFileLocation:str, separator:str = ',') -> None:
+  def addDocumet(self, documentFileLocation:list, columns_to_index:list, target_column:str ="text", separator:str = ',') -> None:
+    # make sure they are all in indexed_files dir
+    assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
+
+    # loop through and embed new docs
     for document in documentFileLocation:
-      
+      # Get the directory path and the base filename without extension
+      directory, base_filename = os.path.split(document)
+      file_name_without_extension, file_extension = os.path.splitext(base_filename)
+      new_file_extension = ".pkl"
+
       # Create the Dataset for every file
       # TODO change this to json so we dont have encoding issue
-      dataset = load_dataset('csv', data_files= document)
+      dataset = Dataset.from_csv(document, encoding='iso-8859-1')
+      # if file_extension == '.csv':
+      #   try:
+      #     dataset = load_dataset('csv', data_files= document)
+      #   except:
+      #     dataset = Dataset.from_csv(document, encoding='iso-8859-1')
+
+      if (columns_to_index == None or len(columns_to_index) == 0):
+        columns_to_index = list(dataset.features)
+      # save the dataset, this is for efficiency after removing docs
+      new_file_path = os.path.join(directory, file_name_without_extension + '_dataset' + new_file_extension)
+      with open(new_file_path, "wb") as file:
+        pickle.dump(dataset, file)
+
 
       # if applicable, create the concatenated columns
       dataset = dataset.map(self.concatenate_columns, 
@@ -268,12 +313,18 @@ class FAISSSearcher():
        # TODO need to change how this works
       self.load_faiss_encoder()
 
-
+      # get the embeddings for the document
       vectors = self.faiss_encoder.get_embeddings(dataset[target_column])
       assert vectors.ndim == 2
 
+      # write out the vectors with the same file name
+      # Change the file extension to ".pkl"
+      new_file_path = os.path.join(directory, file_name_without_extension + '_vectors' + new_file_extension)
+      with open(new_file_path, "wb") as file:
+        pickle.dump(vectors, file)
+
       # TODO need to update the flow for how we instatiate
-      if (self.encoded_vectors == None):
+      if (np.any(self.encoded_vectors) == None):
         self.encoded_vectors = np.copy(vectors)
         self.vector_dimensions = self.encoded_vectors.shape
       else:
@@ -281,6 +332,48 @@ class FAISSSearcher():
         assert self.vector_dimensions[1] == vectors.shape[1]
         self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
 
-      self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
-      faiss.normalize_L2(vectors)
-      self.index.add(vectors)
+    self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
+      #self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
+      #faiss.normalize_L2(vectors)
+      #self.index.add(vectors)
+
+  #def removeDocument(self, documentFileLocation):
+
+
+  def createMasterFiles(self, path_to_files:str):
+    # Define the pattern for the files you want to find
+    file_pattern = '*_dataset.pkl'
+
+    # Use glob.glob to find all matching files in the directory
+    matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
+    for i, file in enumerate(matching_files):
+      print(file)
+      dataset = self._load_dataset(dataset_location=file)
+      if i == 0:
+        self.ds = dataset
+      else:
+        self.ds = concatenate_datasets([self.ds, dataset])
+
+    # Define the pattern for the files you want to find
+    file_pattern = '*_vectors.pkl'
+
+    # Use glob.glob to find all matching files in the directory
+    matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
+    for i, file in enumerate(matching_files):
+      print(file)
+      vectors = self._load_encoded_vectors(encoded_vectors_location=file)
+      if i == 0:
+        self.encoded_vectors = vectors
+      else:
+        self.encoded_vectors = np.concatenate((self.encoded_vectors,vectors),axis=0)
+
+    # TODO create master files - maybe ? Need to do performance comparision
+    baseFolder = path_to_files=os.path.dirname(path_to_files)
+    self.save_encoded_vectors(encoded_vectors_location=baseFolder + "/vectors.pkl")
+    self.save_dataset(dataset_location=baseFolder + "/dataset.pkl")
+
+    self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
+    if isinstance(self.encoder_class, HuggingFaceEncoder):
+      faiss.normalize_L2(self.encoded_vectors)    
+
+    self.index.add(self.encoded_vectors)
