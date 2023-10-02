@@ -377,6 +377,9 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
+			
+			// also push to cloud
+			ClusterUtil.pushOwl(engineId);
 		}
 	}
 
