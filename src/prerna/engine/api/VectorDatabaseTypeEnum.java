@@ -1,14 +1,11 @@
 package prerna.engine.api;
 
-import prerna.util.sql.RdbmsTypeEnum;
-
 public enum VectorDatabaseTypeEnum {
 
 	FAISS("FAISS","prerna.engine.impl.vector.FaissDatabaseEngine");
 	
 	private String vectorDbName;
 	private String vectorDbClass;
-	private String vectorDbInitScript;
 	
 	VectorDatabaseTypeEnum(String vectorDbName, String vectorDbClass) {
 		this.vectorDbName = vectorDbName;

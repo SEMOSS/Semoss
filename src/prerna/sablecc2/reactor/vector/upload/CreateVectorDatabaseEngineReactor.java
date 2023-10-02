@@ -17,9 +17,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,7 +28,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.upload.UploadUtilities;
 
 public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
