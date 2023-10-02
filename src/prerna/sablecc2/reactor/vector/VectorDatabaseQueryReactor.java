@@ -83,7 +83,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			return ((Number) allNumericInputs.get(0)).intValue();
 		}
 		
-		// default to 500
+		// default to 5
 		return 5;
 	}
 }
