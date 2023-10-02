@@ -58,7 +58,7 @@ public class EngineUtility {
 	 */
 	public static String getEngineVersionFolder(IEngine.CATALOG_TYPE type, String engineIdAndName) {
 		String baseEngineFolder = getLocalEngineBaseDirectory(type);
-		return baseEngineFolder + engineIdAndName + "/" + Constants.APP_ROOT_FOLDER + "/" + Constants.VERSION_FOLDER;
+		return baseEngineFolder + "/" + engineIdAndName + "/" + Constants.APP_ROOT_FOLDER + "/" + Constants.VERSION_FOLDER;
 	}
 	
 	/**
@@ -129,8 +129,5 @@ public class EngineUtility {
 		
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
-	
-
-
 	
 }
