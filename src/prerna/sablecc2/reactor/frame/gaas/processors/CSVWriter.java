@@ -29,6 +29,7 @@ public class CSVWriter {
 	float tokenLimit = 0.1f;
 	PrintWriter pw = null;
 	int minContentLength = 30;
+	FileWriter fw = null;
 
 	public CSVWriter(String fileName) {
 		this.fileName = fileName;
@@ -39,12 +40,12 @@ public class CSVWriter {
 			{
 				// no need to write headers
 				// open in append mode
-				FileWriter fw = new FileWriter(file, true);
+				fw = new FileWriter(file, true);
 				pw = new PrintWriter(fw);
 			}
 			else
 			{
-				FileWriter fw = new FileWriter(file, false);
+				fw = new FileWriter(file, false);
 				pw = new PrintWriter(fw);
 				writeHeader();
 			}
@@ -326,6 +327,16 @@ public class CSVWriter {
 			}
 		}
 		return retSentence;
+	}
+	
+	public void close() {
+		try {
+			this.fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		this.pw.close();
 	}
 
 
