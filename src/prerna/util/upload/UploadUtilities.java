@@ -35,7 +35,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -57,6 +56,7 @@ import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -71,16 +71,6 @@ public class UploadUtilities {
 	private static final Logger classLogger = LogManager.getLogger(UploadUtilities.class);
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String DATABASE_DIRECTORY;
-	private static final String STORAGE_DIRECTORY;
-	private static final String MODEL_DIRECTORY;
-	private static final String VECTOR_DIRECTORY;
-	static {
-		DATABASE_DIRECTORY = DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR;
-		STORAGE_DIRECTORY = DIR_SEPARATOR + Constants.STORAGE_FOLDER + DIR_SEPARATOR;
-		MODEL_DIRECTORY = DIR_SEPARATOR + Constants.MODEL_FOLDER + DIR_SEPARATOR;
-		VECTOR_DIRECTORY = DIR_SEPARATOR + Constants.VECTOR_FOLDER + DIR_SEPARATOR;
-	}
 	
 	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "View insight usage stats";
 	public static final String INSIGHT_USAGE_STATS_LAYOUT = "Grid";
@@ -163,13 +153,14 @@ public class UploadUtilities {
 	}
 
 	/**
-	 * 
-	 * @param user
+	 * Validate the engine name
+	 * Does validation that:
+	 * 1) The input is not null/empty
+	 * 2) That the database folder doesn't exist in the file directory
 	 * @param engineName
-	 * @param engineId
 	 * @throws IOException
 	 */
-	public static void validateEngine(User user, String engineName, String engineId) throws IOException {
+	public static void validateEngine(IEngine.CATALOG_TYPE engienType, User user, String engineName, String engineId) throws IOException {
 		if(engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
@@ -179,55 +170,28 @@ public class UploadUtilities {
 			throw new IOException("Engine name already exists.  Please provide a unique engine name");
 		}
 		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		// need to make sure app folder doesn't already exist
-		String databaseLocation = baseFolder + DATABASE_DIRECTORY +  SmssUtilities.getUniqueName(engineName, engineId);
-		File databaseFolder = new File(databaseLocation);
-		if(databaseFolder.exists()) {
-			throw new IOException("Engine folder already contains a database directory with the same name. "
-					+ "Please delete the existing database folder or provide a unique database name");
-		}
-	}
-	
-	/**
-	 * Validate the database name
-	 * Does validation that:
-	 * 1) The input is not null/empty
-	 * 2) That the database folder doesn't exist in the file directory
-	 * @param databaseName
-	 * @throws IOException
-	 */
-	public static void validateDatabase(User user, String databaseName, String databaseId) throws IOException {
-		if(databaseName == null || databaseName.isEmpty()) {
-			throw new IllegalArgumentException("Need to provide a name for the database");
-		}
-		// need to make sure the database is unique
-		boolean containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, databaseName);
-		if(containsDatabase) {
-			throw new IOException("Database name already exists.  Please provide a unique database name");
-		}
-		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		// need to make sure app folder doesn't already exist
-		String databaseLocation = baseFolder + DATABASE_DIRECTORY +  SmssUtilities.getUniqueName(databaseName, databaseId);
-		File databaseFolder = new File(databaseLocation);
-		if(databaseFolder.exists()) {
-			throw new IOException("Database folder already contains a database directory with the same name. "
-					+ "Please delete the existing database folder or provide a unique database name");
+		// need to make sure engine folder doesn't already exist
+		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engienType, engineId, engineName);
+		File engineFolder = new File(engineLocation);
+		if(engineFolder.exists()) {
+			throw new IOException("Engine folder already contains a directory with the same name. "
+					+ "Please delete the existing engine folder or provide a unique database name");
 		}
 	}
 
 	/**
 	 * Generate the database folder and return the folder
-	 * @param databaseName
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
 	 * @return
 	 */
-	public static File generateDatabaseFolder(String databaseId, String databaseName) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String databaseLocation = baseFolder + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
-		File databaseFolder = new File(databaseLocation);
-		databaseFolder.mkdirs();
-		return databaseFolder;
+	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
+		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName);
+		File specificEngineF = new File(specificEngineLocation);
+		specificEngineF.mkdirs();
+		return specificEngineF;
 	}
 	
 	/**
@@ -236,8 +200,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static File generateOwlFile(String databaseId, String databaseName) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String owlLocation = baseFolder + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + DIR_SEPARATOR + databaseName + "_OWL.OWL";
+		String owlLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName) + "/" + databaseName + "_OWL.OWL";
 		File owlFile = new File(owlLocation);
 		
 		FileWriter writer = null;
@@ -396,7 +359,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryRdbmsSmss(String databaseId, String databaseName, File owlFile, RdbmsTypeEnum rdbmsType, String file) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -521,7 +484,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile, TINKER_DRIVER tinkerDriverType) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -590,7 +553,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryRdfSmss(String databaseId, String databaseName, File owlFile) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -671,7 +634,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File generateTemporaryJanusGraphSmss(String databaseId, String databaseName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -698,7 +661,9 @@ public class UploadUtilities {
 			// we will want to parameterize this
 			File f = new File(janusConfPath);
 			String fileBasePath = f.getParent();
-			janusConfPath = janusConfPath.replace(fileBasePath, "@BaseFolder@" + DATABASE_DIRECTORY + "@ENGINE@");
+			janusConfPath = janusConfPath.replace(
+					fileBasePath, 
+					"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 
 			if (janusConfPath.contains("\\")) {
 				janusConfPath = janusConfPath.replace("\\", "\\\\");
@@ -753,7 +718,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -782,7 +747,9 @@ public class UploadUtilities {
 			if(tinkerDriverType != ImportOptions.TINKER_DRIVER.NEO4J) {
 				File f = new File(tinkerFilePath);
 				String fileBasePath = f.getParent();
-				tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + DATABASE_DIRECTORY + "@ENGINE@");
+				tinkerFilePath = tinkerFilePath.replace(
+						fileBasePath, 
+						"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 			}
 			if(tinkerFilePath.contains("\\")) {
 				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
@@ -837,7 +804,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File generateTemporaryDatastaxSmss(String databaseId, String databaseName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -920,7 +887,7 @@ public class UploadUtilities {
 	public static File generateTemporaryExternalNeo4jSmss(String databaseId, String databaseName, File owlFile,
 			String connectionStringKey, String username, String password, Map<String, String> typeMap,
 			Map<String, String> nameMap, boolean useLabel) throws IOException {
-		String dbTempNeo4jLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempNeo4jLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		File dbTempSmss = new File(dbTempNeo4jLoc);
 		if (dbTempSmss.exists()) {
@@ -981,9 +948,10 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile, String filePath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
+	public static File generateTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile, String filePath, 
+			Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
 			throws IOException {
-		String dbTempNeo4jLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempNeo4jLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -1055,7 +1023,7 @@ public class UploadUtilities {
 			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, 
 			Map<String, Object> connectionDetails, Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
 		
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -1086,7 +1054,9 @@ public class UploadUtilities {
 				File f = new File(host);
 				if(f.exists()) {
 					String fileBasePath = f.getParent();
-					connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + DATABASE_DIRECTORY + "@ENGINE@");
+					connectionUrl = connectionUrl.replace(
+							fileBasePath, 
+							"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 				}
 			}
 			// connection details
@@ -1144,7 +1114,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryRSmss(String databaseId, String databaseName, File owlFile, String fileName, Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) throws IOException {
-		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -1201,53 +1171,12 @@ public class UploadUtilities {
 	/**
 	 * Get the database temporary smss location
 	 * 
-	 * @param databaseId
-	 * @param databaseName
+	 * @param engineId
+	 * @param engineName
 	 * @return
 	 */
-	private static String getDatabaseTempSmssLoc(String databaseId, String databaseName) {
-		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + ".temp";
-		return dbTempSmssLoc;
-	}
-	
-	/**
-	 * Get the storage temporary smss location
-	 * 
-	 * @param storageId
-	 * @param storageName
-	 * @return
-	 */
-	private static String getStorageTempSmssLoc(String storageId, String storageName) {
-		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + STORAGE_DIRECTORY + SmssUtilities.getUniqueName(storageName, storageId) + ".temp";
-		return dbTempSmssLoc;
-	}
-	
-	/**
-	 * Get the model temporary smss location
-	 * 
-	 * @param modelId
-	 * @param modelName
-	 * @return
-	 */
-	private static String getModelTempSmssLoc(String modelId, String modelName) {
-		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + MODEL_DIRECTORY + SmssUtilities.getUniqueName(modelName, modelId) + ".temp";
-		return dbTempSmssLoc;
-	}
-	
-	/**
-	 * Get the database temporary smss location
-	 * 
-	 * @param databaseId
-	 * @param databaseName
-	 * @return
-	 */
-	private static String getVectorDatabaseTempSmssLoc(String vectorDbId, String vectorDbName) {
-		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + VECTOR_DIRECTORY + SmssUtilities.getUniqueName(vectorDbName, vectorDbId) + ".temp";
-		return dbTempSmssLoc;
+	private static String getEngineTempSmssLoc(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
+		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/" + SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
 	}
 	
 	/**
@@ -1258,7 +1187,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryStorageSmss(String storageId, String storageName, String storageClassName, Map<String, String> properties) throws IOException {
-		String storageTempSmssLoc = getStorageTempSmssLoc(storageId, storageName);
+		String storageTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -1320,7 +1249,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryModelSmss(String modelId, String modelName, String modelClassName, Map<String, String> properties) throws IOException {
-		String modelTempSmssLoc = getModelTempSmssLoc(modelId, modelName);
+		String modelTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
@@ -1386,7 +1315,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryVectorDatabaseSmss(String databaseId, String databaseName, String vectorDbClassName, Map<String, String> properties) throws IOException {
-		String dbTempSmssLoc = getVectorDatabaseTempSmssLoc(databaseId, databaseName);
+		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.VECTOR, databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -1441,16 +1370,6 @@ public class UploadUtilities {
 			}
 		}
 		return vectorDbTempSmss;
-	}
-	
-	public static File createBaseFolderInCatalogDirectory(File smssFile, String engineId, String engineName) {
-		// Get the parent directory
-        File parentDirectory = smssFile.getParentFile();   
-        File baseFolder = new File(parentDirectory.getAbsolutePath() + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId));
-        if(!baseFolder.exists()) {
-        	baseFolder.mkdirs();
-		}
-        return baseFolder;
 	}
 	
 	/**
@@ -2310,9 +2229,8 @@ public class UploadUtilities {
 		Date currDate = Calendar.getInstance().getTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
 		String dateName = sdf.format(currDate);
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String appLocation = baseFolder + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
-		String metaModelFilePath = appLocation + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName + "_PROP.json";
+		String dbFolderPath = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
+		String metaModelFilePath = dbFolderPath + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName + "_PROP.json";
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(metamodel);
 		// create file

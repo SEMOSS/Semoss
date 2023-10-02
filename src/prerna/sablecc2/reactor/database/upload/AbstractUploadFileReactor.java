@@ -17,6 +17,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -144,11 +145,11 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				this.databaseName = databaseIdOrName;
 				// validate database
 				this.logger.info("Start validating database");
-				UploadUtilities.validateDatabase(user, this.databaseName, this.databaseId);
+				UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.DATABASE, user, this.databaseName, this.databaseId);
 				this.logger.info("Done validating database");
 				// create database folder
 				this.logger.info("Start generating database folder");
-				this.databaseFolder = UploadUtilities.generateDatabaseFolder(this.databaseId, this.databaseName);
+				this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
 				this.logger.info("Complete");
 				generateNewDatabase(user, this.databaseName, filePath);
 				// and rename .temp to .smss
