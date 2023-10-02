@@ -35,6 +35,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -73,10 +74,12 @@ public class UploadUtilities {
 	private static final String DATABASE_DIRECTORY;
 	private static final String STORAGE_DIRECTORY;
 	private static final String MODEL_DIRECTORY;
+	private static final String VECTOR_DIRECTORY;
 	static {
 		DATABASE_DIRECTORY = DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR;
 		STORAGE_DIRECTORY = DIR_SEPARATOR + Constants.STORAGE_FOLDER + DIR_SEPARATOR;
 		MODEL_DIRECTORY = DIR_SEPARATOR + Constants.MODEL_FOLDER + DIR_SEPARATOR;
+		VECTOR_DIRECTORY = DIR_SEPARATOR + Constants.VECTOR_FOLDER + DIR_SEPARATOR;
 	}
 	
 	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "View insight usage stats";
@@ -1235,6 +1238,19 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Get the database temporary smss location
+	 * 
+	 * @param databaseId
+	 * @param databaseName
+	 * @return
+	 */
+	private static String getVectorDatabaseTempSmssLoc(String vectorDbId, String vectorDbName) {
+		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String dbTempSmssLoc = baseDirectory + VECTOR_DIRECTORY + SmssUtilities.getUniqueName(vectorDbName, vectorDbId) + ".temp";
+		return dbTempSmssLoc;
+	}
+	
+	/**
 	 * Create a temporary smss file for storage engine
 	 * @param storageId
 	 * @param storageName
@@ -1356,6 +1372,85 @@ public class UploadUtilities {
 		}
 		
 		return modelTempSmss;
+	}
+	
+	/**
+	 * Create a temporary smss file for a rdbms engine
+	 * 
+	 * @param databaseId
+	 * @param databaseName
+	 * @param owlFile
+	 * @param rdbmsType
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryVectorDatabaseSmss(String databaseId, String databaseName, String vectorDbClassName, Map<String, String> properties) throws IOException {
+		String dbTempSmssLoc = getVectorDatabaseTempSmssLoc(databaseId, databaseName);
+		
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around 
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File vectorDbTempSmss = new File(dbTempSmssLoc);
+		if (vectorDbTempSmss.exists()) {
+			vectorDbTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		FileReader fileRead = null;
+		BufferedReader bufferedReader = null;
+
+		try {
+			writer = new FileWriter(vectorDbTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultEngineSettings(bufferedWriter, databaseId, databaseName, vectorDbClassName, newLine, tab);
+			bufferedWriter.write(newLine);
+			
+			for(String key : properties.keySet()) {
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not generate temporary smss file for model");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileRead != null) {
+					fileRead.close();
+				}
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return vectorDbTempSmss;
+	}
+	
+	public static File createBaseFolderInCatalogDirectory(File smssFile, String engineId, String engineName) {
+		// Get the parent directory
+        File parentDirectory = smssFile.getParentFile();   
+        File baseFolder = new File(parentDirectory.getAbsolutePath() + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId));
+        if(!baseFolder.exists()) {
+        	baseFolder.mkdirs();
+		}
+        return baseFolder;
 	}
 	
 	/**
