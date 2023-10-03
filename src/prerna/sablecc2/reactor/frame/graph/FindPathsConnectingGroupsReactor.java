@@ -1,11 +1,11 @@
 package prerna.sablecc2.reactor.frame.graph;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -85,16 +85,16 @@ public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 		// remove the current frame filters
 		tf.getFrameFilters().removeAllFilters();
 
-		Map<String, List<String>> colToValues = new HashMap<String, List<String>>();
+		Map<String, List<Object>> colToValues = new HashMap<String, List<Object>>();
 		for(Vertex v : instancesToKeep) {
 			String type = v.value(TinkerFrame.TINKER_TYPE);
 			String value = v.value(TinkerFrame.TINKER_NAME);
 
-			List<String> values = null;
+			List<Object> values = null;
 			if(colToValues.containsKey(type)) {
 				values = colToValues.get(type);
 			} else {
-				values = new Vector<String>();
+				values = new ArrayList<>();
 				colToValues.put(type, values);
 			}
 
