@@ -32,9 +32,15 @@ public class DefaultImageGeneratorUtil {
 		int i = rand.nextInt(a.length);
 		String newImage = a[i];
 		
-		File def = new File(imageDir + File.separator + newImage);
-		
-		Path p = def.toPath();
+		File thisNewImage = new File(imageDir + File.separator + newImage);
+		// make the file location directory if it doesn't already exist
+		{
+			File fileDir = new File(fileLocation).getParentFile();
+			if(!fileDir.exists() || !fileDir.isDirectory()) {
+				fileDir.mkdirs();
+			}
+		}
+		Path p = thisNewImage.toPath();
 		Path from = Paths.get(fileLocation);
 		try {
 			Files.copy(p, Files.newOutputStream(from));

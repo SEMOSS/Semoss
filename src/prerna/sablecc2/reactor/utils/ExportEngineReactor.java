@@ -55,7 +55,6 @@ public class ExportEngineReactor extends AbstractReactor {
 
 		IEngine engine = Utility.getEngine(engineId);
 		logger.info("Exporting engine... ");
-		// remove the database
 		String zipFilePath = null;
 		ReentrantLock lock = null;
 		if(engine.holdsFileLocks()) {
@@ -80,17 +79,22 @@ public class ExportEngineReactor extends AbstractReactor {
 			String engineName = engine.getEngineName();
 			String outputDir = this.insight.getInsightFolder();
 			String thisEngineDir = EngineUtility.getSpecificEngineBaseFolder(engine.getCatalogType(), engineId, engineName);
+			File thisEngineF = new File(thisEngineDir);
 			zipFilePath = outputDir + "/" + engineName + "_engine.zip";
 			
 			// zip database
 			ZipOutputStream zos = null;
 			try {
 				// zip db folder
-				logger.info("Zipping engine files...");
-				zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath);
-				logger.info("Done zipping engine folder");
+				if(thisEngineF.exists()) {
+					logger.info("Zipping engine files...");
+					zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath);
+					logger.info("Done zipping engine folder");
+				} else {
+					logger.info("No engine folder to zip");
+				}
 				// add smss file
-				File smss = new File(thisEngineDir + ".smss");
+				File smss = new File(engine.getSmssFilePath());
 				logger.info("Adding smss file...");
 				ZipUtils.addToZipFile(smss, zos);
 				logger.info("Done adding smss file");
