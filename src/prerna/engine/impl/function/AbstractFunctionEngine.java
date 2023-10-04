@@ -2,17 +2,19 @@ package prerna.engine.impl.function;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.function.AbstractFunctionEngine;
-import prerna.engine.impl.function.AbstractFunctionEngine;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -27,6 +29,11 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	
 	private String smssFilePath;
 	private Properties smssProp;
+	
+	protected String functionName;
+	protected String functionDescription;
+	protected List<FunctionParameter> parameters;
+	protected List<String> requiredParameters;
 	
 	@Override
 	public void setEngineId(String engineId) {
@@ -47,11 +54,74 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	public String getEngineName() {
 		return this.engineName;
 	}
+	
+	@Override
+	public String getFunctionName() {
+		return functionName;
+	}
 
+	@Override
+	public void setFunctionName(String functionName) {
+		this.functionName = functionName;
+	}
+
+	@Override
+	public String getFunctionDescription() {
+		return functionDescription;
+	}
+
+	@Override
+	public void setFunctionDescription(String functionDescription) {
+		this.functionDescription = functionDescription;
+	}
+
+	@Override
+	public List<FunctionParameter> getParameters() {
+		return parameters;
+	}
+
+	@Override
+	public void setParameters(List<FunctionParameter> parameters) {
+		this.parameters = parameters;
+	}
+
+	@Override
+	public List<String> getRequiredParameters() {
+		return this.requiredParameters;
+	}
+	
+	@Override
+	public void setRequiredParameters(List<String> requiredParameters) {
+		this.requiredParameters = requiredParameters;
+	}
+	
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
 		open(Utility.loadProperties(smssFilePath));
+	}
+	
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		setSmssProp(smssProp);
+
+		if(!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
+			throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
+		}
+		if(!smssProp.containsKey(IFunctionEngine.DESCRIPTION_KEY)) {
+			throw new IllegalArgumentException("Must have key " + IFunctionEngine.DESCRIPTION_KEY + " in SMSS");
+		}
+
+		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
+		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
+		
+		if(smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
+			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
+		}
+		
+		if(smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
+			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
+		}
 	}
 
 	@Override
