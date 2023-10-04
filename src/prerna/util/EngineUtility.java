@@ -20,14 +20,14 @@ public class EngineUtility {
 	public static final String LOCAL_STORAGE_IMAGE_RELPATH = "images/storages";
 	public static final String LOCAL_MODEL_IMAGE_RELPATH = "images/models";
 	public static final String LOCAL_VECTOR_IMAGE_RELPATH = "images/vectors";
-	public static final String LOCAL_SERVICE_IMAGE_RELPATH = "images/services";
+	public static final String LOCAL_FUNCTION_IMAGE_RELPATH = "images/functions";
 	public static final String LOCAL_PROJECT_IMAGE_RELPATH = "images/projects";
 
 	public static final String DATABASE_FOLDER = BASE_FOLDER + Constants.DATABASE_FOLDER;
 	public static final String STORAGE_FOLDER = BASE_FOLDER + Constants.STORAGE_FOLDER;
 	public static final String MODEL_FOLDER = BASE_FOLDER + Constants.MODEL_FOLDER;
 	public static final String VECTOR_FOLDER = BASE_FOLDER + Constants.VECTOR_FOLDER;
-	public static final String SERVICE_FOLDER = BASE_FOLDER + Constants.SERVICE_FOLDER;
+	public static final String FUNCTION_FOLDER = BASE_FOLDER + Constants.FUNCTION_FOLDER;
 	// project is special engine
 	public static final String PROJECT_FOLDER = BASE_FOLDER + Constants.PROJECT_FOLDER;
 	public static final String USER_FOLDER = BASE_FOLDER + Constants.USER_FOLDER;
@@ -36,7 +36,7 @@ public class EngineUtility {
 	public static final String STORAGE_IMAGE_FOLDER = BASE_FOLDER + LOCAL_STORAGE_IMAGE_RELPATH;
 	public static final String MODEL_IMAGE_FOLDER = BASE_FOLDER + LOCAL_MODEL_IMAGE_RELPATH;
 	public static final String VECTOR_IMAGE_FOLDER = BASE_FOLDER + LOCAL_VECTOR_IMAGE_RELPATH;
-	public static final String SERVICE_IMAGE_FOLDER = BASE_FOLDER + LOCAL_SERVICE_IMAGE_RELPATH;
+	public static final String FUNCTION_IMAGE_FOLDER = BASE_FOLDER + LOCAL_FUNCTION_IMAGE_RELPATH;
 	public static final String PROJECT_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
 	
 	/**
@@ -97,8 +97,8 @@ public class EngineUtility {
 			return MODEL_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return VECTOR_FOLDER;
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
-			return SERVICE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return FUNCTION_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_FOLDER;
 		}
@@ -120,8 +120,8 @@ public class EngineUtility {
 			return MODEL_IMAGE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return VECTOR_IMAGE_FOLDER;
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
-			return SERVICE_IMAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return FUNCTION_IMAGE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGE_FOLDER;
 		}
@@ -143,8 +143,8 @@ public class EngineUtility {
 			return CouchUtil.MODEL;
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return CouchUtil.VECTOR;
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
-			return CouchUtil.SERVICE;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return CouchUtil.FUNCTION;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return CouchUtil.PROJECT;
 		}

@@ -9,16 +9,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IServiceEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.upload.UploadUtilities;
 
-public abstract class AbstractServiceEngine implements IServiceEngine {
+public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractServiceEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
 
 	private String engineId;
 	private String engineName;
@@ -54,7 +54,7 @@ public abstract class AbstractServiceEngine implements IServiceEngine {
 
 	@Override
 	public void delete() throws IOException {
-		classLogger.debug("Delete database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		classLogger.debug("Delete function engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		try {
 			this.close();
 		} catch(IOException e) {
@@ -62,11 +62,10 @@ public abstract class AbstractServiceEngine implements IServiceEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
-		File engineFolder =new File(
-				DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "/" + Constants.SERVICE_FOLDER 
-				+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-
+		File engineFolder = new File(
+				EngineUtility.getSpecificEngineBaseFolder
+					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
+				);
 		try {
 			FileUtils.deleteDirectory(engineFolder);
 		} catch (IOException e) {
@@ -112,7 +111,7 @@ public abstract class AbstractServiceEngine implements IServiceEngine {
 
 	@Override
 	public CATALOG_TYPE getCatalogType() {
-		return IEngine.CATALOG_TYPE.SERVICE;
+		return IEngine.CATALOG_TYPE.FUNCTION;
 	}
 
 	@Override

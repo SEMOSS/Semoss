@@ -14,7 +14,6 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -24,6 +23,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -79,8 +79,7 @@ public class ExportEngineReactor extends AbstractReactor {
 			
 			String engineName = engine.getEngineName();
 			String outputDir = this.insight.getInsightFolder();
-			String engineFolder = getEngineFolder(engine.getCatalogType()) ;
-			String thisEngineDir = engineFolder + "/" + SmssUtilities.getUniqueName(engineName, engineId);
+			String thisEngineDir = EngineUtility.getSpecificEngineBaseFolder(engine.getCatalogType(), engineId, engineName);
 			zipFilePath = outputDir + "/" + engineName + "_database.zip";
 			
 			// zip database
@@ -91,7 +90,7 @@ public class ExportEngineReactor extends AbstractReactor {
 				zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath);
 				logger.info("Done zipping engine folder");
 				// add smss file
-				File smss = new File(engineFolder + "/" + SmssUtilities.getUniqueName(engineName, engineId) + ".smss");
+				File smss = new File(thisEngineDir + ".smss");
 				logger.info("Adding smss file...");
 				ZipUtils.addToZipFile(smss, zos);
 				logger.info("Done adding smss file");
@@ -135,26 +134,4 @@ public class ExportEngineReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
-	
-	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private String getEngineFolder(IEngine.CATALOG_TYPE type) {
-		if(IEngine.CATALOG_TYPE.DATABASE == type) {
-			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.DATABASE_FOLDER;
-		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
-			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.STORAGE_FOLDER;
-		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
-			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.MODEL_FOLDER;
-		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
-			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.VECTOR_FOLDER;
-		}  else if(IEngine.CATALOG_TYPE.SERVICE == type) {
-			return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.SERVICE_FOLDER;
-		}
-		
-		throw new IllegalArgumentException("Unknown engine type " + type);
-	}
-
 }
