@@ -16,9 +16,9 @@ import com.google.gson.reflect.TypeToken;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Utility;
 
-public class RESTServiceEngine extends AbstractServiceEngine {
+public class RESTFunctionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(RESTServiceEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(RESTFunctionEngine.class);
 
 	private String httpMethod;
 	private String url;
