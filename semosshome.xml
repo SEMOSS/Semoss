@@ -41,8 +41,8 @@
 			<outputDirectory>model</outputDirectory>
 		</fileSet>
 		<fileSet>
-			<directory>service</directory>
-			<outputDirectory>service</outputDirectory>
+			<directory>function</directory>
+			<outputDirectory>function</outputDirectory>
 		</fileSet>
 		<fileSet>
 			<directory>vector</directory>
