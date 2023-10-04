@@ -27,6 +27,7 @@ import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -431,8 +432,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		File engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "/" + Constants.MODEL_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		File engineFolder = new File(
+				EngineUtility.getSpecificEngineBaseFolder
+					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
+				);
 		if(engineFolder.exists()) {
 			classLogger.info("Delete model engine folder " + engineFolder);
 			try {
