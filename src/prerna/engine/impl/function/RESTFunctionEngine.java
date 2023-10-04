@@ -137,7 +137,11 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 		execMap.put("number1", 1);
 		execMap.put("number2", 2);
 		Object output = engine.execute(execMap);
+		System.out.println(">>>>>>>>>>>>>>>>>>>>");
 		System.out.println("My output = " + output);
+		System.out.println(">>>>>>>>>>>>>>>>>>>>");
+		System.out.println(engine.getFunctionDefintionJson());
+		
 		engine.close();
 	}
 
