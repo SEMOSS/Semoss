@@ -32,3 +32,28 @@ class Driver():
       answer = se.listDetails(path=path, insight_id=self.insight_id, **kwargs)
       response.append(answer)
     return response
+    
+  def try_pickle(self, str_to_pickle):
+    import jsonpickle as jp
+    from gaas_tcp_server_handler import TCPServerHandler
+    server = TCPServerHandler.da_server
+    epoc = "abc123"
+    engine_type = "pickler"
+    ## Time to up the game
+    import torch
+    a = torch.FloatTensor(3,2)
+    payload = {
+      "epoc": epoc,
+      "response": False,
+      "engineType": engine_type,
+      "interim": False,
+      # all the method stuff will come here
+      "payload": [jp.dumps(a)]
+    }
+    server.send_request(payload)
+    
+  def get_str_back(self, pickle_to_str):
+    import jsonpickle as jp
+    import torch
+    out = jp.loads(pickle_to_str)
+    print(f"Output is {out}")
