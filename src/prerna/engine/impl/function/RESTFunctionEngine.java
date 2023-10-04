@@ -1,4 +1,4 @@
-package prerna.engine.impl.service;
+package prerna.engine.impl.function;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -13,6 +13,10 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.engine.impl.function.AbstractFunctionEngine;
+import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.AbstractFunctionEngine;
+import prerna.engine.impl.function.RESTFunctionEngine;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Utility;
 
@@ -112,7 +116,7 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 		tempSmss.put("HEADERS", "{Content-Type: 'application/json'}");
 		tempSmss.put("EXECUTE_INPUT_NAMES", "['number1','number2']");
 		tempSmss.put("CONTENT_TYPE", "JSON");
-		RESTServiceEngine engine = new RESTServiceEngine();
+		RESTFunctionEngine engine = new RESTFunctionEngine();
 		engine.open(tempSmss);
 		Object output = engine.execute(new Object[] {1,2});
 		System.out.println("My output = " + output);
