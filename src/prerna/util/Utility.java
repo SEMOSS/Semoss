@@ -153,12 +153,12 @@ import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.api.IServiceEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
@@ -2597,10 +2597,10 @@ public class Utility {
 	 * @param smssProp
 	 * @return
 	 */
-	public static IServiceEngine loadServiceEngine(String smssFilePath, Properties smssProp) {
-		IServiceEngine engine = null;
+	public static IFunctionEngine loadServiceEngine(String smssFilePath, Properties smssProp) {
+		IFunctionEngine engine = null;
 		try {
-			engine = (IServiceEngine) loadEngine(smssFilePath, smssProp);
+			engine = (IFunctionEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -2987,8 +2987,8 @@ public class Utility {
 			return getModel(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return getVectorDatabase(engineId, pullIfNeeded);
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
-			return getServiceEngine(engineId, pullIfNeeded);
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return getFunctionEngine(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
@@ -3217,8 +3217,8 @@ public class Utility {
 	 * @param engineId
 	 * @return
 	 */
-	public static IServiceEngine getServiceEngine(String engineId) {
-		return getServiceEngine(engineId, true);
+	public static IFunctionEngine getFunctionEngine(String engineId) {
+		return getFunctionEngine(engineId, true);
 	}
 	
 	/**
@@ -3227,8 +3227,8 @@ public class Utility {
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IServiceEngine getServiceEngine(String engineId, boolean pullIfNeeded) {
-		return (IServiceEngine) baseGetEngine(engineId, pullIfNeeded);
+	public static IFunctionEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
+		return (IFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**

@@ -11,7 +11,7 @@ public interface IEngine extends Closeable {
 		STORAGE,
 		MODEL,
 		VECTOR,
-		SERVICE,
+		FUNCTION,
 		// special kind for IProject
 		PROJECT,
 	};

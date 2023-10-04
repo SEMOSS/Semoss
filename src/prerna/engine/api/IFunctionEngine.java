@@ -1,6 +1,6 @@
 package prerna.engine.api;
 
-public interface IServiceEngine extends IEngine {
+public interface IFunctionEngine extends IEngine {
 
 	/**
 	 * 

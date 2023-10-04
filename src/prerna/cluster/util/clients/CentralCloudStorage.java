@@ -212,7 +212,7 @@ public class CentralCloudStorage implements ICloudClient {
 			return MODEL_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return VECTOR_CONTAINER_PREFIX;
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return SERVICE_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_CONTAINER_PREFIX;
@@ -235,7 +235,7 @@ public class CentralCloudStorage implements ICloudClient {
 			return MODEL_IMAGES_BLOB;
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return VECTOR_IMAGES_BLOB;
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return SERVICE_IMAGES_BLOB;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGES_BLOB;
@@ -267,9 +267,9 @@ public class CentralCloudStorage implements ICloudClient {
 			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
 			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.VECTOR_FOLDER);
 			return;
-		} else if(IEngine.CATALOG_TYPE.SERVICE == type) {
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.SERVICE_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.FUNCTION_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return;
