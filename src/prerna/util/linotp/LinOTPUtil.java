@@ -55,7 +55,7 @@ import prerna.util.ldap.LDAPPasswordChangeRequiredException;
 
 public class LinOTPUtil {
 
-	private static final Logger logger = LogManager.getLogger(LinOTPUtil.class);
+	private static final Logger classLogger = LogManager.getLogger(LinOTPUtil.class);
 
 	/**
 	 * 
@@ -123,7 +123,7 @@ public class LinOTPUtil {
 							session.invalidate();
 						}
 					}
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					returnMap.put(Constants.ERROR_MESSAGE, e.getMessage());
 					returnMap.put(ILdapAuthenticator.LDAP_PASSWORD_CHANGE_RETURN_KEY, true);
 					linotpResponse.setResponseCode(401);
@@ -136,7 +136,7 @@ public class LinOTPUtil {
 							session.invalidate();
 						}
 					}
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					returnMap.put(Constants.ERROR_MESSAGE, "Unable to authenticate with active directory");
 					linotpResponse.setResponseCode(500);
 					return linotpResponse;
@@ -145,7 +145,7 @@ public class LinOTPUtil {
 						try {
 							authenticator.close();
 						} catch (IOException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -203,7 +203,7 @@ public class LinOTPUtil {
 						try {
 							resetCounter(new LinOTPResponse(), username);
 						} catch(Exception e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						
 						return linotpResponse;
@@ -300,7 +300,7 @@ public class LinOTPUtil {
 						try {
 							resetCounter(new LinOTPResponse(), username);
 						} catch(Exception e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						
 						return linotpResponse;
