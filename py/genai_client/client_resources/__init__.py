@@ -1,2 +1,3 @@
 from genai_client.client_resources.gaas_client_openai import OpenAiClient
+from genai_client.client_resources.gaas_client_azure_openai import AzureOpenAiClient
 from genai_client.client_resources.gaas_client_textgen import TextGenClient

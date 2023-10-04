@@ -7,15 +7,16 @@
 def get_client(client_type = '', **kwargs):
     if (client_type == 'openai'):
         return OpenAiClient(**kwargs)
+    elif (client_type == 'azure-openai'):
+        return AzureOpenAiClient(**kwargs)
     elif (client_type == 'text-gen'):
         return TextGenClient(**kwargs)
     else:
         raise ValueError('Client type has not been defined.')
 
-# check_pacakges()
-
 # register all the clients in the init 
 from genai_client.client_resources import (
+    AzureOpenAiClient,
     OpenAiClient,
     TextGenClient,
 )
