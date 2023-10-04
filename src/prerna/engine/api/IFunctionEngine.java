@@ -66,4 +66,10 @@ public interface IFunctionEngine extends IEngine {
 	 */
 	void setRequiredParameters(List<String> requiredParameters);
 	
+	/**
+	 * 
+	 * @return
+	 */
+	org.json.JSONObject getFunctionDefintionJson();
+	
 }
