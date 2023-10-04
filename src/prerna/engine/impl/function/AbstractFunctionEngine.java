@@ -8,6 +8,8 @@ import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -34,66 +36,6 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	protected String functionDescription;
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
-	
-	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
-
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
-
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-	
-	@Override
-	public String getFunctionName() {
-		return functionName;
-	}
-
-	@Override
-	public void setFunctionName(String functionName) {
-		this.functionName = functionName;
-	}
-
-	@Override
-	public String getFunctionDescription() {
-		return functionDescription;
-	}
-
-	@Override
-	public void setFunctionDescription(String functionDescription) {
-		this.functionDescription = functionDescription;
-	}
-
-	@Override
-	public List<FunctionParameter> getParameters() {
-		return parameters;
-	}
-
-	@Override
-	public void setParameters(List<FunctionParameter> parameters) {
-		this.parameters = parameters;
-	}
-
-	@Override
-	public List<String> getRequiredParameters() {
-		return this.requiredParameters;
-	}
-	
-	@Override
-	public void setRequiredParameters(List<String> requiredParameters) {
-		this.requiredParameters = requiredParameters;
-	}
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -154,6 +96,95 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 		// remove from DIHelper
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
+	}
+	
+	@Override
+	public JSONObject getFunctionDefintionJson() {
+		JSONObject json = new JSONObject();
+		json.put("name", this.functionName);
+		json.put("description", this.functionDescription);
+		
+		JSONObject parameterJSON = new JSONObject();
+		if(this.parameters != null && !this.parameters.isEmpty()) {
+			parameterJSON.put("type", "object");
+			JSONObject propertiesJSON = new JSONObject();
+			for(FunctionParameter fParam : this.parameters) {
+				JSONObject thisPropJSON = new JSONObject();
+				thisPropJSON.put("type", fParam.getParameterType());
+				thisPropJSON.put("description", fParam.getParameterDescription());
+				propertiesJSON.put(fParam.getParameterName(), thisPropJSON);
+			}
+			parameterJSON.put("properties", propertiesJSON);
+		}
+		json.put("parameters", parameterJSON);
+		
+		JSONArray requiredJSON = new JSONArray();
+		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+			requiredJSON.put(this.requiredParameters);
+		}
+		json.put("required", requiredJSON);
+		
+		return json;
+	}
+
+	@Override
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
+	}
+
+	@Override
+	public String getEngineId() {
+		return this.engineId;
+	}
+
+	@Override
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
+
+	@Override
+	public String getEngineName() {
+		return this.engineName;
+	}
+	
+	@Override
+	public String getFunctionName() {
+		return functionName;
+	}
+
+	@Override
+	public void setFunctionName(String functionName) {
+		this.functionName = functionName;
+	}
+
+	@Override
+	public String getFunctionDescription() {
+		return functionDescription;
+	}
+
+	@Override
+	public void setFunctionDescription(String functionDescription) {
+		this.functionDescription = functionDescription;
+	}
+
+	@Override
+	public List<FunctionParameter> getParameters() {
+		return parameters;
+	}
+
+	@Override
+	public void setParameters(List<FunctionParameter> parameters) {
+		this.parameters = parameters;
+	}
+
+	@Override
+	public List<String> getRequiredParameters() {
+		return this.requiredParameters;
+	}
+	
+	@Override
+	public void setRequiredParameters(List<String> requiredParameters) {
+		this.requiredParameters = requiredParameters;
 	}
 	
 	@Override
