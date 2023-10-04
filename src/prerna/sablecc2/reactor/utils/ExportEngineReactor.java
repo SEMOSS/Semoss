@@ -80,7 +80,7 @@ public class ExportEngineReactor extends AbstractReactor {
 			String engineName = engine.getEngineName();
 			String outputDir = this.insight.getInsightFolder();
 			String thisEngineDir = EngineUtility.getSpecificEngineBaseFolder(engine.getCatalogType(), engineId, engineName);
-			zipFilePath = outputDir + "/" + engineName + "_database.zip";
+			zipFilePath = outputDir + "/" + engineName + "_engine.zip";
 			
 			// zip database
 			ZipOutputStream zos = null;
