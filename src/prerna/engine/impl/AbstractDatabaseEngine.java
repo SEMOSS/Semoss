@@ -69,6 +69,7 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.upload.UploadUtilities;
 
@@ -580,16 +581,12 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
-		File engineFolder = null;
+		File engineFolder = new File(
+				EngineUtility.getSpecificEngineBaseFolder
+					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
+				);
+		String folderName = engineFolder.getName();
 		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
-		String folderName = null;
-		if(owlFile != null) {
-			engineFolder = owlFile.getParentFile();
-		} else {
-			engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-					+ "/" + Constants.DATABASE_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		}
-		folderName = engineFolder.getName();
 
 		if(owlFile != null && owlFile.exists()) {
 			classLogger.info("Deleting owl file " + owlFile.getAbsolutePath());

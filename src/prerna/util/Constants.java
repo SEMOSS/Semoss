@@ -379,7 +379,7 @@ public class Constants {
 	public static final String DATABASE_FOLDER = "db";
 	public static final String STORAGE_FOLDER = "storage";
 	public static final String MODEL_FOLDER = "model";
-	public static final String SERVICE_FOLDER = "service";
+	public static final String FUNCTION_FOLDER = "function";
 	public static final String VECTOR_FOLDER = "vector";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
