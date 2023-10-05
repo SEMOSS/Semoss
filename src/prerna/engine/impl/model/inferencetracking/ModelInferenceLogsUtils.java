@@ -28,6 +28,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -502,6 +503,7 @@ public class ModelInferenceLogsUtils {
         values.add(false);
         qs.setSelectors(selectors);
         qs.setValues(values);
+        qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
         UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
         String updateQ = updateInterp.composeQuery();
         try {
