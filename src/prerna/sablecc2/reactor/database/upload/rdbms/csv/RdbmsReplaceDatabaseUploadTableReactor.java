@@ -19,7 +19,7 @@ import prerna.util.Utility;
 import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
-public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReactor {
+public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableDataReactor {
 
 	public RdbmsReplaceDatabaseUploadTableReactor() {
 		this.keysToGet = new String[] { 
