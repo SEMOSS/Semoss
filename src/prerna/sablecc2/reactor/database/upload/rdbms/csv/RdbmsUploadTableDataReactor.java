@@ -34,9 +34,9 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
-public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
+public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadTableReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadTableDataReactor.class);
 	
 	/*
 	 * There are quite a few things that we need
@@ -54,7 +54,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	
 	private CSVFileHelper helper = null;
 
-	public RdbmsUploadTableReactor() {
+	public RdbmsUploadTableDataReactor() {
 		this.keysToGet = new String[] { 
 				UploadInputUtility.DATABASE, 
 				UploadInputUtility.FILE_PATH, 
