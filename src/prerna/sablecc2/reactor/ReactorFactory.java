@@ -120,7 +120,7 @@ import prerna.sablecc2.reactor.database.upload.gremlin.external.GetJanusGraphMet
 import prerna.sablecc2.reactor.database.upload.gremlin.external.GetJanusGraphPropertiesReactor;
 import prerna.sablecc2.reactor.database.upload.gremlin.file.TinkerCsvUploadReactor;
 import prerna.sablecc2.reactor.database.upload.rdbms.csv.RdbmsCsvUploadReactor;
-import prerna.sablecc2.reactor.database.upload.rdbms.csv.RdbmsUploadTableReactor;
+import prerna.sablecc2.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.sablecc2.reactor.database.upload.rdbms.excel.RdbmsLoaderSheetUploadReactor;
 import prerna.sablecc2.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.reactor.database.upload.rdbms.external.ExternalJdbcSchemaReactor;
@@ -701,7 +701,7 @@ public class ReactorFactory {
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
 //		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
-		reactorHash.put("RdbmsUploadTableData", RdbmsUploadTableReactor.class);
+		reactorHash.put("RdbmsUploadTableData", RdbmsUploadTableDataReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsUploadExcelDataReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
 		reactorHash.put("RdbmsCsvUpload", RdbmsCsvUploadReactor.class);
