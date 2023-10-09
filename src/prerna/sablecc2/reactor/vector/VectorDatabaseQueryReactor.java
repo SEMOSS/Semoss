@@ -1,8 +1,11 @@
 package prerna.sablecc2.reactor.vector;
 
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
@@ -93,5 +96,49 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		
 		// default to 5
 		return 5;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
+			
+			HashMap<String, List<String[]>> implementations = new HashMap<String, List<String []>>();
+			
+			// what are the key options for a given engine implementation
+			implementations.put(
+					VectorDatabaseTypeEnum.FAISS.getVectorDatabaseName(), 
+					Arrays.asList(
+							new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_RETURN.getKey(), "Optional"}, 
+							new String [] {VectorDatabaseTypeEnum.ParamValueOptions.RETURN_THRESHOLD.getKey(), "Optional"}, 
+							new String [] {VectorDatabaseTypeEnum.ParamValueOptions.ASCENDING.getKey(), "Optional"}
+					)
+			);
+			
+			for (Entry<String, List<String[]>> entry : implementations.entrySet()) {
+				finalDescription.append("\n")
+								.append("\t\t\t\t\t")
+								.append(entry.getKey())
+								.append(":");
+				
+				for (String[] option : entry.getValue()) {
+					
+					String paramKey = option[0];
+					
+					finalDescription.append("\n")
+									.append("\t\t\t\t\t\t")
+									.append(paramKey)
+									.append("\t")
+									.append("-")
+									.append("\t")
+									.append("(").append(option[1]).append(")")
+									.append(" ")
+									.append(VectorDatabaseTypeEnum.ParamValueOptions.getDescriptionFromKey(paramKey));
+				}
+			}
+			return finalDescription.toString();
+		}
+	
+		return super.getDescriptionForKey(key);
 	}
 }

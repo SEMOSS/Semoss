@@ -18,6 +18,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.model.ModelEngineConstants;
@@ -242,12 +243,15 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				}
 				if (!destinationFile.getName().toLowerCase().endsWith(".csv")) {
 					FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), this.contentLength, this.contentOverlap, destinationFile);
-					columnsToIndex = "'Content'";
+					columnsToIndex = "['Content']"; // this needs to match the column created in the new CSV
 				} else {
 					// copy csv over but make sure its only csvs
 					FileUtils.copyFileToDirectory(destinationFile, tableIndexFolder);
-					columnsToIndex = "";
-					// TODO get columns to index for csvs
+					if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey())) {
+						columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey()));
+					} else {
+						columnsToIndex = "[]"; // this is so we pass an empty list
+					}
 				}
 				extractedFiled.add(extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR));
 			} catch (IOException e) {
@@ -257,7 +261,36 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		// create dataset
-		String script = vectorDatabaseSearcher +  ".searchers['"+indexClass+"'].addDocumet(documentFileLocation = ['" + String.join("','", extractedFiled) + "'],columns_to_index = ["+columnsToIndex+"])";
+		StringBuilder addDocumentPyCommand = new StringBuilder();
+		
+		// get the relevant FAISS searcher object in python
+		addDocumentPyCommand.append(vectorDatabaseSearcher)
+							.append(".searchers['")
+							.append(indexClass)
+							.append("']");
+		
+		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
+							.append(String.join("','", extractedFiled))
+							.append("'], columns_to_index = ")
+							.append(columnsToIndex);
+		
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey())) {
+			// add the columns based in the vector db query
+			addDocumentPyCommand.append(", ")
+					 			.append("columns_to_remove")
+					 			.append(" = ")
+					 			.append(PyUtils.determineStringType(
+								 parameters.get(
+										 VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey()
+										 )
+								 ));
+		}
+							
+							
+		addDocumentPyCommand.append(")");
+		
+		String script = addDocumentPyCommand.toString();
+		
 		classLogger.info("Running >>>" + script);
 		this.pyt.runScript(script);
 		try {
@@ -364,7 +397,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				 .append(".searchers['")
 				 .append(indexClass)
 				 .append("']")
-				 .append(".get_result_faiss(");
+				 .append(".nearestNeighbor(");
 		
 		// make the question arg
 		callMaker.append("question=\"\"\"")
@@ -372,11 +405,50 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				 .append("\"\"\"");
 		
 		// make the limit, i.e. the number of responses we want
-		callMaker.append(",")
+		callMaker.append(", ")
 				 .append("results = ")
 				 .append(limit);
 		
-		// TODO implements logic to sort results and apply threshold
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_RETURN.getKey())) {
+			// add the columns based in the vector db query
+			callMaker.append(", ")
+					 .append("columns_to_return")
+					 .append(" = ")
+					 .append(PyUtils.determineStringType(
+							 parameters.get(
+									 VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_RETURN.getKey()
+									 )
+							 ));
+		}
+		
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.RETURN_THRESHOLD.getKey())) {
+			// add the return_threshold, it should be a long or double value
+			Object thresholdValue =  parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.RETURN_THRESHOLD.getKey());
+			Double returnThreshold;
+			
+			if (thresholdValue instanceof Long) {
+				Long y = (Long) thresholdValue;
+				returnThreshold = y.doubleValue();
+			} else if ((thresholdValue instanceof Double)){
+				returnThreshold = (Double) thresholdValue;
+			} else {
+				throw new IllegalArgumentException("Please make sure the the return threshold is of type Double");
+			}
+			
+			callMaker.append(", ")
+					 .append("return_threshold = ")
+					 .append(returnThreshold);
+		}
+		
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.ASCENDING.getKey())) {
+			// This should be a True or False value
+			String trueFalseString = (String) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.ASCENDING.getKey());
+			String pythonTrueFalse = Character.toUpperCase(trueFalseString.charAt(0)) + trueFalseString.substring(1);
+			
+			callMaker.append(",")
+					 .append("ascending = ")
+					 .append(pythonTrueFalse);
+		}
 		
 		// close the method
  		callMaker.append(")");
