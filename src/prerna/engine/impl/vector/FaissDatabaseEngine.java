@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.model.ModelEngineConstants;
+import prerna.om.Insight;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -31,7 +32,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}'))";
+	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
 	
 	protected String vectorDatabaseSearcher = null;
 	
@@ -73,10 +74,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		//this.documentsFolder = new File(this.connectionURL + DIR_SEPARATOR + "documents");
 		//this.indexFolder = new File(this.connectionURL + DIR_SEPARATOR + "indexed_files");
 		
-		this.smssProp.put("VECTOR_SEARCHER_NAME", Utility.getRandomString(6));
+		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 		
-		
-		this.vectorDatabaseSearcher = this.smssProp.getProperty("VECTOR_SEARCHER_NAME");
+		this.smssProp.put("VECTOR_SEARCHER_NAME", this.vectorDatabaseSearcher);	
+	
+		if (!this.smssProp.containsKey("ENCODER_API_KEY")) {
+			this.smssProp.put("ENCODER_API_KEY", "");	
+		}
 		
 		// vars for string substitution
 		this.vars = new HashMap<>(this.smssProp);
@@ -168,9 +172,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	@Override
 	public void addDocumet(List<String> filePaths, Map <String, Object> parameters) {
-		String table = this.indexClass;
+		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
-			table = (String) parameters.get("indexClass");
+			indexClass = (String) parameters.get("indexClass");
 		}
 		
 		File parentDirectory = (File) parameters.get("temporaryFileDirectory");
@@ -180,7 +184,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		checkSocketStatus();
 		
 		List<String> filesToIndex;
-		File tableDirectory = new File(this.schemaFolder, table);
+		File tableDirectory = new File(this.schemaFolder, indexClass);
 		File documentDir = new File(tableDirectory, "documents");
 		if(!documentDir.exists()) {
 			documentDir.mkdirs();
@@ -197,13 +201,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 		}
 		
-		File tableIndexFolder = new File(this.schemaFolder + DIR_SEPARATOR + table, "indexed_files");
+		File tableIndexFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, "indexed_files");
 		if (!tableIndexFolder.exists()) {
 			tableIndexFolder.mkdirs();
 		}
-		if (!this.indexClasses.contains(table)) {
-			this.indexClasses.add(table);
-			this.pyt.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+table+"', base_path = '"+tableIndexFolder.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+		if (!this.indexClasses.contains(indexClass)) {
+			this.indexClasses.add(indexClass);
+			this.pyt.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+tableIndexFolder.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
 		}
 		
 		String columnsToIndex = "";
@@ -253,7 +257,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		// create dataset
-		String script = vectorDatabaseSearcher +  ".searchers['"+table+"'].addDocumet(documentFileLocation = ['" + String.join("','", extractedFiled) + "'],columns_to_index = ["+columnsToIndex+"])";
+		String script = vectorDatabaseSearcher +  ".searchers['"+indexClass+"'].addDocumet(documentFileLocation = ['" + String.join("','", extractedFiled) + "'],columns_to_index = ["+columnsToIndex+"])";
 		classLogger.info("Running >>>" + script);
 		this.pyt.runScript(script);
 		try {
@@ -263,32 +267,21 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Unable to delete the temporary file directory");
 		}
 	}
-	
-	@Override
-	public void close() {
-		if (this.socketClient.isConnected() && this.p.isAlive()) {
-			this.socketClient.stopPyServe(this.pyDirectoryBasePath);
-			this.socketClient.disconnect();
-			this.socketClient.setConnected(false);
-			this.pyDirectoryBasePath = null;
-			this.p.destroy();
-		}
-	}
 
 	@Override
 	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) {
-		String table = this.indexClass;
+		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
-			table = (String) parameters.get("indexClass");
+			indexClass = (String) parameters.get("indexClass");
 		}
 		
-		if (!this.indexClasses.contains(table)) {
+		if (!this.indexClasses.contains(indexClass)) {
 			throw new IllegalArgumentException("Unable to remove documents from a directory that does not exist");
 		}
 		
 		checkSocketStatus();
 		
-		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + table + DIR_SEPARATOR + "indexed_files";
+		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
 		for (String document : filePaths) {
 			String documentName = document.split("\\.")[0];
@@ -323,7 +316,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
                 classLogger.info("Deleted: " + entry.toString());
             }
 	        try {
-				FileUtils.forceDelete(new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + table + DIR_SEPARATOR + "documents", document));
+				FileUtils.forceDelete(new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document));
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
@@ -339,39 +332,70 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");
 			}
-			this.pyt.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+table+"')");
-			this.indexClasses.remove(table);
+			this.pyt.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
+			this.indexClasses.remove(indexClass);
 		} else {
-			String script = this.vectorDatabaseSearcher + ".searchers['"+table+"'].createMasterFiles(path_to_files = '" + indexedFilesPath.replace(FILE_SEPARATOR, DIR_SEPARATOR) + "')";
+			String script = this.vectorDatabaseSearcher + ".searchers['"+indexClass+"'].createMasterFiles(path_to_files = '" + indexedFilesPath.replace(FILE_SEPARATOR, DIR_SEPARATOR) + "')";
 			this.pyt.runScript(script);
 		}
 	}
 
 	@Override
 	public Object nearestNeighbor(String question, int limit, Map <String, Object> parameters) {
-		String table = this.indexClass;
+		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
-			table = (String) parameters.get("indexClass");
+			indexClass = (String) parameters.get("indexClass");
 		}
+		
+		// TODO we will need the insight when runnings encode call through IModelEngine
+		//Insight insight = (Insight) parameters.get("insight");
+		//if (insight == null) {
+		//	throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		//}
 		
 		if(this.socketClient == null || !this.socketClient.isConnected()) {
 			this.startServer();
 		}
 		
-		StringBuilder callMaker = new StringBuilder().append(this.vectorDatabaseSearcher)
-													 .append(".searchers['")
-													 .append(table)
-													 .append("']")
-													 .append(".get_result_faiss(")
-													 .append("question=\"\"\"")
-													 .append(question.replace("\"", "\\\""))
-													 .append("\"\"\"");
-		callMaker.append(",").append("results = ").append(limit);
-		callMaker.append(")");
+		StringBuilder callMaker = new StringBuilder();
+		
+		// make the python method
+		callMaker.append(this.vectorDatabaseSearcher)
+				 .append(".searchers['")
+				 .append(indexClass)
+				 .append("']")
+				 .append(".get_result_faiss(");
+		
+		// make the question arg
+		callMaker.append("question=\"\"\"")
+				 .append(question.replace("\"", "\\\""))
+				 .append("\"\"\"");
+		
+		// make the limit, i.e. the number of responses we want
+		callMaker.append(",")
+				 .append("results = ")
+				 .append(limit);
+		
+		// TODO implements logic to sort results and apply threshold
+		
+		// close the method
+ 		callMaker.append(")");
+ 		
 		Object output = pyt.runScript(callMaker.toString());
 		return output;
 	}
 	
+	@Override
+	public String[] listDocuments(Map<String, Object> parameters) {
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+		
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
+		return documentsDir.list();
+	}
+
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.FAISS;
@@ -380,6 +404,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private void checkSocketStatus() {
 		if(this.socketClient == null || !this.socketClient.isConnected()) {
 			this.startServer();
+		}
+	}
+	
+	@Override
+	public void close() {
+		if (this.socketClient.isConnected() && this.p.isAlive()) {
+			this.socketClient.stopPyServe(this.pyDirectoryBasePath);
+			this.socketClient.disconnect();
+			this.socketClient.setConnected(false);
+			this.pyDirectoryBasePath = null;
+			this.p.destroy();
 		}
 	}
 	
