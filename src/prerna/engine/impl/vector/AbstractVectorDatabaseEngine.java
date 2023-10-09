@@ -37,7 +37,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
 	
-	protected String indexClass;
+	protected String defaultIndexClass;
 	
 	// string substitute vars
 	Map vars = new HashMap();
@@ -69,9 +69,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (this.smssProp.containsKey("CONTENT_OVERLAP")) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty("CONTENT_OVERLAP"));
 		}
-		this.indexClass = "default";
+		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey("INDEX_CLASSES")) {
-			this.indexClass = this.smssProp.getProperty("INDEX_CLASSES");
+			this.defaultIndexClass = this.smssProp.getProperty("INDEX_CLASSES");
 		}
 		this.encoderName = this.smssProp.getProperty("ENCODER_NAME");
 		this.encoderType = this.smssProp.getProperty("ENCODER_TYPE");

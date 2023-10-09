@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -102,8 +103,13 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			}
 		}
 		
-		// send the temp directory as a param so it does not have to be recreated
-		paramMap.put("temporaryFileDirectory", tempDirectory);
+		VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
+		if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
+			// send the insight so it can be used with IModelEngineCall
+			paramMap.put("insight", this.insight);
+			// send the temp directory as a param so it does not have to be recreated
+			paramMap.put("temporaryFileDirectory", tempDirectory);
+		}
 		
 		if (tempDirectory.list().length > 0) {
 			eng.addDocumet(filesToIndex, paramMap);
