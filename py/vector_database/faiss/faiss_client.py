@@ -1,3 +1,4 @@
+from typing import List
 import transformers
 from datasets import Dataset, concatenate_datasets, load_dataset
 import pandas as pd
@@ -7,28 +8,6 @@ from ..encoders.huggingface_encoder import HuggingFaceEncoder
 import pickle
 import os
 import glob
-
-# https://raw.githubusercontent.com/yashprakash13/datasets/master/arxiv_short.csv
-#from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
-#ctx_encoder = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
-#ctx_tokenizer = DPRContextEncoderTokenizer.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
-
-# initialize for DPRContextEncoder
-#  f2 = fa.FAISSSearcher(df=df, tokenizer_model="facebook/dpr-ctx_encoder-single-nq-base", model_model="facebook/dpr-ctx_encoder-single-nq-base", tokenizer_loader=transformers.DPRContextEncoderTokenizer, model_loader=transformers.DPRContextEncoder, dpr=True)
-
-# initialize for generic
-#  f = fa.FAISSSearcher(df=df)
-
-
-# encoder models
-# - sentence-transformers/all-mpnet-base-v2 - Decent - 384 tokens
-# multi-qa-mpnet-base-dot-v1 - Trained on 215M not so great.. would not use - also 512 tokens
-# - paraphrase-mpnet-base-v2 - 512 tokens
-# sentence-transformers/facebook-dpr-ctx_encoder-single-nq-base - 509 tokens
-# all-distilroberta-v1 - 512 tokens trained on 1B - Similar to others - Kind of similar to DPR
-#"sentence-transformers/multi-qa-mpnet-base-dot-v1"
-
-# text pattern = '\\s\\[1-9]+\\.\\d+[-]?\\d+'
 
 class FAISSSearcher():
   '''this the primary class for a faiss database table (if that notion makes sense)'''
@@ -60,9 +39,6 @@ class FAISSSearcher():
       self.ds = ds
     self.dpr = dpr
     self.faiss_encoder_loaded = False
-    self.lfqa_loaded = False
-    self.qa_loaded = False
-    self.summarizer_loaded = False
     self.encoded_vectors = None
     self.vector_dimensions = None
     self.encoder_name = None
@@ -78,27 +54,7 @@ class FAISSSearcher():
       #print(row)
       text += str(row[col])
       text += separator
-    return {target_column : text}  
-    
-  def cls_pooling(self, model_output):
-    return model_output.last_hidden_state[:, 0]
-
-  def get_embeddings(self, text_list):
-    #lambda example: {'embeddings': ctx_encoder(**ctx_tokenizer(example["line"], return_tensors="pt"))[0][0].numpy()}
-    encoded_input = self.tokenizer(
-        text_list, padding=True, truncation=True, return_tensors="pt"
-    )
-    encoded_input = {k: v.to(self.device) for k, v in encoded_input.items()}
-    model_output = self.model(**encoded_input)
-    return self.cls_pooling(model_output)
-    
-  def get_embeddings_dpr(self, text_list):
-    encoded_input = self.tokenizer(
-        text_list, padding=True, truncation=True, return_tensors="pt"
-    )
-    #encoded_input = {k: v for k, v in encoded_input.items()}
-    model_output = self.model(**encoded_input)[0][0].numpy()
-    return model_output
+    return {target_column : text}
     
   def init_device(self):
     import torch
@@ -113,24 +69,6 @@ class FAISSSearcher():
   ###############################################################################
   # FAISS
   ###############################################################################
-  
-  # the other paraphraser - "paraphrase-mpnet-base-v2"
-  # sentence-transformers/facebook-dpr-ctx_encoder-single-nq-base
-  def custom_faiss_index(self, columns_to_index=None, target_column="text", embedding_column="embeddings", encoder_name="paraphrase-mpnet-base-v2", separator="\n"):
-    #take the columns and concatenate them together
-    if(columns_to_index is None):
-      columns_to_index = list(self.ds.features)
-    # concatenate columns
-    #print(self.ds)
-    self.ds = self.ds.map(self.concatenate_columns, fn_kwargs={"columns_to_index": columns_to_index, "target_column": target_column, "separator":separator})
-    #get the column to index
-    self.load_faiss_encoder()
-    vectors = self.faiss_encoder.get_embeddings(self.ds[target_column])
-    self.encoded_vectors = np.copy(vectors)
-    vector_dimension = vectors.shape[1]
-    self.index = faiss.IndexFlatL2(vector_dimension)
-    faiss.normalize_L2(vectors)
-    self.index.add(vectors)
   
   def appendToIndex(self, dataObj= None, target_column="text",columns_to_index=None , separator="\n"):
     if(columns_to_index is None):
@@ -174,10 +112,10 @@ class FAISSSearcher():
       self.faiss_encoder_loaded = True
       self.encoder_name = encoder_name
     
-  def get_result_faiss(self, 
+  def nearestNeighbor(self, 
                        question, 
                        results=5, 
-                       columns_to_return:list = None, 
+                       columns_to_return: List[str] = None, 
                        json=True, 
                        print_result=False,
                        return_threshold = 1000, 
@@ -273,7 +211,13 @@ class FAISSSearcher():
 
   # TODO need to create a util function that writes out all the files (index, Dataset and vectors) based on a csv
   # it should also register it within the obj at the same time
-  def addDocumet(self, documentFileLocation:list, columns_to_index:list, target_column:str ="text", separator:str = ',') -> None:
+  def addDocumet(self, 
+                 documentFileLocation: List[str], 
+                 columns_to_index: List[str], 
+                 columns_to_remove: List[str] = [],
+                 target_column: str = "text", 
+                 separator: str = ','
+                 ) -> None:
     # make sure they are all in indexed_files dir
     assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
 
@@ -295,27 +239,36 @@ class FAISSSearcher():
 
       if (columns_to_index == None or len(columns_to_index) == 0):
         columns_to_index = list(dataset.features)
-      # save the dataset, this is for efficiency after removing docs
-      new_file_path = os.path.join(directory, file_name_without_extension + '_dataset' + new_file_extension)
-      with open(new_file_path, "wb") as file:
-        pickle.dump(dataset, file)
 
+      # save the dataset, this is for efficiency after removing docs
+      new_file_path = os.path.join(
+        directory, 
+        file_name_without_extension + '_dataset' + new_file_extension
+      )
 
       # if applicable, create the concatenated columns
-      dataset = dataset.map(self.concatenate_columns, 
-                            fn_kwargs={
-                              "columns_to_index": columns_to_index, 
-                              "target_column": target_column, 
-                              "separator":separator
-                            }
-                )
+      dataset = dataset.map(
+        self.concatenate_columns,           
+        fn_kwargs = {
+          "columns_to_index": columns_to_index, 
+          "target_column": target_column, 
+          "separator":separator
+        }
+      )
 
-       # TODO need to change how this works
+      # TODO need to change how this works
       self.load_faiss_encoder()
 
       # get the embeddings for the document
       vectors = self.faiss_encoder.get_embeddings(dataset[target_column])
       assert vectors.ndim == 2
+
+      columns_to_remove.append(target_column)
+      columns_to_drop = list(set(columns_to_remove).intersection(set(dataset.features)))
+      dataset = dataset.remove_columns(column_names= columns_to_drop)
+
+      with open(new_file_path, "wb") as file:
+        pickle.dump(dataset, file)
 
       # write out the vectors with the same file name
       # Change the file extension to ".pkl"
@@ -333,12 +286,6 @@ class FAISSSearcher():
         self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
 
     self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
-      #self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
-      #faiss.normalize_L2(vectors)
-      #self.index.add(vectors)
-
-  #def removeDocument(self, documentFileLocation):
-
 
   def createMasterFiles(self, path_to_files:str):
     # Define the pattern for the files you want to find
