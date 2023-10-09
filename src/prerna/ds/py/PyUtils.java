@@ -4,8 +4,13 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -326,5 +331,77 @@ public class PyUtils {
 		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
 	}
 	
-	
+	// this is good for python dictionaries but also for making sure we can easily construct 
+	// the logs into model inference python list, since everything is python at this point.
+    public static String constructPyDictFromMap(Map<String,Object> theMap) {
+    	StringBuilder theDict = new StringBuilder("{");
+    	boolean isFirstElement = true;
+    	for (Entry<String, Object> entry : theMap.entrySet()) {
+    		if (!isFirstElement) {
+    			theDict.append(",");
+    		} else {
+    			isFirstElement = false;
+    		}
+    		theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue()));
+    		//theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue())).append(",");
+    	}
+    	theDict.append("}");
+    	return theDict.toString();
+    }
+    
+    /* This is basically a utility method that attemps to generate the python code (string) for a java object.
+	 * It currently only does base types.
+	 * Potentially move it in the future but just keeping it here for now
+	*/
+    @SuppressWarnings("unchecked")
+    public static String determineStringType(Object obj) {
+    	if (obj instanceof Integer || obj instanceof Double || obj instanceof Long) {
+    		return String.valueOf(obj);
+    	} else if (obj instanceof Map) {
+    		return constructPyDictFromMap((Map<String, Object>) obj);
+    	} else if (obj instanceof ArrayList || obj instanceof Object[] || obj instanceof List) {
+    		StringBuilder theList = new StringBuilder("[");
+    		List<Object> list;
+    		if (obj instanceof ArrayList<?>) {
+    			list = (ArrayList<Object>) obj;
+    		} else if ((obj instanceof Object[])) {
+    			list = Arrays.asList((Object[]) obj);
+    		} else {
+    			list = (List<Object>) obj;
+    		}
+    		
+    		boolean isFirstElement = true;
+			for (Object subObj : list) {
+				if (!isFirstElement) {
+					theList.append(",");
+	    		} else {
+	    			isFirstElement = false;
+	    		}
+				theList.append(determineStringType(subObj));
+        	}
+			theList.append("]");
+			return theList.toString();
+    	} else if (obj instanceof Boolean) {
+    		String boolString = String.valueOf(obj);
+    		// convert to py version
+    		String cap = boolString.substring(0, 1).toUpperCase() + boolString.substring(1);
+    		return cap;
+    	} else if (obj instanceof Set<?>) {
+    		StringBuilder theSet = new StringBuilder("{");
+    		Set<?> set = (Set<?>) obj;
+    		boolean isFirstElement = true;
+			for (Object subObj : set) {
+				if (!isFirstElement) {
+					theSet.append(",");
+				} else {
+					isFirstElement = false;
+				}
+				theSet.append(determineStringType(subObj));
+        	}
+			theSet.append("}");
+			return theSet.toString();
+    	} else {
+    		return "\'"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "\'";
+    	}
+    }
 }
