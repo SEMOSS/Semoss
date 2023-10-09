@@ -40,12 +40,17 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.AbstractDatabaseEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -72,17 +77,17 @@ public class ActiveSystemUpdater {
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 //
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//		IDatabase coreEngine = new RDBMSNativeEngine();
+//		IDatabaseEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("LocalMasterDatabase");
 //		coreEngine.open(engineProp);
 //		coreEngine.setEngineId("LocalMasterDatabase");
-//		DIHelper.getInstance().setDbProperty("LocalMasterDatabase", coreEngine);
+//		DIHelper.getInstance().setEngineProperty("LocalMasterDatabase", coreEngine);
 //
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("security");
 //		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setDbProperty("security", coreEngine);
+//		DIHelper.getInstance().setEngineProperty("security", coreEngine);
 //		AbstractSecurityUtils.loadSecurityDatabase();
 //
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
@@ -90,8 +95,8 @@ public class ActiveSystemUpdater {
 //		coreEngine.setEngineId("TAP_Core_Data");
 //		coreEngine.open(engineProp);
 //		coreEngine.setEngineId("TAP_Core_Data");
-//		DIHelper.getInstance().setDbProperty("TAP_Core_Data", coreEngine);
-//		DIHelper.getInstance().setDbProperty("TAP_Core_Data" +"_"+ Constants.OWL, coreEngine.getOWL());
+//		DIHelper.getInstance().setEngineProperty("TAP_Core_Data", coreEngine);
+//		DIHelper.getInstance().setEngineProperty("TAP_Core_Data" +"_"+ Constants.OWL, coreEngine.getOwlFilePath());
 //
 //		ActiveSystemUpdater updater = new ActiveSystemUpdater();
 //		updater.engine = coreEngine;
@@ -105,7 +110,7 @@ public class ActiveSystemUpdater {
 //		updater.insertSubclassTriple(activeSystems);
 //
 //
-//		AbstractEngine baseRelEngine = ((AbstractEngine)coreEngine).getBaseDataEngine();
+//		AbstractDatabaseEngine baseRelEngine = ((AbstractDatabaseEngine)coreEngine).getBaseDataEngine();
 //		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
 //		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
 //		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
@@ -115,7 +120,7 @@ public class ActiveSystemUpdater {
 //		
 //		FileWriter fWrite = null;
 //		try{
-//			fWrite = new FileWriter(coreEngine.getOWL());
+//			fWrite = new FileWriter(coreEngine.getOwlFilePath());
 //			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
 //			exportRC.export(owlWriter);
 //			fWrite.close();
