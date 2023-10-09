@@ -81,7 +81,7 @@ public class FaissDatabaseUtils {
 		
 		/*
 		 * First Check
-		 * Make sure the csv files aren't send with non csv files
+		 * Make sure the csv files aren't sent with non csv files
 		 * TODO refine checks here
 		*/
 		Set<String> newFileTypes = extractFileTypesFromPaths(newFilesPaths);

@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -179,5 +180,47 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
 		return zipFileExtractFolder;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
+			
+			HashMap<String, List<String[]>> implementations = new HashMap<String, List<String []>>();
+			
+			// what are the key options for a given engine implementation and whether or not those keys are required or optional
+			implementations.put(
+				VectorDatabaseTypeEnum.FAISS.getVectorDatabaseName(), 
+				Arrays.asList(
+					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey(), "Optional"}, 
+					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey(), "Optional"}					)
+			);
+			
+			for (Entry<String, List<String[]>> entry : implementations.entrySet()) {
+				finalDescription.append("\n")
+								.append("\t\t\t\t\t")
+								.append(entry.getKey())
+								.append(":");
+				
+				for (String[] option : entry.getValue()) {
+					
+					String paramKey = option[0];
+					
+					finalDescription.append("\n")
+									.append("\t\t\t\t\t\t")
+									.append(paramKey)
+									.append("\t")
+									.append("-")
+									.append("\t")
+									.append("(").append(option[1]).append(")")
+									.append(" ")
+									.append(VectorDatabaseTypeEnum.ParamValueOptions.getDescriptionFromKey(paramKey));
+				}
+			}
+			return finalDescription.toString();
+		}
+	
+		return super.getDescriptionForKey(key);
 	}
 }
