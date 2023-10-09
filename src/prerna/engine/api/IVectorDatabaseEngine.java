@@ -25,4 +25,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	void removeDocument(List<String> filePaths, Map <String, Object> parameters);
 	
 	Object nearestNeighbor(String question, int limit, Map <String, Object> parameters);
+	
+	String[] listDocuments(Map <String, Object> parameters);
 }
