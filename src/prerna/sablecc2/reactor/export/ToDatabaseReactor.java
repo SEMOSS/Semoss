@@ -321,6 +321,9 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// well, we are done looping through now
 			logger.info("Executing final batch .... row num = " + count);
 			ps.executeBatch(); // insert any remaining records
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred persisting data into the database with message = " + e.getMessage());
@@ -339,7 +342,14 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 					}
 				}
 			}
+			try {
+				task.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
+		
+		
 		
 		// if we are overwriting the existing value
 		// we need to grab the current concept/columns
@@ -374,12 +384,11 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			try {
 				owler.export();
 				Utility.synchronizeEngineMetadata(engineId);
+				// also push to cloud
+				ClusterUtil.pushOwl(engineId);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-			
-			// also push to cloud
-			ClusterUtil.pushOwl(engineId);
 		}
 	}
 
@@ -388,6 +397,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 
+	 * @return
+	 */
 	private String getEngineId() {
 		GenRowStruct grs = this.store.getNoun(TARGET_DATABASE);
 		if(grs != null && !grs.isEmpty()) {
@@ -407,6 +420,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		throw new IllegalArgumentException("Must define the app to persist the data");
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private String getTargetTable() {
 		GenRowStruct grs = this.store.getNoun(TARGET_TABLE);
 		if(grs != null && !grs.isEmpty()) {
@@ -423,6 +440,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		throw new IllegalArgumentException("Must define the table to persist the data into");
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private boolean getOverride() {
 		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[3]);
 		if(boolGrs != null) {
@@ -440,6 +461,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		return false;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private boolean getInsertKey() {
 		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[4]);
 		if(boolGrs != null) {
