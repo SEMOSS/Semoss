@@ -3778,7 +3778,7 @@ public class Utility {
 					} else {
 						// print out null
 						if(dataRow[i] == null) {
-							json.put(headers[i], "null");
+							json.put(headers[i], JSONObject.NULL);
 						} else {
 							json.put(headers[i], dataRow[i]);
 						}
@@ -3818,7 +3818,7 @@ public class Utility {
 					} else {
 						// print out null
 						if(dataRow[i] == null) {
-							json.put(headers[i], "null");
+							json.put(headers[i], JSONObject.NULL);
 						} else {
 							json.put(headers[i], dataRow[i]);
 						}
