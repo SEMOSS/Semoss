@@ -1757,11 +1757,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @return
 	 */
-	public static List<String> getProjectDependencies(User user, String projectId) {
-		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
-		}
-		
+	public static List<String> getProjectDependencies(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));

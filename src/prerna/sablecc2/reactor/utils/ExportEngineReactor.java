@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
@@ -10,9 +9,6 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -103,26 +99,12 @@ public class ExportEngineReactor extends AbstractReactor {
 				}
 				
 				// zip up the engine metadata
-				logger.info("Grabbing engine metadata...");
-				File engineMetaF = new File(outputDir+"/"+engineName+"_metadata.json");
-				Map<String, Object> engineMeta = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
-				Gson gson = new GsonBuilder().setPrettyPrinting().create();
-				FileWriter writer = null;
-				try {
-					writer = new FileWriter(engineMetaF);
-					gson.toJson(engineMeta, writer);
-				} finally {
-					if(writer != null) {
-						try {
-							writer.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
+				{
+					logger.info("Grabbing engine metadata to write to temporary file to zip...");
+					Map<String, Object> engineMeta = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
+					ZipUtils.zipObjectToFile(zos, engineNameAndId, outputDir+"/"+engineName+"_metadata.json", engineMeta);
+					logger.info("Done zipping engine metadata...");
 				}
-				logger.info("Zipping engine metadata...");
-				ZipUtils.addToZipFile(engineMetaF, zos, engineNameAndId);
-				logger.info("Done zipping engine metadata...");
 				
 				// add smss file
 				File smss = new File(engine.getSmssFilePath());
