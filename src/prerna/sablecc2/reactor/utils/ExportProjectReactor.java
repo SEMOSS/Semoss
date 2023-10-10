@@ -1,9 +1,10 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
@@ -12,9 +13,6 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -41,18 +39,20 @@ public class ExportProjectReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(DownloadProjectInsightsReactor.class);
 
 	private static final String CLASS_NAME = ExportProjectReactor.class.getName();
-
+	private String keepGit = "keepGit";
+	
 	public ExportProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), keepGit };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		logger.info("Checking database information and user permissions.");
+		logger.info("Checking project information and user permissions.");
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-
+		boolean keepGit = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
+		
 		User user = this.insight.getUser();
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
@@ -64,11 +64,14 @@ public class ExportProjectReactor extends AbstractReactor {
 		}
 
 		logger.info("Exporting project now...");
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		if(!baseFolder.endsWith("/")) {
+			baseFolder += "/";
+		}
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
 		String projectNameAndId = SmssUtilities.getUniqueName(projectName, projectId);
-		String baseProjectDir = baseFolder + "/" + Constants.PROJECT_FOLDER;
+		String baseProjectDir = baseFolder + Constants.PROJECT_FOLDER;
 		String thisProjectDir = baseProjectDir + "/" + projectNameAndId;
 
 		String outputDir = this.insight.getInsightFolder();
@@ -84,6 +87,12 @@ public class ExportProjectReactor extends AbstractReactor {
 				logger.info("Stopping the project...");
 				project.close();
 				
+				// determine if we keep or ignore the git
+				List<String> ignoreDirs = new ArrayList<>();
+				if(!keepGit) {
+					ignoreDirs.add(projectNameAndId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/.git");
+				}
+				
 				if(ClusterUtil.IS_CLUSTER) {
 					logger.info("Creating insight database ...");
 					File insightsFile = null;
@@ -97,7 +106,7 @@ public class ExportProjectReactor extends AbstractReactor {
 
 					// zip project folder minus insights
 					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, 
+					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, 
 							// ignore the current insights database
 							Arrays.asList(projectNameAndId+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath())));
 					logger.info("Done zipping project files...");
@@ -108,32 +117,26 @@ public class ExportProjectReactor extends AbstractReactor {
 				} else {
 					// zip project folder
 					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath);
+					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, null);
 					logger.info("Done zipping project files...");
 				}
 				
 				// zip up the project metadata
-				logger.info("Grabbing project metadata...");
-				File projectMetaF = new File(outputDir+"/"+projectName+"_metadata.json");
-				Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
-				Gson gson = new GsonBuilder().setPrettyPrinting().create();
-				FileWriter writer = null;
-				try {
-					writer = new FileWriter(projectMetaF);
-					gson.toJson(projectMeta, writer);
-				} finally {
-					if(writer != null) {
-						try {
-							writer.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
+				{
+					logger.info("Grabbing project metadata to write to temporary file to zip...");
+					Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
+					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+"_metadata.json", projectMeta);
+					logger.info("Done zipping project metadata...");
 				}
-				logger.info("Zipping project metadata...");
-				ZipUtils.addToZipFile(projectMetaF, zos, projectNameAndId);
-				logger.info("Done zipping project metadata...");
-
+				
+				// zip up the project metadata
+				{
+					logger.info("Grabbing project dependencies to write to temporary file to zip...");
+					List<String> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
+					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+"_dependencies.json", projectDependencies);
+					logger.info("Done zipping project dependencies...");
+				}
+				
 				// add smss file
 				logger.info("Zipping project smss...");
 				File smss = new File(baseProjectDir + "/" + projectNameAndId + ".smss");
@@ -170,5 +173,5 @@ public class ExportProjectReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
-
+	
 }
