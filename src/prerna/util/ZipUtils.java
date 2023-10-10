@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystem;
@@ -22,20 +23,19 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.util.gson.GsonUtility;
 
 public final class ZipUtils {
 
-	private static final Logger logger = LogManager.getLogger(ZipUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(ZipUtils.class);
 
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
@@ -59,11 +59,7 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath) throws FileNotFoundException, IOException {
-		FileOutputStream fos = new FileOutputStream(zipFilePath);
-		ZipOutputStream zos = new ZipOutputStream(fos);
-		File dir = new File(folderPath);
-		addAllToZip(dir, zos, null, null);
-		return zos;
+		return zipFolder(folderPath, zipFilePath, null, null);
 	}
 
 	/**
@@ -75,11 +71,11 @@ public final class ZipUtils {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath, List<String> ignoreFiles) throws FileNotFoundException, IOException {
+	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath, List<String> ignoreDirs, List<String> ignoreFiles) throws FileNotFoundException, IOException {
 		FileOutputStream fos = new FileOutputStream(zipFilePath);
 		ZipOutputStream zos = new ZipOutputStream(fos);
 		File dir = new File(folderPath);
-		addAllToZip(dir, zos, null, ignoreFiles);
+		addAllToZip(dir, zos, null, ignoreDirs, ignoreFiles);
 		return zos;
 	}
 	
@@ -109,6 +105,34 @@ public final class ZipUtils {
 		}
 		zos.closeEntry();
 	}
+	
+	/**
+	 * 
+	 * @param logger
+	 * @param zos
+	 * @param prefixForZip
+	 * @param filePathToWrite
+	 * @param objToWrite
+	 * @throws IOException
+	 */
+	public static void zipObjectToFile(ZipOutputStream zos, String prefixForZip, String filePathToWrite, Object objToWrite) throws IOException {
+		File fileToCreate = new File(filePathToWrite);
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(fileToCreate);
+			gson.toJson(objToWrite, writer);
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		ZipUtils.addToZipFile(fileToCreate, zos, prefixForZip);
+	}
 
 	/**
 	 * Add file to ZipOutputStream
@@ -137,16 +161,28 @@ public final class ZipUtils {
 		zos.closeEntry();
 	}
 	
-	private static void addAllToZip(File file, ZipOutputStream zos, String prefix, List<String> ignoreFiles)
+	/**
+	 * 
+	 * @param file
+	 * @param zos
+	 * @param prefix
+	 * @param ignoreFiles
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	private static void addAllToZip(File file, ZipOutputStream zos, String prefix, List<String> ignoreDirs, List<String> ignoreFiles)
 			throws FileNotFoundException, IOException {
 		if (file.isDirectory()) {
 			String subPrefix = file.getName();
 			if (prefix != null) {
 				subPrefix = prefix + FILE_SEPARATOR + file.getName();
 			}
-			File[] files = file.listFiles();
-			for (File subF : files) {
-				addAllToZip(subF, zos, subPrefix, ignoreFiles);
+			// make sure its not in the ignore list of folders
+			if(ignoreDirs == null || !ignoreDirs.contains(subPrefix)) {
+				File[] files = file.listFiles();
+				for (File subF : files) {
+					addAllToZip(subF, zos, subPrefix, ignoreDirs, ignoreFiles);
+				}
 			}
 		} else {
 			String fileName = file.getName();
@@ -170,120 +206,6 @@ public final class ZipUtils {
 					}
 				}
 				zos.closeEntry();
-			}
-		}
-	}
-
-	private static void unZipEngine(String destinationFolder, String zipFile) {
-		String normalizedDestinationFolder = Utility.normalizePath(destinationFolder);
-		File directory = new File(normalizedDestinationFolder);
-
-		// if the output directory doesn't exist, create it
-		if (!directory.exists()) {
-			directory.mkdirs();
-		}
-
-		String tempAbsolutePath = null;
-		FileInputStream fInput = null;
-		ZipInputStream zipInput = null;
-		try {
-			fInput = new FileInputStream(zipFile);
-			zipInput = new ZipInputStream(fInput);
-
-			ZipEntry entry = zipInput.getNextEntry();
-			while (entry != null) {
-				String entryName = entry.getName();
-				logger.info(Utility.cleanLogString(entryName));
-				File file = null;
-				if (entryName.endsWith(".smss")) {
-					tempAbsolutePath = normalizedDestinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName.replace(".smss", ".temp"));
-					file = new File(tempAbsolutePath);
-				} else {
-					file = new File(normalizedDestinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName));
-				}
-				logger.info("Unzip file " + Utility.cleanLogString(entryName) + " to " + file.getAbsolutePath());
-				// create the directory for the next entry
-				if (entryName.contains(FILE_SEPARATOR)) {
-					String[] dirStructure = entryName.split(FILE_SEPARATOR);
-					String absolutePath = normalizedDestinationFolder + FILE_SEPARATOR + Utility.normalizePath(dirStructure[0]);
-					for (int i = 0; i < dirStructure.length; i++) {
-						File newDir = new File(absolutePath);
-						if (!newDir.exists()) {
-							boolean success = newDir.mkdirs();
-							if (success == false) {
-								logger.info("Problem creating Folder");
-							}
-						}
-						// absolutePath = absolutePath + FILE_SEPARATOR +
-						// dirStructure[i+1];
-					}
-				}
-				if (!entryName.endsWith(FILE_SEPARATOR)) {
-					// load the file
-					FileOutputStream fOutput = new FileOutputStream(file);
-					writeFromZipFile(fOutput, zipInput);
-				}
-
-				// close ZipEntry and take the next one
-				zipInput.closeEntry();
-				entry = zipInput.getNextEntry();
-			}
-			// close the last ZipEntry
-			zipInput.closeEntry();
-
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if (zipInput != null) {
-					zipInput.close();
-				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-			try {
-				if (fInput != null) {
-					fInput.close();
-				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		if (tempAbsolutePath == null) {
-			throw new NullPointerException("tempAbsolutePath cannot be null here.");
-		}
-
-		// convert .temp file to .smss
-		File tempFile = new File(Utility.normalizePath(tempAbsolutePath));
-		File smssFile = new File(Utility.normalizePath(tempAbsolutePath.replace(".temp", ".smss")));
-		try {
-			FileUtils.copyFile(tempFile, smssFile);
-			smssFile.setReadable(true);
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		try {
-			FileUtils.forceDelete(tempFile);
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	private static void writeFromZipFile(FileOutputStream fOutput, ZipInputStream zipInput) {
-		int count = 0;
-		try {
-			while ((count = zipInput.read(buffer)) > 0) {
-				// write 'count' bytes to the file output stream
-				fOutput.write(buffer, 0, count);
-			}
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				fOutput.close();
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -347,10 +269,11 @@ public final class ZipUtils {
 			}
 		} finally {
 			try{
-				if(bos!=null)
+				if(bos!=null) {
 					bos.close();
+				}
 			}catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -401,7 +324,7 @@ public final class ZipUtils {
 					zipFs.close();
 				}
 			}catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		paths.put("DIR", dirs);
@@ -418,7 +341,7 @@ public final class ZipUtils {
 		Path zipUri = Paths.get(zip);		
 		Map<String, List<String>> map = listFilesInZip(zipUri);
 		Gson gson = GsonUtility.getDefaultGson();
-		logger.info(gson.toJson(map));
+		classLogger.info(gson.toJson(map));
 	}
 
 }
