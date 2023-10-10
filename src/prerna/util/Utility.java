@@ -3391,8 +3391,7 @@ public class Utility {
 	 * @param typesMap
 	 * @return
 	 */
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
-			Map<String, SemossDataType> typesMap) {
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
 	}
 
@@ -3408,7 +3407,7 @@ public class Utility {
 	}
 
 	/**
-	 * Write a task toa file using the specified separator
+	 * Write a task to a file using the specified separator
 	 * 
 	 * @param fileLocation
 	 * @param task
@@ -3420,41 +3419,6 @@ public class Utility {
 		return Utility.writeResultToFile(fileLocation, task, typesMap, seperator);
 	}
 	
-	public static String adjustTypeR(String frameName, String[] columns, Map<String, SemossDataType> typeMap) {
-		StringBuilder adjustTypes = new StringBuilder();
-		for (int headIndex = 0; headIndex < columns.length; headIndex++) {
-			SemossDataType type = typeMap.get(columns[headIndex]);
-			String asType = null;
-			if (type == SemossDataType.INT)
-				asType = "as.integer(";
-			else if (type == SemossDataType.DOUBLE)
-				asType = "as.double(";
-			if (asType != null)
-				adjustTypes.append(frameName).append("$").append(columns[headIndex]).append(" <- ").append(asType)
-						.append(frameName).append("$").append(columns[headIndex]).append(");");
-		}
-
-		return adjustTypes.toString();
-	}
-
-	public static String adjustTypePy(String frameName, String[] columns, Map<String, SemossDataType> typeMap) {
-		StringBuilder adjustTypes = new StringBuilder();
-		for (int headIndex = 0; headIndex < columns.length; headIndex++) {
-			SemossDataType type = typeMap.get(columns[headIndex]);
-			String asType = null;
-			if (type == SemossDataType.INT)
-				asType = "int64";
-			else if (type == SemossDataType.DOUBLE)
-				asType = "float64";
-			if (asType != null)
-				adjustTypes.append(frameName).append("['").append(columns[headIndex]).append("']").append(" = ")
-						.append(frameName).append("['").append(columns[headIndex]).append("']").append(".astype('")
-						.append(asType).append("', errors='ignore')\n");
-		}
-
-		return adjustTypes.toString();
-	}
-
 	/*
 		public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator, int parallel) {
 			
@@ -3504,7 +3468,16 @@ public class Utility {
 		}
 	
 		*/
-
+	
+	/**
+	 * 
+	 * @param fileLocation
+	 * @param it
+	 * @param typesMap
+	 * @param seperator
+	 * @param exportProcessors
+	 * @return
+	 */
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
 			Map<String, SemossDataType> typesMap, String seperator, IStringExportProcessor... exportProcessors) {
 		long start = System.currentTimeMillis();
@@ -3698,6 +3671,24 @@ public class Utility {
 		return f;
 	}
 	
+	/**
+	 * 
+	 * @param fileLocation
+	 * @param it
+	 * @return
+	 */
+	public static File writeResultToJson(String fileLocation, Iterator<IHeadersDataRow> it) {
+		return writeResultToJson(fileLocation, it, null);
+	}
+	
+	/**
+	 * 
+	 * @param fileLocation
+	 * @param it
+	 * @param typesMap
+	 * @param exportProcessors
+	 * @return
+	 */
 	public static File writeResultToJson(String fileLocation, Iterator<IHeadersDataRow> it,
 			Map<String, SemossDataType> typesMap, IStringExportProcessor... exportProcessors) {
 		long start = System.currentTimeMillis();
