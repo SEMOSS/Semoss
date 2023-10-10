@@ -1,8 +1,10 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.zip.ZipOutputStream;
@@ -10,6 +12,9 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -21,6 +26,7 @@ import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.project.DownloadProjectInsightsReactor;
@@ -58,15 +64,15 @@ public class ExportProjectReactor extends AbstractReactor {
 		}
 
 		logger.info("Exporting project now...");
-		logger.info("Stopping the project...");
-
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
-		String projectDir = baseFolder + "/" + Constants.PROJECT_FOLDER + "/" + SmssUtilities.getUniqueName(projectName, projectId);
+		String projectNameAndId = SmssUtilities.getUniqueName(projectName, projectId);
+		String baseProjectDir = baseFolder + "/" + Constants.PROJECT_FOLDER;
+		String thisProjectDir = baseProjectDir + "/" + projectNameAndId;
 
 		String outputDir = this.insight.getInsightFolder();
-		String zipFilePath = outputDir + "/" + projectName + "_project.zip";
+		String zipFilePath = outputDir + "/" + projectNameAndId + "_project.zip";
 
 		Lock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
@@ -75,13 +81,14 @@ public class ExportProjectReactor extends AbstractReactor {
 			ZipOutputStream zos = null;
 			try {
 				DIHelper.getInstance().removeProjectProperty(projectId);
+				logger.info("Stopping the project...");
 				project.close();
 				
 				if(ClusterUtil.IS_CLUSTER) {
 					logger.info("Creating insight database ...");
 					File insightsFile = null;
 					try {
-						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, outputDir);
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error occurred attemping to generate the insights database for this project");
@@ -90,30 +97,53 @@ public class ExportProjectReactor extends AbstractReactor {
 
 					// zip project folder minus insights
 					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(projectDir, zipFilePath, 
+					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, 
 							// ignore the current insights database
-							Arrays.asList(new String[] {
-									SmssUtilities.getUniqueName(projectName, projectId)+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath())}));
+							Arrays.asList(projectNameAndId+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath())));
 					logger.info("Done zipping project files...");
 					
 					logger.info("Zipping insight database ...");
-					ZipUtils.addToZipFile(insightsFile, zos, SmssUtilities.getUniqueName(projectName, projectId));
+					ZipUtils.addToZipFile(insightsFile, zos, projectNameAndId);
 					logger.info("Done zipping insight database...");
 				} else {
 					// zip project folder
 					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(projectDir, zipFilePath);
+					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath);
 					logger.info("Done zipping project files...");
 				}
 				
+				// zip up the project metadata
+				logger.info("Grabbing project metadata...");
+				File projectMetaF = new File(outputDir+"/"+projectName+"_metadata.json");
+				Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
+				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				FileWriter writer = null;
+				try {
+					writer = new FileWriter(projectMetaF);
+					gson.toJson(projectMeta, writer);
+				} finally {
+					if(writer != null) {
+						try {
+							writer.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+				logger.info("Zipping project metadata...");
+				ZipUtils.addToZipFile(projectMetaF, zos, projectNameAndId);
+				logger.info("Done zipping project metadata...");
+
 				// add smss file
 				logger.info("Zipping project smss...");
-				File smss = new File(projectDir + "/../" + SmssUtilities.getUniqueName(projectName, projectId) + ".smss");
+				File smss = new File(baseProjectDir + "/" + projectNameAndId + ".smss");
 				ZipUtils.addToZipFile(smss, zos);
 				logger.info("Done zipping project smss files...");
-
-			} catch (IOException e) {
+				logger.info("Zipping Complete");
+			} catch (Exception e) {
+				logger.info("Error occurred zipping up project");
 				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException("Error occurred generating zip file. Detailed message = " + e.getMessage());
 			} finally {
 				try {
 					if (zos != null) {
@@ -124,8 +154,6 @@ public class ExportProjectReactor extends AbstractReactor {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-
-			logger.info("Zipping Complete");
 		} finally {
 			// open it back up
 			logger.info("Opening the project again ... ");
