@@ -2,12 +2,12 @@ package prerna.sablecc2.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
@@ -89,7 +89,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 
 		// gotta keep track of the smssFile and files unzipped
 		Map<String, List<String>> filesAdded = new HashMap<>();
-		List<String> fileList = new Vector<>();
+		List<String> fileList = new ArrayList<>();
 		String smssFileLoc = null;
 		File smssFile = null;
 		// unzip files to temp project folder

@@ -24,10 +24,13 @@ public class ValidateUserProjectDependenciesReactor extends AbstractSetMetadataR
 		User user = this.insight.getUser();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-
+		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
+		}
+		
 		Map<String, Boolean> hasAccess = new HashMap<>();
 		
-		List<String> dependentEngineIds = SecurityProjectUtils.getProjectDependencies(user, projectId);
+		List<String> dependentEngineIds = SecurityProjectUtils.getProjectDependencies(projectId);
 		for(String depEngineId : dependentEngineIds) {
 			boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
 			hasAccess.put(depEngineId, canView);
