@@ -1,13 +1,13 @@
 import socket
 import sys
 import socketserver
-import json
 import logging
 import smssutil
 import traceback as tb
 import threading
 from clean import PyFrame
 import gaas_server_proxy as gsp
+
 
 import numpy as np
 import pandas as pd
@@ -58,6 +58,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     self.orig_mount_points = {}
     self.cur_mount_points = {}
     self.cmd_monitor = threading.Condition()
+    
+    self.try_jp = False
+    # experimental
+    if self.try_jp:
+      import jsonpickle as jp
+      self.json = jp
+    else:
+      import json as json
+      self.json = json
   
   def handle(self):
     while not self.stop:
@@ -100,10 +109,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     try:
       # if this fails.. no go 
       # but the receiver still needs to be informed so it doesnt stall
-      payload = data.decode('utf-8')      
+      payload = data
+      if not self.try_jp:
+        payload = data.decode('utf-8')
+      payload = self.json.loads(payload)
+      
       #print(f"PAYLOAD.. {payload}")
       # do payload manipulation here 
-      payload = json.loads(payload)
+      #payload = json.loads(payload)
       local = threading.local()
       local.payload = payload
 
@@ -220,7 +233,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                       #"payload":[None]
                       })
 
-    output = json.dumps(payload)
+    #print("sending payload back.. ")
+    output = self.json.dumps(payload)
     # write response back
     size = len(output)
     size_byte = size.to_bytes(4, 'big')
@@ -255,7 +269,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     #print(locals().keys())
     #print(globals().keys())
     
-    output = json.dumps(payload)
+    output = self.json.dumps(payload)
     # write response back
     size = len(output)
     size_byte = size.to_bytes(4, 'big')
