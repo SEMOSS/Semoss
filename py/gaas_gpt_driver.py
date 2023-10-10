@@ -48,7 +48,7 @@ class Driver():
       "engineType": engine_type,
       "interim": False,
       # all the method stuff will come here
-      "payload": [jp.dumps(a)]
+      "payload": a
     }
     server.send_request(payload)
     
@@ -57,3 +57,44 @@ class Driver():
     import torch
     out = jp.loads(pickle_to_str)
     print(f"Output is {out}")
+    
+  def get_list_of_lists(self):
+    import jsonpickle as jp
+    from gaas_tcp_server_handler import TCPServerHandler
+    server = TCPServerHandler.da_server
+    epoc = "abc124"
+    engine_type = "pickler"
+    ## Time to up the game
+    import torch
+    l1 = [1,2,3]
+    l2 = [2,None,4]
+    l3 = [l1, l2]
+    payload = {
+      "epoc": epoc,
+      "response": False,
+      "engineType": engine_type,
+      "interim": False,
+      # all the method stuff will come here
+      "payload": l3
+    }
+    server.send_request(payload)
+  
+  def get_file_pickle(self):
+    from gaas_tcp_server_handler import TCPServerHandler
+    server = TCPServerHandler.da_server
+    epoc = "abc125"
+    engine_type = "pickler"
+
+    f = open("c:/users/pkapaleeswaran/workspacej3/SemossDev/Py/sampleResponse.pkl", "rb")
+    import pickle
+    p = pickle.load(f)
+    payload = {
+      "epoc": epoc,
+      "response": False,
+      "engineType": engine_type,
+      "interim": False,
+      # all the method stuff will come here
+      "payload": p
+    }
+    server.send_request(payload)
+    
