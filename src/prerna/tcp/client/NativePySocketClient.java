@@ -143,7 +143,8 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				int size_read = 0;
 	    				while(size_read < size)
 	    				{
-	    					byte [] newMsg = new byte[size];
+	    					int to_read = size - size_read;
+	    					byte [] newMsg = new byte[to_read];
 	    					int cur_size = is.read(newMsg);
 	    					System.arraycopy(newMsg, 0, msg, size_read, cur_size);
 	    					size_read = size_read + cur_size;
