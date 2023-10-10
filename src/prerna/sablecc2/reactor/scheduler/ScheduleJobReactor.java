@@ -46,7 +46,7 @@ import prerna.util.Utility;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ScheduleJobReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ScheduleJobReactor.class);
 
 	// Inputs
 	public static final String TRIGGER_NOW = "triggerNow";
@@ -89,7 +89,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		try {
 			cronTimeZone = TimeZone.getTimeZone(cronTz);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
 		List<String> jobTags = getJobTags();
@@ -154,7 +154,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
-				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
+				classLogger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 			}
 
@@ -169,7 +169,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// insert into SMOSS_JOB_RECIPES table
-			logger.info("Saving JobId to database: "+jobId);
+			classLogger.info("Saving JobId to database: "+jobId);
 			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, 
 					jobName, jobGroup, 
 					cronExpression, cronTimeZone,
@@ -184,7 +184,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			quartzJobMetadata = new HashMap<>();
 			quartzJobMetadata.put(JSON_CONFIG, jsonConfig);
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
 		}
 
 		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
@@ -198,7 +198,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 				scheduler.triggerJob(jobKey);
 			}
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
 		}
 	}
 
@@ -225,7 +225,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		try {
 			jobDataMap = jobConfig.getJobDataMap();
 		} catch (ParseConfigException | IllegalConfigException e) {
-			logger.error("Failed to parse job data map for " + Utility.cleanLogString(jobName) + ".");
+			classLogger.error("Failed to parse job data map for " + Utility.cleanLogString(jobName) + ".");
 			throw e;
 		}
 
@@ -237,7 +237,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		scheduler.scheduleJob(job, trigger);
 
-		logger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: " + Utility.cleanLogString(cronExpression) + ".");
+		classLogger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: " + Utility.cleanLogString(cronExpression) + ".");
 
 		// Return the job key
 		return job.getKey();
