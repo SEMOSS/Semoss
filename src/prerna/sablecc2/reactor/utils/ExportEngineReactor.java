@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipOutputStream;
@@ -9,15 +11,20 @@ import java.util.zip.ZipOutputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
@@ -77,10 +84,11 @@ public class ExportEngineReactor extends AbstractReactor {
 			}
 			
 			String engineName = engine.getEngineName();
+			String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 			String outputDir = this.insight.getInsightFolder();
 			String thisEngineDir = EngineUtility.getSpecificEngineBaseFolder(engine.getCatalogType(), engineId, engineName);
 			File thisEngineF = new File(thisEngineDir);
-			zipFilePath = outputDir + "/" + engineName + "_engine.zip";
+			zipFilePath = outputDir + "/" + engineNameAndId + "_engine.zip";
 			
 			// zip database
 			ZipOutputStream zos = null;
@@ -93,13 +101,39 @@ public class ExportEngineReactor extends AbstractReactor {
 				} else {
 					logger.info("No engine folder to zip");
 				}
+				
+				// zip up the engine metadata
+				logger.info("Grabbing engine metadata...");
+				File engineMetaF = new File(outputDir+"/"+engineName+"_metadata.json");
+				Map<String, Object> engineMeta = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
+				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				FileWriter writer = null;
+				try {
+					writer = new FileWriter(engineMetaF);
+					gson.toJson(engineMeta, writer);
+				} finally {
+					if(writer != null) {
+						try {
+							writer.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+				logger.info("Zipping engine metadata...");
+				ZipUtils.addToZipFile(engineMetaF, zos, engineNameAndId);
+				logger.info("Done zipping engine metadata...");
+				
 				// add smss file
 				File smss = new File(engine.getSmssFilePath());
 				logger.info("Adding smss file...");
 				ZipUtils.addToZipFile(smss, zos);
 				logger.info("Done adding smss file");
-			} catch (IOException e) {
+				logger.info("Finished creating zip");
+			} catch (Exception e) {
+				logger.info("Error occurred zipping up engine");
 				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException("Error occurred generating zip file. Detailed message = " + e.getMessage());
 			} finally {
 				try {
 					if (zos != null) {
@@ -110,8 +144,6 @@ public class ExportEngineReactor extends AbstractReactor {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-
-			logger.info("Finished creating zip");
 		} finally {
 			// open it back up
 			try {
