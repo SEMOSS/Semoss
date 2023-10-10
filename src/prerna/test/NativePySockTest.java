@@ -350,11 +350,16 @@ public class NativePySockTest implements Runnable {
 				int size_read = 0;
 				while(size_read < size)
 				{
-					byte [] newMsg = new byte[size];
+					//System.out.println("Available bites.. " + is.available());
+					int to_read = size - size_read;
+					byte [] newMsg = new byte[to_read];
 					int cur_size = is.read(newMsg);
+					System.out.println("incoming size " + size + "  read size.. " + size_read + " cur zie " + cur_size);
+					// for some reason the cur_size + size_read is bigger than that of size
+					//if(cur_size + size_read > size)
+					//	cur_size = size - size_read;
 					System.arraycopy(newMsg, 0, msg, size_read, cur_size);
 					size_read = size_read + cur_size;
-					System.out.println("incoming size " + size + "  read size.. " + size_read);
 				}
 
 				String message = new String(msg);
