@@ -22,7 +22,6 @@ import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.model.ModelEngineConstants;
-import prerna.om.Insight;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -481,11 +480,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	@Override
 	public void close() {
-		if (this.socketClient.isConnected() && this.p.isAlive()) {
+		if (this.socketClient != null && this.socketClient.isConnected()) {
 			this.socketClient.stopPyServe(this.pyDirectoryBasePath);
 			this.socketClient.disconnect();
 			this.socketClient.setConnected(false);
 			this.pyDirectoryBasePath = null;
+		}
+		if(this.p != null && this.p.isAlive()) {
 			this.p.destroy();
 		}
 	}
