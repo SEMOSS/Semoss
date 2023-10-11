@@ -12,6 +12,8 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.reflect.TypeToken;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -19,8 +21,10 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -33,6 +37,7 @@ import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
+import prerna.util.gson.GsonUtility;
 import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
@@ -138,19 +143,15 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
-		String projectType = null;
 		boolean hasPortal = false;
 		String portalName = null;
 		String projectGitProvider = null;
 		String projectGitCloneUrl = null;
 		
-		
 		File tempSmss = null;
 		File tempEngFolder = null;
 		File finalSmss = null;
 		File finalEngFolder = null;
-		File appRootFolder = null;
-		File versionFolder = null;
 		Boolean isLegacy = false;
 		try {
 			logger.info(step + ") Reading smss");
@@ -164,11 +165,9 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			if(isLegacy) {
 				projectId = prop.getProperty(Constants.ENGINE);
 				projectName = prop.getProperty(Constants.ENGINE_ALIAS);
-				projectType = prop.getProperty(Constants.ENGINE_TYPE);
 			} else {
 				projectId = prop.getProperty(Constants.PROJECT);
 				projectName = prop.getProperty(Constants.PROJECT_ALIAS);
-				projectType = prop.getProperty(Constants.PROJECT_TYPE);
 			}
 			hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
 			portalName = prop.getProperty(Settings.PORTAL_NAME);
@@ -216,7 +215,10 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				step++;
 
 				// move smss file
-				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, hasPortal, portalName, projectGitProvider, projectGitCloneUrl, null);
+				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
+						hasPortal, portalName, 
+						projectGitProvider, projectGitCloneUrl, 
+						null);
 				FileUtils.copyFile(tempSmss, finalSmss);
 				tempSmss.delete();
 				logger.info(step + ") Done");
@@ -254,6 +256,22 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
 			SecurityProjectUtils.addProject(projectId, false, user);
+			
+			// see if we have any dependencies or metadata to load
+			{
+				File metadataFile = new File(finalEngFolder.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
+				if(metadataFile.exists() && metadataFile.isFile()) {
+					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
+					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+				}
+				
+				File dependenciesFile = new File(finalEngFolder.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
+				if(dependenciesFile.exists() && dependenciesFile.isFile()) {
+					List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
+					SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
+				}
+			}
+			
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;

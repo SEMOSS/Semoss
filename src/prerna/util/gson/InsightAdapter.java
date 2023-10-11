@@ -45,7 +45,7 @@ import prerna.util.insight.InsightUtility;
 
 public class InsightAdapter extends TypeAdapter<Insight> {
 
-	private static final Logger logger = LogManager.getLogger(InsightAdapter.class);
+	private static final Logger classLogger = LogManager.getLogger(InsightAdapter.class);
 
 	private static final String CLASS_NAME = InsightAdapter.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -129,7 +129,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		out.beginArray();
 		for(FrameCacheHelper fObj : frames) {
 			// set the logger for this frame
-			fObj.getFrame().setLogger(logger);
+			fObj.getFrame().setLogger(classLogger);
 			CachePropFileFrameObject saveFrame = fObj.getFrame().save(this.folderDir, this.cipher);
 			out.beginObject();
 			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, projectName, projectId));
@@ -154,7 +154,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				InsightCacheUtility.addToZipFile(f1, zos);
 				InsightCacheUtility.addToZipFile(f2, zos);
 			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		out.endArray();
@@ -228,7 +228,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		try {
 			InsightCacheUtility.addToZipFile(vizOutputFile, zos);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -337,11 +337,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					store.put(varStoreK, fNoun);
 				}
 			} catch (InstantiationException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException iae) {
-				logger.error(Constants.STACKTRACE, iae);
+				classLogger.error(Constants.STACKTRACE, iae);
 			} catch (ClassNotFoundException cnfe) {
-				logger.error(Constants.STACKTRACE, cnfe);
+				classLogger.error(Constants.STACKTRACE, cnfe);
 			}
 			
 			in.endObject();
