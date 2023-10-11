@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystem;
@@ -116,22 +115,9 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	public static void zipObjectToFile(ZipOutputStream zos, String prefixForZip, String filePathToWrite, Object objToWrite) throws IOException {
-		File fileToCreate = new File(filePathToWrite);
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		FileWriter writer = null;
-		try {
-			writer = new FileWriter(fileToCreate);
-			gson.toJson(objToWrite, writer);
-		} finally {
-			if(writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		ZipUtils.addToZipFile(fileToCreate, zos, prefixForZip);
+		File newFile = new File(filePathToWrite);
+		GsonUtility.writeObjectToJsonFile(newFile, new GsonBuilder().setPrettyPrinting().create(), objToWrite);
+		ZipUtils.addToZipFile(newFile, zos, prefixForZip);
 	}
 
 	/**
