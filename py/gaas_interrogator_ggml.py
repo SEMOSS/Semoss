@@ -94,13 +94,16 @@ class Interrogator():
     )
     return kwarg_dict
     
-  def ask(self, text=None, **kwargs):
+  def ask(self, text = None, question=None, prefix="", **kwargs):
+    if text is None:
+      text = question
     assert text is not None
     #print(self.model.device)
     tok_input = self.tokenizer(text, return_tensors="pt").to(self.model.device)
     input_ids = tok_input.input_ids.to(self.model.device)
     tok_input.attention_mask.to(self.model.device)
-    console_streamer = TextStreamer(tokenizer=self.tokenizer, skip_prompt=True)
+    console_streamer = SemossStreamer(tokenizer=self.tokenizer, skip_prompt=True)
+    console_streamer.set_output_prefix(prefix)
     kwargs.update({"streamer":console_streamer})
     #print(kwargs)
     new_kwargs = self.configure_params(input_ids, **kwargs)
