@@ -11,6 +11,7 @@ import java.util.Properties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
+import prerna.om.FileReference;
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -116,10 +117,23 @@ public class UploadInputUtility {
 		return noun.getValue().toString();
 	}
 
+	/**
+	 * 
+	 * @param store
+	 * @param in
+	 * @return
+	 */
 	public static String getFilePath(NounStore store, Insight in) {
 		return getFilePath(store, in, FILE_PATH);
 	}
 
+	/**
+	 * 
+	 * @param store
+	 * @param in
+	 * @param keyToGrab
+	 * @return
+	 */
 	public static String getFilePath(NounStore store, Insight in, String keyToGrab) {
 		GenRowStruct fileGrs = store.getNoun(keyToGrab);
 		if(fileGrs == null || fileGrs.isEmpty()) {
@@ -134,11 +148,37 @@ public class UploadInputUtility {
 			throw new IllegalArgumentException("Must define the file path using key " + keyToGrab);
 		}
 
-		String filePrefix = null;
+		String space = null;
 		// grabbing the space
 		// and using the asset utility to get the location
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
-			String space = spaceGrs.get(0).toString();
+			space = spaceGrs.get(0).toString();
+		} 
+
+		return getFilePath(in, fileLocation, space);
+	}
+	
+	/**
+	 * 
+	 * @param store
+	 * @param in
+	 * @return
+	 */
+	public static String getFilePath(Insight in, FileReference fileRef) {
+		return getFilePath(in, fileRef.getFilePath(), fileRef.getSpace());
+	}
+	
+	/**
+	 * 
+	 * @param fileLocation
+	 * @param filePrefix
+	 * @return
+	 */
+	public static String getFilePath(Insight in, String fileLocation, String space) {
+		String filePrefix = null;
+		// grabbing the space
+		// and using the asset utility to get the location
+		if (space != null && !space.isEmpty()) {
 			filePrefix = AssetUtility.getAssetBasePath(in, space, false);
 		} else {
 			filePrefix = AssetUtility.getAssetBasePath(in, null, false);

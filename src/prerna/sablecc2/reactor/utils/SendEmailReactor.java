@@ -12,9 +12,11 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
+import prerna.om.FileReference;
 import prerna.project.impl.ProjectPropertyEvaluator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -215,7 +217,15 @@ public class SendEmailReactor extends AbstractReactor {
 		if (grs != null) {
 			String[] input = new String[grs.size()];
 			for (int i = 0; i < input.length; i++) {
-				input[i] = grs.getNoun(i).getValue().toString();
+				NounMetadata noun = grs.getNoun(i);
+				if(noun.getOpType().contains(PixelOperationType.FILE_DOWNLOAD)) {
+					input[i] = this.insight.getExportFileLocation((String)noun.getValue());
+				} else if(noun.getNounType() == PixelDataType.FILE_REFERENCE) {
+					FileReference fileRef = (FileReference) noun.getValue();
+					input[i] = UploadInputUtility.getFilePath(this.insight, fileRef);
+				} else {
+					input[i] = grs.getNoun(i).getValue().toString();
+				}
 			}
 			return input;
 		}
