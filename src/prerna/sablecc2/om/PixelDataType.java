@@ -33,6 +33,9 @@ public enum PixelDataType {
 	PANEL ("PANEL", ReactorKeysEnum.PANEL),
 	PANEL_CLONE_MAP ("PANEL_CLONE_MAP", null),
 	
+	// file reference
+	FILE_REFERENCE ("FILE_REFERENCE", null),
+	
 	// frame
 	FRAME ("FRAME", ReactorKeysEnum.FRAME),
 	FRAME_MAP ("FRAME_MAP", null),
