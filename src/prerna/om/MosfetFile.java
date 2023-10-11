@@ -1,23 +1,18 @@
 package prerna.om;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.reflect.TypeToken;
 
-import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
 public class MosfetFile {
 
@@ -53,29 +48,7 @@ public class MosfetFile {
 	}
 	
 	public static MosfetFile generateFromFile(File file) throws IOException {
-		JsonReader jReader = null;
-		BufferedReader fReader = null;
-		try {
-			Gson gson = new Gson();
-			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
-			jReader = new JsonReader(fReader);
-	        return gson.fromJson(jReader, MosfetFile.class);
-	    } finally {
-	    	if(fReader != null) {
-	    		try {
-					fReader.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-	    	}
-	    	if(jReader != null) {
-	    		try {
-					jReader.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-	    	}
-	    }
+		return (MosfetFile) GsonUtility.readJsonFileToObject(file, new TypeToken<MosfetFile>() {}.getType());
 	}
 	
 	/**
@@ -98,20 +71,7 @@ public class MosfetFile {
 			mosfet.delete();
 		}
 		
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		FileWriter writer = null;
-		try {
-			writer = new FileWriter(mosfet);
-			gson.toJson(this, writer);
-		} finally {
-			if(writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
+		GsonUtility.writeObjectToJsonFile(mosfet, new GsonBuilder().setPrettyPrinting().create(), this);
 	}
 	
 	/////////////////////////////////////////////////////////////////////

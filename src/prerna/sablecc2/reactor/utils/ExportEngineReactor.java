@@ -102,7 +102,7 @@ public class ExportEngineReactor extends AbstractReactor {
 				{
 					logger.info("Grabbing engine metadata to write to temporary file to zip...");
 					Map<String, Object> engineMeta = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
-					ZipUtils.zipObjectToFile(zos, engineNameAndId, outputDir+"/"+engineName+"_metadata.json", engineMeta);
+					ZipUtils.zipObjectToFile(zos, engineNameAndId, outputDir+"/"+engineName+IEngine.METADATA_FILE_SUFFIX, engineMeta);
 					logger.info("Done zipping engine metadata...");
 				}
 				

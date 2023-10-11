@@ -1704,10 +1704,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param dependentEngineIds
 	 */
 	public static void updateProjectDependencies(User user, String projectId, List<String> dependentEngineIds) {
-		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
-		}
-		
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;

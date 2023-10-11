@@ -6,6 +6,8 @@ import java.util.Properties;
 
 public interface IEngine extends Closeable {
 
+	String METADATA_FILE_SUFFIX = "_metadata.json";
+	
 	enum CATALOG_TYPE {
 		DATABASE,
 		STORAGE,
