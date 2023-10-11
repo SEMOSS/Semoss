@@ -23,9 +23,13 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		List<String> dependentEngineIds = getDependentEngineIds();
-
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+
+		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
+		}
+		
+		List<String> dependentEngineIds = getDependentEngineIds();
 		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
