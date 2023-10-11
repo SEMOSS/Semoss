@@ -20,9 +20,9 @@ public class GenRowStruct implements Serializable{
 	
 	boolean isAllSQL = true;
 	
-	public Vector<NounMetadata> vector = new Vector<>();
+	public List<NounMetadata> vector = new Vector<>();
 	
-	public void add(Object value, PixelDataType type) {
+	public void add(Object value, PixelDataType type, PixelOperationType... opType) {
 		if(value instanceof NounMetadata) {
 			vector.add((NounMetadata) value);
 		} else {
@@ -32,62 +32,62 @@ public class GenRowStruct implements Serializable{
 	}
 	
 	public void add(NounMetadata noun) {
-		vector.addElement(noun);
+		vector.add(noun);
 	}
 	
-	public void addLiteral(String literal) {
-		add(literal, PixelDataType.CONST_STRING);
+	public void addLiteral(String literal, PixelOperationType... opType) {
+		add(literal, PixelDataType.CONST_STRING, opType);
 	}
 	
-	public void addBoolean(Boolean bool) {
-		add(bool, PixelDataType.BOOLEAN);
+	public void addBoolean(Boolean bool, PixelOperationType... opType) {
+		add(bool, PixelDataType.BOOLEAN, opType);
 	}
 	
-	public void addDecimal(Double literal)
+	public void addDecimal(Double literal, PixelOperationType... opType)
 	{
-		add(literal, PixelDataType.CONST_DECIMAL);
+		add(literal, PixelDataType.CONST_DECIMAL, opType);
 	}
 	
-	public void addInteger(Integer literal)
+	public void addInteger(Integer literal, PixelOperationType... opType)
 	{
-		add(literal, PixelDataType.CONST_INT);
+		add(literal, PixelDataType.CONST_INT, opType);
 	}
 	
-	public void addColumn(String column)
+	public void addColumn(String column, PixelOperationType... opType)
 	{
-		add(column.trim(), PixelDataType.COLUMN);
+		add(column.trim(), PixelDataType.COLUMN, opType);
 	}
 	
-	public void addColumn(QueryColumnSelector column)
+	public void addColumn(QueryColumnSelector column, PixelOperationType... opType)
 	{
-		add(column, PixelDataType.COLUMN);
+		add(column, PixelDataType.COLUMN, opType);
 	}
 	
-	public void addMap(Map<Object, Object> map) {
-		add(map, PixelDataType.MAP);
+	public void addMap(Map<Object, Object> map, PixelOperationType... opType) {
+		add(map, PixelDataType.MAP, opType);
 	}
 	
-	public void addComparator(String comparator) {
-		add(comparator, PixelDataType.COMPARATOR);
+	public void addComparator(String comparator, PixelOperationType... opType) {
+		add(comparator, PixelDataType.COMPARATOR, opType);
 	}
 	
 	// other than the actual expression
 	// I need to run through to find what the input columns are in order for me to run through and add to selectors
 	// while, I am doing this for sql expression here, we could replace sql expression and the same story kicks in
-	public void addSQLE(String sqlE, String [] inputColumns) {
-		add(sqlE, PixelDataType.SQLE);
+	public void addSQLE(String sqlE, String [] inputColumns, PixelOperationType... opType) {
+		add(sqlE, PixelDataType.SQLE, opType);
 	}
 
-	public void addE(Expression e) {
-		add(e, PixelDataType.E);
+	public void addE(Expression e, PixelOperationType... opType) {
+		add(e, PixelDataType.E, opType);
 		isAllSQL = false;
 	}
 	
 	// this is an operational formula that is being added 
 	// imagine the case of if where this could be a full operational formula that needs to be executed
 	// however this could be the if part or the else part
-	public void addLambda(IReactor reactor) {
-		add(reactor, PixelDataType.LAMBDA);
+	public void addLambda(IReactor reactor, PixelOperationType... opType) {
+		add(reactor, PixelDataType.LAMBDA, opType);
 		isAllSQL = false;
 	}
 

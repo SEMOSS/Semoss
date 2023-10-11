@@ -51,7 +51,6 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = getExportFileName(prefixName, "csv", appendTimestamp);
 
-
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
