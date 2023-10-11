@@ -45,6 +45,8 @@ import prerna.util.SemossClassloader;
 
 public interface IProject extends IEngine, Closeable {
 	
+	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
+
 	/**
 	 * Sets the unique id for the project 
 	 * @param projectId - id to set the project 

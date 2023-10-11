@@ -1,9 +1,19 @@
 package prerna.util.gson;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
@@ -48,8 +58,11 @@ import prerna.sablecc2.reactor.export.JsonFormatter;
 import prerna.sablecc2.reactor.export.KeyValueFormatter;
 import prerna.sablecc2.reactor.export.TableFormatter;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
+import prerna.util.Constants;
 
 public class GsonUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(GsonUtility.class);
 
 	private static boolean testing = false;
 	
@@ -136,6 +149,71 @@ public class GsonUtility {
 	
 	public static Gson getDefaultGson() {
 		return getDefaultGson(testing);
+	}
+
+	/**
+	 * 
+	 * @param filePath
+	 * @param typeToken
+	 * @throws IOException 
+	 */
+	public static Object readJsonFileToObject(String filePath, java.lang.reflect.Type type) throws IOException {
+		return readJsonFileToObject(new File(filePath), type);
+	}
+	
+	/**
+	 * 
+	 * @param file
+	 * @param typeToken
+	 * @throws IOException 
+	 */
+	public static Object readJsonFileToObject(File file, java.lang.reflect.Type type) throws IOException {
+		JsonReader jReader = null;
+		BufferedReader fReader = null;
+		try {
+			Gson gson = new Gson();
+			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
+			jReader = new JsonReader(fReader);
+	        return gson.fromJson(jReader, type);
+	    } finally {
+	    	if(fReader != null) {
+	    		try {
+					fReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+	    	}
+	    	if(jReader != null) {
+	    		try {
+					jReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+	    	}
+	    }	
+	}
+	
+	/**
+	 * 
+	 * @param file
+	 * @param gson
+	 * @param objToWrite
+	 * @throws IOException
+	 */
+	public static void writeObjectToJsonFile(File file, Gson gson, Object objToWrite) throws IOException {
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(file);
+			gson.toJson(objToWrite, writer);
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
 }

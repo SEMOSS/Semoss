@@ -18,6 +18,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
@@ -125,7 +126,7 @@ public class ExportProjectReactor extends AbstractReactor {
 				{
 					logger.info("Grabbing project metadata to write to temporary file to zip...");
 					Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
-					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+"_metadata.json", projectMeta);
+					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+IEngine.METADATA_FILE_SUFFIX, projectMeta);
 					logger.info("Done zipping project metadata...");
 				}
 				
@@ -133,7 +134,7 @@ public class ExportProjectReactor extends AbstractReactor {
 				{
 					logger.info("Grabbing project dependencies to write to temporary file to zip...");
 					List<String> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
-					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+"_dependencies.json", projectDependencies);
+					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
 					logger.info("Done zipping project dependencies...");
 				}
 				
