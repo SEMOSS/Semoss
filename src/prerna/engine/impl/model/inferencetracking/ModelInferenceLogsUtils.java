@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.AbstractModelEngine;
@@ -234,7 +235,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, messageId);
 			ps.setString(index++, "RESPONSE");
 			ps.setString(index++, feedbackText);
-			ps.setObject(index++, LocalDateTime.now());
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.setBoolean(index++, rating);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -248,25 +249,40 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
-		String query = "UPDATE FEEDBACK SET FEEDBACK_TEXT =?, "
-				+ "FEEDBACK_DATE = ?, RATING = ? WHERE MESSAGE_ID = ? AND MESSAGE_TYPE = 'RESPONSE'";
-		PreparedStatement ps = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, feedbackText);
-			ps.setObject(index++, LocalDateTime.now());
-			ps.setBoolean(index++, rating);
-			ps.setString(index++, messageId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-		}	
+        Connection conn = connectToInferenceLogs();
+        
+        UpdateQueryStruct qs = new UpdateQueryStruct();
+        qs.setEngine(modelInferenceLogsDb);
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
+        List<IQuerySelector> selectors = new Vector<>(
+        		Arrays.asList(
+        				new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"), 
+        				new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"), 
+        				new QueryColumnSelector("FEEDBACK__RATING")
+        		)
+        );
+        
+        List<Object> values = new Vector<>(Arrays.asList(feedbackText, new SemossDate(LocalDateTime.now()), rating));
+
+        qs.setSelectors(selectors);
+        qs.setValues(values);
+        qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+        UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+        String updateQ = updateInterp.composeQuery();
+        try {
+            modelInferenceLogsDb.insertData(updateQ);
+        } catch (Exception e) {
+            classLogger.error(Constants.STACKTRACE, e);
+        } finally {
+            if(modelInferenceLogsDb.isConnectionPooling()) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    classLogger.error(Constants.STACKTRACE, e);
+                }
+            }
+        }
 	}
 	
 	public static void doCreateNewUser(User user) {
@@ -298,6 +314,7 @@ public class ModelInferenceLogsUtils {
 	
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, 
 											   String userId, String agentType, Boolean isActive, String projectId, String projectName, String agentId) {
+		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, AGENT_TYPE, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID) "
@@ -314,25 +331,20 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			if (roomContext != null) {
-				ps.setString(index++, roomContext);
+				if(allowClob) {
+					Clob toclob = modelInferenceLogsDb.getConnection().createClob();
+					toclob.setString(1, roomContext);
+					ps.setClob(index++, toclob);
+				} else {
+					ps.setString(index++, roomContext);
+				}
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
-//			if (roomConfigData != null) {
-//				if(allowClob) {
-//					Clob toclob = modelInferenceLogsDb.getConnection().createClob();
-//					toclob.setString(1, roomConfigData);
-//					ps.setClob(index++, toclob);
-//				} else {
-//					ps.setString(index++, roomConfigData);
-//				}
-//			} else {
-//				ps.setNull(index++, java.sql.Types.NULL);
-//			}
 			ps.setString(index++, userId);
 			ps.setString(index++, agentType);
 			ps.setBoolean(index++, isActive);
-			ps.setObject(index++, LocalDateTime.now());
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.setString(index++, projectId);
 			ps.setString(index++, projectName);
 			ps.setString(index++, agentId);
@@ -413,7 +425,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, agentDescription);
 			ps.setString(index++, agentType);
 			ps.setString(index++, author);
-			ps.setObject(index++, LocalDateTime.now());
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -474,7 +486,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, messageMethod);
 			ps.setInt(index++, tokenSize);
 			ps.setDouble(index++, reponseTime);
-			ps.setObject(index++, dateCreated);
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreated));
 			ps.setString(index++, agentId);
 			ps.setString(index++, insightId);
 			ps.setString(index++, sessionId);
@@ -511,18 +523,6 @@ public class ModelInferenceLogsUtils {
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
             return false;
-//      } 
-        
-//      String query = "UPDATE ROOM SET IS_ACTIVE = false WHERE USER_ID = ? AND INSIGHT_ID = ?";
-//      try (PreparedStatement ps = conn.prepareStatement(query)) {
-//          //ps = modelInferenceLogsDb.getPreparedStatement(query);
-//          int index = 1;
-//          ps.setString(index++, userId);
-//          ps.setString(index++, roomId);
-//          ps.executeUpdate();
-//      } catch (SQLException e) {
-//          classLogger.error(Constants.STACKTRACE, e);
-//          return false;
         } finally {
             if(modelInferenceLogsDb.isConnectionPooling()) {
                 try {
