@@ -69,7 +69,7 @@ public class ModelInferenceLogsOwlCreation {
 		this.roomColumns = Arrays.asList(
 				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
 				Pair.with("ROOM_NAME", "VARCHAR(255)"),
-				Pair.with("ROOM_CONTEXT", "VARCHAR(255)"),
+				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
 				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
