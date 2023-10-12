@@ -34,6 +34,7 @@ import prerna.util.ZipUtils;
 import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
+@Deprecated
 public class UploadDatabaseReactor extends AbstractInsightReactor {
 	
 	private static final String CLASS_NAME = UploadDatabaseReactor.class.getName();

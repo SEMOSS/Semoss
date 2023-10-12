@@ -10,6 +10,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
@@ -42,6 +43,8 @@ import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
 public class UploadProjectReactor extends AbstractInsightReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(UploadProjectReactor.class);
 
 	private static final String CLASS_NAME = UploadProjectReactor.class.getName();
 
@@ -86,11 +89,10 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		}
 
 		// creating a temp folder to unzip project folder and smss
-		String temporaryProjectId = UUID.randomUUID().toString();
-		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-				+ Constants.PROJECT_FOLDER;
-		String tempProjectFolderPath = projectFolderPath + DIR_SEPARATOR + temporaryProjectId;
-		File tempProjectFolder = new File(tempProjectFolderPath);
+		String randomIdAsDir = UUID.randomUUID().toString();
+		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + Constants.PROJECT_FOLDER;
+		String randomTempUnzipFolderPath = projectFolderPath + DIR_SEPARATOR + randomIdAsDir;
+		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
 
 		// gotta keep track of the smssFile and files unzipped
 		Map<String, List<String>> filesAdded = new HashMap<>();
@@ -101,7 +103,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		boolean error = false;
 		try {
 			logger.info(step + ") Unzipping project");
-			filesAdded = ZipUtils.unzip(zipFilePath, tempProjectFolderPath);
+			filesAdded = ZipUtils.unzip(zipFilePath, randomTempUnzipFolderPath);
 			logger.info(step + ") Done");
 			step++;
 
@@ -110,7 +112,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			logger.info(step + ") Searching for smss");
 			for (String filePath : fileList) {
 				if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
-					smssFileLoc = tempProjectFolderPath + DIR_SEPARATOR + filePath;
+					smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
 					smssFile = new File(Utility.normalizePath(smssFileLoc));
 					// check if the file exists
 					if (!smssFile.exists()) {
@@ -136,7 +138,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			throw new SemossPixelException("Error occurred while unzipping the files", false);
 		} finally {
 			if (error) {
-				cleanUpFolders(null, null, null, null, tempProjectFolder, logger);
+				cleanUpFolders(randomTempUnzipF, null, null);
 			}
 		}
 
@@ -148,10 +150,10 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		String projectGitProvider = null;
 		String projectGitCloneUrl = null;
 		
-		File tempSmss = null;
-		File tempEngFolder = null;
-		File finalSmss = null;
-		File finalEngFolder = null;
+		File randomTempSmssF = null;
+		File randomTempProjectF = null;
+		File finalProjectSmssF = null;
+		File finalProjectFolderF = null;
 		Boolean isLegacy = false;
 		try {
 			logger.info(step + ") Reading smss");
@@ -179,13 +181,12 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 
 			// zip file has the smss and project folder on the same level
 			// need to move these files around
-			String oldProjectFolderPath = tempProjectFolderPath + DIR_SEPARATOR
-					+ SmssUtilities.getUniqueName(projectName, projectId);
-			tempEngFolder = new File(Utility.normalizePath(oldProjectFolderPath));
-			finalEngFolder = new File(Utility.normalizePath(
-					projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
-			finalSmss = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
-					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
+			String currentTempProjectFolderPath = randomTempUnzipFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId);
+			randomTempProjectF = new File(Utility.normalizePath(currentTempProjectFolderPath));
+			finalProjectFolderF = new File(Utility.normalizePath(projectFolderPath 
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
+			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath 
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
 			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
@@ -203,37 +204,37 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				legacyToProjectRestructurerHelper.userScanAndCopyInsightsDatabaseIntoNewProjectFolder(
 						Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
 								+ SmssUtilities.getUniqueName(projectName, projectId)),
-						Utility.normalizePath(oldProjectFolderPath), false);
+						Utility.normalizePath(currentTempProjectFolderPath), false);
 
 				legacyToProjectRestructurerHelper.userScanAndCopyVersionsIntoNewProjectFolder(
 						Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
 								+ SmssUtilities.getUniqueName(projectName, projectId)),
-						Utility.normalizePath(oldProjectFolderPath), false);
+						Utility.normalizePath(currentTempProjectFolderPath), false);
 
 				// move project folder
 				logger.info(step + ") Done");
 				step++;
 
 				// move smss file
-				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
+				randomTempSmssF = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
 						hasPortal, portalName, 
 						projectGitProvider, projectGitCloneUrl, 
 						null);
-				FileUtils.copyFile(tempSmss, finalSmss);
-				tempSmss.delete();
+				FileUtils.copyFile(randomTempSmssF, finalProjectSmssF);
+				randomTempSmssF.delete();
 				logger.info(step + ") Done");
 				step++;
 			} else {
 				// move project folder
 				logger.info(step + ") Moving project folder");
-				FileUtils.copyDirectory(tempEngFolder, finalEngFolder);
+				FileUtils.copyDirectory(randomTempProjectF, finalProjectFolderF);
 				logger.info(step + ") Done");
 				step++;
 				// move smss file
 				logger.info(step + ") Moving smss file");
-				tempSmss = new File(Utility.normalizePath(tempProjectFolder + DIR_SEPARATOR
+				randomTempSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
 						+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
-				FileUtils.copyFile(tempSmss, finalSmss);
+				FileUtils.copyFile(randomTempSmssF, finalProjectSmssF);
 				logger.info(step + ") Done");
 				step++;
 			}
@@ -245,27 +246,27 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		} finally {
 			if (error) {
 				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
-				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
+				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 			} else {
 				// just delete the temp project folder
-				cleanUpFolders(null, null, null, null, tempProjectFolder, logger);
+				cleanUpFolders(randomTempUnzipF, null, null);
 			}
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
+			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
 			SecurityProjectUtils.addProject(projectId, false, user);
 			
 			// see if we have any dependencies or metadata to load
 			{
-				File metadataFile = new File(finalEngFolder.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
+				File metadataFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
 				if(metadataFile.exists() && metadataFile.isFile()) {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
 					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 				}
 				
-				File dependenciesFile = new File(finalEngFolder.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
+				File dependenciesFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
 				if(dependenciesFile.exists() && dependenciesFile.isFile()) {
 					List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
 					SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
@@ -281,7 +282,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		} finally {
 			if (error) {
 				// delete all the resources
-				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
+				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 				// remove from DIHelper
 				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
 				// delete from security
@@ -306,60 +307,32 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 	/**
 	 * Utility method to delete resources that have to be cleaned up
 	 * 
-	 * @param tempSmss
+	 * @param randomTempUnzipF
 	 * @param finalSmss
-	 * @param tempEngDir
 	 * @param finalEngDir
-	 * @param tempDbDir
-	 * @param logger
 	 */
-	private void cleanUpFolders(File tempSmss, File finalSmss, File tempEngDir, File finalEngDir, File tempDbDir,
-			Logger logger) {
-		if (tempSmss != null && tempSmss.exists()) {
+	private void cleanUpFolders(File randomTempUnzipF, File finalSmss, File finalEngDir) {
+		if (randomTempUnzipF != null && randomTempUnzipF.exists()) {
 			try {
-				FileUtils.forceDelete(tempSmss);
+				FileUtils.forceDelete(randomTempUnzipF);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if (finalSmss != null && finalSmss.exists()) {
 			try {
 				FileUtils.forceDelete(finalSmss);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if (tempEngDir != null && tempEngDir.exists()) {
-			try {
-				FileUtils.deleteDirectory(tempEngDir);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if (finalEngDir != null && finalEngDir.exists()) {
 			try {
 				FileUtils.deleteDirectory(finalEngDir);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if (tempDbDir != null && tempDbDir.exists()) {
-			try {
-				FileUtils.deleteDirectory(tempDbDir);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
 
-	private boolean fileExists(String filePath) {
-		if (filePath == null || (filePath = filePath.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Filepath is empty.");
-		}
-		File file = new File(filePath);
-		if (file.isFile()) {
-			return true;
-		}
-		return false;
-	}
 }
