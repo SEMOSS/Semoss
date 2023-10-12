@@ -32,7 +32,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -42,7 +41,7 @@ import prerna.util.gson.GsonUtility;
 import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
-public class UploadProjectReactor extends AbstractInsightReactor {
+public class UploadProjectReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(UploadProjectReactor.class);
 
@@ -138,7 +137,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			throw new SemossPixelException("Error occurred while unzipping the files", false);
 		} finally {
 			if (error) {
-				cleanUpFolders(randomTempUnzipF, null, null);
+				cleanUpFolders(randomTempUnzipF);
 			}
 		}
 
@@ -249,7 +248,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 			} else {
 				// just delete the temp project folder
-				cleanUpFolders(randomTempUnzipF, null, null);
+				cleanUpFolders(randomTempUnzipF);
 			}
 		}
 
@@ -305,32 +304,18 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 	}
 
 	/**
-	 * Utility method to delete resources that have to be cleaned up
 	 * 
-	 * @param randomTempUnzipF
-	 * @param finalSmss
-	 * @param finalEngDir
+	 * @param fileToDelete
 	 */
-	private void cleanUpFolders(File randomTempUnzipF, File finalSmss, File finalEngDir) {
-		if (randomTempUnzipF != null && randomTempUnzipF.exists()) {
-			try {
-				FileUtils.forceDelete(randomTempUnzipF);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if (finalSmss != null && finalSmss.exists()) {
-			try {
-				FileUtils.forceDelete(finalSmss);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if (finalEngDir != null && finalEngDir.exists()) {
-			try {
-				FileUtils.deleteDirectory(finalEngDir);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+	private void cleanUpFolders(File... fileToDelete) {
+		for(File f : fileToDelete) {
+			if(f != null && f.exists()) {
+				try {
+					FileUtils.forceDelete(f);
+				} catch (IOException e) {
+					classLogger.warn("Error on clean up attempting to delete " + f.getAbsolutePath());
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
