@@ -457,7 +457,7 @@ public class ModelInferenceLogsUtils {
 									   String insightId,
 									   String sessionId,
 									   String userId) {
-		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
+		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
 			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID) " + 
 			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -468,13 +468,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, messageId);
 			ps.setString(index++, messageType);
 			if (messageData != null) {
-				if(allowClob) {
-					Clob toclob = modelInferenceLogsDb.getConnection().createClob();
-					toclob.setString(1, messageData);
-					ps.setClob(index++, toclob);
-				} else {
-					ps.setString(index++, messageData);
-				}
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, messageData, index++, new Gson());
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
@@ -529,6 +523,39 @@ public class ModelInferenceLogsUtils {
         }
         return true;
     }
+	
+	public static boolean doSetNameForRoom(String userId, String roomId, String roomName) {
+		Connection conn = connectToInferenceLogs();
+        
+        UpdateQueryStruct qs = new UpdateQueryStruct();
+        qs.setEngine(modelInferenceLogsDb);
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+        List<IQuerySelector> selectors = new Vector<>();
+        List<Object> values = new Vector<>();
+        selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
+        values.add(roomName);
+        qs.setSelectors(selectors);
+        qs.setValues(values);
+        qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+        UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+        String updateQ = updateInterp.composeQuery();
+        try {
+            modelInferenceLogsDb.insertData(updateQ);
+        } catch (Exception e) {
+            classLogger.error(Constants.STACKTRACE, e);
+            return false;
+        } finally {
+            if(modelInferenceLogsDb.isConnectionPooling()) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    classLogger.error(Constants.STACKTRACE, e);
+                }
+            }
+        }
+        return true;
+	}
 	
 	
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort) {
