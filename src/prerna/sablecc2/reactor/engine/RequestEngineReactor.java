@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.database;
+package prerna.sablecc2.reactor.engine;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +28,7 @@ import prerna.util.SocialPropertiesUtil;
 
 public class RequestEngineReactor extends AbstractReactor {
 	
-	private static final String REQUEST_DATABASE_EMAIL_TEMPLATE = "requestEngine.html";
+	private static final String REQUEST_ENGINE_EMAIL_TEMPLATE = "requestEngine.html";
 	private static final Logger classLogger = LogManager.getLogger(RequestEngineReactor.class);
 
 	public RequestEngineReactor() {
@@ -137,9 +137,9 @@ public class RequestEngineReactor extends AbstractReactor {
 		String template = null;
 		String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
 		if (templatePath.endsWith("\\") || templatePath.endsWith("/")) {
-			templatePath += REQUEST_DATABASE_EMAIL_TEMPLATE;
+			templatePath += REQUEST_ENGINE_EMAIL_TEMPLATE;
 		} else {
-			templatePath += "/" + REQUEST_DATABASE_EMAIL_TEMPLATE;
+			templatePath += "/" + REQUEST_ENGINE_EMAIL_TEMPLATE;
 		}
 		File templateFile = new File(templatePath);
 		if (templateFile.exists() && templateFile.isFile()) {
