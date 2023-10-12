@@ -22,14 +22,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import com.google.gson.Gson;
+
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -314,7 +316,6 @@ public class ModelInferenceLogsUtils {
 	
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, 
 											   String userId, String agentType, Boolean isActive, String projectId, String projectName, String agentId) {
-		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, AGENT_TYPE, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID) "
@@ -331,13 +332,7 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			if (roomContext != null) {
-				if(allowClob) {
-					Clob toclob = modelInferenceLogsDb.getConnection().createClob();
-					toclob.setString(1, roomContext);
-					ps.setClob(index++, toclob);
-				} else {
-					ps.setString(index++, roomContext);
-				}
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, roomContext, index++, new Gson());
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
