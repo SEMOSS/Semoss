@@ -121,6 +121,8 @@ public class UploadUtilities {
 	 */
 	public static void removeEngineFromDIHelper(String erroredEngineId) {
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
+		// in case this is a db and there is an OWL file
+		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.OWL);
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId);
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		engineIds = engineIds.replace(";"+erroredEngineId+";", ";");
