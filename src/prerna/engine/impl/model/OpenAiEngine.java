@@ -22,8 +22,9 @@ public class OpenAiEngine extends AbstractModelEngine {
 	
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question=\"\"\"").append(question.replace("\"", "\\\"")).append("\"\"\"");
-		if(context != null)
-			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
+		if(context != null) {
+			callMaker.append(",").append("context=\"\"\"").append(context.replace("\"", "\\\"")).append("\"\"\"");	
+		}
 		
 		if (Utility.isModelInferenceLogsEnabled() && !parameters.containsKey("full_prompt")) { // have to check that inference logs are enabled so that query works
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId());
