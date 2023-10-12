@@ -242,7 +242,8 @@ public class UploadProjectReactor extends AbstractReactor {
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if (error) {
-				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+				// remove from DIHelper
+				UploadUtilities.removeProjectFromDIHelper(projectId);
 				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 			} else {
 				// just delete the temp project folder
@@ -281,7 +282,7 @@ public class UploadProjectReactor extends AbstractReactor {
 				// delete all the resources
 				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 				// remove from DIHelper
-				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+				UploadUtilities.removeProjectFromDIHelper(projectId);
 				// delete from security
 				SecurityProjectUtils.deleteProject(projectId);
 			}

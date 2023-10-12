@@ -165,11 +165,11 @@ public class UploadEngineReactor extends AbstractReactor {
 				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
 			} else {
 				SemossPixelException exception = new SemossPixelException(
-						NounMetadata.getErrorNounMessage("Database id already exists"));
+						NounMetadata.getErrorNounMessage("Engine id already exists"));
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
-			// move database folder
+			// move engine folder
 			logger.info(step + ") Moving engine folder");
 			FileUtils.copyDirectory(tempUnzippedEngineF, finalEngineFolder);
 			logger.info(step + ") Done");
@@ -187,7 +187,8 @@ public class UploadEngineReactor extends AbstractReactor {
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if(error) {
-				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
+				// remove from DIHelper
+				UploadUtilities.removeEngineFromDIHelper(engineId);
 				cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
 			} else {
 				// just delete the temp db folder
@@ -197,12 +198,16 @@ public class UploadEngineReactor extends AbstractReactor {
 
 		try {
 			DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, finalEngineSmss.getAbsolutePath());
-			logger.info(step + ") Grabbing database structure");
 			if(IEngine.CATALOG_TYPE.DATABASE == engineType) {
+				logger.info(step + ") Synchronizing database structure");
 				Utility.synchronizeEngineMetadata(engineId);
+				logger.info(step + ") Done");
+				step++;
 			}
+			logger.info(step + ") Synchronizing the engine metadata");
 			SecurityEngineUtils.addEngine(engineId, false, user);
 			logger.info(step + ") Done");
+			step++;
 			
 			// see if we have any dependencies or metadata to load
 			{
@@ -212,17 +217,16 @@ public class UploadEngineReactor extends AbstractReactor {
 					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
 				}
 			}
-			
 		} catch(Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Error occurred trying to synchronize the metadata and insights for the zip file", false);
+			throw new SemossPixelException("Error occurred trying to synchronize the metadata for the zip file", false);
 		} finally {
 			if(error) {
 				// delete all the resources
 				cleanUpFolders(randomTempUnzipF, finalEngineSmss, finalEngineFolder);
 				// remove from DIHelper
-				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
+				UploadUtilities.removeEngineFromDIHelper(engineId);
 				if(IEngine.CATALOG_TYPE.DATABASE == engineType) {
 					// delete from local master
 					DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
