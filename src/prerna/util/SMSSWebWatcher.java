@@ -325,7 +325,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.toString()));
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					classLogger.info("Deleting the database engine from security..... " + Utility.cleanLogString(engine));
+					classLogger.info("Deleting the database engine " + Utility.cleanLogString(engine) + " from security");
 					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}

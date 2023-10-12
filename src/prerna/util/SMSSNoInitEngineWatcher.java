@@ -151,10 +151,11 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
 				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
 			} else {
-				List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(getEngineType().name()));
+				String engineType = getEngineType().name();
+				List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(engineType));
 				for(String engine : engines) {
 					if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-						classLogger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
+						classLogger.info("Deleting the engine " + Utility.cleanLogString(engine) + " of type " + engineType + " from security");
 						SecurityEngineUtils.deleteEngine(engine);
 					}
 				}
