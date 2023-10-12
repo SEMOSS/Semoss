@@ -149,8 +149,6 @@ public class UploadProjectReactor extends AbstractReactor {
 		String projectGitProvider = null;
 		String projectGitCloneUrl = null;
 		
-		File randomTempSmssF = null;
-		File randomTempProjectF = null;
 		File finalProjectSmssF = null;
 		File finalProjectFolderF = null;
 		Boolean isLegacy = false;
@@ -180,8 +178,8 @@ public class UploadProjectReactor extends AbstractReactor {
 
 			// zip file has the smss and project folder on the same level
 			// need to move these files around
-			String currentTempProjectFolderPath = randomTempUnzipFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId);
-			randomTempProjectF = new File(Utility.normalizePath(currentTempProjectFolderPath));
+			String tempUnzippedProjectFolderPath = randomTempUnzipFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId);
+			File tempUnzippedProjectF = new File(Utility.normalizePath(tempUnzippedProjectFolderPath));
 			finalProjectFolderF = new File(Utility.normalizePath(projectFolderPath 
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
 			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath 
@@ -203,37 +201,37 @@ public class UploadProjectReactor extends AbstractReactor {
 				legacyToProjectRestructurerHelper.userScanAndCopyInsightsDatabaseIntoNewProjectFolder(
 						Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
 								+ SmssUtilities.getUniqueName(projectName, projectId)),
-						Utility.normalizePath(currentTempProjectFolderPath), false);
+						Utility.normalizePath(tempUnzippedProjectFolderPath), false);
 
 				legacyToProjectRestructurerHelper.userScanAndCopyVersionsIntoNewProjectFolder(
 						Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
 								+ SmssUtilities.getUniqueName(projectName, projectId)),
-						Utility.normalizePath(currentTempProjectFolderPath), false);
+						Utility.normalizePath(tempUnzippedProjectFolderPath), false);
 
 				// move project folder
 				logger.info(step + ") Done");
 				step++;
 
 				// move smss file
-				randomTempSmssF = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
+				File tempUnzippedSmssF = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
 						hasPortal, portalName, 
 						projectGitProvider, projectGitCloneUrl, 
 						null);
-				FileUtils.copyFile(randomTempSmssF, finalProjectSmssF);
-				randomTempSmssF.delete();
+				FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
+				tempUnzippedSmssF.delete();
 				logger.info(step + ") Done");
 				step++;
 			} else {
 				// move project folder
 				logger.info(step + ") Moving project folder");
-				FileUtils.copyDirectory(randomTempProjectF, finalProjectFolderF);
+				FileUtils.copyDirectory(tempUnzippedProjectF, finalProjectFolderF);
 				logger.info(step + ") Done");
 				step++;
 				// move smss file
 				logger.info(step + ") Moving smss file");
-				randomTempSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
+				File tempUnzippedSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
 						+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
-				FileUtils.copyFile(randomTempSmssF, finalProjectSmssF);
+				FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
 				logger.info(step + ") Done");
 				step++;
 			}
@@ -289,12 +287,10 @@ public class UploadProjectReactor extends AbstractReactor {
 			}
 		}
 
-		// even if no security, just add user as engine owner
-		if (user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-			}
+		// add user as engine owner
+		List<AuthProvider> logins = user.getLogins();
+		for (AuthProvider ap : logins) {
+			SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 		}
 
 		ClusterUtil.pushProject(projectId);
