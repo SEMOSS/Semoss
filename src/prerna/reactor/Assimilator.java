@@ -83,7 +83,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
 		// add a super so we have a base method to execute
-		maker.addSuper("prerna.sablecc2.reactor.AssimilatorEvaluator");
+		maker.addSuper("prerna.reactor.AssimilatorEvaluator");
 		maker.addMethod(stringMethod);
 		Class newClass = maker.toClass();
 
