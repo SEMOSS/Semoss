@@ -3811,7 +3811,10 @@ public class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null) {
+						if(dataRow[i] == null 
+								|| (dataRow[i] instanceof Double && Double.isNaN((double) dataRow[i]))
+								|| (dataRow[i] instanceof Double && Double.isInfinite((double) dataRow[i]))
+								){
 							json.put(headers[i], JSONObject.NULL);
 						} else {
 							json.put(headers[i], dataRow[i]);
