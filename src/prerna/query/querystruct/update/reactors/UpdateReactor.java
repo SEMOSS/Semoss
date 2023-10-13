@@ -6,13 +6,13 @@ import java.util.Vector;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class UpdateReactor extends AbstractQueryStructReactor {
 

@@ -2,10 +2,10 @@ package prerna.util.git.reactors;
 
 import java.io.File;
 
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitFetchUtils;

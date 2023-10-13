@@ -17,8 +17,8 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.MapHeaderDataRowIterator;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.reactor.IReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.IReactor;
 
 public class VarStore implements InMemStore<String, NounMetadata> {
 

@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.TinkerFrame;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Constants;
 
 public class iGraphUtilities {

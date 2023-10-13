@@ -8,7 +8,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.sablecc2.reactor.qs.SubQueryExpression;
+import prerna.reactor.qs.SubQueryExpression;
 
 public class QueryConstantSelectorAdapter extends AbstractSemossTypeAdapter<QueryConstantSelector> implements IQuerySelectorAdapterHelper {
 

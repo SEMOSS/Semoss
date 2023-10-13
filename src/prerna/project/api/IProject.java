@@ -38,8 +38,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
-import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
+import prerna.reactor.IReactor;
+import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 

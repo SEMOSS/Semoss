@@ -19,8 +19,8 @@ import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.reactor.imports.NativeImporter;
 import prerna.sablecc2.om.Join;
-import prerna.sablecc2.reactor.imports.NativeImporter;
 import prerna.util.Utility;
 
 public class SQLQueryUtils {

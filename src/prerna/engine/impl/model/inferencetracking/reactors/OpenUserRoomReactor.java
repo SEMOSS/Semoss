@@ -8,11 +8,11 @@ import java.util.Vector;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 

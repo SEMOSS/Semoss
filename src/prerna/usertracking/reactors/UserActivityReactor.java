@@ -6,7 +6,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 
 public class UserActivityReactor extends AbstractQueryStructReactor {

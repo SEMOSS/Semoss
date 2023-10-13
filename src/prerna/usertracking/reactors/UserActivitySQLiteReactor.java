@@ -5,7 +5,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.reactor.qs.AbstractQueryStructReactor;
 
 public class UserActivitySQLiteReactor extends AbstractQueryStructReactor {
 
