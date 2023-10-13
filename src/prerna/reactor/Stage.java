@@ -316,7 +316,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		System.out.println("STAGE " + stageNum + "====================================");
 		
 		ClassMaker thisClass = new ClassMaker(); // go with dynamic for now
-		thisClass.addSuper("prerna.sablecc2.reactor.Lambda");
+		thisClass.addSuper("prerna.reactor.Lambda");
 		
 		// finish the query block
 		// this makes the query

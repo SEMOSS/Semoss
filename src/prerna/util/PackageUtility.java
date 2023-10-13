@@ -98,7 +98,7 @@ public class PackageUtility {
 	}
 
 	public static void main(String[] args) throws NoSuchMethodException {
-		List<Class<?>> classes = PackageUtility.getReactors("prerna.sablecc2.reactor.frame.r");
+		List<Class<?>> classes = PackageUtility.getReactors("prerna.reactor.frame.r");
 	}
 
 }

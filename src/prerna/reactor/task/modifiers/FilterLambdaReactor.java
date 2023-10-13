@@ -37,9 +37,9 @@ public class FilterLambdaReactor extends AbstractLambdaTaskReactor {
 		}
 		
 		// class maker will help us compile our new lambda function 
-		ClassMaker myClass = new ClassMaker("prerna.sablecc2.reactor.task.modifiers", Utility.getRandomString(12));
+		ClassMaker myClass = new ClassMaker("prerna.reactor.task.modifiers", Utility.getRandomString(12));
 		// extends the generic java task map operation
-		String baseClass = "prerna.sablecc2.reactor.task.modifiers.FilterTaskIterator";
+		String baseClass = "prerna.reactor.task.modifiers.FilterTaskIterator";
 		myClass.addSuper(baseClass);
 		// add all the imports
 		for(int i = 0; i > imports.size(); i++) {
