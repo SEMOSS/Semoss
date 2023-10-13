@@ -51,7 +51,7 @@ public class PowAssimilator extends Assimilator {
 		expressionBuilder.append("return new java.math.BigDecimal(Math.pow( 1.0 * " + lSignature + ", 1.0 * " + rSignature + "));}");
 		maker.addMethod(expressionBuilder.toString());
 		// add a super so we have a base method to execute
-		maker.addSuper("prerna.reactor.AssimilatorEvaluator");
+		maker.addSuper(AssimilatorEvaluator.class.getName());
 		Class newClass = maker.toClass();
 
 		// noun object to return

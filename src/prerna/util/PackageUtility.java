@@ -12,6 +12,7 @@ import java.util.List;
 import prerna.reactor.IReactor;;
 
 public class PackageUtility {
+	
 	private final static char DOT = '.';
 	private final static char SLASH = '/';
 	private final static String CLASS_SUFFIX = ".class";
@@ -95,10 +96,6 @@ public class PackageUtility {
 			}
 		}
 		return classes;
-	}
-
-	public static void main(String[] args) throws NoSuchMethodException {
-		List<Class<?>> classes = PackageUtility.getReactors("prerna.reactor.frame.r");
 	}
 
 }
