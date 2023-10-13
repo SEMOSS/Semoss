@@ -1183,8 +1183,11 @@ public class UploadUtilities {
 	
 	/**
 	 * Create a temporary smss file for storage engine
+	 * 
 	 * @param storageId
 	 * @param storageName
+	 * @param storageClassName
+	 * @param properties
 	 * @return
 	 * @throws IOException
 	 */
@@ -1244,9 +1247,12 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Create a temporary smss file for storage engine
+	 * Create a temporary smss file for model engine
+	 * 
 	 * @param modelId
 	 * @param modelName
+	 * @param modelClassName
+	 * @param properties
 	 * @return
 	 * @throws IOException
 	 */
@@ -1306,7 +1312,7 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Create a temporary smss file for a rdbms engine
+	 * Create a temporary smss file for a vector engine
 	 * 
 	 * @param databaseId
 	 * @param databaseName
@@ -1373,6 +1379,73 @@ public class UploadUtilities {
 		}
 		return vectorDbTempSmss;
 	}
+	
+	
+	/**
+	 * Create a temporary smss file for function engine
+	 * 
+	 * @param functionId
+	 * @param functionName
+	 * @param functionClassName
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryFunctionSmss(String functionId, String functionName, String functionClassName, Map<String, String> properties) throws IOException {
+		String functionTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File functionTempSmss = new File(functionTempSmssLoc);
+		if (functionTempSmss.exists()) {
+			functionTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		FileReader fileRead = null;
+		BufferedReader bufferedReader = null;
+
+		try {
+			writer = new FileWriter(functionTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultEngineSettings(bufferedWriter, functionId, functionName, functionClassName, newLine, tab);
+			bufferedWriter.write(newLine);
+			
+			for(String key : properties.keySet()) {
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not generate temporary smss file for function");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileRead != null) {
+					fileRead.close();
+				}
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		return functionTempSmss;
+	}
+	
 	
 	/**
 	 * 
