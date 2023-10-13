@@ -18,7 +18,7 @@ public class GenericMapLambda extends AbstractMapLambda {
 	
 	public void init(String code, List<String> imports) throws InstantiationException, IllegalAccessException {
 		// class maker will help us compile our new lambda function 
-		ClassMaker myClass = new ClassMaker("prerna.sablecc2.reactor.task.lambda.map", "c" + Utility.getRandomString(12));
+		ClassMaker myClass = new ClassMaker("prerna.reactor.task.lambda.map", "c" + Utility.getRandomString(12));
 		// extends the map transformation interface
 		myClass.addSuper(CLASS_NAME);
 		// add all the imports

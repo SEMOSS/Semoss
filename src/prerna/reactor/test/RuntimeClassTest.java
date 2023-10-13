@@ -72,7 +72,7 @@ public class RuntimeClassTest extends AbstractReactor {
 		ClassMaker maker = new ClassMaker();
 
 		// add a super so we have a base method to execute
-		maker.addSuper("prerna.sablecc2.reactor.test.AbstractTestClass");
+		maker.addSuper("prerna.reactor.test.AbstractTestClass");
 		for(String stringMethod : stringMethods) {
 			maker.addMethod(stringMethod);
 		}

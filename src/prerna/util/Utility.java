@@ -4777,7 +4777,7 @@ public class Utility {
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
 						.whitelistPackages(packages).scan();
 				
-				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+				ClassInfoList classes = sr.getSubclasses("prerna.reactor.AbstractReactor");
 
 				Map<String, Class> reactors = new HashMap<>();
 				// add the path to the insight classes so only this guy can load it
@@ -4903,15 +4903,15 @@ public class Utility {
 	
 	public static boolean isValidReactor(ClassInfo classObject) {
 		String className = classObject.getName();
-		if(className.equals("prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor")
-				|| className.equals("prerna.sablecc2.reactor.frame.py.AbstractPyFrameReactor")
-				|| className.equals("prerna.sablecc2.reactor.frame.AbstractFrameReactor")
-				|| className.equals("prerna.sablecc2.reactor.AbstractReactor")
-				|| className.equals("prerna.sablecc2.reactor.IReactor")
+		if(className.equals("prerna.reactor.frame.r.AbstractRFrameReactor")
+				|| className.equals("prerna.reactor.frame.py.AbstractPyFrameReactor")
+				|| className.equals("prerna.reactor.frame.AbstractFrameReactor")
+				|| className.equals("prerna.reactor.AbstractReactor")
+				|| className.equals("prerna.reactor.IReactor")
 				) {
 			return true;
 		}
-		if(classObject.implementsInterface("prerna.sablecc2.reactor.IReactor")) {
+		if(classObject.implementsInterface("prerna.reactor.IReactor")) {
 			return true;
 		}
 		
@@ -4977,8 +4977,8 @@ public class Utility {
 				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
 
 				// ClassInfoList classes =
-				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
-				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+				// sr.getAllClasses();//sr.getClassesImplementing("prerna.reactor.IReactor");
+				ClassInfoList classes = sr.getSubclasses("prerna.reactor.AbstractReactor");
 
 				// add the path to the insight classes so only this guy can load it
 				pool.insertClassPath(classesFolder);
