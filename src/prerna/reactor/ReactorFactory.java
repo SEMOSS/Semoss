@@ -561,7 +561,7 @@ public class ReactorFactory {
 	private static void loadFromCP(String... packages) {
 		try {
 			ScanResult sr = new ClassGraph().whitelistPackages(packages).scan();
-			ClassInfoList classes = sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+			ClassInfoList classes = sr.getClassesImplementing("prerna.reactor.IReactor");
 			
 			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 				String name = classes.get(classIndex).getSimpleName();
@@ -619,7 +619,9 @@ public class ReactorFactory {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
+		
+		
+		System.out.println(reactors.keySet());
 	}
 	
 /*	public static void writeReacFile()
