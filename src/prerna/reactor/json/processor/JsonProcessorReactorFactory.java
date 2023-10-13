@@ -10,9 +10,9 @@ public class JsonProcessorReactorFactory extends JsonValidatorReactorFactory {
 		viewReactorHash.clear();
 
 		// actual classes
-		viewReactorHash.put("Provider", "prerna.reactor.json.processor.ProviderProcessor");
-		viewReactorHash.put("Profile", "prerna.reactor.json.processor.ProfileProcessor");
-		viewReactorHash.put("taxIds", "prerna.reactor.json.processor.TaxIdsProcessor");
+		viewReactorHash.put("Provider", ProviderProcessor.class.getName());
+		viewReactorHash.put("Profile", ProfileProcessor.class.getName());
+		viewReactorHash.put("taxIds", TaxIdsProcessor.class.getName());
 	}
 
 }
