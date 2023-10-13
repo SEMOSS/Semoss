@@ -80,7 +80,7 @@ public class RJavaTranslatorFactory {
 			useJri = Boolean.valueOf(useJriStr);
 		}
 
-		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
+		final String basePackage = "prerna.reactor.frame.r.util.";
 		String className = null;
 		// making netty take precedence so we dont need to set multiple variabled
 		if(useNetty) {
