@@ -433,7 +433,7 @@ import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReact
 
 public class ReactorFactory {
 
-	private static final Logger logger = LogManager.getLogger(ReactorFactory.class);
+	private static final Logger classLogger = LogManager.getLogger(ReactorFactory.class);
 	
 	// This holds the reactors that are frame agnostic and can be used by pixel
 	public static Map<String, Class> reactorHash;
@@ -480,7 +480,7 @@ public class ReactorFactory {
 		try {
 			additionalReactorsPath = DIHelper.getInstance().getProperty(Constants.ADDITIONAL_REACTORS);
 			if(additionalReactorsPath != null) {
-				logger.info("Loading additional reactors from file");
+				classLogger.info("Loading additional reactors from file");
 				File f = new File(additionalReactorsPath);
 				if(f.exists()) {
 					loadAdditionalReactor(f);
@@ -501,7 +501,7 @@ public class ReactorFactory {
 		try {
 			additionalPackages = DIHelper.getInstance().getProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
 			if(additionalPackages != null && !(additionalPackages=additionalPackages.trim()).isEmpty()) {
-				logger.info("Loading additional reactors from packages [" + additionalPackages + "]");
+				classLogger.info("Loading additional reactors from packages [" + additionalPackages + "]");
 				String[] packagesArr = additionalPackages.split(",");
 				for(String thisPackage : packagesArr) {
 					if(!(thisPackage=thisPackage.trim()).isEmpty()) {
@@ -561,7 +561,7 @@ public class ReactorFactory {
 	private static void loadFromCP(String... packages) {
 		try {
 			ScanResult sr = new ClassGraph().whitelistPackages(packages).scan();
-			ClassInfoList classes = sr.getClassesImplementing("prerna.reactor.IReactor");
+			ClassInfoList classes = sr.getClassesImplementing(IReactor.class.getName());
 			
 			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 				String name = classes.get(classIndex).getSimpleName();
@@ -617,11 +617,8 @@ public class ReactorFactory {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
-		
-		System.out.println(reactors.keySet());
 	}
 	
 /*	public static void writeReacFile()
@@ -1437,7 +1434,7 @@ public class ReactorFactory {
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		/*
@@ -1518,8 +1515,7 @@ public class ReactorFactory {
 				// put the operation and the class into the reactor hash
 				hash.put(operation.toString(), reactor);
 			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -1550,8 +1546,8 @@ public class ReactorFactory {
 							reactor = (Class.forName(classname));
 							hash.put(reactorName, reactor);
 						} catch (ClassNotFoundException e) {
-							System.out.println("COULDN'T FIND THE REACTOR!");
-							e.printStackTrace();
+							classLogger.warn("COULDN'T FIND THE REACTOR! " + classname);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
