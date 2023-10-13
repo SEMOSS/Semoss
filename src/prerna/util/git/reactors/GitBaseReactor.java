@@ -6,7 +6,7 @@ import java.util.Map;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 

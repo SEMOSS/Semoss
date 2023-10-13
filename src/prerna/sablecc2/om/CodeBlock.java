@@ -2,7 +2,7 @@ package prerna.sablecc2.om;
 
 import java.util.Hashtable;
 
-import prerna.sablecc2.reactor.IReactor;
+import prerna.reactor.IReactor;
 import prerna.util.Utility;
 
 public class CodeBlock {

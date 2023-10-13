@@ -169,9 +169,9 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.IReactor;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
-import prerna.sablecc2.reactor.IReactor;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
 import prerna.tcp.client.SocketClient;
@@ -4801,7 +4801,7 @@ public class Utility {
 							// we could do other instrumentation if we so chose to
 							// once I have created it is in the heap, I dont need to do much. One thing I
 							// could do is not load every class in the insight but give it out slowly
-							if (newInstance instanceof prerna.sablecc2.reactor.AbstractReactor)
+							if (newInstance instanceof prerna.reactor.AbstractReactor)
 								thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 
 						} catch (NotFoundException nfe) {

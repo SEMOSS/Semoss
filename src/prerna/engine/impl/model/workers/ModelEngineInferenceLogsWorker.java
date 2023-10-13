@@ -2,7 +2,7 @@ package prerna.engine.impl.model.workers;
 
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.reactor.job.JobReactor;
 import prerna.util.Utility;
 
 import java.time.Duration;

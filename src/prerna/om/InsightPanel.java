@@ -11,8 +11,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
+import prerna.reactor.export.IFormatter;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.util.gson.GsonUtility;
 
 public class InsightPanel {

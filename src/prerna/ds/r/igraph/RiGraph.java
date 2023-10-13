@@ -19,7 +19,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

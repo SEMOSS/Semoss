@@ -17,6 +17,36 @@ import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.AssignmentReactor;
+import prerna.reactor.Assimilator;
+import prerna.reactor.EmbeddedRoutineReactor;
+import prerna.reactor.EmbeddedScriptReactor;
+import prerna.reactor.GenericReactor;
+import prerna.reactor.IReactor;
+import prerna.reactor.IfReactor;
+import prerna.reactor.NegReactor;
+import prerna.reactor.PixelPlanner;
+import prerna.reactor.PowAssimilator;
+import prerna.reactor.ReactorFactory;
+import prerna.reactor.VectorReactor;
+import prerna.reactor.expression.filter.OpAnd;
+import prerna.reactor.expression.filter.OpFilter;
+import prerna.reactor.expression.filter.OpOr;
+import prerna.reactor.frame.filter.AbstractFilterReactor;
+import prerna.reactor.map.MapListReactor;
+import prerna.reactor.map.MapReactor;
+import prerna.reactor.qs.AbstractQueryStructReactor;
+import prerna.reactor.qs.GroupReactor;
+import prerna.reactor.qs.filter.FilterReactor;
+import prerna.reactor.qs.filter.IfQueryFilterComponentAnd;
+import prerna.reactor.qs.filter.IfQueryFilterComponentOr;
+import prerna.reactor.qs.filter.QueryFilterComponentAnd;
+import prerna.reactor.qs.filter.QueryFilterComponentOr;
+import prerna.reactor.qs.filter.QueryFilterComponentSimple;
+import prerna.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
+import prerna.reactor.qs.selectors.SelectReactor;
+import prerna.reactor.qs.source.FrameReactor;
+import prerna.reactor.runtime.JavaReactor;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
@@ -73,36 +103,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.sablecc2.reactor.AssignmentReactor;
-import prerna.sablecc2.reactor.Assimilator;
-import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
-import prerna.sablecc2.reactor.EmbeddedScriptReactor;
-import prerna.sablecc2.reactor.GenericReactor;
-import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.IfReactor;
-import prerna.sablecc2.reactor.NegReactor;
-import prerna.sablecc2.reactor.PixelPlanner;
-import prerna.sablecc2.reactor.PowAssimilator;
-import prerna.sablecc2.reactor.ReactorFactory;
-import prerna.sablecc2.reactor.VectorReactor;
-import prerna.sablecc2.reactor.expression.filter.OpAnd;
-import prerna.sablecc2.reactor.expression.filter.OpFilter;
-import prerna.sablecc2.reactor.expression.filter.OpOr;
-import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
-import prerna.sablecc2.reactor.map.MapListReactor;
-import prerna.sablecc2.reactor.map.MapReactor;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.sablecc2.reactor.qs.GroupReactor;
-import prerna.sablecc2.reactor.qs.filter.FilterReactor;
-import prerna.sablecc2.reactor.qs.filter.IfQueryFilterComponentAnd;
-import prerna.sablecc2.reactor.qs.filter.IfQueryFilterComponentOr;
-import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentAnd;
-import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentOr;
-import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentSimple;
-import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
-import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
-import prerna.sablecc2.reactor.qs.source.FrameReactor;
-import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
@@ -499,9 +499,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	IReactor opReactor;
     	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor) {
-    		opReactor = new prerna.sablecc2.reactor.qs.AsReactor();
+    		opReactor = new prerna.reactor.qs.AsReactor();
     	} else {
-    		opReactor = new prerna.sablecc2.reactor.AsReactor();
+    		opReactor = new prerna.reactor.AsReactor();
     	}
     	logger.debug("In the AS Component of frame op");
     	opReactor.setPixel("as", node.getAsOp() + "");
@@ -853,7 +853,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getOrComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor)
+    	if(this.curReactor instanceof prerna.reactor.qs.selectors.IfReactor)
       	{
       		newReactor = new IfQueryFilterComponentOr(); // this is primarily a marker class
       	}
@@ -872,7 +872,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getAndComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor)
+    	if(this.curReactor instanceof prerna.reactor.qs.selectors.IfReactor)
       	{
       		newReactor = new IfQueryFilterComponentAnd(); // this is primarily a marker class
       	}
@@ -942,7 +942,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	IReactor newReactor = null;
     	if(this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentSimple();
-    	} else if(this.curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor)
+    	} else if(this.curReactor instanceof prerna.reactor.qs.selectors.IfReactor)
     	{
     		newReactor = new QueryFilterComponentSimple();
     	}
@@ -1178,8 +1178,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     		initReactor(qAssm);	
         	return false;
         }
-      	else if(curReactor != null && ((curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor) 
-      			|| (curReactor.getParentReactor() instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor))) 
+      	else if(curReactor != null && ((curReactor instanceof prerna.reactor.qs.selectors.IfReactor) 
+      			|| (curReactor.getParentReactor() instanceof prerna.reactor.qs.selectors.IfReactor))) 
       			{
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
@@ -1187,7 +1187,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		initReactor(qAssm);	
         	return false;
         }
-      	else if(curReactor != null && ((curReactor instanceof prerna.sablecc2.reactor.qs.filter.BetweenReactor) || (curReactor.getParentReactor() instanceof prerna.sablecc2.reactor.qs.filter.BetweenReactor))) 
+      	else if(curReactor != null && ((curReactor instanceof prerna.reactor.qs.filter.BetweenReactor) || (curReactor.getParentReactor() instanceof prerna.reactor.qs.filter.BetweenReactor))) 
 		{
 			QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
 			qAssm.setMathExpr(math);

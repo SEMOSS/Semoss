@@ -4,8 +4,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class AdminDatabaseReactor extends AbstractQueryStructReactor {
 	

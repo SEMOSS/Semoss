@@ -16,10 +16,10 @@ import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.sablecc2.reactor.frame.gaas.processors.CSVWriter;
-import prerna.sablecc2.reactor.frame.gaas.processors.DocProcessor;
-import prerna.sablecc2.reactor.frame.gaas.processors.PDFProcessor;
-import prerna.sablecc2.reactor.frame.gaas.processors.PPTProcessor;
+import prerna.reactor.frame.gaas.processors.CSVWriter;
+import prerna.reactor.frame.gaas.processors.DocProcessor;
+import prerna.reactor.frame.gaas.processors.PDFProcessor;
+import prerna.reactor.frame.gaas.processors.PPTProcessor;
 
 public class FaissDatabaseUtils {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseUtils.class);

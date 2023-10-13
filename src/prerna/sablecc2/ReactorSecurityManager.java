@@ -7,10 +7,10 @@ import java.util.Vector;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.ds.py.PyExecutorThread;
 import prerna.engine.impl.r.RSingleton;
-import prerna.sablecc2.reactor.frame.py.PyReactor;
-import prerna.sablecc2.reactor.frame.r.RReactor;
-import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
-import prerna.sablecc2.reactor.runtime.JavaReactor;
+import prerna.reactor.frame.py.PyReactor;
+import prerna.reactor.frame.r.RReactor;
+import prerna.reactor.runtime.AbstractBaseRClass;
+import prerna.reactor.runtime.JavaReactor;
 
 public final class ReactorSecurityManager extends SecurityManager {
 
