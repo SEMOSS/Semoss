@@ -56,7 +56,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelUtility;
+import prerna.reactor.masterdatabase.util.GenerateMetamodelUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

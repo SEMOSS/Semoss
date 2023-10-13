@@ -9,8 +9,8 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.reactor.qs.SubQueryExpression;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.reactor.qs.SubQueryExpression;
 
 public class SubQueryExpressionAdapter extends AbstractSemossTypeAdapter<SubQueryExpression> {
 	

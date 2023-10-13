@@ -1,10 +1,10 @@
 package prerna.project.impl;
 
 import prerna.ds.py.PyTranslator;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.AssetUtility;
 
 public class AddRPYProjectPath extends AbstractReactor {

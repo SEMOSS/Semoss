@@ -40,7 +40,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.joins.BasicRelationship;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.RelationSet;
-import prerna.sablecc2.reactor.imports.RdbmsImporter;
+import prerna.reactor.imports.RdbmsImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;

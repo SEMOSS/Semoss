@@ -9,7 +9,7 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 
-import prerna.sablecc2.reactor.IReactor;;
+import prerna.reactor.IReactor;;
 
 public class PackageUtility {
 	private final static char DOT = '.';

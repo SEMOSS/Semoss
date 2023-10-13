@@ -8,11 +8,11 @@ import java.util.Vector;
 
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.reactor.IReactor;
+import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 
