@@ -12,10 +12,10 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.insight.InsightUtility;
 
 public class VarStoreAdapter extends TypeAdapter<VarStore> {

@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.IReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.IReactor;
 
 public class GenRowStruct implements Serializable{
 

@@ -51,7 +51,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.project.api.IProject;
-import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
+import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;

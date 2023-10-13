@@ -14,9 +14,9 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 
 public class ModifyParamQueryReactor extends AbstractQueryStructReactor {

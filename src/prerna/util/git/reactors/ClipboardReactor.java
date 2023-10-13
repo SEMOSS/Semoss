@@ -1,8 +1,8 @@
 package prerna.util.git.reactors;
 
 import prerna.auth.User;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ClipboardReactor extends AbstractReactor {
 

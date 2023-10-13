@@ -35,6 +35,8 @@ import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
+import prerna.reactor.IReactor;
+import prerna.reactor.qs.SubQueryExpression;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -42,8 +44,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
-import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.qs.SubQueryExpression;
 import prerna.util.Constants;
 import prerna.util.Utility;
 

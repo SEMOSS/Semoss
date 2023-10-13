@@ -10,8 +10,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.reactor.export.IFormatter;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.export.IFormatter;
 
 public interface ITask extends Iterator<IHeadersDataRow>, Closeable {
 

@@ -5,9 +5,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.reactor.ReactorFactory;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AOperation;
-import prerna.sablecc2.reactor.ReactorFactory;
 
 public class ValidatorTranslation extends DepthFirstAdapter {
 
