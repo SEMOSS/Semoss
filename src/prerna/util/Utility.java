@@ -169,7 +169,11 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
+import prerna.reactor.frame.AbstractFrameReactor;
+import prerna.reactor.frame.py.AbstractPyFrameReactor;
+import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
@@ -4777,7 +4781,7 @@ public class Utility {
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
 						.whitelistPackages(packages).scan();
 				
-				ClassInfoList classes = sr.getSubclasses("prerna.reactor.AbstractReactor");
+				ClassInfoList classes = sr.getSubclasses(AbstractReactor.class.getName());
 
 				Map<String, Class> reactors = new HashMap<>();
 				// add the path to the insight classes so only this guy can load it
@@ -4903,15 +4907,15 @@ public class Utility {
 	
 	public static boolean isValidReactor(ClassInfo classObject) {
 		String className = classObject.getName();
-		if(className.equals("prerna.reactor.frame.r.AbstractRFrameReactor")
-				|| className.equals("prerna.reactor.frame.py.AbstractPyFrameReactor")
-				|| className.equals("prerna.reactor.frame.AbstractFrameReactor")
-				|| className.equals("prerna.reactor.AbstractReactor")
-				|| className.equals("prerna.reactor.IReactor")
+		if(className.equals(AbstractRFrameReactor.class.getName())
+				|| className.equals(AbstractPyFrameReactor.class.getName())
+				|| className.equals(AbstractFrameReactor.class.getName())
+				|| className.equals(AbstractReactor.class.getName())
+				|| className.equals(IReactor.class.getName())
 				) {
 			return true;
 		}
-		if(classObject.implementsInterface("prerna.reactor.IReactor")) {
+		if(classObject.implementsInterface(IReactor.class.getName())) {
 			return true;
 		}
 		
@@ -4977,8 +4981,8 @@ public class Utility {
 				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
 
 				// ClassInfoList classes =
-				// sr.getAllClasses();//sr.getClassesImplementing("prerna.reactor.IReactor");
-				ClassInfoList classes = sr.getSubclasses("prerna.reactor.AbstractReactor");
+				// sr.getAllClasses();//sr.getClassesImplementing(AbstractReactor.class.getName());
+				ClassInfoList classes = sr.getSubclasses(AbstractReactor.class.getName());
 
 				// add the path to the insight classes so only this guy can load it
 				pool.insertClassPath(classesFolder);
