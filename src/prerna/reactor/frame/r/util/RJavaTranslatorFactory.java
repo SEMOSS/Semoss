@@ -80,19 +80,18 @@ public class RJavaTranslatorFactory {
 			useJri = Boolean.valueOf(useJriStr);
 		}
 
-		final String basePackage = "prerna.reactor.frame.r.util.";
 		String className = null;
 		// making netty take precedence so we dont need to set multiple variabled
 		if(useNetty) {
-			className = basePackage + "TCPRTranslator";
+			className = TCPRTranslator.class.getName();
 		} else if(useJri) {
-			className = basePackage + "RJavaJriTranslator";
+			className = RJavaJriTranslator.class.getName();
 		} else if (RserveUtil.IS_USER_RSERVE) {
-			className = basePackage + "RJavaUserRserveTranslator";
+			className = RJavaUserRserveTranslator.class.getName();
 		} else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
-			className = basePackage + "RJavaRemoteRserveTranslator";
+			className = RJavaRemoteRserveTranslator.class.getName();
 		} else{
-			className = basePackage + "RJavaRserveTranslator";
+			className = RJavaRserveTranslator.class.getName();
 		}
 
 		try {
