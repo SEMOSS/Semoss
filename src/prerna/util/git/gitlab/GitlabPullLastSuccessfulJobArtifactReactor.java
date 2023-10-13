@@ -4,10 +4,10 @@ import java.io.File;
 
 import org.apache.commons.io.FilenameUtils;
 
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GitlabPullLastSuccessfulJobArtifactReactor extends AbstractReactor {
 

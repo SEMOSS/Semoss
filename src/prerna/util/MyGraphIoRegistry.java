@@ -6,11 +6,11 @@ import org.apache.tinkerpop.gremlin.structure.io.AbstractIoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.reactor.AssignmentReactor;
+import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AssignmentReactor;
-import prerna.sablecc2.reactor.IReactor;
 
 public class MyGraphIoRegistry extends AbstractIoRegistry {
 	

@@ -18,11 +18,11 @@ import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
+import prerna.reactor.insights.copy.CopyInsightReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
-import prerna.sablecc2.reactor.insights.copy.CopyInsightReactor;
 import prerna.util.insight.InsightUtility;
 
 @Deprecated

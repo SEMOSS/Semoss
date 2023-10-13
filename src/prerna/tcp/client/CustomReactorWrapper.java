@@ -4,9 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.IReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.IReactor;
 import prerna.tcp.PayloadStruct;
 
 public class CustomReactorWrapper extends AbstractReactor {

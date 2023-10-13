@@ -3,7 +3,7 @@ package prerna.query.querystruct.evaluator;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.sablecc2.reactor.expression.OpMedian;
+import prerna.reactor.expression.OpMedian;
 
 public class QueryMedianExpression implements IQueryStructExpression {
 

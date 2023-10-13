@@ -8,11 +8,11 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
 public abstract class AbstractSetMetadataReactor extends AbstractReactor {
