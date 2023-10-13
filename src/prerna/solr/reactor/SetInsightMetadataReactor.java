@@ -9,11 +9,11 @@ import java.util.Map;
 import com.google.gson.Gson;
 
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.Utility;
 
 public class SetInsightMetadataReactor extends AbstractInsightReactor {

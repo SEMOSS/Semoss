@@ -1,7 +1,7 @@
 package prerna.sablecc2.pipeline;
 
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 
 public class UndeterminedPipelineReactor extends AbstractReactor {
 

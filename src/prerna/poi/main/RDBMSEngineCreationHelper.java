@@ -27,7 +27,7 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.reactor.database.upload.rdbms.external.CustomTableAndViewIterator;
+import prerna.reactor.database.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;

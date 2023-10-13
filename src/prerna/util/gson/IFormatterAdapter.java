@@ -9,8 +9,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.sablecc2.reactor.export.FormatFactory;
-import prerna.sablecc2.reactor.export.IFormatter;
+import prerna.reactor.export.FormatFactory;
+import prerna.reactor.export.IFormatter;
 
 public class IFormatterAdapter extends AbstractSemossTypeAdapter<IFormatter> {
 
