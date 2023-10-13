@@ -4777,53 +4777,63 @@ public class Utility {
 					packages[dirIndex] = dirList.get(dirIndex);
 				}
 
+				Map<String, Class> reactors = new HashMap<>();
+
 				ScanResult sr = new ClassGraph()
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
 						.whitelistPackages(packages).scan();
 				
-				ClassInfoList classes = sr.getSubclasses(AbstractReactor.class.getName());
+				String[] subclassSearch = new String[] {
+						AbstractReactor.class.getName(),
+						prerna.sablecc2.reactor.AbstractReactor.class.getName(),
+					};
+				
+				for(String subclass : subclassSearch) {
+					ClassInfoList classes = sr.getSubclasses(subclass);
 
-				Map<String, Class> reactors = new HashMap<>();
-				// add the path to the insight classes so only this guy can load it
-				pool.insertClassPath(classesFolder);
+					// add the path to the insight classes so only this guy can load it
+					pool.insertClassPath(classesFolder);
 
-				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-					String name = classes.get(classIndex).getSimpleName();
-					String packageName = classes.get(classIndex).getPackageName();
-					// Class actualClass = classes.get(classIndex).loadClass();
-					// if it is already there.. nothing we can do
-					if (!reactors.containsKey(name.toUpperCase().replaceAll("REACTOR", ""))) {
-						try {
-							// can I modify the class here
-							CtClass clazz = pool.get(packageName + "." + name);
-							clazz.defrost();
-							String qClassName = key + "." + packageName + "." + name;
-							// change the name of the classes
-							// ideally we would just have the pakcage name change to the insight
-							// this is to namespace it appropriately to have no issues
-							// if you want a namespace
-							clazz.setName(qClassName);
-							Class newClass = clazz.toClass();
+					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+						String name = classes.get(classIndex).getSimpleName();
+						String packageName = classes.get(classIndex).getPackageName();
+						// Class actualClass = classes.get(classIndex).loadClass();
+						// if it is already there.. nothing we can do
+						if (!reactors.containsKey(name.toUpperCase().replaceAll("REACTOR", ""))) {
+							try {
+								// can I modify the class here
+								CtClass clazz = pool.get(packageName + "." + name);
+								clazz.defrost();
+								String qClassName = key + "." + packageName + "." + name;
+								// change the name of the classes
+								// ideally we would just have the pakcage name change to the insight
+								// this is to namespace it appropriately to have no issues
+								// if you want a namespace
+								clazz.setName(qClassName);
+								Class newClass = clazz.toClass();
 
-							Object newInstance = newClass.newInstance();
+								Object newInstance = newClass.newInstance();
 
-							// add to the insight map
-							// we could do other instrumentation if we so chose to
-							// once I have created it is in the heap, I dont need to do much. One thing I
-							// could do is not load every class in the insight but give it out slowly
-							if (newInstance instanceof prerna.reactor.AbstractReactor)
-								thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+								// add to the insight map
+								// we could do other instrumentation if we so chose to
+								// once I have created it is in the heap, I dont need to do much. One thing I
+								// could do is not load every class in the insight but give it out slowly
+								if (newInstance instanceof AbstractReactor) {
+									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+								} else if(newInstance instanceof prerna.sablecc2.reactor.AbstractReactor) {
+									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+								}
+							} catch (NotFoundException nfe) {
+								logger.error(Constants.STACKTRACE, nfe);
+							} catch (CannotCompileException cce) {
+								logger.error(Constants.STACKTRACE, cce);
+							}
 
-						} catch (NotFoundException nfe) {
-							logger.error(Constants.STACKTRACE, nfe);
-						} catch (CannotCompileException cce) {
-							logger.error(Constants.STACKTRACE, cce);
+							// once the new instance has been done.. it has been injected into heap.. after
+							// this anyone can access it.
+							// no way to remove this class from heap
+							// has to be garbage collected as it moves
 						}
-
-						// once the new instance has been done.. it has been injected into heap.. after
-						// this anyone can access it.
-						// no way to remove this class from heap
-						// has to be garbage collected as it moves
 					}
 				}
 			}
@@ -4912,6 +4922,7 @@ public class Utility {
 				|| className.equals(AbstractFrameReactor.class.getName())
 				|| className.equals(AbstractReactor.class.getName())
 				|| className.equals(IReactor.class.getName())
+				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())
 				) {
 			return true;
 		}
@@ -4976,31 +4987,32 @@ public class Utility {
 						// .enableClassInfo()
 						.whitelistPackages(packages)
 						.scan();
-				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-				// ScanResult sr = new
-				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
-
-				// ClassInfoList classes =
-				// sr.getAllClasses();//sr.getClassesImplementing(AbstractReactor.class.getName());
-				ClassInfoList classes = sr.getSubclasses(AbstractReactor.class.getName());
-
-				// add the path to the insight classes so only this guy can load it
-				pool.insertClassPath(classesFolder);
-
-				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-					// this will load the reactor with everything
-					JclObjectFactory factory = JclObjectFactory.getInstance();
-
-					  //Create object of loaded class
-					Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
-
-					String reactorName = classes.get(classIndex).getSimpleName();
-					final String REACTOR_KEY = "REACTOR";
-					if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+				
+				String[] subclassSearch = new String[] {
+						AbstractReactor.class.getName(),
+						prerna.sablecc2.reactor.AbstractReactor.class.getName(),
+					};
+				
+				for(String sublcass : subclassSearch) {
+					ClassInfoList classes = sr.getSubclasses(sublcass);
+					// add the path to the insight classes so only this guy can load it
+					pool.insertClassPath(classesFolder);
+	
+					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+						// this will load the reactor with everything
+						JclObjectFactory factory = JclObjectFactory.getInstance();
+	
+						  //Create object of loaded class
+						Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
+	
+						String reactorName = classes.get(classIndex).getSimpleName();
+						final String REACTOR_KEY = "REACTOR";
+						if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+							reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+						}
+	
+						reactors.put(reactorName.toUpperCase(), (Class<IReactor>) loadedObject.getClass());
 					}
-
-					reactors.put(reactorName.toUpperCase(), (Class<IReactor>) loadedObject.getClass());
 				}
 			}
 		} catch (Exception ex) {
