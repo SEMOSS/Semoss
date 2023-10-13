@@ -7,6 +7,10 @@ import prerna.engine.impl.function.FunctionParameter;
 
 public interface IFunctionEngine extends IEngine {
 
+	// this is what the FE sends for the type of storage we are creating
+	// as a result, cannot be a key in the smss file
+	String FUNCTION_TYPE = "FUNCTION_TYPE";
+	
 	String NAME_KEY = "FUNCTION_NAME";
 	String DESCRIPTION_KEY = "FUNCTION_DESCRIPTION";
 	String PARAMETER_KEY = "FUNCTION_PARAMETERS";
