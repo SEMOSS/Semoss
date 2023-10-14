@@ -12,10 +12,10 @@ import prerna.util.Utility;
 
 public class ZKEngine implements IEngine {
 
-	private static final String ZOOKEEPER_ADDRESS_KEY = "ZOOKEEPER_ADDRESS";
-	private static final String SESSION_TIMEOUT_KEY = "SESSION_TIMEOUT";
-	private static final String CONNECTION_TIMEOUT_KEY = "SESSION_TIMEOUT";
-	private static final String NAMESPACE_KEY = "ELECTION_NAMESPACE";
+	public static final String ZOOKEEPER_ADDRESS_KEY = "ZOOKEEPER_ADDRESS";
+	public static final String SESSION_TIMEOUT_KEY = "SESSION_TIMEOUT";
+	public static final String CONNECTION_TIMEOUT_KEY = "SESSION_TIMEOUT";
+	public static final String NAMESPACE_KEY = "ELECTION_NAMESPACE";
 
 	protected String engineId = null;
 	protected String engineName = null;
@@ -30,7 +30,6 @@ public class ZKEngine implements IEngine {
 	private int sessionTimeout = -1;
 	private int connectionTimeout = -1;
 	private String namespace = "";
-
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -165,7 +164,7 @@ public class ZKEngine implements IEngine {
 			
 			ZKCuratorUtility utility = engine.getCuratorUtility();
 			//utility.createPathIfNotExists("/VISN01/STATIONABC/2023-10-14");
-			String newNode = utility.createSequentialNode("/VISN01/STATIONABC/2023-10-14/");
+			String newNode = utility.createSequentialNode("/VISN01/STATIONABC/2023-10-14/___");
 			System.out.println(newNode);
 			
 		} finally {
