@@ -1,5 +1,7 @@
 package prerna.zookeeper;
 
+import java.util.List;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.zookeeper.CreateMode;
@@ -62,7 +64,6 @@ public final class ZKCuratorUtility {
         if(this.curator.checkExists().forPath(parentZNode) == null) {
         	return null;
         }
-
         
         // Get the list of znodes under the parent path
         Stat latestStat = null;
@@ -71,7 +72,7 @@ public final class ZKCuratorUtility {
         for (String child : this.curator.getChildren().forPath(parentZNode)) {
             String childPath = parentZNode + "/" + child;
             Stat childStat = new Stat();
-            curator.getData().storingStatIn(childStat).forPath(childPath);
+            this.curator.getData().storingStatIn(childStat).forPath(childPath);
 
             if (latestStat == null || childStat.getCtime() > latestStat.getCtime()) {
                 latestStat = childStat;
@@ -80,6 +81,30 @@ public final class ZKCuratorUtility {
         }
         
         return latestZNode;
+	}
+	
+	/**
+	 * 
+	 * @param parentZNode
+	 * @throws Exception
+	 */
+	public void deleteAllZNodeChildren(String parentZNode) throws Exception {
+        List<String> children = this.curator.getChildren().forPath(parentZNode);
+        
+        // Delete all children
+        for (String child : children) {
+            String childPath = parentZNode + "/" + child;
+            this.curator.delete().forPath(childPath);
+        }
+	}
+	
+	/**
+	 * 
+	 * @param path
+	 * @throws Exception 
+	 */
+	public void deletePath(String path) throws Exception {
+		this.curator.delete().forPath(path);
 	}
 	
 }
