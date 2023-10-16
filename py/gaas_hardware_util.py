@@ -86,6 +86,9 @@ class HardwareUtil():
       gpu_details = {"name":gpu_name,  "total": gpu_total_memory, "available":gpu_free_memory, "used":gpu_used_memory, "temperature":gpu_temperature}
       gpu_data.update({gpu_id:gpu_details})
     
+    # sort the info (highest to lowest)
+    gpu_data = {'gpus': {k: v for k, v in sorted(gpu_data.items(), key = lambda item: item[1]['available'], reverse= True)}}
+
     gpu_data.update({"total":all_total})
     gpu_data.update({"available":all_available})
     gpu_data.update({"used":all_used})
@@ -147,3 +150,18 @@ class HardwareUtil():
         if val < factor:
             return f"{val:.2f}{unit}{suffix}"
         val /= factor
+
+  def find_available_gpus(self, memory_needed):
+    self.get_gpu()
+    
+    gpu_to_allocate = []
+    if (memory_needed >= self.stats['gpu']['available']):
+        return gpu_to_allocate
+    
+    for k,v in self.stats['gpu']['gpus'].items():
+        memory_needed -= v['available']
+        gpu_to_allocate.append(k)
+        if (memory_needed < 0):
+            break
+
+    return gpu_to_allocate
