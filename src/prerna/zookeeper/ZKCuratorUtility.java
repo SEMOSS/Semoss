@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
 public final class ZKCuratorUtility {
@@ -107,4 +108,16 @@ public final class ZKCuratorUtility {
 		this.curator.delete().forPath(path);
 	}
 	
+	/**
+	 * 
+	 * @param path
+	 * @param watcher
+	 * @throws Exception
+	 */
+	public void setWatcherForPath(String path, Watcher watcher) throws Exception {
+		Stat stat = curator.checkExists().usingWatcher(watcher).forPath(path);
+		if(stat == null) {
+			throw new IllegalArgumentException("ZNode path " + path + " does not exist");
+		}
+	}
 }
