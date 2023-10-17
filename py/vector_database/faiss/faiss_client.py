@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Dict, Union, Optional
 import transformers
-from datasets import Dataset, concatenate_datasets, load_dataset
+from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching
 import pandas as pd
 import faiss
 import numpy as np
@@ -44,14 +44,17 @@ class FAISSSearcher():
     self.encoder_name = None
     self.encoder_class = encoder_class
     self.base_path = base_path
+    disable_caching()
    
   
-  def concatenate_columns(self, row, columns_to_index=None, target_column=None, separator="\n"):
+  def _concatenate_columns(self, 
+                           row, 
+                           columns_to_index=None, 
+                           target_column=None, 
+                           separator="\n"
+                          ) -> Dict:
     text = ""
-    #print(row)
-    #print(columns_to_index)
     for col in columns_to_index:
-      #print(row)
       text += str(row[col])
       text += separator
     return {target_column : text}
@@ -87,7 +90,7 @@ class FAISSSearcher():
     else:
       raise ValueError("Undefined class check: dataObj is of an unrecognized type")
     
-    appendDs = appendDs.map(self.concatenate_columns, fn_kwargs={"columns_to_index": columns_to_index, "target_column": target_column, "separator":separator})
+    appendDs = appendDs.map(self._concatenate_columns, fn_kwargs={"columns_to_index": columns_to_index, "target_column": target_column, "separator":separator})
 
     self.load_faiss_encoder()
     new_vector = self.faiss_encoder.get_embeddings(appendDs[target_column])
@@ -113,41 +116,39 @@ class FAISSSearcher():
       self.encoder_name = encoder_name
     
   def nearestNeighbor(self, 
-                       question, 
-                       results=5, 
-                       columns_to_return: List[str] = None, 
-                       json=True, 
-                       print_result=False,
-                       return_threshold = 1000, 
-                       ascending = False
-                       ):
+                      question, 
+                      results=5, 
+                      columns_to_return: List[str] = None, 
+                      json=True, 
+                      return_threshold = 1000, 
+                      ascending = True
+                      ):
+    '''
+
+    '''
     if(columns_to_return is None):
       columns_to_return = list(self.ds.features)
+
+    # make sure the encoder class is loaded and get the embeddings (vector) for the tokens
     self.load_faiss_encoder()
     search_vector = self.faiss_encoder.get_embeddings(question)
     _vector = np.array([search_vector])
 
     if isinstance(self.encoder_class, HuggingFaceEncoder):
-      faiss.normalize_L2(_vector)  
+      faiss.normalize_L2(_vector)
+
     distances, ann = self.index.search(_vector, k=results)
-    #print("results.. ")
     samples_df = pd.DataFrame({'distances': distances[0], 'ann': ann[0]})
     samples_df.sort_values("distances", ascending=ascending, inplace=True)
     samples_df = samples_df[samples_df['distances'] <= return_threshold]
-    #print(samples_df)
     
     final_output = []
     docs = []
     for _, row in samples_df.iterrows():
       output = {}
       output.update({'Score' : row['distances']})
-      #print("-"*30)
-      #print(row['ann'])
       data_row = self.ds[int(row['ann'])]
-      #print(f"Score : {row['distances']}")
       for col in columns_to_return:
-        if(print_result):
-          print(f"{col} : {data_row[col]}")
         output.update({col:data_row[col]})
         docs.append(f"{col}:{data_row[col]}")
       final_output.append(output)
@@ -170,9 +171,17 @@ class FAISSSearcher():
   def _load_dataset(self, dataset_location:str):
     if (dataset_location.endswith('.csv')):
       try:
-        loaded_dataset = load_dataset('csv', data_files= dataset_location)
+        loaded_dataset = Dataset.from_csv(
+          dataset_location, 
+          encoding='iso-8859-1',
+          keep_in_memory=True
+        )
       except:
-        loaded_dataset = Dataset.from_csv(dataset_location, encoding='iso-8859-1')
+        loaded_dataset = load_dataset(
+          'csv', 
+          data_files = dataset_location,
+          keep_in_memory=True
+        )
     elif (dataset_location.endswith('.pkl')):
       with open(dataset_location, "rb") as file:
         loaded_dataset = pickle.load(file)
@@ -207,7 +216,6 @@ class FAISSSearcher():
   def save_encoded_vectors(self, encoded_vectors_location):
     with open(encoded_vectors_location, "wb") as file:
       pickle.dump(self.encoded_vectors, file)
-    #np.save(encoded_vectors_location, self.encoded_vectors)
 
   # TODO need to create a util function that writes out all the files (index, Dataset and vectors) based on a csv
   # it should also register it within the obj at the same time
@@ -230,12 +238,11 @@ class FAISSSearcher():
 
       # Create the Dataset for every file
       # TODO change this to json so we dont have encoding issue
-      dataset = Dataset.from_csv(document, encoding='iso-8859-1')
-      # if file_extension == '.csv':
-      #   try:
-      #     dataset = load_dataset('csv', data_files= document)
-      #   except:
-      #     dataset = Dataset.from_csv(document, encoding='iso-8859-1')
+      dataset = Dataset.from_csv(
+        path_or_paths = document, 
+        encoding ='iso-8859-1',
+        keep_in_memory = True
+      )
 
       if (columns_to_index == None or len(columns_to_index) == 0):
         columns_to_index = list(dataset.features)
@@ -248,7 +255,7 @@ class FAISSSearcher():
 
       # if applicable, create the concatenated columns
       dataset = dataset.map(
-        self.concatenate_columns,           
+        self._concatenate_columns,           
         fn_kwargs = {
           "columns_to_index": columns_to_index, 
           "target_column": target_column, 
