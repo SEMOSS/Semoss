@@ -7,9 +7,9 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -55,7 +55,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 				}
 				else
 				{
-					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
+					callMaker.append(PyUtils.determineStringType(value));
 				}
 			}
 		}
