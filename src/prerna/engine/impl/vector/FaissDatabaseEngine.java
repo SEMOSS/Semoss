@@ -255,7 +255,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				extractedFiled.add(extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR));
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to remove olf or create new text extraction file for " + documentName);
+				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
 			}
 		}
 		
