@@ -10,7 +10,9 @@ import os
 import glob
 
 class FAISSSearcher():
-  '''this the primary class for a faiss database table (if that notion makes sense)'''
+  '''
+  The primary class for a faiss database classes and searching document embeddings
+  '''
 
   def __init__(self, df=None, 
                ds=None, 
@@ -38,21 +40,24 @@ class FAISSSearcher():
     if ds is not None:
       self.ds = ds
     self.dpr = dpr
-    self.faiss_encoder_loaded = False
     self.encoded_vectors = None
     self.vector_dimensions = None
     self.encoder_name = None
+
+    assert encoder_class is not None
     self.encoder_class = encoder_class
     self.base_path = base_path
+
+    # disable caching within the shell so that engines can be exported
     disable_caching()
    
-  
-  def _concatenate_columns(self, 
-                           row, 
-                           columns_to_index=None, 
-                           target_column=None, 
-                           separator="\n"
-                          ) -> Dict:
+  def _concatenate_columns(
+      self, 
+      row, 
+      columns_to_index=None, 
+      target_column=None, 
+      separator="\n"
+    ) -> Dict:
     text = ""
     for col in columns_to_index:
       text += str(row[col])
@@ -60,6 +65,9 @@ class FAISSSearcher():
     return {target_column : text}
     
   def init_device(self):
+    '''
+    Utility method to determine whether or not the devie running the interpreter has a gpu
+    '''
     import torch
     if torch.cuda.is_available():       
       self.device = torch.device("cuda")
@@ -67,11 +75,6 @@ class FAISSSearcher():
     else:
       #print("No GPU available, using the CPU instead.")
       self.device = torch.device("cpu")
-      
-  
-  ###############################################################################
-  # FAISS
-  ###############################################################################
   
   def appendToIndex(self, dataObj= None, target_column="text",columns_to_index=None , separator="\n"):
     if(columns_to_index is None):
@@ -92,8 +95,7 @@ class FAISSSearcher():
     
     appendDs = appendDs.map(self._concatenate_columns, fn_kwargs={"columns_to_index": columns_to_index, "target_column": target_column, "separator":separator})
 
-    self.load_faiss_encoder()
-    new_vector = self.faiss_encoder.get_embeddings(appendDs[target_column])
+    new_vector = self.encoder_class.get_embeddings(appendDs[target_column])
 
     assert self.encoded_vectors.shape[1] == new_vector.shape[1]
 
@@ -104,71 +106,126 @@ class FAISSSearcher():
     self.encoded_vectors = np.copy(conc_vector)
     faiss.normalize_L2(conc_vector)
     self.index.add(conc_vector)
-  
-  def load_faiss_encoder(self, encoder_name="paraphrase-mpnet-base-v2"):
-    if not self.faiss_encoder_loaded:
-      if self.encoder_class != None:
-        self.faiss_encoder = self.encoder_class 
-      else:
-        self.faiss_encoder = HuggingFaceEncoder(embedding_model = encoder_name, api_key = "EMPTY")
-
-      self.faiss_encoder_loaded = True
-      self.encoder_name = encoder_name
     
-  def nearestNeighbor(self, 
-                      question, 
-                      results=5, 
-                      columns_to_return: List[str] = None, 
-                      json=True, 
-                      return_threshold = 1000, 
-                      ascending = True
-                      ):
+  def nearestNeighbor(
+      self, 
+      question: str, 
+      results: Optional[int] = 5, 
+      columns_to_return: Optional[List[str]] = None, 
+      return_threshold: Optional[Union[int,float]] = 1000, 
+      ascending : Optional[bool] = True
+    ) -> List[Dict]:
     '''
+    Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
 
+    Args:
+      question(`str`):
+        The string you are trying to match against the embedded documents
+      results(`Optional[int]`, *optional*):
+        The number of matches under the threshold that will be returned
+      columns_to_return(`List[str]`):
+        A list of column names that will be sent back in the return payload.
+        Example:
+          # Given the following dataset
+          >>> dataset
+          Dataset({
+              features: ['doc_index', 'content', 'tokens', 'url'],
+              num_rows: 902
+          })
+
+          # if columns_to_return = None, then all four columns will be returned
+
+          # if columns_to_return = ['doc_index']
+
+          >>> FAISSearcher.nearestNeighbor(
+          ...     question = 'Sample',
+          ...     columns_to_return = ['doc_index'],
+          ...     results = 1
+          ... )
+          [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
+      return_threshold(`Optional[Union[int,float]]`):
+        A numerical value that specifies what Score should be less than.
+      ascending(`Optional[bool]`):
+        A boolean flag to return results in ascending order or not. Default is True
+
+      Return:
+        `List[Dict]` consisting of Score and columns
+
+      Example:
+        >>> faissSearcherObj.nearestNeighbor(
+        ...     question="""How is the president chosen""",
+        ...     results = 3,
+        ...     columns_to_return = ['doc_index'],
+        ...     return_threshold = 1.0,
+        ...     ascending = False
+        ... )
+        [{Score=0.9867115616798401, doc_index=1420-deloitte-independence_11_text}, 
+        {Score=0.9855965375900269, doc_index=1420-deloitte-independence_10_text}]
     '''
+    # if columns_to_return is None, then by default we return all columns
     if(columns_to_return is None):
       columns_to_return = list(self.ds.features)
 
     # make sure the encoder class is loaded and get the embeddings (vector) for the tokens
-    self.load_faiss_encoder()
-    search_vector = self.faiss_encoder.get_embeddings(question)
+    search_vector = self.encoder_class.get_embeddings(question)
     _vector = np.array([search_vector])
 
+    # check to see if need to normalize the vector
     if isinstance(self.encoder_class, HuggingFaceEncoder):
       faiss.normalize_L2(_vector)
 
-    distances, ann = self.index.search(_vector, k=results)
-    samples_df = pd.DataFrame({'distances': distances[0], 'ann': ann[0]})
+    # perform the faiss search. Scores returned are Euclidean distances
+    # euclidean_distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
+    # ann_index - the index location of the Approximate Nearest Neighbor (ANN)
+    euclidean_distances, ann_index = self.index.search(_vector, k = results)
+
+    # create a data
+    samples_df = pd.DataFrame({'distances': euclidean_distances[0], 'ann': ann_index[0]})
     samples_df.sort_values("distances", ascending=ascending, inplace=True)
     samples_df = samples_df[samples_df['distances'] <= return_threshold]
     
+    # create the response payload by adding the relevant columns from the dataset
     final_output = []
-    docs = []
     for _, row in samples_df.iterrows():
       output = {}
       output.update({'Score' : row['distances']})
       data_row = self.ds[int(row['ann'])]
       for col in columns_to_return:
         output.update({col:data_row[col]})
-        docs.append(f"{col}:{data_row[col]}")
       final_output.append(output)
       
-    if json:
-      return final_output
-    else:
-      return docs
-  
-  def load_index(self, index_location):
-    self.load_faiss_encoder()
-    self.index = faiss.read_index(index_location)
+    return final_output
 
-  def save_index(self, index_location):
-    faiss.write_index(self.index, index_location)
+  def load_dataset(
+      self, 
+      dataset_location:str
+    ) -> None:
+    '''
+    Utility method to load stored datasets into the object. 
 
-  def load_dataset(self, dataset_location:str):
+    Args:
+      dataset_location(`str`):
+        The file path to the stored dataset. Currently only csv and pkl file types are supported
+
+    Returns:
+      `None`
+    '''
     self.ds = self._load_dataset(dataset_location = dataset_location)
 
-  def _load_dataset(self, dataset_location:str):
+  def _load_dataset(
+      self, 
+      dataset_location:str
+    ) -> None:
+    '''
+    Internal method to load the dataset based on its file type
+
+    Args:
+      dataset_location(`str`):
+        The file path to the stored dataset. Currently only csv and pkl file types are supported
+
+    Returns:
+     `None`
+    '''
     if (dataset_location.endswith('.csv')):
       try:
         loaded_dataset = Dataset.from_csv(
@@ -191,11 +248,37 @@ class FAISSSearcher():
     assert isinstance(loaded_dataset, Dataset)
     return loaded_dataset
 
-  def save_dataset(self, dataset_location):
+  def save_dataset(
+      self, 
+      dataset_location: str
+    ) -> None:
+    '''
+    Utility method to save datasets from object onto the disk. 
+
+    Args:
+      dataset_location(`str`):
+        The file path to the write the dataset.
+
+    Returns:
+      `None`
+    '''
     with open(dataset_location, "wb") as file:
       pickle.dump(self.ds, file)
 
-  def load_encoded_vectors(self, encoded_vectors_location:str):
+  def load_encoded_vectors(
+      self, 
+      encoded_vectors_location: str
+    ) -> None:
+    '''
+    Utility method to load stored embeddings from the disk.
+
+    Args:
+      encoded_vectors_location(`str`):
+        The file path to the stored embeddings file. Currently only npy and pkl file types are supported
+
+    Returns:
+      `None`
+    '''
     self.encoded_vectors = self._load_encoded_vectors(encoded_vectors_location = encoded_vectors_location)
     self.vector_dimensions = self.encoded_vectors.shape
     self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
@@ -203,7 +286,20 @@ class FAISSSearcher():
       faiss.normalize_L2(self.encoded_vectors)   
     self.index.add(self.encoded_vectors)
 
-  def _load_encoded_vectors(self, encoded_vectors_location:str):
+  def _load_encoded_vectors(
+      self, 
+      encoded_vectors_location: str
+    ) -> None:
+    '''
+    Internal method to load stored embeddings from the disk
+
+    Args:
+      encoded_vectors_location(`str`):
+        The file path to the stored embeddings file. Currently only npy and pkl file types are supported
+
+    Returns:
+     `None`
+    '''
     if (encoded_vectors_location.endswith('.npy')):
       encoded_vectors = np.load(encoded_vectors_location)
     else:
@@ -213,19 +309,53 @@ class FAISSSearcher():
     assert isinstance(encoded_vectors, np.ndarray)
     return encoded_vectors
 
-  def save_encoded_vectors(self, encoded_vectors_location):
+  def save_encoded_vectors(
+      self, 
+      encoded_vectors_location: str
+    ) -> None :
+    '''
+    Utility method to save embeddings from object onto the disk. 
+
+    Args:
+      encoded_vectors_location(`str`):
+        The file path to the write the dataset.
+
+    Returns:
+      `None`
+    '''
     with open(encoded_vectors_location, "wb") as file:
       pickle.dump(self.encoded_vectors, file)
 
-  # TODO need to create a util function that writes out all the files (index, Dataset and vectors) based on a csv
-  # it should also register it within the obj at the same time
-  def addDocumet(self, 
-                 documentFileLocation: List[str], 
-                 columns_to_index: List[str], 
-                 columns_to_remove: List[str] = [],
-                 target_column: str = "text", 
-                 separator: str = ','
-                 ) -> None:
+  def addDocumet(
+      self, 
+      documentFileLocation: List[str], 
+      columns_to_index: List[str], 
+      columns_to_remove: List[str] = [],
+      target_column: str = "text", 
+      separator: str = ','
+    ) -> None:
+    '''
+    Given a path to a CSV document, perform the following tasks:
+      - concatenate the columns the embeddings should be created from
+      - get the embeddings for all the extracted chunks in the document
+      - `Optional` - remove the columns that are not supposed to be stored based on columns_to_remove param
+      - write out both the dataset and embeddings objects onto the disk so they can be reloaded or removed
+
+    Args:
+      documentFileLocation(`List[str]`):
+        A list of document file location to create embeddings from
+      columns_to_index(`List[str]`):
+        A list of column names to create the index from. These columns will be concatenated.
+      columns_to_remove(`List[str]`):
+        A list of column names that should not be stored in the dataset. This will never be returned in nearestNeighbor search because they will no longer exist.
+      target_column(`str`):
+        The column name for the concatenated columns from which the embeddings will be created
+      separator(`str`):
+        The character to use as a delimeter between columns for the concatenated column that the embeddings will be created from
+
+    Returns:
+      `None`
+    '''
     # make sure they are all in indexed_files dir
     assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
 
@@ -263,11 +393,8 @@ class FAISSSearcher():
         }
       )
 
-      # TODO need to change how this works
-      self.load_faiss_encoder()
-
       # get the embeddings for the document
-      vectors = self.faiss_encoder.get_embeddings(dataset[target_column])
+      vectors = self.encoder_class.get_embeddings(dataset[target_column])
       assert vectors.ndim == 2
 
       columns_to_remove.append(target_column)
@@ -294,7 +421,20 @@ class FAISSSearcher():
 
     self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
 
-  def createMasterFiles(self, path_to_files:str):
+  def createMasterFiles(
+      self, 
+      path_to_files:str
+    ) -> None :
+    '''
+    Create a master dataset and embeddings file based on the current documents. The main purpose of this is to improve startup runtime. 
+
+    Args:
+      path_to_files(`str`):
+        The folder location of the indexed documents/datasets/embeddings
+
+    Returns:
+      `None`
+    '''
     # Define the pattern for the files you want to find
     file_pattern = '*_dataset.pkl'
 
