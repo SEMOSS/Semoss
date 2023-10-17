@@ -145,30 +145,4 @@ public class ZKEngine implements IEngine {
 		return new ZKCuratorUtility(this.curator);
 	}
 
-	//////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-
-
-	public static void main(String[] args) throws Exception {
-		ZKEngine engine = new ZKEngine();
-		try {
-			Properties prop = new Properties();
-			prop.put(ZOOKEEPER_ADDRESS_KEY, "localhost:2181");
-	
-			engine.open(prop);
-			
-			ZKCuratorUtility utility = engine.getCuratorUtility();
-			//utility.createPathIfNotExists("/VISN01/STATIONABC/2023-10-14");
-			String newNode = utility.createSequentialNode("/VISN01/STATIONABC/2023-10-14/___");
-			System.out.println(newNode);
-			
-		} finally {
-			engine.close();
-		}
-	}
 }
