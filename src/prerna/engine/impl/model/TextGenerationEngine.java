@@ -6,8 +6,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
@@ -39,14 +39,14 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 				Object value = parameters.get(key);
 				if (key.equals("full_prompt"))
 				{
-					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
+					callMaker.append(PyUtils.determineStringType(value));
 				}
 				else if(value instanceof String){
 					callMaker.append("'").append(value+"").append("'");
 				}
 				else
 				{
-					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
+					callMaker.append(PyUtils.determineStringType(value));
 				}
 			}
 		}
