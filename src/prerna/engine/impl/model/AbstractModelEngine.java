@@ -16,6 +16,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -228,7 +229,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			LocalDateTime inputTime = LocalDateTime.now();
 			output = pyt.runScript(callMaker.toString());
 			LocalDateTime outputTime = LocalDateTime.now();
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "embeddings", this, insight, null, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "embeddings", this, insight, null, question, inputTime, PyUtils.determineStringType(output), outputTime);
 			inferenceRecorder.run();
 		} else {
 			output = pyt.runScript(callMaker.toString());
@@ -315,7 +316,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				} else {
 					isFirstElement = false;
 				}
-				Object priorContent = ModelInferenceLogsUtils.determineStringType(record);
+				Object priorContent = PyUtils.determineStringType(record);
 		        convoList.append(priorContent);
 			}
 			convoList.append("]");
@@ -336,7 +337,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					} else {
 						isFirstElement = false;
 					}
-					Object priorContent = ModelInferenceLogsUtils.determineStringType(record);
+					Object priorContent = PyUtils.determineStringType(record);
 			        convoList.append(priorContent);
 				}
 				convoList.append("]");
