@@ -7,7 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
@@ -44,7 +44,7 @@ public class OpenAiEngine extends AbstractModelEngine {
 				}
 				else
 				{
-					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
+					callMaker.append(PyUtils.determineStringType(value));
 				}
 			}
 		}
