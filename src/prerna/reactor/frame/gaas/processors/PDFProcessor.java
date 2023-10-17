@@ -36,7 +36,7 @@ public class PDFProcessor {
 				for(int pageIndex = 0;pageIndex < totalPages;pageIndex++)
 				{
 					pdfStripper.setStartPage(pageIndex);
-					pdfStripper.setEndPage(pageIndex);
+					pdfStripper.setEndPage(pageIndex + 1);
 					String parsedText = pdfStripper.getText(pdDoc);
 					writer.writeRow(source, pageIndex+"", parsedText, "");
 				}
