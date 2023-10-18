@@ -1,5 +1,6 @@
 package prerna.zookeeper;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -9,8 +10,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreV2;
 import org.apache.curator.framework.recipes.locks.Lease;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.google.gson.Gson;
+
+import prerna.engine.impl.storage.S3StorageEngine;
 
 public class ZKTesting {
 
@@ -82,5 +88,25 @@ public class ZKTesting {
 		System.out.println("Time left for lock = " + currentTime.until(endTime, ChronoUnit.MINUTES));
 		System.out.println("Time left for lock = " + currentTime.until(endTime, ChronoUnit.MINUTES));
 	}
-
+	
+	public static void testWatcher(ZKCuratorUtility utility) throws Exception {
+		utility.setWatcherForPath("/catalogPictures", new Watcher() {
+			
+			@Override
+			public void process(WatchedEvent event) {
+				if(event.getType() == EventType.NodeChildrenChanged) {
+					String path = event.getPath();
+					String itemName = path.substring(path.lastIndexOf("/"));
+					
+					S3StorageEngine engine = new S3StorageEngine();
+					try {
+						engine.copyToLocal("/ncrt/catalogPictures/" + itemName, "/opt/semosshome/catalogAttachments" + itemName);
+					} catch (IOException | InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				
+			}
+		});
+	}
 }
