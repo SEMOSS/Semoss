@@ -33,10 +33,10 @@ public class PDFProcessor {
 				PDFTextStripper pdfStripper = new PDFTextStripper();
 				pdDoc = PDDocument.load(f);
 				int totalPages = pdDoc.getNumberOfPages();
-				for(int pageIndex = 0;pageIndex < totalPages;pageIndex++)
+				for(int pageIndex = 1;pageIndex <= totalPages;pageIndex++)
 				{
 					pdfStripper.setStartPage(pageIndex);
-					pdfStripper.setEndPage(pageIndex + 1);
+					pdfStripper.setEndPage(pageIndex);
 					String parsedText = pdfStripper.getText(pdDoc);
 					writer.writeRow(source, pageIndex+"", parsedText, "");
 				}
