@@ -1,13 +1,21 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.storage.AzureBlobStorageEngine;
+import prerna.engine.impl.storage.CephStorageEngine;
+import prerna.engine.impl.storage.GoogleCloudStorageEngine;
+import prerna.engine.impl.storage.MinioStorageEngine;
+import prerna.engine.impl.storage.S3StorageEngine;
+import prerna.engine.impl.storage.SFTPStorageEngine;
+
 public enum StorageTypeEnum {
 
-	AMAZON_S3("AMAZON_S3","prerna.engine.impl.storage.S3StorageEngine"),
-	GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE","prerna.engine.impl.storage.GoogleCloudStorageEngine"),
+	AMAZON_S3("AMAZON_S3", S3StorageEngine.class.getName()),
+	CEPH("CEPH", CephStorageEngine.class.getName()),
+	GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE", GoogleCloudStorageEngine.class.getName()),
 //	GOOGLE_DRIVE("GOOGLE_DRIVE",""),
-	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE","prerna.engine.impl.storage.AzureBlobStorageEngine"),
-	MINIO("MINIO","prerna.engine.impl.storage.MinioStorageEngine"),
-	SFTP("SFTP","prerna.engine.impl.storage.SFTPStorageEngine");
+	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
+	MINIO("MINIO", MinioStorageEngine.class.getName()),
+	SFTP("SFTP", SFTPStorageEngine.class.getName());
 	
 	private String storageName;
 	private String storageClass;
