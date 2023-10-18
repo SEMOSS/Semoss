@@ -1,8 +1,10 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.function.RESTFunctionEngine;
+
 public enum FunctionTypeEnum {
 
-	REST("REST","prerna.engine.impl.function.RESTFunctionEngine");
+	REST("REST", RESTFunctionEngine.class.getName());
 	
 	private String functionName;
 	private String functionClass;
