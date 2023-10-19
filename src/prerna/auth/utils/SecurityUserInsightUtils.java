@@ -3,6 +3,7 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -95,6 +97,17 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+				
 		Collection<String> userIds = getUserFiltersQs(user);
 		// else query the database
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
@@ -139,6 +152,17 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
 		Collection<String> userIds = getUserFiltersQs(user);
+		
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
 		// else query the database
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
@@ -186,6 +210,17 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsInsightOwner(User user, String projectId, String insightId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+				
 		Collection<String> userIds = getUserFiltersQs(user);
 		// else query the database
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
@@ -530,6 +565,46 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		}
+	}
+
+	/**
+	 * Check if permission to insight has expired
+	 * @param engineId
+	 * @param userId
+	 */
+	public static boolean insightPermissionIsExpired(String userId, String projectId, String insightId) throws Exception {
+		LocalDateTime currentTime = LocalDateTime.now();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENDDATE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
+				if (endDate == null) {
+					return false;
+				}
+				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
+				return formattedEndDate.isBefore(currentTime);
+			} else {
+				return false;
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 }
