@@ -55,7 +55,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	Process p = null;
 	String port = null;
 	String prefix = null;
-	String workingDirecotry;
+	String workingDirectory;
 	String workingDirectoryBasePath = null;
 	File cacheFolder;
 	
@@ -236,7 +236,29 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 		return output;
 	}
+
 	
+	public Object model(String question, Insight insight, Map <String, Object> parameters) {
+		if(this.socketClient == null || !this.socketClient.isConnected())
+			this.startServer();
+		String varName = (String) smssProp.get(ModelEngineConstants.VAR_NAME);
+	
+		StringBuilder callMaker = new StringBuilder().append(varName).append(".model(");
+		callMaker.append("question=\"").append(question).append("\"").append(")");
+		Object output;
+		if (Utility.isModelInferenceLogsEnabled()) {			
+			String messageId = UUID.randomUUID().toString();
+			LocalDateTime inputTime = LocalDateTime.now();
+			output = pyt.runScript(callMaker.toString());
+			LocalDateTime outputTime = LocalDateTime.now();
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "model", this, insight, null, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
+			inferenceRecorder.run();
+		} else {
+			output = pyt.runScript(callMaker.toString());
+		}
+		return output;
+	}
+
 	@Override
 	public void close() throws IOException {
 		if(this.socketClient != null && this.socketClient.isConnected() ) {
@@ -254,8 +276,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	private void createCacheFolder() {
 		// create a generic folder
-		this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
-		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
+		this.workingDirectory = "MODEL_" + Utility.getRandomString(6);
+		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 		
 		// make the folder if one does not exist
@@ -418,7 +440,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 	
 	public String getWorkingDirectoryName() {
-		return this.workingDirecotry;
+		return this.workingDirectory;
 	}
 	
 	public String getWorkingDirectoryBasePath() {
