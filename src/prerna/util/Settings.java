@@ -29,6 +29,8 @@ public class Settings {
 	public static final String PROMPT_STOPPER = "PROMPT_STOPPER";
 	public static final String VAR_NAME = "VAR_NAME";
 	public static final String TIMEOUT = "TIMEOUT";
+	// input usually a list to functions
+	public static final String INPUT = "INPUT";
 	
 }
 
