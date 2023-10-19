@@ -97,8 +97,8 @@ public class SecurityOwlCreator {
 		if(check1) {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USERINSIGHTPERMISSION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBYTYPE/USERINSIGHTPERMISSION")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ENDDATE/ENGINEPERMISSION")) {
 				return true;
 			}
 		}
@@ -191,6 +191,7 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("ENGINEPERMISSION", "ENDDATE", "TIMESTAMP");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);
@@ -223,6 +224,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
 		
 		
 		// PROJECTMETA
@@ -280,6 +282,7 @@ public class SecurityOwlCreator {
 		owler.addProp("USERINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("USERINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 
 		// INSIGHTMETA
 		owler.addConcept("INSIGHTMETA", null, null);
@@ -465,6 +468,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPENGINEPERMISSION", "TYPE", "VARCHAR(255)");
 		owler.addProp("GROUPENGINEPERMISSION", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("GROUPENGINEPERMISSION", "PERMISSION", "INT");
+		owler.addProp("GROUPENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("GROUPENGINEPERMISSION", "ENDDATE", "TIMESTAMP");
 
 		// GROUPPROJECTPERMISSION
 		owler.addConcept("GROUPPROJECTPERMISSION", null, null);
@@ -472,6 +477,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPPROJECTPERMISSION", "TYPE", "VARCHAR(255)");
 		owler.addProp("GROUPPROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSION", "INT");
+		owler.addProp("GROUPPROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("GROUPPROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
 		
 		// GROUPPROJECTPERMISSION
 		owler.addConcept("GROUPINSIGHTPERMISSION", null, null);
@@ -480,6 +487,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSION", "INT");
+		owler.addProp("GROUPINSIGHTPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 		
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
