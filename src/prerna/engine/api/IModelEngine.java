@@ -58,5 +58,7 @@ public interface IModelEngine extends IEngine {
 	 * @return	an encoded object based on how the LLM encodes strings
 	 */
 	Object embeddings(String question, Insight insight, Map <String, Object> parameters);
-	
+
+	Object model(String question, Insight insight, Map <String, Object> parameters);
+
 }
