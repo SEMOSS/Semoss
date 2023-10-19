@@ -251,7 +251,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			LocalDateTime inputTime = LocalDateTime.now();
 			output = pyt.runScript(callMaker.toString());
 			LocalDateTime outputTime = LocalDateTime.now();
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "model", this, insight, null, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "model", this, insight, null, question, inputTime, PyUtils.determineStringType(output), outputTime);
 			inferenceRecorder.run();
 		} else {
 			output = pyt.runScript(callMaker.toString());
