@@ -46,7 +46,7 @@ class BedrockClient(BaseClient):
             return boto3.client(
                 #assuming this is environment auth
                 service_name=self.service_name,
-                region_name="us-east-1"
+                region_name=self.region,
             )
     def create_json_body(self,prompt, max_new_tokens, temperature, top_p):
         # Create a dictionary with the desired parameters
