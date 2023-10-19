@@ -157,6 +157,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IReactorEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
@@ -3221,7 +3222,7 @@ public class Utility {
 	 * @param engineId
 	 * @return
 	 */
-	public static IFunctionEngine getFunctionEngine(String engineId) {
+	public static IReactorEngine getFunctionEngine(String engineId) {
 		return getFunctionEngine(engineId, true);
 	}
 	
@@ -3231,8 +3232,8 @@ public class Utility {
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IFunctionEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
-		return (IFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
+	public static IReactorEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
+		return (IReactorEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**
