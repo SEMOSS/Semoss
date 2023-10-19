@@ -56,6 +56,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+		String sessionId = this.getSessionId();
 		
 		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
 		if (eng == null) {
@@ -95,7 +96,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					if (fileName.startsWith(pathToUnzipFiles)) {
 						filesToIndex.add(tempDirectory.getAbsolutePath() + DIR_SEPARATOR + fileName.split("\\/")[1]);
 					} else {
-						filesToIndex.add(tempDirectory.getAbsolutePath() + DIR_SEPARATOR + fileName);
+						filesToIndex.add(tempDirectory.getAbsolutePath() + DIR_SEPARATOR + sourceFile.getName());
 					}
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
