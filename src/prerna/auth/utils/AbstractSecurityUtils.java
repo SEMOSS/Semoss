@@ -4,6 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,6 +27,7 @@ import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -410,11 +415,11 @@ public abstract class AbstractSecurityUtils {
 	
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE", 
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
 			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			defaultValues = new Object[]{null, null, null, true, false, 
-					null, null, null};
+					null, null, null, null};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
 				classLogger.info("Running sql " + sql);
@@ -637,11 +642,11 @@ public abstract class AbstractSecurityUtils {
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE", 
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
 			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			defaultValues = new Object[]{null, null, null, true, false, 
-					null, null, null};
+					null, null, null, null};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues);
 				classLogger.info("Running sql " + sql);
@@ -909,11 +914,11 @@ public abstract class AbstractSecurityUtils {
 	
 			// USERINSIGHTPERMISSION
 			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE", 
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME, 
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			defaultValues = new Object[]{null, null, null, null, false, 
-					null, null, null};
+					null, null, null, null};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 			} else {
@@ -1154,8 +1159,8 @@ public abstract class AbstractSecurityUtils {
 	
 			// GROUP DATABASE PERMISSION
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
-			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
 			} else {
@@ -1165,11 +1170,24 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("GROUPENGINEPERMISSION", colNames, types));
 				}
 			}
+			
+			// TEMPORARY CHECK! - ADDED 10/04/2023
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GROUPENGINEPERMISSION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("GROUPENGINEPERMISSION", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
 	
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
-			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION", "DATEADDED", "ENDDATE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
 			} else {
@@ -1179,10 +1197,23 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("GROUPPROJECTPERMISSION", colNames, types));
 				}
 			}
+			
+			// TEMPORARY CHECK! - ADDED 10/04/2023
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GROUPPROJECTPERMISSION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("GROUPPROJECTPERMISSION", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
 	
 			// GROUP INSIGHT PERMISSION
-			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION", "DATEADDED", "ENDDATE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
 			} else {
@@ -1190,6 +1221,19 @@ public abstract class AbstractSecurityUtils {
 				if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", database, schema)) {
 					// make the table
 					securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
+				}
+			}
+			
+			// TEMPORARY CHECK! - ADDED 10/04/2023
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GROUPINSIGHTPERMISSION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn("GROUPINSIGHTPERMISSION", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
 	
@@ -1208,7 +1252,7 @@ public abstract class AbstractSecurityUtils {
 			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "REQUEST_REASON",
 					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
-					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
+					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEACCESSREQUEST ", colNames, types));
 			} else {
@@ -1236,7 +1280,7 @@ public abstract class AbstractSecurityUtils {
 			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "REQUEST_REASON",
 					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
-					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
+					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTACCESSREQUEST ", colNames, types));
 			} else {
@@ -1264,7 +1308,7 @@ public abstract class AbstractSecurityUtils {
 			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "REQUEST_REASON",
 					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
-					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
+					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTACCESSREQUEST ", colNames, types));
 			} else {
@@ -2287,5 +2331,28 @@ public abstract class AbstractSecurityUtils {
 	public static String hash(String password, String salt) {
 		return BCrypt.hashpw(password, salt);
 	}
-
+	
+	/**
+	 * Calculate end date of permission
+	 * @param endDate
+	 * @return verifiedEndDate
+	 */
+	public static Timestamp calculateEndDate(String endDate) {
+		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
+		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Check if permission end date has expired
+	 * @param endDate
+	 */
+	public static boolean endDateIsExpired(SemossDate endDate) throws Exception {
+		LocalDateTime currentTime = LocalDateTime.now();
+		if (endDate == null) {
+			return false;
+		}
+		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
+		return formattedEndDate.isBefore(currentTime);
+	}
 }

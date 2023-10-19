@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -131,6 +133,17 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsOwner(User user, String projectId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
 		return userIsOwner(getUserFiltersQs(user), projectId);
 	}
 
@@ -174,6 +187,17 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewProject(User user, String projectId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -210,6 +234,16 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditProject(User user, String projectId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
@@ -294,6 +328,16 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(userId, projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(userId, projectId);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
@@ -371,5 +415,44 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Check if permission to project has expired
+	 * @param engineId
+	 * @param userId
+	 */
+	public static boolean projectPermissionIsExpired(String userId, String projectId) throws Exception {
+		LocalDateTime currentTime = LocalDateTime.now();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__ENDDATE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
+				if (endDate == null) {
+					return false;
+				}
+				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
+				return formattedEndDate.isBefore(currentTime);
+			} else {
+				return false;
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 }
