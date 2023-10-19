@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -25,7 +27,7 @@ import prerna.util.QueryExecutionUtility;
 
 class SecurityUserEngineUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityUserEngineUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityUserEngineUtils.class);
 
 	/**
 	 * Get what permission the user has for a given engine
@@ -49,13 +51,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -89,13 +91,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -110,6 +112,16 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsOwner(User user, String engineId) {
+		try {
+			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
 		return userIsOwner(getUserFiltersQs(user), engineId);
 	}
 	
@@ -132,13 +144,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -153,6 +165,17 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewEngine(User user, String engineId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -169,13 +192,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -189,6 +212,16 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditEngine(User user, String engineId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -207,17 +240,56 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Check if permission to engine has expired
+	 * @param engineId
+	 * @param userId
+	 */
+	public static boolean enginePermissionIsExpired(String userId, String engineId) throws Exception {
+		LocalDateTime currentTime = LocalDateTime.now();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENDDATE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
+				if (endDate == null) {
+					return false;
+				}
+				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
+				return formattedEndDate.isBefore(currentTime);
+			} else {
+				return false;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
 	/**
@@ -244,13 +316,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}		
@@ -265,24 +337,34 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static boolean checkUserHasAccessToEngine(String engineId, String userId) throws Exception {
+		try {
+			boolean isExpired = enginePermissionIsExpired(userId, engineId);
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(userId, engineId);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -306,13 +388,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

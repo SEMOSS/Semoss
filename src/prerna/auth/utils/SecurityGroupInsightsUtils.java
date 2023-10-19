@@ -3,6 +3,8 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -37,6 +40,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static boolean userGroupCanViewInsight(User user, String projectId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -62,8 +68,17 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
+			while(wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				Object val = values[0];
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// Need to delete expired permission here
+					String groupId = (String) values[2];
+					String groupType = (String) values[3];
+					removeExpiredInsightGroupPermission(groupId, groupType, projectId, insightId);
+					continue;
+				}
 				if(val != null) {
 					// actually do not care what the value is - we have a record so that means we can at least view
 					return true;
@@ -95,6 +110,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static boolean userGroupCanEditInsight(User user, String projectId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
@@ -120,8 +138,17 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		Integer bestGroupDatabasePermission = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
+			while(wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				Object val = values[0];
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// Need to delete expired permission here
+					String groupId = (String) values[2];
+					String groupType = (String) values[3];
+					removeExpiredInsightGroupPermission(groupId, groupType, projectId, insightId);
+					continue;
+				}
 				if(val != null) {
 					bestGroupDatabasePermission  = ((Number) val).intValue();
 				}
@@ -344,7 +371,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void addInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId, String permission) throws IllegalAccessException {
+	public static void addInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId, String permission, String endDate) throws IllegalAccessException {
 		if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
@@ -353,15 +380,23 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This group already has access to this insight. Please edit the existing permission level.");
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -421,7 +456,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId, String newPermission) throws IllegalAccessException {
+	public static void editInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId, String newPermission, String endDate) throws IllegalAccessException {
 		// make sure user can edit the insight
 		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
 		if(userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -451,11 +486,19 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
+			ps = securityDb.getPreparedStatement("UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
 			int parameterIndex = 1;
 			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, projectId);
@@ -501,6 +544,41 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			if(AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this group insight permission.");
 			}
+		}
+		
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	/**
+	 * Delete a group insight permission
+	 * @param groupId
+	 * @param groupType
+	 * @param insightId
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static void removeExpiredInsightGroupPermission(String groupId, String groupType, String projectId, String insightId) throws IllegalAccessException {
+		
+		// make sure we are trying to edit a permission that exists
+		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
+		if(existingGroupPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify group permission for a user who does not currently have access to the insight");
 		}
 		
 		PreparedStatement ps = null;
