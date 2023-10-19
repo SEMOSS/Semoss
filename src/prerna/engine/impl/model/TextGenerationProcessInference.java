@@ -72,8 +72,8 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 			} 
 			
 			// create a generic folder
-			this.workingDirecotry = "EM_MODEL_" + Utility.getRandomString(6);
-			this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
+			this.workingDirectory = "EM_MODEL_" + Utility.getRandomString(6);
+			this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirectory;
 			this.cacheFolder = new File(workingDirectoryBasePath);
 			
 			// make the folder if one does not exist
