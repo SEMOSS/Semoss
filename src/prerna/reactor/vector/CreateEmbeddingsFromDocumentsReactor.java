@@ -55,9 +55,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
-		String sessionId = this.getSessionId();
-		
+				
 		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
 		if (eng == null) {
 			throw new SemossPixelException("Unable to find engine");
