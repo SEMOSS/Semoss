@@ -3,6 +3,7 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -356,7 +357,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param requests
 	 */
-	public static void approveEngineUserAccessRequests(User user, String engineId, List<Map<String, String>> requests) throws IllegalAccessException{
+	public static void approveEngineUserAccessRequests(User user, String engineId, List<Map<String, String>> requests, String endDate) throws IllegalAccessException{
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -376,6 +377,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if(!AccessPermissionEnum.isOwner(userPermissionLvl) && permissions.contains("OWNER")) {
 				throw new IllegalArgumentException("As a non-owner, you cannot grant owner access.");
 			}
+		}
+		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 				
 		// bulk delete
@@ -400,7 +407,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -415,6 +422,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
 				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -739,7 +747,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void addEngineUser(User user, String newUserId, String engineId, String permission) throws IllegalAccessException {
+	public static void addEngineUser(User user, String newUserId, String engineId, String permission, String endDate) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -762,10 +770,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				throw new IllegalAccessException("Cannot give owner level access to this engine since you are not currently an owner.");
 			}
 		}
+		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, newUserId);
 			ps.setString(parameterIndex++, engineId);
@@ -773,7 +788,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -794,7 +810,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static void addEngineUserPermissions(User user, String engineId, List<Map<String,String>> permission) throws IllegalAccessException {
+	public static void addEngineUserPermissions(User user, String engineId, List<Map<String,String>> permission, String endDate) throws IllegalAccessException {
 		
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
@@ -819,9 +835,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
 
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -834,6 +856,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -856,7 +879,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editEngineUserPermission(User user, String existingUserId, String engineId, String newPermission) throws IllegalAccessException {
+	public static void editEngineUserPermission(User user, String existingUserId, String engineId, String newPermission, String endDate) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -886,16 +909,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE USERID=? AND ENGINEID=?");
+			ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE USERID=? AND ENGINEID=?");
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, newPermissionLvl);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, engineId);
@@ -920,13 +950,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editEngineUserPermissions(User user, String engineId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void editEngineUserPermissions(User user, String engineId, List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
-		
 		
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
@@ -952,9 +981,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
 
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -964,7 +999,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, engineId);
@@ -1110,6 +1146,26 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	public static void removeExpiredEngineUser(String userId, String engineId) {
+		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(deleteQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
