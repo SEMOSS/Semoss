@@ -141,4 +141,10 @@ public class RemoteModelEngine implements IModelEngine {
 		return null;
 	}
 
+	@Override
+	public Object model(String question, Insight insight, Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
