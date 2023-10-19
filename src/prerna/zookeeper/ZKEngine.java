@@ -5,7 +5,9 @@ import java.util.Properties;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.zookeeper.ZooKeeper;
 
 import prerna.engine.api.IEngine;
 import prerna.util.Utility;
@@ -25,11 +27,10 @@ public class ZKEngine implements IEngine {
 
 	private CuratorFramework curator;
 
-	private String address = "localhost:2181";
-	// ms values
+	private String address;
 	private int sessionTimeout = -1;
 	private int connectionTimeout = -1;
-	private String namespace = "";
+	private String namespace;
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -62,27 +63,37 @@ public class ZKEngine implements IEngine {
 		setSmssProp(smssProp);
 
 		this.address = smssProp.getProperty(ZOOKEEPER_ADDRESS_KEY);
+		if(this.address == null || (this.address=this.address.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the address for the zookeeper");
+		}
 		this.namespace = smssProp.getProperty(NAMESPACE_KEY);
 
 		String sessionTStr = smssProp.getProperty(SESSION_TIMEOUT_KEY);
-		String connectionTStr = smssProp.getProperty(CONNECTION_TIMEOUT_KEY);
-
-		if(sessionTStr != null && connectionTStr != null
-				&& (sessionTStr=sessionTStr.trim()).isEmpty()
-				&& (connectionTStr=connectionTStr.trim()).isEmpty()
-				) {
+		if(sessionTStr != null && (sessionTStr=sessionTStr.trim()).isEmpty()) {
 			this.sessionTimeout = Integer.parseInt(sessionTStr);
+		}
+		
+		String connectionTStr = smssProp.getProperty(CONNECTION_TIMEOUT_KEY);
+		if(connectionTStr != null && (connectionTStr=connectionTStr.trim()).isEmpty()) {
 			this.connectionTimeout = Integer.parseInt(connectionTStr);
-
 		}
-
-		if(sessionTimeout > 0 && connectionTimeout > 0) {
-			this.curator = CuratorFrameworkFactory.newClient(this.address, sessionTimeout, connectionTimeout, new ExponentialBackoffRetry(1000, 3));
-		} else {
-			this.curator = CuratorFrameworkFactory.newClient(this.address, new ExponentialBackoffRetry(1000, 3));
+		
+		Builder builder = CuratorFrameworkFactory.builder();
+		builder.connectString(address);
+		if(this.sessionTimeout > 0) {
+			builder.sessionTimeoutMs(this.sessionTimeout);
 		}
-
-		// Start the curator client
+		if(this.connectionTimeout > 0) {
+			builder.connectionTimeoutMs(this.connectionTimeout);
+		}
+		// optional namespace (base path added to all paths using this connection)
+		if(this.namespace != null && !this.namespace.isEmpty()) {
+			builder.namespace(this.namespace);
+		}
+		builder.retryPolicy(new ExponentialBackoffRetry(1000, 3));
+		
+		this.curator = builder.build();
+		// start the curator client
 		this.curator.start();
 	}
 
@@ -145,4 +156,12 @@ public class ZKEngine implements IEngine {
 		return new ZKCuratorUtility(this.curator);
 	}
 
+	public CuratorFramework getCurator() {
+		return this.curator;
+	}
+
+	public ZooKeeper getZookeeper() throws Exception {
+		return this.curator.getZookeeperClient().getZooKeeper();
+	}
+	
 }
