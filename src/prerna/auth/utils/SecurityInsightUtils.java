@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -1467,7 +1468,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static void addInsightUser(User user, String newUserId, String projectId, String insightId, String permission) {
+	public static void addInsightUser(User user, String newUserId, String projectId, String insightId, String permission, String endDate) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the insight
@@ -1491,10 +1492,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
+		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
 
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, newUserId);
 			ps.setString(parameterIndex++, projectId);
@@ -1502,7 +1509,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -1525,7 +1533,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId, String newPermission) throws IllegalAccessException {
+	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId, String newPermission, String endDate) throws IllegalAccessException {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the insight
@@ -1557,15 +1565,22 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?");
+			ps = securityDb.getPreparedStatement("UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?");
 			int parameterIndex = 1;
 			//SET
 			ps.setInt(parameterIndex++, newPermissionLvl);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
@@ -1591,7 +1606,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editInsightUserPermissions(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void editInsightUserPermissions(User user, String projectId, String insightId, List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the database
@@ -1623,8 +1638,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE= ?, DATEADDED = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
+		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE= ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -1635,6 +1656,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
@@ -2908,7 +2930,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static void addInsightUserPermissions(User user, String projectId, String insightId, List<Map<String,String>> permission) {
+	public static void addInsightUserPermissions(User user, String projectId, String insightId, List<Map<String,String>> permission, String endDate) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the insight
@@ -2932,8 +2954,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
@@ -2946,6 +2974,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
 				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -3008,13 +3037,39 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Remove expired insight permissions
+	 * @param userId
+	 * @param projectId
+	 * @return
+	 */
+	public static void removeExpiredInsightUser(String userId, String projectId, String insightId) {
+		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(deleteQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	/**
 	 * Approving user access requests and giving user access in permissions
 	 * @param userId
 	 * @param userType
 	 * @param projectId
 	 * @param requests
 	 */
-	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId, List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user has right permission level to approve access requests
@@ -3036,6 +3091,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(!AccessPermissionEnum.isOwner(userPermissionLvl) && permissions.contains("OWNER")) {
 				throw new IllegalArgumentException("As a non-owner, you cannot grant owner access.");
 			}
+		}
+		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 				
 		// bulk delete
@@ -3075,6 +3136,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
 				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -3183,6 +3245,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__REQUEST_USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__APPROVER_DECISION", "==", null));
 		return QueryExecutionUtility.flushToInteger(securityDb, qs);
 	}
 	

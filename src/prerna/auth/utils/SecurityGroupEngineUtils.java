@@ -3,6 +3,8 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -34,10 +37,13 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userGroupCanViewEngine(User user, String databaseId) {
+	public static boolean userGroupCanViewEngine(User user, String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
@@ -46,7 +52,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
 				continue;
 			}
-			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
@@ -62,8 +67,18 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
+			while(wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				Object val = values[0];
+				// check if permission is expired
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// need to delete expired permission
+					String groupId = (String) values[2];
+					String groupType = (String) values[3];
+					removeExpiredEngineGroupPermission(groupId, groupType, engineId);
+					continue;
+				}
 				if(val != null) {
 					// actually do not care what the value is - we have a record so that means we can at least view
 					return true;
@@ -91,10 +106,13 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userGroupCanEditEngine(User user, String databaseId) {
+	public static boolean userGroupCanEditEngine(User user, String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
 		boolean anyUserGroups = false;
@@ -119,8 +137,17 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		Integer bestGroupDatabasePermission = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				Object val = values[0];
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// Need to delete expired permission here
+					String permissionId = (String) values[2];
+					String permissionType = (String) values[3];
+					removeExpiredEngineGroupPermission(permissionId, permissionType, engineId);
+					continue;
+				}
 				if(val != null) {
 					bestGroupDatabasePermission  = ((Number) val).intValue();
 				}
@@ -340,7 +367,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId, String permission) throws IllegalAccessException {
+	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId, String permission, String endDate) throws IllegalAccessException {
 		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
@@ -349,14 +376,22 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This group already has access to this engine. Please edit the existing permission level.");
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION) VALUES(?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, engineId);
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -415,7 +450,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId, String newPermission) throws IllegalAccessException {
+	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId, String newPermission, String endDate) throws IllegalAccessException {
 		// make sure user can edit the database
 		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
 		if(userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -445,11 +480,19 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE GROUPENGINEPERMISSION SET PERMISSION=? WHERE ID=? AND TYPE=? AND ENGINEID=?");
+			ps = securityDb.getPreparedStatement("UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=? WHERE ID=? AND TYPE=? AND ENGINEID=?");
 			int parameterIndex = 1;
 			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, engineId);
@@ -494,6 +537,41 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			if(AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this group database permission.");
 			}
+		}
+		
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? AND ENGINEID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	/**
+	 * Delete a group database permission
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param engineId
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static void removeExpiredEngineGroupPermission(String groupId, String groupType, String engineId) throws IllegalAccessException {
+		
+		// make sure we are trying to edit a permission that exists
+		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
+		if(existingGroupPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify group permission for a user who does not currently have access to the database");
 		}
 		
 		PreparedStatement ps = null;
