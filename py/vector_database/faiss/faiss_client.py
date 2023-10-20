@@ -1,10 +1,10 @@
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Any
 import transformers
 from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching
 import pandas as pd
 import faiss
 import numpy as np
-from ..encoders.huggingface_encoder import HuggingFaceEncoder
+from ..encoders import *
 import pickle
 import os
 import glob
@@ -14,42 +14,55 @@ class FAISSSearcher():
   The primary class for a faiss database classes and searching document embeddings
   '''
 
-  def __init__(self, df=None, 
-               ds=None, 
-               tokenizer_model=None, 
-               model_model=None, 
-               tokenizer_loader=transformers.AutoTokenizer, 
-               model_loader=transformers.AutoModel, 
-               dpr=False,
-               encoder_class=None,
-               base_path = None,
-               ):
+  datasetType = 'datasets'
+
+  def __init__(
+      self, 
+      encoder_class=None,
+      base_path = None,
+    ):
     # if df is None and ds is None:
     #  return "Both dataframe and dataset cannot be none"
-    if(tokenizer_model is not None):
-      self.tokenizer = tokenizer_loader.from_pretrained(tokenizer_model)
-    if(model_model is not None):
-      self.model = model_loader.from_pretrained(model_model)
-      if not dpr:
-        self.model.to(self.device)
+
     self.init_device()
-    if df is not None:
-      self.ds = Dataset.from_pandas(df)
-      if '__index_level_0__' in self.ds.column_names:
-        self.ds = self.ds.remove_columns('__index_level_0__')
-    if ds is not None:
-      self.ds = ds
-    self.dpr = dpr
+    self.ds = None
+
     self.encoded_vectors = None
     self.vector_dimensions = None
-    self.encoder_name = None
 
     assert encoder_class is not None
     self.encoder_class = encoder_class
+
     self.base_path = base_path
 
     # disable caching within the shell so that engines can be exported
     disable_caching()
+
+  def __getattr__(self, name: str):
+      return self.__dict__[f"_{name}"]
+  
+  def __setattr__(self, name:str, value:Any):
+      '''
+      Enfore types for specific attributes
+      '''
+      if name == 'encoded_vectors' or value != None:
+        if name in ['ds']:
+            if not isinstance(value, (pd.DataFrame, Dataset)):
+                raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
+        elif name in ['encoder_class']:
+          if not isinstance(value, EncoderInterface):
+                raise TypeError(f"{name} must be an instance of EncoderInterface")
+        elif name in ['encoded_vectors']:
+          if (np.any(value) != None) and not isinstance(value, np.ndarray) :
+                raise TypeError(f"{name} must be a np.ndarray")
+        elif name in ['vector_dimensions']:
+          if not isinstance(value, tuple):
+                raise TypeError(f"{name} must be a tuple")         
+        elif name in ['base_path']:
+          if not isinstance(value, str):
+                raise TypeError(f"{name} must be a string")
+          
+      self.__dict__[f"_{name}"] = value
    
   def _concatenate_columns(
       self, 
@@ -99,7 +112,7 @@ class FAISSSearcher():
 
     assert self.encoded_vectors.shape[1] == new_vector.shape[1]
 
-    self.ds = concatenate_datasets([self.ds, appendDs])
+    self.ds = self._concatenate_datasets([self.ds, appendDs])
     conc_vector = np.concatenate((self.encoded_vectors,new_vector),axis=0)
     vector_dimension = conc_vector.shape[1]
     self.index = faiss.IndexFlatL2(vector_dimension)
@@ -109,7 +122,8 @@ class FAISSSearcher():
     
   def nearestNeighbor(
       self, 
-      question: str, 
+      question: str,
+      filter: Optional[str] = None,
       results: Optional[int] = 5, 
       columns_to_return: Optional[List[str]] = None, 
       return_threshold: Optional[Union[int,float]] = 1000, 
@@ -168,20 +182,56 @@ class FAISSSearcher():
 
     # make sure the encoder class is loaded and get the embeddings (vector) for the tokens
     search_vector = self.encoder_class.get_embeddings(question)
-    _vector = np.array([search_vector])
+    query_vector = np.array([search_vector])
 
     # check to see if need to normalize the vector
     if isinstance(self.encoder_class, HuggingFaceEncoder):
-      faiss.normalize_L2(_vector)
+      faiss.normalize_L2(query_vector)
 
     # perform the faiss search. Scores returned are Euclidean distances
     # euclidean_distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
     # ann_index - the index location of the Approximate Nearest Neighbor (ANN)
-    euclidean_distances, ann_index = self.index.search(_vector, k = results)
 
-    # create a data
-    samples_df = pd.DataFrame({'distances': euclidean_distances[0], 'ann': ann_index[0]})
-    samples_df.sort_values("distances", ascending=ascending, inplace=True)
+    # If a filter was passed in then we need to get the indexes
+    if filter != None:
+        filter_ids = self._filter_dataset(filter)
+        id_selector = faiss.IDSelectorArray(filter_ids)
+        euclidean_distances, ann_index = self.index.search(
+            query_vector, 
+            k = results, 
+            params=faiss.SearchParametersIVF(sel=id_selector)
+        )
+    else:
+        euclidean_distances, ann_index = self.index.search( 
+            query_vector, 
+            k = results
+        )
+
+    euclidean_distances = euclidean_distances[0]
+    ann_index = ann_index[0]
+
+    # this is a safety check to make sure we are only returning good vectors if the limit was too high
+    if self.vector_dimensions[0] < results:
+        # Find the index of the first occurrence of -1
+        index_of_minus_one = np.where(ann_index == -1)[0]
+        # If -1 is not found, index_of_minus_one will be an empty array
+        # In that case, we keep the original array, otherwise, we slice it
+        if len(index_of_minus_one) > 0:
+            ann_index = ann_index[:index_of_minus_one[0]]
+            euclidean_distances = euclidean_distances[:index_of_minus_one[0]]
+
+    # create the data
+    samples_df = pd.DataFrame(
+        {
+            'distances': euclidean_distances, 
+            'ann': ann_index
+        }
+    )
+    samples_df.sort_values(
+        "distances", 
+        ascending = ascending, 
+        inplace=True
+    )
     samples_df = samples_df[samples_df['distances'] <= return_threshold]
     
     # create the response payload by adding the relevant columns from the dataset
@@ -195,6 +245,14 @@ class FAISSSearcher():
       final_output.append(output)
       
     return final_output
+  
+  def _filter_dataset(self, filter:str) -> List[int]:
+    if isinstance(self.ds, Dataset):
+      filterDf = self.ds.to_pandas()
+    else:
+      filterDf = self.ds
+
+    return filterDf.query(filter).index.to_list()
 
   def load_dataset(
       self, 
@@ -215,7 +273,7 @@ class FAISSSearcher():
   def _load_dataset(
       self, 
       dataset_location:str
-    ) -> None:
+    ) -> Union[Dataset, pd.DataFrame]:
     '''
     Internal method to load the dataset based on its file type
 
@@ -227,25 +285,28 @@ class FAISSSearcher():
      `None`
     '''
     if (dataset_location.endswith('.csv')):
-      try:
-        loaded_dataset = Dataset.from_csv(
-          dataset_location, 
-          encoding='iso-8859-1',
-          keep_in_memory=True
-        )
-      except:
-        loaded_dataset = load_dataset(
-          'csv', 
-          data_files = dataset_location,
-          keep_in_memory=True
-        )
+      if (FAISSSearcher.datasetType == 'pandas'):
+        loaded_dataset = pd.read_csv(filepath_or_buffer=dataset_location, encoding='iso-8859-1')
+      else:
+        try:
+          loaded_dataset = Dataset.from_csv(
+            dataset_location, 
+            encoding='iso-8859-1',
+            keep_in_memory=True
+          )
+        except:
+          loaded_dataset = load_dataset(
+            'csv', 
+            data_files = dataset_location,
+            keep_in_memory=True
+          )
     elif (dataset_location.endswith('.pkl')):
       with open(dataset_location, "rb") as file:
         loaded_dataset = pickle.load(file)
     else:
       raise ValueError("Dataset creation for provided file type has not been defined")
     
-    assert isinstance(loaded_dataset, Dataset)
+    assert isinstance(loaded_dataset, (Dataset, pd.DataFrame)) 
     return loaded_dataset
 
   def save_dataset(
@@ -289,7 +350,7 @@ class FAISSSearcher():
   def _load_encoded_vectors(
       self, 
       encoded_vectors_location: str
-    ) -> None:
+    ) -> np.ndarray:
     '''
     Internal method to load stored embeddings from the disk
 
@@ -326,13 +387,32 @@ class FAISSSearcher():
     with open(encoded_vectors_location, "wb") as file:
       pickle.dump(self.encoded_vectors, file)
 
+  def _concatenate_datasets(
+      self,
+      datasets: Union[List[Dataset], List[pd.DataFrame]],
+    ) -> Union[Dataset, pd.DataFrame]:
+    '''
+    Interal utility method to concatenate datasets depending on the class type. Either pandas.DataFrame or datasets.Dataset
+
+    Args:
+      datasets(`Union[List[Dataset], List[pd.DataFrame]]`):
+        A list of datasets where all the datasets of only of one type. Either pandas.DataFrame or datasets.Dataset 
+
+    Returns:
+      `Union[Dataset, pd.DataFrame]`
+    '''
+    if (FAISSSearcher.datasetType == 'pandas'):
+      return pd.concat(datasets, axis=1, verify_integrity=True)
+    else:
+      return concatenate_datasets(datasets)
+
   def addDocumet(
       self, 
       documentFileLocation: List[str], 
-      columns_to_index: List[str], 
-      columns_to_remove: List[str] = [],
-      target_column: str = "text", 
-      separator: str = ','
+      columns_to_index: Optional[List[str]], 
+      columns_to_remove: Optional[List[str]] = [],
+      target_column: Optional[str] = "text", 
+      separator: Optional[str] = ','
     ) -> None:
     '''
     Given a path to a CSV document, perform the following tasks:
@@ -446,7 +526,7 @@ class FAISSSearcher():
       if i == 0:
         self.ds = dataset
       else:
-        self.ds = concatenate_datasets([self.ds, dataset])
+        self.ds = self._concatenate_datasets([self.ds, dataset])
 
     # Define the pattern for the files you want to find
     file_pattern = '*_vectors.pkl'
