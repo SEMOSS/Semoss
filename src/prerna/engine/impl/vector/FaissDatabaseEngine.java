@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,13 +19,34 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.model.ModelEngineConstants;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.BetweenQueryFilter;
+import prerna.query.querystruct.filters.FunctionQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryArithmeticSelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.reactor.qs.SubQueryExpression;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
@@ -99,19 +121,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
-			for (String table : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + table, "dataset.pkl");
-				modifiedCommands.add("${VECTOR_SEARCHER_NAME}.create_searcher(searcher_name = '"+table+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+			for (String indexClass : this.indexClasses) {
+				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
+				modifiedCommands.add("${VECTOR_SEARCHER_NAME}.create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
 				if (fileToCheck.exists()) {
-			        modifiedCommands.add("${VECTOR_SEARCHER_NAME}.searchers['"+table+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add("${VECTOR_SEARCHER_NAME}.searchers['"+table+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
+			        modifiedCommands.add("${VECTOR_SEARCHER_NAME}.searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
+			        modifiedCommands.add("${VECTOR_SEARCHER_NAME}.searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
 		        }
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
 		}
 
-		
-		
 		// replace the Vars
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
 			commands[commandIndex] = fillVars(commands[commandIndex]);
@@ -355,7 +375,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 		
-		// this would me the table is now empty, we should delete it
+		// this would mean the indexClass is now empty, we should delete it
 		File indexedFolder = new File(indexedFilesPath);
 		if (indexedFolder.list().length == 0) {
 			try {
@@ -372,11 +392,41 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object nearestNeighbor(String question, int limit, Map <String, Object> parameters) {
+		
+		checkSocketStatus();
+		
+		StringBuilder callMaker = new StringBuilder();
+		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
+			Object indexClassObj = parameters.get("indexClass");
+			if (indexClassObj instanceof String) {
+				indexClass = (String) indexClassObj;
+				// make the python method
+				callMaker.append(this.vectorDatabaseSearcher)
+						 .append(".searchers['")
+						 .append(indexClass)
+						 .append("']")
+						 .append(".nearestNeighbor(");
+			} else if (indexClassObj instanceof Collection) {
+				indexClass = PyUtils.determineStringType(indexClassObj);
+				// make the python method
+				callMaker.append(this.vectorDatabaseSearcher)
+						 .append(".nearestNeighbor(")
+						 .append("indexClasses = ")
+						 .append(indexClass)
+						 .append(", ");
+			}
+		} else {
+			// make the python method
+			callMaker.append(this.vectorDatabaseSearcher)
+					 .append(".searchers['")
+					 .append(indexClass)
+					 .append("']")
+					 .append(".nearestNeighbor(");
 		}
 		
 		// TODO we will need the insight when runnings encode call through IModelEngine
@@ -384,24 +434,22 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		//if (insight == null) {
 		//	throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		//}
-		
-		if(this.socketClient == null || !this.socketClient.isConnected()) {
-			this.startServer();
-		}
-		
-		StringBuilder callMaker = new StringBuilder();
-		
-		// make the python method
-		callMaker.append(this.vectorDatabaseSearcher)
-				 .append(".searchers['")
-				 .append(indexClass)
-				 .append("']")
-				 .append(".nearestNeighbor(");
-		
+	
 		// make the question arg
 		callMaker.append("question=\"\"\"")
 				 .append(question.replace("\"", "\\\""))
 				 .append("\"\"\"");
+		
+		String searchFilters = "None";
+		if (parameters.containsKey("filters")) {
+			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+			searchFilters = addFilters(filters);
+			// make the filter arg
+			callMaker.append(", ")
+					 .append("filter=\"\"\"")
+					 .append(searchFilters)
+					 .append("\"\"\"");
+		}
 		
 		// make the limit, i.e. the number of responses we want
 		callMaker.append(", ")
@@ -451,7 +499,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// close the method
  		callMaker.append(")");
- 		
+ 		classLogger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString());
 		return output;
 	}
@@ -489,6 +537,242 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if(this.p != null && this.p.isAlive()) {
 			this.p.destroy();
 		}
+	}
+	
+	private String addFilters(List<IQueryFilter> filters) {
+		List<String> filterStatements = new ArrayList<>();
+		
+		for(IQueryFilter filter : filters) {
+			StringBuilder filterSyntax = processFilter(filter);
+			if(filterSyntax != null) {
+				filterStatements.add(filterSyntax.toString());
+			}
+		}
+		if (filterStatements.size() == 0) {
+			throw new IllegalArgumentException("Unable to generate filter");
+		}
+		return String.join(" and ", filterStatements);
+	}
+	
+	private StringBuilder processFilter(IQueryFilter filter) {
+		// logic taken from SqlInterpreter.processFilter
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilter((SimpleQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilter((AndQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilter((OrQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.FUNCTION) {
+			throw new IllegalArgumentException("Filters with a Query Filter Type of Function are not supported for FAISS vector databases");
+		}else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
+			throw new IllegalArgumentException("Filters with a Query Filter Type of Between are not supported for FAISS vector databases");
+		}
+		return null;
+	}
+	
+	protected StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" or ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	protected StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" and ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+	
+	protected StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter)
+	{
+		StringBuilder retBuilder = new StringBuilder();
+		retBuilder.append(processSelector(filter.getColumn(), true));
+		retBuilder.append("  BETWEEN  ");
+		retBuilder.append(filter.getStart());
+		retBuilder.append("  AND  ");
+		retBuilder.append(filter.getEnd());
+		return retBuilder;
+	}
+	
+	protected StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
+		
+		FILTER_TYPE fType = filter.getSimpleFilterType();
+		if(fType == FILTER_TYPE.COL_TO_COL) {
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_QUERY are not supported for FAISS vector databases");
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of QUERY_TO_COL are not supported for FAISS vector databases");
+		} else if(fType == FILTER_TYPE.COL_TO_LAMBDA) {
+			throw new IllegalArgumentException("Filter of with a Filter Type of COL_TO_LAMBDA are not supported for FAISS vector databases");
+		} else if(fType == FILTER_TYPE.LAMBDA_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			throw new IllegalArgumentException("Filter of with a Filter Type of LAMBDA_TO_COL are not supported for FAISS vector databases");
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			// WHY WOULD YOU DO THIS!!!
+			throw new IllegalArgumentException("Filter of with a Filter Type of VALUE_TO_VALUE are not supported for FAISS vector databases");
+		} 
+		return null;
+	}
+	
+	/**d
+	 * Add filter for column to column
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 */
+	protected StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
+
+		/*
+		 * Add the filter syntax here once we have the correct physical names
+		 */
+		
+		StringBuilder filterBuilder = new StringBuilder();
+		filterBuilder.append(leftSelector.getQueryStructName());
+		if(thisComparator.equals("<>")) {
+			thisComparator = "!=";
+		}
+		filterBuilder.append(" ").append(thisComparator).append(" ").append(rightSelector.getQueryStructName());
+
+		return filterBuilder;
+	}
+	
+	/**
+	 * Add filter for a column to values
+	 * @param filters 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 */
+	protected StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		StringBuilder filterBuilder = new StringBuilder();
+		
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftDataType = leftSelector.getDataType();		
+		if(leftDataType == null) {
+			String leftConceptProperty = leftSelector.getQueryStructName();
+			filterBuilder.append(leftConceptProperty);
+		}
+		
+		boolean needToClose = false;
+		thisComparator = thisComparator.trim();
+		switch(thisComparator) {
+			case "==":
+			case "!=":
+			case ">":
+			case "<":
+				break;
+			case "?like":
+				thisComparator = ".str.contains(";
+				needToClose = true;
+				break;
+			case "?begins":
+				thisComparator = ".str.startswith(";
+				needToClose = true;
+				break;
+			case "?ends":
+				thisComparator = ".str.endswith(";
+				needToClose = true;
+				break;
+			default:
+				throw new IllegalArgumentException("Comparator is not defined");
+		}
+		
+		filterBuilder.append(thisComparator);
+		
+		// ugh... this is gross
+		if(rightComp.getValue() instanceof Collection && !needToClose) {
+			filterBuilder.append("isin(").append(PyUtils.determineStringType(rightComp.getValue())).append(")");
+		} else {
+			filterBuilder.append(PyUtils.determineStringType(rightComp.getValue()));
+		}
+		
+		if (needToClose) {
+			filterBuilder.append(")");
+		}
+		
+		return filterBuilder;
+	}
+	
+	/**
+	 * Method is used to generate the appropriate syntax for each type of selector
+	 * Note, this returns everything without the alias since this is called again from
+	 * the base methods it calls to allow for complex math expressions
+	 * @param selector
+	 * @return
+	 */
+	protected String processSelector(IQuerySelector selector, boolean addProcessedColumn) {
+		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
+		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
+			return processConstantSelector((QueryConstantSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			throw new IllegalArgumentException("Not supported.");
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
+			throw new IllegalArgumentException("Filter of with an Opaque Selector Type are unsupported for FAISS vector databases");
+		}else if(selectorType == IQuerySelector.SELECTOR_TYPE.IF_ELSE) {
+			throw new IllegalArgumentException("Filter of with an If Else Selector Type are unsupported for FAISS vector databases");
+		}
+		return null;
+	}
+	
+	protected String processConstantSelector(QueryConstantSelector selector) {
+		Object constant = selector.getConstant();
+		if(constant instanceof SubQueryExpression) {
+			throw new IllegalArgumentException("Sub Query Expressions are not supported");
+		} else if(constant instanceof Number) {
+			return constant.toString();
+		} else if(constant instanceof Boolean){
+			String boolString = constant.toString();
+			String pythonTrueFalse = Character.toUpperCase(boolString.charAt(0)) + boolString.substring(1);
+			return pythonTrueFalse;
+		} else { 
+			return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(constant + "") + "'";
+		}
+	}
+	
+	/**
+	 * The second
+	 * @param selector
+	 * @param isTrueColumn
+	 * @return
+	 */
+	protected String processColumnSelector(QueryColumnSelector selector, boolean notEmbeddedColumn) {
+		String colName = selector.getColumn();
+		return colName;
 	}
 	
 	public static void main(String[] args) throws Exception {
