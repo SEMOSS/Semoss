@@ -44,6 +44,10 @@ public class SchedulerFactorySingleton {
 		}
 		return singleton;
 	}
+	
+	public static boolean isInit() {
+		return singleton != null;
+	}
 
 	private void init() {
 		Properties quartzProperties = null;
