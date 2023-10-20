@@ -19,4 +19,8 @@ public class ModelEngineConstants {
 	public static final String ROOM_ID = "roomId";
 	
 	public static final String OPEN_AI_KEY = "OPEN_AI_KEY";
+	public static final String AWS_SECRET_KEY = "AWS_SECRET_KEY";
+	public static final String AWS_ACCESS_KEY = "AWS_ACCESS_KEY";
+	public static final String GCP_SERVICE_ACCOUNT_KEY = "GCP_SERVICE_ACCOUNT_KEY";
+
 }

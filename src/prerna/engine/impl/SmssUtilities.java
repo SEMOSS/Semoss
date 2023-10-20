@@ -796,7 +796,11 @@ public class SmssUtilities {
 				
 				// model
 				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
-				
+				ModelEngineConstants.AWS_SECRET_KEY.toUpperCase(),
+				ModelEngineConstants.AWS_ACCESS_KEY.toUpperCase(),
+				ModelEngineConstants.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
+
+
 				// storage
 				S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
 				MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
@@ -848,7 +852,10 @@ public class SmssUtilities {
 				
 				// model
 				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
-				
+				ModelEngineConstants.AWS_SECRET_KEY.toUpperCase(),
+				ModelEngineConstants.AWS_ACCESS_KEY.toUpperCase(),
+				ModelEngineConstants.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
+
 				// storage
 				S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
 				MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
