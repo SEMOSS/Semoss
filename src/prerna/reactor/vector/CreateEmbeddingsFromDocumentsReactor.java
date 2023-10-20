@@ -98,7 +98,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					}
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to move " + fileName + "to database");
+					throw new IllegalArgumentException("Unable to move " + fileName + " to database");
 				}
 			}
 		}
