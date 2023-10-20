@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,24 +27,24 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 				ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.COMMAND.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				ReactorKeysEnum.FILTERS.getKey()
 		};
-		this.keyRequired = new int[] {1, 1, 0, 0};
+		this.keyRequired = new int[] {1, 1, 0, 0, 0};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		
 		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this model");
 		}
 		
-		
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		int limit = getLimit();
 
-		
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
@@ -58,6 +60,11 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
 		if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
 			paramMap.put("insight", this.insight);
+		}
+		
+		List<IQueryFilter> filters = getFilters();
+		if (filters != null) {
+			paramMap.put("filters", filters);
 		}
 		
 		Object output = eng.nearestNeighbor(question, limit, paramMap);
@@ -95,6 +102,20 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		
 		// default to 5
 		return 5;
+	}
+	
+	private List<IQueryFilter> getFilters() {
+		AbstractQueryStruct qs;
+		GenRowStruct filterGrs = store.getNoun(ReactorKeysEnum.FILTERS.getKey());
+		if(filterGrs != null && !filterGrs.isEmpty()) {
+            List<NounMetadata> filterInputs = filterGrs.getNounsOfType(PixelDataType.QUERY_STRUCT);
+            if(filterInputs != null && !filterInputs.isEmpty()) {
+            	qs = (AbstractQueryStruct) filterInputs.get(0).getValue();
+            	List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
+            	return filters;
+        	}
+        }
+		return null;
 	}
 	
 	@Override
