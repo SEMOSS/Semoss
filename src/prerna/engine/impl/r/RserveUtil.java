@@ -30,7 +30,7 @@ import prerna.util.Utility;
 
 public class RserveUtil {
 
-	protected static final Logger logger = LogManager.getLogger(RserveUtil.class);
+	protected static final Logger classLogger = LogManager.getLogger(RserveUtil.class);
 
 	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
 	private static final String R_DATA_EXT = ".RData";
@@ -125,7 +125,7 @@ public class RserveUtil {
 				String ulimit = DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT");
 				pb = new ProcessBuilder("/bin/bash", "-c","ulimit -v " + ulimit + " && " + rBin+" CMD Rserve --vanilla --RS-port " + port);
 				List<String> coms = pb.command();
-				logger.info(Arrays.toString(coms.toArray()));
+				classLogger.info(Arrays.toString(coms.toArray()));
 
 			} else {
 				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
@@ -137,7 +137,7 @@ public class RserveUtil {
 			System.out.println(" >> " + MgmtUtil.getProcessID(process));
 			MgmtUtil.printChild(MgmtUtil.getProcessID(process));
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
 		finally {
@@ -176,15 +176,15 @@ public class RserveUtil {
 					try {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						logger.error("pid is not a valid pid");
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error("pid is not a valid pid");
+						classLogger.error(Constants.STACKTRACE, e);
 						throw e;
 					}
 					// Go through and kill these processes
 					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
 					Process processTaskkill = pbTaskkill.start();
 					processTaskkill.waitFor(7L, TimeUnit.SECONDS);
-					logger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
+					classLogger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
 				}
 
 			} else {
@@ -201,14 +201,14 @@ public class RserveUtil {
 					try {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						logger.error("pid is not a valid pid");
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error("pid is not a valid pid");
+						classLogger.error(Constants.STACKTRACE, e);
 						throw e;
 					}
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
 					Process processKill = pbKill.start();
 					processKill.waitFor(7L, TimeUnit.SECONDS);
-					logger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
+					classLogger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
 				}
 			}
 		} finally {
