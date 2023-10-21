@@ -32,7 +32,7 @@ import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -126,7 +126,7 @@ public class Insight implements Serializable {
 	protected int cacheMinutes = -1;
 	protected String cacheCron;
 	protected boolean cacheEncrypt = false;
-	private transient LocalDateTime cachedDateTime = null;
+	private transient ZonedDateTime cachedDateTime = null;
 	protected int count = 0;
 	
 	// list to store the pixels that make this insight
@@ -697,11 +697,11 @@ public class Insight implements Serializable {
 		this.cacheEncrypt = cacheEncrypt;
 	}
 	
-	public LocalDateTime getCachedDateTime() {
+	public ZonedDateTime getCachedDateTime() {
 		return cachedDateTime;
 	}
 
-	public void setCachedDateTime(LocalDateTime cachedDateTime) {
+	public void setCachedDateTime(ZonedDateTime cachedDateTime) {
 		this.cachedDateTime = cachedDateTime;
 	}
 
