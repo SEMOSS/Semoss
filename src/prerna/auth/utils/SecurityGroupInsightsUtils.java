@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
@@ -380,7 +381,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This group already has access to this insight. Please edit the existing permission level.");
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -388,15 +391,17 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?)");
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -486,7 +491,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -494,11 +501,13 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
+			ps = securityDb.getPreparedStatement("UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
 			int parameterIndex = 1;
 			ps.setInt(parameterIndex++, newPermissionLvl);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, projectId);
