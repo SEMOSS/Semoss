@@ -77,7 +77,7 @@ public class RequestInsightReactor extends AbstractReactor {
 		}
 
 		String userType = token.getProvider().toString();
-		SecurityInsightUtils.setUserAccessRequest(userId, userType, projectId, requestComment, insightId, requestPermission);
+		SecurityInsightUtils.setUserAccessRequest(userId, userType, projectId, requestComment, insightId, requestPermission, user);
 		sendEmail(user, projectId, insightId, permission, requestComment);
 		return NounMetadata.getSuccessNounMessage("Successfully requested the insight");
 	}

@@ -7,14 +7,12 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.stream.Collectors;
@@ -830,8 +828,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE, SCHEMANAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 
 		PreparedStatement ps = null;
 		try {
@@ -842,8 +839,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightName);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setInt(parameterIndex++, 0);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
@@ -855,7 +852,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn));
 			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
@@ -905,7 +902,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setInt(parameterIndex++, ownerId);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -939,8 +936,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?,"
 				+ "RECIPE=?, SCHEMANAME=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 
 		PreparedStatement ps = null;
 		try {
@@ -948,7 +944,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
 			ps.setBoolean(parameterIndex++, global);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
@@ -960,7 +956,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
@@ -995,8 +991,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 */
 	public static void updateInsightName(String projectId, String insightId, String insightName) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 
 		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1004,7 +999,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
@@ -1027,8 +1022,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheEncrypt
 	 */
 	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		
 		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1045,10 +1039,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
@@ -1071,8 +1065,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheEncrypt
 	 */
 	public static void updateInsightCachedOn(String projectId, String insightId, LocalDateTime cachedOn) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
 		String query = "UPDATE INSIGHT SET CACHEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -1081,7 +1073,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
@@ -1493,7 +1485,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1509,7 +1501,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
@@ -1565,7 +1557,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1579,7 +1571,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, newPermissionLvl);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
@@ -1638,7 +1630,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1655,7 +1647,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				ps.setTimestamp(parameterIndex++, startDate);
 				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
@@ -2954,7 +2946,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2973,7 +2965,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				insertPs.setTimestamp(parameterIndex++, startDate);
 				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
@@ -3093,7 +3085,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3135,7 +3127,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				insertPs.setTimestamp(parameterIndex++, startDate);
 				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
@@ -3153,8 +3145,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -3165,7 +3156,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
-				updatePs.setTimestamp(index++, timestamp, cal);
+				updatePs.setTimestamp(index++, timestamp);
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.addBatch();
 			}
@@ -3205,8 +3196,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -3216,7 +3206,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
-				ps.setTimestamp(index++, timestamp, cal);
+				ps.setTimestamp(index++, timestamp);
 				ps.setString(index++, requestIdList.get(i));
 				ps.addBatch();
 			}
@@ -3320,50 +3310,56 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @param userType
 	 * @param projectId
+	 * @param requestReason
+	 * @param insightId
 	 * @param permission
-	 * @return
+	 * @param user
 	 */
-	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason, String insightId, int permission) {
+	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason, String insightId, int permission, User user) {
 		// first do a delete
-		String deleteQ = "DELETE FROM INSIGHTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND INSIGHTID=? AND APPROVER_DECISION IS NULL";
-		PreparedStatement deletePs = null;
+		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND INSIGHTID=? AND APPROVER_DECISION='NEW_REQUEST'";
+		PreparedStatement updatePs = null;
 		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
 
 		try {
 			int index = 1;
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			deletePs.setString(index++, userId);
-			deletePs.setString(index++, userType);
-			deletePs.setString(index++, projectId);
-			deletePs.setString(index++, insightId);
-			deletePs.execute();
-			if(!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setString(index++, userId);
+			updatePs.setString(index++, userType);
+			updatePs.setString(index++, projectId);
+			updatePs.setString(index++, insightId);
+			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred while marking old user access request with detailed message = " + e.getMessage());
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 
+		// grab user info who is submitting request
+		Pair<String, String> requesterDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// now we do the new insert 
-		String insertQ = "INSERT INTO INSIGHTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO INSIGHTACCESSREQUEST "
+				+ "(ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, PROJECTID, INSIGHTID, PERMISSION, SUBMITTED_BY_USERID, SUBMITTED_BY_TYPE, APPROVER_DECISION) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?, 'NEW_REQUEST')";
 		PreparedStatement insertPs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-
 			int index = 1;
 			insertPs = securityDb.getPreparedStatement(insertQ);
 			insertPs.setString(index++, UUID.randomUUID().toString());
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
-			insertPs.setTimestamp(index++, timestamp, cal);
+			insertPs.setTimestamp(index++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
 			securityQueryUtil.handleInsertionOfClob(insertPs.getConnection(), insertPs, requestReason, index++, new Gson());
 			insertPs.setString(index++, projectId);
 			insertPs.setString(index++, insightId);
 			insertPs.setInt(index++, permission);
+			insertPs.setString(index++, requesterDetails.getValue0());
+			insertPs.setString(index++, requesterDetails.getValue1());
 			insertPs.execute();
 			if(!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();

@@ -8,7 +8,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -178,9 +176,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		final int batchSize = 5000;
 		int count = 0;
 		
-		LocalDateTime now = LocalDateTime.now();
-		Timestamp timeStamp = java.sql.Timestamp.valueOf(now);
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		Timestamp timeStamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 
 //		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
@@ -237,8 +233,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, insightName);
 					ps.setBoolean(parameterIndex++, !isPrivate);
 					ps.setLong(parameterIndex++, 0);
-					ps.setTimestamp(parameterIndex++, timeStamp, cal);
-					ps.setTimestamp(parameterIndex++, timeStamp, cal);
+					ps.setTimestamp(parameterIndex++, timeStamp);
+					ps.setTimestamp(parameterIndex++, timeStamp);
 					ps.setString(parameterIndex++, insightLayout);
 					ps.setBoolean(parameterIndex++, cacheable);
 					ps.setInt(parameterIndex++, cacheMinutes);
@@ -250,7 +246,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					if(cachedOn == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 					} else {
-						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn.getLocalDateTime()), cal);
+						ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
 					}
 
 					ps.setBoolean(parameterIndex++, cacheEncrypt);
@@ -1311,7 +1307,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1327,7 +1323,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
@@ -1382,7 +1378,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1396,7 +1392,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, newPermissionLvl);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			//WHERE
 			ps.setString(parameterIndex++, existingUserId);
@@ -1456,7 +1452,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1472,7 +1468,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(startDate));
+				ps.setTimestamp(parameterIndex++, startDate);
 				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				//WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
@@ -1770,8 +1766,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		if(dependentEngineIds != null && !dependentEngineIds.isEmpty()) {
 			AccessToken token = user.getPrimaryLoginToken();
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 			// now we do the new insert with the order of the tags
 			String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTDEPENDENCIES", new String[]{"PROJECTID", "ENGINEID", "USERID", "TYPE", "DATEADDED"});
 			PreparedStatement ps = null;
@@ -1783,7 +1778,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, depEngineId);
 					ps.setString(parameterIndex++, token.getId());
 					ps.setString(parameterIndex++, token.getName());
-					ps.setTimestamp(parameterIndex++, timestamp, cal);
+					ps.setTimestamp(parameterIndex++, timestamp);
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -3062,13 +3057,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
     
     /**
 	 * set user access request
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param permission
-	 * @return
-	 */
-	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason, int permission) {
+     * @param userId
+     * @param userType
+     * @param projectId
+     * @param requestReason
+     * @param permission
+     * @param user
+     */
+	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason, int permission, User user) {
 		// first mark previously undecided requests as old
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
@@ -3090,22 +3086,28 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 
+		// grab user info who is submitting request
+		Pair<String, String> requesterDetails = User.getPrimaryUserIdAndTypePair(user);
+		
 		// now we do the new insert 
-		String insertQ = "INSERT INTO PROJECTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, PROJECTID, PERMISSION, APPROVER_DECISION) VALUES (?,?,?,?,?,?,?,'NEW_REQUEST')";
+		String insertQ = "INSERT INTO PROJECTACCESSREQUEST "
+				+ "(ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, REQUEST_REASON, PROJECTID, PERMISSION, SUBMITTED_BY_USERID, SUBMITTED_BY_TYPE, APPROVER_DECISION) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,'NEW_REQUEST')";
 		PreparedStatement insertPs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 
 			int index = 1;
 			insertPs = securityDb.getPreparedStatement(insertQ);
 			insertPs.setString(index++, UUID.randomUUID().toString());
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
-			insertPs.setTimestamp(index++, timestamp, cal);
+			insertPs.setTimestamp(index++, timestamp);
 			securityQueryUtil.handleInsertionOfClob(insertPs.getConnection(), insertPs, requestReason, index++, new Gson());
 			insertPs.setString(index++, projectId);
 			insertPs.setInt(index++, permission);
+			insertPs.setString(index++, requesterDetails.getValue0());
+			insertPs.setString(index++, requesterDetails.getValue1());
 			insertPs.execute();
 			if(!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
@@ -3177,7 +3179,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3217,7 +3219,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.setBoolean(parameterIndex++, true);
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				insertPs.setTimestamp(parameterIndex++, startDate);
 				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
@@ -3235,8 +3237,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -3247,7 +3248,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
-				updatePs.setTimestamp(index++, timestamp, cal);
+				updatePs.setTimestamp(index++, timestamp);
 				
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				
@@ -3289,8 +3290,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -3300,7 +3300,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
-				ps.setTimestamp(index++, timestamp, cal);
+				ps.setTimestamp(index++, timestamp);
 				
 				ps.setString(index++, requestIdList.get(i));
 				
@@ -3351,7 +3351,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		LocalDateTime startDate = LocalDateTime.now();
+		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3369,7 +3369,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				ps.setTimestamp(parameterIndex++, startDate);
 				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				ps.addBatch();
 			}
