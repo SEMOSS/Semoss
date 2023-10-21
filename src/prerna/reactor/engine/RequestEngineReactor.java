@@ -79,7 +79,7 @@ public class RequestEngineReactor extends AbstractReactor {
 		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(engineId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestComment, requestPermission);
+			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestComment, requestPermission, user);
 			sendEmail(user, engineId, permission, requestComment);
 			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}

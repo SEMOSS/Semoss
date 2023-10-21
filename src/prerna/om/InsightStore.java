@@ -5,13 +5,8 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 public class InsightStore extends Hashtable<String, Insight> {
 
-	private static final Logger classLogger = LogManager.getLogger(InsightStore.class);
-	
 	private Map<String, Set<String>> sessionIdHash = new Hashtable<String, Set<String>>();
 	
 	// required for thick client
