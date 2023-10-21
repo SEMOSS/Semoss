@@ -97,8 +97,8 @@ public class SecurityOwlCreator {
 		if(check1) {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ENDDATE/ENGINEPERMISSION")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/GROUPENGINEPERMISSION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBY/GROUPENGINEPERMISSION")) {
 				return true;
 			}
 		}
@@ -470,6 +470,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPENGINEPERMISSION", "PERMISSION", "INT");
 		owler.addProp("GROUPENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("GROUPENGINEPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("GROUPENGINEPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("GROUPENGINEPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 
 		// GROUPPROJECTPERMISSION
 		owler.addConcept("GROUPPROJECTPERMISSION", null, null);
@@ -479,6 +481,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("GROUPPROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("GROUPPROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
 		// GROUPPROJECTPERMISSION
 		owler.addConcept("GROUPINSIGHTPERMISSION", null, null);
@@ -489,6 +493,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("GROUPINSIGHTPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
