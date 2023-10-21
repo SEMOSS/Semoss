@@ -79,7 +79,7 @@ public class RequestProjectReactor extends AbstractReactor {
 		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission);
+			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission, user);
 			sendEmail(user, projectId, permission, requestComment);
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {

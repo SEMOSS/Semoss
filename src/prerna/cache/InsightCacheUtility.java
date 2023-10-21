@@ -17,13 +17,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -59,7 +60,7 @@ import prerna.util.gson.InsightAdapter;
 
 public class InsightCacheUtility {
 
-	private static final Logger logger = LogManager.getLogger(InsightCacheUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(InsightCacheUtility.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
@@ -111,7 +112,7 @@ public class InsightCacheUtility {
 				
 				folderDir = folderDir + DIR_SEPARATOR + s.toString();
 			} catch (NoSuchAlgorithmException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return folderDir;
@@ -168,7 +169,7 @@ public class InsightCacheUtility {
 					FileUtils.writeStringToFile(insightFile, writer.toString());
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			addToZipFile(insightFile, zos);
 
@@ -195,7 +196,7 @@ public class InsightCacheUtility {
 				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeStream(zos);
 			closeStream(fos);
@@ -211,19 +212,19 @@ public class InsightCacheUtility {
 	 */
 	public static File writeInsightCacheVersion(String versionFileLoc) {
 		StringBuilder version = new StringBuilder(VERSION_HEADER);
-		version.append(DATETIME_KEY).append("=").append(LocalDateTime.now()).append("\r\n");
+		version.append(DATETIME_KEY).append("=").append(ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC"))).append("\r\n");
 		try {
 			Map<String, String> versionMap = VersionReactor.getVersionMap(false);
 			version.append(VERSION_KEY).append("=").append(versionMap.get(VERSION_KEY)).append("\r\n");
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		File versionFile = new File(Utility.normalizePath(versionFileLoc));
 		try {
 			FileUtils.writeStringToFile(versionFile, version.toString());
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return versionFile;
 	}
@@ -291,9 +292,9 @@ public class InsightCacheUtility {
 			return null;
 		}
 		
-		LocalDateTime cachedDateTime = null;
+		ZonedDateTime cachedDateTime = null;
 		try {
-			cachedDateTime = LocalDateTime.parse(dateGenStr);
+			cachedDateTime = ZonedDateTime.parse(dateGenStr);
 		} catch(Exception e) {
 			// someone has been manually touching the file and they should
 			// write the version file again with todays date
@@ -301,13 +302,13 @@ public class InsightCacheUtility {
 			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
 			vProp = Utility.loadProperties(versionFileLoc);
 			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
-			cachedDateTime = LocalDateTime.parse(dateGenStr);
+			cachedDateTime = ZonedDateTime.parse(dateGenStr);
 		}
 		
 		// check cache doesn't have a time expiration
 		int cacheMinutes = existingInsight.getCacheMinutes();
 		if(cacheMinutes > 0) {
-			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
+			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC")))) {
 				InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
 						existingInsight.getRdbmsId(), paramValues, true);
 				return null;
@@ -320,8 +321,7 @@ public class InsightCacheUtility {
 			CronExpression expression;
 			try {
 				expression = new CronExpression(cacheCron);
-				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-				Date cachedDateObj = Date.from(cachedDateTime.atZone(tz.toZoneId()).toInstant());
+				Date cachedDateObj = Date.from(cachedDateTime.toInstant());
 				Date nextValidTimeAfter = expression.getNextValidTimeAfter(cachedDateObj);
 				if(nextValidTimeAfter.before(cachedDateObj)) {
 					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
@@ -330,7 +330,7 @@ public class InsightCacheUtility {
 				}
 			} catch (ParseException e) {
 				// invalid cron... not sure if we should ever get to this point
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				return null;
 			}
 		}
@@ -377,7 +377,7 @@ public class InsightCacheUtility {
 			insight.setCacheEncrypt(encrypt);
 			return insight;
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			closeStream(zip);
@@ -449,7 +449,7 @@ public class InsightCacheUtility {
 	        Gson gson = new Gson();
 			return gson.fromJson(sb.toString(), Map.class);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			closeStream(zip);
@@ -504,7 +504,7 @@ public class InsightCacheUtility {
 				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
 			}
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		if(pullCloud) {
@@ -526,20 +526,20 @@ public class InsightCacheUtility {
                 fos.write(buffer, 0, len);
             }
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fos != null) {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(zis != null) {
 				try {
 					zis.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -554,7 +554,7 @@ public class InsightCacheUtility {
 			try {
 				is.close();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

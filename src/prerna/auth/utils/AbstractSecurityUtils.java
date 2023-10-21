@@ -1159,8 +1159,8 @@ public abstract class AbstractSecurityUtils {
 	
 			// GROUP DATABASE PERMISSION
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
-			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
 			} else {
@@ -1186,8 +1186,8 @@ public abstract class AbstractSecurityUtils {
 	
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
-			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
 			} else {
@@ -1212,8 +1212,8 @@ public abstract class AbstractSecurityUtils {
 			}
 	
 			// GROUP INSIGHT PERMISSION
-			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
 			} else {
@@ -2340,6 +2340,43 @@ public abstract class AbstractSecurityUtils {
 	public static Timestamp calculateEndDate(String endDate) {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static Timestamp getCurrentSqlTimestampUTC() {
+		ZonedDateTime zdt = ZonedDateTime.now();
+		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static Timestamp getSqlTimestampUTC(ZonedDateTime zdt) {
+		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static Timestamp getSqlTimestampUTC(LocalDateTime ldt) {
+		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static Timestamp getSqlTimestampUTC(SemossDate semossdate) {
+		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
 	}
 	
