@@ -1863,6 +1863,48 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static int getUserPendingAccessRequest(User user, String engineId) {
+		// grab user info who is submitting request
+		Pair<String, String> requesterDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__APPROVER_DECISION"));
+		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID", "==", requesterDetails.getValue0()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_TYPE", "==", requesterDetails.getValue1()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__ENGINEID", "==", engineId));
+		qs.addOrderBy("ENGINEACCESSREQUEST__REQUEST_TIMESTAMP", "desc");
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				String mostRecentAction = (String) values[0];
+				if(!mostRecentAction.equals("APPROVED") && !mostRecentAction.equals("DENIED") && !mostRecentAction.equals("OLD")) {
+					return ((Number) values[1]).intValue();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(it != null) {
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return -1;
+	}
+	
+	/**
 	 * Get the list of engines the user does not have access to but can request
 	 * @param allUserEngines 
 	 * @throws Exception
