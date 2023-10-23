@@ -70,7 +70,10 @@ public class QueryExecutionUtility {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			while(wrapper.hasNext()) {
-				return ((Number) wrapper.next().getValues()[0]).intValue();
+				Number val = ((Number) wrapper.next().getValues()[0]);
+				if(val != null) {
+					return val.intValue();
+				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -92,7 +95,10 @@ public class QueryExecutionUtility {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			while(wrapper.hasNext()) {
-				return ((Number) wrapper.next().getValues()[0]).longValue();
+				Number val = ((Number) wrapper.next().getValues()[0]);
+				if(val != null) {
+					return val.longValue();
+				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
