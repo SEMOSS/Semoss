@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -29,12 +30,14 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
 		
+		User user = this.insight.getUser();
+		
 		List<Map<String, Object>> baseInfo = null;
 		// make sure valid id for user
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		if(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
+		if(SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			// user has access!
-			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineId, null);
+			baseInfo = SecurityEngineUtils.getUserEngineList(user, engineId, null);
 		} else if(SecurityEngineUtils.engineIsDiscoverable(engineId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
 		} else {
@@ -55,6 +58,12 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 			if(eDate != null) {
 				databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(engineId));
 			}
+		}
+		
+		// see if there is any pending request to this engine
+		int pendingRequest = SecurityEngineUtils.getUserPendingAccessRequest(user, engineId);
+		if(pendingRequest > 0) {
+			databaseInfo.put("pending_access_request", pendingRequest);
 		}
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
