@@ -89,7 +89,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.MODEL, user, modelName, modelId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelName, modelId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
 			
 			String modelClass = modelType.getModelClass();
 			model = (IModelEngine) Class.forName(modelClass).newInstance();

@@ -98,7 +98,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.VECTOR, user, vectorDbName, vectorDbId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbName, vectorDbId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
 			
 			String vectorDbClass = vectorDbType.getVectorDatabaseClass();
 			vectorDb = (IVectorDatabaseEngine) Class.forName(vectorDbClass).newInstance();
