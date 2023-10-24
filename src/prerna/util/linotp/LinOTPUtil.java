@@ -137,7 +137,11 @@ public class LinOTPUtil {
 						}
 					}
 					classLogger.error(Constants.STACKTRACE, e);
-					returnMap.put(Constants.ERROR_MESSAGE, "Unable to authenticate with active directory");
+					if(e.getMessage() != null) {
+						returnMap.put(Constants.ERROR_MESSAGE, "Failed authenticate with active directory. Error message = " + e.getMessage());
+					} else {
+						returnMap.put(Constants.ERROR_MESSAGE, "Failed authenticate with active directory.");
+					}
 					linotpResponse.setResponseCode(500);
 					return linotpResponse;
 				} finally {
