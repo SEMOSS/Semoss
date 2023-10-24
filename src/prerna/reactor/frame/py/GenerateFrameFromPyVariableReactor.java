@@ -30,7 +30,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 		String varName = getVarName();
 		PyTranslator pyT = this.insight.getPyTranslator();
 		logger.info("Getting the columns for :" + varName);
-		String[] colNames = pyT.getStringArray(PandasSyntaxHelper.getColumns(varName));;
+		String[] colNames = pyT.getStringArray(PandasSyntaxHelper.getColumns(varName));
 		
 		// I bet this is being done for pixel.. I will keep the same
 		logger.info("Cleaning the columns for :" + varName);
