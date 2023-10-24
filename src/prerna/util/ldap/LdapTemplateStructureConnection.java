@@ -267,7 +267,18 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 				retObj.setPrincipalTemplate(principalTemplate);
 				return retObj;
 			} catch(Exception e) {
-				classLogger.error("Failed connection with template: " + securityPrincipalTemplate.get(i));
+				String message = "Failed connection with template: " + securityPrincipalTemplate.get(i) + ". ";
+				if(e instanceof NamingException) {
+					String possibleExplanation = ((NamingException) e).getExplanation();
+					if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+						message += "Error message explanation: " + possibleExplanation;
+					} else {
+						message += "Error message = " + e.getMessage();
+					}
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+				classLogger.error(message);
 				lastException = e;
 			}
 			i++;
@@ -326,10 +337,23 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			} catch(Exception e) {
 				String message = null;
 				if(principalDN == null) {
-					message = "Unable to find principal DN for username : " + username;
+					message = "Unable to find principal DN for username : " + username + ". ";
 				} else {
-					message = "Failed to change password. Error message = " + e.getMessage();
+					message = "Failed to change password. ";
 				}
+				
+				if(e instanceof NamingException) {
+					String possibleExplanation = ((NamingException) e).getExplanation();
+					if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+						message += "Error message explanation: " + possibleExplanation;
+					} else {
+						message += "Error message = " + e.getMessage();
+					}
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+				
+				
 				classLogger.error(message);
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(message);
@@ -358,10 +382,22 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			} catch (Exception e) {
 				String message = null;
 				if(principalDN == null) {
-					message = "User was unable to authenticate with current password, username entered: " + username;
+					message = "User was unable to authenticate with current password, username entered: " + username + ". ";
 				} else {
-					message = "Failed to change password. Error message = " + e.getMessage();
+					message = "Failed to change password. ";
 				}
+				
+				if(e instanceof NamingException) {
+					String possibleExplanation = ((NamingException) e).getExplanation();
+					if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+						message += "Error message explanation: " + possibleExplanation;
+					} else {
+						message += "Error message = " + e.getMessage();
+					}
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+				
 				classLogger.error(message);
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(message);
@@ -414,7 +450,20 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
+			
+			String message = "Failed to change password. ";
+			if(e instanceof NamingException) {
+				String possibleExplanation = ((NamingException) e).getExplanation();
+				if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+					message += "Error message explanation: " + possibleExplanation;
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+			} else {
+				message += "Error message = " + e.getMessage();
+			}
+			
+			throw new IllegalArgumentException(message);
 		}
 	}
 

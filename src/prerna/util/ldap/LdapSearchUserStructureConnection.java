@@ -202,7 +202,18 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 				return this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, 
 						this.attributeUserNameKey, this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays);
 			} catch(Exception e) {
-				classLogger.error("Incorrect login for " + userDN);
+				String message = "Incorrect login for: " + userDN + ". ";
+				if(e instanceof NamingException) {
+					String possibleExplanation = ((NamingException) e).getExplanation();
+					if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+						message += "Error message explanation: " + possibleExplanation;
+					} else {
+						message += "Error message = " + e.getMessage();
+					}
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+				classLogger.error(message);
 				classLogger.error(Constants.STACKTRACE, e);
 				continue;
 			} finally {
@@ -281,8 +292,20 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			}
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
+			String message = "Failed to change password. ";
+			if(e instanceof NamingException) {
+				String possibleExplanation = ((NamingException) e).getExplanation();
+				if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+					message += "Error message explanation: " + possibleExplanation;
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+			} else {
+				message += "Error message = " + e.getMessage();
+			}
+			
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
+			throw new IllegalArgumentException(message);
 		}
 	}
 
@@ -329,8 +352,20 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			}
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
+			String message = "Failed to change password. ";
+			if(e instanceof NamingException) {
+				String possibleExplanation = ((NamingException) e).getExplanation();
+				if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+					message += "Error message explanation: " + possibleExplanation;
+				} else {
+					message += "Error message = " + e.getMessage();
+				}
+			} else {
+				message += "Error message = " + e.getMessage();
+			}
+			
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
+			throw new IllegalArgumentException(message);
 		}
 	}
 	
