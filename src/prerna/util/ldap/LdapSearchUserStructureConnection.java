@@ -202,7 +202,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 				return this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, 
 						this.attributeUserNameKey, this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays);
 			} catch(Exception e) {
-				String message = "Incorrect login for: " + userDN + ". ";
+				String message = "Incorrect login for '" + userDN + "'. ";
 				if(e instanceof NamingException) {
 					String possibleExplanation = ((NamingException) e).getExplanation();
 					if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
