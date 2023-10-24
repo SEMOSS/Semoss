@@ -1,7 +1,5 @@
 package prerna.reactor.export;
 
-import java.io.File;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,17 +22,17 @@ public class LoadPyFromFileReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		// this also validates
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		String alias = keyValue.get(keysToGet[1]);
-		
-		File f = new File(filePath);
+
 		try {
 			String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"')";
 			this.insight.getPyTranslator().runScript(script);
 			return new NounMetadata("Variable set " + alias, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Unable to write object to file");
+			throw new SemossPixelException("Unable to load python file as module");
 		}
 	}
 }
