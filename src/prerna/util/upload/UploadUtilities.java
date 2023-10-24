@@ -162,7 +162,7 @@ public class UploadUtilities {
 	 * @param engineName
 	 * @throws IOException
 	 */
-	public static void validateEngine(IEngine.CATALOG_TYPE engienType, User user, String engineName, String engineId) throws IOException {
+	public static void validateEngine(IEngine.CATALOG_TYPE engineType, User user, String engineName, String engineId) throws IOException {
 		if(engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
@@ -173,7 +173,7 @@ public class UploadUtilities {
 		}
 		
 		// need to make sure engine folder doesn't already exist
-		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engienType, engineId, engineName);
+		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
 		File engineFolder = new File(engineLocation);
 		if(engineFolder.exists()) {
 			throw new IOException("Engine folder already contains a directory with the same name. "
@@ -190,7 +190,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
-		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName);
+		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
 		File specificEngineF = new File(specificEngineLocation);
 		specificEngineF.mkdirs();
 		return specificEngineF;
