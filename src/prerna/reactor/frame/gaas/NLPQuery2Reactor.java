@@ -46,7 +46,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 	// plug the pipeline into insight
 
 	//
-	private static final Logger logger = LogManager.getLogger(NLPQuery2Reactor.class);
+	private static final Logger classLogger = LogManager.getLogger(NLPQuery2Reactor.class);
 
 	public NLPQuery2Reactor() {
 		this.keysToGet = new String[] { 
@@ -193,7 +193,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				finalDbString.append("\\n#\\n");
 
 				//ITableDataFrame thisFrame = frameIterator.next();
-				logger.info("Processing frame " + thisFrame.getName());
+				classLogger.info("Processing frame " + thisFrame.getName());
 				finalDbString.append("#").append(thisFrame.getName()).append("(");
 
 				String [] columns = thisFrame.getColumnHeaders();
@@ -210,7 +210,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				finalDbString.append(")\\n");
 				finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
 
-				logger.info("executing query " + finalDbString);
+				classLogger.info("executing query " + finalDbString);
 
 			}
 			else
@@ -237,7 +237,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				finalDbString.append(")");
 				finalDbString.append(". Provide an SQL to list ").append(query);
 				finalDbString.append(". Be Concise. Provide as markdown");
-				logger.info(finalDbString + "");
+				classLogger.info(finalDbString + "");
 			}
 			
 			Object output = null;
@@ -320,13 +320,13 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				end = response.indexOf(";");
 				if(end >= 0)
 					response = response.substring(0, end);
-				logger.info(response);
+				classLogger.info(response);
 				output = response;
 			}
 			// get the string
 			// make a frame
 			// load the frame into insight
-			logger.info("SQL query is " + output);
+			classLogger.info("SQL query is " + output);
 
 			//Create a new SQL Data Frame 
 			String sqlDFQuery = output.toString().trim();
@@ -356,9 +356,10 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				String sqliteName = pFrame.getSQLite();
 
 				// pd.read_sql("select * from diab1 where age > 60", conn)
-				String frameMaker = "pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ").head(20)";
-				logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
-				String sampleOut = insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameMaker, this.insight); // load the sql df
+				String frameMaker = frameName + " = pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ")";
+				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
+				insight.getPyTranslator().runEmptyPy(frameMaker);
+				String sampleOut = insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameName + ".head(20)", this.insight); // load the sql df
 
 				System.err.println(sampleOut);
 				// send information
@@ -381,13 +382,6 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						outputString.append(sampleOut);
 						outputString.append("\n");
 						retListForFrames.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
-					}
-					try
-					{
-						this.insight.getPyTranslator().runScript("del " + frameName + " , sqldf");
-					}catch(Exception ignored)
-					{
-						
 					}
 				}
 				else
@@ -418,7 +412,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				rt.checkPackages(new String[] { "sqldf" });
 
 				String frameMaker = frameName + " <- sqldf(\"" + sqlDFQuery + "\")";
-				logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
+				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				rt.runRAndReturnOutput("library(sqldf)");
 				rt.runR(frameMaker); // load the sql df			
 
@@ -592,12 +586,28 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			logger.info(e.getMessage());;
+			classLogger.info(e.getMessage());;
 			sameColumns = false;
 		}
 		return sameColumns;
 	}
 
+	
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	
+	
+	public static void main(String [] args)
+	{
+		NLPQuery2Reactor nl = new NLPQuery2Reactor();
+		nl.processSQL(null);
+	}
+	
+	
 	private void processSQL(String sql)
 	{
 		sql = "SELECT actor_name, title, gender" + 
@@ -831,12 +841,4 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 
 		return null;
 	}
-
-	public static void main(String [] args)
-	{
-		NLPQuery2Reactor nl = new NLPQuery2Reactor();
-		nl.processSQL(null);
-	}
-
-
 }
