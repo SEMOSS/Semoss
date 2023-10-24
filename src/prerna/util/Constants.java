@@ -835,7 +835,8 @@ public class Constants {
 	// Workspace
 	public static final String USER_WORKSPACE = "USER_WORKSPACE";
 	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
-	
+	public static final String SECURE_PROMPT = "SECURE_PROMPT";
+
 	//fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
