@@ -89,7 +89,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.STORAGE, user, storageName, storageId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageName, storageId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 			
 			String storageClass = storageType.getStorageClass();
 			storage = (IStorageEngine) Class.forName(storageClass).newInstance();
