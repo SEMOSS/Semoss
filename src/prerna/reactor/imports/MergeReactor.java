@@ -316,6 +316,7 @@ public class MergeReactor extends AbstractReactor {
 		// join types and everything is an outer
 		if(noDataError && !(frame instanceof TinkerFrame) ) {
 			qs.setLimit(1);
+			classLogger.info("Adjusting merge query with limit 1 because frame is empty");
 		}
 		
 		IRawSelectWrapper it = null;
