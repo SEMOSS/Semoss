@@ -19,32 +19,27 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
-import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.reactor.qs.SubQueryExpression;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ITask;
+import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -203,9 +198,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// TODO change this to json so we never have an encoding issue
 		checkSocketStatus();
 		
-		List<String> filesToIndex;
-		File tableDirectory = new File(this.schemaFolder, indexClass);
-		File documentDir = new File(tableDirectory, "documents");
+		File indexDirectory = new File(this.schemaFolder, indexClass);
+		File documentDir = new File(indexDirectory, "documents");
 		if(!documentDir.exists()) {
 			documentDir.mkdirs();
 		}
@@ -442,6 +436,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		String searchFilters = "None";
 		if (parameters.containsKey("filters")) {
+			// TODO modify so query can come from py world
 			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
 			searchFilters = addFilters(filters);
 			// make the filter arg
@@ -537,6 +532,38 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if(this.p != null && this.p.isAlive()) {
 			this.p.destroy();
 		}
+	}
+	
+	@Override
+	public void delete() {
+		classLogger.debug("Delete vector database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		this.close();
+		
+		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.engineId, this.engineName);
+		File engineFolder = new File(specificEngineLocation);
+		if(engineFolder.exists()) {
+			classLogger.info("Delete vector database engine folder " + engineFolder);
+			CleanerThread t = new CleanerThread(engineFolder.getAbsolutePath());
+			t.start();
+		} else {
+			classLogger.info("Vector Database engine folder " + engineFolder + " does not exist");
+		}
+		
+		classLogger.info("Deleting vector database engine smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch(IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// remove from DIHelper
+		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		engineIds = engineIds.replace(";" + this.engineId, "");
+		// in case we are at the start
+		engineIds = engineIds.replace(this.engineId + ";", "");
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+		DIHelper.getInstance().removeEngineProperty(this.engineId);
 	}
 	
 	private String addFilters(List<IQueryFilter> filters) {
