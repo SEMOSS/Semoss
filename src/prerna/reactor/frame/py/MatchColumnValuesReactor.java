@@ -38,9 +38,9 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 
 		// get count of exact matches
-		Long exactMatchCount = (Long) returnTable.runScript("len(" + matchesTable + "[" + matchesTable + "['distance'] == 100])");
+		Number exactMatchCount = (Number) returnTable.runScript("len(" + matchesTable + "[" + matchesTable + "['distance'] == 100])");
 		if (exactMatchCount != null) {
-			retNoun.addAdditionalReturn(new NounMetadata(exactMatchCount, PixelDataType.CONST_INT));
+			retNoun.addAdditionalReturn(new NounMetadata(exactMatchCount.longValue(), PixelDataType.CONST_INT));
 		} else {
 			throw new IllegalArgumentException("No matches found.");
 		}
