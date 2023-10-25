@@ -985,7 +985,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "('" + PandasSyntaxHelper.createFrameWrapperName(tableName) + "' in vars() and len(" + PandasSyntaxHelper.createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
+		String wrapperName = PandasSyntaxHelper.createFrameWrapperName(tableName);
+		String command = "( ('"+wrapperName+"' in vars() or '"+wrapperName+"' in globals()) and len("+wrapperName+".cache['data'])>=0 )";
 		
 		Object notEmpty = pyt.runScript(command);
 		Boolean notEmptyResult = null;
