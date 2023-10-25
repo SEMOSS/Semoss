@@ -192,7 +192,16 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 		
+		if (parameters.containsKey("contentLength")) {
+			this.contentLength = (int) parameters.get("contentLength");
+		}
+		
+		if (parameters.containsKey("contentOverlap")) {
+			this.contentOverlap = (int) parameters.get("contentOverlap");
+		}
+		
 		File parentDirectory = (File) parameters.get("temporaryFileDirectory");
+		
 		
 		// first we need to extract the text from the document
 		// TODO change this to json so we never have an encoding issue
