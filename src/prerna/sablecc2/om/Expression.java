@@ -38,10 +38,6 @@ public class Expression {
 		return leftSide+" "+operation+" "+rightSide; 
 	}
 	
-	private String getVariablesString(PixelPlanner planner, String[] inputs) {
-		return "";
-	}
-	
 	/**
 	 * 
 	 * @param expr
