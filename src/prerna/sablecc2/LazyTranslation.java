@@ -851,7 +851,7 @@ public class LazyTranslation extends DepthFirstAdapter {
      * Comparison logic
      */
     
-    private void getOrComparison() {
+    private IReactor getOrComparison() {
     	IReactor newReactor = null;
     	if(this.curReactor instanceof prerna.reactor.qs.selectors.IfReactor)
       	{
@@ -868,9 +868,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     	
     	initReactor(newReactor);
     	syncResult();
+    	return newReactor;
     }
     
-    private void getAndComparison() {
+    private IReactor getAndComparison() {
     	IReactor newReactor = null;
     	if(this.curReactor instanceof prerna.reactor.qs.selectors.IfReactor)
       	{
@@ -887,12 +888,14 @@ public class LazyTranslation extends DepthFirstAdapter {
     	
     	initReactor(newReactor);
     	syncResult();
+    	return newReactor;
     }
     
     @Override
     public void inAComplexAndComparisonExpr(AComplexAndComparisonExpr node) {
     	defaultIn(node);
-    	getAndComparison();
+    	IReactor newReactor = getAndComparison();
+    	newReactor.setPixel("AND_FILTER", node.toString().trim());
     }
     
     @Override
@@ -904,7 +907,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAComplexOrComparisonExpr(AComplexOrComparisonExpr node) {
     	defaultIn(node);
-    	getOrComparison();
+    	IReactor newReactor = getOrComparison();
+    	newReactor.setPixel("OR_FILTER", node.toString().trim());
     }
     
     @Override
@@ -916,7 +920,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABasicAndComparisonTerm(ABasicAndComparisonTerm node) {
     	defaultIn(node);
-    	getAndComparison();
+    	IReactor newReactor = getAndComparison();
+    	newReactor.setPixel("AND_FILTER", node.toString().trim());
     }
     
     @Override
@@ -928,7 +933,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABasicOrComparisonTerm(ABasicOrComparisonTerm node) {
     	defaultIn(node);
-    	getOrComparison();
+    	IReactor newReactor = getOrComparison();
+    	newReactor.setPixel("OR_FILTER", node.toString().trim());
     }
     
     @Override
@@ -951,8 +957,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     		newReactor = new OpFilter();
     	}
     	
-    	
     	initReactor(newReactor);
+    	newReactor.setPixel("BASIC_FILTER", node.toString());
     	syncResult();
     }
 

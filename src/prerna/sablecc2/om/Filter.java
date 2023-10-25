@@ -12,18 +12,17 @@ import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.JavaExecutable;
-import prerna.reactor.PixelPlanner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class Filter implements JavaExecutable {
 
-	private static final Logger LOGGER = LogManager.getLogger(Filter.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(Filter.class);
 
 	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '?like'
 	private GenRowStruct lComparison = null; //the column we want to filter
 	private GenRowStruct rComparison = null; //the values to bind the filter on
-	private PixelPlanner planner = null;
+	private VarStore varStore = null;
 	
 	public Filter(GenRowStruct lComparison, String comparator, GenRowStruct rComparison)
 	{
@@ -48,14 +47,17 @@ public class Filter implements JavaExecutable {
 		return this.comparator;
 	}
 
+	public void setVarStore(VarStore varStore) {
+		this.varStore = varStore;
+	}
+	
 	/**
 	 * Method to evaluate the filter condition
 	 * Only works if all inputs are scalar values (or variables that are scalar values)
 	 * @param planner
 	 * @return
 	 */
-	public boolean evaluate(PixelPlanner planner) {
-		this.planner = planner;
+	public boolean evaluate() {
 		FilterEvaluator c = getFilterEvaluator();
 		//set left var
 		//set right var
@@ -83,8 +85,8 @@ public class Filter implements JavaExecutable {
 		String classId = "$Filter"+stringMethod.hashCode();
 		
 		//if exists, use it
-		if(this.planner.hasVariable(classId)) {
-			evaluator = (FilterEvaluator)this.planner.getVariable(classId).getValue();
+		if(this.varStore.containsKey(classId)) {
+			evaluator = (FilterEvaluator)this.varStore.get(classId).getValue();
 		} 
 		
 		//else create a new one, store it, return
@@ -201,8 +203,8 @@ public class Filter implements JavaExecutable {
 		// in case it is a column
 		// need to check if this is actually a variable
 		else if(metaType == PixelDataType.COLUMN) {
-			if(planner.hasVariable(type.toString())) {
-				NounMetadata varNoun = planner.getVariableValue(type.toString());
+			if(this.varStore.containsKey(type.toString())) {
+				NounMetadata varNoun = this.varStore.getEvaluatedValue(type.toString());
 				// in case the variable itself points to a lambda
 				// just re-run this method with the varNoun as input
 				return getIfExpressionString(varNoun, key);
@@ -270,8 +272,8 @@ public class Filter implements JavaExecutable {
 		// in case it is a column
 		// need to check if this is actually a variable
 		else if(metaType == PixelDataType.COLUMN) {
-			if(planner.hasVariable(type.toString())) {
-				NounMetadata varNoun = planner.getVariableValue(type.toString());
+			if(this.varStore.containsKey(type.toString())) {
+				NounMetadata varNoun = this.varStore.getEvaluatedValue(type.toString());
 				// in case the variable itself points to a lambda
 				// just re-run this method with the varNoun as input
 				setIfExpression(evaluator, varNoun, key);
