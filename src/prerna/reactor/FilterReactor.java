@@ -21,6 +21,7 @@ public class FilterReactor extends AbstractReactor {
 		GenRowStruct rcol = store.getNoun("RCOL");
 		
 		Filter thisFilter = new Filter(lcol, comparator.get(0).toString(), rcol);
+		thisFilter.setVarStore(this.insight.getVarStore());
 		NounMetadata filterNoun = new NounMetadata(thisFilter, PixelDataType.FILTER);
 		return filterNoun;
 	}

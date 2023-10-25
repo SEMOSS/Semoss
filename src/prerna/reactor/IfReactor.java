@@ -56,7 +56,7 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 			// we have a filter object
 			// use its evaluate method
 			Filter filter = (Filter) ifEvaluatorObject;
-			this.caseEvaluation = filter.evaluate(this.planner);
+			this.caseEvaluation = filter.evaluate();
 		} else if(ifEvaluatorType == PixelDataType.LAMBDA) {
 			// we have a full reactor
 			// required that this returns a boolean
@@ -202,17 +202,12 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 					falseString = "\""+falseCase.toString()+"\"";
 				}
 			}
-			
-			
-			
 			else {
 				falseString = "\""+falseCase.toString()+"\"";
 			}
 		} else {
 			falseString = falseCase.toString();
 		}
-		
-		
 		
 		return "(" + getFilterString() + " ? " + trueString + " : "+ falseString + ")";
 	}
@@ -248,14 +243,6 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		}
 		
 		return trueReturn;
-//		//if they are not the same return object
-//		if(trueReturn.equals(falseReturn)) {
-//			return trueReturn;
-//		} else {
-//			return "Object";
-//		}
- 		
-		
 	}
 	
 	private String getReturnType(NounMetadata returnNoun) {

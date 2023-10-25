@@ -38,16 +38,26 @@ public class OpFilter extends OpBasic {
 		}
 		// we have some numerical stuff
 		// everything needs to be a valid number
-		else if(comparator.equals(">=")) {
-			evaluation = ((Number)left).doubleValue() >= ((Number)right).doubleValue();
-		} else if(comparator.equals(">")) {
-			evaluation = ((Number)left).doubleValue() > ((Number)right).doubleValue();
-		} else if(comparator.equals("<=")) {
-			evaluation = ((Number)left).doubleValue() <= ((Number)right).doubleValue();
-		} else if(comparator.equals("<")) {
-			evaluation = ((Number)left).doubleValue() < ((Number)right).doubleValue();
-		} else {
-			throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+		else {
+			// check numerical
+			if(!(left instanceof Number)) {
+				throw new IllegalArgumentException("Value '" + left.toString() + "' is not a numeric value");
+			}
+			if(!(right instanceof Number)) {
+				throw new IllegalArgumentException("Value '" + right.toString() + "' is not a numeric value");
+			}
+			
+			if(comparator.equals(">=")) {
+				evaluation = ((Number)left).doubleValue() >= ((Number)right).doubleValue();
+			} else if(comparator.equals(">")) {
+				evaluation = ((Number)left).doubleValue() > ((Number)right).doubleValue();
+			} else if(comparator.equals("<=")) {
+				evaluation = ((Number)left).doubleValue() <= ((Number)right).doubleValue();
+			} else if(comparator.equals("<")) {
+				evaluation = ((Number)left).doubleValue() < ((Number)right).doubleValue();
+			} else {
+				throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+			}
 		}
 		
 		return new NounMetadata(evaluation, PixelDataType.BOOLEAN);
