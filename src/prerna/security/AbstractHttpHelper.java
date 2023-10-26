@@ -935,7 +935,7 @@ public abstract class AbstractHttpHelper {
     		return responseData;
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
 		}
 	}
 	
