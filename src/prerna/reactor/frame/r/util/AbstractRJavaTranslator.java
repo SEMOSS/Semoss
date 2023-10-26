@@ -52,7 +52,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
 	 * @param rScript
 	 */
-	abstract void executeEmptyRDirect(String rScript);
+	public abstract void executeEmptyRDirect(String rScript);
 	
 	/**
 	 * Execute an R Script
