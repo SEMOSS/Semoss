@@ -1,4 +1,4 @@
-package prerna.reactor.frame.r.util;
+package prerna.reactor.codeexec;
 
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.impl.r.IRUserConnection;
@@ -8,7 +8,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class RClearAllUserRservesReactor extends AbstractReactor {
+public class AdminRClearAllUserRservesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {

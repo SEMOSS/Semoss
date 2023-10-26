@@ -1,4 +1,4 @@
-package prerna.reactor.frame.r.util;
+package prerna.reactor.codeexec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.commons.io.FilenameUtils;
 
 import prerna.reactor.frame.r.AbstractRFrameReactor;
+import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
