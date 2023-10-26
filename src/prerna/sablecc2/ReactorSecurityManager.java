@@ -7,8 +7,8 @@ import java.util.Vector;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.ds.py.PyExecutorThread;
 import prerna.engine.impl.r.RSingleton;
-import prerna.reactor.frame.py.PyReactor;
-import prerna.reactor.frame.r.RReactor;
+import prerna.reactor.codeexec.PyReactor;
+import prerna.reactor.codeexec.RReactor;
 import prerna.reactor.runtime.AbstractBaseRClass;
 import prerna.reactor.runtime.JavaReactor;
 
