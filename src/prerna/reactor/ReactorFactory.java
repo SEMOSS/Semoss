@@ -200,17 +200,10 @@ import prerna.reactor.frame.graph.r.ChangeGraphLayoutReactor;
 import prerna.reactor.frame.graph.r.ClusterGraphReactor;
 import prerna.reactor.frame.graph.r.NodeDetailsReactor;
 import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
-import prerna.reactor.frame.py.PyReactor;
-import prerna.reactor.frame.py.PySourceReactor;
-import prerna.reactor.frame.r.CancelRReactor;
 import prerna.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
-import prerna.reactor.frame.r.RReactor;
 import prerna.reactor.frame.r.SemanticBlendingReactor;
 import prerna.reactor.frame.r.SemanticDescription;
-import prerna.reactor.frame.r.util.RClearAllUserRservesReactor;
-import prerna.reactor.frame.r.util.REnableUserRecoveryReactor;
-import prerna.reactor.frame.r.util.RSourceReactor;
 import prerna.reactor.imports.ImportReactor;
 import prerna.reactor.imports.MergeReactor;
 import prerna.reactor.insights.ClearInsightReactor;
@@ -1146,13 +1139,6 @@ public class ReactorFactory {
 		//reactorHash.put("RunLSI", RunLSIReactor.class); 
 		
 		// General Code Execution
-		reactorHash.put("Py", PyReactor.class);
-		reactorHash.put("R", RReactor.class);
-		reactorHash.put("CancelR", CancelRReactor.class);
-		reactorHash.put("REnableUserRecovery", REnableUserRecoveryReactor.class);
-		reactorHash.put("RClearAllUserRservesReactor", RClearAllUserRservesReactor.class);
-		reactorHash.put("RSource", RSourceReactor.class);
-		reactorHash.put("PySource", PySourceReactor.class);
 		reactorHash.put("Java", JavaReactor.class);
 		
 		// Pixel Recipe Parsing / Manipulation
@@ -1451,7 +1437,6 @@ public class ReactorFactory {
 		}
 		
 		// ughhh... idk what you are trying to do
-		// reactor = new SamplReactor();
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
 	}
 	
