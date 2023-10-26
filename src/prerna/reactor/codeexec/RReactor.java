@@ -1,4 +1,4 @@
-package prerna.reactor.frame.r;
+package prerna.reactor.codeexec;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +17,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.reactor.frame.r.AbstractRFrameReactor;
+import prerna.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.GenRowStruct;

@@ -435,7 +435,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	}	
 
 	@Override
-	void executeEmptyRDirect(String rScript) {
+	public void executeEmptyRDirect(String rScript) {
 		if(nc != null)
 		{
 			// TODO Auto-generated method stub
