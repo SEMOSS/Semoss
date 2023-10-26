@@ -10,6 +10,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class ProjectInfoReactor extends AbstractReactor {
 	
@@ -41,6 +43,11 @@ public class ProjectInfoReactor extends AbstractReactor {
 		// we filtered to a single project
 		Map<String, Object> projectInfo = baseInfo.get(0);
 		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), true));
+		// also return the portal url if there is a portal
+		if(Boolean.parseBoolean(projectInfo.get("project_has_portal")+"")) {
+			String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/" + Constants.PORTALS_FOLDER + "/";
+			projectInfo.put("project_portal_url", url);
+		}
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
 	
