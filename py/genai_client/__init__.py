@@ -13,6 +13,8 @@ def get_client(client_type = '', **kwargs):
         return TextGenClient(**kwargs)
     elif (client_type == 'bedrock'):
         return BedrockClient(**kwargs)
+    elif (client_type == 'vertex'):
+        return VertexClient(**kwargs)
     else:
         raise ValueError('Client type has not been defined.')
 
@@ -21,5 +23,6 @@ from genai_client.client_resources import (
     AzureOpenAiClient,
     OpenAiClient,
     TextGenClient,
-    BedrockClient
+    BedrockClient,
+    VertexClient
 )
