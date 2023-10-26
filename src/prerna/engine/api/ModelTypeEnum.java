@@ -5,6 +5,7 @@ import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.FastChatProcessModel;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
+import prerna.engine.impl.model.VertexEngine;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 
 public enum ModelTypeEnum {
@@ -13,6 +14,7 @@ public enum ModelTypeEnum {
 	FAST_CHAT("FAST_CHAT", FastChatProcessModel.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
 	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
+	VERTEX("VERTEX", VertexEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
 	REMOTE("REMOTE", RemoteModelEngine.class.getName());
 	
