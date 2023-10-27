@@ -19,6 +19,9 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.CopyFilesToEngineRunner;
+import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -234,7 +237,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		String columnsToIndex = "";
-		List <String> extractedFiled = new ArrayList<String>();
+		List <String> extractedFiles = new ArrayList<String>();
+		List <String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
 		for (String fileName : filePaths) {
 			// move the documents into documents folder
 			File fileInTempFolder = new File(fileName);
@@ -257,6 +261,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
 			}
 			
+			filesToCopyToCloud.add(destinationFile.getAbsolutePath());
+			
 			String documentName = destinationFile.getName().split("\\.")[0];
 			File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 			try {
@@ -275,7 +281,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						columnsToIndex = "[]"; // this is so we pass an empty list
 					}
 				}
-				extractedFiled.add(extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR));
+				extractedFiles.add(extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR));
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
@@ -292,7 +298,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							.append("']");
 		
 		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
-							.append(String.join("','", extractedFiled))
+							.append(String.join("','", extractedFiles))
 							.append("'], columns_to_index = ")
 							.append(columnsToIndex);
 		
@@ -307,19 +313,30 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 										 )
 								 ));
 		}
-							
-							
+											
 		addDocumentPyCommand.append(")");
 		
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		this.pyt.runScript(script);
+		Object indexAndDatasetFiles = this.pyt.runScript(script);
+		
 		try {
 			FileUtils.forceDelete(parentDirectory);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to delete the temporary file directory");
+		}
+		
+
+		if (ClusterUtil.IS_CLUSTER) {
+			// and the newly created csvs
+			filesToCopyToCloud.addAll(extractedFiles);
+			// add all the embeddings files and the datasets
+			filesToCopyToCloud.addAll((List<String>) indexAndDatasetFiles);
+			
+			Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+			copyFilesToCloudThread.start();
 		}
 	}
 
@@ -336,6 +353,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		checkSocketStatus();
 		
+		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
 		for (String document : filePaths) {
@@ -364,6 +382,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
                 // Delete each file that matches the specified file name
                 try {
 					Files.delete(entry);
+					filesToRemoveFromCloud.add(entry.toString());
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
@@ -371,7 +390,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
                 classLogger.info("Deleted: " + entry.toString());
             }
 	        try {
-				FileUtils.forceDelete(new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document));
+	        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
+				FileUtils.forceDelete(documentFile);
+				filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
@@ -392,6 +413,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		} else {
 			String script = this.vectorDatabaseSearcher + ".searchers['"+indexClass+"'].createMasterFiles(path_to_files = '" + indexedFilesPath.replace(FILE_SEPARATOR, DIR_SEPARATOR) + "')";
 			this.pyt.runScript(script);
+		}
+		
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
+			deleteFilesFromCloudThread.start();
 		}
 	}
 
@@ -529,7 +555,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.startServer();
 		}
 	}
-	
+
 	@Override
 	public void close() {
 		if (this.socketClient != null && this.socketClient.isConnected()) {
