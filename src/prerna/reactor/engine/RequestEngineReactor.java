@@ -136,6 +136,9 @@ public class RequestEngineReactor extends AbstractReactor {
 	private String getTemplateString() {
 		String template = null;
 		String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
+		 if (templatePath == null || templatePath.isEmpty()) {
+			 	return null;
+		    }
 		if (templatePath.endsWith("\\") || templatePath.endsWith("/")) {
 			templatePath += REQUEST_ENGINE_EMAIL_TEMPLATE;
 		} else {
