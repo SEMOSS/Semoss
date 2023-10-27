@@ -413,7 +413,7 @@ class FAISSSearcher():
       columns_to_remove: Optional[List[str]] = [],
       target_column: Optional[str] = "text", 
       separator: Optional[str] = ','
-    ) -> None:
+    ) -> List[str]:
     '''
     Given a path to a CSV document, perform the following tasks:
       - concatenate the columns the embeddings should be created from
@@ -438,6 +438,9 @@ class FAISSSearcher():
     '''
     # make sure they are all in indexed_files dir
     assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
+
+    # create a list of the documents created so that we can push the files back to the cloud
+    created_documents = []
 
     # loop through and embed new docs
     for document in documentFileLocation:
@@ -483,12 +486,18 @@ class FAISSSearcher():
 
       with open(new_file_path, "wb") as file:
         pickle.dump(dataset, file)
+      
+      # add the created dataset file path
+      created_documents.append(new_file_path)
 
       # write out the vectors with the same file name
       # Change the file extension to ".pkl"
       new_file_path = os.path.join(directory, file_name_without_extension + '_vectors' + new_file_extension)
       with open(new_file_path, "wb") as file:
         pickle.dump(vectors, file)
+
+      # add the created embeddings file path
+      created_documents.append(new_file_path)
 
       # TODO need to update the flow for how we instatiate
       if (np.any(self.encoded_vectors) == None):
@@ -499,12 +508,15 @@ class FAISSSearcher():
         assert self.vector_dimensions[1] == vectors.shape[1]
         self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
 
-    self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
+    master_indexClass_files = self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
+    created_documents.extend(master_indexClass_files)
+     
+    return created_documents
 
   def createMasterFiles(
       self, 
       path_to_files:str
-    ) -> None :
+    ) -> List[str] :
     '''
     Create a master dataset and embeddings file based on the current documents. The main purpose of this is to improve startup runtime. 
 
@@ -515,6 +527,9 @@ class FAISSSearcher():
     Returns:
       `None`
     '''
+    # create a list of the documents created so that we can push the files back to the cloud
+    created_documents = []
+
     # Define the pattern for the files you want to find
     file_pattern = '*_dataset.pkl'
 
@@ -543,11 +558,17 @@ class FAISSSearcher():
 
     # TODO create master files - maybe ? Need to do performance comparision
     baseFolder = path_to_files=os.path.dirname(path_to_files)
-    self.save_encoded_vectors(encoded_vectors_location=baseFolder + "/vectors.pkl")
-    self.save_dataset(dataset_location=baseFolder + "/dataset.pkl")
+    encoded_vectors_location = baseFolder + "/vectors.pkl"
+    dataset_location = baseFolder + "/dataset.pkl"
+    self.save_encoded_vectors(encoded_vectors_location = encoded_vectors_location)
+    self.save_dataset(dataset_location = dataset_location)
+    created_documents.append(encoded_vectors_location)
+    created_documents.append(dataset_location)
 
     self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
     if isinstance(self.encoder_class, HuggingFaceEncoder):
       faiss.normalize_L2(self.encoded_vectors)    
 
     self.index.add(self.encoded_vectors)
+
+    return created_documents
