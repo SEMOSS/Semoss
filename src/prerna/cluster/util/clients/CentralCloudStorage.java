@@ -573,18 +573,23 @@ public class CentralCloudStorage implements ICloudClient {
 		String engineName = engine.getEngineName();
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 
-		File absoluteFolder = new File(localFilePath);
-		if(absoluteFolder.isDirectory()) {
-			// this is adding a hidden file into every sub folder to make sure there is no empty directory
-			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
-		}
-		
 		// from the local file path
 		// determine where it should be in the cloud storage
 		String localEngineFolder = EngineUtility.getLocalEngineBaseDirectory(engineType) + FILE_SEPARATOR + aliasAndEngineId;
 		Path localEnginePath = Paths.get(localEngineFolder);
-
-		Path storagePath = localEnginePath.relativize( absoluteFolder.toPath() );
+		Path storagePath = null;
+		
+		File absoluteFolder = new File(localFilePath);
+		if(absoluteFolder.isDirectory()) {
+			// this is adding a hidden file into every sub folder to make sure there is no empty directory
+			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
+			storagePath = localEnginePath.relativize( absoluteFolder.toPath() );
+		} else {
+			storagePath = localEnginePath.relativize( absoluteFolder.toPath() );
+			// we need to get the parent folder since we are pushing a file
+			storagePath = storagePath.getParent();
+		}
+		
 		String cloudStorageFolderPath = getCloudPrefixForEngine(engineType) + engineId + "/" + storagePath;
 
 		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to push local file " + localFilePath + " to cloud path " + cloudStorageFolderPath);
