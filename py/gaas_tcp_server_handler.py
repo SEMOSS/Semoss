@@ -30,9 +30,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     self.msg_index = 0
     self.stop = False
     self.size = 0
-    self.my_var = {}
     self.monitor = threading.Condition()
-    self.my_var.update({"core_server": self})
     TCPServerHandler.da_server = self
     #TCPServerHandler.myvar = self
     
@@ -171,7 +169,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.handle_shell(payload)
       else:
         output = f"This is a python only instance. Command {str(command).encode('utf-8')} is not supported"
-        output = str(output)
         print(f"{str(command).encode('utf-8')} = {output}")
         #output = "Response.. " + data.decode("utf-8")
         self.send_output(output, payload, operation=payload["operation"], response=True, exception=True)
@@ -218,7 +215,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     payload = {
       "epoc": orig_payload['epoc'],
-      "payload": [output],
+      "payload": [self.json.dumps(output, default=lambda obj:str(obj), allow_nan=True)],
       "response": response,
       "operation": operation,
       "interim": interim
@@ -325,17 +322,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # old smss calls
     if command.endswith(".py") or command.startswith('smssutil'):
       try:
-        output = eval(command, globals(), self.my_var)
+        output = eval(command, globals())
       except Exception as e:
         try:
-          exec(command, globals(), self.my_var)
+          exec(command, globals())
           output = f"executed command {command.encode('utf-8')}"
         except Exception as e:
           print(e)
           output = str(e)
           is_exception = True
       print(f"executing file.. {command.encode('utf-8')}")
-      output = str(output)
       self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
 
     # all new
@@ -347,23 +343,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       c = console.SemossConsole(socket_handler=self, payload=payload)
       with contextlib.redirect_stdout(c), contextlib.redirect_stderr(c):
         try:
-          output = eval(command, globals(), self.my_var)
+          output = eval(command, globals())
         except Exception as e:
           try:
-            exec(command, globals(), self.my_var)
+            exec(command, globals())
             output = f"executed command {command.encode('utf-8')}"
           except Exception as e:
-            # user is probably trying to call a 'global' variable inside a function call
-            # add all user defined variables to globals
-            globals().update(self.my_var)
-
-            # store the removal keys in case of assignment
-            removal_keys = list(self.my_var.keys())
             try:
-              output = eval(command, globals(), self.my_var)
+              output = eval(command, globals())
             except Exception as e:
               try:
-                exec(command, globals(), self.my_var)
+                exec(command, globals())
                 output = f"executed command {command.encode('utf-8')}"
               except Exception as last_exec_error:
                 #output =  ''.join(tb.format_exception(None, e, e.__traceback__))
@@ -379,7 +369,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             for key in removal_keys:
               del globals()[key]
             
-      output = str(output)
       self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
   
   def handle_response(self, payload):

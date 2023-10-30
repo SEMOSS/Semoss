@@ -13,7 +13,17 @@ from gaas_tcp_server_handler import TCPServerHandler
 
 class Server(socketserver.ThreadingTCPServer):
   
-  def __init__(self, server_address=None, handler_class=TCPServerHandler, port=81, max_count=1, py_folder=".", insight_folder=".", prefix="", timeout=15, start=False, blocking=False):
+  def __init__(self, 
+               server_address=None,
+               handler_class=TCPServerHandler, 
+               port=81,
+               max_count=1,
+               py_folder=".",
+               insight_folder=".",
+               prefix="",
+               timeout=15,
+               start=False,
+               blocking=False):
     self.logger = logging.getLogger('SocketServer')
     self.logger.debug('__init__')
     self.stop = False    
@@ -93,9 +103,7 @@ class Server(socketserver.ThreadingTCPServer):
       print(e)
       self.stop_it()
     return
-  
-  
-  
+    
   def remove_handler(self):
     self.cur_count = self.cur_count - 1
     with self.monitor:
@@ -103,25 +111,27 @@ class Server(socketserver.ThreadingTCPServer):
       #print("waking up.. ")
       self.monitor.notify()
 
+
   def stop_it(self):
     print(f"{self.max_count} <> {self.cur_count}")
     if self.user_mode:
     #if self.max_count <= self.cur_count:
       self.stop = True
       socketserver.TCPServer.server_close(self)
-   
+
 if __name__ == '__main__':
-  if len(sys.argv) == 2:
+  if len(sys.argv) == 1:
+    Server(port=9999, start=True)
+  elif len(sys.argv) == 2:
     Server(port=int(sys.argv[1]), start=True)
-  if len(sys.argv) == 3:
+  elif len(sys.argv) == 3:
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), start=True)
-  if len(sys.argv) == 4:
+  elif len(sys.argv) == 4:
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], start=True)
-  if len(sys.argv) == 5: # with insight folder
+  elif len(sys.argv) == 5: # with insight folder
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], start=True)
-  if len(sys.argv) == 6: # with prefix
+  elif len(sys.argv) == 6: # with prefix
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], start=True)
-  if len(sys.argv) == 7: # with timeout
+  elif len(sys.argv) == 7: # with timeout
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], timeout=int(sys.argv[6]), start=True)
-    
  
