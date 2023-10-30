@@ -462,6 +462,14 @@ public class User implements Serializable {
 		this.timeZone = timeZone;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
+	public TimeZone getTimeZone() {
+		return timeZone;
+	}
+	
 	/////////////////////////////////////////////////////
 	
 	/*
