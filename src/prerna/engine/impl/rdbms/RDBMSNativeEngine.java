@@ -749,7 +749,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
-	private void closeDataSource(){
+	public void closeDataSource(){
 		if(this.dataSource != null) {
 			try {
 				this.dataSource.close();
