@@ -37,8 +37,11 @@ public class RdbmsReconnectReactor extends AbstractReactor {
 		
 		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) database;
 		try {
-			rdbms.makeConnection().close();
-			rdbms.makeConnection();
+			if(rdbms.isConnectionPooling()) {
+				rdbms.closeDataSource();
+			} else {
+				rdbms.makeConnection().close();
+			}
 		} catch (SQLException e) {
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(getError(e.getMessage()));
