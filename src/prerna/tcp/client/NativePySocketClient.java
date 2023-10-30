@@ -276,9 +276,10 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     			}
     		}
     		connected = false;
-    		System.err.println("outside the run loop");
+    		System.err.println("NativePySocketClient is disconnected");
+    		logger.warn("NativePySocketClient is disconnected");
     	}
-    }	
+    }
     
     private void processRequest(PayloadStruct ps)
     {
