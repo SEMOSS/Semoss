@@ -2,6 +2,7 @@ package prerna.ds.py;
 
 import java.util.Hashtable;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -9,14 +10,17 @@ import jep.Jep;
 import jep.JepConfig;
 import jep.JepException;
 import jep.SharedInterpreter;
+import jep.python.PyObject;
 import prerna.sablecc2.ReactorSecurityManager;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public final class PyExecutorThread extends Thread {
 
 	private static final String CLASS_NAME = PyExecutorThread.class.getName();
-	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	private static final Logger classLogger = LogManager.getLogger(CLASS_NAME);
+	
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 
 	private static boolean first = true;
@@ -35,14 +39,14 @@ public final class PyExecutorThread extends Thread {
 	public void run() {
 		// wait to see if process is true
 		// if process is true - process, put the result and go back to sleep
-		logger.debug("JEP Thread STARTED");
+		classLogger.debug("JEP Thread STARTED");
 		getJep();
 
 		while (this.keepAlive) {
 			try {
 				synchronized (daLock) {
 					
-					logger.debug("Waiting for next command");
+					classLogger.debug("Waiting for next command");
 					ready = true;
 					
 					if(command == null || command.length == 0)
@@ -68,9 +72,9 @@ public final class PyExecutorThread extends Thread {
 
 							Object thisResponse = null;
 							try {
-								logger.debug(">>>>>>>>>>>");
-								logger.info("Executing Command .. " + thisCommand);
-								logger.debug("<<<<<<<<<<<");
+								classLogger.debug(">>>>>>>>>>>");
+								classLogger.info("Executing Command .. " + thisCommand);
+								classLogger.debug("<<<<<<<<<<<");
 								try {
 									thisResponse = jep.getValue(thisCommand);
 								} catch (Exception ex) 
@@ -78,15 +82,19 @@ public final class PyExecutorThread extends Thread {
 									try
 									{
 										jep.eval(thisCommand);
-									}catch(Exception ex2)
+									} catch(JepException ex2)
 									{
-
-									}
-									finally
+										// use the exception as a response if we threw with the callback
+										if(ex2.getCause() instanceof PythonExceptionWrapper) {
+											thisResponse = new SemossPixelException(ExceptionUtils.getStackTrace(ex2));
+										} else {
+											ex2.printStackTrace();
+										}
+									} catch(Exception ex2) 
 									{
-										response.put(thisCommand, "");
+										ex2.printStackTrace();
 									}
-								}finally
+								} finally
 								{
 									if(thisResponse == null)
 										thisResponse = "";
@@ -111,9 +119,9 @@ public final class PyExecutorThread extends Thread {
 										}
 									}
 								} catch (Exception e1) {
-									logger.error(Constants.STACKTRACE, e);
+									classLogger.error(Constants.STACKTRACE, e);
 								}
-								logger.error(Constants.STACKTRACE, e);
+								classLogger.error(Constants.STACKTRACE, e);
 							}
 						}
 						command = null;
@@ -125,7 +133,7 @@ public final class PyExecutorThread extends Thread {
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -133,10 +141,10 @@ public final class PyExecutorThread extends Thread {
 			try {
 				jep.close();
 			} catch (JepException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		logger.info("JEP Thread ENDED");
+		classLogger.info("JEP Thread ENDED");
 	}
 
 	public void setDriverMonitor(Object driverMonitor) {
@@ -233,17 +241,20 @@ public final class PyExecutorThread extends Thread {
 				// jep.eval("from annoy import AnnoyIndex");
 				*/
 
-				logger.debug("Adding Syspath " + pyBase);
+				classLogger.debug("Adding Syspath " + pyBase);
 				jep.eval("sys.path.append('" + pyBase + "')");
-				logger.debug(jep.getValue("sys.path"));
+				classLogger.debug(jep.getValue("sys.path"));
 
 				// these needs to be a better way to do this where we can add other things
 				jep.eval("from clean import PyFrame");
 				jep.eval("import smssutil");
 				
+				// include a callback to throw encountered exceptions
+				jep.set("pyExecutorThread", PyExecutorThread.class);
+				jep.eval("smssutil.setExecutorExceptionCallback(pyExecutorThread)");
 			}
 		} catch (JepException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return jep;
 	}
@@ -270,7 +281,22 @@ public final class PyExecutorThread extends Thread {
 			}
 		}
 	}
-						
+	
+	public static class PythonExceptionWrapper extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		public final PyObject cause;
+
+        public PythonExceptionWrapper(String message, PyObject cause) {
+            super(message);
+            this.cause = cause;
+        }
+    }
+	
+	public static void throwPython(String message, PyObject cause) {
+        throw new PythonExceptionWrapper(message, cause);
+    }
+	
+	
 	/***** PURELY FOR TESTING PURPOSES
 	 
 	public void makeTheCall(PyTester pt)

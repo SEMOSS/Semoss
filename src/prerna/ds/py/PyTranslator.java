@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
-import prerna.project.impl.Project;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
@@ -60,7 +60,7 @@ public class PyTranslator {
 	public PyTranslator() {
 		// startDisruptor();
 		// System.out.println("Py Translator created");
-		this.logger = LogManager.getLogger(Project.class);
+		this.logger = LogManager.getLogger(PyTranslator.class);
 	}
 
 	public SemossDataType convertDataType(String pDataType) {
@@ -207,6 +207,7 @@ public class PyTranslator {
 			this.pt = insight.getPy();
 
 		Object monitor = pt.getMonitor();
+		Object response = null;
 		synchronized (monitor) {
 			pt.command = new String[] { script };
 			monitor.notify();
@@ -216,9 +217,14 @@ public class PyTranslator {
 				ex.printStackTrace();
 			}
 			logger.info("Completed processing");
-
+			
+			response = this.pt.response;
 		}
-
+		
+		Object scriptResponse = ((Hashtable) response).get(script);
+		if(scriptResponse instanceof SemossPixelException) {
+			throw (SemossPixelException) scriptResponse;
+		}
 	}
 
 	public synchronized void runEmptyPy(String... script) {
@@ -260,6 +266,9 @@ public class PyTranslator {
 		} catch (IOException e1) {
 			// System.out.println("Error in writing Py script for execution!");
 			e1.printStackTrace();
+		} finally {
+			// Cleanup
+			scriptFile.delete();
 		}
 	}
 
@@ -313,7 +322,9 @@ public class PyTranslator {
 			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
 		}
 
-		removePathVariables = "del " + removePathVariables;
+		if(!removePathVariables.isEmpty()) {
+			removePathVariables = "del " + removePathVariables;
+		}
 		// get the custom var String
 		String varFolderAssignment = "";
 		if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
@@ -397,6 +408,10 @@ public class PyTranslator {
 						output = cleanCustomVar(output, appMap);
 					}
 
+					if (error != null) {
+						throw error;
+					}
+					
 					// Successful case
 					return output;
 				} catch (IOException e) {
@@ -410,11 +425,13 @@ public class PyTranslator {
 				} finally {
 					// Cleanup
 					outputFile.delete();
-					try {
-						this.runEmptyPy(removePathVariables);
-						// this.executeEmptyR("gc();"); // Garbage collection
-					} catch (Exception e) {
-						logger.warn("Unable to cleanup Py.", e);
+					if(!removePathVariables.isEmpty()) {
+						try {
+							this.runEmptyPy(removePathVariables);
+							// this.executeEmptyR("gc();"); // Garbage collection
+						} catch (Exception e) {
+							logger.warn("Unable to cleanup Py.", e);
+						}
 					}
 				}
 			} catch (IOException e) {
@@ -429,7 +446,13 @@ public class PyTranslator {
 			String finalScript = convertArrayToString(inscript);
 			finalScript = finalScript.replace("@", "");
 			Hashtable response = executePyDirect(finalScript);
-			return response.get(finalScript) + "";
+			
+			Object scriptResponse = response.get(finalScript);
+			if(scriptResponse instanceof SemossPixelException) {
+				throw (SemossPixelException) scriptResponse;
+			} else {
+				return response.get(finalScript) + "";
+			}
 		}
 	}
 
@@ -479,7 +502,10 @@ public class PyTranslator {
 		} else {
 			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
 		}
-		removePathVariables = "del " + removePathVariables;
+		
+		if(!removePathVariables.isEmpty()) {
+			removePathVariables = "del " + removePathVariables;
+		}
 
 		// get the custom var String
 		String varFolderAssignment = "";
@@ -589,7 +615,9 @@ public class PyTranslator {
 				{
 					try {
 					outputFile.delete();
-					this.runScript(removePathVariables);
+					if(!removePathVariables.isEmpty()) {
+						this.runScript(removePathVariables);
+					}
 					// this.executeEmptyR("gc();"); // Garbage collection
 					} catch (Exception e) {
 					logger.warn("Unable to cleanup Py.", e);
@@ -698,7 +726,12 @@ public class PyTranslator {
 			response = this.pt.response;
 		}
 
-		return ((Hashtable) response).get(script);
+		Object scriptResponse = ((Hashtable) response).get(script);
+		if(scriptResponse instanceof SemossPixelException) {
+			throw (SemossPixelException) scriptResponse;
+		} else {
+			return scriptResponse;
+		}
 	}
 
 	// the output pragma here is not useful. This is purely done so as to avoid
@@ -722,7 +755,12 @@ public class PyTranslator {
 			response = this.pt.response;
 		}
 
-		return ((Hashtable) response).get(script);
+		Object scriptResponse = ((Hashtable) response).get(script);
+		if(scriptResponse instanceof SemossPixelException) {
+			throw (SemossPixelException) scriptResponse;
+		} else {
+			return scriptResponse;
+		}
 	}
 
 	protected String convertArrayToString(String... script) {
