@@ -86,7 +86,7 @@ public final class PyExecutorThread extends Thread {
 									{
 										// use the exception as a response if we threw with the callback
 										if(ex2.getCause() instanceof PythonExceptionWrapper) {
-											thisResponse = new SemossPixelException(ExceptionUtils.getStackTrace(ex2));
+											thisResponse = new SemossPixelException(ex2.getCause().getMessage());
 										} else {
 											ex2.printStackTrace();
 										}
