@@ -750,21 +750,24 @@ public class SocketServerHandler implements Runnable {
     
     public Object runMethodR(AbstractRJavaTranslator rt2, Method method, Object [] arguments) throws Exception
     {
-    	
-    	Object retObject = null;
-    	
-		retObject = method.invoke(rt2, arguments);
-    	
-    	return retObject;
+    	try {
+	    	Object retObject = null;
+			retObject = method.invoke(rt2, arguments);
+	    	return retObject;
+    	} catch(InvocationTargetException e) {
+    		throw (Exception) e.getCause();
+    	}
     }
 
     public Object runMethodPy(Method method, Object [] arguments) throws Exception
     {
-    	Object retObject = null;
-    	
-		retObject = method.invoke(pyt, arguments);
-    	
-    	return retObject;
+    	try {
+	    	Object retObject = null;
+			retObject = method.invoke(pyt, arguments);
+	    	return retObject;
+    	} catch(InvocationTargetException e) {
+    		throw (Exception) e.getCause();
+    	}
     }
     
 
