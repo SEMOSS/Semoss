@@ -215,7 +215,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     payload = {
       "epoc": orig_payload['epoc'],
-      "payload": [self.json.dumps(output, default=lambda obj:str(obj), allow_nan=True)],
+      "payload": [output],
       "response": response,
       "operation": operation,
       "interim": interim
@@ -231,7 +231,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                       })
 
     #print("sending payload back.. ")
-    output = self.json.dumps(payload)
+    output = self.json.dumps(payload, default=lambda obj:str(obj), allow_nan=True)
     # write response back
     size = len(output)
     size_byte = size.to_bytes(4, 'big')
@@ -546,4 +546,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     return output
 
 
-      
+if __name__ == '__main__':
+  from gaas_tcp_socket_server import Server
+  Server(port=9999, start=True)
