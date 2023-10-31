@@ -195,8 +195,12 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				{
 	    					//logger.info("Response from the py");
 	    					//System.err.println("This is working as designed");
-	    					if(ps != null && ps.payload !=null && ps.payload.length > 0 && ps.payload[0].toString().equalsIgnoreCase("None"))
-	    					{
+	    					if(ps != null 
+	    							&& ps.payload !=null 
+	    							&& ps.payload.length > 0 
+	    							&& ps.payload[0] != null 
+	    							&& ps.payload[0].toString().equalsIgnoreCase("None")
+	    						) {
 	    						if(partialAssimilator.length() > 0)
 	    							ps.payload = new String[] {partialAssimilator.toString()};
 	    						else 
