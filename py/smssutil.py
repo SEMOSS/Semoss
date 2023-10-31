@@ -1,3 +1,12 @@
+# callback link
+executorExceptionCallback = None
+def setExecutorExceptionCallback(callback):
+  global executorExceptionCallback
+  executorExceptionCallback = callback
+
+# custom exception class to be used with callback
+class InterpreterError(Exception): pass
+
 # all of the util functions go here
 def getfunctions(file):
   import inspect
@@ -55,22 +64,39 @@ def canLoad(file):
   
   return finalList
 
-def runwrapper(file, output, error,g):
-  import contextlib, io, sys,os
-  ofile = open(output, "w", buffering=1)
-  efile = open(error, "w", buffering=1)
-  with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
-    datafile = open(file, "r")
-     # print(f'found the trigger {jout}')
+def runwrapper(file, output, error, g):
+  import sys
+  import traceback
+
+  global executorExceptionCallback
+  import contextlib, io, sys, os
+  with open(output, "w", buffering=1) as ofile, open(error, "w", buffering=1) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile), open(file, "r") as datafile:
     try:
       exec(datafile.read(), g)
-    except Exception as e:
-      print(e)
-  ofile.close()
-  efile.close()
+    except SyntaxError as err:
+        print(err)
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        line_number = err.lineno
+    except Exception as err:
+        print(err)
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        cl, exc, tb = sys.exc_info()
+        line_number = traceback.extract_tb(tb)[-1][1]
+    else:
+        return
+
+    errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+    print(errorMessage)
+    if executorExceptionCallback is not None:
+      executorExceptionCallback.throwPython(errorMessage, err)
+    else: 
+      raise InterpreterError(errorMessage)
+      
 
 def runwrapper_semoss_console(command, output, error,g):
-  import contextlib, io, sys,os
+  import contextlib
   ofile = output
   efile = error
   with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
@@ -84,13 +110,13 @@ def runwrapper_semoss_console(command, output, error,g):
   efile.close()
 
 
-def runwrappereval(file, output, error,g):
-  import contextlib, io, sys,os
-  ofile = open(output, "w", buffering=1)
-  efile = open(error, "w", buffering=1)
-
-  with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
-    datafile = open(file, "r")
+def runwrappereval(file, output, error, g):
+  global executorExceptionCallback
+  import contextlib
+  import sys
+  import traceback
+  
+  with open(output, "w", buffering=1) as ofile, open(error, "w", buffering=1) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile), open(file, "r") as datafile:
     command = datafile.read()
     try:
       output_obj = eval(command, g)
@@ -99,10 +125,27 @@ def runwrappereval(file, output, error,g):
     except Exception as e:
       try:
         exec(command, g)
-      except Exception as e:
-        print(e)
-  ofile.close()
-  efile.close()
+      except SyntaxError as err:
+          print(err)
+          error_class = err.__class__.__name__
+          detail = err.args[0]
+          line_number = err.lineno
+      except Exception as err:
+          print(err)
+          error_class = err.__class__.__name__
+          detail = err.args[0]
+          cl, exc, tb = sys.exc_info()
+          line_number = traceback.extract_tb(tb)[-1][1]
+      else:
+          return
+      
+      errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+      print(errorMessage)
+      if executorExceptionCallback is not None:
+        executorExceptionCallback.throwPython(errorMessage, err)
+      else: 
+        raise InterpreterError(errorMessage)
+
 
 def runwrappereval_semoss_console(command, output, error,g):
   import contextlib, io, sys,os
@@ -124,41 +167,81 @@ def runwrappereval_semoss_console(command, output, error,g):
   ofile.close()
   efile.close()
 
-
 # same as run wrapper eval but will also return the output instead of printing it and
 # will not exec it
 # since I need the return value
 # - Updating the progress bar - https://stackoverflow.com/questions/45808140/using-tqdm-progress-bar-in-a-while-loop
-
-def runwrappereval_return(command, output, error,g):
-  import contextlib, io, sys,os
-  ofile = open(output, "w", buffering=1)
-  efile = open(error, "w", buffering=1)
-  with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
+def runwrappereval_return(command, output, error, g):
+  global executorExceptionCallback
+  import contextlib
+  import sys
+  import traceback
+  
+  with open(output, "w", buffering=1) as ofile, open(error, "w", buffering=1) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
     from tqdm import tqdm
-    pbar = tqdm(total=100)
-    pbar.update(10)
-    try:
-      pbar.update(20)
-      output_obj = eval(command, g)
-      pbar.update(50)
-      if output_obj is not None:
-        pbar.update(10)
-        print(output_obj)
-        return output_obj
-    except Exception as e:
-      print(e)
+    with tqdm(total=100) as pbar:
       pbar.update(10)
+      try:
+        pbar.update(20)
+        output_obj = eval(command, g)
+        pbar.update(50)
+        if output_obj is not None:
+          pbar.update(10)
+          print(output_obj)
+          return output_obj
+      except SyntaxError as err:
+        print(err)
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        line_number = err.lineno
+      except Exception as err:
+        print(err)
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        cl, exc, tb = sys.exc_info()
+        line_number = traceback.extract_tb(tb)[-1][1]
+      
+      # if we didn't hit the above return
+      # then there was definitely an error
+      pbar.update(10)
+      errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+      print(errorMessage)
+      if executorExceptionCallback is not None:
+        executorExceptionCallback.throwPython(errorMessage, err)
+      else: 
+        raise InterpreterError(errorMessage)      
       return None
-  ofile.close()
-  efile.close()
-  pbar.close()
+    
+    
+# used by empty py direct
+def run_empty_wrapper(file, g):
+  global executorExceptionCallback
+  import sys
+  import traceback
 
-# used by empty py direct    
-def run_empty_wrapper(file,g):
-    #ofile = io.StringIO()
-  #print(output)
-  exec(open(file).read(), g)
+  with open(file) as f:
+    try:
+      exec(f.read(), g)
+    except SyntaxError as err:
+        print(err)
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        line_number = err.lineno
+    except Exception as err:
+        print(err)
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        cl, exc, tb = sys.exc_info()
+        line_number = traceback.extract_tb(tb)[-1][1]
+    else:
+        return
+
+    errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+    print(errorMessage)
+    if executorExceptionCallback is not None:
+      executorExceptionCallback.throwPython(errorMessage, err)
+    else: 
+      raise InterpreterError(errorMessage)
 
 
 #Attribution = https://github.com/bosswissam/pysize/blob/master/pysize.py
