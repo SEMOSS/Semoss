@@ -65,21 +65,23 @@ def canLoad(file):
   return finalList
 
 def runwrapper(file, output, error, g):
+  import contextlib
   import sys
   import traceback
 
   global executorExceptionCallback
-  import contextlib, io, sys, os
+
+  foundErr = None
   with open(output, "w", buffering=1) as ofile, open(error, "w", buffering=1) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile), open(file, "r") as datafile:
     try:
       exec(datafile.read(), g)
     except SyntaxError as err:
-        print(err)
+        foundErr = err
         error_class = err.__class__.__name__
         detail = err.args[0]
         line_number = err.lineno
     except Exception as err:
-        print(err)
+        foundErr = err
         error_class = err.__class__.__name__
         detail = err.args[0]
         cl, exc, tb = sys.exc_info()
@@ -87,12 +89,13 @@ def runwrapper(file, output, error, g):
     else:
         return
 
-    errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
-    print(errorMessage)
-    if executorExceptionCallback is not None:
-      executorExceptionCallback.throwPython(errorMessage, err)
-    else: 
-      raise InterpreterError(errorMessage)
+    if foundErr is not None:
+      errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+      print(errorMessage)
+      if executorExceptionCallback is not None:
+        executorExceptionCallback.throwPython(errorMessage, foundErr)
+      else: 
+        raise InterpreterError(errorMessage)
       
 
 def runwrapper_semoss_console(command, output, error,g):
@@ -116,6 +119,7 @@ def runwrappereval(file, output, error, g):
   import sys
   import traceback
   
+  foundErr = None
   with open(output, "w", buffering=1) as ofile, open(error, "w", buffering=1) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile), open(file, "r") as datafile:
     command = datafile.read()
     try:
@@ -126,12 +130,12 @@ def runwrappereval(file, output, error, g):
       try:
         exec(command, g)
       except SyntaxError as err:
-          print(err)
+          foundErr = err
           error_class = err.__class__.__name__
           detail = err.args[0]
           line_number = err.lineno
       except Exception as err:
-          print(err)
+          foundErr = err
           error_class = err.__class__.__name__
           detail = err.args[0]
           cl, exc, tb = sys.exc_info()
@@ -139,12 +143,14 @@ def runwrappereval(file, output, error, g):
       else:
           return
       
-      errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
-      print(errorMessage)
-      if executorExceptionCallback is not None:
-        executorExceptionCallback.throwPython(errorMessage, err)
-      else: 
-        raise InterpreterError(errorMessage)
+      if foundErr is not None:
+        print(foundErr)
+        errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+        print(errorMessage)
+        if executorExceptionCallback is not None:
+          executorExceptionCallback.throwPython(errorMessage, foundErr)
+        else: 
+          raise InterpreterError(errorMessage)
 
 
 def runwrappereval_semoss_console(command, output, error,g):
@@ -177,6 +183,7 @@ def runwrappereval_return(command, output, error, g):
   import sys
   import traceback
   
+  foundErr = None
   with open(output, "w", buffering=1) as ofile, open(error, "w", buffering=1) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
     from tqdm import tqdm
     with tqdm(total=100) as pbar:
@@ -190,27 +197,30 @@ def runwrappereval_return(command, output, error, g):
           print(output_obj)
           return output_obj
       except SyntaxError as err:
-        print(err)
+        foundErr = err
         error_class = err.__class__.__name__
         detail = err.args[0]
         line_number = err.lineno
       except Exception as err:
-        print(err)
+        foundErr = err
         error_class = err.__class__.__name__
         detail = err.args[0]
         cl, exc, tb = sys.exc_info()
         line_number = traceback.extract_tb(tb)[-1][1]
       
-      # if we didn't hit the above return
-      # then there was definitely an error
-      pbar.update(10)
-      errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
-      print(errorMessage)
-      if executorExceptionCallback is not None:
-        executorExceptionCallback.throwPython(errorMessage, err)
-      else: 
-        raise InterpreterError(errorMessage)      
-      return None
+        # if we didn't hit the above return
+        # then there was definitely an error
+        pbar.update(10)
+        if foundErr is not None:
+          print(foundErr)
+          errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+          print(errorMessage)
+          if executorExceptionCallback is not None:
+            executorExceptionCallback.throwPython(errorMessage, foundErr)
+          else: 
+            raise InterpreterError(errorMessage)
+        
+        return None
     
     
 # used by empty py direct
@@ -219,16 +229,17 @@ def run_empty_wrapper(file, g):
   import sys
   import traceback
 
+  foundErr = None
   with open(file) as f:
     try:
       exec(f.read(), g)
     except SyntaxError as err:
-        print(err)
+        foundErr = err
         error_class = err.__class__.__name__
         detail = err.args[0]
         line_number = err.lineno
     except Exception as err:
-        print(err)
+        foundErr = err
         error_class = err.__class__.__name__
         detail = err.args[0]
         cl, exc, tb = sys.exc_info()
@@ -236,12 +247,14 @@ def run_empty_wrapper(file, g):
     else:
         return
 
-    errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
-    print(errorMessage)
-    if executorExceptionCallback is not None:
-      executorExceptionCallback.throwPython(errorMessage, err)
-    else: 
-      raise InterpreterError(errorMessage)
+    if foundErr is not None:
+      print(foundErr)
+      errorMessage = "%s at line %d of source string: %s" % (error_class, line_number, detail)
+      print(errorMessage)
+      if executorExceptionCallback is not None:
+        executorExceptionCallback.throwPython(errorMessage, foundErr)
+      else: 
+        raise InterpreterError(errorMessage)
 
 
 #Attribution = https://github.com/bosswissam/pysize/blob/master/pysize.py
