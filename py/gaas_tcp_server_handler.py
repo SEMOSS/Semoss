@@ -70,13 +70,34 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     while not self.stop:
       #print("listening")
       try:
+        # Receive the first 4 bytes to get the size
         data = self.request.recv(4)
+        if not data:
+          raise RuntimeError("No data received or connection closed.")
+
         size = int.from_bytes(data, "big")
+
         epoc_size = 20
-        epoc = self.request.recv(epoc_size)
+        epoc = b""
+        # Loop until we receive the expected epoc_size bytes
+        while len(epoc) < epoc_size:
+            chunk = self.request.recv(epoc_size - len(epoc))
+            if not chunk:
+                raise RuntimeError("No data received or connection closed.")
+            epoc += chunk
+
+        # Decode the epoc data as UTF-8
         epoc = epoc.decode('utf-8')
-        #print(f"epoc {epoc} {epoc.decode('utf-8')}")
-        data = self.request.recv(size)
+
+        # Receive the remaining data with the specified size
+        data = b""
+        # Loop until we receive the expected size bytes
+        while len(data) < size:
+            chunk = self.request.recv(size - len(data))
+            if not chunk:
+                raise RuntimeError("No data received or connection closed.")
+            data += chunk
+
         #print(f"process the data ---- {data.decode('utf-8')}")
         #payload = data.decode('utf-8')   
         if self.server.blocking:
