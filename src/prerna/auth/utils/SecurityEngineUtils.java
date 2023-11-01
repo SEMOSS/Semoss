@@ -2479,7 +2479,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineTypeFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> engineTypeFilter) {
+	public static List<Map<String, Object>> getUserEngineList(User user, List<String> engineTypeFilter, Integer limit, Integer offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2520,6 +2520,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		// add the limit and offset
+		if(limit != null && limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset != null && offset > 0) {
+			qs.setOffSet(offset);
+		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
