@@ -34,12 +34,20 @@ public class GetProjectPortalDetailsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 		
-		IProject project = Utility.getProject(projectId);
-		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/" + Constants.PORTALS_FOLDER + "/";
-
 		Map<String, Object> portalDetails = new HashMap<>();
+
+		IProject project = Utility.getProject(projectId);
+		boolean hasPortal = project.isHasPortal();
+		portalDetails.put("project_has_portal", hasPortal);
+		portalDetails.put("project_is_published", project.isPublished());
+		// TODO: old - will remove once confirmed from FE
 		portalDetails.put("isPublished", project.isPublished());
-		portalDetails.put("url", url);
+		if(hasPortal) {
+			String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/" + Constants.PORTALS_FOLDER + "/";
+			portalDetails.put("project_portal_url", url);
+			// TODO: old - will remove once confirmed from FE
+			portalDetails.put("url", url);
+		}
 		return new NounMetadata(portalDetails, PixelDataType.MAP);
 	}
 
