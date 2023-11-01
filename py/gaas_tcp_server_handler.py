@@ -8,9 +8,6 @@ import threading
 from clean import PyFrame
 import gaas_server_proxy as gsp
 
-
-import numpy as np
-import pandas as pd
 import gc as gc
 import sys
 import re
@@ -18,6 +15,28 @@ import re
 import string
 import random
 import datetime
+
+import jsonpickle as jp
+import json as json
+import math
+import numpy as np
+import pandas as pd
+
+def custom_nan_handler(nan_value):
+    if math.isnan(nan_value):
+        return "NaN"
+    return nan_value
+
+def custom_tostr_handler(value):
+  return str(value)
+
+def custom_pandas_handler(dataframe):
+  if isinstance(dataframe, pd.DataFrame):
+    data_dict = dataframe.to_dict(orient='split')
+    for col_name, col_data in data_dict['data'].items():
+        data_dict['data'][col_name] = [str(value) if pd.notna(value) else "NaN" for value in col_data]
+    return data_dict  
+  return dataframe
 
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
@@ -60,12 +79,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     self.try_jp = False
     # experimental
     if self.try_jp:
-      import jsonpickle as jp
-      self.json = jp
+      jp.handlers.register(float, custom_nan_handler)
+      jp.handlers.register(np.datetime64, custom_tostr_handler)
+      jp.handlers.register(pd.DataFrame, custom_pandas_handler)
+      self.serializier = jp
     else:
-      import json as json
-      self.json = json
+      self.serializier = json
   
+
   def handle(self):
     while not self.stop:
       #print("listening")
@@ -131,7 +152,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       payload = data
       if not self.try_jp:
         payload = data.decode('utf-8')
-      payload = self.json.loads(payload)
+      payload = self.serializier.loads(payload)
       
       #print(f"PAYLOAD.. {payload}")
       # do payload manipulation here 
@@ -209,7 +230,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         condition.release()
       else:
         self.send_output(output, payload, operation="PYTHON", response=True, exception=True)
-      
+
+  
+
   def send_output(self, output, orig_payload, operation = "STDOUT", response=False, interim=False, exception=False):
     # Do not write any prints here
     # since the console is captured it will go into recursion
@@ -251,8 +274,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                       #"payload":[None]
                       })
 
-    #print("sending payload back.. ")
-    output = self.json.dumps(payload, default=lambda obj:str(obj), allow_nan=True)
+    output = None
+    if(self.try_jp):
+      output = self.serializier.encode(payload, unpicklable=False, make_refs=False)
+    else:
+      output = self.serializier.dumps(payload, default=lambda obj:str(obj), allow_nan=True)
+    
     # write response back
     size = len(output)
     size_byte = size.to_bytes(4, 'big')
@@ -273,6 +300,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # send it out
     self.request.sendall(ret_array)
 
+
+  #TODO: is this method actually used?
   def send_request(self, payload):
     # Do not write any prints here
     # since the console is captured it will go into recursion
@@ -287,7 +316,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     #print(locals().keys())
     #print(globals().keys())
     
-    output = self.json.dumps(payload)
+    output = self.serializier.dumps(payload)
     # write response back
     size = len(output)
     size_byte = size.to_bytes(4, 'big')
@@ -304,7 +333,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     # send it out
     self.request.sendall(ret_array)
 
-
     
   def stop_request(self):
     if not self.stop:
@@ -319,9 +347,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
   def close_request(self):
     print("close request called")
     
+
   def handle_timeout(self):
     print("handler timeout.. ")
     
+
   def release_all(self):
     # pushes out all the conditions
     # so no threads are breaking
@@ -394,6 +424,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       condition.notifyAll()
       condition.release()
       
+
   def handle_shell(self, payload):
     # get the method name
     try:
@@ -498,6 +529,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       # raise exception
       raise Exception(f"There is no mount point for {mount_name}")
       
+
   def exec_cd(self, mount_name=None, payload=None, check=True):
     import subprocess
     # there is only 2 arguments I need to accomodate for
@@ -528,6 +560,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     #except NotADirectoryError:
     #  raise Exception
 
+
   def exec_dir(self, mount_name=None, payload=None):
     import subprocess
     # there is only 2 arguments I need to accomodate for
@@ -540,6 +573,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     proc = subprocess.Popen(payload, cwd=cur_mount_dir, shell=True, stdout=subprocess.PIPE)
     output = proc.stdout.read().decode('utf-8')
     return output
+
 
   def exec_cp(self, mount_name=None, payload=None):
     import subprocess
