@@ -71,6 +71,18 @@ public interface IProject extends IEngine, Closeable {
 	 */
 	String getProjectName();
 	
+	/**
+	 * 
+	 * @return
+	 */
+	boolean isHasPortal();
+
+	/**
+	 * 
+	 * @param hasPortal
+	 */
+	void setHasPortal(boolean hasPortal);
+	
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
 	Vector<String> getPerspectives();
