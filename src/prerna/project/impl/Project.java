@@ -196,6 +196,9 @@ public class Project implements IProject {
 		else if(!AssetUtility.isGit(this.projectVersionFolder)) {
 			GitRepoUtils.init(this.projectVersionFolder);
 		}
+		
+		// is portal enabled in SMSS?
+		this.hasPortal = Boolean.parseBoolean(this.smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ "");
 
 		if(!isAsset) {
 			loadInsightsRdbms();
@@ -302,6 +305,16 @@ public class Project implements IProject {
 		return this.gitProvider;
 	}
 	
+	@Override
+	public boolean isHasPortal() {
+		return hasPortal;
+	}
+
+	@Override
+	public void setHasPortal(boolean hasPortal) {
+		this.hasPortal = hasPortal;
+	}
+
 	@Override
 	public Vector<String> getPerspectives() {
 		Vector<String> perspectives = Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRdbms, false);
@@ -999,9 +1012,6 @@ public class Project implements IProject {
 	
 	@Override
 	public boolean requirePublish(boolean pullFromCloud) {
-		// is portal enabled in SMSS?
-		boolean enableForProject = (smssProp != null && Boolean.parseBoolean(smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
-		
 		// check in security DB when we last published
 		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
 		boolean outOfDate = false;
@@ -1019,7 +1029,7 @@ public class Project implements IProject {
 		
 		// if this are true we want to republish
 		// we just add the additional logic above if we have to pull from cloud
-		return this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal);
+		return this.republishPortal || outOfDate || (this.hasPortal && !this.publishedPortal);
 	}
 	
 	@Override
