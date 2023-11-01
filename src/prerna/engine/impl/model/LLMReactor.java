@@ -43,6 +43,11 @@ public class LLMReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+		if (paramMap.containsKey("full_prompt")) {
+			paramMap.put("full_prompt", Utility.decodeURIComponent((String) paramMap.get("full_prompt")));
+		}
+		
+		
 		Map<String, String> output = eng.ask(question, context, this.insight, paramMap);
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
