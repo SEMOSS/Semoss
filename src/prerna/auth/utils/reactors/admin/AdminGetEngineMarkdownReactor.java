@@ -25,7 +25,7 @@ public class AdminGetEngineMarkdownReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(engineId == null) {
-			throw new IllegalArgumentException("Need to define the engine to get the markdown from");
+			throw new IllegalArgumentException("Need to define the engine");
 		}
 		
 		String databaseMarkdown = adminUtils.getEngineMarkdown(engineId);
