@@ -12,7 +12,6 @@ public enum ReactorKeysEnum {
 //	APP("app", 													"Name of the app on the local SEMOSS instance"),
 	ANIMATE("animate", 											"Specifies if the ggplot needs to be animated"),
 	API_KEY("apikey", 									    	"API key being used for the specific insight / project"),
-	APP_TYPE("appType", 										"The type of app"),
 	ARRAY("array", 												"An array of input values"),
 	ATTRIBUTES("attributes", 									"List of columns used as properties/characteristics to describe an instance/object"),
 	BASE_URL("baseUrl",                                     	"The base SEMOSS url"),
