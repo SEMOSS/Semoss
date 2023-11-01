@@ -1,4 +1,4 @@
-package prerna.solr.reactor;
+package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.reactor.AbstractReactor;
@@ -15,20 +15,24 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetEngineSMSSReactor extends AbstractReactor {
+public class AdminGetEngineSMSSReactor extends AbstractReactor {
 
-	public GetEngineSMSSReactor() {
+	public AdminGetEngineSMSSReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if(adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		User user = this.insight.getUser();
-		boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-		if(!isOwner) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to view the smss. User must be the owner to perform this function.");
+		if(engineId == null) {
+			throw new IllegalArgumentException("Need to define the engine");
 		}
 		
 		IEngine engine = Utility.getEngine(engineId);
