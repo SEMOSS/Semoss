@@ -27,6 +27,7 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
+import prerna.om.Insight;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -52,8 +53,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
-	
+	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
+	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_id = '${ENCODER_ID}', encoder_name = '${MODEL}', encoder_max_tokens = ${MAX_TOKENS}, encoder_type = '${MODEL_TYPE}')";
+
 	protected String vectorDatabaseSearcher = null;
 	
 	File vectorDbFolder;
@@ -69,8 +71,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	String prefix = null;
 	String pyDirectoryBasePath = null;
 	File cacheFolder;
-	//File indexFolder;
-	//File documentsFolder;
+
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -100,6 +101,22 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 		if (!this.smssProp.containsKey("ENCODER_API_KEY")) {
 			this.smssProp.put("ENCODER_API_KEY", "");	
+		}
+		
+		// This could get moved depending on other vector db needs
+		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
+		String modelSmssFile = (String) DIHelper.getInstance().getEngineProperty(this.smssProp.getProperty("ENCODER_ID") + "_" + Constants.STORE);
+		Properties modelProperties = Utility.loadProperties(modelSmssFile);
+		if (modelProperties.isEmpty() || !modelProperties.containsKey("MODEL")) {
+			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+		}
+		
+		this.smssProp.put("MODEL", modelProperties.getProperty("MODEL"));
+		this.smssProp.put("MODEL_TYPE", modelProperties.getProperty("MODEL_TYPE"));
+		if (!modelProperties.containsKey("MAX_TOKENS")) {
+			this.smssProp.put("MAX_TOKENS", "None");	
+		} else {
+			this.smssProp.put("MAX_TOKENS", modelProperties.getProperty("MAX_TOKENS"));
 		}
 		
 		// vars for string substitution
@@ -203,6 +220,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.contentOverlap = (int) parameters.get("contentOverlap");
 		}
 		
+		Insight insight = (Insight) parameters.get("insight");
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
 		File parentDirectory = (File) parameters.get("temporaryFileDirectory");
 		
 		
@@ -299,7 +321,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
 							.append(String.join("','", extractedFiles))
-							.append("'], columns_to_index = ")
+							.append("'], insight_id = '")
+							.append(insight.getInsightId())
+							.append("', columns_to_index = ")
 							.append(columnsToIndex);
 		
 		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey())) {
@@ -319,8 +343,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		Object indexAndDatasetFiles = this.pyt.runScript(script);
-		
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
+
 		try {
 			FileUtils.forceDelete(parentDirectory);
 		} catch (IOException e) {
@@ -333,11 +357,15 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			// and the newly created csvs
 			filesToCopyToCloud.addAll(extractedFiles);
 			// add all the embeddings files and the datasets
-			filesToCopyToCloud.addAll((List<String>) indexAndDatasetFiles);
+			filesToCopyToCloud.addAll((List<String>) pythonResponseAfterCreatingFiles.get("createdDocuments"));
 			
 			Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
 			copyFilesToCloudThread.start();
 		}
+		
+		// inform the user that some chunks are too large and they might loose semantic value
+		Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
+		
 	}
 
 	@Override
@@ -427,6 +455,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		checkSocketStatus();
 		
+		Insight insight = (Insight) parameters.get("insight");
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
 		StringBuilder callMaker = new StringBuilder();
 		
 		String indexClass = this.defaultIndexClass;
@@ -469,6 +502,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				 .append(question.replace("\"", "\\\""))
 				 .append("\"\"\"");
 		
+		callMaker.append(", insight_id='")
+				 .append(insight.getInsightId())
+				 .append("'");
+				
 		String searchFilters = "None";
 		if (parameters.containsKey("filters")) {
 			// TODO modify so query can come from py world
@@ -530,7 +567,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// close the method
  		callMaker.append(")");
  		classLogger.info("Running >>>" + callMaker.toString());
-		Object output = pyt.runScript(callMaker.toString());
+		Object output = pyt.runScript(callMaker.toString(), insight);
 		return output;
 	}
 	

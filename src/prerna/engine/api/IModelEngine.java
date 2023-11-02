@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import java.util.List;
 import java.util.Map;
 
 import prerna.om.Insight;
@@ -48,7 +49,7 @@ public interface IModelEngine extends IEngine {
 	 */
 	Map<String, String> ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
-	// TODO update embeddings to handle a List of strings and remove unnecessary params
+
 	/**
 	 * Passes a string question to the model client to be encoded as a vector
 	 * 
@@ -57,7 +58,8 @@ public interface IModelEngine extends IEngine {
 	 * @param parameters	Additional parameters such as temperature, top_k, max_new_tokens etc
 	 * @return	an encoded object based on how the LLM encodes strings
 	 */
-	Object embeddings(String question, Insight insight, Map <String, Object> parameters);
+	Object embeddings(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters);
+	
 
 	Object model(String question, Insight insight, Map <String, Object> parameters);
 
