@@ -1,6 +1,7 @@
 package prerna.engine.impl.remotesemoss;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -136,7 +137,7 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public Object embeddings(String question, Insight insight, Map<String, Object> parameters) {
+	public Object embeddings(List<String> stringsToEncode, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
