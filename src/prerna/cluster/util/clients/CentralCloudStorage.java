@@ -39,6 +39,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
 import prerna.util.ProjectSyncUtility;
+import prerna.util.ProjectWatcher;
 import prerna.util.SMSSNoInitEngineWatcher;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
@@ -272,6 +273,8 @@ public class CentralCloudStorage implements ICloudClient {
 			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.FUNCTION_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
+			classLogger.info("Synchronizing the project for " + aliasAndEngineId);
+			ProjectWatcher.catalogProject(localSmssFileName, EngineUtility.PROJECT_FOLDER);
 			return;
 		}
 		
@@ -436,11 +439,13 @@ public class CentralCloudStorage implements ICloudClient {
 				catalogPulledEngine(aliasAndEngineId, localSmssFileName, engineType);
 			}
 		} finally {
-			try {
-				// Re-open the engine
-				Utility.getEngine(engineId, engineType, false);
-			} catch(Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			if(engineAlreadyLoaded) {
+				try {
+					// Re-open the engine
+					Utility.getEngine(engineId, engineType, false);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 			try {
 				if(sharedRCloneConfig != null) {
@@ -1011,6 +1016,11 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			centralStorageEngine.syncStorageToLocal(storageProjectFolder, localProjectFolder, sharedRCloneConfig);
 			centralStorageEngine.copyToLocal(storageSmssFolder, EngineUtility.PROJECT_FOLDER, sharedRCloneConfig);
+			
+			// Catalog the project if it is new
+			if (!projectAlreadyLoaded) {
+				catalogPulledEngine(aliasAndProjectId, localSmssFileName, IEngine.CATALOG_TYPE.PROJECT);
+			}
 		} finally {
 			try {
 				// Re-open the project - if already loaded
