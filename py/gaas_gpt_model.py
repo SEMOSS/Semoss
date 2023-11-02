@@ -7,24 +7,7 @@ class ModelEngine(ServerProxy):
     super().__init__()
     self.engine_id = engine_id
     self.insight_id = insight_id
-    print("initialized")
-   
-  def embeddings(self, question=None, insight_id=None, param_dict=None):
-    assert question is not None
-    if insight_id is None:
-      insight_id = self.insight_id
-    assert insight_id is not None
-    epoc = super().get_next_epoc()
-    return super().call(
-                      epoc = epoc, 
-                      engine_type='Model', 
-                      engine_id=self.engine_id, 
-                      insight_id=insight_id, 
-                      method_name='embeddings', 
-                      method_args=[question, insight_id, param_dict],
-                      method_arg_types=['java.lang.String', 'prerna.om.Insight', 'java.util.Map']
-                      )
-    
+    print("initialized")    
     
   def ask(self, question=None, context=None, insight_id=None, param_dict=None):
     assert question is not None
@@ -42,6 +25,37 @@ class ModelEngine(ServerProxy):
                         method_arg_types=['java.lang.String', 'java.lang.String', 'prerna.om.Insight', 'java.util.Map'],
                         insight_id = insight_id
                         )
-    
-    
   
+
+  def embeddings(self, strings_to_encode = None, insight_id=None, param_dict=None):
+    assert strings_to_encode is not None
+    if isinstance(strings_to_encode,str):
+      strings_to_encode = [strings_to_encode]
+    assert isinstance(strings_to_encode, list)
+    if insight_id is None:
+      insight_id = self.insight_id
+    assert insight_id is not None
+    epoc = super().get_next_epoc()
+    return super().call(
+                      epoc = epoc, 
+                      engine_type='Model', 
+                      engine_id=self.engine_id, 
+                      insight_id=insight_id, 
+                      method_name='embeddings', 
+                      method_args=[strings_to_encode, insight_id, param_dict],
+                      method_arg_types=['java.util.List', 'prerna.om.Insight', 'java.util.Map']
+                      )
+
+  def get_model_type(self, insight_id:str = None):
+    if insight_id is None:
+      insight_id = self.insight_id
+    epoc = super().get_next_epoc()
+    return super().call(
+                      epoc = epoc, 
+                      engine_type='Model', 
+                      engine_id=self.engine_id, 
+                      insight_id=insight_id, 
+                      method_name='getModelType', 
+                      method_args=[],
+                      method_arg_types=[]
+                      )
