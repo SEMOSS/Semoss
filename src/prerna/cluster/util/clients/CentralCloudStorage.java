@@ -52,7 +52,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String STORAGE_BLOB = "semoss-storage";
 	public static final String MODEL_BLOB = "semoss-model";
 	public static final String VECTOR_BLOB = "semoss-vector";
-	public static final String SERVICE_BLOB = "semoss-service";
+	public static final String FUNCTION_BLOB = "semoss-function";
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
 	// images
@@ -60,7 +60,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String STORAGE_IMAGES_BLOB = "semoss-storageimagecontainer";
 	public static final String MODEL_IMAGES_BLOB = "semoss-modelimagecontainer";
 	public static final String VECTOR_IMAGES_BLOB = "semoss-vectorimagecontainer";
-	public static final String SERVICE_IMAGES_BLOB = "semoss-serviceimagecontainer";
+	public static final String FUNCTION_IMAGES_BLOB = "semoss-functionimagecontainer";
 	public static final String PROJECT_IMAGES_BLOB = "semoss-projectimagecontainer";
 
 	private static CentralCloudStorage instance = null;
@@ -74,7 +74,7 @@ public class CentralCloudStorage implements ICloudClient {
 	private static String STORAGE_CONTAINER_PREFIX = "/" + STORAGE_BLOB + "/";
 	private static String MODEL_CONTAINER_PREFIX = "/" + MODEL_BLOB + "/";
 	private static String VECTOR_CONTAINER_PREFIX = "/" + VECTOR_BLOB + "/";
-	private static String SERVICE_CONTAINER_PREFIX = "/" + SERVICE_BLOB + "/";
+	private static String FUNCTION_CONTAINER_PREFIX = "/" + FUNCTION_BLOB + "/";
 	private static String PROJECT_CONTAINER_PREFIX = "/" + PROJECT_BLOB + "/";
 	private static String USER_CONTAINER_PREFIX = "/" + USER_BLOB + "/";
 	
@@ -125,7 +125,7 @@ public class CentralCloudStorage implements ICloudClient {
 			CentralCloudStorage.STORAGE_CONTAINER_PREFIX = "semoss-storage";
 			CentralCloudStorage.MODEL_CONTAINER_PREFIX = "semoss-model";
 			CentralCloudStorage.VECTOR_CONTAINER_PREFIX = "semoss-vector";
-			CentralCloudStorage.SERVICE_CONTAINER_PREFIX = "semoss-service";
+			CentralCloudStorage.FUNCTION_CONTAINER_PREFIX = "semoss-function";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
 			
@@ -213,7 +213,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return VECTOR_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
-			return SERVICE_CONTAINER_PREFIX;
+			return FUNCTION_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_CONTAINER_PREFIX;
 		}
@@ -236,7 +236,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
 			return VECTOR_IMAGES_BLOB;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
-			return SERVICE_IMAGES_BLOB;
+			return FUNCTION_IMAGES_BLOB;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGES_BLOB;
 		}
@@ -1585,7 +1585,7 @@ public class CentralCloudStorage implements ICloudClient {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			
-			List<String> buckets = Arrays.asList(DATABASE_BLOB, STORAGE_BLOB, MODEL_BLOB, PROJECT_BLOB);
+			List<String> buckets = Arrays.asList(DATABASE_BLOB, STORAGE_BLOB, MODEL_BLOB, VECTOR_BLOB, FUNCTION_BLOB, PROJECT_BLOB);
 			
 			for(String b : buckets) {
 				List<String> cloudFiles = centralStorageEngine.list(b, sharedRCloneConfig);
