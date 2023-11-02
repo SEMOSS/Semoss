@@ -49,6 +49,8 @@ public class AdminPushLocalToCloudReactor extends AbstractReactor{
 		List<String> dbIds = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.name()));
 		List<String> storageIds = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.STORAGE.name()));
 		List<String> modelIds = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.MODEL.name()));
+		List<String> vectorIds = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.VECTOR.name()));
+		List<String> functionIds = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.FUNCTION.name()));
 		List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
 
 		try {
@@ -62,21 +64,31 @@ public class AdminPushLocalToCloudReactor extends AbstractReactor{
 			removeExisitngIds(CentralCloudStorage.DATABASE_BLOB, currentContainers.get(CentralCloudStorage.DATABASE_BLOB), dbIds);
 			removeExisitngIds(CentralCloudStorage.STORAGE_BLOB, currentContainers.get(CentralCloudStorage.STORAGE_BLOB), storageIds);
 			removeExisitngIds(CentralCloudStorage.MODEL_BLOB, currentContainers.get(CentralCloudStorage.MODEL_BLOB), modelIds);
+			removeExisitngIds(CentralCloudStorage.VECTOR_BLOB, currentContainers.get(CentralCloudStorage.VECTOR_BLOB), vectorIds);
+			removeExisitngIds(CentralCloudStorage.FUNCTION_BLOB, currentContainers.get(CentralCloudStorage.FUNCTION_BLOB), functionIds);
 			removeExisitngIds(CentralCloudStorage.PROJECT_BLOB, currentContainers.get(CentralCloudStorage.PROJECT_BLOB), projectIds);
 			
 			pushedChanges.put("added_dbIds", dbIds);
 			pushedChanges.put("added_storageIds", storageIds);
 			pushedChanges.put("added_modelIds", modelIds);
+			pushedChanges.put("added_vectorIds", vectorIds);
+			pushedChanges.put("added_functionIds", functionIds);
 			pushedChanges.put("added_projectIds", projectIds);
 			if(!dryRun) {
-				for(String db : dbIds) {
-					cc.pushEngine(db);
+				for(String e : dbIds) {
+					cc.pushEngine(e);
 				}
-				for(String storage : storageIds) {
-					cc.pushEngine(storage);
+				for(String e : storageIds) {
+					cc.pushEngine(e);
 				}
-				for(String model : modelIds) {
-					cc.pushEngine(model);
+				for(String e : modelIds) {
+					cc.pushEngine(e);
+				}
+				for(String e : vectorIds) {
+					cc.pushEngine(e);
+				}
+				for(String e : functionIds) {
+					cc.pushEngine(e);
 				}
 				for(String project : projectIds) {
 					cc.pushProject(project);
