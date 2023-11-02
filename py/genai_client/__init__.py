@@ -38,7 +38,7 @@ def get_tokenizer(encoder_type:str, encoder_name, encoder_max_tokens):
     '''
     Utility method to  get the appropriate tokenizer based on the Model Engine
     '''
-    if (encoder_type == 'TEXT_GENERATION'):
+    if (encoder_type == 'EMBEDDED') or (encoder_type == 'TEXT_GENERATION'):
         return HuggingfaceTokenizer(encoder_name = encoder_name, encoder_max_tokens = encoder_max_tokens)
     elif (encoder_type == 'OPEN_AI'):
         return OpenAiTokenizer(encoder_name = encoder_name, encoder_max_tokens = encoder_max_tokens)
