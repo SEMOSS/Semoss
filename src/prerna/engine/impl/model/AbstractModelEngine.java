@@ -216,27 +216,43 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return retMap;
 	}
 
-	public Object embeddings(String question, Insight insight, Map <String, Object> parameters) {
+	@Override
+	public Object embeddings(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters) {
 		if(this.socketClient == null || !this.socketClient.isConnected())
 			this.startServer();
-		String varName = (String) smssProp.get(ModelEngineConstants.VAR_NAME);
-	
-		StringBuilder callMaker = new StringBuilder().append(varName).append(".embeddings(");
-		callMaker.append("question=\"").append(question).append("\"").append(")");
+		
+		String varName = smssProp.getProperty(ModelEngineConstants.VAR_NAME);
+	 	
+		String pythonListAsString = PyUtils.determineStringType(stringsToEncode);
+		
+		StringBuilder callMaker = new StringBuilder();
+
+		callMaker.append(varName)
+				 .append(".embeddings(list_to_encode = ")
+				 .append(pythonListAsString);
+				 
+		if(this.prefix != null) {
+			callMaker.append(", prefix='").append(this.prefix).append("'");
+		}
+		
+		callMaker.append(")");
+		
 		Object output;
+		classLogger.info("Making embeddings call on engine " + this.engineId);
 		if (Utility.isModelInferenceLogsEnabled()) {			
 			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
-			output = pyt.runScript(callMaker.toString());
+			output = pyt.runScript(callMaker.toString(), insight);
 			LocalDateTime outputTime = LocalDateTime.now();
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "embeddings", this, insight, null, question, inputTime, PyUtils.determineStringType(output), outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "embeddings", this, insight, null, pythonListAsString, inputTime, PyUtils.determineStringType(output), outputTime);
 			inferenceRecorder.run();
 		} else {
-			output = pyt.runScript(callMaker.toString());
+			output = pyt.runScript(callMaker.toString(), insight);
 		}
+		classLogger.info("Embeddings Received from engine " + this.engineId);
+ 			
 		return output;
 	}
-
 	
 	public Object model(String question, Insight insight, Map <String, Object> parameters) {
 		if(this.socketClient == null || !this.socketClient.isConnected())
@@ -249,12 +265,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		if (Utility.isModelInferenceLogsEnabled()) {			
 			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
-			output = pyt.runScript(callMaker.toString());
+			output = pyt.runScript(callMaker.toString(), insight);
 			LocalDateTime outputTime = LocalDateTime.now();
 			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "model", this, insight, null, question, inputTime, PyUtils.determineStringType(output), outputTime);
 			inferenceRecorder.run();
 		} else {
-			output = pyt.runScript(callMaker.toString());
+			output = pyt.runScript(callMaker.toString(), insight);
 		}
 		return output;
 	}
