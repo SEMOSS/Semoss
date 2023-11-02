@@ -1,5 +1,7 @@
 from typing import List, Dict, Union, Optional, Any
 from .faiss_client import FAISSSearcher
+from gaas_gpt_model import ModelEngine
+from genai_client import get_tokenizer
 
 class FAISSDatabase():
     '''
@@ -8,17 +10,27 @@ class FAISSDatabase():
 
     def __init__(
         self, 
+        encoder_id:str,
+        encoder_name:str,
+        encoder_type:str,
         searchers: list = [], 
-        encoder_class = None
+        encoder_max_tokens:int = None
     ) -> None:
         '''
         Create an instance of FAISSDatabase
         '''
-        # set the encoder class so it can be used when new searchers/indexClasses are added
-        self.encoder_class = encoder_class
+        # first we have to determine what tokenizer we need
+        self.tokenizer = get_tokenizer(
+            encoder_type= encoder_type, 
+            encoder_name = encoder_name,
+            encoder_max_tokens = encoder_max_tokens
+        )
 
+        # set the encoder class so it can be used when new searchers/indexClasses are added
+        self.encoder_class = ModelEngine(engine_id = encoder_id)
+        
         # register all the searchers passed in
-        self.searchers = {searcher:FAISSSearcher(encoder_class = self.encoder_class) for searcher in searchers}
+        self.searchers = {searcher:FAISSSearcher(encoder_class = self.encoder_class, tokenizer = self.tokenizer) for searcher in searchers}
 
     def create_searcher(
         self, 
@@ -38,7 +50,7 @@ class FAISSDatabase():
         if (searcher_name in self.searchers.keys()):
             raise ValueError("The searcher/table/class already exists")
         
-        self.searchers[searcher_name] = FAISSSearcher(encoder_class = self.encoder_class, **kwargs)
+        self.searchers[searcher_name] = FAISSSearcher(encoder_class = self.encoder_class, tokenizer = self.tokenizer, **kwargs)
 
     def delete_searcher(
         self, 

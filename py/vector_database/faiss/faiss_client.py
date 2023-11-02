@@ -18,7 +18,8 @@ class FAISSSearcher():
 
   def __init__(
       self, 
-      encoder_class=None,
+      encoder_class,
+      tokenizer,
       base_path = None,
     ):
     # if df is None and ds is None:
@@ -30,8 +31,8 @@ class FAISSSearcher():
     self.encoded_vectors = None
     self.vector_dimensions = None
 
-    assert encoder_class is not None
     self.encoder_class = encoder_class
+    self.tokenizer = tokenizer
 
     self.base_path = base_path
 
@@ -50,8 +51,9 @@ class FAISSSearcher():
             if not isinstance(value, (pd.DataFrame, Dataset)):
                 raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
         elif name in ['encoder_class']:
-          if not isinstance(value, EncoderInterface):
-                raise TypeError(f"{name} must be an instance of EncoderInterface")
+          pass
+          # if not isinstance(value, EncoderInterface):
+          #       raise TypeError(f"{name} must be an instance of EncoderInterface")
         elif name in ['encoded_vectors']:
           if (np.any(value) != None) and not isinstance(value, np.ndarray) :
                 raise TypeError(f"{name} must be a np.ndarray")
@@ -123,6 +125,7 @@ class FAISSSearcher():
   def nearestNeighbor(
       self, 
       question: str,
+      insight_id:str,
       filter: Optional[str] = None,
       results: Optional[int] = 5, 
       columns_to_return: Optional[List[str]] = None, 
@@ -181,8 +184,15 @@ class FAISSSearcher():
       columns_to_return = list(self.ds.features)
 
     # make sure the encoder class is loaded and get the embeddings (vector) for the tokens
-    search_vector = self.encoder_class.get_embeddings(question)
-    query_vector = np.array([search_vector])
+    # search_vector = self.encoder_class.get_embeddings([question])
+    # query_vector = np.array([search_vector])
+
+    search_vector = self.encoder_class.embeddings(
+        strings_to_encode = [question], 
+        insight_id = insight_id
+    )
+    query_vector = np.array(search_vector[0])
+    assert query_vector.shape[0] == 1
 
     # check to see if need to normalize the vector
     if isinstance(self.encoder_class, HuggingFaceEncoder):
@@ -409,11 +419,12 @@ class FAISSSearcher():
   def addDocumet(
       self, 
       documentFileLocation: List[str], 
+      insight_id:str,
       columns_to_index: Optional[List[str]], 
       columns_to_remove: Optional[List[str]] = [],
       target_column: Optional[str] = "text", 
-      separator: Optional[str] = ','
-    ) -> List[str]:
+      separator: Optional[str] = ',',
+    ) -> Dict:
     '''
     Given a path to a CSV document, perform the following tasks:
       - concatenate the columns the embeddings should be created from
@@ -440,8 +451,11 @@ class FAISSSearcher():
     assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
 
     # create a list of the documents created so that we can push the files back to the cloud
-    created_documents = []
-
+    createDocumentsResponse = {
+      'createdDocuments':[],
+      'documentsWithLargerChunks': {}
+    }
+    
     # loop through and embed new docs
     for document in documentFileLocation:
       # Get the directory path and the base filename without extension
@@ -476,8 +490,17 @@ class FAISSSearcher():
         }
       )
 
+      # need to check that the chunks are not greater than what the tokenizer can handle
+      chunks_with_larger_tokens = self._check_chunks_token_size(dataset[target_column])
+      createDocumentsResponse['documentsWithLargerChunks'][document] = chunks_with_larger_tokens
+
       # get the embeddings for the document
-      vectors = self.encoder_class.get_embeddings(dataset[target_column])
+      #vectors = self.encoder_class.get_embeddings(dataset[target_column])
+      vectors = self.encoder_class.embeddings(
+        strings_to_encode = dataset[target_column], 
+        insight_id = insight_id
+      )
+      vectors = np.array(vectors[0])
       assert vectors.ndim == 2
 
       columns_to_remove.append(target_column)
@@ -488,7 +511,7 @@ class FAISSSearcher():
         pickle.dump(dataset, file)
       
       # add the created dataset file path
-      created_documents.append(new_file_path)
+      createDocumentsResponse['createdDocuments'].append(new_file_path)
 
       # write out the vectors with the same file name
       # Change the file extension to ".pkl"
@@ -497,7 +520,7 @@ class FAISSSearcher():
         pickle.dump(vectors, file)
 
       # add the created embeddings file path
-      created_documents.append(new_file_path)
+      createDocumentsResponse['createdDocuments'].append(new_file_path)
 
       # TODO need to update the flow for how we instatiate
       if (np.any(self.encoded_vectors) == None):
@@ -509,14 +532,14 @@ class FAISSSearcher():
         self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
 
     master_indexClass_files = self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
-    created_documents.extend(master_indexClass_files)
-     
-    return created_documents
+    createDocumentsResponse['createdDocuments'].extend(master_indexClass_files)
+
+    return createDocumentsResponse
 
   def createMasterFiles(
       self, 
       path_to_files:str
-    ) -> List[str] :
+    ) -> List[str]:
     '''
     Create a master dataset and embeddings file based on the current documents. The main purpose of this is to improve startup runtime. 
 
@@ -572,3 +595,15 @@ class FAISSSearcher():
     self.index.add(self.encoded_vectors)
 
     return created_documents
+
+  def _check_chunks_token_size(self, strings_to_encode:List[str]):
+    max_token_length = self.tokenizer.get_max_token_length()
+    number_of_chunks = len(strings_to_encode)
+    chunks_with_higher_tokens = []
+    for i in range(number_of_chunks):
+      chunk =  strings_to_encode[i]
+      tokens_in_chunk = self.tokenizer.count_tokens(chunk)
+      if (tokens_in_chunk > max_token_length):
+        chunks_with_higher_tokens.append(i)
+    
+    return chunks_with_higher_tokens
