@@ -57,38 +57,47 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 
 	@Override
 	public NounMetadata execute() {
-		this.task = getTask();
-		this.engineId = getEngineId();
-		this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
-			throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
-		}
-		
-		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
-			AbstractReactor.throwUserNotExporterError();
-		}
-		this.targetTable = getTargetTable();
-		// clean up the table name
-		this.targetTable = Utility.makeAlphaNumeric(this.targetTable);
-		this.override = getOverride();
-		// checks if targetTable doesn't exist in the engine
-		this.newTable = !MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(this.engineId).contains(this.targetTable);
-		// boolean check if a unique id will be generated
-		this.genId = getInsertKey();
-		if(this.newTable && this.override) {
-			// you cannot override a table that doesn't exist
-			throw new SemossPixelException(
-					new NounMetadata("Table " + this.newTable + " cannot be found to override. Please enter an existing table name or turn override to false",
-							PixelDataType.CONST_STRING));
-		}
-		
 		try {
+			this.task = getTask();
+			
+			this.engineId = getEngineId();
+			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
+				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
+			}
+			
+			User user = this.insight.getUser();
+			// throw error is user doesn't have rights to export data
+			if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+				AbstractReactor.throwUserNotExporterError();
+			}
+			this.targetTable = getTargetTable();
+			// clean up the table name
+			this.targetTable = Utility.makeAlphaNumeric(this.targetTable);
+			this.override = getOverride();
+			// checks if targetTable doesn't exist in the engine
+			this.newTable = !MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(this.engineId).contains(this.targetTable);
+			// boolean check if a unique id will be generated
+			this.genId = getInsertKey();
+			if(this.newTable && this.override) {
+				// you cannot override a table that doesn't exist
+				throw new SemossPixelException(
+						new NounMetadata("Table " + this.newTable + " cannot be found to override. Please enter an existing table name or turn override to false",
+								PixelDataType.CONST_STRING));
+			}
+		
 			buildTask();
 		} catch(Exception e) {
 			// clean up
 			throw e;
+		} finally {
+			if(this.task != null) {
+				try {
+					task.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		ClusterUtil.pushEngine(getEngineId());
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION, PixelOperationType.FORCE_SAVE_DATA_EXPORT);
@@ -341,11 +350,6 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
-			}
-			try {
-				task.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
