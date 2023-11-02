@@ -211,7 +211,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			if(!rClonePath.startsWith("\"")) {
 				rClonePath = "\""+rClonePath+"\"";
 			}
-			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+			List<String> results = runRcloneFastListProcess(rCloneConfig, "rclone", "lsf", rClonePath);
 			return results;
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -445,7 +445,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			} else {
 				// we can only do purge on a folder
 				// so need to check
-				List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+				List<String> results = runRcloneFastListProcess(rCloneConfig, "rclone", "lsf", rClonePath);
 				if(results.size() == 1 && !results.get(0).endsWith("/")) {
 					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
 				} else {

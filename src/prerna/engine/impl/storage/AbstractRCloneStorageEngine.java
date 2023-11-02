@@ -151,7 +151,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //			if(!rClonePath.startsWith("'")) {
 //				rClonePath = "'"+rClonePath+"'";
 //			}
-			List<String> results = runRcloneProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
+			List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 			return results;
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -403,7 +403,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			} else {
 				// we can only do purge on a folder
 				// so need to check
-				List<String> results = runRcloneProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
+				List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 				if(results.size() == 1 && !results.get(0).endsWith("/")) {
 					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
 				} else {
@@ -470,6 +470,24 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 * @throws InterruptedException
 	 */
 	protected List<String> runRcloneProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rcloneConfig);
+		List<String> commandList = new ArrayList<>();
+		commandList.addAll(Arrays.asList(command));
+		commandList.add("--config");
+		commandList.add(configPath);
+		String[] newCommand = commandList.toArray(new String[] {});
+		return runAnyProcess(newCommand);	
+	}
+	
+	/**
+	 * 
+	 * @param rcloneConfig
+	 * @param command
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected List<String> runRcloneFastListProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
 		List<String> commandList = new ArrayList<>();
 		commandList.addAll(Arrays.asList(command));

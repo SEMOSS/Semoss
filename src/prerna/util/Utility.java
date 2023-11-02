@@ -196,7 +196,7 @@ import prerna.util.git.GitAssetUtils;
 public class Utility {
 
 	public static int id = 0;
-	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
+	private static final Logger classLogger = LogManager.getLogger(Utility.class);
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 	
 	/**
@@ -216,7 +216,7 @@ public class Utility {
 		while (matcher.find()) {
 			String data = matcher.group();
 			data = data.substring(1, data.length() - 1);
-			logger.debug(data);
+			classLogger.debug(data);
 			// put something to strip the @
 			paramHash.put(data, Constants.EMPTY);
 		}
@@ -244,7 +244,7 @@ public class Utility {
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
 
-			logger.debug(data);
+			classLogger.debug(data);
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
@@ -285,7 +285,7 @@ public class Utility {
 			if (data.contains("-")) {
 				String paramName = data.substring(0, data.indexOf('-'));
 
-				logger.debug(data);
+				classLogger.debug(data);
 				// put something to strip the @
 				List<Object> retList = new ArrayList<>();
 				retList.add("@" + paramName + "@");
@@ -308,13 +308,13 @@ public class Utility {
 		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		logger.debug("Param Hash is " + paramHash);
+		classLogger.debug("Param Hash is " + paramHash);
 
 		Iterator keys = paramHash.keySet().iterator();
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			String value = paramHash.get(key).get(0) + "";
-			logger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
 			if (!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
@@ -334,13 +334,13 @@ public class Utility {
 		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		logger.debug("Param Hash is " + paramHash);
+		classLogger.debug("Param Hash is " + paramHash);
 
 		Iterator keys = paramHash.keySet().iterator();
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			String value = paramHash.get(key);
-			logger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
 			if (!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
@@ -924,7 +924,7 @@ public class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
 		} finally {
 			// close the readers
@@ -933,7 +933,7 @@ public class Utility {
 					reader.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 
 			try {
@@ -941,7 +941,7 @@ public class Utility {
 					fileOut.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 	}
@@ -1006,7 +1006,7 @@ public class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
 		} finally {
 			// close the readers
@@ -1015,7 +1015,7 @@ public class Utility {
 					reader.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 
 			try {
@@ -1023,7 +1023,7 @@ public class Utility {
 					fileOut.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 	}
@@ -1163,14 +1163,14 @@ public class Utility {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			try {
 				if (newExcelFile != null) {
 					newExcelFile.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 	}
@@ -1191,14 +1191,14 @@ public class Utility {
 					paramHash.put(key, dub);
 					found = true;
 				} catch (RuntimeException ignored) {
-					logger.debug(ignored);
+					classLogger.debug(ignored);
 				}
 				if (!found) {
 					try {
 						int dub = Integer.parseInt(value);
 						paramHash.put(key, dub);
 					} catch (RuntimeException ignored) {
-						logger.debug(ignored);
+						classLogger.debug(ignored);
 					}
 				}
 				paramHash.put(key, value);
@@ -1215,8 +1215,8 @@ public class Utility {
 		try {
 			URIBuilder uri = new URIBuilder(api);
 
-			logger.debug("Getting data from the API...  " + api);
-			logger.debug("Params is " + params);
+			classLogger.debug("Getting data from the API...  " + api);
+			classLogger.debug("Params is " + params);
 
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -1249,17 +1249,17 @@ public class Utility {
 					output = output + data;
 			}
 		} catch (RuntimeException ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			logger.error(Constants.STACKTRACE, nsae);
+			classLogger.error(Constants.STACKTRACE, nsae);
 		} catch (KeyStoreException kse) {
-			logger.error(Constants.STACKTRACE, kse);
+			classLogger.error(Constants.STACKTRACE, kse);
 		} catch (URISyntaxException use) {
-			logger.error(Constants.STACKTRACE, use);
+			classLogger.error(Constants.STACKTRACE, use);
 		} catch (KeyManagementException kme) {
-			logger.error(Constants.STACKTRACE, kme);
+			classLogger.error(Constants.STACKTRACE, kme);
 		} finally {
 			try {
 				if (inputStream != null)
@@ -1267,7 +1267,7 @@ public class Utility {
 				if (stream != null)
 					stream.close();
 			} catch (IOException e) {
-				logger.error("Error closing input stream for image");
+				classLogger.error("Error closing input stream for image");
 			}
 			try {
 				if (httpclient != null)
@@ -1275,7 +1275,7 @@ public class Utility {
 				if (stream != null)
 					stream.close();
 			} catch (IOException e) {
-				logger.error("Error closing socket for httpclient");
+				classLogger.error("Error closing socket for httpclient");
 			}
 		}
 		if (output.length() == 0)
@@ -1290,8 +1290,8 @@ public class Utility {
 		try {
 			URIBuilder uri = new URIBuilder(api);
 
-			logger.info("Getting data from the API...  " + Utility.cleanLogString(api));
-			logger.info("Params are " + Utility.cleanLogMap(params, "HASHTABLE"));
+			classLogger.info("Getting data from the API...  " + Utility.cleanLogString(api));
+			classLogger.info("Params are " + Utility.cleanLogMap(params, "HASHTABLE"));
 
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -1318,23 +1318,23 @@ public class Utility {
 			return entity.getContent();
 
 		} catch (RuntimeException ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			logger.error(Constants.STACKTRACE, nsae);
+			classLogger.error(Constants.STACKTRACE, nsae);
 		} catch (KeyStoreException kse) {
-			logger.error(Constants.STACKTRACE, kse);
+			classLogger.error(Constants.STACKTRACE, kse);
 		} catch (URISyntaxException use) {
-			logger.error(Constants.STACKTRACE, use);
+			classLogger.error(Constants.STACKTRACE, use);
 		} catch (KeyManagementException kme) {
-			logger.error(Constants.STACKTRACE, kme);
+			classLogger.error(Constants.STACKTRACE, kme);
 		}
 		return null;
 	}
 
 	public static ISelectWrapper processQuery(IDatabaseEngine engine, String query) {
-		logger.debug("PROCESSING QUERY: " + query);
+		classLogger.debug("PROCESSING QUERY: " + query);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -1456,13 +1456,13 @@ public class Utility {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1500,13 +1500,13 @@ public class Utility {
 				retArray.add(valArray);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1570,7 +1570,7 @@ public class Utility {
 	}
 
 	public static IPlaySheet getPlaySheet(IDatabaseEngine engine, String psName) {
-		logger.info("Trying to get playsheet for " + Utility.cleanLogString(psName));
+		classLogger.info("Trying to get playsheet for " + Utility.cleanLogString(psName));
 		String psClassName = null;
 		if (engine != null) {
 			psClassName = engine.getProperty(psName);
@@ -1594,7 +1594,7 @@ public class Utility {
 	}
 
 	public static IDataMaker getDataMaker(IDatabaseEngine engine, String dataMakerName) {
-		logger.info("Trying to get data maker for " + Utility.cleanLogString(dataMakerName));
+		classLogger.info("Trying to get data maker for " + Utility.cleanLogString(dataMakerName));
 		String dmClassName = null;
 		if (engine != null) {
 			dmClassName = engine.getProperty(dataMakerName);
@@ -1629,7 +1629,7 @@ public class Utility {
 	}
 
 	public static ISEMOSSTransformation getTransformation(IDatabaseEngine engine, String transName) {
-		logger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
+		classLogger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
 		if (transClassName == null) {
 			transClassName = DIHelper.getInstance().getProperty(transName);
@@ -1643,7 +1643,7 @@ public class Utility {
 	}
 
 	public static ISEMOSSAction getAction(IDatabaseEngine engine, String actionName) {
-		logger.info("Trying to get action for " + Utility.cleanLogString(actionName));
+		classLogger.info("Trying to get action for " + Utility.cleanLogString(actionName));
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
 		if (actionClassName == null) {
 			actionClassName = DIHelper.getInstance().getProperty(actionName);
@@ -1659,29 +1659,29 @@ public class Utility {
 	public static Object getClassFromString(String className) {
 		Object obj = null;
 		try {
-			logger.debug("Dataframe name is " + Utility.cleanLogString(className));
+			classLogger.debug("Dataframe name is " + Utility.cleanLogString(className));
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(Constants.STACKTRACE, cnfe);
-			logger.fatal("No such class: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
 		} catch (InstantiationException ie) {
-			logger.error(Constants.STACKTRACE, ie);
-			logger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, ie);
+			classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
 		} catch (IllegalAccessException iae) {
-			logger.error(Constants.STACKTRACE, iae);
-			logger.fatal("Illegal Access: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, iae);
+			classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
 		} catch (IllegalArgumentException iare) {
-			logger.error(Constants.STACKTRACE, iare);
-			logger.fatal("Illegal argument: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, iare);
+			classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
 		} catch (InvocationTargetException ite) {
-			logger.error(Constants.STACKTRACE, ite);
-			logger.fatal("Invocation exception: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, ite);
+			classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
 		} catch (NoSuchMethodException nsme) {
-			logger.error(Constants.STACKTRACE, nsme);
-			logger.fatal("No constructor: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, nsme);
+			classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
 		} catch (SecurityException se) {
-			logger.error(Constants.STACKTRACE, se);
-			logger.fatal("Security exception: " + Utility.cleanLogString(className));
+			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
 		}
 		return obj;
 	}
@@ -1950,7 +1950,7 @@ public class Utility {
 		try {
 			mydate = sdf.parse(input);
 		} catch (ParseException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return mydate;
 	}
@@ -2431,7 +2431,7 @@ public class Utility {
 				syncToLocalMaster = true;
 			}
 		} catch(Exception e) {
-			logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 		}
 		
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
@@ -2441,7 +2441,7 @@ public class Utility {
 			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
 		}
 
-		logger.info("Loading engine " + engineId + " of type = " + engineType);
+		classLogger.info("Loading engine " + engineId + " of type = " + engineType);
 		if(syncToLocalMaster) {
 			// sync up the engine metadata now
 			Utility.synchronizeEngineMetadata(engineId);
@@ -2463,7 +2463,7 @@ public class Utility {
 			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";") || engines.endsWith(";" + engineId)) {
-				logger.debug("Engine " + engineId + " is already loaded...");
+				classLogger.debug("Engine " + engineId + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
@@ -2521,13 +2521,13 @@ public class Utility {
 				SecurityEngineUtils.addEngine(engineId, null);
 			}
 		} catch (InstantiationException ie) {
-			logger.error(Constants.STACKTRACE, ie);
+			classLogger.error(Constants.STACKTRACE, ie);
 		} catch (IllegalAccessException iae) {
-			logger.error(Constants.STACKTRACE, iae);
+			classLogger.error(Constants.STACKTRACE, iae);
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error(Constants.STACKTRACE, cnfe);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2543,7 +2543,7 @@ public class Utility {
 		try {
 			engine = (IDatabaseEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2559,7 +2559,7 @@ public class Utility {
 		try {
 			engine = (IStorageEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2575,7 +2575,7 @@ public class Utility {
 		try {
 			engine = (IModelEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2591,7 +2591,7 @@ public class Utility {
 		try {
 			engine = (IVectorDatabaseEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2607,7 +2607,7 @@ public class Utility {
 		try {
 			engine = (IFunctionEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2626,7 +2626,7 @@ public class Utility {
 			String projectClass = smssProp.getProperty(Constants.PROJECT_TYPE);
 
 			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";") || projects.endsWith(";" + projectId)) {
-				logger.debug("Project " + projectId + " is already loaded...");
+				classLogger.debug("Project " + projectId + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
@@ -2642,7 +2642,7 @@ public class Utility {
 					Properties props = Utility.loadProperties(smssFilePath);
 					boolean isAsset = Boolean.parseBoolean(props.getProperty(Constants.IS_ASSET_APP)+"");
 					if(!isAsset && props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
-						logger.info("Updating project smss to include public home property");
+						classLogger.info("Updating project smss to include public home property");
 						Map<String, String> mods = new HashMap<>();
 						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
 						Utility.addKeysAtLocationIntoPropertiesFile(smssFilePath, Constants.CONNECTION_URL, mods);
@@ -2650,6 +2650,7 @@ public class Utility {
 						ClusterUtil.pushProjectSmss(projectId);
 					}
 				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
 					//ignore
 				}
 			}
@@ -2677,13 +2678,13 @@ public class Utility {
 				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch (InstantiationException ie) {
-			logger.error(Constants.STACKTRACE, ie);
+			classLogger.error(Constants.STACKTRACE, ie);
 		} catch (IllegalAccessException iae) {
-			logger.error(Constants.STACKTRACE, iae);
+			classLogger.error(Constants.STACKTRACE, iae);
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error(Constants.STACKTRACE, cnfe);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return project;
@@ -2710,7 +2711,7 @@ public class Utility {
 		// grab the local master engine
 		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB);
 		if (localMaster == null) {
-			logger.info(">>>>>>>> Unable to find local master database in DIHelper.");
+			classLogger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
 		}
 
@@ -2841,20 +2842,18 @@ public class Utility {
 		
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
 		{
-
-
 			if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
 				project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 			} else {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for project " + Utility.cleanLogString(projectId));
+				classLogger.info("Applying lock for project " + Utility.cleanLogString(projectId));
 				ReentrantLock lock = null;
 				try {
 					lock = ProjectSyncUtility.getProjectLock(projectId);
 					lock.lock();
-					logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
+					classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 					
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
@@ -2878,13 +2877,13 @@ public class Utility {
 						// actual load engine process
 						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
 					} else {
-						logger.debug("There is no SMSS File for the project " + projectId + "...");
+						classLogger.debug("There is no SMSS File for the project " + projectId + "...");
 					}
 				} finally {
 					if(lock != null) {
 						// Make sure to unlock now
 						lock.unlock();
-						logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+						classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 					}
 				}
 			}
@@ -2910,10 +2909,10 @@ public class Utility {
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			logger.info("Applying lock for user asset/workspace " + projectId);
+			classLogger.info("Applying lock for user asset/workspace " + projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
-			logger.info("User asset/workspace "+ projectId + " is locked");
+			classLogger.info("User asset/workspace "+ projectId + " is locked");
 
 			try {
 				// Need to do a double check here,
@@ -2944,12 +2943,12 @@ public class Utility {
 					// actual load engine process
 					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
-					logger.debug("There is no SMSS File for the user asset/workspace " + projectId + "...");
+					classLogger.debug("There is no SMSS File for the user asset/workspace " + projectId + "...");
 				}
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				logger.info("User asset/workspace "+ projectId + " is unlocked");
+				classLogger.info("User asset/workspace "+ projectId + " is unlocked");
 			}
 		}
 		
@@ -3055,12 +3054,12 @@ public class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for engine " + Utility.cleanLogString(engineId) + " to pull");
+				classLogger.info("Applying lock for engine " + Utility.cleanLogString(engineId) + " to pull");
 				ReentrantLock lock = null;
 				try {
 					lock = EngineSyncUtility.getEngineLock(engineId);
 					lock.lock();
-					logger.info("Engine "+ Utility.cleanLogString(engineId) + " is locked");
+					classLogger.info("Engine "+ Utility.cleanLogString(engineId) + " is locked");
 		
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
@@ -3085,10 +3084,10 @@ public class Utility {
 					{
 						engine = Utility.loadEngine(null, prop);	
 					} else {
-						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
 					}
 	
 					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
@@ -3126,7 +3125,7 @@ public class Utility {
 					// Make sure to unlock now
 					if(lock != null) {
 						lock.unlock();
-						logger.info("Engine "+ Utility.cleanLogString(engineId) + " is unlocked");
+						classLogger.info("Engine "+ Utility.cleanLogString(engineId) + " is unlocked");
 					}
 				}
 			}
@@ -3317,14 +3316,14 @@ public class Utility {
 //				fw.close();
 			}
 		} catch(Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 		
 		return prop;
 	}
 
 	public static String findOpenPort() {
-		logger.info("Finding an open port.. ");
+		classLogger.info("Finding an open port.. ");
 		boolean found = false;
 
 		int lowPort = 5355;
@@ -3339,16 +3338,16 @@ public class Utility {
 		}
 		
 		for (; !found && lowPort < highPort; lowPort++) {
-			logger.info("Trying port = " + lowPort);
+			classLogger.info("Trying port = " + lowPort);
 			try(ServerSocket s = new ServerSocket(lowPort);) {
-				logger.info("Success with port = " + lowPort);
+				classLogger.info("Success with port = " + lowPort);
 				// no error, found an open port, we can stop
 				found = true;
 				s.close();
 				break;
 			} catch (Exception ex) {
 				// do nothing
-				logger.info("Port " + lowPort + " Failed. " + ex.getMessage());
+				classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
 				found = false;
 //				logger.error(Constants.STACKTRACE, ex);
 			}
@@ -3490,13 +3489,13 @@ public class Utility {
 		// make sure file is empty so we are only inserting the new values
 		File f = new File(fileLocation);
 		if (f.exists()) {
-			logger.debug("File currently exists.. deleting file");
+			classLogger.debug("File currently exists.. deleting file");
 			f.delete();
 		}
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -3645,33 +3644,33 @@ public class Utility {
 			}
 
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 
 		long end = System.currentTimeMillis();
-		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
+		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
 
 		return f;
 	}
@@ -3701,13 +3700,13 @@ public class Utility {
 		// make sure file is empty so we are only inserting the new values
 		File f = new File(fileLocation);
 		if (f.exists()) {
-			logger.debug("File currently exists.. deleting file");
+			classLogger.debug("File currently exists.. deleting file");
 			f.delete();
 		}
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -3837,33 +3836,33 @@ public class Utility {
 			bufferedWriter.flush();
 			
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 
 		long end = System.currentTimeMillis();
-		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
+		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
 
 		return f;
 	}
@@ -3982,7 +3981,7 @@ public class Utility {
 		}
 		
 		long end = System.currentTimeMillis();
-		logger.info("Time to output file = " + (end - start) + " ms.");
+		classLogger.info("Time to output file = " + (end - start) + " ms.");
 		return jsonArray;
 	}
 
@@ -3996,7 +3995,7 @@ public class Utility {
 					.replace("~", "\\%7E")
 					;
 		} catch (UnsupportedEncodingException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return s;
 	}
@@ -4012,7 +4011,7 @@ public class Utility {
 					;
 			s = URLDecoder.decode(newS, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return s;
 	}
@@ -4092,7 +4091,7 @@ public class Utility {
 		String normalizedString = FilenameUtils.normalize(stringToNormalize);
 
 		if (normalizedString == null) {
-			logger.error("File path: " + Utility.cleanLogString(stringToNormalize) + " could not be normalized");
+			classLogger.error("File path: " + Utility.cleanLogString(stringToNormalize) + " could not be normalized");
 			throw new IllegalArgumentException("The filepath passed in is invalid");
 		}
 		normalizedString = normalizedString.replace("\\", "/");
@@ -4114,14 +4113,14 @@ public class Utility {
 				fis = new FileInputStream(Utility.normalizePath(filePath));
 				retProp.load(fis);
 			} catch (IOException ioe) {
-				logger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
-				logger.error(Constants.STACKTRACE, ioe);
+				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
+				classLogger.error(Constants.STACKTRACE, ioe);
 			} finally {
 				if (fis != null) {
 					try {
 						fis.close();
 					} catch (IOException ioe) {
-						logger.error(Constants.STACKTRACE, ioe);
+						classLogger.error(Constants.STACKTRACE, ioe);
 					}
 				}
 			}
@@ -4140,7 +4139,7 @@ public class Utility {
 	    	try {
 				retProp.load(is);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 	    }
 	    return retProp;
@@ -4416,7 +4415,7 @@ public class Utility {
 		cacheSetting = cacheSetting.trim();
 		
 		if (!CronExpression.isValidExpression(cacheSetting)) {
-			logger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting + "' is not a valid cron expression");
+			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting + "' is not a valid cron expression");
 			return null;
 		}
 		
@@ -4535,7 +4534,7 @@ public class Utility {
 		valid.add("powershell");
 		
 		if(!valid.contains(terminalMode) && !valid.contains(terminalMode.toLowerCase())) {
-			logger.warn("Invalid terminal mode = " + terminalMode + ". Switching to cmd for windows and bash for mac/linux.");
+			classLogger.warn("Invalid terminal mode = " + terminalMode + ". Switching to cmd for windows and bash for mac/linux.");
 		}
 		
 		return terminalMode;
@@ -4596,8 +4595,8 @@ public class Utility {
 		if(!sameSiteString.equalsIgnoreCase("strict") && 
 				!sameSiteString.equalsIgnoreCase("lax") &&
 				!sameSiteString.equalsIgnoreCase("none")) {
-			logger.warn("Invalid samesite cookie option = '" + sameSiteString +"'. Must be 'strict', 'lax', or 'none'");
-			logger.warn("Default to samesite cookie option 'none'");
+			classLogger.warn("Invalid samesite cookie option = '" + sameSiteString +"'. Must be 'strict', 'lax', or 'none'");
+			classLogger.warn("Default to samesite cookie option 'none'");
 			return "none";
 		}
 		
@@ -4622,8 +4621,8 @@ public class Utility {
 				return protocol + "://" + host;
 			}
 		} catch(MalformedURLException e) {
-			logger.warn("Invalid redirect URL in social.properties for redirect");
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.warn("Invalid redirect URL in social.properties for redirect");
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -4733,9 +4732,9 @@ public class Utility {
 			out.close();
 			in.close();
 		} catch (MalformedURLException mue) {
-			logger.error(Constants.STACKTRACE, mue);
+			classLogger.error(Constants.STACKTRACE, mue);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 
@@ -4745,7 +4744,7 @@ public class Utility {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
-				 logger.debug("Project specific reactors are disabled");
+				 classLogger.debug("Project specific reactors are disabled");
 				 return thisMap;
 			 }
 		}
@@ -4768,7 +4767,7 @@ public class Utility {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				logger.error("Loading reactors from >> " + classesFolder);
+				classLogger.error("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -4825,9 +4824,9 @@ public class Utility {
 									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 								}
 							} catch (NotFoundException nfe) {
-								logger.error(Constants.STACKTRACE, nfe);
+								classLogger.error(Constants.STACKTRACE, nfe);
 							} catch (CannotCompileException cce) {
-								logger.error(Constants.STACKTRACE, cce);
+								classLogger.error(Constants.STACKTRACE, cce);
 							}
 
 							// once the new instance has been done.. it has been injected into heap.. after
@@ -4839,7 +4838,7 @@ public class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 
 		return thisMap;
@@ -4855,7 +4854,7 @@ public class Utility {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
-				 logger.debug("Project specific reactors are disabled");
+				 classLogger.debug("Project specific reactors are disabled");
 				 return reactorMap;
 			 }
 		}
@@ -4869,7 +4868,7 @@ public class Utility {
 
 			File file = new File(classesFolder);
 			if (file.exists()) {
-				logger.info("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -4910,7 +4909,7 @@ public class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 
 		return reactorMap;
@@ -4945,7 +4944,7 @@ public class Utility {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
-				 logger.debug("Project specific reactors are disabled");
+				 classLogger.debug("Project specific reactors are disabled");
 				 return reactors;
 			 }
 		}
@@ -4970,7 +4969,7 @@ public class Utility {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				logger.error("Loading reactors from >> " + classesFolder);
+				classLogger.error("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -5017,7 +5016,7 @@ public class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 
 		return reactors;
@@ -5034,7 +5033,7 @@ public class Utility {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
-				logger.debug("Project specific reactors are disabled");
+				classLogger.debug("Project specific reactors are disabled");
 				return reactorsMap;
 			};
 		}
@@ -5074,13 +5073,13 @@ public class Utility {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(cl != null) {
 				try {
 					cl.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -5113,7 +5112,7 @@ public class Utility {
 			}
 			envClassPath = "\"" + retClassPath.toString() + "\"";
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error(Constants.STACKTRACE, cnfe);
 		}
 
 		return envClassPath;
@@ -5193,7 +5192,7 @@ public class Utility {
 
 			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error(Constants.STACKTRACE, cnfe);
 		}
 
 		return envClassPath.toString();
@@ -5290,11 +5289,11 @@ public class Utility {
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
 
-			logger.debug("Trying to create file in .. " + finalDir);
+			classLogger.debug("Trying to create file in .. " + finalDir);
 			File file = new File(chrootDir + finalDir + "/init");
 			file.createNewFile();
-			logger.debug("Python start commands ... ");
-			logger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+			classLogger.debug("Python start commands ... ");
+			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
 
 			// run it as a process
 			// ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5316,7 +5315,7 @@ public class Utility {
 			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			Process p = pb.start();
 
 			try {
@@ -5324,9 +5323,9 @@ public class Utility {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
+				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			thisProcess = p;
 
 			// System.out.println("Process started with .. " + p.exitValue());
@@ -5336,7 +5335,7 @@ public class Utility {
 			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			// thisProcess = pb.start();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return thisProcess;
@@ -5432,11 +5431,11 @@ public class Utility {
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
 
-			logger.debug("Trying to create file in .. " + finalDir);
+			classLogger.debug("Trying to create file in .. " + finalDir);
 			File file = new File(finalDir + "/init");
 			file.createNewFile();
-			logger.debug("Python start commands ... ");
-			logger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+			classLogger.debug("Python start commands ... ");
+			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
 
 			// run it as a process
 			// ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5463,9 +5462,9 @@ public class Utility {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
+				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			thisProcess = p;
 
 			// System.out.println("Process started with .. " + p.exitValue());
@@ -5475,7 +5474,7 @@ public class Utility {
 			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			// thisProcess = pb.start();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return thisProcess;
@@ -5552,9 +5551,9 @@ public class Utility {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
+				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			if (!p.isAlive()) {
 				// if it crashed here, then the outputFile will contain the error. Read file and send error back
 				// it should not contain anything else since we are trying to start the server here
@@ -5583,7 +5582,7 @@ public class Utility {
 			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			// thisProcess = pb.start();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return new Object[] {thisProcess, prefix};
@@ -5662,9 +5661,9 @@ public class Utility {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
+				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			thisProcess = p;
 
 			// System.out.println("Process started with .. " + p.exitValue());
@@ -5674,7 +5673,7 @@ public class Utility {
 			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			// thisProcess = pb.start();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return new Object[] {thisProcess, prefix};
@@ -5701,14 +5700,14 @@ public class Utility {
 					try 
 					{
 						tcpClient.wait();
-						logger.info("Setting the socket client ");
+						classLogger.info("Setting the socket client ");
 					} catch (InterruptedException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return tcpClient;
@@ -5800,11 +5799,11 @@ public class Utility {
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
 
-			logger.debug("Trying to create file in .. " + finalDir);
+			classLogger.debug("Trying to create file in .. " + finalDir);
 			File file = new File(finalDir + "/init");
 			file.createNewFile();
-			logger.debug("Python start commands ... ");
-			logger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+			classLogger.debug("Python start commands ... ");
+			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
 
 			// run it as a process
 			// ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5815,7 +5814,7 @@ public class Utility {
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			Process p = pb.start();
 
 			try {
@@ -5823,9 +5822,9 @@ public class Utility {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
+				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			logger.info("came out of the waiting for process");
+			classLogger.info("came out of the waiting for process");
 			thisProcess = p;
 
 			// System.out.println("Process started with .. " + p.exitValue());
@@ -5835,7 +5834,7 @@ public class Utility {
 			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			// thisProcess = pb.start();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return thisProcess;
@@ -5875,9 +5874,9 @@ public class Utility {
 				p.start();
 			}
 		} catch (FileNotFoundException fnfe) {
-			logger.error(Constants.STACKTRACE, fnfe);
+			classLogger.error(Constants.STACKTRACE, fnfe);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 		
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) { 
@@ -5942,9 +5941,9 @@ public class Utility {
 				p.start();
 			}
 		} catch (FileNotFoundException fnfe) {
-			logger.error(Constants.STACKTRACE, fnfe);
+			classLogger.error(Constants.STACKTRACE, fnfe);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 		
 
@@ -5969,7 +5968,7 @@ public class Utility {
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -5990,7 +5989,7 @@ public class Utility {
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -6040,7 +6039,7 @@ public class Utility {
 		Path path = Paths.get(Utility.normalizePath(javaFolder));
 		
 		if (Files.isDirectory(path)) {
-			logger.info("Compiling Java in Folder " + javaFolder);
+			classLogger.info("Compiling Java in Folder " + javaFolder);
 			try (Stream<Path> p = Files.walk(path, FileVisitOption.FOLLOW_LINKS)) {
 				List<File> files = p.filter(Files::isRegularFile)
 					.map(Path::toAbsolutePath)
@@ -6053,9 +6052,9 @@ public class Utility {
 					status = compileJava(files, folder, classpath);
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-			logger.info("Done compiling Java in Folder " + javaFolder);
+			classLogger.info("Done compiling Java in Folder " + javaFolder);
 		}
 		
 		return status;
@@ -6152,7 +6151,7 @@ public class Utility {
 				throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
 			}
 		} catch (MalformedURLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
 		}
 	}
