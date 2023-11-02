@@ -41,7 +41,7 @@ class OpenaiEncoderClass(EncoderInterface):
         elif isinstance(dataToEncode, pandas.core.series.Series):
             embedded_list = dataToEncode.apply(lambda x: self._make_openai_embedding_call(x, embedding_model=embedding_model))
         elif isinstance(dataToEncode, str):
-            embedded_list = self._make_openai_embedding_call(dataToEncode, embedding_model=embedding_model)
+            embedded_list = [self._make_openai_embedding_call(dataToEncode, embedding_model=embedding_model)]
         else:
             # raise an error since this call has not been defined
             raise ValueError("Unsupported data type. Please provide a list, Series, string, or add unimplemented data type call.")

@@ -1,17 +1,31 @@
 
+from typing import Optional, Union, List, Dict, Any
 from text_generation import Client
 import requests
-from genai_client.client_resources.gaas_client_base import BaseClient
+from .gaas_client_base import BaseClient
 import inspect
 from string import Template
+from ..tokenizers import HuggingfaceTokenizer
 
 class TextGenClient(BaseClient):
   params = list(inspect.signature(Client.generate).parameters.keys())[1:]
 
-  def __init__(self, template=None, endpoint:str=None, model_name:str="guanaco", template_name:str = None, stop_sequences:list = None, timeout = 30,
-              **kwargs):
+  def __init__(
+      self, 
+      template = None, 
+      endpoint:str = None, 
+      model_name:str = None,
+      template_name:str = None, 
+      stop_sequences:list = None, 
+      timeout = 30,
+      **kwargs
+    ):
     assert endpoint is not None
-    super().__init__(template=template)
+    # assert model_name is not None
+    super().__init__(
+      template=template, 
+      template_name = template_name
+    )
     self.kwargs = kwargs
     self.client = Client(endpoint)
     self.client.timeout = timeout
@@ -20,16 +34,24 @@ class TextGenClient(BaseClient):
     self.available_models = []
     self.template_name = template_name
     self.stop_sequences = stop_sequences
+    # self.tokenizer = HuggingfaceTokenizer(
+    #   encoder_name = model_name, 
+    #   encoder_max_tokens = kwargs.pop(
+    #     'max_tokens', 
+    #     None
+    #   )
+    # )
     
-  def ask(self, 
-          question:str=None, 
-          context:str=None,
-          history:list=[],
-          template_name:str=None,
-          max_new_tokens:int=1000,
-          prefix = "",
-          **kwargs:dict
-          )->str:
+  def ask(
+      self, 
+      question:str=None, 
+      context:str=None,
+      history:list=[],
+      template_name:str=None,
+      max_new_tokens:int=1000,
+      prefix = "",
+      **kwargs:Dict
+    ) -> str:
     # start the prompt as an empty string
     prompt = ""
     
@@ -83,10 +105,10 @@ class TextGenClient(BaseClient):
           content.append('\n')
       
         # append the user asked question to the content
-        content.append('User:\n')
+        content.append('### Instruction:\n\n')
         content.append(question)
         content.append('\n')
-        content.append('System:\n')
+        content.append('### Response:\n')
 
       else: 
         # Currently there is no template where only the context is substituted. At that point they should pass the context in as an argument.
@@ -103,6 +125,7 @@ class TextGenClient(BaseClient):
       # join all the inputs into a single string
       prompt = "".join(content)
       # ask the question and apply the additional params
+
       responses = self.client.generate_stream(prompt, max_new_tokens=max_new_tokens, **kwargs)
       final_response = ""
       for response in responses:
@@ -127,8 +150,10 @@ class TextGenClient(BaseClient):
           raise ValueError("There are invalid dictionary keys")
         # add it the message payload
         for roleContent in full_prompt:
-          prompt += roleContent['role']
-          prompt += roleContent['content']
+          role = roleContent['role'] if roleContent['role'].endswith('\n') else role + '\n'
+          prompt += role
+          message_content = roleContent['content'] if roleContent['content'].endswith('\n') else role + '\n'
+          prompt += message_content
       else:
           raise ValueError("Please either pass a string containing the full prompt or a sorted list that contains dictionaries with only 'role' and 'content' keys.\nPlease note, the values associated with 'role' and 'content' should contain the appropriate character to build a prompt string.S")
 
@@ -140,20 +165,3 @@ class TextGenClient(BaseClient):
         print(prefix+chunk,end='')
         final_response += chunk
       return final_response
-
-
-  def get_available_models(self)->list:
-    if len(self.available_models) == 0:
-        availableModelRequest = requests.get(self.model_list_endpoint)
-        if (availableModelRequest.status_code == 200):
-            if availableModelRequest.content != b'':
-                self.available_models = [modelInfo['id'] for modelInfo in availableModelRequest.json()['data']]
-            else:
-                if (not self.model_list_endpoint.endswith('/')):
-                    self.model_list_endpoint = self.model_list_endpoint + '/'
-                self.available_models = [self.model_list_endpoint.split('/')[-2]]
-    
-    return self.available_models
-  
-  def is_model_available(self,model_name:str)->bool:
-    return (model_name in self.get_available_models())

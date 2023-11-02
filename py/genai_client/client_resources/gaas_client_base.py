@@ -1,12 +1,19 @@
-
+from typing import Optional, Union, List, Dict, Any
 import json
 import os
 from string import Template
+from abc import ABC, abstractmethod
 
-class BaseClient():
+class BaseClient(ABC):
   # loads all the templates
   # fills the templates and gives information back
-  def __init__(self,template=None):
+  def __init__(
+    self, 
+    template:Union[Dict, str] = None,
+    template_name:str = None,
+    **kwargs
+  ):
+    self.template_name = template_name
     self.templates= {}
 
     # if the user does not provide a template, we default to chat_templates.json
@@ -75,3 +82,4 @@ class BaseClient():
       substitutions_made = False
 
     return output, substitutions_made
+  
