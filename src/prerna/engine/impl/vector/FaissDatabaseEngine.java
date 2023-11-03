@@ -98,11 +98,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 		
 		this.smssProp.put("VECTOR_SEARCHER_NAME", this.vectorDatabaseSearcher);	
-	
-		if (!this.smssProp.containsKey("ENCODER_API_KEY")) {
-			this.smssProp.put("ENCODER_API_KEY", "");	
-		}
-		
+
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
 		String modelSmssFile = (String) DIHelper.getInstance().getEngineProperty(this.smssProp.getProperty("ENCODER_ID") + "_" + Constants.STORE);

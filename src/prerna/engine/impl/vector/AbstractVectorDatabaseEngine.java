@@ -73,8 +73,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (this.smssProp.containsKey("INDEX_CLASSES")) {
 			this.defaultIndexClass = this.smssProp.getProperty("INDEX_CLASSES");
 		}
-		this.encoderName = this.smssProp.getProperty("ENCODER_NAME");
-		this.encoderType = this.smssProp.getProperty("ENCODER_TYPE");
 	}
 	
 	@Override
