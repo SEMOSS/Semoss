@@ -30,17 +30,25 @@ class EmbeddedEncoder():
         if isinstance(filepath, str):
             # file exists and is cached
             return Path(filepath).parent.absolute()
-        elif filepath is _CACHED_NO_EXIST:
-            # hopefully we are just missing the config file
-            config_file = hf_hub_download(
-                repo_id= repo_id,
-                filename='config.json'
-            )
-            return Path(config_file).parent.absolute()
+        # elif filepath is _CACHED_NO_EXIST:
+        #     # hopefully we are just missing the config file
+        #     config_file = hf_hub_download(
+        #         repo_id= repo_id,
+        #         filename='config.json'
+        #     )
+        #     return Path(config_file).parent.absolute()
         else:
-            # file does not exist so we need to download the repo
-            return snapshot_download(repo_id)
-        
+            try:
+                # file does not exist so we need to download the repo
+                return snapshot_download(repo_id)
+            except:
+                # really dont want to have to do this
+                from transformers import AutoModel
+                AutoModel.from_pretrained(repo_id)
+                return try_to_load_from_cache(
+                    repo_id=repo_id, 
+                    filename='config.json'
+                )
 
     def embeddings(
         self, 
