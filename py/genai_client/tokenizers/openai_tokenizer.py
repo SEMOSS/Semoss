@@ -14,8 +14,8 @@ class OpenAiTokenizer(AbstractTokenizer):
             return tiktoken.encoding_for_model(encoder_name)
 
     def count_tokens(self, input: Union[List[Dict],str]) -> int:
-        input_tokens = self.get_tokens_ids(input=input)
-        return len(input_tokens)
+        input_tokens_ids = self.get_tokens_ids(input=input)
+        return len(input_tokens_ids)
 
     def get_tokens_ids(self, input: Union[List[Dict],str]) -> List[int]:
         if isinstance(input, list):
