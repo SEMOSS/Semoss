@@ -12,8 +12,8 @@ class HuggingfaceTokenizer(AbstractTokenizer):
 
     def count_tokens(self, input:str) -> int:
         '''Use the model tokenizer to get the number of tokens'''
-        input_tokens = self.get_tokens(input=input)
-        return len(input_tokens)
+        input_tokens_ids = self.get_tokens_ids(input=input)
+        return len(input_tokens_ids)
 
     def get_tokens_ids(self, input:str) -> List[int]:
         return self.tokenizer.encode(input)
