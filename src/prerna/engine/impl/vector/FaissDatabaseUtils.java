@@ -20,6 +20,7 @@ import prerna.reactor.frame.gaas.processors.CSVWriter;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
+import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 
 public class FaissDatabaseUtils {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseUtils.class);
@@ -65,6 +66,12 @@ public class FaissDatabaseUtils {
 			{
 				PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
 				pdf.process();
+				processedList.add(file.getAbsolutePath());
+			}
+			else if(mimeType.equalsIgnoreCase("text/plain"))
+			{
+				TextFileProcessor text = new TextFileProcessor(file.getAbsolutePath(), writer);
+				text.process();
 				processedList.add(file.getAbsolutePath());
 			}
 			else
