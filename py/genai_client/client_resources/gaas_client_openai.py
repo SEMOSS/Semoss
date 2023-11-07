@@ -45,7 +45,7 @@ class OpenAiClient(BaseClient):
         None
       )
     )
-
+    self.max_tokens = None
     self.kwargs = kwargs
     
   def ask(
