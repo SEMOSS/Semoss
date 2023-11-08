@@ -6,9 +6,11 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -568,14 +570,34 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public String[] listDocuments(Map<String, Object> parameters) {
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 		
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
-		return documentsDir.list();
+		
+        List<Map<String, Object>> fileList = new ArrayList<>();
+
+		File[] files = documentsDir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                String fileName = file.getName();
+                long fileSizeInBytes = file.length();
+                double fileSizeInMB = (double) fileSizeInBytes / (1024);
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String lastModified = dateFormat.format(new Date(file.lastModified()));
+                
+                Map<String, Object> fileInfo = new HashMap<>();
+                fileInfo.put("fileName", fileName);
+                fileInfo.put("fileSize", fileSizeInMB);
+                fileInfo.put("lastModified", lastModified);
+                fileList.add(fileInfo);
+            }
+        } 
+		
+		return fileList;
 	}
 
 	@Override
