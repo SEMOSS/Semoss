@@ -19,7 +19,7 @@ public interface IVectorDatabaseEngine extends IEngine {
 	// i vector db
 	// open close nearest neighbor, add document - remove document. question
 	
-	void addDocumet(List<String> filePaths, Map <String, Object> parameters);
+	void addDocument(List<String> filePaths, Map <String, Object> parameters);
 	
 	void removeDocument(List<String> filePaths, Map <String, Object> parameters);
 	
