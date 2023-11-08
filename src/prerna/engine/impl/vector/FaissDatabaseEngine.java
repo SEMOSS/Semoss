@@ -202,7 +202,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void addDocumet(List<String> filePaths, Map <String, Object> parameters) {
+	public void addDocument(List<String> filePaths, Map <String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
