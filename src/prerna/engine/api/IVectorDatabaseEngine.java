@@ -25,5 +25,5 @@ public interface IVectorDatabaseEngine extends IEngine {
 	
 	Object nearestNeighbor(String question, int limit, Map <String, Object> parameters);
 	
-	String[] listDocuments(Map <String, Object> parameters);
+	List<Map<String, Object>> listDocuments(Map <String, Object> parameters);
 }

@@ -42,9 +42,7 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor{
 		if (engine == null) {
 			throw new SemossPixelException("Unable to find engine");
 		}
-		
-		engine.listDocuments(paramMap);
-		
+				
 		return new NounMetadata(engine.listDocuments(paramMap), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 	
@@ -62,5 +60,4 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor{
         }
         return null;
     }
-
 }
