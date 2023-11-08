@@ -112,7 +112,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		}
 		
 		if (tempDirectory.list().length > 0) {
-			eng.addDocumet(filesToIndex, paramMap);
+			eng.addDocument(filesToIndex, paramMap);
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);	
 	}
