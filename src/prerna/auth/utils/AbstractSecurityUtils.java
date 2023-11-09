@@ -309,6 +309,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("ENGINE", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
