@@ -150,9 +150,9 @@ class TextGenClient(BaseClient):
           raise ValueError("There are invalid dictionary keys")
         # add it the message payload
         for roleContent in full_prompt:
-          role = roleContent['role'] if roleContent['role'].endswith('\n') else role + '\n'
+          role = roleContent['role'] if roleContent['role'].endswith('\n') else roleContent['role'] + ':\n\n'
           prompt += role
-          message_content = roleContent['content'] if roleContent['content'].endswith('\n') else role + '\n'
+          message_content = roleContent['content'] if roleContent['content'].endswith('\n') else roleContent['content'] + ':\n\n'
           prompt += message_content
       else:
           raise ValueError("Please either pass a string containing the full prompt or a sorted list that contains dictionaries with only 'role' and 'content' keys.\nPlease note, the values associated with 'role' and 'content' should contain the appropriate character to build a prompt string.S")
