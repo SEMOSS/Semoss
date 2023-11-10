@@ -39,6 +39,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	private static final String DIR_SEPERATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
+	private static final String RESPONSE = "response";
+	private static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
+	private static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -168,17 +172,17 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 * @param parameters
 	 * @return
 	 */
-	public abstract String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
+	public abstract Map<String, Object> askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
 
 	@Override
-	public Map<String, String> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public Map<String, Object> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		//Map<String, String> output = new HashMap<String, String>();
 		//TODO turn into threads
 		if(this.socketClient == null || !this.socketClient.isConnected()) {
 			this.startServer();
 		}
 		
-		String response = null;
+		Map<String, Object> retMap = null;
 		String messageId = UUID.randomUUID().toString();
 
 		if (Utility.isModelInferenceLogsEnabled()) {
@@ -187,8 +191,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			}
 			
 			LocalDateTime inputTime = LocalDateTime.now();
-			response = askQuestion(question, context, insight, parameters);
+			retMap = askQuestion(question, context, insight, parameters);
 			LocalDateTime outputTime = LocalDateTime.now();
+			
+			String response = retMap.get(RESPONSE) + "";
 			
 			if (keepConversationHistory) {
 				Map<String, Object> inputMap = new HashMap<String, Object>();
@@ -203,16 +209,27 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			        chatHistory.get(insight.getInsightId()).add(outputMap);
 				}
 			}
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "ask", this, insight, context, question, inputTime, response, outputTime);
-			inferenceRecorder.run();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					messageId, 
+					"ask", 
+					this, 
+					insight,
+					context, 
+					question,
+					getTokens(retMap.get(NUMBER_OF_TOKENS_IN_PROMPT)),
+					inputTime, 
+					response,
+					getTokens(retMap.get(NUMBER_OF_TOKENS_IN_RESPONSE)),
+					outputTime
+			));
+			inferenceRecorder.start();
 		} else {
-			response = askQuestion(question, context, insight, parameters);
+			retMap = askQuestion(question, context, insight, parameters);
 		}
 		
-		Map<String, String> retMap = new HashMap<>();
-		retMap.put("response", response);
 		retMap.put("messageId", messageId);
 		retMap.put("roomId", insight.getInsightId());
+
 		return retMap;
 	}
 
@@ -228,7 +245,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		StringBuilder callMaker = new StringBuilder();
 
 		callMaker.append(varName)
-				 .append(".embeddings(list_to_encode = ")
+				 .append(".embeddings(list_to_embed = ")
 				 .append(pythonListAsString);
 				 
 		if(this.prefix != null) {
@@ -237,21 +254,33 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		callMaker.append(")");
 		
-		Object output;
+		Map<String, Object> output;
 		classLogger.info("Making embeddings call on engine " + this.engineId);
 		if (Utility.isModelInferenceLogsEnabled()) {			
 			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
-			output = pyt.runScript(callMaker.toString(), insight);
+			output = (Map<String, Object>) pyt.runScript(callMaker.toString(), insight);
 			LocalDateTime outputTime = LocalDateTime.now();
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "embeddings", this, insight, null, pythonListAsString, inputTime, PyUtils.determineStringType(output), outputTime);
-			inferenceRecorder.run();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					messageId, 
+					"embeddings", 
+					this, 
+					insight, 
+					null,
+					"",
+					getTokens(output.get(NUMBER_OF_TOKENS_IN_PROMPT)),
+					inputTime, 
+					"",
+					getTokens(output.get(NUMBER_OF_TOKENS_IN_RESPONSE)),
+					outputTime
+			));
+			inferenceRecorder.start();
 		} else {
-			output = pyt.runScript(callMaker.toString(), insight);
+			output = (Map<String, Object>) pyt.runScript(callMaker.toString(), insight);
 		}
 		classLogger.info("Embeddings Received from engine " + this.engineId);
  			
-		return output;
+		return output.get(RESPONSE);
 	}
 	
 	public Object model(String question, Insight insight, Map <String, Object> parameters) {
@@ -267,8 +296,20 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			LocalDateTime inputTime = LocalDateTime.now();
 			output = pyt.runScript(callMaker.toString(), insight);
 			LocalDateTime outputTime = LocalDateTime.now();
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(messageId, "model", this, insight, null, question, inputTime, PyUtils.determineStringType(output), outputTime);
-			inferenceRecorder.run();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					messageId,
+					"model", 
+					this,
+					insight,
+					null,
+					question,
+					null,
+					inputTime, 
+					PyUtils.determineStringType(output),
+					null,
+					outputTime
+			));
+			inferenceRecorder.start();
 		} else {
 			output = pyt.runScript(callMaker.toString(), insight);
 		}
@@ -390,6 +431,18 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			}
 		}
 		return null;
+	}
+	
+	public Integer getTokens(Object numTokens) {
+		if (numTokens instanceof Long) {
+			return ((Long) numTokens).intValue();
+		} else if (numTokens instanceof Double) {
+			return ((Double) numTokens).intValue();
+		} else if (numTokens instanceof String){
+			return Integer.valueOf((String) numTokens);
+		} else {
+			return null;
+		}
 	}
 	
 	public boolean keepsConversationHistory() {

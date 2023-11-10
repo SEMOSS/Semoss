@@ -21,27 +21,37 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String messageMethod;
     private AbstractModelEngine engine;
     private Insight insight;
-    private String question;
+    private String prompt;
     private String context;
     private LocalDateTime inputTime;
     private String response;
     private LocalDateTime responseTime;
+    private Integer promptTokens;
+    private Integer responseTokens;
     
-    public ModelEngineInferenceLogsWorker(String messageId, String messageMethod, AbstractModelEngine engine,
-			   Insight insight, 
-			   String context,
-			   String question,
-			   LocalDateTime inputTime,
-			   String response,
-			   LocalDateTime responseTime) {
+    public ModelEngineInferenceLogsWorker(
+		String messageId, 
+		String messageMethod, 
+		AbstractModelEngine engine,
+		Insight insight, 
+	   	String context,
+	   	String prompt,
+	   	Integer promptTokens,
+	   	LocalDateTime inputTime,
+	   	String response,
+	   	Integer responseTokens,
+	   	LocalDateTime responseTime
+	) {
     	this.messageId = messageId;
     	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insight = insight;
     	this.context = context;
-        this.question = question;
+        this.prompt = prompt;
+        this.promptTokens = promptTokens;
         this.inputTime = inputTime;
         this.response = response;
+        this.responseTokens = responseTokens;
         this.responseTime = responseTime;
     }
 
@@ -82,22 +92,20 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
 			String roomName = null;
 			if (Boolean.parseBoolean((String) engine.getSmssProp().get(ModelEngineConstants.GENERATE_ROOM_NAME)) == true) {
-				roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
+				// roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
+				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			} else {
-				roomName = question.substring(0, Math.min(question.length(), 100));
+				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			}
 			ModelInferenceLogsUtils.doCreateNewConversation(insightId, roomName, this.context, user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
 		}
 				
 		if(engine.keepInputOutput()) {
-			Map<String, Object> inputOutputMap = new HashMap<String, Object>();
-			inputOutputMap.put(ModelEngineConstants.ROLE, "user");
-			inputOutputMap.put(ModelEngineConstants.MESSAGE_CONTENT, question);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					ModelEngineConstants.INPUT,
-					question.replace("'", "\'").replace("\n", "\n"),
+					prompt.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
-					ModelInferenceLogsUtils.getTokenSizeString(question),
+					promptTokens,
 					millisecondsDouble,
 					inputTime,
 					engine.getEngineId(),
@@ -105,13 +113,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					sessionId,
 					userId
 					);
-			inputOutputMap.put(ModelEngineConstants.ROLE, "assistant");
-			inputOutputMap.put(ModelEngineConstants.MESSAGE_CONTENT, response);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					ModelEngineConstants.RESPONSE,
 					response.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
-					ModelInferenceLogsUtils.getTokenSizeString(response),
+					responseTokens,
 					millisecondsDouble,
 					responseTime,
 					engine.getEngineId(),
@@ -124,7 +130,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					ModelEngineConstants.INPUT,
 					null,
 					this.messageMethod,
-					ModelInferenceLogsUtils.getTokenSizeString(question),
+					promptTokens,
 					millisecondsDouble,
 					inputTime,
 					engine.getEngineId(),
@@ -136,7 +142,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					ModelEngineConstants.RESPONSE,
 					null,
 					this.messageMethod,
-					ModelInferenceLogsUtils.getTokenSizeString(response),
+					responseTokens,
 					millisecondsDouble,
 					responseTime,
 					engine.getEngineId(),
