@@ -3,6 +3,28 @@ import tiktoken
 from .abstract_tokenizer import AbstractTokenizer
 
 class OpenAiTokenizer(AbstractTokenizer):
+    
+    def __init__(
+        self, 
+        encoder_name:str,
+        max_tokens:int,
+        max_input_tokens:int = None
+    ):
+        super().__init__(
+            encoder_name = encoder_name,
+            max_tokens = max_tokens,
+            max_input_tokens = max_input_tokens,
+        )
+        
+        self.tokens_per_message = 0
+        self.tokens_per_name = 0
+        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+        if ("gpt-4" in encoder_name) or ("gpt-3.5-turbo" in encoder_name):
+            self.tokens_per_message = 3
+            self.tokens_per_name = 1
+        elif (encoder_name == "gpt-3.5-turbo-0301"):
+            self.tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+            self.tokens_per_name = -1  # if there's a name, the role is omitted
 
     def _get_tokenizer(self, encoder_name:str):
         """
@@ -14,12 +36,35 @@ class OpenAiTokenizer(AbstractTokenizer):
             return tiktoken.encoding_for_model(encoder_name)
 
     def count_tokens(self, input: Union[List[Dict],str]) -> int:
-        input_tokens_ids = self.get_tokens_ids(input=input)
-        return len(input_tokens_ids)
+        num_tokens = 0
+        if isinstance(input, list):
+            for message in input:
+                num_tokens += self.tokens_per_message
+                for key, value in message.items():
+                    num_tokens += len(self.get_tokens_ids(input=value))
+                    
+                    if key == "name":
+                        num_tokens += self.tokens_per_name        
+            num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>                
+        elif isinstance(input, dict):
+            num_tokens += self.tokens_per_message
+            for key, value in input.items():
+                num_tokens += len(self.get_tokens_ids(input=value))
+                
+                if key == "name":
+                    num_tokens += self.tokens_per_name      
+            
+            num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+        elif isinstance(input, str):
+            num_tokens = len(self.get_tokens_ids(input=input))
+        
+        return num_tokens
 
     def get_tokens_ids(self, input: Union[List[Dict],str]) -> List[int]:
         if isinstance(input, list):
             input = " ".join([message["content"] for message in input])
+        elif isinstance(input, dict):
+            input = message["content"]
 
         return self.tokenizer.encode(input)
 
@@ -32,3 +77,9 @@ class OpenAiTokenizer(AbstractTokenizer):
             return self.tokenizer.max_token_value
         else:
             return self.max_tokens
+
+    def get_max_input_token_length(self) -> int:
+        return self.max_input_tokens
+    
+    def decode_token_ids(self, input:List[int]) -> str:
+        return self.tokenizer.decode(input)
