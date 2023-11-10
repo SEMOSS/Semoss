@@ -4,7 +4,7 @@ from huggingface_hub import try_to_load_from_cache, _CACHED_NO_EXIST, snapshot_d
 from transformers import AutoTokenizer
 from pathlib import Path
 
-class EmbeddedEncoder():
+class LocalEmbedder():
 
     def __init__(
         self,
@@ -52,30 +52,45 @@ class EmbeddedEncoder():
 
     def embeddings(
         self, 
-        list_to_encode:List[str], 
+        list_to_embed:List[str], 
         prefix=""
     ) -> List[float]:
         # Determine what object was bassed in so we can pre-configure it before making the call
-        assert isinstance(list_to_encode, list) or isinstance(object_to_encode, str)
+        assert isinstance(list_to_embed, list) or isinstance(object_to_encode, str)
         
-        embedded_tensor = self.encoder.encode(list_to_encode)
+
+        embedded_tensor = self.encoder.encode(
+            sentences = list_to_embed, 
+            show_progress_bar=True
+        )
+        
+        total_tokens = sum([len(self.tokenizer.encode(chunk)) for chunk in list_to_embed])
 
         # TODO find a way to push back batches like OpenAI
         # THIS IS SLOW AS HECK
         # embedded_list = []
-        # number_of_items_to_encode = len(list_to_encode)
+        # number_of_items_to_encode = len(list_to_embed)
         # for i in range(number_of_items_to_encode):
         #   embedded_list.append(
-        #     self.encoder.encode(list_to_encode[i])
+        #     self.encoder.encode(list_to_embed[i])
         #   )
         #   print(prefix + "Completed Embedding " + str(i) + "/" + str(number_of_items_to_encode) + " Chunks")
         
-        return embedded_tensor.tolist()
+        return {
+            'response':embedded_tensor.tolist(),
+            'numberOfTokensInPrompt': total_tokens,
+            'numberOfTokensInResponse': 0
+        }
 
     def ask(
         self, 
         *args: Any, 
         **kwargs
     ) -> str:
-        # lol
-        return 'This model does not support text generation'
+        response = 'This model does not support text generation.'
+        output_payload = {
+            'response':response,
+            'numberOfTokensInPrompt': 0,
+            'numberOfTokensInResponse': len(self.tokenizer.encode(response))
+        }
+        return output_payload
