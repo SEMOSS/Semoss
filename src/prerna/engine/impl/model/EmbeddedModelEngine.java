@@ -23,7 +23,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 	//public EmbeddedModelEngine() {};
 	
 	@Override
-	public String askQuestion(String question, String context, Insight insight, Map <String, Object> parameters) 
+	public Map<String, Object> askQuestion(String question, String context, Insight insight, Map <String, Object> parameters) 
 	{
 		// TODO Auto-generated method stub
 		//if(this.pyt == null)
@@ -69,7 +69,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		System.err.println("call maker.. " + callMaker);
 		
 		Object output = pyt.runScript(callMaker.toString(), insight);
-		return output+"";
+		return (Map<String, Object>) output;
 	}
 	
 	@Override
@@ -141,7 +141,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		params.put("max_new_tokens", 2000);
 		params.put("temperature", 0.01);
 		
-		Map<String, String> output = eng.ask("What is the capital of India ?", null, null, params);
+		Map<String, Object> output = eng.ask("What is the capital of India ?", null, null, params);
 		
 		//PyTranslator pyt = eng.getClient();
 		

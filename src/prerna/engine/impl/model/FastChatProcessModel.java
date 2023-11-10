@@ -122,7 +122,7 @@ public class FastChatProcessModel extends AbstractModelEngine {
     }
 
 	@Override
-	public String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public Map<String, Object> askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}

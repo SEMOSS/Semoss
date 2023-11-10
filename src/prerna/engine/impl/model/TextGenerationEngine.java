@@ -16,7 +16,7 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 	private static final Logger classLogger = LogManager.getLogger(TextGenerationEngine.class);
 	
 	@Override
-	public String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public Map<String, Object> askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
 		
 		String varName = (String) smssProp.get("VAR_NAME");
 		
@@ -55,7 +55,7 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 		callMaker.append(")");
 		classLogger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString(), insight);
-		return output+"";
+		return (Map<String, Object>) output;
 	}
 
 	@Override
