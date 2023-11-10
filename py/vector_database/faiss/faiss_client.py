@@ -188,7 +188,7 @@ class FAISSSearcher():
     # query_vector = np.array([search_vector])
 
     search_vector = self.encoder_class.embeddings(
-        strings_to_encode = [question], 
+        strings_to_embed = [question], 
         insight_id = insight_id
     )
     query_vector = np.array(search_vector[0])
@@ -497,7 +497,7 @@ class FAISSSearcher():
       # get the embeddings for the document
       #vectors = self.encoder_class.get_embeddings(dataset[target_column])
       vectors = self.encoder_class.embeddings(
-        strings_to_encode = dataset[target_column], 
+        strings_to_embed = dataset[target_column], 
         insight_id = insight_id
       )
       vectors = np.array(vectors[0])
@@ -596,12 +596,12 @@ class FAISSSearcher():
 
     return created_documents
 
-  def _check_chunks_token_size(self, strings_to_encode:List[str]):
+  def _check_chunks_token_size(self, strings_to_embed:List[str]):
     max_token_length = self.tokenizer.get_max_token_length()
-    number_of_chunks = len(strings_to_encode)
+    number_of_chunks = len(strings_to_embed)
     chunks_with_higher_tokens = []
     for i in range(number_of_chunks):
-      chunk =  strings_to_encode[i]
+      chunk =  strings_to_embed[i]
       tokens_in_chunk = self.tokenizer.count_tokens(chunk)
       if (tokens_in_chunk > max_token_length):
         chunks_with_higher_tokens.append(i)
