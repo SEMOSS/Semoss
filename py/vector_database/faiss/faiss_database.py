@@ -14,7 +14,7 @@ class FAISSDatabase():
         encoder_name:str,
         encoder_type:str,
         searchers: list = [], 
-        encoder_max_tokens:int = None
+        max_tokens:int = None
     ) -> None:
         '''
         Create an instance of FAISSDatabase
@@ -23,7 +23,7 @@ class FAISSDatabase():
         self.tokenizer = get_tokenizer(
             encoder_type= encoder_type, 
             encoder_name = encoder_name,
-            encoder_max_tokens = encoder_max_tokens
+            max_tokens = max_tokens
         )
 
         # set the encoder class so it can be used when new searchers/indexClasses are added

@@ -27,11 +27,11 @@ class ModelEngine(ServerProxy):
                         )
   
 
-  def embeddings(self, strings_to_encode = None, insight_id=None, param_dict=None):
-    assert strings_to_encode is not None
-    if isinstance(strings_to_encode,str):
-      strings_to_encode = [strings_to_encode]
-    assert isinstance(strings_to_encode, list)
+  def embeddings(self, strings_to_embed = None, insight_id=None, param_dict=None):
+    assert strings_to_embed is not None
+    if isinstance(strings_to_embed,str):
+      strings_to_embed = [strings_to_embed]
+    assert isinstance(strings_to_embed, list)
     if insight_id is None:
       insight_id = self.insight_id
     assert insight_id is not None
@@ -42,7 +42,7 @@ class ModelEngine(ServerProxy):
                       engine_id=self.engine_id, 
                       insight_id=insight_id, 
                       method_name='embeddings', 
-                      method_args=[strings_to_encode, insight_id, param_dict],
+                      method_args=[strings_to_embed, insight_id, param_dict],
                       method_arg_types=['java.util.List', 'prerna.om.Insight', 'java.util.Map']
                       )
 
