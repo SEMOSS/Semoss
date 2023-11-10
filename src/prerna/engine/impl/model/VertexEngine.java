@@ -17,7 +17,7 @@ public class VertexEngine extends AbstractModelEngine {
 	private static final Logger classLogger = LogManager.getLogger(BedrockEngine.class);
 
 	@Override
-	public String askQuestion(String question, String context, Insight insight, Map <String, Object> parameters) 
+	public Map<String, Object> askQuestion(String question, String context, Insight insight, Map <String, Object> parameters) 
 	{
 		String varName = (String) smssProp.get("VAR_NAME");
 	
@@ -60,7 +60,7 @@ public class VertexEngine extends AbstractModelEngine {
 //            System.out.print(returnString);
 //            return returnString;
 //        }
-		return output + "";
+		return (Map<String, Object>) output;
 	}
 
 	@Override

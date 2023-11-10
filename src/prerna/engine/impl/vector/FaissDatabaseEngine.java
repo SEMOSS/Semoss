@@ -56,7 +56,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
-	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_id = '${ENCODER_ID}', encoder_name = '${MODEL}', encoder_max_tokens = ${MAX_TOKENS}, encoder_type = '${MODEL_TYPE}')";
+	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_id = '${ENCODER_ID}', encoder_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, encoder_type = '${MODEL_TYPE}')";
 
 	protected String vectorDatabaseSearcher = null;
 	
