@@ -47,7 +47,7 @@ public interface IModelEngine extends IEngine {
 	 *  			- messageId : The unique identifier of a message (the user's input and the model response)
 	 *  			- roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	Map<String, String> ask(String question, String context, Insight insight, Map <String, Object> parameters);
+	Map<String, Object> ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
 
 	/**
@@ -58,7 +58,7 @@ public interface IModelEngine extends IEngine {
 	 * @param parameters	Additional parameters such as temperature, top_k, max_new_tokens etc
 	 * @return	an encoded object based on how the LLM encodes strings
 	 */
-	Object embeddings(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters);
+	Object embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
 
 	Object model(String question, Insight insight, Map <String, Object> parameters);

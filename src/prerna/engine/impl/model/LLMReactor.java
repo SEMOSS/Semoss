@@ -49,7 +49,7 @@ public class LLMReactor extends AbstractReactor {
 //		}
 //		
 		
-		Map<String, String> output = eng.ask(question, context, this.insight, paramMap);
+		Map<String, Object> output = eng.ask(question, context, this.insight, paramMap);
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
