@@ -44,7 +44,7 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 		// we have some ordering requirements
 		// so can't just flush these results straight to the FE
 		
-		IDatabaseEngine database = Utility.getDatabase(databaseId).getBaseDataEngine();
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		String query = "SELECT DISTINCT "
 				+ "?URI "
 				+ "(COALESCE(?DESCRIPTION, '') AS ?desc) "
@@ -73,7 +73,7 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 				
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(database, query);
+			wrapper = database.getOWLEngineFactory().getReadOWL().query(query);
 			while(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] raw = row.getRawValues();

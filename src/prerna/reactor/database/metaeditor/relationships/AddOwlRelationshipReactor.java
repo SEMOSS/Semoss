@@ -4,19 +4,25 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(AddOwlRelationshipReactor.class);
 
 	private static final String CLASS_NAME = AddOwlRelationshipReactor.class.getName();
 	
@@ -47,39 +53,44 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Input values are not the same size");
 		}
 		
-		ClusterUtil.pullOwl(databaseId);
-		Owler owler = getOWLER(databaseId);
-		// set all the existing values into the OWLER
-		// so that its state is updated
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		setOwlerValues(database, owler);
+		ClusterUtil.pullOwl(databaseId);
 		
-		for(int i = 0; i < size; i++) {
-			String startT = startTList.get(i);
-			String endT = endTList.get(i);
-			String startC = startCList.get(i);
-			String endC = endCList.get(i);
-			// define the rel
-			String rel = startT + "." + startC + "." + endT + "." + endC;
-			// add the relationship
-			owler.addRelation(startT, endT, rel);
-		}
-		owler.commit();
+		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			for(int i = 0; i < size; i++) {
+				String startT = startTList.get(i);
+				String endT = endTList.get(i);
+				String startC = startCList.get(i);
+				String endC = endCList.get(i);
+				// define the rel
+				String rel = startT + "." + startC + "." + endT + "." + endC;
+				// add the relationship
+				owlEngine.addRelation(startT, endT, rel);
+			}
+			
+			owlEngine.commit();
+			
+			try {
+				owlEngine.export();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships defined", 
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				return noun;
+			}
+			EngineSyncUtility.clearEngineCache(databaseId);
+			ClusterUtil.pushOwl(databaseId);
+	
+			// store user inputed values
+			storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "added");
 		
-		try {
-			owler.export();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException | InterruptedException e1) {
+			classLogger.error(Constants.STACKTRACE, e1);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships defined", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.pushOwl(databaseId);
-
-		// store user inputed values
-		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "added");
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", 

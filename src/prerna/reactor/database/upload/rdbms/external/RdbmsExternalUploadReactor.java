@@ -28,12 +28,10 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -288,10 +286,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// Create default RDBMS database or Impala
 		String databaseClassName = RDBMSNativeEngine.class.getName();
 		this.database = new RDBMSNativeEngine();
-//		if (driverEnum == RdbmsTypeEnum.IMPALA) {
-//			databaseClassName = ImpalaEngine.class.getName();
-//			database = new ImpalaEngine();
-//		}
 		
 		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);	
 
@@ -304,7 +298,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		logger.info(stepCounter + ". Create database store...");
 		database.setEngineId(this.databaseId);
 		database.setEngineName(this.databaseName);
-		database.setOwlFilePath(owlFile.getAbsolutePath());
 		Properties smssProps = Utility.loadProperties(tempSmss.getAbsolutePath());
 		smssProps.put("TEMP", "TRUE");
 		database.open(smssProps);
@@ -315,37 +308,37 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata...");
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), database.getDatabaseType());
-		// get the existing datatypes
-		// table names -> column name, column type
-		Set<String> cleanTables = new HashSet<String>();
-		for (String t : nodesAndProps.keySet()) {
-			cleanTables.add(t.split("\\.")[0]);
-		}
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(database, cleanTables);
-		// parse the nodes and get the prime keys and write to OWL
-		Map<String, String> nodesAndPrimKeys = parseNodesAndProps(owler, nodesAndProps, existingRDBMSStructure);
-		// parse the relationships and write to OWL
-		parseRelationships(owler, relationships, existingRDBMSStructure, nodesAndPrimKeys);
-		// commit and save the owl
-		owler.commit();
-		owler.export();
-		database.setOwlFilePath(owler.getOwlPath());
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Process database metadata to allow for traversing across databases	");
-		UploadUtilities.updateMetadata(this.databaseId, user);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-		
-		if(originalFileLocation != null && originalFileLocation.exists()) {
-			try {
-				FileUtils.forceDelete(originalFileLocation);
-			} catch (IOException e) {
-				// ignore but log
-				classLogger.error(Constants.STACKTRACE);
-				classLogger.warn("After successful upload, unable to delete sql database file uploaded into temp location");
+		try(WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
+			// get the existing datatypes
+			// table names -> column name, column type
+			Set<String> cleanTables = new HashSet<String>();
+			for (String t : nodesAndProps.keySet()) {
+				cleanTables.add(t.split("\\.")[0]);
+			}
+			Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(database, cleanTables);
+			// parse the nodes and get the prime keys and write to OWL
+			Map<String, String> nodesAndPrimKeys = parseNodesAndProps(owlEngine, nodesAndProps, existingRDBMSStructure);
+			// parse the relationships and write to OWL
+			parseRelationships(owlEngine, relationships, existingRDBMSStructure, nodesAndPrimKeys);
+			// commit and save the owl
+			owlEngine.commit();
+			owlEngine.export();
+			logger.info(stepCounter + ". Complete");
+			stepCounter++;
+	
+			logger.info(stepCounter + ". Process database metadata to allow for traversing across databases	");
+			UploadUtilities.updateMetadata(this.databaseId, user);
+			logger.info(stepCounter + ". Complete");
+			stepCounter++;
+			
+			if(originalFileLocation != null && originalFileLocation.exists()) {
+				try {
+					FileUtils.forceDelete(originalFileLocation);
+				} catch (IOException e) {
+					// ignore but log
+					classLogger.error(Constants.STACKTRACE);
+					classLogger.warn("After successful upload, unable to delete sql database file uploaded into temp location");
+				}
 			}
 		}
 	}
@@ -356,101 +349,102 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	 */
 	private void updateExistingDatabase() throws Exception {
 		this.logger.info("Bringing in metamodel");
-		Owler owler = new Owler(this.database);
-		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
-		Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
-		if (newMetamodel == null) {
-			throw new IllegalArgumentException("Must define the metamodel portions to change");
-		}
 		
-		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
-		List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
-
-		// separate table names from primary keys
-		Set<String> cleanTables = new HashSet<String>();
-		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>();
-		for (String t : nodesAndProps.keySet()) {
-			cleanTables.add(t.split("\\.")[0]);
-			nodesAndPrimKeys.put(t.split("\\.")[0], t.split("\\.")[1]);
-		}
-
-		Map<String, Map<String, String>> newRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.database, cleanTables);
-		boolean metamodelsEqual = existingMetamodel.equals(newRDBMSStructure);
-
-		// clean up/remove spaces and dashes in new metamodel
-		newRDBMSStructure.forEach((tName, columnNames) -> {
-			Map<String, String> cleanedColumns = new HashMap<>();
-			columnNames.forEach((newColumnName, newDataType) -> {
-				String cleanedName = RDBMSEngineCreationHelper.cleanTableName(newColumnName);
-				cleanedColumns.put(cleanedName, newDataType);
-			});
-			newRDBMSStructure.replace(tName, cleanedColumns);
-		});
-
-		if (!metamodelsEqual) {
-			this.logger.info("Checking differences in metamodel to remove");
-			Map<String, String> removedProperties = new HashMap<>();
-			RDFFileSesameEngine owlEngine = this.database.getBaseDataEngine();
-
-			// loop through old tables and column names and remove them from existing metamodel
-			existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
-				boolean tableRemoved = false;
-				if (!newRDBMSStructure.containsKey(existingTableName)) {
-					this.logger.info("Removing table " + Utility.cleanLogString(existingTableName) + " from owl");
-					owler.removeConcept(existingTableName, null);
-					tableRemoved = true;
-				}
-				
-				if (!tableRemoved) {
-					Map<String, String> newColumnNames = newRDBMSStructure.get(existingTableName);
-					columnsFromOld.forEach((existingColumnName, existingDataType) -> {
-						if (!newColumnNames.containsKey(existingColumnName) || 
-								SemossDataType.convertStringToDataType(newColumnNames.get(existingColumnName)) != existingDataType) {
-							// track removed properties
-							removedProperties.put(existingTableName, existingColumnName);
-							this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName) + " for table " + Utility.cleanLogString(existingTableName) + " from owl");
-							owler.removeProp(existingTableName, existingColumnName, existingDataType + "", null, null);
-						}
-					});
-					this.logger.info("Removing relationships associated with " + Utility.cleanLogString(existingTableName) + " from owl");
-					removeRelationships(removedProperties, owlEngine);
-				}
-			});
-			
-			this.logger.info("Checking differences in metamodel to add");
-			// loop through new tables and column names and add them in to existing metamodel
-			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
-				if (!existingMetamodel.containsKey(newTableName)) {
-					this.logger.info("Adding table " + Utility.cleanLogString(newTableName) + "to owl");
-					owler.addConcept(newTableName, null, null);
-				}
-
-				columnsFromNew.forEach((newColumnName, newDataType) -> {
-					this.logger.info("Adding column " + Utility.cleanLogString(newColumnName) + " to table " + Utility.cleanLogString(newTableName) + " from owl");
-					owler.addProp(newTableName, newColumnName, newDataType, null, null);
-				});
-
-				this.logger.info("Adding relationships for new table " +  Utility.cleanLogString(newTableName));
-				parseRelationships(owler, relationships, newRDBMSStructure, nodesAndPrimKeys);
-			});
-
-			this.logger.info("Committing and saving owl");
-			owler.commit();
-			this.logger.info("Writing changes to owl");
-			owler.export();
-			this.logger.info("Deleting current metamodel position map");
-			File owlPositionF = this.database.getOwlPositionFile();
-			if(owlPositionF.exists()) {
-				owlPositionF.delete();
+		try(WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
+			Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owlEngine);
+			Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
+			if (newMetamodel == null) {
+				throw new IllegalArgumentException("Must define the metamodel portions to change");
 			}
 			
-			// also clear caching that is stored for the database
-			EngineSyncUtility.clearEngineCache(databaseId);
+			Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
+			List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
+	
+			// separate table names from primary keys
+			Set<String> cleanTables = new HashSet<String>();
+			Map<String, String> nodesAndPrimKeys = new HashMap<String, String>();
+			for (String t : nodesAndProps.keySet()) {
+				cleanTables.add(t.split("\\.")[0]);
+				nodesAndPrimKeys.put(t.split("\\.")[0], t.split("\\.")[1]);
+			}
+	
+			Map<String, Map<String, String>> newRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.database, cleanTables);
+			boolean metamodelsEqual = existingMetamodel.equals(newRDBMSStructure);
+	
+			// clean up/remove spaces and dashes in new metamodel
+			newRDBMSStructure.forEach((tName, columnNames) -> {
+				Map<String, String> cleanedColumns = new HashMap<>();
+				columnNames.forEach((newColumnName, newDataType) -> {
+					String cleanedName = RDBMSEngineCreationHelper.cleanTableName(newColumnName);
+					cleanedColumns.put(cleanedName, newDataType);
+				});
+				newRDBMSStructure.replace(tName, cleanedColumns);
+			});
+	
+			if (!metamodelsEqual) {
+				this.logger.info("Checking differences in metamodel to remove");
+				Map<String, String> removedProperties = new HashMap<>();
+	
+				// loop through old tables and column names and remove them from existing metamodel
+				existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
+					boolean tableRemoved = false;
+					if (!newRDBMSStructure.containsKey(existingTableName)) {
+						this.logger.info("Removing table " + Utility.cleanLogString(existingTableName) + " from owl");
+						owlEngine.removeConcept(existingTableName, null);
+						tableRemoved = true;
+					}
+					
+					if (!tableRemoved) {
+						Map<String, String> newColumnNames = newRDBMSStructure.get(existingTableName);
+						columnsFromOld.forEach((existingColumnName, existingDataType) -> {
+							if (!newColumnNames.containsKey(existingColumnName) || 
+									SemossDataType.convertStringToDataType(newColumnNames.get(existingColumnName)) != existingDataType) {
+								// track removed properties
+								removedProperties.put(existingTableName, existingColumnName);
+								this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName) + " for table " + Utility.cleanLogString(existingTableName) + " from owl");
+								owlEngine.removeProp(existingTableName, existingColumnName, existingDataType + "", null, null);
+							}
+						});
+						this.logger.info("Removing relationships associated with " + Utility.cleanLogString(existingTableName) + " from owl");
+						removeRelationships(removedProperties, owlEngine);
+					}
+				});
+				
+				this.logger.info("Checking differences in metamodel to add");
+				// loop through new tables and column names and add them in to existing metamodel
+				newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
+					if (!existingMetamodel.containsKey(newTableName)) {
+						this.logger.info("Adding table " + Utility.cleanLogString(newTableName) + "to owl");
+						owlEngine.addConcept(newTableName, null, null);
+					}
+	
+					columnsFromNew.forEach((newColumnName, newDataType) -> {
+						this.logger.info("Adding column " + Utility.cleanLogString(newColumnName) + " to table " + Utility.cleanLogString(newTableName) + " from owl");
+						owlEngine.addProp(newTableName, newColumnName, newDataType, null, null);
+					});
+	
+					this.logger.info("Adding relationships for new table " +  Utility.cleanLogString(newTableName));
+					parseRelationships(owlEngine, relationships, newRDBMSStructure, nodesAndPrimKeys);
+				});
+	
+				this.logger.info("Committing and saving owl");
+				owlEngine.commit();
+				this.logger.info("Writing changes to owl");
+				owlEngine.export();
+				this.logger.info("Deleting current metamodel position map");
+				File owlPositionF = this.database.getOwlPositionFile();
+				if(owlPositionF.exists()) {
+					owlPositionF.delete();
+				}
+				
+				// also clear caching that is stored for the database
+				EngineSyncUtility.clearEngineCache(databaseId);
+			}
 		}
 	}
 
-	private void removeRelationships(Map<String, String> removedProperties, RDFFileSesameEngine owlEngine) {
-		List<String[]> fkRelationships = getPhysicalRelationships(owlEngine);
+	private void removeRelationships(Map<String, String> removedProperties, WriteOWLEngine owlEngine) {
+		List<String[]> fkRelationships = owlEngine.getPhysicalRelationships();
 
 		for (String[] relations: fkRelationships) {
 			String instanceName = Utility.getInstanceName(relations[2]);
@@ -462,23 +456,13 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				String removedValue = removedProperties.get(key);
  
 				if (removedValue != null && removedValue.equalsIgnoreCase(value)) {
-					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[0], relations[2], relations[1], true });
-					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
+					owlEngine.removeFromBaseEngine(new Object[] { relations[0], relations[2], relations[1], true });
+					owlEngine.removeFromBaseEngine(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
 				}
 			}
 		}
 	}
 
-	private List<String[]> getPhysicalRelationships(IDatabaseEngine database) {
-		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
-				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} " + "{?start ?rel ?end}"
-				+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
-				+ "Filter(?rel != <http://semoss.org/ontologies/Relation>)" + "}";
-		return Utility.getVectorArrayOfReturn(query, database, true);
-	}
-	
 	/**
 	 * Delete all the corresponding files that are generated from the upload the
 	 * failed
@@ -517,12 +501,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	/**
 	 * Add the concepts and properties into the OWL
 	 * 
-	 * @param owler
+	 * @param owlEngine
 	 * @param nodesAndProps
 	 * @param dataTypes
 	 * @return
 	 */
-	private Map<String, String> parseNodesAndProps(Owler owler, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
+	private Map<String, String> parseNodesAndProps(WriteOWLEngine owlEngine, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
 		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
 		for (String node : nodesAndProps.keySet()) {
 			String[] tableAndPrimaryKey = node.split("\\.");
@@ -531,13 +515,13 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			nodesAndPrimKeys.put(nodeName, primaryKey);
 			String cleanConceptTableName = RDBMSEngineCreationHelper.cleanTableName(nodeName);
 			// add concepts
-			owler.addConcept(cleanConceptTableName, null, null);
-			owler.addProp(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
+			owlEngine.addConcept(cleanConceptTableName, null, null);
+			owlEngine.addProp(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
 			// add concept properties
 			for (String prop : nodesAndProps.get(node)) {
 				if (!prop.equals(primaryKey)) {
 					String cleanProp = RDBMSEngineCreationHelper.cleanTableName(prop);
-					owler.addProp(cleanConceptTableName, cleanProp, dataTypes.get(nodeName).get(prop));
+					owlEngine.addProp(cleanConceptTableName, cleanProp, dataTypes.get(nodeName).get(prop));
 				}
 			}
 		}
@@ -547,12 +531,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	/**
 	 * Add the relationships into the OWL
 	 * 
-	 * @param owler
+	 * @param owlEngine
 	 * @param relationships
 	 * @param dataTypes
 	 * @param nodesAndPrimKeys
 	 */
-	private void parseRelationships(Owler owler, List<Map<String, Object>> relationships,
+	private void parseRelationships(WriteOWLEngine owlEngine, List<Map<String, Object>> relationships,
 			Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
 		for (Map relation : relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.FROM_TABLE).toString());
@@ -561,7 +545,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			String[] joinColumns = relation.get(Constants.REL_NAME).toString().split("\\.");
 			// predicate is: "fromTable.fromJoinCol.toTable.toJoinCol"
 			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1];
-			owler.addRelation(subject, object, predicate);
+			owlEngine.addRelation(subject, object, predicate);
 		}
 	}
 

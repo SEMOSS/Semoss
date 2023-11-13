@@ -23,7 +23,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -117,7 +117,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), this.database.getDatabaseType());
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		try {
 			// open the csv file
 			// and get the headers
@@ -129,7 +129,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			stepCounter++;
 
 			logger.info(stepCounter + ". Start loading data..");
-			String[] sqlDataTypes = parseMetamodel(metamodelProps, owler, Arrays.asList(headers), types);
+			String[] sqlDataTypes = parseMetamodel(metamodelProps, owlEngine, Arrays.asList(headers), types);
 
 			// if(i ==0 ) {
 			// scriptFile.println("-- ********* begin load process ********* ");
@@ -162,11 +162,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Commit database metadata...");
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 		UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
-		this.database.setOwlFilePath(owler.getOwlPath());
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		// if(scriptFile != null) {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();
@@ -200,12 +200,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
-		Owler owler = new Owler(this.database);
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES) );
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-		String[] sqlDataTypes = parseMetamodel(metamodelProps, owler, Arrays.asList(headers), types);
+		String[] sqlDataTypes = parseMetamodel(metamodelProps, owlEngine, Arrays.asList(headers), types);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -252,10 +252,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.warn(stepCounter + ". Committing database metadata....");
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
@@ -285,7 +286,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return sqlType;
 	}
 
-	private String[] parseMetamodel(Map<String, Object> metamodel, Owler owler, List<String> headers, SemossDataType[] types) {
+	private String[] parseMetamodel(Map<String, Object> metamodel, WriteOWLEngine owlEngine, List<String> headers, SemossDataType[] types) {
 		RdbmsUploadReactorUtility.createSQLTypes(this.sqlHash);
 		// create the data types list
 		String[] sqlDataTypes = new String[headers.size()];
@@ -322,8 +323,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					// need to add the actual concept as a column
 					// this means adding the concept
 					// and adding itself again as a property
-					owler.addConcept(cleanConceptTableName, null, null);
-					owler.addProp(cleanConceptTableName, cleanConceptTableName, propMap.get(concept).trim());
+					owlEngine.addConcept(cleanConceptTableName, null, null);
+					owlEngine.addProp(cleanConceptTableName, cleanConceptTableName, propMap.get(concept).trim());
 				}
 				// properties
 				List<String> conceptProps = (List<String>) nodeProps.get(concept);
@@ -343,11 +344,10 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 						// Default to string
 						propMap.put(prop, "VARCHAR(800)");
 					}
-					owler.addProp(cleanConceptTableName, cleanProp, propMap.get(prop).trim());
+					owlEngine.addProp(cleanConceptTableName, cleanProp, propMap.get(prop).trim());
 				}
 
 				concepts.put(concept, propMap);
-
 			}
 		}
 
@@ -376,8 +376,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 						// Default to string
 						propMap.put(fromConcept, "VARCHAR(800)");
 					}
-					owler.addConcept(cleanFromConceptTableName, null, null);
-					owler.addProp(cleanFromConceptTableName, cleanFromConceptTableName, propMap.get(fromConcept));
+					owlEngine.addConcept(cleanFromConceptTableName, null, null);
+					owlEngine.addProp(cleanFromConceptTableName, cleanFromConceptTableName, propMap.get(fromConcept));
 					concepts.put(fromConcept, propMap);
 				}
 				if (!concepts.containsKey(toConcept)) {
@@ -395,8 +395,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 						// Default to string
 						propMap.put(toConcept, "VARCHAR(800)");
 					}
-					owler.addConcept(cleanToConceptTableName, null, null);
-					owler.addProp(cleanToConceptTableName, cleanToConceptTableName, propMap.get(toConcept));
+					owlEngine.addConcept(cleanToConceptTableName, null, null);
+					owlEngine.addProp(cleanToConceptTableName, cleanToConceptTableName, propMap.get(toConcept));
 					concepts.put(toConcept, propMap);
 				}
 
@@ -417,7 +417,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					relations.put(toConcept, relList);
 					
 					// add the FK as a property to view
-					owler.addProp(cleanToConceptTableName, cleanFromConceptTableName + FK, 
+					owlEngine.addProp(cleanToConceptTableName, cleanFromConceptTableName + FK, 
 							concepts.get(fromConcept).get(fromConcept));
 					
 					// add FK as property
@@ -453,7 +453,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 							+ "." + cleanToConceptTableName + "." + cleanToConceptTableName;
 
 					// add the FK as a property to view
-					owler.addProp(cleanFromConceptTableName, cleanToConceptTableName + FK, 
+					owlEngine.addProp(cleanFromConceptTableName, cleanToConceptTableName + FK, 
 							concepts.get(toConcept).get(toConcept));
 					
 					// add FK as property
@@ -485,7 +485,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					relations.put(toConcept, relList);
 
 					// add the FK as a property to view
-					owler.addProp(cleanToConceptTableName, cleanFromConceptTableName + FK, 
+					owlEngine.addProp(cleanToConceptTableName, cleanFromConceptTableName + FK, 
 							concepts.get(fromConcept).get(fromConcept));
 					
 					// add FK as property
@@ -505,7 +505,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					// dataType, null);
 				}
 
-				owler.addRelation(cleanFromConceptTableName, cleanToConceptTableName, predicate);
+				owlEngine.addRelation(cleanFromConceptTableName, cleanToConceptTableName, predicate);
 			}
 		}
 		return sqlDataTypes;

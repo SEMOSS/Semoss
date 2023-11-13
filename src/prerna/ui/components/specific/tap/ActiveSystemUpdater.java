@@ -27,30 +27,22 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -266,35 +258,14 @@ public class ActiveSystemUpdater {
 	public void addToOWL(String engineName) throws RepositoryException, RDFHandlerException 
 	{
 		engine = (IDatabaseEngine)DIHelper.getInstance().getEngineProperty(engineName);
-		
-		// get the path to the owlFile
-		String owlFileLocation = (String)DIHelper.getInstance().getEngineProperty(engineName +"_"+Constants.OWL);
-		
-		IDatabaseEngine baseRelEngine = engine.getBaseDataEngine();
-		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
-		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
-		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
-		RepositoryConnection exportRC = existingEngine.getRc();
-		
-		FileWriter fWrite = null;
-		try{
-			fWrite = new FileWriter(owlFileLocation);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			exportRC.export(owlWriter);
-			fWrite.close();
-			owlWriter.close();	
-		}
-		catch(IOException ex)
-		{
-			ex.printStackTrace();
-			Utility.showMessage("<html>Error!<br>Existing OWL file not found</html>");
-		}finally{
-			try{
-				if(fWrite!=null)
-					fWrite.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
+		try (WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()){
+			owlEngine.addToBaseEngine(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
+			owlEngine.addToBaseEngine(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
+
+			owlEngine.commit();
+			owlEngine.export();
+		} catch (InterruptedException | IOException e) {
+			e.printStackTrace();
 		}
 	}
 	

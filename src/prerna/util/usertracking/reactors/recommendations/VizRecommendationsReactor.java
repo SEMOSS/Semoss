@@ -19,9 +19,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -124,8 +122,6 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 
 				// get unique column values
 				IDatabaseEngine engine = Utility.getDatabase(db);
-				RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-
 				// get unique values for string columns, if it doesnt exist
 				long uniqueValues = 0;
 				String queryCol = column;
@@ -139,7 +135,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 						+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
 				IRawSelectWrapper it = null;
 				try {
-					it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+					it = engine.getOWLEngineFactory().getReadOWL().query(uniqueValQuery);
 					while (it.hasNext()) {
 						Object[] row = it.next().getValues();
 						uniqueValues = Long.parseLong(row[1].toString());

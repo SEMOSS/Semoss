@@ -9,7 +9,7 @@ import java.util.Map;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
 import prerna.util.Utility;
@@ -51,21 +51,21 @@ public class RdbmsUploadReactorUtility {
 	
 	/**
 	 * Add the metadata into the OWL
-	 * @param owler
+	 * @param owlEngine
 	 * @param tableName
 	 * @param uniqueRowId
 	 * @param headers
 	 * @param sqlTypes
 	 */
-	public static void generateTableMetadata(Owler owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
+	public static void generateTableMetadata(WriteOWLEngine owlEngine, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
 		// add the table
-		owler.addConcept(tableName, null, null);
+		owlEngine.addConcept(tableName, null, null);
 		// add the generated column
-		owler.addProp(tableName, uniqueRowId, "LONG");
+		owlEngine.addProp(tableName, uniqueRowId, "LONG");
 		// add the props
 		for (int i = 0; i < headers.length; i++) {
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-			owler.addProp(tableName, headers[i], sqlTypes[i + 1], additionalTypes[i]);
+			owlEngine.addProp(tableName, headers[i], sqlTypes[i + 1], additionalTypes[i]);
 		}
 	}
 

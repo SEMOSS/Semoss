@@ -7,14 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -37,22 +31,6 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 		databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		DATABASE_TYPE dbType = database.getDatabaseType();
-		RDFFileSesameEngine owlEngine = null;
-		if (dbType == DATABASE_TYPE.RDBMS) {
-			RDBMSNativeEngine eng = (RDBMSNativeEngine) database;
-			owlEngine = eng.getBaseDataEngine();
-		} else if (dbType == DATABASE_TYPE.TINKER) {
-			TinkerEngine eng = (TinkerEngine) database;
-			owlEngine = eng.getBaseDataEngine();
-		} else if (dbType == DATABASE_TYPE.SESAME) {
-			BigDataEngine eng = (BigDataEngine) database;
-			owlEngine = eng.getBaseDataEngine();
-		} else if (dbType == DATABASE_TYPE.JENA) {
-			RDFFileSesameEngine eng = (RDFFileSesameEngine) database;
-			owlEngine = eng.getBaseDataEngine();
-		}
-
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseId);
 		for (Object[] tableCol : allTableCols) {
 			if (tableCol.length == 4) {
@@ -68,7 +46,7 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 							+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
 					IRawSelectWrapper it = null;
 					try {
-						it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+						it = database.getOWLEngineFactory().getReadOWL().query(uniqueValQuery);
 						if (it.hasNext()) {
 							// it had a unique value so we assume they're all there
 							return new NounMetadata(true, PixelDataType.BOOLEAN);

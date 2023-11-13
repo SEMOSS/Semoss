@@ -25,7 +25,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -204,10 +204,6 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		// Create default RDBMS database or Impala
 		String databaseClassName = RDBMSNativeEngine.class.getName();
 		this.database = new RDBMSNativeEngine();
-//		if (driverEnum == RdbmsTypeEnum.IMPALA) {
-//			databaseClassName = ImpalaEngine.class.getName();
-//			database = new ImpalaEngine();
-//		}
 		
 		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);	
 
@@ -220,9 +216,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		this.logger.info(stepCounter + ". Create database store...");
 		database.setEngineId(this.databaseId);
 		database.setEngineName(this.databaseName);
-		database.setOwlFilePath(owlFile.getAbsolutePath());
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
-		prop.put("TEMP", "TRUE");
 		database.open(prop);
 		if(!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
@@ -232,19 +226,27 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 
 		this.logger.info(stepCounter + ". Start generating database tables...");
 
-		DatabaseUpdateMetadata dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) database, newMetamodel, logger);
-		Owler owler = dbUpdateMeta.getOwler();
-		String errorMessages = dbUpdateMeta.getCombinedErrors();
-		if(!errorMessages.isEmpty()) {
-			throw new IllegalArgumentException(errorMessages);
-		}
-		
-		// now push the OWL and sync
+		DatabaseUpdateMetadata dbUpdateMeta = null;
+		WriteOWLEngine owlEngine = null;
 		try {
-			owler.export();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred savig the metadata file with the executed changes");
+			dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) database, newMetamodel, logger);
+			owlEngine = dbUpdateMeta.getOwlEngine();
+			String errorMessages = dbUpdateMeta.getCombinedErrors();
+			if(!errorMessages.isEmpty()) {
+				throw new IllegalArgumentException(errorMessages);
+			}
+			
+			// now push the OWL and sync
+			try {
+				owlEngine.export();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occurred savig the metadata file with the executed changes");
+			}
+		} finally {
+			if(owlEngine != null) {
+				owlEngine.close();
+			}
 		}
 		
 		this.logger.info(stepCounter + ". Complete");

@@ -35,17 +35,16 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.datastax.DataStaxGraphEngine;
 import prerna.engine.impl.neo4j.Neo4jEngine;
+import prerna.engine.impl.owl.AbstractOWLEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.MosfetFile;
@@ -202,7 +201,23 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static File generateOwlFile(String databaseId, String databaseName) {
-		String owlLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName) + "/" + databaseName + "_OWL.OWL";
+		String owlLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName) + "/";
+		if(databaseName != null) {
+			owlLocation += databaseName;
+		} else {
+			owlLocation += databaseId;
+		}
+		owlLocation += "_OWL.OWL";
+		
+		return generateOwlFile(owlLocation);
+	}
+	
+	/**
+	 * 
+	 * @param owlLocation
+	 * @return
+	 */
+	public static File generateOwlFile(String owlLocation) {
 		File owlFile = new File(owlLocation);
 		
 		FileWriter writer = null;
@@ -239,6 +254,7 @@ public class UploadUtilities {
 		return owlFile;
 	}
 	
+	
 	public static String getRelativeOwlPath(File owlFile) {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		return new File(baseDirectory).toURI().relativize(owlFile.toURI()).getPath();
@@ -246,17 +262,17 @@ public class UploadUtilities {
 	
 	/**
 	 * 
-	 * @param owler
+	 * @param owlEngine
 	 * @param nodeProps
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	public static void insertOwlMetadataToGraphicalEngine(Owler owler, Map<String, List<String>> nodeProps, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	public static void insertOwlMetadataToGraphicalEngine(WriteOWLEngine owlEngine, Map<String, List<String>> nodeProps, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 		
-		Hashtable<String, String> conceptHash = owler.getConceptHash();
-		Hashtable<String, String> propHash = owler.getPropHash();
+		Hashtable<String, String> conceptHash = owlEngine.getConceptHash();
+		Hashtable<String, String> propHash = owlEngine.getPropHash();
 		// take the node props
 		// so we know what is a concept
 		// and what is a property
@@ -271,11 +287,11 @@ public class UploadUtilities {
 			// adding metadata to table physical uri
 			if(descriptions != null && descriptions.containsKey(table)) {
 				String desc = descriptions.get(table);
-				owler.addDescription(tablePhysicalUri, desc);
+				owlEngine.addDescription(tablePhysicalUri, desc);
 			}
 			
 			if(logicalNames != null && logicalNames.containsKey(table)) {
-				owler.addLogicalNames(tablePhysicalUri, logicalNames.get(table));
+				owlEngine.addLogicalNames(tablePhysicalUri, logicalNames.get(table));
 			}
 			
 			List<String> properties = nodeProps.get(table);
@@ -291,11 +307,11 @@ public class UploadUtilities {
 					// adding metadata to property physical uri
 					if(descriptions != null && descriptions.containsKey(property)) {
 						String desc = descriptions.get(property);
-						owler.addDescription(propertyPhysicaluri, desc);
+						owlEngine.addDescription(propertyPhysicaluri, desc);
 					}
 					
 					if(logicalNames != null && logicalNames.containsKey(property)) {
-						owler.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
+						owlEngine.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
 					}
 				}
 			}
@@ -304,17 +320,17 @@ public class UploadUtilities {
 	
 	/**
 	 * 
-	 * @param owler
+	 * @param owlEngine
 	 * @param tableName
 	 * @param headers
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	public static void insertFlatOwlMetadata(Owler owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	public static void insertFlatOwlMetadata(WriteOWLEngine owlEngine, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 		
-		Hashtable<String, String> propHash = owler.getPropHash();
+		Hashtable<String, String> propHash = owlEngine.getPropHash();
 
 		// we have already loaded everything into a single table
 		// so we will grab all the properties for that table
@@ -329,11 +345,11 @@ public class UploadUtilities {
 			// adding metadata to property physical uri
 			if(descriptions != null && descriptions.containsKey(property)) {
 				String desc = descriptions.get(property);
-				owler.addDescription(propertyPhysicaluri, desc);
+				owlEngine.addDescription(propertyPhysicaluri, desc);
 			}
 			
 			if(logicalNames != null && logicalNames.containsKey(property)) {
-				owler.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
+				owlEngine.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
 			}
 		}
 	}
@@ -1782,13 +1798,12 @@ public class UploadUtilities {
 	 * @param databaseId
 	 * @param databaseName
 	 * @param insightEngine
-	 * @param owl
 	 * @param headers
-	 * @return 
+	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine, Owler owler, String[] headers) {
+	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owler);
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormSheetName(sheetName);
@@ -1841,13 +1856,11 @@ public class UploadUtilities {
 	 * @param databaseId
 	 * @param databaseName
 	 * @param insightEngine
-	 * @param owl
-	 * @return 
+	 * @return
 	 */
 	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		MetaHelper metaHelper = Utility.getDatabase(databaseId).getMetaHelper();
-		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(metaHelper);
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormSheetName(sheetName);
@@ -2028,20 +2041,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @return
 	 */
-	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(Owler owler) {
-		RDFFileSesameEngine rfse = owler.getOwlEngine();
-		// we create the meta helper to facilitate querying the engine OWL
-		MetaHelper helper = new MetaHelper(rfse, null, null);
-		return getExistingMetamodel(helper);
-	}
-	
-	/**
-	 * Map of concept to propMap with database type
-	 * 
-	 * @param owl
-	 * @return
-	 */
-	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(MetaHelper helper) {
+	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(AbstractOWLEngine helper) {
 		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
 		
@@ -2081,12 +2081,12 @@ public class UploadUtilities {
 	
 	/**
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @param existingMetamodel
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Object> createInsertForm(String appId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
+	public static Map<String, Object> createInsertForm(String databaseId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
 		formMap.put("js", new Vector<>());
 		formMap.put("css", new Vector<>());
@@ -2117,7 +2117,7 @@ public class UploadUtilities {
 		Map<String, Object> pixelMap = new HashMap<>();
 		Map<String, Object> insertMap = new HashMap<>();
 		insertMap.put("name", "Insert");
-		insertMap.put("pixel", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=["
+		insertMap.put("pixel", "Database(database=[\"" + databaseId + "\"]) | Insert (into=[" + intoString + "], values=["
 				+ valuesString + "]);");
 		pixelMap.put("Insert", insertMap);
 
@@ -2149,14 +2149,14 @@ public class UploadUtilities {
 			Map<String, Object> configMap = new HashMap<>();
 			configMap.put("table", conceptualName);
 			Map<String, Object> appMap = new HashMap<>();
-			appMap.put("value", appId);
+			appMap.put("value", databaseId);
 			configMap.put("app", appMap);
 			propertyMap.put("config", configMap);
 			propertyMap.put("pixel", "");
 
 			// adding pixel data binding for non-numeric values
 			if (propType == SemossDataType.STRING) {
-				String pixel = "Database( database=[\"" + appId + "\"] )|" + "Select(" + conceptualName + "__"
+				String pixel = "Database( database=[\"" + databaseId + "\"] )|" + "Select(" + conceptualName + "__"
 						+ property + ").as([" + property + "])| Collect(-1);";
 				propertyMap.put("pixel", pixel);
 			} else if (Utility.isNumericType(propType.toString())) {
@@ -2170,7 +2170,7 @@ public class UploadUtilities {
 		return formMap;
 	}
 
-	public static Map<String, Object> createUpdateMap(String appId, Owler owl, String concept, Map<String, SemossDataType> propMap) {
+	public static Map<String, Object> createUpdateMap(String appId, String concept, Map<String, SemossDataType> propMap) {
 		Map<String, Object> updateMap = new HashMap<>();
 		updateMap.put("database", appId);
 		updateMap.put("table", concept);

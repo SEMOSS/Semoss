@@ -22,8 +22,7 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
@@ -95,7 +94,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		// TODO additional types?
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), DATABASE_TYPE.TINKER);
+		
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
 			Map<String, String> dataTypes = new HashMap<>();
@@ -106,18 +106,18 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(this.database, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
+		processRelationships(this.database, owlEngine, this.helper, Arrays.asList(headers), types, metamodelProps);
 		this.database.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Commit database metadata...");
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
-		this.database.setOwlFilePath(owler.getOwlPath());
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
@@ -163,7 +163,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		Owler owler = new Owler(this.database);
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
@@ -175,17 +175,18 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(this.database, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
+		processRelationships(this.database, owlEngine, this.helper, Arrays.asList(headers), types, metamodelProps);
 		this.database.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.warn(stepCounter + ". Committing database metadata....");
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -216,13 +217,13 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 * 
 	 * @throws IOException
 	 */
-	private void processRelationships(IDatabaseEngine database, Owler owler, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
+	private void processRelationships(IDatabaseEngine database, WriteOWLEngine owlEngine, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
 		List<String> relationList = new ArrayList<String>();
 		List<String> nodePropList = new ArrayList<String>();
 		List<String> relPropList = new ArrayList<String>();
-		parseMetamodel(metamodel, owler, relationList, nodePropList, relPropList);
+		parseMetamodel(metamodel, owlEngine, relationList, nodePropList, relPropList);
 
 		// only start from the maxRow - the startRow
 		// added -1 is because of index nature
@@ -374,7 +375,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 					}
 					nodePropHash.put(property, propObj);
 				}
-				addNodeProperties(owler, database, subject, subjectValue, nodePropHash);
+				addNodeProperties(owlEngine, database, subject, subjectValue, nodePropHash);
 			}
 		}
 		metamodel.put(Constants.END_ROW, count);
@@ -386,12 +387,12 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 	}
 
-	public void addNodeProperties(Owler owler, IDatabaseEngine database, String nodeType, String instanceName,
+	public void addNodeProperties(WriteOWLEngine owlEngine, IDatabaseEngine database, String nodeType, String instanceName,
 			Hashtable<String, Object> propHash) {
 		// create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		nodeType = Utility.cleanString(nodeType, true);
-		String semossBaseURI = owler.addConcept(nodeType);
+		String semossBaseURI = owlEngine.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
 		Vertex vert = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { nodeType, instanceName });
@@ -450,7 +451,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return retString;
 	}
 
-	private void parseMetamodel(Map<String, Object> metamodel, Owler owler, List<String> relationList, List<String> nodePropList, List<String> relPropList) {
+	private void parseMetamodel(Map<String, Object> metamodel, WriteOWLEngine owlEngine, List<String> relationList, List<String> nodePropList, List<String> relPropList) {
 		Set<String> concepts = new HashSet<>();
 		Map dataTypeMap = (Map) metamodel.get(Constants.DATA_TYPES);
 		if (metamodel.get(Constants.RELATION) != null) {
@@ -460,11 +461,11 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 				String subject = (String) relMap.get(Constants.FROM_TABLE);
 				String object = (String) relMap.get(Constants.TO_TABLE);
 				String predicate = (String) relMap.get(Constants.REL_NAME);
-				owler.addConcept(subject);
+				owlEngine.addConcept(subject);
 				concepts.add(subject);
-				owler.addConcept(object);
+				owlEngine.addConcept(object);
 				concepts.add(object);
-				owler.addRelation(subject, object, predicate);
+				owlEngine.addRelation(subject, object, predicate);
 				String relation = subject + "@" + predicate + "@" + object;
 				relationList.add(relation);
 			}
@@ -478,7 +479,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 					String relation = concept + "%" + property;
 					nodePropList.add(relation);
 					String dataType = (String) dataTypeMap.get(property);
-					owler.addProp(concept, property, dataType);
+					owlEngine.addProp(concept, property, dataType);
 					concepts.add(concept);
 				}
 			}

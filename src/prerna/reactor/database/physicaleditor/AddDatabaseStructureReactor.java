@@ -12,7 +12,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.masterdatabase.SyncDatabaseWithLocalMasterReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -54,27 +54,44 @@ public class AddDatabaseStructureReactor extends AbstractReactor {
 		}
 		ClusterUtil.pullOwl(databaseId);
 
-		DatabaseUpdateMetadata dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) engine, updates, logger);
-		Owler owler = dbUpdateMeta.getOwler();
-		String errorMessages = dbUpdateMeta.getCombinedErrors();
-		
-		// now push the OWL and sync
+		DatabaseUpdateMetadata dbUpdateMeta = null;
+		WriteOWLEngine owlEngine = null;
+		String errorMessages = null;
 		try {
-			owler.export();
-			SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
-			syncWithLocal.setInsight(this.insight);
-			syncWithLocal.setNounStore(this.store);
-			syncWithLocal.In();
-			syncWithLocal.execute();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(getError("Error occurred savig the metadata file with the executed changes"));
-			if(!errorMessages.isEmpty()) {
-				noun.addAdditionalReturn(getError(errorMessages));
+			dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) engine, updates, logger);
+			owlEngine = dbUpdateMeta.getOwlEngine();
+			errorMessages = dbUpdateMeta.getCombinedErrors();
+			
+			// now push the OWL and sync
+			try {
+				owlEngine.export();
+				owlEngine.close();
+				SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
+				syncWithLocal.setInsight(this.insight);
+				syncWithLocal.setNounStore(this.store);
+				syncWithLocal.In();
+				syncWithLocal.execute();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.BOOLEAN);
+				noun.addAdditionalReturn(getError("Error occurred saving the metadata file with the executed changes"));
+				if(!errorMessages.isEmpty()) {
+					noun.addAdditionalReturn(getError(errorMessages));
+				}
+				return noun;
 			}
-			return noun;
+		} catch (InterruptedException e1) {
+			classLogger.error(Constants.STACKTRACE, e1);
+		} finally {
+			if(owlEngine != null) {
+				try {
+					owlEngine.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
+		
 		EngineSyncUtility.clearEngineCache(databaseId);
 		ClusterUtil.pushOwl(databaseId);
 		
