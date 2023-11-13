@@ -18,7 +18,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
@@ -28,7 +28,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractFormBuilder {
 
-	protected static final Logger logger = LogManager.getLogger(AbstractFormBuilder.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(AbstractFormBuilder.class);
 
 	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
 	protected static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
@@ -113,47 +113,50 @@ public abstract class AbstractFormBuilder {
 				permissionTableExists = true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		
 		if(!permissionTableExists) {
-			Owler owler = new Owler(formEng);
-			owler.addConcept("FORMS_USER_ACCESS", null, null);
-			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "VARCHAR(100)");
-			owler.addProp("FORMS_USER_ACCESS", "INSTANCE_NAME", "VARCHAR(255)");
-			owler.addProp("FORMS_USER_ACCESS", "IS_SYS_ADMIN", "BOOLEAN");
-
-			logger.info("CREATING PERMISSION TABLE!!!");
-			String query = "CREATE TABLE FORM_USER_ACCESS (USER_ID VARCHAR(100), INSTANCE_NAME VARCHAR(255), IS_SYS_ADMIN BOOLEAN)";
-			IRDBMSEngine rdbmsEng = (IRDBMSEngine) formEng;
-			logger.info("SQL SCRIPT >>> " + query);
-			Connection conn = null;
-			Statement stmt = null;
-			try {
-				conn = rdbmsEng.getConnection();
-				stmt = conn.createStatement();
-				stmt.execute(query);
-				if(!stmt.getConnection().getAutoCommit()) {
-					stmt.getConnection().commit();
+			try(WriteOWLEngine owlEngine = formEng.getOWLEngineFactory().getWriteOWL()) {
+				owlEngine.addConcept("FORMS_USER_ACCESS", null, null);
+				owlEngine.addProp("FORMS_USER_ACCESS", "USER_ID", "VARCHAR(100)");
+				owlEngine.addProp("FORMS_USER_ACCESS", "INSTANCE_NAME", "VARCHAR(255)");
+				owlEngine.addProp("FORMS_USER_ACCESS", "IS_SYS_ADMIN", "BOOLEAN");
+	
+				classLogger.info("CREATING PERMISSION TABLE!!!");
+				String query = "CREATE TABLE FORM_USER_ACCESS (USER_ID VARCHAR(100), INSTANCE_NAME VARCHAR(255), IS_SYS_ADMIN BOOLEAN)";
+				IRDBMSEngine rdbmsEng = (IRDBMSEngine) formEng;
+				classLogger.info("SQL SCRIPT >>> " + query);
+				Connection conn = null;
+				Statement stmt = null;
+				try {
+					conn = rdbmsEng.getConnection();
+					stmt = conn.createStatement();
+					stmt.execute(query);
+					if(!stmt.getConnection().getAutoCommit()) {
+						stmt.getConnection().commit();
+					}
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
 				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
-			}
-			owler.commit();
-			try {
-				owler.export();
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				try {
+					owlEngine.commit();
+					owlEngine.export();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			} catch (IOException | InterruptedException e1) {
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 		}
 	}
@@ -169,115 +172,122 @@ public abstract class AbstractFormBuilder {
 				auditTableExists = true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		
 		if(!auditTableExists) {
-			Owler owler = new Owler(this.formEng);
-			owler.addConcept(auditLogTableName, null, null);
-			owler.addProp(auditLogTableName, "ID", "INT");
-			owler.addProp(auditLogTableName, "USER", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "ACTION", "VARCHAR(100)");
-			owler.addProp(auditLogTableName, "START_NODE", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "REL_NAME", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "END_NODE", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "PROP_NAME", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "PROP_VALUE", "CLOB");
-			owler.addProp(auditLogTableName, "TIME", "TIMESTAMP");
-
-			logger.info("CREATING NEW AUDIT LOG!!!");
-			StringBuilder createAuditTable = new StringBuilder("CREATE TABLE ");
-			createAuditTable.append(auditLogTableName).append("(ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), "
-					+ "REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP");
-			if(this.tagCols != null) {
-				for(String tag : tagCols) {
-					createAuditTable.append(tag).append(" VARCHAR(100), ");
-					owler.addProp(auditLogTableName, "ID", tag.toUpperCase(), "VARCHAR(100)");
+			try(WriteOWLEngine owlEngine = formEng.getOWLEngineFactory().getWriteOWL()) {
+				owlEngine.addConcept(auditLogTableName, null, null);
+				owlEngine.addProp(auditLogTableName, "ID", "INT");
+				owlEngine.addProp(auditLogTableName, "USER", "VARCHAR(255)");
+				owlEngine.addProp(auditLogTableName, "ACTION", "VARCHAR(100)");
+				owlEngine.addProp(auditLogTableName, "START_NODE", "VARCHAR(255)");
+				owlEngine.addProp(auditLogTableName, "REL_NAME", "VARCHAR(255)");
+				owlEngine.addProp(auditLogTableName, "END_NODE", "VARCHAR(255)");
+				owlEngine.addProp(auditLogTableName, "PROP_NAME", "VARCHAR(255)");
+				owlEngine.addProp(auditLogTableName, "PROP_VALUE", "CLOB");
+				owlEngine.addProp(auditLogTableName, "TIME", "TIMESTAMP");
+	
+				classLogger.info("CREATING NEW AUDIT LOG!!!");
+				StringBuilder createAuditTable = new StringBuilder("CREATE TABLE ");
+				createAuditTable.append(auditLogTableName).append("(ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), "
+						+ "REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP");
+				if(this.tagCols != null) {
+					for(String tag : tagCols) {
+						createAuditTable.append(tag).append(" VARCHAR(100), ");
+						owlEngine.addProp(auditLogTableName, "ID", tag.toUpperCase(), "VARCHAR(100)");
+					}
 				}
+				createAuditTable.append(")");
+				String query = createAuditTable.toString();
+				classLogger.info("SQL SCRIPT >>> " + Utility.cleanLogString(query));
+				try {
+					this.formEng.insertData(query);
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				try {
+					owlEngine.commit();
+					owlEngine.export();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			} catch (IOException | InterruptedException e1) {
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
-			createAuditTable.append(")");
-			String query = createAuditTable.toString();
-			logger.info("SQL SCRIPT >>> " + Utility.cleanLogString(query));
-			try {
-				this.formEng.insertData(query);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-			owler.commit();
-			try {
-				owler.export();
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
+			
 		} else if(this.tagCols != null && this.tagCols.size() > 0){
 			// need to execute and get the columns for the table
 			// need to make sure it has the tag cols
 			// since there can be multiple forms with different tags for searching on the same engine
 			
-			Owler owler = new Owler(this.formEng);
+			try(WriteOWLEngine owlEngine = formEng.getOWLEngineFactory().getWriteOWL()) {
 
-			List<String> cols = new Vector<String>();
-			// 1) query to get the current cols
-			String allColsPresent = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + auditLogTableName.toUpperCase() + "'";
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(this.formEng, allColsPresent);
-				while(wrapper.hasNext()) {
-					cols.add(wrapper.next().getValues()[0] + "");
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+				List<String> cols = new Vector<String>();
+				// 1) query to get the current cols
+				String allColsPresent = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + auditLogTableName.toUpperCase() + "'";
+				try {
+					wrapper = WrapperManager.getInstance().getRawWrapper(this.formEng, allColsPresent);
+					while(wrapper.hasNext()) {
+						cols.add(wrapper.next().getValues()[0] + "");
+					}
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(wrapper != null) {
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
-			}
-			// 2) find the cols that we need to add
-			List<String> colsToAdd = new Vector<String>();
-			List<String> colsToAddTypes = new Vector<String>();
-			for(String tag : tagCols) {
-				if(!cols.contains(tag)) {
-					colsToAdd.add(tag);
-					colsToAddTypes.add("VARCHAR(100)");
-					owler.addProp(auditLogTableName, tag.toUpperCase(), "VARCHAR(100)");
+				// 2) find the cols that we need to add
+				List<String> colsToAdd = new Vector<String>();
+				List<String> colsToAddTypes = new Vector<String>();
+				for(String tag : tagCols) {
+					if(!cols.contains(tag)) {
+						colsToAdd.add(tag);
+						colsToAddTypes.add("VARCHAR(100)");
+						owlEngine.addProp(auditLogTableName, tag.toUpperCase(), "VARCHAR(100)");
+					}
 				}
-			}
-			
-			// 3) perform an update
-			if(colsToAdd.size() > 0) {
-				IRDBMSEngine rdbmsEng = (IRDBMSEngine) this.formEng;
-				Connection conn = null;
-				Statement stmt = null;
-				String alterQuery = rdbmsEng.getQueryUtil().alterTableAddColumns(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
-				logger.info("ALTERING TABLE: " + Utility.cleanLogString(alterQuery));
-				try {
-					conn = rdbmsEng.getConnection();
-					stmt = conn.createStatement();
-					stmt.execute(alterQuery);
-				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
-				}
-				logger.info("DONE ALTER TABLE");
 				
-				owler.commit();
-				try {
-					owler.export();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+				// 3) perform an update
+				if(colsToAdd.size() > 0) {
+					IRDBMSEngine rdbmsEng = (IRDBMSEngine) this.formEng;
+					Connection conn = null;
+					Statement stmt = null;
+					String alterQuery = rdbmsEng.getQueryUtil().alterTableAddColumns(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
+					classLogger.info("ALTERING TABLE: " + Utility.cleanLogString(alterQuery));
+					try {
+						conn = rdbmsEng.getConnection();
+						stmt = conn.createStatement();
+						stmt.execute(alterQuery);
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					} finally {
+						ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, conn, stmt, null);
+					}
+					classLogger.info("DONE ALTER TABLE");
+					
+					try {
+						owlEngine.commit();
+						owlEngine.export();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
+			} catch (IOException | InterruptedException e1) {
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 		}
 	}
@@ -352,7 +362,7 @@ public abstract class AbstractFormBuilder {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(rdbmsEng, ps);
 		}

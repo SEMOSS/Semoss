@@ -15,7 +15,7 @@ import org.openrdf.model.vocabulary.RDF;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -88,26 +88,26 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start loading data..");
 		Configurator.setLevel(logger.getName(), Level.WARN);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), this.database.getDatabaseType());
-		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
+		
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		owlEngine.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		processRelationships(this.database, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
+		processRelationships(this.database, owlEngine, this.helper, Arrays.asList(headers), types, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Commit database metadata...");
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owler);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
-
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		// commit the created database
-		this.database.setOwlFilePath(owler.getOwlPath());
 		this.database.commit();
 		((BigDataEngine) this.database).infer();
 		logger.info(stepCounter + ". Complete");
@@ -149,18 +149,21 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		Owler owler = new Owler(this.database);
-		processRelationships(this.database, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
+
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		processRelationships(this.database, owlEngine, this.helper, Arrays.asList(headers), types, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.warn(stepCounter + ". Committing database metadata....");
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owler);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
+		
 		// commit the created database
 		this.database.commit();
 		((BigDataEngine) this.database).infer();
@@ -224,7 +227,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	 * Create all the triples associated with the relationships specified in the prop file
 	 * @throws IOException 
 	 */
-	private void processRelationships(IDatabaseEngine database, Owler owler, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
+	private void processRelationships(IDatabaseEngine database, WriteOWLEngine owlEngine, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
 		// TODO user subjects
 		// parse metamodel
 		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
@@ -322,7 +325,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 						}
 					}
 				}
-				RdfUploadReactorUtility.createRelationship(database, owler, customBaseURI, subject, object, subjectValue, objectValue, predicate, propHash);
+				RdfUploadReactorUtility.createRelationship(database, owlEngine, customBaseURI, subject, object, subjectValue, objectValue, predicate, propHash);
 			}
 
 			// look through all node properties
@@ -374,7 +377,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 					}
 					nodePropHash.put(property, propObj);
 				}
-				RdfUploadReactorUtility.addNodeProperties(database, owler, customBaseURI, subject, subjectValue, nodePropHash);
+				RdfUploadReactorUtility.addNodeProperties(database, owlEngine, customBaseURI, subject, subjectValue, nodePropHash);
 			}
 			
 			if (++count % 1000 == 0) {

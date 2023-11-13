@@ -59,13 +59,13 @@ public class DatabaseComparisonListener implements IChakraListener
 		IDatabaseEngine newDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(newDBName);
 		IDatabaseEngine oldDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(oldDBName);
 		
-		RDFFileSesameEngine newMetaDB = ((AbstractDatabaseEngine) newDB).getBaseDataEngine();
-		RDFFileSesameEngine oldMetaDB = ((AbstractDatabaseEngine) oldDB).getBaseDataEngine();
-		
-		GenericDBComparisonWriter comparisonWriter = new GenericDBComparisonWriter(newDB, oldDB, newMetaDB, oldMetaDB);
-		comparisonWriter.runAllInstanceTests();
-		comparisonWriter.runAllMetaTests();
-		comparisonWriter.writeWB();
+//		RDFFileSesameEngine newMetaDB = ((AbstractDatabaseEngine) newDB).getBaseDataEngine();
+//		RDFFileSesameEngine oldMetaDB = ((AbstractDatabaseEngine) oldDB).getBaseDataEngine();
+//		
+//		GenericDBComparisonWriter comparisonWriter = new GenericDBComparisonWriter(newDB, oldDB, newMetaDB, oldMetaDB);
+//		comparisonWriter.runAllInstanceTests();
+//		comparisonWriter.runAllMetaTests();
+//		comparisonWriter.writeWB();
 		Utility.showMessage("All tests are finished.");
 	}
 	

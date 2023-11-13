@@ -24,6 +24,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -825,22 +826,26 @@ public class CentralCloudStorage implements ICloudClient {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		WriteOWLEngine owlEngine = null;
 		try {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			//close the owl
-			database.getBaseDataEngine().close();
+			owlEngine = database.getOWLEngineFactory().getWriteOWL();
+			//close the owl
+			owlEngine.closeOwl();
 			centralStorageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig);
 			if(hasPositionFile) {
 				centralStorageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig);
 			}
 		} finally {
 			try {
-				database.setOwlFilePath(localOwlFile);
-			} catch(Exception e) {
+				owlEngine.reloadOWLFile();
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
+			owlEngine.close();
 			if(sharedRCloneConfig != null) {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
@@ -880,20 +885,23 @@ public class CentralCloudStorage implements ICloudClient {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		WriteOWLEngine owlEngine = null;
 		try {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
+			owlEngine = database.getOWLEngineFactory().getWriteOWL();
 			//close the owl
-			database.getBaseDataEngine().close();
+			owlEngine.closeOwl();
 			centralStorageEngine.copyToLocal(storageDatabaseOwl, localDatabaseFolder);
 			centralStorageEngine.copyToLocal(storageDatabaseOwlPosition, localDatabaseFolder);
 		} finally {
 			try {
-				database.setOwlFilePath(localOwlFile);
-			} catch(Exception e) {
+				owlEngine.reloadOWLFile();
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
+			owlEngine.close();
 			if(sharedRCloneConfig != null) {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);

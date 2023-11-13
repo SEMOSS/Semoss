@@ -112,6 +112,9 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class LazyTranslation extends DepthFirstAdapter {
 
 	private static final Logger logger = LogManager.getLogger(LazyTranslation.class);
+
+	// TODO:
+//	protected ReactorNode reactorRoot;
 	
 	protected PixelPlanner planner;
 	protected Insight insight;
@@ -1251,6 +1254,12 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     protected void initReactor(IReactor reactor)
     {
+    	//TODO
+//    	if(reactorRoot == null) {
+//    		reactorRoot = new ReactorNode(reactor);
+//    	} else {
+//    		reactorRoot.addChild(new ReactorNode(reactor));
+//    	}
     	// make a check to see if the curReactor is not null
     	IReactor parentReactor = curReactor;
     	if(parentReactor != null) {

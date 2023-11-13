@@ -3,7 +3,7 @@ package prerna.util.sql;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 
 public class DatabaseUpdateMetadata {
 
@@ -11,7 +11,7 @@ public class DatabaseUpdateMetadata {
 	private List<String> successfulUpdates = new ArrayList<>();
 	private List<String> failedUpdates = new ArrayList<>();
 	// only keep this so we can commit from it at the end
-	private transient Owler owler = null;
+	private transient WriteOWLEngine owlEngine = null;
 	
 	public void addSuccessfulUpdate(String table) {
 		this.successfulUpdates.add(table);
@@ -21,12 +21,12 @@ public class DatabaseUpdateMetadata {
 		this.failedUpdates.add(table);
 	}
 	
-	public Owler getOwler() {
-		return owler;
+	public WriteOWLEngine getOwlEngine() {
+		return owlEngine;
 	}
 	
-	public void setOwler(Owler owler) {
-		this.owler = owler;
+	public void setOwlEngine(WriteOWLEngine owlEngine) {
+		this.owlEngine = owlEngine;
 	}
 	
 	public String getCombinedErrors() {

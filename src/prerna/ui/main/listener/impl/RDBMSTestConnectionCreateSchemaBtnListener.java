@@ -35,7 +35,6 @@ import javax.swing.JComponent;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
-import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -67,7 +66,6 @@ public class RDBMSTestConnectionCreateSchemaBtnListener extends AbstractListener
 		String username = usernameField.getText();
 		char[] password = passwordField.getPassword();
 		String url = dbImportURLField.getText();
-		ImportRDBMSProcessor t = new ImportRDBMSProcessor();
 		
 		boolean validConnection = false;
 		

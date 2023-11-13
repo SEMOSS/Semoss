@@ -2,21 +2,27 @@ package prerna.reactor.database.metaeditor.meta;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import cern.colt.Arrays;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(RemoveOwlLogicalNamesReactor.class);
+	
 	public RemoveOwlLogicalNamesReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
 	}
@@ -33,27 +39,36 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
-		String physicalUri = null;
-		if(prop == null || prop.isEmpty()) {
-			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
-		} else {
-			physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
-		}
 		
-		Owler owler = new Owler(database);
-		owler.deleteLogicalNames(physicalUri, logicalNames);
+		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			String physicalUri = null;
+			if(prop == null || prop.isEmpty()) {
+				physicalUri = database.getPhysicalUriFromPixelSelector(concept);
+			} else {
+				physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+			}
+			
+			owlEngine.deleteLogicalNames(physicalUri, logicalNames);
+			
+			try {
+				owlEngine.commit();
+				owlEngine.export();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				return noun;
+			}
+			EngineSyncUtility.clearEngineCache(databaseId);
+			ClusterUtil.pushOwl(databaseId);
 		
-		try {
-			owler.export();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException | InterruptedException e1) {
+			classLogger.error(Constants.STACKTRACE, e1);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.pushOwl(databaseId);
-
+		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
