@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,14 +41,12 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -59,7 +56,7 @@ import prerna.util.Utility;
  */
 public class AggregationHelper implements IAggregationHelper {
 
-	private static final Logger LOGGER = LogManager.getLogger(AggregationHelper.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(AggregationHelper.class.getName());
 
 	public HashMap<String, HashMap<String, Object>> dataHash = new HashMap<String, HashMap<String, Object>>();
 	public HashMap<String, HashMap<String, Object>> removeDataHash = new HashMap<String, HashMap<String, Object>>();
@@ -87,7 +84,7 @@ public class AggregationHelper implements IAggregationHelper {
 					conceptTriple = false;
 				}
 				( (BigDataEngine) engine).addStatement(new Object[]{sub, pred, obj, conceptTriple});
-				LOGGER.info("ADDING INTO " + Utility.cleanLogString(engine.getEngineId()) + ": " + Utility.cleanLogString(sub) + ">>>>>" + Utility.cleanLogString(pred) + ">>>>>" + obj + ">>>>>");
+				classLogger.info("ADDING INTO " + Utility.cleanLogString(engine.getEngineId()) + ": " + Utility.cleanLogString(sub) + ">>>>>" + Utility.cleanLogString(pred) + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
@@ -105,7 +102,7 @@ public class AggregationHelper implements IAggregationHelper {
 					conceptTriple = false;
 				}
 				( (BigDataEngine) engine).removeStatement(new Object[]{sub, pred, obj, conceptTriple});
-				LOGGER.info("REMOVING FROM " + Utility.cleanLogString(engine.getEngineId()) + ": " + Utility.cleanLogString(sub) + ">>>>>" + Utility.cleanLogString(pred) + ">>>>>" + obj + ">>>>>");
+				classLogger.info("REMOVING FROM " + Utility.cleanLogString(engine.getEngineId()) + ": " + Utility.cleanLogString(sub) + ">>>>>" + Utility.cleanLogString(pred) + ">>>>>" + obj + ">>>>>");
 			}
 		}		
 	}
@@ -150,7 +147,7 @@ public class AggregationHelper implements IAggregationHelper {
 	{
 		String subclassOf = RDFS.SUBCLASSOF.toString();
 		( (BigDataEngine) engine).addStatement(new Object[]{childType, subclassOf, parentType, true});
-		LOGGER.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
+		classLogger.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
 	}
 	
 	public void processActiveSystemSubclassing(IDatabaseEngine engine, Set<String> data){
@@ -166,9 +163,12 @@ public class AggregationHelper implements IAggregationHelper {
 		String subclassOf = RDFS.SUBCLASSOF.toString();
 		
 		( (BigDataEngine) engine).addStatement(new Object[]{newConceptType, subclassOf, concept, true});
-		RDFFileSesameEngine existingBaseEngine = engine.getBaseDataEngine();
-		existingBaseEngine.addStatement(new Object[]{newConceptType, subclassOf, concept, true});
-		LOGGER.info(Utility.cleanLogString("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>"));
+		try(WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.addToBaseEngine(new Object[]{newConceptType, subclassOf, concept, true});
+			classLogger.info(Utility.cleanLogString("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>"));
+		} catch (IOException | InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 	}
 
 	public void processNewRelationships(IDatabaseEngine engine, String newRelationshipType) 
@@ -177,23 +177,26 @@ public class AggregationHelper implements IAggregationHelper {
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		
 		( (BigDataEngine) engine).addStatement(new Object[]{newRelationshipType, subpropertyOf, relation, true});
-		RDFFileSesameEngine existingBaseEngine = engine.getBaseDataEngine();
-		existingBaseEngine.addStatement(new Object[]{newRelationshipType, subpropertyOf, relation, true});
-		LOGGER.info(Utility.cleanLogString("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>"));
+		try(WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.addToBaseEngine(new Object[]{newRelationshipType, subpropertyOf, relation, true});
+			classLogger.info(Utility.cleanLogString("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>"));
+		} catch (IOException | InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 	}
 	
 	public void processNewConceptsAtInstanceLevel(IDatabaseEngine engine, String subject, String object)
 	{
 		String pred = RDF.TYPE.toString();
 		((BigDataEngine) engine).addStatement(new Object[]{subject, pred, object, true});
-		LOGGER.info(Utility.cleanLogString("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>"));				
+		classLogger.info(Utility.cleanLogString("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>"));				
 	}
 
 	public void processNewRelationshipsAtInstanceLevel(IDatabaseEngine engine, String subject, String object) 
 	{
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		((BigDataEngine) engine).addStatement(new Object[]{subject, subpropertyOf, object, true});
-		LOGGER.info(Utility.cleanLogString("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>"));
+		classLogger.info(Utility.cleanLogString("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>"));
 	}
 	
 	public void addToDataHash(Object[] returnTriple) 
@@ -290,33 +293,10 @@ public class AggregationHelper implements IAggregationHelper {
 	
 	public void writeToOWL(IDatabaseEngine engine)
 	{
-		// get the path to the owlFile
-		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineId() +"_" + Constants.OWL); 
-
-		RDFFileSesameEngine existingBaseEngine = engine.getBaseDataEngine();
-		RepositoryConnection exportRC = existingBaseEngine.getRc();
-		FileWriter fWrite = null;
-		try{
-			fWrite = new FileWriter(owlFileLocation);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			exportRC.export(owlWriter);
-			fWrite.flush();
-			owlWriter.close();	
-		}
-		catch(IOException ex)
-		{
-			ex.printStackTrace();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fWrite!=null)
-					fWrite.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
+		try(WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.export();
+		} catch (IOException | InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -347,43 +327,22 @@ public class AggregationHelper implements IAggregationHelper {
 		// get the path to the owlFile
 		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineId() +"_" + Constants.OWL); 
 
-		RDFFileSesameEngine existingBaseEngine = engine.getBaseDataEngine();
-		for(String subjectURI : baseRelations.keySet()) 
-		{
-			HashMap<String, Set<String>> predicateURIHash = baseRelations.get(subjectURI);
-			for(String predicateURI : predicateURIHash.keySet()) 
+		try(WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
+			for(String subjectURI : baseRelations.keySet()) 
 			{
-				Set<String> objectURIList = predicateURIHash.get(predicateURI);
-				for(String objectURI : objectURIList) 
+				HashMap<String, Set<String>> predicateURIHash = baseRelations.get(subjectURI);
+				for(String predicateURI : predicateURIHash.keySet()) 
 				{
-					existingBaseEngine.addStatement(new Object[]{subjectURI, predicateURI, objectURI, true});
+					Set<String> objectURIList = predicateURIHash.get(predicateURI);
+					for(String objectURI : objectURIList) 
+					{
+						owlEngine.addToBaseEngine(new Object[]{subjectURI, predicateURI, objectURI, true});
+					}
 				}
 			}
-		}
-		
-		RepositoryConnection exportRC = existingBaseEngine.getRc();
-		FileWriter fWrite = null;
-		try{
-			fWrite = new FileWriter(owlFileLocation);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			exportRC.export(owlWriter);
-			fWrite.flush();
-			owlWriter.close();	
-		}
-		catch(IOException ex)
-		{
-			ex.printStackTrace();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fWrite!=null)
-					fWrite.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
+			owlEngine.export();
+		} catch (IOException | InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -407,7 +366,7 @@ public class AggregationHelper implements IAggregationHelper {
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).doubleValue();
-			LOGGER.debug("ADDING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			classLogger.debug("ADDING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -415,7 +374,7 @@ public class AggregationHelper implements IAggregationHelper {
 			Double addValue = ( (Literal) value).doubleValue();
 			Double currentValue = (Double) innerHash.get(prop);
 			value = addValue + currentValue;
-			LOGGER.debug("ADJUSTING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			classLogger.debug("ADJUSTING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
@@ -437,14 +396,14 @@ public class AggregationHelper implements IAggregationHelper {
 		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			LOGGER.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			classLogger.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
 			Object currentString = innerHash.get(prop);
 			value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString();
-			LOGGER.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			classLogger.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
@@ -468,7 +427,7 @@ public class AggregationHelper implements IAggregationHelper {
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).doubleValue();
-			LOGGER.debug("ADDING DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			classLogger.debug("ADDING DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -481,7 +440,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = ((Literal) value).doubleValue();
-					LOGGER.debug("ADJUSTING MIN DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					classLogger.debug("ADJUSTING MIN DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -495,7 +454,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = ((Literal) value).doubleValue();
-					LOGGER.debug("ADJUSTING MAX DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					classLogger.debug("ADJUSTING MAX DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -525,7 +484,7 @@ public class AggregationHelper implements IAggregationHelper {
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{	
 			value = (Date) ((XMLGregorianCalendar) ((Literal) value).calendarValue()).toGregorianCalendar().getTime();
-			LOGGER.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			classLogger.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -538,7 +497,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = newDate;
-					LOGGER.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					classLogger.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -552,7 +511,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = newDate;
-					LOGGER.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					classLogger.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else

@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -26,6 +28,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RdfFormBuilder extends AbstractFormBuilder {
+
+	protected static final Logger classLogger = LogManager.getLogger(RdfFormBuilder.class);
 
 	/////////////////////////////////////////////RDF CODE/////////////////////////////////////////////
 
@@ -374,13 +378,13 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					otherUris = true;
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper2 != null) {
 					try {
 						wrapper2.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -568,13 +572,13 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			upIt = WrapperManager.getInstance().getRawWrapper(this.engine , upQuery);
 			storeValues(upIt, upTriples);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(upIt != null) {
 				try {
 					upIt.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -591,13 +595,13 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			downIt = WrapperManager.getInstance().getRawWrapper(this.engine , downQuery);
 			storeValues(downIt, downTriples);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(downIt != null) {
 				try {
 					downIt.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -796,13 +800,13 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				oldVersion = Double.parseDouble(clean[1] + "");
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

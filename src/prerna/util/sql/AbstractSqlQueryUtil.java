@@ -65,8 +65,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -1798,7 +1798,7 @@ public abstract class AbstractSqlQueryUtil {
 		return null;
 	}
 	
-	public static DatabaseUpdateMetadata performDatabaseAdditions(IRDBMSEngine rdbmsDb, Map<String, Map<String, String>> updates, Logger logger) {
+	public static DatabaseUpdateMetadata performDatabaseAdditions(IRDBMSEngine rdbmsDb, Map<String, Map<String, String>> updates, Logger logger) throws InterruptedException {
 		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
 		
 		Set<String> tableExists = new HashSet<>();
@@ -1838,8 +1838,8 @@ public abstract class AbstractSqlQueryUtil {
 		}
 		
 		// create an owler to track the meta modifications
-		Owler owler = new Owler(rdbmsDb);
-		meta.setOwler(owler);
+		WriteOWLEngine owlEngine = rdbmsDb.getOWLEngineFactory().getWriteOWL();
+		meta.setOwlEngine(owlEngine);
 		
 		StringBuilder errorMessages = new StringBuilder();
 		// now do the operations
@@ -1871,10 +1871,10 @@ public abstract class AbstractSqlQueryUtil {
 				
 				// add to the owl
 				logger.info("Updating metadata for table " + tableName);
-				owler.addConcept(tableName, null, null);
+				owlEngine.addConcept(tableName, null, null);
 				for(String column : finalColumnUpdates.keySet()) {
 					String columnType = finalColumnUpdates.get(column);
-					owler.addProp(tableName, column, columnType);
+					owlEngine.addProp(tableName, column, columnType);
 				}
 				
 				// store the metadata
@@ -1891,7 +1891,7 @@ public abstract class AbstractSqlQueryUtil {
 		return meta;
 	}
 
-	public static DatabaseUpdateMetadata performDatabaseDeletions(IRDBMSEngine rdbmsDb, Map<String, List<String>> updates, Logger logger) {
+	public static DatabaseUpdateMetadata performDatabaseDeletions(IRDBMSEngine rdbmsDb, Map<String, List<String>> updates, Logger logger) throws InterruptedException {
 		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
 		Set<String> tableDeletes = new HashSet<>();
 		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
@@ -1933,8 +1933,8 @@ public abstract class AbstractSqlQueryUtil {
 		}
 		
 		// create an owler to track the meta modifications
-		Owler owler = new Owler(rdbmsDb);
-		meta.setOwler(owler);
+		WriteOWLEngine owlEngine = rdbmsDb.getOWLEngineFactory().getWriteOWL();
+		meta.setOwlEngine(owlEngine);
 		
 		StringBuilder errorMessages = new StringBuilder();
 		// now do the operations
@@ -1963,10 +1963,10 @@ public abstract class AbstractSqlQueryUtil {
 				// update the owl
 				logger.info("Updating metadata for table " + tableName);
 				if(deleteTable) {
-					owler.removeConcept(tableName);
+					owlEngine.removeConcept(tableName);
 				} else {
 					for(String column : updates.get(tableName)) {
-						owler.removeProp(tableName, column, null);
+						owlEngine.removeProp(tableName, column, null);
 					}
 				}
 				// store the metadata

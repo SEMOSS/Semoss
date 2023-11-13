@@ -8,9 +8,8 @@ import org.apache.commons.io.FileUtils;
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -68,20 +67,21 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.R);
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+
 		// table name is the file name
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		// add the table
-		owler.addConcept(tableName, null, null);
+		owlEngine.addConcept(tableName, null, null);
 		// add the props
 		for (int i = 0; i < headers.length; i++) {
-			owler.addProp(tableName, headers[i], types[i].toString(), additionalTypes[i]);
+			owlEngine.addProp(tableName, headers[i], types[i].toString(), additionalTypes[i]);
 		}
 		// add descriptions and logical names
-		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-
-		owler.commit();
-		owler.export();
+		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		

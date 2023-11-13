@@ -19,7 +19,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.database.metaeditor.concepts.RemoveOwlConceptReactor;
@@ -375,23 +375,36 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		// just add everything
 		if(this.override || this.newTable) {
 			logger.info("Need to update the engine metadata for the new table");
-			Owler owler = new Owler(targetEngine);
-			// choose the first column as the prim key
-			owler.addConcept(targetTable, null, null);
-			owler.addProp(targetTable, headers[0], sqlTypes[0]);
-			// add all others as properties
-			for(int i = 1; i < targetSize; i++) {
-				owler.addProp(targetTable, headers[i], sqlTypes[i], null);
-			}
-			
-			logger.info("Persisting engine metadata and synchronizing with local master");
+			WriteOWLEngine owler = null;
 			try {
-				owler.export();
-				Utility.synchronizeEngineMetadata(engineId);
-				// also push to cloud
-				ClusterUtil.pushOwl(engineId);
-			} catch (IOException e) {
+				owler = targetEngine.getOWLEngineFactory().getWriteOWL();
+				// choose the first column as the prim key
+				owler.addConcept(targetTable, null, null);
+				owler.addProp(targetTable, headers[0], sqlTypes[0]);
+				// add all others as properties
+				for(int i = 1; i < targetSize; i++) {
+					owler.addProp(targetTable, headers[i], sqlTypes[i], null);
+				}
+				
+				logger.info("Persisting engine metadata and synchronizing with local master");
+				try {
+					owler.export();
+					Utility.synchronizeEngineMetadata(engineId);
+					// also push to cloud
+					ClusterUtil.pushOwl(engineId);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			} catch (InterruptedException e) {
 				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(owler != null) {
+					try {
+						owler.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
 		}
 	}

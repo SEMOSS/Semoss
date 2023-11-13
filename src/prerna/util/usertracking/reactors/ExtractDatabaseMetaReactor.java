@@ -1,12 +1,13 @@
 package prerna.util.usertracking.reactors;
 
+import java.io.IOException;
 import java.util.List;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -53,8 +54,11 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		// only executes for rdbms, tinker, and rdf
 		DATABASE_TYPE engineType = engine.getDatabaseType();
 		if (engineType == DATABASE_TYPE.RDBMS || engineType == DATABASE_TYPE.SESAME || engineType == DATABASE_TYPE.TINKER) {
-			Owler owl = new Owler(engine);
-			owl.addUniqueCounts(engine);
+			try(WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
+				owlEngine.addUniqueCounts(engine);
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 
 		//Turning off due to an issue in docker/openjdk 

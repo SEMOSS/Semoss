@@ -85,15 +85,16 @@ import prerna.util.Utility;
  */
 public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 
-	private static final Logger logger = LogManager.getLogger(RDFFileSesameEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(RDFFileSesameEngine.class);
 
 	RepositoryConnection rc = null;
-	ValueFactory vf = null;
-	String rdfFileType = "RDF/XML";
-	String baseURI = "http://semoss.org/ontologies";
-	String fileName = null;
-	SailConnection sc = null;
-	boolean connected = false;
+	private SailConnection sc = null;
+	private ValueFactory vf = null;
+	
+	private String rdfFileType = "RDF/XML";
+	private String baseURI = "http://semoss.org/ontologies";
+	private String filePath = null;
+	private boolean connected = false;
 
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
@@ -114,14 +115,21 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		// you can technically set the filename directly
 		// so we will still check that the smssProp is not null/empty
 		if(this.smssProp != null && !this.smssProp.isEmpty()) {
-			fileName = SmssUtilities.getRdfFile(this.smssProp).getAbsolutePath();
+			if(this.smssProp.containsKey(Constants.RDF_FILE_PATH)) {
+				this.filePath = this.smssProp.getProperty(Constants.RDF_FILE_PATH);
+			} else {
+				File f = SmssUtilities.getRdfFile(this.smssProp);
+				if(f != null) {
+					this.filePath = f.getAbsolutePath();
+				}
+			}
 			
 			if(this.smssProp.containsKey(Constants.RDF_FILE_TYPE)) {
-				rdfFileType = this.smssProp.getProperty(Constants.RDF_FILE_TYPE);
+				this.rdfFileType = this.smssProp.getProperty(Constants.RDF_FILE_TYPE);
 			}
 
 			if(this.smssProp.containsKey(Constants.RDF_FILE_BASE_URI)) {
-				baseURI = this.smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
+				this.baseURI = this.smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
 			}
 		}
 
@@ -129,60 +137,25 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		sc = ((SailRepositoryConnection) rc).getSailConnection();
 		vf = rc.getValueFactory();
 
-		if(fileName != null) {
-			File file = new File(Utility.normalizePath(fileName));
-			if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
-			else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
-			else if(rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
-			else if(rdfFileType.equalsIgnoreCase("N3")) rc.add(file, baseURI, RDFFormat.N3);
-			else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
-			else if(rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
-			else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
-		}
+		loadFile();
 		this.connected = true;
 	}
-
-
-	public void openFile(String rdfFile, String rdfFileType, String baseURI) {
-		try {
-			Repository myRepository = new SailRepository(
-					new MemoryStore());
-			myRepository.initialize();
-			fileName = rdfFile;	
-			if(rdfFileType != null) {
-				this.rdfFileType = rdfFileType;
+	
+	private void loadFile() throws IOException, RDFParseException, RepositoryException {
+		if(this.filePath != null) {
+			File file = new File(Utility.normalizePath(filePath));
+			if(!(file.exists() && file.isFile())) {
+				throw new IOException("Calling open for RDFFileSesameEngine with file path set but file does not exist");
+			} else {
+				if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
+				else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
+				else if(rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
+				else if(rdfFileType.equalsIgnoreCase("N3")) rc.add(file, baseURI, RDFFormat.N3);
+				else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
+				else if(rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
+				else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
+				else throw new IOException("Unable to load RDF file type = " + rdfFileType);
 			}
-			if(baseURI != null) {
-				this.baseURI = baseURI;
-			}
-			rc = myRepository.getConnection();
-			sc = ((SailRepositoryConnection) rc).getSailConnection();
-			vf = rc.getValueFactory();
-
-			if(fileName != null) {
-				File file = new File( fileName);
-				if(this.rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, this.baseURI, RDFFormat.RDFXML);
-				else if(this.rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
-				else if(this.rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
-				else if(this.rdfFileType.equalsIgnoreCase("N3")) rc.add(file, baseURI, RDFFormat.N3);
-				else if(this.rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
-				else if(this.rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
-				else if(this.rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
-				rc.commit();
-			}
-			this.connected = true;
-		} catch(RuntimeException ignored) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, ignored);
-		} catch (RDFParseException e) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException re) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, re);
-		} catch (IOException ioe) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 
@@ -198,8 +171,13 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			rc.close();
 			connected = false;
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
+	}
+	
+	public void reloadFile() throws Exception {
+		close();
+		loadFile();
 	}
 	
 	@Override
@@ -218,7 +196,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 
 		try {
 			Query fullQuery = rc.prepareQuery(QueryLanguage.SPARQL, query);
-			logger.debug("\nSPARQL: " + Utility.cleanLogString(query));
+			classLogger.debug("\nSPARQL: " + Utility.cleanLogString(query));
 			fullQuery.setIncludeInferred(true /* includeInferred */);
 			if(fullQuery instanceof TupleQuery){
 				TupleQueryResult sparqlResults = ((TupleQuery) fullQuery).evaluate();
@@ -233,11 +211,11 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
-			logger.error(Constants.STACKTRACE, mqe);
+			classLogger.error(Constants.STACKTRACE, mqe);
 		} catch (QueryEvaluationException qee) {
-			logger.error(Constants.STACKTRACE, qee);
+			classLogger.error(Constants.STACKTRACE, qee);
 		}
 		return null;
 	}
@@ -257,7 +235,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 	{
 		try {
 			TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
-			logger.debug("\nSPARQL: " + sparqlQuery);
+			classLogger.debug("\nSPARQL: " + sparqlQuery);
 			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
 			Vector<Object> retVec = new Vector<>();
@@ -279,11 +257,11 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			}
 			return retVec;
 		} catch (RepositoryException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
-			logger.error(Constants.STACKTRACE, mqe);
+			classLogger.error(Constants.STACKTRACE, mqe);
 		} catch (QueryEvaluationException qee) {
-			logger.error(Constants.STACKTRACE, qee);
+			classLogger.error(Constants.STACKTRACE, qee);
 		}
 		return null;
 	}
@@ -317,8 +295,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 
 	 * @return true if the engine is connected to its data store and false if it is not */
 	@Override
-	public boolean isConnected()
-	{
+	public boolean isConnected() {
 		return connected;
 	}
 
@@ -360,12 +337,12 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			{
 				if(object.getClass() == new Double(1).getClass())
 				{
-					logger.debug("Found Double " + object);
+					classLogger.debug("Found Double " + object);
 					sc.addStatement(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
-					logger.debug("Found Date " + object);
+					classLogger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -373,7 +350,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 				}
 				else
 				{
-					logger.debug("Found String " + object);
+					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -386,9 +363,9 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			}
 			rc.commit();
 		} catch (SailException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException re) {
-			logger.error(Constants.STACKTRACE, re);
+			classLogger.error(Constants.STACKTRACE, re);
 		}
 	}
 
@@ -436,12 +413,12 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			{
 				if(object.getClass() == new Double(1).getClass())
 				{
-					logger.debug("Found Double " + object);
+					classLogger.debug("Found Double " + object);
 					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
-					logger.debug("Found Date " + object);
+					classLogger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -449,7 +426,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 				}
 				else
 				{
-					logger.debug("Found String " + object);
+					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -462,7 +439,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			}
 			sc.commit();
 		} catch (SailException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -479,7 +456,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		try {
 			up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
 			//sc.addStatement(vf.createURI("<http://semoss.org/ontologies/Concept/Service/tom2>"),vf.createURI("<http://semoss.org/ontologies/Relation/Exposes>"),vf.createURI("<http://semoss.org/ontologies/Concept/BusinessLogicUnit/tom1>"));
-			logger.debug("\nSPARQL: " + query);
+			classLogger.debug("\nSPARQL: " + query);
 			//tq.setIncludeInferred(true /* includeInferred */);
 			//tq.evaluate();
 			//rc.setAutoCommit(false);
@@ -488,13 +465,13 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			//rc.commit();
 			sc.commit();
 		} catch (RepositoryException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
-			logger.error(Constants.STACKTRACE, mqe);
+			classLogger.error(Constants.STACKTRACE, mqe);
 		} catch (SailException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
 		} catch (UpdateExecutionException uee) {
-			logger.error(Constants.STACKTRACE, uee);
+			classLogger.error(Constants.STACKTRACE, uee);
 		}
 	}
 
@@ -505,11 +482,11 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 	 * @throws RepositoryException 
 	 */
 	public void exportDB() throws Exception {
-		logger.info("Exporting database");
+		classLogger.info("Exporting database");
 		FileWriter writer = null;
 		RDFXMLWriter rdfWriter = null;
 		try{
-			writer = new FileWriter(Utility.normalizePath(fileName));
+			writer = new FileWriter(Utility.normalizePath(filePath));
 			rdfWriter = new RDFXMLWriter(writer);
 			rc.export(rdfWriter);
 		} finally {
@@ -517,12 +494,12 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 				try{
 					writer.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-
+	
 	/**
 	 * Method getRc.  Gets the repository connection.
 
@@ -561,10 +538,21 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		return this.vf;
 	}
 
-	public void setFileName(String fileName){
-		this.fileName = fileName;
+	public void setFilePath(String filePath){
+		this.filePath = filePath;
 	}
 
+	public String getFilePath() {
+		return filePath;
+	}
+	
+	public void deleteFile() {
+		File f = new File(this.filePath);
+		if(f.exists() && f.isFile()) {
+			f.delete();
+		}
+	}
+	
 	@Override
 	public void removeData(String query) {
 		insertData(query);
@@ -575,45 +563,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		try {
 			sc.commit();
 		} catch (SailException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
-	public void writeData(RDFXMLWriter writer) throws RepositoryException, RDFHandlerException {
-		try {
-			rc.export(writer);
-		} catch (RepositoryException re) {
-			logger.error(Constants.STACKTRACE, re);
-			throw new RepositoryException("Could not export base relationships from OWL database");
-		} catch (RDFHandlerException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new RDFHandlerException("Could not export base relationships from OWL database");
-		}
-	}
-
-	public void writeBack(){
-		FileWriter fw = null;
-		try {
-			fw = new FileWriter(fileName);
-			RDFXMLWriter writer = new RDFXMLWriter(fw);
-			writeData(writer);
-		} catch (RepositoryException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (RDFHandlerException rhe) {
-			logger.error(Constants.STACKTRACE, rhe);
-		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
-		} finally {
-			if(fw != null) {
-				try {
-					fw.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
-	
 	/**
 	 * Method to get the SC
 	 * @return

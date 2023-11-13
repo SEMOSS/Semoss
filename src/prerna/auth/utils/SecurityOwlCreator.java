@@ -1,21 +1,17 @@
 package prerna.auth.utils;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SecurityOwlCreator {
 
-	private static List<String> conceptsRequired = new Vector<String>();
+	private static List<String> conceptsRequired = new ArrayList<String>();
 	static {
 		conceptsRequired.add("ENGINE");
 		conceptsRequired.add("ENGINEMETA");
@@ -58,7 +54,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("TOKEN");
 	}
 	
-	private static List<String[]> relationshipsRequired = new Vector<String[]>();
+	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
 	static {
 		relationshipsRequired.add(new String[] {"ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID"});
 		relationshipsRequired.add(new String[] {"PROJECT", "GROUPPROJECTPERMISSION", "PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID"});
@@ -83,8 +79,11 @@ public class SecurityOwlCreator {
 		 * Not doing anything with columns but should eventually do that
 		 */
 		
-		List<String> cleanConcepts = new ArrayList<String>();
+		List<String> cleanConcepts = new ArrayList<>();
 		List<String> concepts = securityDb.getPhysicalConcepts();
+		if(concepts.isEmpty()) {
+			return true;
+		}
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
@@ -131,26 +130,11 @@ public class SecurityOwlCreator {
 	 * @throws Exception 
 	 */
 	public void remakeOwl() throws Exception {
-		// get the existing engine and close it
-		RDFFileSesameEngine baseEngine = securityDb.getBaseDataEngine();
-		if(baseEngine != null) {
-			baseEngine.close();
+		try(WriteOWLEngine owlEngine = securityDb.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.createEmptyOWLFile();
+			// write the new OWL
+			writeNewOwl(owlEngine);
 		}
-		
-		// now delete the file if exists
-		// and we will make a new
-		String owlLocation = securityDb.getOwlFilePath();
-		
-		File f = new File(owlLocation);
-		if(f.exists()) {
-			f.delete();
-		}
-		
-		// write the new OWL
-		writeNewOwl(owlLocation);
-		
-		// now reload into security db
-		securityDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**
@@ -158,9 +142,7 @@ public class SecurityOwlCreator {
 	 * @param owlLocation
 	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(Constants.SECURITY_DB, owlLocation, DATABASE_TYPE.RDBMS);
-
+	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		// ENGINE
 		owler.addConcept("ENGINE", null, null);
 		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
