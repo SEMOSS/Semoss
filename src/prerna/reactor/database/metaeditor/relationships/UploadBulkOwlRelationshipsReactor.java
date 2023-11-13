@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.poi.main.helper.excel.ExcelBlock;
@@ -46,7 +46,6 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 	static final String TARGET_TABLE = "TARGET_TABLE";
 	static final String TARGET_COLUMN = "TARGET_COLUMN";
 	
-	
 	/*
 	 * This class assumes that the start table, start column, end table, and end column have already been defined
 	 */
@@ -72,95 +71,99 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			throw new IllegalArgumentException("Could not find the specified file");
 		}
 		
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		
-		Owler owler = getOWLER(databaseId);
-		// set all the existing values into the OWLER
-		// so that its state is updated
-		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		setOwlerValues(database, owler);
-		
 		long start = System.currentTimeMillis();
-		ExcelSheetFileIterator it = null;
-		try {
-			it = getExcelIterator(filePath);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
-		} finally {
-			if(it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		
-		String[] excelHeaders = it.getHeaders();
-		List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
-		int idxStartT = excelHeadersList.indexOf(START_TABLE);
-		int idxStartC = excelHeadersList.indexOf(START_COLUMN);
-		int idxTargetT = excelHeadersList.indexOf(TARGET_TABLE);
-		int idxTargetC = excelHeadersList.indexOf(TARGET_COLUMN);
-
-		if(idxStartT < 0 
-				|| idxStartC < 0
-				|| idxTargetT < 0
-				|| idxTargetC < 0
-				) {
-			throw new IllegalArgumentException("One or more headers are missing from the excel");
-		}
+		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 		
-		int counter = 0;
-		logger.info("Retrieving values to insert");
-		try {
-			while(it.hasNext()) {
-				if(counter % 100 == 0) {
-					logger.info("Adding relationship : #" + (counter+1));
-				}
-				IHeadersDataRow row = it.next();
-				Object[] values = row.getValues();
-				
-				String startT = values[idxStartT].toString();
-				String startC = values[idxStartC].toString();
-				String endT = values[idxTargetT].toString();
-				String endC = values[idxTargetC].toString();
-				
-				// generate the relationship
-				String rel = startT + "." + startC + "." + endT + "." + endC;
-				
-				// add the relationship
-				owler.addRelation(startT, endT, rel);
-				counter++;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+			ExcelSheetFileIterator it = null;
+			try {
+				it = getExcelIterator(filePath);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
+			} finally {
+				if(it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
-		}
+			
+			String[] excelHeaders = it.getHeaders();
+			List<String> excelHeadersList = Arrays.asList(excelHeaders);
+	
+			int idxStartT = excelHeadersList.indexOf(START_TABLE);
+			int idxStartC = excelHeadersList.indexOf(START_COLUMN);
+			int idxTargetT = excelHeadersList.indexOf(TARGET_TABLE);
+			int idxTargetC = excelHeadersList.indexOf(TARGET_COLUMN);
+	
+			if(idxStartT < 0 
+					|| idxStartC < 0
+					|| idxTargetT < 0
+					|| idxTargetC < 0
+					) {
+				throw new IllegalArgumentException("One or more headers are missing from the excel");
+			}
+			
+			int counter = 0;
+			logger.info("Retrieving values to insert");
+			try {
+				while(it.hasNext()) {
+					if(counter % 100 == 0) {
+						logger.info("Adding relationship : #" + (counter+1));
+					}
+					IHeadersDataRow row = it.next();
+					Object[] values = row.getValues();
+					
+					String startT = values[idxStartT].toString();
+					String startC = values[idxStartC].toString();
+					String endT = values[idxTargetT].toString();
+					String endC = values[idxTargetC].toString();
+					
+					// generate the relationship
+					String rel = startT + "." + startC + "." + endT + "." + endC;
+					
+					// add the relationship
+					owlEngine.addRelation(startT, endT, rel);
+					counter++;
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+			
+			try {
+				owlEngine.commit();
+				owlEngine.export();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				return noun;
+			}
+			EngineSyncUtility.clearEngineCache(databaseId);
+			ClusterUtil.pushOwl(databaseId);
 		
-		// commit the changes
-		owler.commit();
-		try {
-			owler.export();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException | InterruptedException e1) {
+			classLogger.error(Constants.STACKTRACE, e1);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.pushOwl(databaseId);
-		
+			
 		if(sync) {
 			logger.info("Starting to remove exisitng metadata");
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();

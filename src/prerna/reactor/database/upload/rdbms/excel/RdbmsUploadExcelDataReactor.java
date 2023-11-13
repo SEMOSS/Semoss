@@ -19,8 +19,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelBlock;
@@ -136,19 +135,19 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		this.helper.parse(filePath);
 		logger.info("Done loading excel file");
 
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), DATABASE_TYPE.RDBMS);
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		// here is where we actually insert the data
-		processExcelSheets(this.database, owler, this.helper, dataTypesMap, 
+		processExcelSheets(this.database, owlEngine, this.helper, dataTypesMap, 
 				additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, 
 				tableNames, uniqueColumnNames, 
 				clean, replace);
 		this.helper.clear();
-		owler.export();
-		this.database.setOwlFilePath(owlFile.getPath());
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-
 		
 		// TODO
 		// TODO special insights for excel
@@ -286,17 +285,17 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		 * make new tables We need to go to the sheet level and determine it
 		 */
 
-		Owler owler = new Owler(this.database);
-		processExcelSheets(this.database, owler, this.helper, dataTypesMap, 
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		processExcelSheets(this.database, owlEngine, this.helper, dataTypesMap, 
 				additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, 
 				null, null, 
 				clean, replace);
-		owler.export();
-		this.database.setOwlFilePath(owler.getOwlPath());
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-
 	}
 
 	@Override
@@ -322,7 +321,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	/**
 	 * Process all the excel sheets using the data type map
 	 * @param database
-	 * @param owler
+	 * @param owlEngine
 	 * @param helper
 	 * @param dataTypesMap
 	 * @param additionalDataTypeMap
@@ -335,7 +334,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 */
 	private void processExcelSheets(
 			IDatabaseEngine database, 
-			Owler owler, 
+			WriteOWLEngine owlEngine, 
 			ExcelWorkbookFileHelper helper, 
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
 			Map<String, Map<String, Map<String, String>>> additionalDataTypeMap,
@@ -404,7 +403,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 						// sheetIterator will calculate the types if necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 
-						processSheet(database, owler, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
+						processSheet(database, owlEngine, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
 					}
 				}
 			}
@@ -469,7 +468,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					Map<String, List<String>> logicalNames = rangeLogicalNames == null ? null : rangeLogicalNames.get(range);
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 
-					processSheet(database, owler, sheetIterator, singleRange, descriptions, logicalNames, tableName, uniqueColumnName, clean, replace);
+					processSheet(database, owlEngine, sheetIterator, singleRange, descriptions, logicalNames, tableName, uniqueColumnName, clean, replace);
 				}
 			}
 		}
@@ -478,7 +477,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	/**
 	 * Process a single sheet
 	 * @param database
-	 * @param owler
+	 * @param owlEngine
 	 * @param helper
 	 * @param sheetname
 	 * @param dataTypesMap
@@ -487,7 +486,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param classLogger
 	 * @throws Exception 
 	 */
-	private void processSheet(IDatabaseEngine database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
+	private void processSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, ExcelSheetFileIterator helper, boolean singleRange, 
 			Map<String, String> descriptions, Map<String, List<String>> logicalNames, 
 			String sheet, String uniqueColumnName, 
 			boolean clean, boolean replace) throws Exception {
@@ -527,8 +526,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		bulkInsertSheet(database, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
 		RdbmsUploadReactorUtility.addIndex(database, tableName, uniqueRowId);
 
-		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
-		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, descriptions, logicalNames);
+		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, descriptions, logicalNames);
 	}
 
 	private void bulkInsertSheet(IDatabaseEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,

@@ -21,9 +21,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -241,33 +240,33 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		// create owl file
 		classLogger.info("4. Start generating engine metadata...");
-		Owler owler = new Owler(this.newDatabaseId, owlFile.getAbsolutePath(), DATABASE_TYPE.TINKER);
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		// add concepts
 		for (String concept : concepts) {
 			String conceptType = conceptTypes.get(concept);
-			owler.addConcept(concept, conceptType);
+			owlEngine.addConcept(concept, conceptType);
 			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
 			// add properties
 			for (String prop : propMap.keySet()) {
 				if (!prop.equals(nodeType) && !prop.equals(nodeName)) {
 					String propType = propMap.get(prop).toString();
-					owler.addProp(concept, prop, propType);
+					owlEngine.addProp(concept, prop, propType);
 				}
 			}
 		}
 		// add relationships
 		for(String label : edgeLabels) {
 			List<String> rels = (List<String>) edges.get(label);
-			owler.addRelation(rels.get(0), rels.get(1), label);
+			owlEngine.addRelation(rels.get(0), rels.get(1), label);
 		}
 
 		try {
-			owler.commit();
-			owler.export();
+			owlEngine.commit();
+			owlEngine.export();
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			owler.closeOwl();
+			owlEngine.close();
 		}
 		classLogger.info("4. Complete");
 

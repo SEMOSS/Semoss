@@ -17,7 +17,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -168,12 +168,12 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.RDBMS);
-		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
-		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-		owler.commit();
-		owler.export();
-		this.database.setOwlFilePath(owler.getOwlPath());
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
@@ -242,12 +242,12 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 			stepCounter++;
 
 			logger.info(stepCounter + ". Start generating database metadata...");
-			Owler owler = new Owler(this.database);
-			RdbmsUploadReactorUtility.generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
-			UploadUtilities.insertFlatOwlMetadata(owler, tableToInsertInto, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
-			owler.commit();
-			owler.export();
-			this.database.setOwlFilePath(owler.getOwlPath());
+			WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+			RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
+			UploadUtilities.insertFlatOwlMetadata(owlEngine, tableToInsertInto, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+			owlEngine.commit();
+			owlEngine.export();
+			owlEngine.close();
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 

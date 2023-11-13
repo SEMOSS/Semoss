@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 
@@ -107,11 +106,6 @@ public interface IExplorable {
 	// REFAC: Change this to engine
 	Object execOntoSelectQuery(String query);
 	
-	/**
-	 * Generate an audit database
-	 */
-	AuditDatabase generateAudit();
-	
 //	/**
 //	 * Get the physical URI from the conceptual URI
 //	 * @param conceptualURI			The conceptual URI
@@ -136,6 +130,10 @@ public interface IExplorable {
 	// WHAT IS THIS ?
 	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
 	
+	/**
+	 * 
+	 * @return
+	 */
 	String getNodeBaseUri();
 	
 	/**
@@ -155,8 +153,18 @@ public interface IExplorable {
 	// REFAC: Change this to engine - this should be local master
 	Map<String, String> getDataTypes(String... uris);
 	
+	/**
+	 * 
+	 * @param uri
+	 * @return
+	 */
 	String getAdtlDataTypes(String uri);
 	
+	/**
+	 * 
+	 * @param uris
+	 * @return
+	 */
 	Map<String, String> getAdtlDataTypes(String... uris);
 
 	// REFAC: this has no meaning.. sorry

@@ -98,23 +98,16 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_8;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.Constants;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 
 public class SchedulerOwlCreator {
 	
-	private static List<String> conceptsRequired = new Vector<>();
+	private static List<String> conceptsRequired = new ArrayList<>();
 	private IDatabaseEngine schedulerDb;
 
 	static {
@@ -151,9 +144,12 @@ public class SchedulerOwlCreator {
 		 * Not doing anything with columns but should eventually do that
 		 */
 
-		List<String> cleanConcepts = new Vector<>();
+		List<String> cleanConcepts = new ArrayList<>();
 		try {
 			List<String> concepts = schedulerDb.getPhysicalConcepts();
+			if(concepts.isEmpty()) {
+				return true;
+			}
 			for (String concept : concepts) {
 				if (concept.equals("http://semoss.org/ontologies/Concept")) {
 					continue;
@@ -192,28 +188,11 @@ public class SchedulerOwlCreator {
 	 * @throws Exception 
 	 */
 	public void remakeOwl() throws Exception {
-		// get the existing engine and close it
-		RDFFileSesameEngine baseEngine = schedulerDb.getBaseDataEngine();
-		if (baseEngine != null) {
-			baseEngine.close();
+		try(WriteOWLEngine owlEngine = schedulerDb.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.createEmptyOWLFile();
+			// write the new OWL
+			writeNewOwl(owlEngine);
 		}
-
-		// now delete the file if exists
-		// and we will make a new
-		String owlLocation = schedulerDb.getOwlFilePath();
-
-		File f = new File(owlLocation);
-		if (f.exists()) {
-			Path path = Paths.get(owlLocation);
-			Files.delete(path);
-			// f.delete();
-		}
-
-		// write the new OWL
-		writeNewOwl(owlLocation);
-
-		// now reload into security db
-		schedulerDb.setOwlFilePath(owlLocation);
 	}
 
 	/**
@@ -222,9 +201,7 @@ public class SchedulerOwlCreator {
 	 * @param owlLocation
 	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(Constants.SCHEDULER_DB, owlLocation, DATABASE_TYPE.RDBMS);
-
+	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		// QRTZ_CALENDARS
 		owler.addConcept(QRTZ_CALENDARS, null, null);
 		owler.addProp(QRTZ_CALENDARS, SCHED_NAME, VARCHAR_120);

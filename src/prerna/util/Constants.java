@@ -244,6 +244,7 @@ public class Constants {
 	public static final String TC_OVERHEAD_ARRAY = "_TC_Overhead_Array";
 	public static final String TC_CORE_MATRIX = "_TC_Core_Matrix";
 	public static final String TC_SDLC_CORE_MATRIX = "_TC_SDLC_Core_Matrix";
+	public static final String RDF_FILE_PATH = "RDF_FILE_PATH";
 	public static final String RDF_FILE_NAME = "RDF_FILE_NAME";
 	public static final String RDF_FILE_TYPE = "RDF_FILE_TYPE";
 	public static final String RDF_FILE_BASE_URI = "RDF_FILE_BASE_URI";

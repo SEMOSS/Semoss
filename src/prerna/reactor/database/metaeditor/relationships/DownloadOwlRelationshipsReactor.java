@@ -18,7 +18,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.om.InsightFile;
 import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.reactor.AbstractReactor;
@@ -61,8 +61,8 @@ public class DownloadOwlRelationshipsReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		databaseId = testDatabaseId(databaseId, true);
 
-		MetaHelper metaHelper = Utility.getDatabase(databaseId).getMetaHelper();
-		List<String[]> output = metaHelper.getPhysicalRelationships();
+		ReadOnlyOWLEngine owlEngine = Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL();
+		List<String[]> output = owlEngine.getPhysicalRelationships();
 		
 		String fileLocation = null;
 		try {
