@@ -1,14 +1,12 @@
 package prerna.reactor.database.metaeditor;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
@@ -19,11 +17,9 @@ import com.hp.hpl.jena.vocabulary.OWL;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.owl.AbstractOWLEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -35,7 +31,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -47,95 +42,13 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		literalPreds.add(RDFS.DOMAIN);
 		literalPreds.add(OWL.sameAs.toString());
 		literalPreds.add(RDFS.COMMENT);
-		literalPreds.add(Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS + "/UNIQUE");
-		literalPreds.add(Owler.CONCEPTUAL_RELATION_URI);
+		literalPreds.add(AbstractOWLEngine.SEMOSS_URI_PREFIX + AbstractOWLEngine.DEFAULT_PROP_CLASS + "/UNIQUE");
+		literalPreds.add(AbstractOWLEngine.CONCEPTUAL_RELATION_URI);
 	}
 
 	protected static final String CONCEPTUAL_NAME = "conceptual";
 	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
 	protected static final String STORE_VALUES_FRAME = "store";
-
-	protected RDFFileSesameEngine loadOwlEngineFile(String engineId) {
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		Properties prop = Utility.loadProperties(smssFile);
-		String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
-
-		// owl is stored as RDF/XML file
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		rfse.openFile(owlFile, null, null);
-        rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
-		return rfse;
-	}
-
-	protected Owler getOWLER(String appId) {
-		IDatabaseEngine app = Utility.getDatabase(appId);
-
-		return new Owler(app);
-	}
-
-	/**
-	 * Get values to fill in the OWLER as we query for correct uris based on the
-	 * type of operation we are performing
-	 * 
-	 * @param engine
-	 * @param owler
-	 */
-	protected void setOwlerValues(IDatabaseEngine engine, Owler owler) {
-		Hashtable<String, String> conceptHash = new Hashtable<>();
-		Hashtable<String, String> propHash = new Hashtable<>();
-		Hashtable<String, String> relationHash = new Hashtable<>();
-
-		boolean isRdbms = (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
-				|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.IMPALA);
-
-		List<String> concepts = engine.getPhysicalConcepts();
-		for (String cUri : concepts) {
-			String tableName = Utility.getInstanceName(cUri);
-			String cKey = tableName;
-			if (isRdbms) {
-				cKey = Utility.getClassName(cUri) + cKey;
-			}
-			// add to concept hash
-			conceptHash.put(cKey, cUri);
-
-			// add all the props as well
-			List<String> props = engine.getPropertyUris4PhysicalUri(cUri);
-			for (String p : props) {
-				String propName = null;
-				if (isRdbms) {
-					propName = Utility.getClassName(p);
-				} else {
-					propName = Utility.getInstanceName(p);
-				}
-
-				propHash.put(tableName + "%" + propName, p);
-			}
-		}
-
-		List<String[]> rels = engine.getPhysicalRelationships();
-		for (String[] r : rels) {
-			String startT = null;
-			String startC = null;
-			String endT = null;
-			String endC = null;
-			String pred = null;
-
-			startT = Utility.getInstanceName(r[0]);
-			endT = Utility.getInstanceName(r[1]);
-			pred = Utility.getInstanceName(r[2]);
-
-			if (isRdbms) {
-				startC = Utility.getClassName(r[0]);
-				endC = Utility.getClassName(r[1]);
-			}
-
-			relationHash.put(startT + startC + endT + endC + pred, r[2]);
-		}
-
-		owler.setConceptHash(conceptHash);
-		owler.setPropHash(propHash);
-		owler.setRelationHash(relationHash);
-	}
 
 	/**
 	 * Get the base folder
@@ -158,17 +71,16 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @param headerRows
 	 * @param owlEngine
 	 */
-	protected void executeRemoveQuery(IHeadersDataRow headerRows, RDFFileSesameEngine owlEngine) {
+	protected void executeRemoveQuery(IHeadersDataRow headerRows, WriteOWLEngine owlEngine) {
 		Object[] raw = headerRows.getRawValues();
 		String s = raw[0].toString();
 		String p = raw[1].toString();
 		String o = raw[2].toString();
 		boolean isLiteral = objectIsLiteral(p);
 		if (isLiteral) {
-			owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT,
-					new Object[] { s, p, headerRows.getValues()[2], !isLiteral });
+			owlEngine.removeFromBaseEngine(new Object[] { s, p, headerRows.getValues()[2], !isLiteral });
 		} else {
-			owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { s, p, o, !isLiteral });
+			owlEngine.removeFromBaseEngine(new Object[] { s, p, o, !isLiteral });
 		}
 	}
 
@@ -178,7 +90,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected List<String> getTableFilters() {
-		List<String> filters = new Vector<>();
+		List<String> filters = new ArrayList<>();
 		GenRowStruct grs = this.store.getNoun(TABLES_FILTER);
 		if (grs != null && !grs.isEmpty()) {
 			for (int i = 0; i < grs.size(); i++) {
@@ -198,15 +110,15 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * contains the column But the first list table will repeat for each column so
 	 * that they match based on index
 	 */
-	protected List<String>[] getTablesAndColumnsList(IDatabaseEngine app, List<String> tableFilters) {
+	protected List<String>[] getTablesAndColumnsList(IDatabaseEngine database, List<String> tableFilters) {
 		// store 2 lists
 		// of all table names
 		// and column names
 		// matched by index
-		List<String> tableNamesList = new Vector<>();
-		List<String> columnNamesList = new Vector<>();
+		List<String> tableNamesList = new ArrayList<>();
+		List<String> columnNamesList = new ArrayList<>();
 
-		List<String> concepts = app.getPhysicalConcepts();
+		List<String> concepts = database.getPhysicalConcepts();
 		for (String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
 
@@ -220,7 +132,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 				}
 			}
 			// grab all the properties
-			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
+			List<String> properties = database.getPropertyUris4PhysicalUri(cUri);
 			for (String pUri : properties) {
 				tableNamesList.add(tableName);
 				columnNamesList.add(Utility.getClassName(pUri));

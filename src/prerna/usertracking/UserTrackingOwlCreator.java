@@ -1,17 +1,13 @@
 package prerna.usertracking;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
 import org.javatuples.Pair;
 
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.Constants;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -41,11 +37,11 @@ public class UserTrackingOwlCreator {
 		conceptsRequired.add("QUERY_TRACKING");
 	}
 	
-	private IRDBMSEngine sessionDb;
+	private IRDBMSEngine userTrackingDb;
 	
-	public UserTrackingOwlCreator(IRDBMSEngine sessionDb) {
-		this.sessionDb = sessionDb;
-		createColumnsAndTypes(this.sessionDb.getQueryUtil());
+	public UserTrackingOwlCreator(IRDBMSEngine userTrackingDb) {
+		this.userTrackingDb = userTrackingDb;
+		createColumnsAndTypes(this.userTrackingDb.getQueryUtil());
 	}
 	
 	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
@@ -143,7 +139,7 @@ public class UserTrackingOwlCreator {
 		 */
 		
 		List<String> cleanConcepts = new Vector<String>();
-		List<String> concepts = sessionDb.getPhysicalConcepts();
+		List<String> concepts = userTrackingDb.getPhysicalConcepts();
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
@@ -181,7 +177,7 @@ public class UserTrackingOwlCreator {
 		String relationURI = "http://semoss.org/ontologies/Relation/Contains/" 
 				+ columnName + "/" + tableName; 
 
-		List<String> props = sessionDb.getPropertyUris4PhysicalUri(propsURI);	
+		List<String> props = userTrackingDb.getPropertyUris4PhysicalUri(propsURI);	
 		if(!props.contains(relationURI)) {
 			return true;
 		}
@@ -195,26 +191,11 @@ public class UserTrackingOwlCreator {
 	 * @throws Exception 
 	 */
 	public void remakeOwl() throws Exception {
-		// get the existing engine and close it
-		RDFFileSesameEngine baseEngine = sessionDb.getBaseDataEngine();
-		if(baseEngine != null) {
-			baseEngine.close();
+		try(WriteOWLEngine owlEngine = userTrackingDb.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.createEmptyOWLFile();
+			// write the new OWL
+			writeNewOwl(owlEngine);
 		}
-		
-		// now delete the file if exists
-		// and we will make a new
-		String owlLocation = sessionDb.getOwlFilePath();
-		
-		File f = new File(owlLocation);
-		if(f.exists()) {
-			f.delete();
-		}
-		
-		// write the new OWL
-		writeNewOwl(owlLocation);
-		
-		// now reload into security db
-		sessionDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**
@@ -222,10 +203,7 @@ public class UserTrackingOwlCreator {
 	 * @param owlLocation
 	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(Constants.USER_TRACKING_DB, owlLocation, DATABASE_TYPE.RDBMS);
-
-		// ENGINE	
+	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
 			String tableName = columns.getValue0();
 			owler.addConcept(tableName, null, null);
@@ -236,6 +214,7 @@ public class UserTrackingOwlCreator {
 		
 		owler.commit();
 		owler.export();
+		owler.close();
 	}
 	
 	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {

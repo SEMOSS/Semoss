@@ -25,8 +25,9 @@ import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.owl.OWLEngineFactory;
+import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -46,10 +47,13 @@ public class GenerateMetamodelLayout {
 		RDFFileSesameEngine rfse = null;
 		try {
 			rfse = new RDFFileSesameEngine();
-			rfse.openFile(owlFileLocation, null, null);
-            rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+    		rfse.setBasic(true);
+    		Properties owlSmss = new Properties();
+    		owlSmss.put(Constants.RDF_FILE_PATH, owlFileLocation);
+    		owlSmss.put(Constants.ENGINE, engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+            rfse.open(owlSmss);
 			// we create the meta helper to facilitate querying the engine OWL
-			MetaHelper helper = new MetaHelper(rfse, null, null);
+			ReadOnlyOWLEngine owlReader = new OWLEngineFactory(rfse, null, engineId, prop.getProperty(Constants.ENGINE_ALIAS)).getReadOWL();
 	
 			long startTimer = System.currentTimeMillis();
 	
@@ -58,17 +62,17 @@ public class GenerateMetamodelLayout {
 			graph.addSink(layout);
 			layout.addAttributeSink(graph);
 	
-			List<String> nodes = helper.getPhysicalConcepts();
+			List<String> nodes = owlReader.getPhysicalConcepts();
 			Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
 	
 			for (String node : nodes) {
 				String nodeName = Utility.getInstanceName(node);
-				List<String> properties = helper.getPropertyUris4PhysicalUri(node);
+				List<String> properties = owlReader.getPropertyUris4PhysicalUri(node);
 				nodeSizes.put(nodeName, properties.size());
 				graph.addNode(Utility.getInstanceName(node));
 			}
 	
-			List<String[]> relationships = helper.getPhysicalRelationships();
+			List<String[]> relationships = owlReader.getPhysicalRelationships();
 			for (String[] relation : relationships) {
 				String start = Utility.getInstanceName(relation[0]);
 				String end = Utility.getInstanceName(relation[1]);
@@ -107,6 +111,8 @@ public class GenerateMetamodelLayout {
 					}
 				}
 			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(rfse != null) {
 				try {

@@ -25,7 +25,7 @@ import org.openrdf.sail.SailException;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.excel.ExcelParsing;
@@ -91,21 +91,17 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
 		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), this.database.getDatabaseType());
-		owler.addCustomBaseURI(baseUri);
-		importFile(this.database, owler, filePath, baseUri);
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owler);
-		owler.commit();
-		owler.export();
+		
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		owlEngine.addCustomBaseURI(baseUri);
+		importFile(this.database, owlEngine, filePath, baseUri);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		// commit the created database
-		this.database.setOwlFilePath(owler.getOwlPath());
 		this.database.commit();
 		((BigDataEngine) this.database).infer();
-
-		/*
-		 * Back to normal upload database stuff
-		 */
-
 	}
 
 	public void addToExistingDatabase(String filePath) throws Exception {
@@ -121,18 +117,16 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 
 		Configurator.setLevel(logger.getName(), Level.ERROR);
-		Owler owler = new Owler(this.database);
-		importFile(this.database, owler, filePath, this.database.getNodeBaseUri());
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owler);
-		owler.commit();
-		owler.export();
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		importFile(this.database,owlEngine, filePath, this.database.getNodeBaseUri());
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		// commit the created database
 		this.database.commit();
 		((BigDataEngine) this.database).infer();
 		logger.info(stepCounter + ". Complete");
-		// commit the created database
-		this.database.commit();
-		((BigDataEngine) this.database).infer();
 	}
 
 	@Override
@@ -146,7 +140,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFile(IDatabaseEngine database, Owler owler, String fileName, String baseUri) throws FileNotFoundException, IOException {
+	public void importFile(IDatabaseEngine database, WriteOWLEngine owlEngine, String fileName, String baseUri) throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -160,7 +154,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			// check if user is loading subclassing relationships
 			Sheet subclassSheet = workbook.getSheet("Subclass");
 			if (subclassSheet != null) {
-				createSubClassing(database, owler, subclassSheet);
+				createSubClassing(database, owlEngine, subclassSheet);
 			}
 			// determine number of sheets to load
 			int lastRow = lSheet.getLastRowNum();
@@ -183,10 +177,10 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 							this.logger.debug("Cell Content is " + sheetToLoad);
 							// this is a relationship
 							if (loadTypeName.contains("Matrix")) {
-								loadMatrixSheet(database, owler, sheetToLoad, workbook, baseUri);
+								loadMatrixSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
 								database.commit();
 							} else {
-								loadSheet(database, owler, sheetToLoad, workbook, baseUri);
+								loadSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
 								database.commit();
 							}
 						}
@@ -244,7 +238,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws EngineException
 	 * @throws SailException
 	 */
-	private void createSubClassing(IDatabaseEngine database, Owler owler, Sheet subclassSheet) throws IOException {
+	private void createSubClassing(IDatabaseEngine database, WriteOWLEngine owlEngine, Sheet subclassSheet) throws IOException {
 		// URI for subclass
 		String pred = Constants.SUBCLASS_URI;
 		// check parent and child nodes in correct position
@@ -264,15 +258,15 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		for (int i = 1; i <= lastRow; i++) {
 			row = subclassSheet.getRow(i);
 
-			String parentURI = owler.addConcept(Utility.cleanString(row.getCell(0).toString(), true), "STRING");
-			String childURI = owler.addConcept(Utility.cleanString(row.getCell(1).toString(), true), "STRING");
+			String parentURI = owlEngine.addConcept(Utility.cleanString(row.getCell(0).toString(), true), "STRING");
+			String childURI = owlEngine.addConcept(Utility.cleanString(row.getCell(1).toString(), true), "STRING");
 			// add triples to database
 			database.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { childURI, pred, parentURI, true });
 			// add triples to OWL
-			owler.addSubclass(childNode, parentNode);
+			owlEngine.addSubclass(childNode, parentNode);
 		}
 		database.commit();
-		owler.commit();
+		owlEngine.commit();
 	}
 
 	/**
@@ -281,7 +275,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @param workbook				XSSFWorkbook containing the sheet to load
 	 * @throws IOException
 	 */
-	public void loadSheet(IDatabaseEngine database, Owler owler, String sheetToLoad, Workbook workbook, String baseUri) throws IOException {
+	public void loadSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, String sheetToLoad, Workbook workbook, String baseUri) throws IOException {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		if (lSheet == null) {
 			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
@@ -403,12 +397,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				if(rowIndex % 100 == 0) {
 					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", row = " + rowIndex);
 				}
-				RdfUploadReactorUtility.createRelationship(database, owler, baseUri, subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
+				RdfUploadReactorUtility.createRelationship(database, owlEngine, baseUri, subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
 			} else {
 				if(rowIndex % 100 == 0) {
 					logger.info("Processing Node Sheet: " + sheetToLoad + ", row = " + rowIndex);
 				}
-				RdfUploadReactorUtility.addNodeProperties(database, owler, baseUri, subjectNode, instanceSubjectNode, propHash);
+				RdfUploadReactorUtility.addNodeProperties(database, owlEngine, baseUri, subjectNode, instanceSubjectNode, propHash);
 			}
 		}
 		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
@@ -420,7 +414,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @param workbook					XSSFWorkbook containing the name of the excel workbook
 	 * @throws EngineException
 	 */
-	public void loadMatrixSheet(IDatabaseEngine database, Owler owler, String sheetToLoad, Workbook workbook, String baseUri) {
+	public void loadMatrixSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, String sheetToLoad, Workbook workbook, String baseUri) {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		logger.info("Loading Sheet: " + sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
@@ -507,12 +501,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 					if(rowIndex % 100 == 0) {
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
 					}
-					RdfUploadReactorUtility.createRelationship(database, owler, baseUri, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
+					RdfUploadReactorUtility.createRelationship(database, owlEngine, baseUri, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
 				} else {
 					if(rowIndex % 100 == 0) {
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
 					}
-					RdfUploadReactorUtility.addNodeProperties(database, owler, baseUri, subjectNodeType, instanceSubjectName, propHash);
+					RdfUploadReactorUtility.addNodeProperties(database, owlEngine, baseUri, subjectNodeType, instanceSubjectName, propHash);
 				}
 			}
 		}

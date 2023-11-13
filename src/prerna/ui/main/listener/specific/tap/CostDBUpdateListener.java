@@ -28,33 +28,18 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import prerna.engine.api.IDatabaseEngine;
-//import prerna.poi.main.OntologyFileWriter;
-import prerna.poi.main.POIReader;
-import prerna.poi.main.helper.ImportOptions;
-import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.specific.tap.GLItemGeneratorICDValidated;
 import prerna.ui.components.specific.tap.GLItemGeneratorICDValidated.CHANGED_DB;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Produces an excel workbook in Microsoft Load Sheet format based of information in TAP_Core regarding GLItems for TAP_Cost
@@ -108,142 +93,142 @@ public class CostDBUpdateListener extends AbstractListener {
 //	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String mapName, String owlFile) {
 	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String owlFile) {
 
-		POIReader reader = new POIReader();
-		FileInputStream fileIn = null;
-		XSSFWorkbook book = null;
-		try {
-			//Delete all nodes/relationships of specified types
-			fileIn = new FileInputStream(file.replace(";", ""));
-			book = new XSSFWorkbook(fileIn);
-			XSSFSheet lSheet = book.getSheet("Loader");
-			int lastRow = lSheet.getLastRowNum();
-
-			ArrayList<String> sheets = new ArrayList<String>();
-			ArrayList<String> nodes = new ArrayList<String>();
-			ArrayList<String[]> relationships = new ArrayList<String[]>();
-			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
-				XSSFRow sheetNameRow = lSheet.getRow(rIndex);
-				XSSFCell cell = sheetNameRow.getCell(0);
-				XSSFSheet sheet = book.getSheet(cell.getStringCellValue());
-
-				XSSFRow row = sheet.getRow(0);
-				String sheetType = "";
-				if(row.getCell(0) != null) {
-					sheetType = row.getCell(0).getStringCellValue();
-				}
-				if("Node".equalsIgnoreCase(sheetType)) {
-					if(row.getCell(1) != null) {
-						nodes.add(row.getCell(1).getStringCellValue());
-					}
-				}
-				if("Relation".equalsIgnoreCase(sheetType)) {
-					String subject = "";
-					String object = "";
-					String relationship = "";
-					if(row.getCell(1) != null && row.getCell(2) != null) {
-						subject = row.getCell(1).getStringCellValue();
-						object = row.getCell(2).getStringCellValue();
-
-						row = sheet.getRow(1);
-						if(row.getCell(0) != null) {
-							relationship = row.getCell(0).getStringCellValue();
-						}
-
-						relationships.add(new String[]{subject, relationship, object});
-					}
-				}
-			}
-			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-			Object[] buttons = {"Cancel", "Continue"};
-			String replacedString = "";
-			int response = JOptionPane.showOptionDialog(playPane, "This move cannot be undone.\nPlease make sure the excel file is formatted correctly and make a back up Cost DB jnl file before continuing.\n\n" +
-					"Would you still like to continue?\n", 
-					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
-			
-			JOptionPane.showMessageDialog(playPane, "The Cost DB Loading Sheet can be found here:\n\n" + file);
-			
-			if (response == 1)
-			{
-				String deleteQuery = "";
-				UpdateProcessor proc = new UpdateProcessor();
-				IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(costDB);
-				proc.setEngine(engine);
-
-				int numberNodes = nodes.size();
-				if(numberNodes > 0) {
-					for(String node : nodes) {
-					deleteQuery = "DELETE {?s ?p ?prop. ?s ?x ?y} WHERE { {";
-					deleteQuery += "SELECT ?s ?p ?prop ?x ?y WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
-					deleteQuery += node;
-					deleteQuery += "> ;} {?s ?x ?y} MINUS {?x <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} ";
-					deleteQuery += "OPTIONAL{ {?p <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?s ?p ?prop ;} } } } ";
-					deleteQuery += "}";
-
-					proc.setQuery(deleteQuery);
-					proc.processQuery();
-					}
-				}
-
-				int numberRelationships = relationships.size();
-				if(numberRelationships > 0) {
-					for(String[] rel : relationships) {
-					deleteQuery = "DELETE {?in ?relationship ?out. ?relationship ?contains ?prop} WHERE { {";
-					deleteQuery += "SELECT ?in ?relationship ?out ?contains ?prop WHERE { "+ 
-							"{?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
-					deleteQuery += rel[0];
-					deleteQuery += "> ;}";
-
-					deleteQuery += "{?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
-					deleteQuery += rel[2];
-					deleteQuery += "> ;}";
-
-					deleteQuery += "{?relationship <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/";
-					deleteQuery += rel[1];
-					deleteQuery += "> ;} {?in ?relationship ?out ;} ";
-					deleteQuery += "OPTIONAL { {?relationship ?contains ?prop ;} } } }";
-					deleteQuery += "} ";
-
-					proc.setQuery(deleteQuery);
-					proc.processQuery();
-					}
-				}
-
-				ImportOptions options = new ImportOptions();
-				options.setDbName(costDB);
-				options.setFileLocation(file);
-				options.setBaseUrl(customBaseURI);
-				options.setOwlFileLocation(owlFile);
-				//run the reader
-//				reader.importFileWithConnection(costDB, file, customBaseURI, mapName, owlFile);
-				//reader.importFileWithConnection(costDB, file, customBaseURI, owlFile);
-				reader.importFileWithConnection(options);
-				
-				//run the ontology augmentor
-
-//				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-//				ontologyWriter.runAugment(mapName, reader.conceptURIHash, reader.baseConceptURIHash, 
-//						reader.relationURIHash, reader.baseRelationURIHash,
-//						reader.basePropURI);
-
-				Utility.showMessage("Your database has been successfully updated!");
-			}
-		} catch (RuntimeException | IOException ex) {
-			ex.printStackTrace();
-			Utility.showError("Load has failed. Please make sure the loads sheets in the excel file are \nformatted correctly, and objects match the map file.");
-		} finally{
-			try{
-				if(fileIn!=null)
-					fileIn.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-			try{
-				if(book!=null)
-					book.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
+//		POIReader reader = new POIReader();
+//		FileInputStream fileIn = null;
+//		XSSFWorkbook book = null;
+//		try {
+//			//Delete all nodes/relationships of specified types
+//			fileIn = new FileInputStream(file.replace(";", ""));
+//			book = new XSSFWorkbook(fileIn);
+//			XSSFSheet lSheet = book.getSheet("Loader");
+//			int lastRow = lSheet.getLastRowNum();
+//
+//			ArrayList<String> sheets = new ArrayList<String>();
+//			ArrayList<String> nodes = new ArrayList<String>();
+//			ArrayList<String[]> relationships = new ArrayList<String[]>();
+//			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
+//				XSSFRow sheetNameRow = lSheet.getRow(rIndex);
+//				XSSFCell cell = sheetNameRow.getCell(0);
+//				XSSFSheet sheet = book.getSheet(cell.getStringCellValue());
+//
+//				XSSFRow row = sheet.getRow(0);
+//				String sheetType = "";
+//				if(row.getCell(0) != null) {
+//					sheetType = row.getCell(0).getStringCellValue();
+//				}
+//				if("Node".equalsIgnoreCase(sheetType)) {
+//					if(row.getCell(1) != null) {
+//						nodes.add(row.getCell(1).getStringCellValue());
+//					}
+//				}
+//				if("Relation".equalsIgnoreCase(sheetType)) {
+//					String subject = "";
+//					String object = "";
+//					String relationship = "";
+//					if(row.getCell(1) != null && row.getCell(2) != null) {
+//						subject = row.getCell(1).getStringCellValue();
+//						object = row.getCell(2).getStringCellValue();
+//
+//						row = sheet.getRow(1);
+//						if(row.getCell(0) != null) {
+//							relationship = row.getCell(0).getStringCellValue();
+//						}
+//
+//						relationships.add(new String[]{subject, relationship, object});
+//					}
+//				}
+//			}
+//			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+//			Object[] buttons = {"Cancel", "Continue"};
+//			String replacedString = "";
+//			int response = JOptionPane.showOptionDialog(playPane, "This move cannot be undone.\nPlease make sure the excel file is formatted correctly and make a back up Cost DB jnl file before continuing.\n\n" +
+//					"Would you still like to continue?\n", 
+//					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
+//			
+//			JOptionPane.showMessageDialog(playPane, "The Cost DB Loading Sheet can be found here:\n\n" + file);
+//			
+//			if (response == 1)
+//			{
+//				String deleteQuery = "";
+//				UpdateProcessor proc = new UpdateProcessor();
+//				IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(costDB);
+//				proc.setEngine(engine);
+//
+//				int numberNodes = nodes.size();
+//				if(numberNodes > 0) {
+//					for(String node : nodes) {
+//					deleteQuery = "DELETE {?s ?p ?prop. ?s ?x ?y} WHERE { {";
+//					deleteQuery += "SELECT ?s ?p ?prop ?x ?y WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+//					deleteQuery += node;
+//					deleteQuery += "> ;} {?s ?x ?y} MINUS {?x <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} ";
+//					deleteQuery += "OPTIONAL{ {?p <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?s ?p ?prop ;} } } } ";
+//					deleteQuery += "}";
+//
+//					proc.setQuery(deleteQuery);
+//					proc.processQuery();
+//					}
+//				}
+//
+//				int numberRelationships = relationships.size();
+//				if(numberRelationships > 0) {
+//					for(String[] rel : relationships) {
+//					deleteQuery = "DELETE {?in ?relationship ?out. ?relationship ?contains ?prop} WHERE { {";
+//					deleteQuery += "SELECT ?in ?relationship ?out ?contains ?prop WHERE { "+ 
+//							"{?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+//					deleteQuery += rel[0];
+//					deleteQuery += "> ;}";
+//
+//					deleteQuery += "{?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+//					deleteQuery += rel[2];
+//					deleteQuery += "> ;}";
+//
+//					deleteQuery += "{?relationship <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/";
+//					deleteQuery += rel[1];
+//					deleteQuery += "> ;} {?in ?relationship ?out ;} ";
+//					deleteQuery += "OPTIONAL { {?relationship ?contains ?prop ;} } } }";
+//					deleteQuery += "} ";
+//
+//					proc.setQuery(deleteQuery);
+//					proc.processQuery();
+//					}
+//				}
+//
+//				ImportOptions options = new ImportOptions();
+//				options.setDbName(costDB);
+//				options.setFileLocation(file);
+//				options.setBaseUrl(customBaseURI);
+//				options.setOwlFileLocation(owlFile);
+//				//run the reader
+////				reader.importFileWithConnection(costDB, file, customBaseURI, mapName, owlFile);
+//				//reader.importFileWithConnection(costDB, file, customBaseURI, owlFile);
+//				reader.importFileWithConnection(options);
+//				
+//				//run the ontology augmentor
+//
+////				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+////				ontologyWriter.runAugment(mapName, reader.conceptURIHash, reader.baseConceptURIHash, 
+////						reader.relationURIHash, reader.baseRelationURIHash,
+////						reader.basePropURI);
+//
+//				Utility.showMessage("Your database has been successfully updated!");
+//			}
+//		} catch (RuntimeException | IOException ex) {
+//			ex.printStackTrace();
+//			Utility.showError("Load has failed. Please make sure the loads sheets in the excel file are \nformatted correctly, and objects match the map file.");
+//		} finally{
+//			try{
+//				if(fileIn!=null)
+//					fileIn.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//			try{
+//				if(book!=null)
+//					book.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
 			
 	}
 

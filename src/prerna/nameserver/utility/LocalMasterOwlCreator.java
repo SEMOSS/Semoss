@@ -1,19 +1,15 @@
 package prerna.nameserver.utility;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.Constants;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 
 public class LocalMasterOwlCreator {
 
-	static private List<String> conceptsRequired = new Vector<String>();
+	static private List<String> conceptsRequired = new ArrayList<String>();
 	static {
 		conceptsRequired.add("BITLY");
 		conceptsRequired.add("CONCEPT");
@@ -43,8 +39,11 @@ public class LocalMasterOwlCreator {
 		 * Not doing anything with columns but should eventually do that
 		 */
 		
-		List<String> cleanConcepts = new Vector<String>();
+		List<String> cleanConcepts = new ArrayList<String>();
 		List<String> concepts = localMasterDb.getPhysicalConcepts();
+		if(concepts.isEmpty()) {
+			return true;
+		}
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
@@ -52,7 +51,6 @@ public class LocalMasterOwlCreator {
 			String cTable = Utility.getInstanceName(concept);
 			cleanConcepts.add(cTable);
 		}
-		
 		
 		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
 		if(check1) {
@@ -70,26 +68,11 @@ public class LocalMasterOwlCreator {
 	 * @throws Exception 
 	 */
 	public void remakeOwl() throws Exception {
-		// get the existing engine and close it
-		RDFFileSesameEngine baseEngine = localMasterDb.getBaseDataEngine();
-		if(baseEngine != null) {
-			baseEngine.close();
+		try(WriteOWLEngine owlEngine = localMasterDb.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.createEmptyOWLFile();
+			// write the new OWL
+			writeNewOwl(owlEngine);
 		}
-		
-		// now delete the file if exists
-		// and we will make a new
-		String owlLocation = localMasterDb.getOwlFilePath();
-		
-		File f = new File(owlLocation);
-		if(f.exists()) {
-			f.delete();
-		}
-		
-		// write the new OWL
-		writeNewOwl(owlLocation);
-		
-		// now reload into security db
-		localMasterDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**
@@ -97,9 +80,7 @@ public class LocalMasterOwlCreator {
 	 * @param owlLocation
 	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(Constants.LOCAL_MASTER_DB, owlLocation, DATABASE_TYPE.RDBMS);
-
+	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		// BITLY
 		owler.addConcept("BITLY", null, null);
 		owler.addProp("BITLY", "EMBED", "VARCHAR(20000)");
@@ -187,7 +168,6 @@ public class LocalMasterOwlCreator {
 		owler.addProp("METAMODELPOSITION", "YPOS", "FLOAT");
 		
 		owler.addRelation("METAMODELPOSITION", "ENGINE", "METAMODELPOSITION.ENGINEID.ENGINE.ID");
-		
 		
 		owler.commit();
 		owler.export();

@@ -55,6 +55,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.io.connector.secrets.ISecrets;
@@ -112,15 +113,10 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	/**
 	 * OWL database
 	 */
-	private MetaHelper owlHelper = null;
+	private OWLEngineFactory owlEnginefactory = null;
 	protected RDFFileSesameEngine baseDataEngine;
 	private String owlFileLocation;
 	private String baseUri;
-	
-	// this is optional owl schemas
-//	List<RDFFileSesameEngine> additionalOwlEngine;
-//	List<String> additionalOwlFiles;
-//	List<String> additionalJsPlumbFiles;
 	
 	private Hashtable<String, String> baseDataHash;
 
@@ -195,33 +191,31 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		
 		// load the rdf owl db
 		String owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-		if(owlFile != null) {
-			File owlF = new File(owlFile);
-			// need a check here to say if I am asking this to be remade or keep what it is
-			if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
-				// the process of remake will start here
-				// see if the usefile is there
-				if(this.smssProp.containsKey(DATA_FILE)) {
-					String owlFileName = null;
-					String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
-					if(owlFile.equals("REMAKE")) {
-						// we will make the name
-						File dF = new File(dataFile);
-						owlFileName = this.engineName + "_OWL.OWL";
-						owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
-					} else {
-						owlFileName = FilenameUtils.getName(owlFile);
-					}
-					
-					owlFile = generateOwlFromFlatFile(this.engineId, dataFile, owlFile, owlFileName);
-				} 
-			}
-			// set the owl file
-			if(owlFile != null) {
-				owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-				classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+		if(owlFile == null) {
+			// make a new empty owl
+			owlFile = UploadUtilities.generateOwlFile(this.engineId, this.engineName).getAbsolutePath();
+		}
+		else if(owlFile.equalsIgnoreCase("REMAKE")) {
+			classLogger.info("Attempting to create new OWL file");
+			// the process of remake will start here
+			// see if the usefile is there
+			File dataF = SmssUtilities.getDataFile(this.smssProp);
+			if(dataF != null && dataF.exists()) {
+				owlFile = UploadUtilities.generateOwlFile(this.engineId, this.engineName).getAbsolutePath();
 				setOwlFilePath(owlFile);
+				owlFile = generateOwlFromFlatFile(dataF.getAbsolutePath(), owlFile, FilenameUtils.getName(owlFile));
 			}
+		}
+		else if(!(new File(owlFile)).exists()) {
+			// make a new empty owl
+			owlFile = UploadUtilities.generateOwlFile(owlFile).getAbsolutePath();
+			setOwlFilePath(owlFile);
+		}
+		// set the owl file
+		else if(owlFile != null) {
+			owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
+			classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+			setOwlFilePath(owlFile);
 		}
 		
 		// load properties object for db
@@ -239,9 +233,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 * @return
 	 * @throws Exception 
 	 */
-	protected String generateOwlFromFlatFile(String engineId, String dataFile, String owlFile, String owlFileName) throws Exception {
+	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) throws Exception {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(engineId, dataFile, owlFile, getDatabaseType(), true);
+		maker.makeFlatOwl(getOWLEngineFactory().getWriteOWL(), dataFile, owlFile, getDatabaseType(), true);
 		if(owlFile.equals("REMAKE")) {
 			try {
 				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
@@ -360,8 +354,8 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 	
 	@Override
-	public MetaHelper getMetaHelper() {
-		return this.owlHelper;
+	public OWLEngineFactory getOWLEngineFactory() {
+		return this.owlEnginefactory;
 	}
 	
 	@Override
@@ -370,7 +364,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		if(this.baseDataEngine.getEngineId() == null) {
 			this.baseDataEngine.setEngineId(this.engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
 		}
-		this.owlHelper = new MetaHelper(this.baseDataEngine, getDatabaseType(), this.engineId);
+		this.owlEnginefactory = new OWLEngineFactory(this.baseDataEngine, getDatabaseType(), this.engineId, this.engineName);
 	}
 
 	/**
@@ -396,7 +390,18 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 * relation engine.
 	 */
 	public void createBaseRelationEngine() {
+		// if we have an existing one, close it
+		if(this.baseDataEngine != null) {
+			try {
+				this.baseDataEngine.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		// new base data engine being made
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
+		baseRelEngine.setBasic(true);
 		Hashtable baseHash = new Hashtable<>();
 		// If OWL file doesn't exist, go the old way and create the base
 		// relation engine
@@ -410,7 +415,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 					SmssUtilities.getUniqueName(getEngineName(), getEngineId()) + DIR_SEPARATOR +
 					getEngineName()	+ "_OWL.OWL"; 
 		}
-		baseRelEngine.setFileName(this.owlFileLocation);
+		baseRelEngine.setFilePath(this.owlFileLocation);
 		try {
 			baseRelEngine.open(new Properties());
 			if(this.smssProp != null) {
@@ -419,7 +424,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			try {
 				baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 			setBaseHash(baseHash);
@@ -433,30 +437,30 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 
 	// gets the from neighborhood for a given node
 	public Vector<String> getFromNeighbors(String nodeType, int neighborHood) {
-		if(owlHelper == null)
+		if(owlEnginefactory == null)
 			return null;
-		return owlHelper.getFromNeighbors(nodeType, neighborHood);
+		return owlEnginefactory.getReadOWL().getFromNeighbors(nodeType, neighborHood);
 	}
 
 	// gets the to nodes
 	public Vector<String> getToNeighbors(String nodeType, int neighborHood) {
-		if(owlHelper == null)
+		if(owlEnginefactory == null)
 			return null;
-		return owlHelper.getToNeighbors(nodeType, neighborHood);
+		return owlEnginefactory.getReadOWL().getToNeighbors(nodeType, neighborHood);
 	}
 
 	// gets the from and to nodes
 	public Vector<String> getNeighbors(String nodeType, int neighborHood) {
-		if(owlHelper == null)
+		if(owlEnginefactory == null)
 			return null;
-		return owlHelper.getNeighbors(nodeType, neighborHood);
+		return owlEnginefactory.getReadOWL().getNeighbors(nodeType, neighborHood);
 	}
 	
 	@Override
 	public void setOwlFilePath(String owl) {
 		this.owlFileLocation = owl;
 		createBaseRelationEngine();
-		this.owlHelper = new MetaHelper(baseDataEngine, getDatabaseType(), this.engineId);
+		this.owlEnginefactory = new OWLEngineFactory(this.baseDataEngine, getDatabaseType(), this.engineId, this.engineName);
 	}
 
 	@Override
@@ -475,10 +479,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 	
 	public String getOWLDefinition() {
-		if(owlHelper == null) {
+		if(owlEnginefactory == null)
 			return null;
-		}
-		return owlHelper.getOWLDefinition();
+		return owlEnginefactory.getReadOWL().getOWLDefinition();
 	}
 
 	@Override
@@ -495,10 +498,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 
 	public Vector<String> getConcepts() {
-		if(owlHelper == null) {
+		if(owlEnginefactory == null)
 			return null;
-		}
-		return owlHelper.getConcepts();
+		return owlEnginefactory.getReadOWL().getConcepts();
 	}
 	
 	/**
@@ -673,22 +675,30 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	
 	@Override
 	public String getDataTypes(String uri) {
-		return this.owlHelper.getDataTypes(uri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getDataTypes(uri);
 	}
 	
 	@Override
 	public Map<String, String> getDataTypes(String... uris) {
-		return this.owlHelper.getDataTypes(uris);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getDataTypes(uris);
 	}
 	
 	@Override
 	public String getAdtlDataTypes(String uri) {
-		return this.owlHelper.getAdtlDataTypes(uri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getAdtlDataTypes(uri);
 	}
 	
 	@Override
 	public Map<String, String> getAdtlDataTypes(String... uris) {
-		return this.owlHelper.getAdtlDataTypes(uris);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getAdtlDataTypes(uris);
 	}
 	
 	/**
@@ -790,7 +800,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 * @return
 	 */
 	public Map<String, Object[]> getMetamodel() {
-		return owlHelper.getMetamodel();
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getMetamodel();
 	}
 	
 	/**
@@ -846,78 +858,108 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	
 	@Override
 	public List<String> getPixelConcepts() {
-		return owlHelper.getPixelConcepts();
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPixelConcepts();
 	}
 	
 	@Override
 	public List<String> getPixelSelectors(String conceptPixelName) {
-		return owlHelper.getPixelSelectors(conceptPixelName);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPixelSelectors(conceptPixelName);
 	}
 	
 	@Override
 	public List<String> getPropertyPixelSelectors(String conceptPixelName) {
-		return owlHelper.getPropertyPixelSelectors(conceptPixelName);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPropertyPixelSelectors(conceptPixelName);
 	}
 	
 	@Override
 	public List<String> getPhysicalConcepts() {
-		return owlHelper.getPhysicalConcepts();
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPhysicalConcepts();
 	}
 	
 	@Override
 	public List<String[]> getPhysicalRelationships() {
-		return owlHelper.getPhysicalRelationships();
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPhysicalRelationships();
 	}
 	
 	public List<String> getPropertyUris4PhysicalUri(String physicalUri) {
-		return owlHelper.getPropertyUris4PhysicalUri(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPropertyUris4PhysicalUri(physicalUri);
 	}
 	
 	@Override
 	public String getPhysicalUriFromPixelSelector(String pixelSelector) {
-		return owlHelper.getPhysicalUriFromPixelSelector(pixelSelector);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPhysicalUriFromPixelSelector(pixelSelector);
 	}
 	
 	@Override
 	@Deprecated
 	public String getPixelUriFromPhysicalUri(String physicalUri) {
-		return owlHelper.getPixelUriFromPhysicalUri(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPixelUriFromPhysicalUri(physicalUri);
 	}
 
 	@Override
 	public String getConceptPixelUriFromPhysicalUri(String conceptPhysicalUri) {
-		return owlHelper.getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
 	}
 	
 	@Override
 	public String getPropertyPixelUriFromPhysicalUri(String conceptPhysicalUri, String propertyPhysicalUri) {
-		return owlHelper.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
 	}
 	
 	@Override
 	public String getPixelSelectorFromPhysicalUri(String physicalUri) {
-		return owlHelper.getPixelSelectorFromPhysicalUri(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getPixelSelectorFromPhysicalUri(physicalUri);
 	}
 	
 	@Override
 	public String getConceptualName(String physicalUri) {
-		return this.owlHelper.getConceptualName(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getConceptualName(physicalUri);
 	}
 	
 	@Override
 	public Set<String> getLogicalNames(String physicalUri) {
-		return this.owlHelper.getLogicalNames(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getLogicalNames(physicalUri);
 	}
 	
 	@Override
 	public String getDescription(String physicalUri) {
-		return this.owlHelper.getDescription(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getDescription(physicalUri);
 	}
 	
 	@Override
 	@Deprecated
 	public String getLegacyPrimKey4Table(String physicalUri) {
-		return this.owlHelper.getLegacyPrimKey4Table(physicalUri);
+		if(owlEnginefactory == null)
+			return null;
+		return owlEnginefactory.getReadOWL().getLegacyPrimKey4Table(physicalUri);
 	}
 	
 	public String decryptPass(String propFile, boolean insight) {
