@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -25,6 +26,10 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorageEngine storage = getStorage();
+		// check that the user can edit the engine
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
+			throw new IllegalArgumentException("User does not have permission to delete from the remote storage");
+		}
 		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		
 		try {

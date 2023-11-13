@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -29,6 +30,10 @@ public class PushToStorageReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorageEngine storage = getStorage();
+		// check that the user can edit the engine
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
+			throw new IllegalArgumentException("User does not have permission to push into the remote storage");
+		}
 		String storageFolderPath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 		if(!new File(fileLocation).exists()) {
