@@ -1,17 +1,13 @@
 package prerna.engine.impl.model.inferencetracking;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
 import org.javatuples.Pair;
 
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.Constants;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -191,26 +187,11 @@ public class ModelInferenceLogsOwlCreation {
 	 * @throws Exception 
 	 */
 	public void remakeOwl() throws Exception {
-		// get the existing engine and close it
-		RDFFileSesameEngine baseEngine = modelInferenceDb.getBaseDataEngine();
-		if(baseEngine != null) {
-			baseEngine.close();
+		try(WriteOWLEngine owlEngine = modelInferenceDb.getOWLEngineFactory().getWriteOWL()) {
+			owlEngine.createEmptyOWLFile();
+			// write the new OWL
+			writeNewOwl(owlEngine);
 		}
-		
-		// now delete the file if exists
-		// and we will make a new
-		String owlLocation = modelInferenceDb.getOwlFilePath();
-		
-		File f = new File(owlLocation);
-		if(f.exists()) {
-			f.delete();
-		}
-		
-		// write the new OWL
-		writeNewOwl(owlLocation);
-		
-		// now reload into security db
-		modelInferenceDb.setOwlFilePath(owlLocation);
 	}
 	
 	/**
@@ -218,9 +199,7 @@ public class ModelInferenceLogsOwlCreation {
 	 * @param owlLocation
 	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws Exception {
-		Owler owler = new Owler(Constants.MODEL_INFERENCE_LOGS_DB, owlLocation, DATABASE_TYPE.RDBMS);
-
+	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		// ENGINE	
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
 			String tableName = columns.getValue0();
@@ -232,6 +211,7 @@ public class ModelInferenceLogsOwlCreation {
 		
 		owler.commit();
 		owler.export();
+		owler.close();
 	}
 	
 	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {

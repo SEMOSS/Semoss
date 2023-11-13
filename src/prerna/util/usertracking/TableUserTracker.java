@@ -18,8 +18,6 @@ import prerna.auth.User;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -32,7 +30,6 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -780,8 +777,6 @@ public class TableUserTracker implements IUserTracker {
 		}
 		IDatabaseEngine engine = Utility.getDatabase(engineId);
 		if(engine != null) {
-			RDFFileSesameEngine owlEngine = ((AbstractDatabaseEngine) engine).getBaseDataEngine();
-			
 			// are we dealing with a concept or a property
 			String physicalUri = engine.getPhysicalUriFromPixelSelector(table + "__" + column);
 			if(physicalUri != null) {
@@ -789,7 +784,7 @@ public class TableUserTracker implements IUserTracker {
 					String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
 							+ "{ BIND(<" + physicalUri + "> AS ?concept)"
 							+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-					IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+					IRawSelectWrapper it = engine.getOWLEngineFactory().getReadOWL().query(uniqueValQuery);
 					while (it.hasNext()) {
 						Object[] row = it.next().getValues();
 						return Long.parseLong(row[1].toString());

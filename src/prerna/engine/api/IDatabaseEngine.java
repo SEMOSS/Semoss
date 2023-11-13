@@ -29,7 +29,8 @@ package prerna.engine.api;
 
 import java.util.Vector;
 
-import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.owl.OWLEngineFactory;
+import prerna.engine.impl.rdbms.AuditDatabase;
 
 /**
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
@@ -136,8 +137,12 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * Get the meta helper which does all the IExplorable operations
 	 * @return
 	 */
-	MetaHelper getMetaHelper();
+	OWLEngineFactory getOWLEngineFactory();
 
+	/**
+	 * Generate an audit database
+	 */
+	AuditDatabase generateAudit();
 }
 
 

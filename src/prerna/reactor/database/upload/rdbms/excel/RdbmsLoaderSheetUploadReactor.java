@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -23,7 +25,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
@@ -45,6 +47,8 @@ import prerna.util.upload.UploadUtilities;
 
 public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(RdbmsLoaderSheetUploadReactor.class);
+
 	private Map<String, String> sqlHash = new Hashtable<String, String>();
 	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
 	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
@@ -91,8 +95,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
-		Owler owler = new Owler(this.databaseId, owlFile.getAbsolutePath(), this.database.getDatabaseType());
-		importFileRDBMS((RDBMSNativeEngine) this.database, owler, filePath);
+		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
+		importFileRDBMS((RDBMSNativeEngine) this.database, owlEngine, filePath);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -100,9 +104,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Back to normal database flow
 		 */
 		logger.info(stepCounter + ". Commit database metadata...");
-		owler.commit();
-		owler.export();
-		this.database.setOwlFilePath(owler.getOwlPath());
+		owlEngine.commit();
+		owlEngine.export();
+		owlEngine.close();
 		// if(scriptFile != null) {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();
@@ -110,7 +114,6 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		// and rename .temp to .smss
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
-
 	}
 
 	public void addToExistingDatabase(final String filePath) throws Exception {
@@ -135,7 +138,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFileRDBMS(RDBMSNativeEngine database, Owler owler, String fileName) throws FileNotFoundException, IOException {
+	public void importFileRDBMS(RDBMSNativeEngine database, WriteOWLEngine owlEngine, String fileName) throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -197,7 +200,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			Enumeration<String> conceptKeys = concepts.keys();
 			while (conceptKeys.hasMoreElements()) {
 				String thisConcept = conceptKeys.nextElement();
-				createTable(database, owler, thisConcept);
+				createTable(database, owlEngine, thisConcept);
 				processTable(database, thisConcept, workbook);
 			}
 			// I need to first create all the concepts
@@ -207,7 +210,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				String thisConcept = relationConcepts.nextElement();
 				Vector<String> allRels = relations.get(thisConcept);
 				if (!allRels.isEmpty()) {
-					createRelations(database, owler, thisConcept, allRels, workbook);
+					createRelations(database, owlEngine, thisConcept, allRels, workbook);
 				}
 
 				// for(int toIndex = 0;toIndex < allRels.size();toIndex++)
@@ -215,32 +218,34 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				// createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new FileNotFoundException(e.getMessage());
 			} else {
 				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("Could not read Excel file located at " + fileName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 			}
 		} finally {
+			owlEngine.close();
+			
 			if (poiReader != null) {
 				try {
 					poiReader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
@@ -248,7 +253,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					//throw new IOException("Could not close Excel workbook");
 				}
 			}
@@ -426,14 +431,14 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createTable(RDBMSNativeEngine database, Owler owler, String thisConcept) {
+	private void createTable(RDBMSNativeEngine database, WriteOWLEngine owlEngine, String thisConcept) {
 		Hashtable<String, String> props = concepts.get(thisConcept);
 
 		String conceptType = props.get(thisConcept);
 
 		// add it to OWL
-		owler.addConcept(thisConcept, null, null);
-		owler.addProp(thisConcept, thisConcept, conceptType);
+		owlEngine.addConcept(thisConcept, null, null);
+		owlEngine.addProp(thisConcept, thisConcept, conceptType);
 
 		String createString = "CREATE TABLE " + thisConcept + " (";
 		createString = createString + " " + thisConcept + " " + conceptType;
@@ -454,7 +459,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			// also add this to the OWLER
 			// also add this to the OWLER
 			//if (!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK")) {
-				owler.addProp(thisConcept, fieldName, fieldType);
+			owlEngine.addProp(thisConcept, fieldName, fieldType);
 			//}
 		}
 
@@ -465,7 +470,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		try {
 			database.insertData(createString);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// now I say process this table ?
 
@@ -545,13 +550,13 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				try {
 					database.insertData(inserter + values);
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
 
-	private void createRelations(RDBMSNativeEngine database, Owler owler, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
+	private void createRelations(RDBMSNativeEngine database, WriteOWLEngine owlEngine, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
 		int size = toNameList.size();
 		List<String> relsAdded = new ArrayList<String>();
 
@@ -594,7 +599,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				inserter = 1;
 				predicate = tableToSet + "." + tableToSet + "." + tableToInsert + "." + tableToSet + "_FK";
 			}
-			owler.addRelation(tableToSet, tableToInsert, predicate);
+			owlEngine.addRelation(tableToSet, tableToInsert, predicate);
 			// TODO: figure out where to find the data type for the join column to add it as a property!!!
 			
 			createIndices(database, tableToSet, tableToSet);
@@ -629,7 +634,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(wrapper != null) {
 						try {

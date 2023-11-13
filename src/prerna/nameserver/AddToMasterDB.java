@@ -51,8 +51,9 @@ import com.google.gson.Gson;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
-import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.owl.OWLEngineFactory;
+import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -84,6 +85,11 @@ public class AddToMasterDB {
 	 *
 	 */
 
+    /**
+     * 
+     * @param prop
+     * @return
+     */
     public boolean registerEngineLocal(Properties prop) {
         String engineId = prop.getProperty(Constants.ENGINE);
         if (engineId == null) {
@@ -92,6 +98,12 @@ public class AddToMasterDB {
         return registerEngineLocal(prop, engineId);
     }
 
+    /**
+     * 
+     * @param prop
+     * @param engineId
+     * @return
+     */
     public boolean registerEngineLocal(Properties prop, String engineId) {
         // grab the local master engine
     	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
@@ -102,6 +114,7 @@ public class AddToMasterDB {
         PreparedStatement conceptMetaDataPs = null;
         PreparedStatement relationPs = null;
         PreparedStatement engineRelationPs = null;
+        RDFFileSesameEngine rfse = null;
         try {
             conn = localMaster.makeConnection();
             conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
@@ -117,11 +130,14 @@ public class AddToMasterDB {
             String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 
             // owl is stored as RDF/XML file
-            RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-            rfse.setEngineId(engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
-            rfse.openFile(owlFile, null, null);
+    		rfse = new RDFFileSesameEngine();
+    		rfse.setBasic(true);
+    		Properties owlSmss = new Properties();
+    		owlSmss.put(Constants.RDF_FILE_PATH, owlFile);
+    		owlSmss.put(Constants.ENGINE, engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+            rfse.open(owlSmss);
             // we create the meta helper to facilitate querying the engine OWL
-            MetaHelper helper = new MetaHelper(rfse, null, null);
+			ReadOnlyOWLEngine owlReader = new OWLEngineFactory(rfse, null, engineId, engineName).getReadOWL();
 
             // also get the last modified date of the OWL file to store
             // into the local master
@@ -172,8 +188,8 @@ public class AddToMasterDB {
 
             // get the list of all the physical names
             // false denotes getting the physical names
-            List<String> concepts = helper.getPhysicalConcepts();
-            List<String[]> relationships = helper.getPhysicalRelationships();
+            List<String> concepts = owlReader.getPhysicalConcepts();
+            List<String[]> relationships = owlReader.getPhysicalRelationships();
     		classLogger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
     		classLogger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
 
@@ -192,7 +208,7 @@ public class AddToMasterDB {
             for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
                 String conceptPhysicalUri = concepts.get(conceptIndex);
                 classLogger.debug("Processing concept ::: " + conceptPhysicalUri);
-                masterConcept(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, conceptPhysicalUri, helper, dbType);
+                masterConcept(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, conceptPhysicalUri, owlReader, dbType);
             }
 
             String relationPsQuery = "INSERT INTO RELATION (ID, SOURCEID, TARGETID, GLOBALID) VALUES (?,?,?,?)";
@@ -205,7 +221,7 @@ public class AddToMasterDB {
             for (int relIndex = 0; relIndex < relationships.size(); relIndex++) {
                 String[] relationshipToInsert = relationships.get(relIndex);
                 classLogger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
-                masterRelationship(relationPs, engineRelationPs, engineName, relationshipToInsert, helper);
+                masterRelationship(relationPs, engineRelationPs, engineName, relationshipToInsert, owlReader);
             }
             
             // sync metamodel position
@@ -234,6 +250,13 @@ public class AddToMasterDB {
         	ConnectionUtils.closeStatement(relationPs);
         	ConnectionUtils.closeStatement(engineRelationPs);
         	ConnectionUtils.closeAllConnectionsIfPooling(localMaster, conn, null, null);
+        	if(rfse != null) {
+				try {
+					rfse.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
         }
     }
 
@@ -246,14 +269,17 @@ public class AddToMasterDB {
      * new engine, we do not need to check if the concept/properties exist in the
      * ENGINECONEPT TABLE
      *
+     * @param conceptPs
+     * @param engineConceptPs
+     * @param conceptMetaDataPs
      * @param engineName
      * @param conceptPhysicalUri
-     * @param helper
+     * @param owlReader
      * @param dbType
-     * @throws SQLException 
+     * @throws SQLException
      */
     private void masterConcept(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
-    		String engineName, String conceptPhysicalUri, MetaHelper helper, IDatabaseEngine.DATABASE_TYPE dbType) throws SQLException {
+    		String engineName, String conceptPhysicalUri, ReadOnlyOWLEngine owlReader, IDatabaseEngine.DATABASE_TYPE dbType) throws SQLException {
     	int parameterIndex = 1;
     	
         // I need to add the concept into the CONCEPT table
@@ -262,13 +288,13 @@ public class AddToMasterDB {
         // it will only be added once into this table
 
         // so grab the conceptual name
-        String conceptPixelUri = helper.getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
+        String conceptPixelUri = owlReader.getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
         String semossName = Utility.getInstanceName(conceptPixelUri);
 
         // grab the conceptual name
         // grab the logical names
-        String conceptualName = helper.getConceptualName(conceptPhysicalUri);
-        Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
+        String conceptualName = owlReader.getConceptualName(conceptPhysicalUri);
+        Set<String> logicals = owlReader.getLogicalNames(conceptPhysicalUri);
         // and check if it is already there or not
         String conceptGuid = null;
         if (this.conceptIdHash.containsKey(conceptualName + "_CONCEPTUAL")) {
@@ -330,9 +356,9 @@ public class AddToMasterDB {
         // generate a new id for the concept
         String engineConceptGuid = UUID.randomUUID().toString();
         // grab the data type of the concept
-        String[] dataTypes = getDataType(conceptPhysicalUri, helper);
+        String[] dataTypes = getDataType(conceptPhysicalUri, owlReader);
         // grab the data type of the concept
-        String adtlDataType = getAdtlDataType(conceptPhysicalUri, helper);
+        String adtlDataType = getAdtlDataType(conceptPhysicalUri, owlReader);
         // get the physical name
         String conceptPhysicalInstance = Utility.getInstanceName(conceptPhysicalUri);
         // get the engine id
@@ -378,7 +404,7 @@ public class AddToMasterDB {
                 }
             }
             // add the description to the physical name id
-            String desc = helper.getDescription(conceptPhysicalUri);
+            String desc = owlReader.getDescription(conceptPhysicalUri);
             if (desc != null && !desc.trim().isEmpty()) {
             	desc = desc.trim();
                 if (desc.length() > 20_000) {
@@ -393,13 +419,13 @@ public class AddToMasterDB {
         }
 
         // now we need to add the properties for this concept + engine
-        List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
+        List<String> properties = owlReader.getPropertyUris4PhysicalUri(conceptPhysicalUri);
         for (int propIndex = 0; propIndex < properties.size(); propIndex++) {
             String propertyPhysicalUri = properties.get(propIndex);
             classLogger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
             masterProperty(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, 
             		conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
-                    conceptPhysicalInstance, conceptGuid, semossName, helper, dbType);
+                    conceptPhysicalInstance, conceptGuid, semossName, owlReader, dbType);
         }
     }
 
@@ -410,17 +436,24 @@ public class AddToMasterDB {
      * new engine, we do not need to check if the properties exist in the
      * ENGINECONEPT TABLE
      *
+     * @param conceptPs
+     * @param engineConceptPs
+     * @param conceptMetaDataPs
      * @param engineName
+     * @param conceptPhysicalUri
      * @param propertyPhysicalUri
      * @param parentEngineConceptGuid
-     * @param helper
+     * @param parentPhysicalName
+     * @param parentConceptGuid
+     * @param parentSemossName
+     * @param owlReader
      * @param dbType
-     * @throws SQLException 
+     * @throws SQLException
      */
     private void masterProperty(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
     		String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
             String parentEngineConceptGuid, String parentPhysicalName, String parentConceptGuid,
-            String parentSemossName, MetaHelper helper, IDatabaseEngine.DATABASE_TYPE dbType) throws SQLException {
+            String parentSemossName, ReadOnlyOWLEngine owlReader, IDatabaseEngine.DATABASE_TYPE dbType) throws SQLException {
     	int parameterIndex = 1;
         // I need to add the property into the CONCEPT table
         // The CONCEPT table is engine agnostic
@@ -429,14 +462,14 @@ public class AddToMasterDB {
         // the property it will only be added once into this table
 
         // so grab the conceptual name
-        String propertyPixelUri = helper.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
+        String propertyPixelUri = owlReader.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
         // pixel URI is always column/table
         String propertySemossName = Utility.getClassName(propertyPixelUri);
 
         // grab the conceptual name
         // grab the logical names
-        String propertyConceptualName = helper.getConceptualName(propertyPhysicalUri);
-        Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
+        String propertyConceptualName = owlReader.getConceptualName(propertyPhysicalUri);
+        Set<String> logicals = owlReader.getLogicalNames(propertyPhysicalUri);
 
         // and check if it is already there or not
         String propertyGuid = null;
@@ -496,9 +529,9 @@ public class AddToMasterDB {
         // generate a new id for the concept
         String enginePropertyGuid = UUID.randomUUID().toString();
         // grab the data type of the concept
-        String[] dataTypes = getDataType(propertyPhysicalUri, helper);
+        String[] dataTypes = getDataType(propertyPhysicalUri, owlReader);
         // grab the data type of the concept
-        String adtlDataType = getAdtlDataType(propertyPhysicalUri, helper);
+        String adtlDataType = getAdtlDataType(propertyPhysicalUri, owlReader);
         // get the physical name
         // need to account for differences in how this is stored between
         // rdbms vs. graph databases
@@ -548,7 +581,7 @@ public class AddToMasterDB {
                 }
             }
             // add the description to the physical name id
-            String desc = helper.getDescription(propertyPhysicalUri);
+            String desc = owlReader.getDescription(propertyPhysicalUri);
             if (desc != null && !desc.trim().isEmpty()) {
             	desc = desc.trim();
                 if (desc.length() > 20_000) {
@@ -567,14 +600,14 @@ public class AddToMasterDB {
      * Get the original and high-level datatype for a concept or property
      *
      * @param physicalUri
-     * @param helper
+     * @param owlReader
      * @return
      */
-    private String[] getDataType(String physicalUri, MetaHelper helper) {
+    private String[] getDataType(String physicalUri, ReadOnlyOWLEngine owlReader) {
         String dataType = "";
         String originalType = "";
-        if (helper != null) {
-            dataType = helper.getDataTypes(physicalUri);
+        if (owlReader != null) {
+            dataType = owlReader.getDataTypes(physicalUri);
             if (dataType == null) {
                 // this is the case for a table in RDBMS
                 // or the fake root name in JSON
@@ -600,9 +633,15 @@ public class AddToMasterDB {
         return new String[]{originalType, dataType};
     }
 
-    private String getAdtlDataType(String physicalUri, MetaHelper helper) {
-        if (helper != null) {
-            return helper.getAdtlDataTypes(physicalUri);
+    /**
+     * 
+     * @param physicalUri
+     * @param owlReader
+     * @return
+     */
+    private String getAdtlDataType(String physicalUri, ReadOnlyOWLEngine owlReader) {
+        if (owlReader != null) {
+            return owlReader.getAdtlDataTypes(physicalUri);
         }
         return null;
     }
@@ -611,13 +650,15 @@ public class AddToMasterDB {
      * Master a relationship into the local master Relationship array is
      * [startNodePhysicalUri, endNodePhysicalUri, relationshipUri]
      *
+     * @param relationPs
+     * @param engineRelationPs
      * @param engineName
      * @param relationship
-     * @param helper
-     * @throws SQLException 
+     * @param owlReader
+     * @throws SQLException
      */
     private void masterRelationship(PreparedStatement relationPs, PreparedStatement engineRelationPs, 
-    		String engineName, String[] relationship, MetaHelper helper) throws SQLException {
+    		String engineName, String[] relationship, ReadOnlyOWLEngine owlReader) throws SQLException {
     	int parameterIndex = 1;
 
         String startNodePhysicalUri = relationship[0];
@@ -632,11 +673,11 @@ public class AddToMasterDB {
         // grab the conceptual names
         // start node
         String startNodePhysicalInstance = Utility.getInstanceName(startNodePhysicalUri);
-        String pixelStartNodeUri = helper.getConceptPixelUriFromPhysicalUri(startNodePhysicalUri);
+        String pixelStartNodeUri = owlReader.getConceptPixelUriFromPhysicalUri(startNodePhysicalUri);
         String pixelStartNodeName = Utility.getInstanceName(pixelStartNodeUri);
         // end node
         String endNodePhysicalInstance = Utility.getInstanceName(endNodePhysicalUri);
-        String pixelEndNodeUri = helper.getConceptPixelUriFromPhysicalUri(endNodePhysicalUri);
+        String pixelEndNodeUri = owlReader.getConceptPixelUriFromPhysicalUri(endNodePhysicalUri);
         String pixelEndNodeName = Utility.getInstanceName(pixelEndNodeUri);
 
         String relationGuid = null;
@@ -682,20 +723,6 @@ public class AddToMasterDB {
         engineRelationPs.addBatch();
     }
 
-//    /**
-//     * Executes a query
-//     *
-//     * @param tableName
-//     * @param colNames
-//     * @param types
-//     * @param data
-//     */
-//    private void insertQuery(Connection conn, String tableName, String[] colNames, String[] types, Object[] data) {
-//        String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, data);
-//        executeSql(conn, insertString);
-//    }
-
-    
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -705,7 +732,7 @@ public class AddToMasterDB {
 
     /**
      * Creates a new table xrayconfigs inserts filesName and config file string
-     *
+     * 
      * @param config
      * @param fileName
      */
@@ -744,13 +771,13 @@ public class AddToMasterDB {
 
 	/**
 	 * Adds row to metadata table ex localConceptID, key, value
-	 *
-	 * @param engineId
-	 * @param concept
-	 * @param key
-	 * @param value
-	 * @return
-	 */
+     * 
+     * @param engineId
+     * @param concept
+     * @param key
+     * @param value
+     * @return
+     */
 	public boolean addMetadata(String engineId, String concept, String key, String value) {
 		boolean valid = false;
 		String tableName = Constants.CONCEPT_METADATA_TABLE;
@@ -802,6 +829,11 @@ public class AddToMasterDB {
     //////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
     public static void main(String[] args) throws IOException {
         // load the RDF map for testing purposes
         String rdfMapDir = "C:/Users/pkapaleeswaran/Workspacej3/SemossDev";
@@ -842,6 +874,13 @@ public class AddToMasterDB {
         adder.registerEngineLocal(engineProp2);
     }
 
+    /**
+     * 
+     * @param DB_DIRECTORY
+     * @param engineName
+     * @return
+     * @throws IOException
+     */
     private static Properties loadEngineProp(final String DB_DIRECTORY, String engineName) throws IOException {
         try (FileInputStream fis = new FileInputStream(new File(determineSmssPath(DB_DIRECTORY, engineName)))) {
             Properties prop = new Properties();
@@ -850,6 +889,12 @@ public class AddToMasterDB {
         }
     }
 
+    /**
+     * 
+     * @param DB_DIRECTORY
+     * @param engineName
+     * @return
+     */
     private static String determineSmssPath(final String DB_DIRECTORY, String engineName) {
         return DB_DIRECTORY + "/" + engineName + ".smss";
     }

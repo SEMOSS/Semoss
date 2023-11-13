@@ -13,7 +13,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -67,87 +67,81 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		
 		// we may have the alias
 		databaseId = testDatabaseId(databaseId, true);
-
-		Owler owler = getOWLER(databaseId);
-		// set all the existing values into the OWLER
-		// so that its state is updated
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-//		boolean isRdbms = (engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS || 
-//				engine.getEngineType() == IDatabase.ENGINE_TYPE.IMPALA);
-		setOwlerValues(database, owler);
-		
-		// get tables
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("sourceTable"));
-		qs.addSelector(new QueryColumnSelector("targetTable"));
-		qs.addSelector(new QueryColumnSelector("sourceCol"));
-		qs.addSelector(new QueryColumnSelector("targetCol"));
-		qs.addSelector(new QueryColumnSelector("distance"));
 
-		// add a filter
-		NounMetadata lComparison = new NounMetadata(new QueryColumnSelector("distance"), PixelDataType.COLUMN);
-		NounMetadata rComparison = new NounMetadata(distance, PixelDataType.CONST_DECIMAL);
-		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, ">=" , rComparison);
-		qs.addExplicitFilter(filter);
-		
-		int counter = 0;
-		logger.info("Retrieving values to insert");
-		IRawSelectWrapper iterator = null;
-		try {
-			iterator = frame.query(qs);
-			while(iterator.hasNext()) {
-				if(counter % 100 == 0) {
-					logger.info("Adding relationship : #" + (counter+1));
+		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+
+			// get tables
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("sourceTable"));
+			qs.addSelector(new QueryColumnSelector("targetTable"));
+			qs.addSelector(new QueryColumnSelector("sourceCol"));
+			qs.addSelector(new QueryColumnSelector("targetCol"));
+			qs.addSelector(new QueryColumnSelector("distance"));
+	
+			// add a filter
+			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector("distance"), PixelDataType.COLUMN);
+			NounMetadata rComparison = new NounMetadata(distance, PixelDataType.CONST_DECIMAL);
+			SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, ">=" , rComparison);
+			qs.addExplicitFilter(filter);
+			
+			int counter = 0;
+			logger.info("Retrieving values to insert");
+			IRawSelectWrapper iterator = null;
+			try {
+				iterator = frame.query(qs);
+				while(iterator.hasNext()) {
+					if(counter % 100 == 0) {
+						logger.info("Adding relationship : #" + (counter+1));
+					}
+					IHeadersDataRow row = iterator.next();
+					Object[] values = row.getValues();
+					
+					String startT = values[0].toString();
+					String endT = values[1].toString();
+					String startC = values[2].toString();
+					String endC = values[3].toString();
+					double relDistance = ((Number) values[4]).doubleValue();
+					
+					// generate the relationship
+					String rel = startT + "." + startC + "." + endT + "." + endC;
+					
+					// add the relationship
+					owlEngine.addRelation(startT, endT, rel);
+					counter++;
 				}
-				IHeadersDataRow row = iterator.next();
-				Object[] values = row.getValues();
-				
-				String startT = values[0].toString();
-				String endT = values[1].toString();
-				String startC = values[2].toString();
-				String endC = values[3].toString();
-				double relDistance = ((Number) values[4]).doubleValue();
-				
-				// generate the relationship
-				String rel = startT + "." + startC + "." + endT + "." + endC;
-				
-//				if(isRdbms) {
-//					// the relation has the startC and endC
-//					// what I really need is the primary key for the tables
-//					startC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(startT));
-//					endC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(endT));
-//				}
-				
-				// add the relationship
-				owler.addRelation(startT, endT, rel);
-				counter++;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(iterator != null) {
-				try {
-					iterator.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(iterator != null) {
+					try {
+						iterator.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
-		}
-
-		logger.info("Done adding relationships");
-		logger.info("Total relationships added = " + counter);
-
-		// commit all the changes
-		logger.info("Committing relationships");
-		owler.commit();
-
-		try {
-			owler.export();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+	
+			logger.info("Done adding relationships");
+			logger.info("Total relationships added = " + counter);
+	
+			try {
+				// commit all the changes
+				logger.info("Committing relationships");
+				owlEngine.commit();
+				owlEngine.export();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				return noun;
+			}
+		
+		} catch (IOException | InterruptedException e1) {
+			classLogger.error(Constants.STACKTRACE, e1);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
