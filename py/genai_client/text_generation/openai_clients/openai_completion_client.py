@@ -160,4 +160,4 @@ class OpenAiCompletion(AbstractOpenAiClient):
         if (len(warnings) > 0):
             output_payload['warning'] = '\\n\\n'.join(warnings)
 
-        return prompt_payload, max_new_tokens, output_payload
+        return prompt_payload, int(max_new_tokens), output_payload
