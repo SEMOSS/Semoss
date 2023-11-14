@@ -177,7 +177,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 	
 	public void reloadFile() throws Exception {
 		close();
-		loadFile();
+		open(this.smssProp);
 	}
 	
 	@Override
