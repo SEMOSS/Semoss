@@ -30,6 +30,7 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -218,7 +219,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.contentOverlap = (int) parameters.get("contentOverlap");
 		}
 		
-		Insight insight = (Insight) parameters.get("insight");
+		Insight insight = getInsight(parameters.get("insight"));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -449,11 +450,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Object nearestNeighbor(String question, int limit, Map <String, Object> parameters) {
+	public Object nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
 		
 		checkSocketStatus();
 		
-		Insight insight = (Insight) parameters.get("insight");
+		Insight insight = getInsight(parameters.get("insight"));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -608,6 +609,14 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private void checkSocketStatus() {
 		if(this.socketClient == null || !this.socketClient.isConnected()) {
 			this.startServer();
+		}
+	}
+	
+	private Insight getInsight(Object insightObj) {
+		if (insightObj instanceof String) {
+			return InsightStore.getInstance().get((String) insightObj);
+		} else {
+			return (Insight) insightObj;
 		}
 	}
 
