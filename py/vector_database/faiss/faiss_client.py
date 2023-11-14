@@ -202,6 +202,9 @@ class FAISSSearcher():
     # euclidean_distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
     # ann_index - the index location of the Approximate Nearest Neighbor (ANN)
 
+    if not isinstance(results, int):
+        results = int(results)
+        
     # If a filter was passed in then we need to get the indexes
     if filter != None:
         filter_ids = self._filter_dataset(filter)
