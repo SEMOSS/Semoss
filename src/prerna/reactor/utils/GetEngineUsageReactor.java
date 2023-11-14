@@ -100,7 +100,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	
 	private Map<String, String> getVectorUsage(String engineId) {
 		Map<String, String> usageMap = new HashMap<>();
-		usageMap.put(PYTHON,"# initialize\r\nfrom gaas_gpt_vector import VectorEngine\r\n" + 
+		usageMap.put(PYTHON,"# import vector engine class and initialize\r\nfrom gaas_gpt_vector import VectorEngine\r\n" + 
 				"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}', insight_folder = '${if}')\r\n" +
 				"\n# Add document(s) that have been uploaded to the insight\r\n" +
 				"vectorEngine.addDocument(file_paths = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])\r\n" + 
@@ -112,7 +112,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])");
 		usageMap.put(JAVA,"// imports\r\nimport prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IVectorDatabaseEngine;\r\n\n" + 
-				"// initialize\r\nIVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(\""+engineId+"\");\r\n" + 
+				"// get the vector engine\r\nIVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(\""+engineId+"\");\r\n" + 
 				"\n// Add document(s) that have been uploaded to the insight\r\n" +
 				"vectorEngine.addDocument(List<String> filePaths, Map <String, Object> parameters);\r\n" + 
 				"\n// Perform a nearest neighbor search on the embedded documents\r\n" +
@@ -123,13 +123,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"vectorEngine.removeDocument(List<String> fileNames, Map <String, Object> parameters);"
 				);
 		usageMap.put(PIXEL,"## Add document(s) that have been uploaded to the insight ##\r\n" + 
-				"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = \"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+				"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
 				"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
 				"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5);\r\n" +
 				"\n## List all the documents the vector database currently comprises of ##\r\n" +
 				"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
-				"\n## Remove document(s) from the vector database##\r\n" +
-				"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = \"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
+				"\n## Remove document(s) from the vector database ##\r\n" +
+				"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
 				);
 		return usageMap;
 	}
