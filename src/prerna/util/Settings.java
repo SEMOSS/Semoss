@@ -30,6 +30,9 @@ public class Settings {
 	public static final String TIMEOUT = "TIMEOUT";
 	// input usually a list to functions
 	public static final String INPUT = "INPUT";
+	
+	public static final String COUNT = "COUNT";
+	public static final String REQUIREMENTS = "REQUIREMENTS"; // this is a JSON of all the requirements for a SMSS engine like GPU requirement etc. etc. 
 
 	// debugging
 	public static final String FORCE_PORT = "FORCE_PORT"; // the port to force the connection on
