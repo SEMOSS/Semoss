@@ -1,6 +1,7 @@
 package prerna.reactor.utils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
@@ -39,6 +40,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			case MODEL:
 				outputMap = getModelUsage(engineId);
 				break;
+			case VECTOR:
+				outputMap = getVectorUsage(engineId);
+				break;
 			default:
 				outputMap = new HashMap<>();
 				outputMap.put(PYTHON, "Documentation pending");
@@ -74,7 +78,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"storageEngine.copyToLocal(localFolderPath= 'your/local/file/path', storageFilePath = 'your/storage/file/path')\r\n" + 
 				"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
-				"import prerna.engine.api.IStorage;\r\n" + 
+				"import prerna.engine.api.IStorageEngine;\r\n" + 
 				"IStorage storage = Utility.getStorage(\""+engineId+"\");");
 		usageMap.put(PIXEL,"Storage(storage = \""+engineId+"\")");
 		return usageMap;
@@ -88,9 +92,45 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
 				"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
-				"import prerna.engine.api.IDatabase;\r\n" + 
+				"import prerna.engine.api.IDatabaseEngine;\r\n" + 
 				"IDatabase database = Utility.getDatabase(\""+engineId+"\");");
 		usageMap.put(PIXEL,"Database(database = \""+engineId+"\")");
+		return usageMap;
+	}
+	
+	private Map<String, String> getVectorUsage(String engineId) {
+		Map<String, String> usageMap = new HashMap<>();
+		usageMap.put(PYTHON,"# initialize\r\nfrom gaas_gpt_vector import VectorEngine\r\n" + 
+				"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}', insight_folder = '${if}')\r\n" +
+				"\n# Add document(s) that have been uploaded to the insight\r\n" +
+				"vectorEngine.addDocument(file_paths = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])\r\n" + 
+				"\n# Perform a nearest neighbor search on the embedded documents\r\n" +
+				"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5)\r\n" + 
+				"\n# List all the documents the vector database currently comprises of\r\n" +
+				"vectorEngine.listDocuments()\r\n" + 
+				"\n# Remove document(s) from the vector database\r\n" +
+				"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])");
+		usageMap.put(JAVA,"// imports\r\nimport prerna.util.Utility;\r\n" + 
+				"import prerna.engine.api.IVectorDatabaseEngine;\r\n\n" + 
+				"// initialize\r\nIVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(\""+engineId+"\");\r\n" + 
+				"\n// Add document(s) that have been uploaded to the insight\r\n" +
+				"vectorEngine.addDocument(List<String> filePaths, Map <String, Object> parameters);\r\n" + 
+				"\n// Perform a nearest neighbor search on the embedded documents\r\n" +
+				"vectorEngine.nearestNeighbor(String searchStatement, Number limit, Map <String, Object> parameters);\r\n" + 
+				"\n// List all the documents the vector database currently comprises of\r\n" +
+				"vectorEngine.listDocuments(Map<String, Object> parameters)\r\n" + 
+				"\n// Remove document(s) from the vector database\r\n" +
+				"vectorEngine.removeDocument(List<String> fileNames, Map <String, Object> parameters);"
+				);
+		usageMap.put(PIXEL,"## Add document(s) that have been uploaded to the insight ##\r\n" + 
+				"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = \"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+				"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
+				"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5);\r\n" +
+				"\n## List all the documents the vector database currently comprises of ##\r\n" +
+				"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
+				"\n## Remove document(s) from the vector database##\r\n" +
+				"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = \"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
+				);
 		return usageMap;
 	}
 }
