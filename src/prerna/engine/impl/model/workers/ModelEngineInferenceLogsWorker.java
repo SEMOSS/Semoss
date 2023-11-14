@@ -76,6 +76,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String insightId = insight.getInsightId();
 		User user = insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
+		String userName = user.getPrimaryLoginToken().getName();
 		// TODO this could be insight id
 		
         Duration duration = Duration.between(inputTime, responseTime);
@@ -97,7 +98,18 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			} else {
 				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			}
-			ModelInferenceLogsUtils.doCreateNewConversation(insightId, roomName, this.context, user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
+			ModelInferenceLogsUtils.doCreateNewConversation(
+					insightId, 
+					roomName, 
+					this.context, 
+					userId,
+					userName,
+					engine.getModelType().toString(), 
+					true, 
+					projectId, 
+					projectName, 
+					engine.getEngineId()
+				);
 		}
 				
 		if(engine.keepInputOutput()) {
@@ -111,7 +123,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getEngineId(),
 					insightId,
 					sessionId,
-					userId
+					userId,
+					userName
 					);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					ModelEngineConstants.RESPONSE,
@@ -123,7 +136,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getEngineId(),
 					insightId,
 					sessionId,
-					userId
+					userId,
+					userName
 					);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
@@ -136,7 +150,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getEngineId(),
 					insightId,
 					sessionId,
-					userId
+					userId,
+					userName
 					);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					ModelEngineConstants.RESPONSE,
@@ -148,7 +163,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getEngineId(),
 					insightId,
 					sessionId,
-					userId
+					userId,
+					userName
 					);
 		}
     }
