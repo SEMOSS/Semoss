@@ -175,6 +175,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		pyt = new TCPPyTranslator();
 		pyt.setClient(socketClient);
 	
+		// TODO remove once bug is caught / fixed
+		StringBuilder intitPyCommands = new StringBuilder("\n");
+		for (String command : commands) {
+			intitPyCommands.append(command).append("\n");
+		}
+		classLogger.info("Initializing FAISS db with the following py commands >>>" + intitPyCommands.toString());
 		pyt.runEmptyPy(commands);
 	}
 	
