@@ -233,18 +233,20 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static String doCreateNewConversation(String roomName, String roomContext,
-			String userId, String agentType, Boolean isActive, String projectId, String projectName, String agentId) {
+												 String userId, String userName, String agentType, 
+												 Boolean isActive, String projectId, String projectName, String agentId) {
 		String convoId = UUID.randomUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomContext, userId, agentType, isActive, projectId, projectName, agentId);
+		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, agentType, isActive, projectId, projectName, agentId);
 		return convoId;
 	}
 	
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, 
-											   String userId, String agentType, Boolean isActive, String projectId, String projectName, String agentId) {
+											   String userId, String userName, String agentType, 
+											   Boolean isActive, String projectId, String projectName, String agentId) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_NAME, "
-				+ "ROOM_CONTEXT, USER_ID, AGENT_TYPE, IS_ACTIVE, "
+				+ "ROOM_CONTEXT, USER_ID, USER_NAME, AGENT_TYPE, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
 		try {
@@ -262,6 +264,7 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, userId);
+			ps.setString(index++, userName);
 			ps.setString(index++, agentType);
 			ps.setBoolean(index++, isActive);
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
@@ -366,9 +369,10 @@ public class ModelInferenceLogsUtils {
 									   String agentId,
 									   String insightId,
 									   String sessionId,
-									   String userId) {
+									   String userId,
+									   String userName) {
 		LocalDateTime dateCreated = LocalDateTime.now();
-		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId);
+		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId, userName);
 	}
 	
 	public static void doRecordMessage(String messageId,
@@ -381,11 +385,12 @@ public class ModelInferenceLogsUtils {
 									   String agentId,
 									   String insightId,
 									   String sessionId,
-									   String userId) {
+									   String userId,
+									   String userName) {
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
-			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID) " + 
-			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID, USER_NAME) " + 
+			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -405,6 +410,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, insightId);
 			ps.setString(index++, sessionId);
 			ps.setString(index++, userId);
+			ps.setString(index++, userName);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
