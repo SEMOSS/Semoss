@@ -107,6 +107,8 @@ public class NativePyEngineWorker implements Runnable {
 						engine = Utility.getStorage(engineId);
 					else if(ps.engineType.equalsIgnoreCase("DATABASE"))
 						engine = Utility.getDatabase(engineId);
+					else if(ps.engineType.equalsIgnoreCase("VECTOR"))
+						engine = Utility.getVectorDatabase(engineId);
 					Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
 					Object retObject = method.invoke(engine, ps.payload);
 		

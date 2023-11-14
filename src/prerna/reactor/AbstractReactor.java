@@ -922,14 +922,17 @@ public abstract class AbstractReactor implements IReactor {
 		// ${log}
 		
 		String insightId = this.insight.getInsightId();
-		String insightFolder = this.insight.getInsightFolder();
+		String insightFolder = this.insight.getInsightFolder().replace(java.nio.file.FileSystems.getDefault().getSeparator(), "/");
 		String projectId = this.insight.getProjectId();
 		String projectFolder = this.insight.getAppFolder();
 		if(projectId == null)
 			projectId = insightId;
 		
-		if(projectFolder == null)
+		if(projectFolder == null) {
 			projectFolder = insightFolder;
+		} else {
+			projectFolder = projectFolder.replace(java.nio.file.FileSystems.getDefault().getSeparator(), "/");
+		}
 			
 		Map <String, String> varMap = new HashMap<String, String>();
 		varMap.put("i", insightId);
@@ -947,7 +950,6 @@ public abstract class AbstractReactor implements IReactor {
 		StringSubstitutor sub = new StringSubstitutor(varMap);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
-
 	}
 
 	
