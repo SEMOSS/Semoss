@@ -49,7 +49,7 @@ def get_embedder(embedder_type, **kwargs):
             return AzureOpenAiEmbedder(**kwargs)
         else:
             return OpenAiEmbedder(**kwargs)
-    elif (embedder_type == 'EMBEDDED') or (encoder_type == 'TEXT_GENERATION'):
+    elif (embedder_type == 'EMBEDDED') or (embedder_type == 'TEXT_GENERATION'):
         LocalEmbedder(**kwargs)
 
 def get_tokenizer(encoder_type:str, encoder_name, max_tokens):
