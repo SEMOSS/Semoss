@@ -969,11 +969,20 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
 		}
 		
+		
+		
 		// if user is not an owner, check to make sure they are not editting owner access
 		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			List<Integer> permissionList = new ArrayList<>(existingUserPermission.values());
 			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
 				throw new IllegalArgumentException("As a non-owner, you cannot edit access of an owner.");
+			}
+			
+			// also make sure, you are not adding an owner
+			for(Map<String,String> req : requests) {
+				if(AccessPermissionEnum.OWNER.getId() == AccessPermissionEnum.getIdByPermission(req.get("permission"))) {
+					throw new IllegalArgumentException("As a non-owner, you cannot give a user access as an owner.");
+				}
 			}
 		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
