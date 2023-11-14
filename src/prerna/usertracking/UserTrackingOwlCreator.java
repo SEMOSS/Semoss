@@ -214,7 +214,6 @@ public class UserTrackingOwlCreator {
 		
 		owler.commit();
 		owler.export();
-		owler.close();
 	}
 	
 	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {

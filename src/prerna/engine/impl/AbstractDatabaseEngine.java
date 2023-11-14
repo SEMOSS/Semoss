@@ -149,14 +149,14 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
+		// this sets this.smssProp and this.origSmssProp
+		setSmssProp(smssProp);
 		// if smss prop is empty
 		// then no metadata is associated with this database
 		if(smssProp.isEmpty()) {
 			return;
 		}
-		// this sets this.smssProp and this.origSmssProp
-		setSmssProp(smssProp);
-		
+				
 		// grab the main properties
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
