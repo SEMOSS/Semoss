@@ -21,9 +21,9 @@ public interface IVectorDatabaseEngine extends IEngine {
 	
 	void addDocument(List<String> filePaths, Map <String, Object> parameters);
 	
-	void removeDocument(List<String> filePaths, Map <String, Object> parameters);
+	void removeDocument(List<String> fileNames, Map <String, Object> parameters);
 	
-	Object nearestNeighbor(String question, int limit, Map <String, Object> parameters);
+	Object nearestNeighbor(String searchStatement, Number limit, Map <String, Object> parameters);
 	
-	List<Map<String, Object>> listDocuments(Map <String, Object> parameters);
+	List<Map<String, Object>> listDocuments(Map<String, Object> parameters);
 }
