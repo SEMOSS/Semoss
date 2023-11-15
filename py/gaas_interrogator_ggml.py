@@ -3,6 +3,8 @@ from ctransformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import TextStreamer, TextIteratorStreamer
 from threading import Thread
 
+import gaas_interrogator as gi
+
 from gaas_streamer import SemossStreamer
 import huggingface_hub as hub_api
 import os
@@ -13,12 +15,13 @@ from pathlib import Path
 #import gaas_interrogator as gi
 # i = gi.Interrogator()
 
-class Interrogator():
+class Interrogator(gi.Interrogator):
   
   # LLama2 70b model - 'TheBloke/Llama-2-70B-Orca-200k-GGUF'
 #'TheBloke/gorilla-7B-GGML' 'Gorilla-7B.ggmlv3.q8_0.bin'
   def __init__(self, model_path=None, autoload=True, stopper="abracadabra", **kwargs):
     self.model_name=model_path
+    
     self.snapshot="main"
     self.output_prefix = ""
     self.serialized = False
@@ -99,25 +102,25 @@ class Interrogator():
       text = question
     assert text is not None
     #print(self.model.device)
-    tok_input = self.tokenizer(text, return_tensors="pt").to(self.model.device)
-    input_ids = tok_input.input_ids.to(self.model.device)
-    tok_input.attention_mask.to(self.model.device)
     console_streamer = SemossStreamer(tokenizer=self.tokenizer, skip_prompt=True)
     console_streamer.set_output_prefix(prefix)
-    kwargs.update({"streamer":console_streamer})
-    #print(kwargs)
-    new_kwargs = self.configure_params(input_ids, **kwargs)
+    super().ask(text, streamer=console_streamer, **kwargs)
+    output = console_streamer.complete_output
+    return output
+    # kwargs.update({"streamer":console_streamer})
+    # #print(kwargs)
+    # new_kwargs = self.configure_params(input_ids, **kwargs)
     
-    #print(new_kwargs)
-    #print(new_kwargs)
-    #print("starting thread")
-    #t = Thread(target=self.model.generate, kwargs=new_kwargs)
-    #t.start()
+    # #print(new_kwargs)
+    # #print(new_kwargs)
+    # #print("starting thread")
+    # #t = Thread(target=self.model.generate, kwargs=new_kwargs)
+    # #t.start()
     
-    self.model.generate(**new_kwargs)
-    model_output = ""
-    #for new_text in self.console_streamer:
-    #  model_output += new_text
-    #  #print(new_text, end="")
-    #  yield model_output
-    #return model_output
+    # self.model.generate(**new_kwargs)
+    # model_output = ""
+    # #for new_text in self.console_streamer:
+    # #  model_output += new_text
+    # #  #print(new_text, end="")
+    # #  yield model_output
+    # #return model_output
