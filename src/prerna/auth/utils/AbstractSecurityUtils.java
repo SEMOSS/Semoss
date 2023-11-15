@@ -751,6 +751,7 @@ public abstract class AbstractSecurityUtils {
 			// PROJECTDEPENDENCIES
 			colNames = new String[] { "PROJECTID", "ENGINEID", "USERID", "TYPE", "DATEADDED" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+			defaultValues = null;
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECTDEPENDENCIES", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -2379,6 +2380,15 @@ public abstract class AbstractSecurityUtils {
 	public static Timestamp getSqlTimestampUTC(SemossDate semossdate) {
 		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current LocalDateTime
+	 * @return currentTimestamp
+	 */
+	public static LocalDateTime getLocalDateTimeUTC(LocalDateTime ldt) {
+		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
+		return gmt.toLocalDateTime();
 	}
 	
 	/**
