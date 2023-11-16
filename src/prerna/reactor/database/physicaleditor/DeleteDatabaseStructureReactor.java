@@ -65,7 +65,6 @@ public class DeleteDatabaseStructureReactor extends AbstractReactor {
 			// now push the OWL and sync
 			try {
 				owlEngine.export();
-				owlEngine.close();
 				SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
 				syncWithLocal.setInsight(this.insight);
 				syncWithLocal.setNounStore(this.store);

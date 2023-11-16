@@ -55,9 +55,9 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 		String newPixelURI = "http://semoss.org/ontologies/Concept/" + newPixelName;
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			// make sure this name isn't currently present in the engine
 			if ( owlEngine.getPhysicalUriFromPixelSelector(newPixelName) != null ) {
 				throw new IllegalArgumentException("This conceptual name already exists");
@@ -99,7 +99,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 			}
 			
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 			
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

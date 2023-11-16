@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -480,9 +481,17 @@ public class ClusterUtil {
 	 * @param databaseId
 	 */
 	public static void pullOwl(String databaseId) {
+		pullOwl(databaseId, null);
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 */
+	public static void pullOwl(String databaseId, WriteOWLEngine owlEngine) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullOwl(databaseId);
+				getCentralStorageClient().pullOwl(databaseId, owlEngine);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull owl for database '"+databaseId+"' from cloud storage");
@@ -498,9 +507,18 @@ public class ClusterUtil {
 	 * @param databaseId
 	 */
 	public static void pushOwl(String databaseId) {
+		pushOwl(databaseId, null);
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @param owlEngine
+	 */
+	public static void pushOwl(String databaseId, WriteOWLEngine owlEngine) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pushOwl(databaseId);
+				getCentralStorageClient().pushOwl(databaseId, owlEngine);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push owl for database '"+databaseId+"' to cloud storage");
