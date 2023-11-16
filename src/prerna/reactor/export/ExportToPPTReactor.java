@@ -121,7 +121,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
 		// grab file path to write the file
 		String fileLocation =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 		// if the file location is not defined generate a random path and set
@@ -176,7 +176,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 				task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 				task.setTaskOptions(taskOptions);
 				
-				processTask(slideshow, task, panel);
+				processTask(user, slideshow, task, panel);
 			}
 		}
 		
@@ -218,7 +218,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}		
 	}
 
-	private void processTask(XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+	private void processTask(User user, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		TaskOptions tOptions = task.getTaskOptions();
 		Map<String, Object> options = tOptions.getOptions();
@@ -240,7 +240,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			} else if (plotType.equals("Grid")) {
 				insertGridChart(options, slideshow, task, panel);
 			} else if(!plotType.equals("PivotTable")) { 
-				insertImage(options, slideshow, task, panel);
+				insertImage(user, options, slideshow, task, panel);
 			}
 		} catch(Exception ex) {
 			ex.printStackTrace();
@@ -913,13 +913,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 	 * @param task
 	 * @param panel
 	 */
-	private void insertImage(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+	private void insertImage(User user, Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		String baseUrl = this.insight.getBaseURL();
 		String imageUrl = this.insight.getLiveURL();
 		String panelAppender = "&panel=" + panel.getPanelId();
 		String sheetAppender = "&sheet=" + panel.getSheetId();
 		String sessionId = ThreadStore.getSessionId();
-		String exportName = AbstractExportTxtReactor.getExportFileName(Utility.getRandomString(8), "png");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, Utility.getRandomString(8), "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 		if(driver == null) {
 			driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);

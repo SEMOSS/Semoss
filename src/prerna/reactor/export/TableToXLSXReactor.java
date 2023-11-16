@@ -1043,13 +1043,13 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		}
 	}
 
-	public void writeWorkbook(String fileName) {
+	public void writeWorkbook(User user, String fileName) {
 		try {
 			Workbook wb = (Workbook) exportMap.get(fileName);
 			if(exportMap.containsKey(FOOTER))
 				fillFooter(wb, exportMap, (String)exportMap.get(FOOTER));
 			fillHeader(wb, exportMap, "Mahers Magic Carpet", "Incurred through abc to def");
-			String exportName = AbstractExportTxtReactor.getExportFileName(fileName, "xlsx");
+			String exportName = AbstractExportTxtReactor.getExportFileName(user, fileName, "xlsx");
 			String fileLocation = "c:/temp" + DIR_SEPARATOR + exportName;
 
 			FileOutputStream fileOut = new FileOutputStream(fileLocation);
@@ -1557,7 +1557,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		tx.exportTemplate = "c:/users/pkapaleeswaran/workspacej3/SemossDev/templates/anthem.xlsx";
 		tx.processTable("sh", html, "hello");
 		tx.mergeAreas();
-		tx.writeWorkbook("hello");
+		tx.writeWorkbook(null, "hello");
 	}
 
 }

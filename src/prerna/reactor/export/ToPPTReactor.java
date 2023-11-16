@@ -92,7 +92,7 @@ public class ToPPTReactor extends AbstractReactor {
 		// get a random file name
 		// grab file path to write the file
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download

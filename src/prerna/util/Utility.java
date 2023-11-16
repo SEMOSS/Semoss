@@ -35,7 +35,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -65,6 +64,9 @@ import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -146,6 +148,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -6156,20 +6159,67 @@ public class Utility {
 		}
 	}
 	
-	public static void main(String[] args) throws MalformedURLException {
-		File folder = new File("/Users/mahkhalil/workspace/Semoss_Dev/project/Blood Glucose__049b3b6a-6630-4f77-8f3a-2892fec2188b/app_root/version/assets/java/");
-		File[] jars = folder.listFiles(new FilenameFilter() {
-			
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.endsWith(".jar");
-			}
-		});
-		URL[] urls = new URL[jars.length];
-		for(int i = 0; i < jars.length; i++) {
-			urls[i] = jars[i].toURI().toURL();
-		}
-		System.out.println(Utility.loadReactorsFromJars(urls));
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static java.sql.Timestamp getCurrentSqlTimestampUTC() {
+		ZonedDateTime zdt = ZonedDateTime.now();
+		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
 	}
-
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static java.sql.Timestamp getSqlTimestampUTC(ZonedDateTime zdt) {
+		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static java.sql.Timestamp getSqlTimestampUTC(LocalDateTime ldt) {
+		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current timestamp
+	 * @return currentTimestamp
+	 */
+	public static java.sql.Timestamp getSqlTimestampUTC(SemossDate semossdate) {
+		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
+		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+	
+	/**
+	 * Get the current LocalDateTime
+	 * @return currentTimestamp
+	 */
+	public static LocalDateTime getLocalDateTimeUTC(LocalDateTime ldt) {
+		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
+		return gmt.toLocalDateTime();
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @return
+	 */
+	public static ZonedDateTime getCurrentZonedDateTimeForUser(User user) {
+		ZoneId zoneId = ZoneId.of("UTC");
+		if(user != null) {
+			TimeZone userTimeZone = user.getTimeZone();
+			if(userTimeZone != null) {
+				zoneId = ZoneId.of(userTimeZone.getID());
+			}
+		}
+		
+		return ZonedDateTime.now(zoneId);
+	}
 }

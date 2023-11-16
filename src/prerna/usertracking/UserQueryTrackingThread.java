@@ -1,11 +1,10 @@
 package prerna.usertracking;
 
-import java.time.LocalDateTime;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.util.Utility;
 
 public class UserQueryTrackingThread implements Runnable {
 
@@ -51,11 +50,11 @@ public class UserQueryTrackingThread implements Runnable {
 	}
 	
 	public void setStartTimeNow() {
-		this.startTime = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		this.startTime = Utility.getCurrentSqlTimestampUTC();
 	}
 
 	public void setEndTimeNow() {
-		this.endTime = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		this.endTime = Utility.getCurrentSqlTimestampUTC();
 	}
 	
 }

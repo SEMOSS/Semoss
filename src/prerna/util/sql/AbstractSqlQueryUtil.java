@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -1725,7 +1724,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public List<String> getTableColumns(Connection conn, String tableName, String database, String schema) {
-		List<String> tableColumns = new Vector<>();
+		List<String> tableColumns = new ArrayList<>();
 		String query = this.getAllColumnDetails(tableName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;

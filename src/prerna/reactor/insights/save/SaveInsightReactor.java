@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -126,7 +126,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			cacheEncrypt = Utility.getApplicationCacheEncrypt();
 		}
 		// we cache on open insight, not on save
-		LocalDateTime cachedOn = null;
+		ZonedDateTime cachedOn = null;
 		
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
@@ -355,7 +355,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param schemaName
 	 */
 	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, boolean global,
-			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt, 
 			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, global, layout, 

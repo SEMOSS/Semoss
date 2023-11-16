@@ -440,6 +440,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -537,6 +538,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!projectCols.contains(col) && !projectCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + projectCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("PROJECT", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -668,6 +670,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTPERMISSION", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -887,6 +890,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!insightCols.contains(col) && !insightCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + insightCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("INSIGHT", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -949,6 +953,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("USERINSIGHTPERMISSION", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1079,6 +1084,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + smssUserCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1111,10 +1117,11 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			{
-				List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER_ACCESS_KEYS", database, schema);
+				List<String> allCols = queryUtil.getTableColumns(conn, "SMSS_USER_ACCESS_KEYS", database, schema);
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
-					if(!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER_ACCESS_KEYS", col, types[i]);
 						securityDb.insertData(addColumnSql);
 					}
@@ -1179,6 +1186,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("GROUPENGINEPERMISSION", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1206,6 +1214,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("GROUPPROJECTPERMISSION", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1232,6 +1241,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("GROUPINSIGHTPERMISSION", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1271,6 +1281,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEACCESSREQUEST", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1299,6 +1310,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTACCESSREQUEST", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -1327,6 +1339,7 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
 						String addColumnSql = queryUtil.alterTableAddColumn("INSIGHTACCESSREQUEST", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -2343,52 +2356,6 @@ public abstract class AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-	
-	/**
-	 * Get the current timestamp
-	 * @return currentTimestamp
-	 */
-	public static Timestamp getCurrentSqlTimestampUTC() {
-		ZonedDateTime zdt = ZonedDateTime.now();
-		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
-		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-	
-	/**
-	 * Get the current timestamp
-	 * @return currentTimestamp
-	 */
-	public static Timestamp getSqlTimestampUTC(ZonedDateTime zdt) {
-		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
-		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-	
-	/**
-	 * Get the current timestamp
-	 * @return currentTimestamp
-	 */
-	public static Timestamp getSqlTimestampUTC(LocalDateTime ldt) {
-		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
-		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-	
-	/**
-	 * Get the current timestamp
-	 * @return currentTimestamp
-	 */
-	public static Timestamp getSqlTimestampUTC(SemossDate semossdate) {
-		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
-		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-	
-	/**
-	 * Get the current LocalDateTime
-	 * @return currentTimestamp
-	 */
-	public static LocalDateTime getLocalDateTimeUTC(LocalDateTime ldt) {
-		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
-		return gmt.toLocalDateTime();
 	}
 	
 	/**

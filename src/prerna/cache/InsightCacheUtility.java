@@ -16,7 +16,6 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collections;
@@ -185,7 +184,7 @@ public class InsightCacheUtility {
 			// TODO: how do we store this at the parameter level
 			// TODO: how do we store this at the parameter level
 			IProject project = Utility.getProject(projectId);
-			LocalDateTime cachedOn = LocalDateTime.now();
+			ZonedDateTime cachedOn = ZonedDateTime.now(ZoneId.of("UTC"));
 			InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 			admin.updateInsightCachedOn(rdbmsId, cachedOn);
 			SecurityInsightUtils.updateInsightCachedOn(projectId, rdbmsId, cachedOn);
@@ -493,7 +492,7 @@ public class InsightCacheUtility {
 		// update the metadata
 		try {
 			IProject project = Utility.getProject(projectId);
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 			admin.updateInsightCachedOn(rdbmsId, cachedOn);
 			SecurityInsightUtils.updateInsightCachedOn(projectId, rdbmsId, cachedOn);

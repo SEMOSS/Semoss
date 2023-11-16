@@ -183,7 +183,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 				if(!pivotPanelsBySheet.containsKey(thisKey)) {
 					// now capture the image and fill it
 					String prefixName = Utility.getRandomString(8);
-					String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
+					String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "png");
 					String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
 					if(driver == null) {
@@ -287,7 +287,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 				makeParamSheet(wb, this.insight, false,exportMap);
 			}
 			String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
+			String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "xlsx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
 			// write / encrypt file

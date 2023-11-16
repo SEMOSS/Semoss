@@ -16,6 +16,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;

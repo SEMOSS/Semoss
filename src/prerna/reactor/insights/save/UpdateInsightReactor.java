@@ -1,7 +1,7 @@
 package prerna.reactor.insights.save;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -188,7 +188,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			this.insight.setCacheCron(cacheCron);
 		}
 		// we delete the cache cause its invalid on recipe updates
-		LocalDateTime cachedOn = null;
+		ZonedDateTime cachedOn = null;
 		
 		if(params != null && !params.isEmpty()) {
 			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
@@ -313,7 +313,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param queriedDatabaseIds
 	 */
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
-			boolean global, boolean cacheable, int cacheableMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			boolean global, boolean cacheable, int cacheableMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt, 
 			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, 

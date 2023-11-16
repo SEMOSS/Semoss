@@ -1,6 +1,6 @@
 package prerna.util.ldap;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
@@ -23,8 +23,8 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	@Override
 	public AccessToken generateAccessToken(Attributes attributes, 
 			String userDN,
-			String attributeIdKey, 
-			String attributeNameKey, 
+			String attributeIdKey,
+			String attributeNameKey,
 			String attributeEmailKey, 
 			String attributeUserNameKey,
 			String attributeLastPwdChangeKey,
@@ -36,7 +36,7 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	}
 	
 	@Override 
-	public LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
+	public ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
 		return LDAPConnectionHelper.getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
 	}
 	
