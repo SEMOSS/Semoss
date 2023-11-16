@@ -799,7 +799,7 @@ public class Project implements IProject {
 			compileReactorsFromJavaFiles(customLoader);
 		}
 		
-		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+		this.lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
 		classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 	}
 	
@@ -882,7 +882,7 @@ public class Project implements IProject {
 			if( !javaDirectory.exists() ) {
 				// dont need to keep setting this 
 				if(this.lastReactorCompilationDate == null) {
-					this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+					this.lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
 					classLogger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
 				}
 				return null;
@@ -919,7 +919,7 @@ public class Project implements IProject {
 				}
 			}
 
-			this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+			this.lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
 			classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 		}
 		
@@ -1084,7 +1084,7 @@ public class Project implements IProject {
 				targetPublicHomeProjectPortalsDir.deleteOnExit();
 				this.publishedPortal = true;
 				this.republishPortal = false;
-				this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
+				this.lastPortalPublishDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
 				classLogger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
 			}
 		} catch (Exception e) {
@@ -1520,6 +1520,7 @@ public class Project implements IProject {
 				this.projectSpecificHash = Utility.loadReactors(this.projectAssetFolder, cl);
 				if(this.projectSpecificHash != null && !this.projectSpecificHash.isEmpty()) {
 					ProjectCustomReactorCompilator.setCompiled(this.projectId);
+					lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
 				}
 			}
 		}

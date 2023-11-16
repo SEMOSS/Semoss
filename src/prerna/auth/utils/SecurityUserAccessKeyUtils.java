@@ -3,12 +3,9 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -131,8 +128,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		String secretKey = UUID.randomUUID().toString();
 		String saltedSecretKey = (AbstractSecurityUtils.hash(secretKey, salt));
 
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String insertQuery = "INSERT INTO "+SMSS_USER_ACCESS_KEYS_TABLE_NAME +
 				" (USERID, TYPE, ACCESSKEY, SECRETKEY, SECRETSALT, DATECREATED, LASTUSED, TOKENNAME, TOKENDESCRIPTION) "
@@ -147,7 +143,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, accessKey); 
 			ps.setString(parameterIndex++, saltedSecretKey); 
 			ps.setString(parameterIndex++, salt); 
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			if(tokenName == null || (tokenName=tokenName.trim()).isEmpty()) {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
@@ -184,8 +180,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @param token
 	 */
 	public static void updateAccessTokenLastUsed(String accessKey) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String insertQuery = "UPDATE "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" SET LASTUSED=? WHERE ACCESSKEY=?";
 
@@ -193,7 +188,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, accessKey);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {

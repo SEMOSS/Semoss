@@ -185,7 +185,7 @@ public class ToPdfReactor extends AbstractReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pdf");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pdf");
 		// grab file path to write the file
 		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set

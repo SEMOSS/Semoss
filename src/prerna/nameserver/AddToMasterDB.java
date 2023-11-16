@@ -143,7 +143,6 @@ public class AddToMasterDB {
             // into the local master
             File file = new File(owlFile);
             Date modDate = new Date(file.lastModified());
-
             // insert the engine first
             // engine is a type of engine
             // keep the engine URI

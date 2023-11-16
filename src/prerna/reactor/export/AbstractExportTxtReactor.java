@@ -4,14 +4,15 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.date.SemossDate;
+import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
@@ -39,9 +40,9 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	 * @param appendTimestamp
 	 * @return
 	 */
-	public static String getExportFileName(String customName, String extension, boolean appendTimestamp) {
+	public static String getExportFileName(User user, String customName, String extension, boolean appendTimestamp) {
 		if(appendTimestamp) {
-			return  getExportFileName( customName,  extension);
+			return getExportFileName(user, customName,  extension);
 		} else if(customName != null && !customName.trim().isEmpty()) {
 			return Utility.normalizePath(customName.trim()) + "." + extension;
 		}
@@ -54,10 +55,12 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	 * @param extension
 	 * @return
 	 */
-	public static String getExportFileName(String customName, String extension) {
+	public static String getExportFileName(User user, String customName, String extension) {
 		// get a random file name
-		SemossDate sDate = new SemossDate(LocalDateTime.now());
-		String dateFormatted = sDate.getFormatted("yyyy-MM-dd HH-mm-ss");
+		ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeForUser(user);
+		 // Define a custom DateTimeFormatter
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-Z");
+        String dateFormatted = currentDateTime.format(formatter);
 		if(customName != null && !customName.trim().isEmpty()) {
 			return Utility.normalizePath(customName.trim() + "_" + dateFormatted) + "." + extension;
 		}

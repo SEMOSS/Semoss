@@ -3,9 +3,8 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.TimeZone;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -35,14 +34,13 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @param expirationMinutes
 	 */
 	public static void clearExpiredTokens(long expirationMinutes) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		LocalDateTime ldt = LocalDateTime.now().minusMinutes(expirationMinutes);
+		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC")).minusMinutes(expirationMinutes);
 		String query = "DELETE FROM TOKEN WHERE DATEADDED <= ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(ldt), cal);
+			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.execute();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -70,18 +68,16 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Object[] generateToken(String ipAddr, String clientId) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-
 		String query = "INSERT INTO TOKEN (IPADDR, VAL, DATEADDED, CLIENTID) VALUES (?,?,?,?)";
 		String tokenValue = UUID.randomUUID().toString();
-		LocalDateTime ldt = LocalDateTime.now();
+		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC"));
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, ipAddr);
 			ps.setString(parameterIndex++, tokenValue);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(ldt), cal);
+			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.setString(parameterIndex++, clientId);
 			ps.execute();
 			logger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
@@ -104,7 +100,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		return new Object[] {tokenValue, ldt, cal};
+		return new Object[] {tokenValue, ipAddr, clientId};
 	}
 	
 	/**

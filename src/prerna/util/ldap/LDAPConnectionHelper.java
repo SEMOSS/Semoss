@@ -2,8 +2,7 @@ package prerna.util.ldap;
 
 import java.io.UnsupportedEncodingException;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Base64;
+import java.time.ZonedDateTime;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -82,7 +81,7 @@ public class LDAPConnectionHelper {
 	 * @param windowsFileTime
 	 * @return
 	 */
-	public static LocalDateTime convertWinFileTimeToJava(String windowsFileTime) {
+	public static ZonedDateTime convertWinFileTimeToJava(String windowsFileTime) {
 		return convertWinFileTimeToJava(Long.parseLong(windowsFileTime));
 	}
 	
@@ -91,15 +90,14 @@ public class LDAPConnectionHelper {
 	 * @param windowsFileTime
 	 * @return
 	 */
-	public static LocalDateTime convertWinFileTimeToJava(long windowsFileTime) {
+	public static ZonedDateTime convertWinFileTimeToJava(long windowsFileTime) {
 		// That time is representing 100 nanosecond units since Jan 1. 1601. 
 		// There's 116444736000000000 100ns between 1601 and 1970 which is how Java time is stored
 		long fixedTime = (windowsFileTime-116444736000000000L) / 10000L;
-		LocalDateTime date = LocalDateTime.ofInstant(
+		return ZonedDateTime.ofInstant(
 				Instant.ofEpochMilli(fixedTime), 
 				TimeZone.getTimeZone("UTC").toZoneId()
 				);
-		return date;
 	}
 	
 	public static AccessToken generateAccessToken(Attributes attributes, 
@@ -123,7 +121,7 @@ public class LDAPConnectionHelper {
 			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
 		}
 
-		LocalDateTime lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
+		ZonedDateTime lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
 		
 		AccessToken token = new AccessToken();
 		token.setProvider(AuthProvider.ACTIVE_DIRECTORY);
@@ -145,7 +143,7 @@ public class LDAPConnectionHelper {
 		return token;
 	}
 	
-	public static LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
+	public static ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
 		// no defined key - nothing to do
 		if(attributeLastPwdChangeKey == null || attributeLastPwdChangeKey.isEmpty()) {
 			return null;
@@ -161,7 +159,7 @@ public class LDAPConnectionHelper {
 			throw new LDAPPasswordChangeRequiredException("User's last password change is 0, must change their password on first login");
 		}
 		
-		LocalDateTime pwdChange = null;
+		ZonedDateTime pwdChange = null;
 		if(lastPwdChange instanceof Integer || lastPwdChange instanceof Long) {
 			pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
 		} else if(lastPwdChange instanceof String) {
@@ -183,8 +181,8 @@ public class LDAPConnectionHelper {
 		return pwdChange;
 	}
 	
-	private static boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException {
-		LocalDateTime now = LocalDateTime.now();
+	private static boolean requirePasswordChange(ZonedDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException {
+		ZonedDateTime now = ZonedDateTime.now(TimeZone.getTimeZone("UTC").toZoneId());
 		if(lastPwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
 			return true;
 		}
