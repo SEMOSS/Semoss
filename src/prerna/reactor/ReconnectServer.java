@@ -38,21 +38,21 @@ public class ReconnectServer extends AbstractReactor
 		if(!useNettyPy)
 			return NounMetadata.getErrorNounMessage("TCP Server is not available on this server");
 
-		if(user.getTCPServer(false) != null && user.getTCPServer(false).isConnected())
+		if(user.getSocketClient(false) != null && user.getSocketClient(false).isConnected())
 		{
 			if(force != null && force.equalsIgnoreCase("true"))
 			{
-				user.getTCPServer(false).stopPyServe(user.tupleSpace);
-				user.setTCPServer(null);
+				user.getSocketClient(false).stopPyServe(user.tupleSpace);
+				user.setSocketClient(null);
 			}
 			else
 				return NounMetadata.getErrorNounMessage("TCP Server is already available");
 		}
 		//|| (force != null && force.equalsIgnoreCase("true")) - this should already work
-		if( ( (user.getTCPServer(false) != null && !user.getTCPServer(false).isConnected()) ) || user.getTCPServer(false) == null ) // it was there previously
-			user.getTCPServer(true, forcePort);
+		if( ( (user.getSocketClient(false) != null && !user.getSocketClient(false).isConnected()) ) || user.getSocketClient(false) == null ) // it was there previously
+			user.getSocketClient(true, forcePort);
 		
-		if(user.getTCPServer(false) != null && user.getTCPServer(false).isConnected())
+		if(user.getSocketClient(false) != null && user.getSocketClient(false).isConnected())
 			return new NounMetadata("TCP Server available and connected", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 		
 		return null;

@@ -16,7 +16,6 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
@@ -147,7 +146,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		// create the py translator
 		pyt = new TCPPyTranslator();
-		pyt.setClient(socketClient);
+		pyt.setSocketClient(socketClient);
 		pyt.runEmptyPy(commands);	
 		
 		// run a prefix command
