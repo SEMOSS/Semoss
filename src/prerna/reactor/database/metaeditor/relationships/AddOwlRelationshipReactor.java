@@ -54,9 +54,9 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		}
 		
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			for(int i = 0; i < size; i++) {
 				String startT = startTList.get(i);
 				String endT = endTList.get(i);
@@ -80,7 +80,7 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 	
 			// store user inputed values
 			storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "added");

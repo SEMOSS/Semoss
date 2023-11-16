@@ -6,6 +6,7 @@ import java.util.Map;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public interface ICloudClient {
@@ -200,6 +201,15 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pushOwl(String databaseId) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @param owlEngine
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -208,6 +218,15 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pullOwl(String databaseId) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @param owlEngine
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException;
 
 	///////////////////////////////////////////////////////////////////////////////////
 	

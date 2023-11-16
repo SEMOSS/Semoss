@@ -72,12 +72,10 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		}
 		
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		long start = System.currentTimeMillis();
-
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-		
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			ExcelSheetFileIterator it = null;
 			try {
 				it = getExcelIterator(filePath);
@@ -155,7 +153,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 		
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

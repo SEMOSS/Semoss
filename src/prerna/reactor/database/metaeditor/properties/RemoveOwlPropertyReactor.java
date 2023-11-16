@@ -47,9 +47,9 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		}
 		// if RDBMS, we need to know the prime key of the column
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			String physicalPropUri = database.getPhysicalUriFromPixelSelector(concept + "__" + column);
 			if(physicalPropUri == null) {
 				throw new IllegalArgumentException("Cannot find property in existing metadata to remove");
@@ -122,7 +122,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 			
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

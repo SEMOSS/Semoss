@@ -46,10 +46,9 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		// i need to delete the properties of this node
 		// and then everything related to this node
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			String conceptPhysical = database.getPhysicalUriFromPixelSelector(concept);
 			List<String> properties = database.getPropertyUris4PhysicalUri(conceptPhysical);
 			StringBuilder bindings = new StringBuilder();
@@ -174,7 +173,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 			
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

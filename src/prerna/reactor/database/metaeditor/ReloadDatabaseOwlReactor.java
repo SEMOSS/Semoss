@@ -39,11 +39,11 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 			owlEngine.reloadOWLFile();
+			EngineSyncUtility.clearEngineCache(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully reloaded database owl", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
