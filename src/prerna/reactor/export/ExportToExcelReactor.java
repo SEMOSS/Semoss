@@ -172,7 +172,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(exportMap.get("FILE_NAME") + ""); 
-		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "xlsx");
 		// grab file path to write the file
 		String fileLocation =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 		
@@ -307,7 +307,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 			task.setTaskOptions(taskOptions);
 			// add chart
-			processTask(workbook, task, panel);
+			processTask(user, workbook, task, panel);
 		}
 		
 		// Insert Semoss Logo after the last chart on each sheet
@@ -498,7 +498,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 	}
 
-	private void processTask(XSSFWorkbook workbook, ITask task, InsightPanel panel) {
+	private void processTask(User user, XSSFWorkbook workbook, ITask task, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 		String sheetName = sheetAlias.get(sheetId);
@@ -524,7 +524,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			} else if (plotType.equals("Radar")) {
 				insertRadarChart(sheet, dataSheet,options, panel);
 			} else if(!plotType.equals("Grid") && !plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
-				insertImage(workbook, sheet, sheetId, panelId);
+				insertImage(workbook, user, sheet, sheetId, panelId);
 			} else if (plotType.equals("Grid")) {
 				insertGrid(sheet.getSheetName(), task, panel);
 			} else if(plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
@@ -540,7 +540,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					insertPivot2(sheet.getSheetName(), cpr, rowObject);
 				}
 				else // old routine
-					insertPivot(sheet.getSheetName(), panelId, sheetId);
+					insertPivot(user, sheet.getSheetName(), panelId, sheetId);
 			}
 			
 		} catch(Exception ex) {
@@ -1310,7 +1310,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return ys;
 	}
 	
-	private void insertPivot(String excelSheetName, String panelId, String sheetId) {
+	private void insertPivot(User user, String excelSheetName, String panelId, String sheetId) {
 		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
 		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
 		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
@@ -1324,7 +1324,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		logger.info("Generating pivot view");
 		
-		String exportName = AbstractExportTxtReactor.getExportFileName("ABCD", "png");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, "ABCD", "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
 		//this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, htmlUrl, imageLocation, sessionId, 10_000);
@@ -1445,7 +1445,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	 * @param sheetId
 	 * @param panelId
 	 */
-	private void insertImage(Workbook wb, XSSFSheet targetSheet, String sheetId, String panelId) {
+	private void insertImage(Workbook wb, User user, XSSFSheet targetSheet, String sheetId, String panelId) {
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String imageUrl = this.insight.getLiveURL();
@@ -1453,7 +1453,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String sheetAppender = "&sheet=" + sheetId;
 		
 		String prefixName = Utility.getRandomString(8);
-		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
 		if(driver == null) {

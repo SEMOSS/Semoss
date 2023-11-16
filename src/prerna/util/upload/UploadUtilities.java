@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -1559,7 +1559,7 @@ public class UploadUtilities {
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
-				LocalDateTime cachedOn = null;
+				ZonedDateTime cachedOn = null;
 				String description = null;
 				List<String> tags = null;
 				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1604,7 +1604,7 @@ public class UploadUtilities {
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 			String cacheCron = Utility.getApplicationCacheCron();
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, INSIGHT_USAGE_STATS_INSIGHT_NAME);
@@ -1651,7 +1651,7 @@ public class UploadUtilities {
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 			String cacheCron = Utility.getApplicationCacheCron();
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1705,7 +1705,7 @@ public class UploadUtilities {
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
-				LocalDateTime cachedOn = null;
+				ZonedDateTime cachedOn = null;
 				String description = null;
 				List<String> tags = null;
 				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1760,7 +1760,7 @@ public class UploadUtilities {
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
-				LocalDateTime cachedOn = null;
+				ZonedDateTime cachedOn = null;
 				String description = null;
 				List<String> tags = null;
 				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1817,7 +1817,7 @@ public class UploadUtilities {
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 			String cacheCron = Utility.getApplicationCacheCron();
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1875,7 +1875,7 @@ public class UploadUtilities {
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 			String cacheCron = Utility.getApplicationCacheCron();
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1936,7 +1936,7 @@ public class UploadUtilities {
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 			String cacheCron = Utility.getApplicationCacheCron();
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
@@ -1993,7 +1993,7 @@ public class UploadUtilities {
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 			String cacheCron = Utility.getApplicationCacheCron();
-			LocalDateTime cachedOn = null;
+			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);

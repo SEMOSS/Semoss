@@ -6,15 +6,15 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -830,10 +830,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 			if(newHashPass != null && newSalt != null) {
-				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 				try {
-					SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp, cal);
+					SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -977,9 +976,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, isLocked);
 			if(!isLocked) {
 				// we reset the counter so lastlogin will be today
-				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-				ps.setTimestamp(parameterIndex++, timestamp, cal);
+				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+				ps.setTimestamp(parameterIndex++, timestamp);
 			}
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type);
@@ -1395,7 +1393,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This user already has access to this engine. Please edit the existing permission level.");
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1444,7 +1442,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1498,7 +1496,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The following users already have access to this project. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1552,7 +1550,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The following users already have access to this insight. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1605,7 +1603,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1714,7 +1712,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setInt(parameterIndex++, permissionLevel);
 					ps.setString(parameterIndex++, userDetails.getValue0());
 					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -1771,7 +1769,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.setInt(parameterIndex++, permissionLevel);
 						ps.setString(parameterIndex++, userDetails.getValue0());
 						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -1876,7 +1874,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setInt(parameterIndex++, permissionLevel);
 					ps.setString(parameterIndex++, userDetails.getValue0());
 					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -1933,7 +1931,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.setInt(parameterIndex++, permissionLevel);
 						ps.setString(parameterIndex++, userDetails.getValue0());
 						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -1959,7 +1957,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void grantNewUsersEngineAccess(String engineId, String permission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2007,7 +2005,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void grantNewUsersProjectAccess(String projectId, String permission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2081,7 +2079,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setInt(parameterIndex++, permissionLevel);
 				insertPs.setString(parameterIndex++, userDetails.getValue0());
 				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+				insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -2115,7 +2113,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the engine");
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2177,7 +2175,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the engine: "+String.join(",", toRemoveUserIds));
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2230,7 +2228,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2277,7 +2275,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2357,7 +2355,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the insight: "+String.join(",", toRemoveUserIds));
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2709,7 +2707,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2752,7 +2750,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public void addAllInsightUsers(String projectId, String insightId, String permission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2812,7 +2810,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3003,7 +3001,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void updateEngineUserPermissions(String engineId, String newPermission, User user, String endDate) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3042,7 +3040,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void updateProjectUserPermissions(String projectId, String newPermission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3083,7 +3081,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addAllEngineUsers(String engineId, String permission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3135,7 +3133,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addAllProjectUsers(String projectId, String permission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3187,7 +3185,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3242,7 +3240,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission, User user, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3287,9 +3285,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public int lockAccounts(int numDaysSinceLastLogin) {
 		int numUpdated = 0;
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
-		LocalDateTime dateToFilter = LocalDateTime.now();
+
+		ZonedDateTime dateToFilter = ZonedDateTime.now(ZoneId.of("UTC"));
 		dateToFilter = dateToFilter.minusDays(numDaysSinceLastLogin);
 		
 		String query = "UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?";
@@ -3298,7 +3295,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, true);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(dateToFilter), cal);
+			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(dateToFilter));
 			numUpdated = ps.executeUpdate();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -3422,11 +3419,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public int setLockAccountsAndRecalculate(int numDaysSinceLastLogin) {
 		int numUpdated = 0;
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		
-		LocalDateTime dateToFilter = LocalDateTime.now();
+		ZonedDateTime dateToFilter = ZonedDateTime.now(ZoneId.of("UTC"));
 		dateToFilter = dateToFilter.minusDays(numDaysSinceLastLogin);
-		java.sql.Timestamp sqlTimestamp = java.sql.Timestamp.valueOf(dateToFilter);
+		java.sql.Timestamp sqlTimestamp = Utility.getSqlTimestampUTC(dateToFilter);
 		
 		String[] queries = new String[] {
 				"UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?",
@@ -3442,7 +3438,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps = securityDb.getPreparedStatement(query);
 				int parameterIndex = 1;
 				ps.setBoolean(parameterIndex++, updateBool);
-				ps.setTimestamp(parameterIndex++, sqlTimestamp, cal);
+				ps.setTimestamp(parameterIndex++, sqlTimestamp);
 				numUpdated = ps.executeUpdate();
 				if(!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
@@ -3500,7 +3496,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public static void approveEngineUserAccessRequests(String userId, String userType, String engineId, List<Map<String, Object>> requests, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3558,8 +3554,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<requests.size(); i++) {
 				int index = 1;
@@ -3568,7 +3563,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
-				updatePs.setTimestamp(index++, timestamp, cal);
+				updatePs.setTimestamp(index++, timestamp);
 				//where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.setString(index++, engineId);
@@ -3598,8 +3593,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			for(int i = 0; i < requestIds.size(); i++) {
 				int index = 1;
@@ -3607,7 +3601,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
-				ps.setTimestamp(index++, timestamp, cal);
+				ps.setTimestamp(index++, timestamp);
 				//where
 				ps.setString(index++, requestIds.get(i));
 				ps.setString(index++, engineId);
@@ -3634,7 +3628,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public static void approveProjectUserAccessRequests(String userId, String userType, String projectId, List<Map<String, Object>> requests, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3692,8 +3686,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<requests.size(); i++) {
 				int index = 1;
@@ -3702,7 +3695,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
-				updatePs.setTimestamp(index++, timestamp, cal);
+				updatePs.setTimestamp(index++, timestamp);
 				//where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.addBatch();
@@ -3731,8 +3724,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<RequestIdList.size(); i++) {
 				int index = 1;
@@ -3740,7 +3732,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
-				ps.setTimestamp(index++, timestamp, cal);
+				ps.setTimestamp(index++, timestamp);
 				//where
 				ps.setString(index++, RequestIdList.get(i));
 				ps.addBatch();
@@ -3767,7 +3759,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public static void approveInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<Map<String, Object>> requests, String endDate) {
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3807,7 +3799,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setString(parameterIndex++, userId);
 				insertPs.setString(parameterIndex++, userType);
-				insertPs.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+				insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				insertPs.addBatch();
 			}
@@ -3826,8 +3818,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<requests.size(); i++) {
 				int index = 1;
@@ -3836,7 +3827,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
-				updatePs.setTimestamp(index++, timestamp, cal);
+				updatePs.setTimestamp(index++, timestamp);
 				//where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.addBatch();
@@ -3866,8 +3857,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<RequestIdList.size(); i++) {
 				int index = 1;
@@ -3875,7 +3865,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
-				ps.setTimestamp(index++, timestamp, cal);
+				ps.setTimestamp(index++, timestamp);
 				//where
 				ps.setString(index++, RequestIdList.get(i));
 				ps.addBatch();

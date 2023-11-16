@@ -2,9 +2,6 @@ package prerna.usertracking;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,20 +25,18 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	 * @param ap
 	 */
 	protected static void saveSession(String sessionId, UserTrackingDetails utd, User user, AuthProvider ap) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-		
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		if(user.isAnonymous()) {
-			addSession(sessionId, utd, user.getAnonymousId(), "ANONYMOUS", timestamp, cal);
+			addSession(sessionId, utd, user.getAnonymousId(), "ANONYMOUS", timestamp);
 		} else {
 			// since we dont want to insert the same login multiple times
 			// we will only store for the parameter ap
 			AccessToken token = user.getAccessToken(ap);
-			addSession(sessionId, utd, token.getId(), ap.toString(), timestamp, cal);
+			addSession(sessionId, utd, token.getId(), ap.toString(), timestamp);
 		}
 	}
 	
-	private static void addSession(String sessionId, UserTrackingDetails utd, String userId, String type, java.sql.Timestamp timestamp, Calendar cal) {
+	private static void addSession(String sessionId, UserTrackingDetails utd, String userId, String type, java.sql.Timestamp timestamp) {
 		String query = "INSERT INTO USER_TRACKING "
 				+ "(SESSIONID, USERID, TYPE, CREATED_ON, ENDED_ON, "
 				+ "IP_ADDR, IP_LAT, IP_LONG, IP_COUNTRY, IP_STATE, IP_CITY) "
@@ -55,7 +50,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 			ps.setString(index++, sessionId);
 			ps.setString(index++, userId);
 			ps.setString(index++, type);
-			ps.setTimestamp(index++, timestamp, cal);
+			ps.setTimestamp(index++, timestamp);
 			ps.setNull(index++, java.sql.Types.TIMESTAMP);
 			if(utd.getIpAddr() == null) {
 				ps.setNull(index++, java.sql.Types.VARCHAR);
@@ -116,9 +111,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 
 	@Override
 	public void registerLogout(String sessionId) {
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String query = "UPDATE USER_TRACKING SET ENDED_ON = ? WHERE SESSIONID = ?";
 		
 		PreparedStatement ps = null;
@@ -126,7 +119,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 		try {
 			ps = engine.getPreparedStatement(query);
 			int index = 1;
-			ps.setTimestamp(index++, timestamp, cal);
+			ps.setTimestamp(index++, timestamp);
 			ps.setString(index++, sessionId);
 			
 			ps.execute();

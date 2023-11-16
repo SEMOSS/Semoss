@@ -267,9 +267,9 @@ public class UsaJobsUtil {
 	{
 		try {
 			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy" + separator + "MM" + separator + "dd");  
-			   LocalDateTime now = LocalDateTime.now();  
-			   //System.out.println(dtf.format(now));
-			   return dtf.format(now);
+			LocalDateTime now = Utility.getLocalDateTimeUTC(LocalDateTime.now());
+			//System.out.println(dtf.format(now));
+			return dtf.format(now);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

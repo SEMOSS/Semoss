@@ -3,16 +3,12 @@ package prerna.usertracking;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,10 +26,11 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
 
 public class UserCatalogVoteUtils extends UserTrackingUtils {
 
-	private static Logger logger = LogManager.getLogger(UserCatalogVoteUtils.class);
+	private static Logger classLogger = LogManager.getLogger(UserCatalogVoteUtils.class);
 	
 	private static String VOTE_TN = "USER_CATALOG_VOTES";
 	private static String VOTE_PRE = "USER_CATALOG_VOTES__";
@@ -50,7 +47,6 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "TYPE"));
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
 		
-
 		OrQueryFilter of = new OrQueryFilter();
 		for (Pair<String, String> cred : creds) {
 			AndQueryFilter af = new AndQueryFilter();
@@ -59,7 +55,6 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 			of.addFilter(af);
 		}
 		qs.addExplicitFilter(of);
-
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", catalogId));
 		
 		IRawSelectWrapper wrapper = null;
@@ -77,13 +72,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -139,13 +134,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -198,13 +193,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -238,13 +233,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				votes.put((String) values[0], ((Number) values[0]).intValue());
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -316,33 +311,35 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 			ps = userTrackingDb.getPreparedStatement(query);
 			for (Pair<String, String> cred : creds) {
 				int index = 1;
 				ps.setInt(index, vote);
-				ps.setTimestamp(index, Timestamp.valueOf(LocalDateTime.now()), cal);
+				ps.setTimestamp(index, Utility.getCurrentSqlTimestampUTC());
 				ps.setString(index++, cred.getValue0());
 				ps.setString(index++, cred.getValue1());
 				ps.setString(index++, catalogId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				if(userTrackingDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -367,20 +364,23 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				ps.addBatch();
 			}
 			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				if(userTrackingDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -398,34 +398,35 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		
 		PreparedStatement ps = null;
 		try {
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 			ps = userTrackingDb.getPreparedStatement(query);
-			
 			for (Pair<String, String> cred : creds) {
 				int index = 1;
 				ps.setString(index++, cred.getValue0());
 				ps.setString(index++, cred.getValue1());
 				ps.setString(index++, cid);
 				ps.setInt(index++, vote);
-				ps.setTimestamp(index++, Timestamp.valueOf(LocalDateTime.now()), cal);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 				ps.addBatch();
 			}
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				if(userTrackingDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -455,8 +456,6 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		
 		qs.addOrderBy("total", "desc");
 		qs.setLimit(limit);
-		
-		
 		return QueryExecutionUtility.flushToListString(userTrackingDb, qs);
 	}
 	

@@ -44,7 +44,7 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "txt");
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "txt");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set

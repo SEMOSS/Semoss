@@ -1,7 +1,7 @@
 package prerna.engine.impl;
 
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -128,7 +128,7 @@ class InsightCacher implements Runnable {
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
-				LocalDateTime cachedOn = null;
+				ZonedDateTime cachedOn = null;
 				Map<String, Object> parameterValues = null;
 				
 				if(created) {
