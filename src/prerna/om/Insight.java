@@ -751,7 +751,7 @@ public class Insight implements Serializable {
 				// now set the netty client
 				if(this.user != null)
 				{
-					((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getTCPServer(true) );
+					((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getSocketClient(true) );
 				}
 				else
 				{
@@ -1521,7 +1521,7 @@ public class Insight implements Serializable {
 			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
 	
-			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getTCPServer(false));
+			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getSocketClient(false));
 			this.contextProjectId = projectId;
 			return true;
 		}
@@ -1636,9 +1636,9 @@ public class Insight implements Serializable {
 			}
 			// need to recreate the translator
 			if(this.pyt instanceof TCPPyTranslator) {
-				SocketClient nc1 = ((TCPPyTranslator)pyt).nc;
+				SocketClient nc1 = ((TCPPyTranslator)pyt).getSocketClient();
 				this.pyt = new TCPPyTranslator();
-				((TCPPyTranslator) this.pyt).setClient(nc1);
+				((TCPPyTranslator) this.pyt).setSocketClient(nc1);
 			} else if(this.pyt instanceof PyTranslator) {
 				this.jepThread = pyt.getPy();
 				this.pyt = new PyTranslator();

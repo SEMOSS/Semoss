@@ -563,13 +563,13 @@ public class PyTranslator {
 			RuntimeException error = null;
 			try {
 				// Start the error sender thread
-				if(this instanceof TCPPyTranslator && ((TCPPyTranslator)this).nc instanceof NativePySocketClient)
+				if(this instanceof TCPPyTranslator && ((TCPPyTranslator)this).getSocketClient() instanceof NativePySocketClient) {
 					output = "" + runScript(script, insight);
+				}
 				else
 				{
 					runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
 									+ outputPath + "\", globals())");
-
 					if(in != null)
 					{
 						est.stopSession();

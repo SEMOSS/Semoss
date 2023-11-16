@@ -97,7 +97,7 @@ public class MakePortalReactor extends AbstractReactor {
 		if(!portalFolderFile.exists())
 			portalFolderFile.mkdir();
 
-		CmdExecUtil util = new CmdExecUtil(mountName, portalFolder, this.insight.getUser().getTCPServer(true));
+		CmdExecUtil util = new CmdExecUtil(mountName, portalFolder, this.insight.getUser().getSocketClient(true));
 		
 		if(!archetype.startsWith("http")) // this is our local repo pull from it
 			archetype = "https://github.com/semoss/" + archetype;

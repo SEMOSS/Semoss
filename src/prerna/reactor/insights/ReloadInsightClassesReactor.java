@@ -110,14 +110,14 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 			executeOnSocket = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION)+"");
 		}
 		
-		if(executeOnSocket && this.insight.getUser() != null && this.insight.getUser().getTCPServer(false) != null) {
+		if(executeOnSocket && this.insight.getUser() != null && this.insight.getUser().getSocketClient(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
 			ps.methodName = "clearClassCache";
 			ps.hasReturn = false;
 			
-			this.insight.getUser().getTCPServer(false).executeCommand(ps);
+			this.insight.getUser().getSocketClient(false).executeCommand(ps);
 		}
 	}
 	
