@@ -173,7 +173,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// create the py translator
 		pyt = new TCPPyTranslator();
-		pyt.setClient(socketClient);
+		pyt.setSocketClient(socketClient);
 	
 		// TODO remove once bug is caught / fixed
 		StringBuilder intitPyCommands = new StringBuilder("\n");

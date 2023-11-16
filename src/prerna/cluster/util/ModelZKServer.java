@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -17,13 +15,11 @@ import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
-import org.apache.curator.framework.recipes.locks.InterProcessMultiLock;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.logging.log4j.LogManager;
@@ -250,15 +246,13 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 			
 			socketClient = connect2Py(null);
 			pyt = new TCPPyTranslator();
-			pyt.setClient(socketClient);
-			
+			pyt.setSocketClient(socketClient);
 			
 			// publish this node ? - do we even need to ?
 			addServer();
 
 			// catchup
 			catchup();
-
 			
 			// listen for getChildren on /model
 			addCuratorListener(this, MODEL_ROOT);

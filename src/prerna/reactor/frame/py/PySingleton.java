@@ -75,7 +75,7 @@ public class PySingleton {
 					{
 						getTCPServer();
 						pyt = new TCPPyTranslator();
-						((TCPPyTranslator) pyt).nc = tcpServer; // starts it						
+						((TCPPyTranslator) pyt).setSocketClient(tcpServer); // starts it						
 					}
 				}
 			}
