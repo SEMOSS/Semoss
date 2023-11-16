@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -151,6 +152,14 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		this(Date.from( localDateTime.atZone( TimeZone.getDefault().toZoneId() ).toInstant() ), "yyyy-MM-dd HH:mm:ss");
 	}
 
+	/**
+	 * Date from localDateTime
+	 * @param localDateTime
+	 */
+	public SemossDate(ZonedDateTime zonedDateTime) {
+		this(Date.from( zonedDateTime.toInstant() ), "yyyy-MM-dd HH:mm:ss");
+	}
+	
 	public String getPattern() {
 		return this.pattern;
 	}

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -189,7 +188,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -377,7 +376,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -437,7 +436,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -490,7 +489,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
-			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -767,7 +766,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -832,7 +831,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -905,7 +904,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -987,7 +986,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1846,7 +1845,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				+ "VALUES (?,?,?,?,?,?,?,?,?, 'NEW_REQUEST')";
 		PreparedStatement insertPs = null;
 		try {
-			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 			int index = 1;
 			insertPs = securityDb.getPreparedStatement(insertQ);

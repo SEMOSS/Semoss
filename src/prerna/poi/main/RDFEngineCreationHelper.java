@@ -1,7 +1,7 @@
 package prerna.poi.main;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -56,7 +56,7 @@ public class RDFEngineCreationHelper {
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
-				LocalDateTime cachedOn = null;
+				ZonedDateTime cachedOn = null;
 				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
@@ -154,7 +154,7 @@ public class RDFEngineCreationHelper {
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
-				LocalDateTime cachedOn = null;
+				ZonedDateTime cachedOn = null;
 				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
@@ -212,7 +212,7 @@ public class RDFEngineCreationHelper {
 		int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 		boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 		String cacheCron = Utility.getApplicationCacheCron();
-		LocalDateTime cachedOn = null;
+		ZonedDateTime cachedOn = null;
 		String schemaName = null;
 		
 		// q1

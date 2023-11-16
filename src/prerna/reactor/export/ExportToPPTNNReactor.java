@@ -174,7 +174,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 
 				// now capture the image and fill it
 				String prefixName = Utility.getRandomString(8);
-				String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
+				String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "png");
 				String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 				util = new ChromeDriverUtility();
 
@@ -234,7 +234,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			}
 
 			String prefixName = fileName;
-			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
+			String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			fileOut = new FileOutputStream(fileLocation);
 			hslfSlideShow.write(fileOut);

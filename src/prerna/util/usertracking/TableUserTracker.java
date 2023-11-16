@@ -1,6 +1,5 @@
 package prerna.util.usertracking;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -766,7 +765,7 @@ public class TableUserTracker implements IUserTracker {
 				row[2] = user.getAnonymousId();
 			}
 		}
-		row[3] = java.sql.Timestamp.valueOf(LocalDateTime.now()).toString();
+		row[3] = Utility.getCurrentSqlTimestampUTC().toString();
 		return row;
 	}
 	

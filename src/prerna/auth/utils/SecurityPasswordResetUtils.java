@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 import prerna.util.ldap.ILdapAuthenticator;
 
 public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
@@ -128,7 +129,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The email '" + email + "' does not exist");
 		}
 		
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String uniqueToken = UUID.randomUUID().toString();
 		
 		PreparedStatement ps = null;
@@ -206,7 +207,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		if(dateTokenAdded == null) {
 			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
-		if(LocalDateTime.now().minusMinutes(15).isBefore(dateTokenAdded.getLocalDateTime())) {
+		if(Utility.getLocalDateTimeUTC(LocalDateTime.now()).minusMinutes(15).isBefore(dateTokenAdded.getLocalDateTime())) {
 			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
 		}
 		
