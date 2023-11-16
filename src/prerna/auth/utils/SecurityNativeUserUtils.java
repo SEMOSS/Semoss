@@ -3,13 +3,10 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -101,8 +98,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				String salt = SecurityQueryUtils.generateSalt();
 				String hashedPassword = (SecurityQueryUtils.hash(password, salt));
 
-				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
 						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=? WHERE ID=?";
@@ -129,7 +125,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, newUser.getProvider().toString());
 					ps.setString(parameterIndex++, hashedPassword);
 					ps.setString(parameterIndex++, salt);
-					ps.setTimestamp(parameterIndex++, timestamp, cal);
+					ps.setTimestamp(parameterIndex++, timestamp);
 					if(newUser.getPhone() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
@@ -192,7 +188,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					}
 				}
 
-				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp, cal);
+				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
 				return true;
 			} else {
 				// not added by admin
@@ -202,8 +198,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					String salt = AbstractSecurityUtils.generateSalt();
 					String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
-					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 					
 					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
 							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) "
@@ -234,7 +229,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.setBoolean(parameterIndex++, false);
 						ps.setString(parameterIndex++, hashedPassword);
 						ps.setString(parameterIndex++, salt);
-						ps.setTimestamp(parameterIndex++, timestamp, cal);
+						ps.setTimestamp(parameterIndex++, timestamp);
 						// not locked ...
 						ps.setBoolean(parameterIndex++, false);
 						if(newUser.getPhone() == null) {
@@ -267,7 +262,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						}
 					}
 					
-					storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp, cal);
+					storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
 					return true;
 				}
 			}
@@ -296,7 +291,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @param cal
 	 * @throws Exception 
 	 */
-	public static void storeUserPassword(String userId, String type, String hashPassword, String salt, java.sql.Timestamp timestamp, Calendar cal) throws Exception {
+	public static void storeUserPassword(String userId, String type, String hashPassword, String salt, java.sql.Timestamp timestamp) throws Exception {
 		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
 				+ "VALUES (?,?,?,?,?,?)";
 		
@@ -309,7 +304,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, type);
 			ps.setString(parameterIndex++, hashPassword);
 			ps.setString(parameterIndex++, salt);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -742,9 +737,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userId);
 			ps.execute();
 			
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-			storeUserPassword(userId, AuthProvider.NATIVE.toString(), hashPassword, salt, timestamp, cal);
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+			storeUserPassword(userId, AuthProvider.NATIVE.toString(), hashPassword, salt, timestamp);
 
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();

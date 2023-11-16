@@ -204,7 +204,6 @@ public class ModelInferenceLogsOwlCreation {
 	 * @throws Exception 
 	 */
 	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
-		// ENGINE	
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
 			String tableName = columns.getValue0();
 			owler.addConcept(tableName, null, null);

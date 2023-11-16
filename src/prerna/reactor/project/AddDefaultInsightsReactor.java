@@ -1,6 +1,6 @@
 package prerna.reactor.project;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -88,7 +88,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 		boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 		String cacheCron = Utility.getApplicationCacheCron();
-		LocalDateTime cachedOn = null;
+		ZonedDateTime cachedOn = null;
 		
 //		ClusterUtil.reactorPullInsightsDB(projectId);
 		if(addAll) {
@@ -281,7 +281,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 	
 	private void registerInsightAndMetadata(String projectId, String insightIdToSave, String insightName, String layout, 
-			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt, 
 			List<String> recipe, String schemaName) {
 		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, layout, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);

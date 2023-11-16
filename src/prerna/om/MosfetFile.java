@@ -2,7 +2,7 @@ package prerna.om;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +30,7 @@ public class MosfetFile {
 	private boolean cacheable = true;
 	private int cacheMinutes = -1;
 	private String cacheCron;
-	private LocalDateTime cachedOn;
+	private ZonedDateTime cachedOn;
 	private boolean cacheEncrypt = false;
 	
 	// schema name
@@ -147,11 +147,11 @@ public class MosfetFile {
 		this.cacheCron = cacheCron;
 	}
 
-	public LocalDateTime getCachedOn() {
+	public ZonedDateTime getCachedOn() {
 		return cachedOn;
 	}
 
-	public void setCachedOn(LocalDateTime cachedOn) {
+	public void setCachedOn(ZonedDateTime cachedOn) {
 		this.cachedOn = cachedOn;
 	}
 

@@ -2,7 +2,7 @@ package prerna.reactor.insights;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,7 +134,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		boolean cacheable = mosfet.isCacheable();
 		int cacheMinutes = mosfet.getCacheMinutes();
 		String cacheCron = mosfet.getCacheCron();
-		LocalDateTime cachedOn = mosfet.getCachedOn();
+		ZonedDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
 		String schemaName = mosfet.getSchemaName();
 		

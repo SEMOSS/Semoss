@@ -34,7 +34,7 @@ public class ExportImageReactor extends AbstractReactor {
 		if (fileLocation == null) {
 			// get a random file name
 			String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
+			String exportName = AbstractExportTxtReactor.getExportFileName(this.insight.getUser(), prefixName, "png");
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 		}
 	

@@ -2,7 +2,7 @@ package prerna.util.ldap;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
@@ -130,5 +130,5 @@ public interface ILdapAuthenticator extends Closeable {
 	 * @return
 	 * @throws NamingException
 	 */
-	LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException;
+	ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException;
 }

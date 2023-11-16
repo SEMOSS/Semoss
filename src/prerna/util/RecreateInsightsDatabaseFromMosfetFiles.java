@@ -1,7 +1,7 @@
 package prerna.util;
 
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Properties;
 
@@ -73,7 +73,7 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 					boolean cacheable = mosfet.isCacheable();
 					int cacheMinutes = mosfet.getCacheMinutes();
 					String cacheCron = mosfet.getCacheCron();
-					LocalDateTime cachedOn = mosfet.getCachedOn();
+					ZonedDateTime cachedOn = mosfet.getCachedOn();
 					boolean cacheEncrypt = mosfet.isCacheEncrypt();
 					String schemaName = mosfet.getSchemaName();
 					

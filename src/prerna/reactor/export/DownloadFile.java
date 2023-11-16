@@ -65,7 +65,7 @@ public class DownloadFile extends AbstractReactor {
 				fillHeaders(wb, exportMap, (String)exportMap.get("para1"), (String)exportMap.get("para2"));
 			}
 			
-			String exportName = AbstractExportTxtReactor.getExportFileName(fileName, "xlsx");
+			String exportName = AbstractExportTxtReactor.getExportFileName(this.insight.getUser(), fileName, "xlsx");
 			File file = new File(insight.getInsightFolder());
 			if (!file.exists()) {
 				file.mkdirs();

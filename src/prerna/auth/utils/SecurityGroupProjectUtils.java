@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -27,6 +26,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
 
 public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 
@@ -379,7 +379,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -487,7 +487,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);

@@ -3,12 +3,9 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -35,7 +32,7 @@ import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityUpdateUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityUpdateUtils.class);
 
 	/**
 	 * Only used for static references
@@ -94,8 +91,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// this user was added by the user
 				// and we need to update
 				{
-					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 					String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, LASTLOGIN=? WHERE ID=?";
 					PreparedStatement ps = null;
@@ -119,14 +115,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setString(parameterIndex++, newUser.getEmail());
 						}
 						ps.setString(parameterIndex++, newUser.getProvider().toString());
-						ps.setTimestamp(parameterIndex++, timestamp, cal);
+						ps.setTimestamp(parameterIndex++, timestamp);
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
 						if(!ps.getConnection().getAutoCommit()) {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -155,7 +151,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -171,7 +167,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
-					logger.info("User " + newUser.getId() + " already exists");
+					classLogger.info("User " + newUser.getId() + " already exists");
 					return validateUserLogin(newUser);
 				}
 
@@ -191,16 +187,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 							}
 						} catch(NumberFormatException e) {
-							logger.error(Constants.STACKTRACE, e);
-							logger.error("User limit is not a valid numeric value");
+							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("User limit is not a valid numeric value");
 						}
 					}
 					
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
-						Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-						java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) "
 								+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
@@ -229,14 +224,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setBoolean(parameterIndex++, false);
 							ps.setBoolean(parameterIndex++, !adminSetPublisher());
 							ps.setBoolean(parameterIndex++, !adminSetExporter());
-							ps.setTimestamp(parameterIndex++, timestamp, cal);
-							ps.setTimestamp(parameterIndex++, timestamp, cal);
+							ps.setTimestamp(parameterIndex++, timestamp);
+							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.execute();
 							if(!ps.getConnection().getAutoCommit()) {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						} finally {
 							if(ps != null) {
 								try {
@@ -245,11 +240,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 										try {
 											ps.getConnection().close();
 										} catch (SQLException e) {
-											logger.error(Constants.STACKTRACE, e);
+											classLogger.error(Constants.STACKTRACE, e);
 										}
 									}
 								} catch (SQLException e) {
-									logger.error(Constants.STACKTRACE, e);
+									classLogger.error(Constants.STACKTRACE, e);
 								}
 							}
 						}
@@ -259,13 +254,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -314,16 +309,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			newUser.setLastPasswordReset(lastPassReset);
 			
 			if(isLocked) {
-				logger.info("User " + newUser.getId() + " is locked");
+				classLogger.info("User " + newUser.getId() + " is locked");
 				return false;
 			} 
 			
 			if(daysToLock > 0 && lastLogin != null) {
 				// check to make sure user is not locked
-				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-				LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
-				if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToLock))) {
-					logger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
+				ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("UTC"));
+				if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToLock).atZone(ZoneId.of("UTC")))) {
+					classLogger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
 					newUser.setLocked(true);
@@ -391,7 +385,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(updateQuery);
 			return true;
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return false;
@@ -411,20 +405,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -432,14 +426,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 	public static void updateUserLastLogin(String userId, AuthProvider type) {
 		// update the user last login
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(updateQuery);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type.toString());
 			ps.execute();
@@ -447,20 +440,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -496,8 +489,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
 			} catch(NumberFormatException e) {
-				logger.error(Constants.STACKTRACE, e);
-				logger.error("User limit is not a valid numeric value");
+				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
 		
@@ -529,8 +522,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(phoneextension == null) phoneextension = "";
 		if(countrycode == null) countrycode = "";
 		 
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		
 		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, "
 				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, ADMIN, PUBLISHER, EXPORTER, DATECREATED) "
@@ -552,11 +544,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, admin);
 			ps.setBoolean(parameterIndex++, publisher);
 			ps.setBoolean(parameterIndex++, exporter);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
 			ps.getConnection().commit();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
@@ -565,7 +557,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.getConnection().close();
 					}
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

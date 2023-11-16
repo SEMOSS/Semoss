@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -822,13 +823,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void addInsight(String projectId, String insightId, String insightName, boolean global, 
 			String layout, boolean cacheable, int cacheMinutes, 
-			String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt, 
 			List<String> recipe, String schemaName) {
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
 				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE, SCHEMANAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
-		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		PreparedStatement ps = null;
 		try {
@@ -852,7 +853,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn));
+				ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
@@ -902,7 +903,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setInt(parameterIndex++, ownerId);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -930,13 +931,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param recipe
 	 */
 	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, 
-			String layout, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, 
+			String layout, boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, 
 			boolean cacheEncrypt, List<String> recipe, String schemaName) {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
 				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?,"
 				+ "RECIPE=?, SCHEMANAME=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
-		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		PreparedStatement ps = null;
 		try {
@@ -956,7 +957,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
+				ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
@@ -991,7 +992,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 */
 	public static void updateInsightName(String projectId, String insightId, String insightName) {
-		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1022,7 +1023,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheEncrypt
 	 */
 	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
-		java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		
 		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1039,7 +1040,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
+				ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			ps.setTimestamp(parameterIndex++, timestamp);
@@ -1064,7 +1065,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
 	 */
-	public static void updateInsightCachedOn(String projectId, String insightId, LocalDateTime cachedOn) {
+	public static void updateInsightCachedOn(String projectId, String insightId, ZonedDateTime cachedOn) {
 		String query = "UPDATE INSIGHT SET CACHEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -1073,7 +1074,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 			} else {
-				ps.setTimestamp(parameterIndex++, AbstractSecurityUtils.getSqlTimestampUTC(cachedOn));
+				ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 			}
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
@@ -1485,7 +1486,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1557,7 +1558,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -1630,7 +1631,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -2946,7 +2947,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3085,7 +3086,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		Timestamp startDate = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
@@ -3145,7 +3146,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement updatePs = null;
 		try {
-			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+			Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -3196,7 +3197,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
-			java.sql.Timestamp timestamp = AbstractSecurityUtils.getCurrentSqlTimestampUTC();
+			Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
@@ -3353,7 +3354,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			insertPs.setString(index++, UUID.randomUUID().toString());
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
-			insertPs.setTimestamp(index++, AbstractSecurityUtils.getCurrentSqlTimestampUTC());
+			insertPs.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			securityQueryUtil.handleInsertionOfClob(insertPs.getConnection(), insertPs, requestReason, index++, new Gson());
 			insertPs.setString(index++, projectId);
 			insertPs.setString(index++, insightId);
