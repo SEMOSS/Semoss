@@ -43,7 +43,7 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 		
 		boolean dbUpdate = false;
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owler = database.getOWLEngineFactory().getWriteOWL()) {
+		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 			IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
 			if(modifier == null) {
 				throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
@@ -56,9 +56,9 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 			
 			// update owl
 			try {
-				owler.renameConcept(table, newTable, newTable);
-				owler.commit();
-				owler.export();
+				owlEngine.renameConcept(table, newTable, newTable);
+				owlEngine.commit();
+				owlEngine.export();
 				SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
 				syncWithLocal.setInsight(this.insight);
 				syncWithLocal.setNounStore(this.store);
@@ -70,7 +70,7 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 		} catch (IOException | InterruptedException e1) {
 			e1.printStackTrace();
 		}

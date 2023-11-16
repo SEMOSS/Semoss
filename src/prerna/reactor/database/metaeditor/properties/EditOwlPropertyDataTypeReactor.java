@@ -57,9 +57,9 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[4]);
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			String parentPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
 			if (parentPhysicalURI == null) {
 				throw new IllegalArgumentException("Could not find the concept");
@@ -100,7 +100,7 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);
