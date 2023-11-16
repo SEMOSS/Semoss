@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -143,7 +142,7 @@ public class UserTrackingUtils {
 			int index = 1;
 			ps.setString(index++, insightId);
 			ps.setString(index++, userId);
-			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(index++, origin);
 
 			// execute
@@ -181,7 +180,7 @@ public class UserTrackingUtils {
 			ps = userTrackingDb.getPreparedStatement(query);
 			int index = 1;
 			ps.setString(index++, UUID.randomUUID().toString());
-			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			ps.setBoolean(index++, successful);
 			ps.setString(index++, from);
 			

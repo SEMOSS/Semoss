@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
@@ -180,7 +180,7 @@ public class AuditDatabase {
 		StringBuilder auditInserts = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
-		java.sql.Timestamp time = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp time = Utility.getCurrentSqlTimestampUTC();
 
 		Object[] insert = new Object[INSERT_SIZE];
 		insert[0] = id;
@@ -256,7 +256,7 @@ public class AuditDatabase {
 		StringBuilder auditUpdates = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
-		java.sql.Timestamp time = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp time = Utility.getCurrentSqlTimestampUTC();
 
 		for (int i = 0; i < numUpdates; i++) {
 			Object[] insert = new Object[INSERT_SIZE];
@@ -335,7 +335,7 @@ public class AuditDatabase {
 		StringBuilder auditDeletes = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
-		java.sql.Timestamp time = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp time = Utility.getCurrentSqlTimestampUTC();
 
 		for (String alteredColumn : constraintMap.keySet()) {
 			if (alteredColumn.contains("__")) {
