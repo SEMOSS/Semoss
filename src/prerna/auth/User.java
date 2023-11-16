@@ -60,7 +60,7 @@ public class User implements Serializable {
 	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private transient SocketClient tcpServer;
+	private transient SocketClient socketClient;
 	private transient PyTranslator pyt = null;
 	private String port = null;
 	public String pyTupleSpace = null;
@@ -618,42 +618,42 @@ public class User implements Serializable {
 	 * 
 	 * @param nc
 	 */
-	public void setTCPServer(SocketClient sc) {
-		this.tcpServer = sc;
+	public void setSocketClient(SocketClient sc) {
+		this.socketClient = sc;
 	}
 	
 	/**
 	 * 
-	 * @param create
+	 * @param createServer
 	 * @return
 	 */
-	public SocketClient getTCPServer(boolean create) {
-		return getTCPServer(create, -1);
+	public SocketClient getSocketClient(boolean createServer) {
+		return getSocketClient(createServer, -1);
 	}
 
 	/**
 	 * 
-	 * @param create
+	 * @param createServer
 	 * @param port
 	 * @return
 	 */
-	public SocketClient getTCPServer(boolean create, int port) {
+	public SocketClient getSocketClient(boolean createServer, int port) {
 		// then restart it
-		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
+		if((this.socketClient == null && createServer) || (this.socketClient != null && !this.socketClient.isConnected() && createServer)) {
 			// set the port
 			forcePort = port;
 			this.port = null;
 			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
-			startTCPServer();
+			startSocketServerAndClient();
 			this.pyt = new TCPPyTranslator();
-			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
-			tcpServer.setUser(this);
+			((TCPPyTranslator) pyt).setSocketClient(this.socketClient);
+			socketClient.setUser(this);
 
 			// invalidate the serialization map
 			insightSerializedMap.clear();
 
 		}
-		return this.tcpServer;
+		return this.socketClient;
 	}
 
 	/**
@@ -880,50 +880,48 @@ public class User implements Serializable {
 	}
 
 	public PyTranslator getPyTranslator(boolean create) {
-		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
-				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
+		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
+				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(this.pyt == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
-				if (PyUtils.pyEnabled()) {		
-					if (!useNettyPy) {
-						PyExecutorThread jepThread = null;
-						if (jepThread == null) {
-							jepThread = PyUtils.getInstance().getJep();
-							this.pyt = new PyTranslator();
-							this.pyt.setPy(jepThread);
-							long logSleeper = 1;
-							while(!jepThread.isReady())
+				if (!useNettyPy) {
+					PyExecutorThread jepThread = null;
+					if (jepThread == null) {
+						jepThread = PyUtils.getInstance().getJep();
+						this.pyt = new PyTranslator();
+						this.pyt.setPy(jepThread);
+						long logSleeper = 1;
+						while(!jepThread.isReady())
+						{
+							try 
 							{
-								try 
-								{
-									// wait for it to start
-									//using this.wait because its recommended vs sleep
-									this.wait(logSleeper*1000);
-									//Thread.sleep(logSleeper*1000);
-									logSleeper++;
-								} catch (InterruptedException e) 
-								{
-									classLogger.error(Constants.STACKTRACE, e);
-								}
+								// wait for it to start
+								//using this.wait because its recommended vs sleep
+								this.wait(logSleeper*1000);
+								//Thread.sleep(logSleeper*1000);
+								logSleeper++;
+							} catch (InterruptedException e) 
+							{
+								classLogger.error(Constants.STACKTRACE, e);
 							}
-							classLogger.info("Jep Start is Complete");
 						}
+						classLogger.info("Jep Start is Complete");
 					}
-					// check to see if the py translator needs to be set ?
-					// check to see if the py translator needs to be set ?
-					else {
-						//this.pyt = new TCPPyTranslator();
-						//((TCPPyTranslator) pyt).nc = 
-						getTCPServer(true); // starts it
-					}
+				}
+				// check to see if the py translator needs to be set ?
+				// check to see if the py translator needs to be set ?
+				else {
+					//this.pyt = new TCPPyTranslator();
+					//((TCPPyTranslator) pyt).nc = 
+					getSocketClient(true); // starts it
 				}
 			}
 		}
-		else if(useNettyPy && (tcpServer != null && !tcpServer.isConnected()) )
+		else if(useNettyPy && (socketClient != null && !socketClient.isConnected()) )
 		{
 			// need to check if this is netty py
 			//System.err.println("TCP Server has crashed !!");
@@ -966,8 +964,8 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(cmdUtil != null && tcpServer != null && tcpServer.isConnected()) {
-			cmdUtil.setTcpClient(tcpServer);
+		if(cmdUtil != null && socketClient != null && socketClient.isConnected()) {
+			cmdUtil.setTcpClient(socketClient);
 		}
 		return this.cmdUtil;
 	}
@@ -987,8 +985,8 @@ public class User implements Serializable {
 		}
 	}
 	
-	public void startTCPServer() {
-		if (tcpServer == null || !tcpServer.isConnected())  // start only if it not already in progress
+	public void startSocketServerAndClient() {
+		if (socketClient == null || !socketClient.isConnected())  // start only if it not already in progress
 		{
 			classLogger.info("Starting TCP Server for User = " + User.getSingleLogginName(this));
 			
@@ -1019,7 +1017,7 @@ public class User implements Serializable {
 					if(nativePyServer) {
 						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePyChroot(this, mountTuple,  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
 					} else {
-					pyTupleSpace = PyUtils.getInstance().startTCPServe(this, mountTuple, DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
+						pyTupleSpace = PyUtils.getInstance().startTCPServe(this, mountTuple, DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
 					}
 				} else {
 					if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
@@ -1029,11 +1027,11 @@ public class User implements Serializable {
 						pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 					}
 
-					if(nativePyServer)
+					if(nativePyServer) {
 						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePy(this, pyTupleSpace, port);
-					else
+					} else {
 						pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
-					
+					}
 					
 					setTupleSpace(pyTupleSpace);
 				}
@@ -1042,12 +1040,12 @@ public class User implements Serializable {
 			// instrumenting the client class also now
 			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
 			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
-				pyClient = "prerna.tcp.client.SocketClient";
+				pyClient = SocketClient.class.getName(); 
 			}
 			try
 			{
 				SocketClient socketClient = (SocketClient)Class.forName(pyClient).newInstance();
-				this.setTCPServer(socketClient);
+				this.setSocketClient(socketClient);
 				socketClient.connect("127.0.0.1", Integer.parseInt(port), false);
 				//nc.run(); - you cannot do this because then the client goes into listener mode
 				Thread t = new Thread(socketClient);

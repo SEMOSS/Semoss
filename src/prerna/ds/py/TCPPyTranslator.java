@@ -14,17 +14,24 @@ import prerna.util.Utility;
 public class TCPPyTranslator extends PyTranslator {
 
 	public static final String METHOD_DELIMITER = "$$##";
-	public SocketClient nc = null;
-	String method = null;
+	private SocketClient sc = null;
+	private String method = null;
 	
 	/**
 	 * 
-	 * @param nc
+	 * @param sc
 	 */
-	public void setClient(SocketClient nc) {
-		this.nc = nc;
+	public void setSocketClient(SocketClient sc) {
+		this.sc = sc;
 	}
-
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public SocketClient getSocketClient() {
+		return this.sc;
+	}
 
 	@Override
 	public synchronized Object runScript(String script) 
@@ -47,9 +54,9 @@ public class TCPPyTranslator extends PyTranslator {
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
-		if(nc.isConnected())
+		if(sc.isConnected())
 		{
-			ps = (PayloadStruct)nc.executeCommand(ps);
+			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(ps != null && ps.ex != null)
 			{
 				logger.info("Exception " + ps.ex);
@@ -92,7 +99,7 @@ public class TCPPyTranslator extends PyTranslator {
 			ps.insightId = insight.getInsightId();
 			if(insight.getUser() != null)
 			{
-				nc.addInsight2Insight(ps.insightId, insight);
+				sc.addInsight2Insight(ps.insightId, insight);
 			}
 			boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
 					&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
@@ -120,9 +127,9 @@ public class TCPPyTranslator extends PyTranslator {
 		}
 		
 		
-		if(nc.isConnected())
+		if(sc.isConnected())
 		{
-			ps = (PayloadStruct)nc.executeCommand(ps);
+			ps = (PayloadStruct)sc.executeCommand(ps);
 			if(est != null)
 				est.stopSession();
 			if(ps != null && ps.ex != null)

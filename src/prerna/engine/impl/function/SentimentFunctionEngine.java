@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -144,7 +143,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		
 		// create the py translator
 		pyt = new TCPPyTranslator();
-		pyt.setClient(socketClient);
+		pyt.setSocketClient(socketClient);
 		pyt.runEmptyPy(commands);	
 		
 		// run a prefix command

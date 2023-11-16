@@ -1580,7 +1580,7 @@ public class Project implements IProject {
 	 */
 	public TCPPyTranslator getProjectPyTranslator() {
 		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
-		pyJavaTranslator.setClient(getProjectTcpClient());
+		pyJavaTranslator.setSocketClient(getProjectTcpClient());
 		return pyJavaTranslator;
 	}
 	
