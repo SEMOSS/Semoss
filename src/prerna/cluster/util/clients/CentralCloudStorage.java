@@ -805,6 +805,11 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushOwl(String databaseId) throws IOException, InterruptedException {
+		pushOwl(databaseId, null);
+	}
+	
+	@Override
+	public void pushOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException {
 		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
@@ -826,10 +831,15 @@ public class CentralCloudStorage implements ICloudClient {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
-		WriteOWLEngine owlEngine = null;
+		boolean autoClose = false;
 		try {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
+			}
+			if(owlEngine == null) {
+				autoClose = true;
+				classLogger.info("Need to also grab Write OWL Engine");
+				owlEngine = database.getOWLEngineFactory().getWriteOWL();
 			}
 			//close the owl
 			owlEngine = database.getOWLEngineFactory().getWriteOWL();
@@ -845,7 +855,9 @@ public class CentralCloudStorage implements ICloudClient {
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-			owlEngine.close();
+			if(autoClose) {
+				owlEngine.close();
+			}
 			if(sharedRCloneConfig != null) {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
@@ -858,9 +870,14 @@ public class CentralCloudStorage implements ICloudClient {
 			classLogger.info("Database "+ aliasAndDatabaseId + " is unlocked");
 		}
 	}
-
+	
 	@Override
 	public void pullOwl(String databaseId) throws IOException, InterruptedException {
+		pullOwl(databaseId, null);
+	}
+	
+	@Override
+	public void pullOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException {
 		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
@@ -885,12 +902,16 @@ public class CentralCloudStorage implements ICloudClient {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
-		WriteOWLEngine owlEngine = null;
+		boolean autoClose = false;
 		try {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			owlEngine = database.getOWLEngineFactory().getWriteOWL();
+			if(owlEngine == null) {
+				autoClose = true;
+				classLogger.info("Need to also grab Write OWL Engine");
+				owlEngine = database.getOWLEngineFactory().getWriteOWL();
+			}
 			//close the owl
 			owlEngine.closeOwl();
 			centralStorageEngine.copyToLocal(storageDatabaseOwl, localDatabaseFolder);
@@ -901,7 +922,9 @@ public class CentralCloudStorage implements ICloudClient {
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-			owlEngine.close();
+			if(autoClose) {
+				owlEngine.close();
+			}
 			if(sharedRCloneConfig != null) {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
