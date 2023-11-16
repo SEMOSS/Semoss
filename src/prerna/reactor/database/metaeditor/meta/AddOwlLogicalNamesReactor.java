@@ -37,9 +37,8 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String[] logicalNames = getLogicalNames();
 		
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
 
 			String physicalUri = null;
 			if (prop == null || prop.isEmpty()) {
@@ -59,7 +58,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

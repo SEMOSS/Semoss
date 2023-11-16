@@ -60,9 +60,9 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newPixelName + "/" + concept;
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			String pixelURI = "http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept;
 			String parentPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
 			if (parentPhysicalURI == null) {
@@ -95,7 +95,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 			}
 			
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 			
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

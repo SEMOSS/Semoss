@@ -62,7 +62,6 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 //		}
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
 		// make sure the concept exists
 		String conceptPhysicalUri = database.getPhysicalUriFromPixelSelector(concept);
 		if (conceptPhysicalUri == null) {
@@ -77,6 +76,8 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 
 		// set the owler
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			// add the property
 			String tableName = Utility.getInstanceName(conceptPhysicalUri);
 	//		String colName = null;
@@ -104,7 +105,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

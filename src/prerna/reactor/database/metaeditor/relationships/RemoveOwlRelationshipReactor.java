@@ -54,10 +54,9 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		}
 		
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
-		
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			for(int i = 0; i < size; i++) {
 				String startT = startTList.get(i);
 				String endT = endTList.get(i);
@@ -81,7 +80,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 			
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);

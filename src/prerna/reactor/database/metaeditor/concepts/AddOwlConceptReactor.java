@@ -48,7 +48,6 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 
 		// if RDBMS, we need to know the prim key of the column
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		ClusterUtil.pullOwl(databaseId);
 		String column = this.keyValue.get(this.keysToGet[2]);
 		if ((column == null || column.isEmpty()) && database.getDatabaseType() == DATABASE_TYPE.RDBMS) {
 			throw new IllegalArgumentException("Must define the column for the concept being added to the database metadata");
@@ -79,7 +78,8 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
-			
+			ClusterUtil.pullOwl(databaseId, owlEngine);
+
 			String physicalUri = owlEngine.addConcept(concept, dataType, conceptual);
 	
 			// now add the description (checks done in method)
@@ -102,7 +102,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
-			ClusterUtil.pushOwl(databaseId);
+			ClusterUtil.pushOwl(databaseId, owlEngine);
 			
 		} catch (IOException | InterruptedException e1) {
 			classLogger.error(Constants.STACKTRACE, e1);
