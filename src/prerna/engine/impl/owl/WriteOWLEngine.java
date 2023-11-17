@@ -454,14 +454,12 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	 * @param conceptual
 	 * @return
 	 */
-	public NounMetadata removeConcept(String tableName, String dataType, String conceptual) {
+	public NounMetadata removeConcept(String tableName) {
 		// since RDF uses this multiple times, don't create it each time and just store
 		// it in a hash to send back
 		if (!conceptHash.containsKey(tableName)) {
 			// create the physical uri for the concept
 			// the base URI for the concept will be the baseNodeURI
-			String subject = BASE_NODE_URI + "/" + tableName;
-
 			String conceptPhysical = this.getPhysicalUriFromPixelSelector(tableName);
 			List<String> properties = this.getPropertyUris4PhysicalUri(conceptPhysical);
 			StringBuilder bindings = new StringBuilder();
@@ -471,7 +469,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 			// remove relationships to node
 			List<String[]> fkRelationships = getPhysicalRelationships(this.baseDataEngine);
-
+			classLogger.info("Removing relationships for concept='"+tableName+"'");
 			for (String[] relations: fkRelationships) {
 				String instanceName = Utility.getInstanceName(relations[2]);
 				String[] tablesAndPrimaryKeys = instanceName.split("\\.");
@@ -487,6 +485,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			}
 
 			if (bindings.length() > 0) {
+				classLogger.info("Removing downstream props for concept='"+tableName+"'");
 				// get everything downstream of the props
 				{
 					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?s {" + bindings.toString() + "}";
@@ -511,6 +510,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					}
 				}
 
+				classLogger.info("Removing upstream props for concept='"+tableName+"'");
 				// repeat for upstream of prop
 				{
 					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?o {"	+ bindings.toString() + "}";
@@ -538,6 +538,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 			boolean hasTriple = false;
 
+			classLogger.info("Removing downstream triples for concept='"+tableName+"'");
 			// now repeat for the node itself
 			// remove everything downstream of the node
 			{
@@ -564,6 +565,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 				}
 			}
 
+			classLogger.info("Removing upstream triples for concept='"+tableName+"'");
 			// repeat for upstream of the node
 			{
 				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?o) {?s ?p ?o} }";
@@ -611,14 +613,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		return noun;
 	}
 
-	public void removeConcept(String concept) {
-		removeConcept(concept, "STRING", null);
-	}
-
-	public void removeConcept(String tableName, String dataType) {
-		removeConcept(tableName, dataType, null);
-	}
-	
 	////////////////////////////////// END REMOVING CONCEPTS FROM THE OWL //////////////////////////////////
 
 
@@ -657,17 +651,16 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	////////////////////////////////// REMOVING PROPERTIES FROM THE OWL //////////////////////////////////
 
 	/**
-	 * Remove a property from a given concept
+	 * This method will remove a property from a concept in the OWL file There are some
+	 * differences based on how the information is used based on if it is a RDF
+	 * engine or a RDBMS engine
 	 * 
 	 * @param tableName
 	 * @param propertyCol
-	 * @param dataType
-	 * @param adtlDataType
-	 * @param conceptual
 	 * @return
 	 * @return
 	 */
-	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
+	public NounMetadata removeProp(String tableName, String propertyCol) {
 		// create the property URI
 		String property = null;
 		if (this.dbType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
@@ -731,29 +724,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		return noun;
 	}
 
-	/**
-	 * This method will remove a property from a concept in the OWL file There are some
-	 * differences based on how the information is used based on if it is a RDF
-	 * engine or a RDBMS engine
-	 * 
-	 * @param tableName    For RDF: This is the name of the concept For RDBMS: This
-	 *                     is the name of the table where the concept exists. If the
-	 *                     concept doesn't exist, it is assumed the column name of
-	 *                     the concept is the same as the table name
-	 * @param propertyCol  This will be the name of the property
-	 * @param dataType     The dataType for the property
-	 * @param adtlDataType Additional data type for the property
-	 * @return Returns the physical URI for the node
-	 */
-	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType) {
-		return removeProp(tableName, propertyCol, dataType, adtlDataType, null);
-	}
-
-	public NounMetadata removeProp(String tableName, String propertyCol, String dataType) {
-		return removeProp(tableName, propertyCol, dataType, null, null);
-	}
-	
-	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	// rename things
