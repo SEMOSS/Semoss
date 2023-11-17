@@ -60,6 +60,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
@@ -145,11 +146,7 @@ public class Project implements IProject {
 	private boolean republishPortal = false;
 	
 	// project specific analytics thread
-	private transient Process tcpServerProcess;
-	private transient String tcpServerProcessPrefix;
-	private transient SocketClient tcpClient;
-	private String tcpServerDirectory = null;
-	private int port = -1;
+	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -1526,10 +1523,11 @@ public class Project implements IProject {
 		}
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
+	@Override
+	public ClientProcessWrapper getClientProcessWrapper() {
+		return this.cpw;
+	}
+	
 	@Override
 	public SocketClient getProjectTcpClient() {
 		return getProjectTcpClient(true);
@@ -1543,25 +1541,15 @@ public class Project implements IProject {
 	@Override
 	public SocketClient getProjectTcpClient(boolean create, int port) {
 		if(!create) {
-			return this.tcpClient;
+			return this.cpw.getSocketClient();
 		}
 		
-		if(this.tcpClient != null && this.tcpClient.isConnected()) {
-			return this.tcpClient;
+		if(this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return this.cpw.getSocketClient();
 		}
 		
 		createProjectTcpServer(port);
-		return this.tcpClient;
-	}
-	
-	@Override
-	public void setProjectTcpClient(SocketClient tcpClient) {
-		this.tcpClient = tcpClient;
-	}
-	
-	@Override
-	public String getProjectTcpServerDirectory() {
-		return this.tcpServerDirectory;
+		return this.cpw.getSocketClient();
 	}
 	
 	/**
@@ -1588,8 +1576,7 @@ public class Project implements IProject {
 	 * 
 	 */
 	private synchronized void createProjectTcpServer(int port) {
-		if (tcpClient == null || !tcpClient.isConnected())  // start only if it not already in progress
-		{
+		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			boolean nativePyServer = false;
 			// first is it defined in smss
 			String nativePyServerStr = this.smssProp.getProperty(Settings.NATIVE_PY_SERVER);
@@ -1601,88 +1588,37 @@ public class Project implements IProject {
 				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
 			}
 			
-			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.smssProp));
-			if(port != -1) {
-				this.port = port;
-			} else {
+			boolean debug = false;
+			if(port < 0) {
 				String forcePort = this.projectProperties.getProperty(Settings.FORCE_PORT);
 				// port has not been forced
 				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
 					try {
-						this.port = Integer.parseInt(forcePort);
+						port = Integer.parseInt(forcePort);
+						debug = true;
 					} catch(NumberFormatException e) {
 						// ignore
 						classLogger.warn("Project " + this.projectId + " has an invalid FORCE_PORT value");
-						// just find a new port
-						this.port = Integer.parseInt(Utility.findOpenPort());
 					}
-				} else {
-					this.port = Integer.parseInt(Utility.findOpenPort());
 				}
 			}
 			
 			//TODO: how do we account for chroot??
-			String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
-			if(cp == null) {
+			String customClassPath = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+			if(customClassPath == null) {
 				classLogger.info("No custom class path set");
 			}
 			
-			Path mainCachePath = null;
-			Path tempDirForProject = null;
+			Path serverDirectoryPath = null;
 			try {
-				mainCachePath = Paths.get(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
-				tempDirForProject = Files.createTempDirectory(mainCachePath, "a");
-				this.tcpServerDirectory = tempDirForProject.toString();
-				Utility.writeLogConfigurationFile(this.tcpServerDirectory);
-				if(nativePyServer) {
-					
-					String timeout = "15";
-					if(this.smssProp.containsKey(Settings.TIMEOUT))
-						timeout = this.smssProp.getProperty(Settings.TIMEOUT);
-					Object[] ret = Utility.startTCPServerNativePy(this.tcpServerDirectory, this.port+"", timeout);
-					this.tcpServerProcess = (Process) ret[0];
-					this.tcpServerProcessPrefix = (String) ret[1];
-				} else {
-					this.tcpServerProcess = Utility.startTCPServer(cp, this.tcpServerDirectory, this.port+"");
-				}
+				serverDirectoryPath = Files.createTempDirectory(Paths.get(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR)), "a");
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Could not create directory to launch project process");
 			}
 			
-			// instrumenting the client class also now
-			// first is it defined in smss
-			String pyClient = this.smssProp.getProperty(Settings.TCP_CLIENT);
-			// if not, grab from rdf map
-			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
-				pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
-			}
-			// else default to socket client
-			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
-				pyClient = "prerna.tcp.client.SocketClient";
-			}
-			
-			try {
-				this.tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
-				tcpClient.connect("127.0.0.1", this.port, false);
-				//nc.run(); - you cannot do this because then the client goes into listener mode
-				Thread t = new Thread(tcpClient);
-				t.start();
-				while(!tcpClient.isReady())
-				{
-					synchronized(tcpClient)
-					{
-						try 
-						{
-							tcpClient.wait();
-							classLogger.info("Setting the socket client ");
-						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-			} catch(Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.smssProp));
+			this.cpw.createProcessAndClient(nativePyServer, port, serverDirectoryPath.toString(), customClassPath, debug);
 		}
 	}
 
@@ -1742,5 +1678,5 @@ public class Project implements IProject {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 }
