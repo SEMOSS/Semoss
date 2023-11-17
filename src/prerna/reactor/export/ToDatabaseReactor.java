@@ -360,7 +360,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			long start = System.currentTimeMillis();
 			logger.info("Start to add the new exisitng concept from the OWL");
 			try (WriteOWLEngine owlEngine = targetEngine.getOWLEngineFactory().getWriteOWL()){
-				
+				ClusterUtil.pullOwl(engineId, owlEngine);
+
 				// if we are overwriting the existing value
 				// we need to grab the current concept/columns
 				// and we need to delete them
