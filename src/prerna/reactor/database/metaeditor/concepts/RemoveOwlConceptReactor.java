@@ -12,6 +12,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
+import prerna.reactor.export.ToDatabaseReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,6 +24,7 @@ import prerna.util.Utility;
 public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoveOwlConceptReactor.class);
+	private static final String CLASS_NAME = RemoveOwlConceptReactor.class.getName();
 
 	public RemoveOwlConceptReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey() };
@@ -31,6 +33,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		Logger logger = this.getLogger(CLASS_NAME);
 
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
@@ -57,6 +60,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			}
 	
 			if (bindings.length() > 0) {
+				logger.info("Start delete downstream props from concept = " + concept);
 				// get everything downstream of the props
 				{
 					String query = "select ?s ?p ?o where " + "{ " + "{?s ?p ?o} " + "} bindings ?s {" + bindings.toString() + "}";
@@ -80,7 +84,9 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 						}
 					}
 				}
-	
+				logger.info("Finished delete downstream props from concept = " + concept);
+
+				logger.info("Start delete upstream props from concept = " + concept);
 				// repeat for upstream of prop
 				{
 					String query = "select ?s ?p ?o where " + "{ " + "{?s ?p ?o} " + "} bindings ?o {" + bindings.toString() + "}";
@@ -104,12 +110,14 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 						}
 					}
 				}
+				logger.info("Finished delete upstream props from concept = " + concept);
 			}
 	
 			boolean hasTriple = false;
 	
 			// now repeat for the node itself
 			// remove everything downstream of the node
+			logger.info("Start delete downstream from concept = " + concept);
 			{
 				String query = "select ?s ?p ?o where " + "{ " + "bind(<" + conceptPhysical + "> as ?s) " + "{?s ?p ?o} " + "}";
 	
@@ -133,7 +141,9 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 					}
 				}
 			}
-	
+			logger.info("Finsihed delete downstream from concept = " + concept);
+
+			logger.info("Start delete upstream from concept = " + concept);
 			// repeat for upstream of the node
 			{
 				String query = "select ?s ?p ?o where " + "{ " + "bind(<" + conceptPhysical + "> as ?o) " + "{?s ?p ?o} " + "}";
@@ -158,7 +168,8 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 					}
 				}
 			}
-	
+			logger.info("Finsihed delete upstream from concept = " + concept);
+
 			if (!hasTriple) {
 				throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
 			}
