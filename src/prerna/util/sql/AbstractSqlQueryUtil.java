@@ -1965,7 +1965,7 @@ public abstract class AbstractSqlQueryUtil {
 					owlEngine.removeConcept(tableName);
 				} else {
 					for(String column : updates.get(tableName)) {
-						owlEngine.removeProp(tableName, column, null);
+						owlEngine.removeProp(tableName, column);
 					}
 				}
 				// store the metadata
