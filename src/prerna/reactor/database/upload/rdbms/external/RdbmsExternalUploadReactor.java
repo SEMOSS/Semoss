@@ -390,7 +390,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 					boolean tableRemoved = false;
 					if (!newRDBMSStructure.containsKey(existingTableName)) {
 						this.logger.info("Removing table " + Utility.cleanLogString(existingTableName) + " from owl");
-						owlEngine.removeConcept(existingTableName, null);
+						owlEngine.removeConcept(existingTableName);
 						tableRemoved = true;
 					}
 					
@@ -402,7 +402,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 								// track removed properties
 								removedProperties.put(existingTableName, existingColumnName);
 								this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName) + " for table " + Utility.cleanLogString(existingTableName) + " from owl");
-								owlEngine.removeProp(existingTableName, existingColumnName, existingDataType + "", null, null);
+								owlEngine.removeProp(existingTableName, existingColumnName);
 							}
 						});
 						this.logger.info("Removing relationships associated with " + Utility.cleanLogString(existingTableName) + " from owl");
