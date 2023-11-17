@@ -51,7 +51,7 @@ public class OWLEngineFactory {
 	 * @throws InterruptedException
 	 */
 	public WriteOWLEngine getWriteOWL() throws InterruptedException {
-		writeSemaphore.acquire();
+		this.writeSemaphore.acquire();
 		return this.writer;
 	}
 

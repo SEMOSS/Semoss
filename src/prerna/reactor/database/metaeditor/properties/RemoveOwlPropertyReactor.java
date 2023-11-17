@@ -7,8 +7,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,68 +47,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 			ClusterUtil.pullOwl(databaseId, owlEngine);
-
-			String physicalPropUri = database.getPhysicalUriFromPixelSelector(concept + "__" + column);
-			if(physicalPropUri == null) {
-				throw new IllegalArgumentException("Cannot find property in existing metadata to remove");
-			}
-			
-			// remove everything downstream of the property
-			{
-				String query = "select ?s ?p ?o where "
-						+ "{ "
-						+ "bind(<" + physicalPropUri + "> as ?s) "
-						+ "{?s ?p ?o} "
-						+ "}";
-			
-				IRawSelectWrapper it = null;
-				try {
-					it = owlEngine.query(query);
-					while(it.hasNext()) {
-						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, owlEngine);
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(it != null) {
-						try {
-							it.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-				
-			}
-			
-			// repeat for upstream of the property
-			{
-				String query = "select ?s ?p ?o where "
-						+ "{ "
-						+ "bind(<" + physicalPropUri + "> as ?o) "
-						+ "{?s ?p ?o} "
-						+ "}";
-			
-				IRawSelectWrapper it = null;
-				try {
-					it = owlEngine.query(query);
-					while(it.hasNext()) {
-						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, owlEngine);
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(it != null) {
-						try {
-							it.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-			}
+			owlEngine.removeProp(concept, column);
 			
 			try {
 				owlEngine.commit();
