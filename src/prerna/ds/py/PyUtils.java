@@ -23,7 +23,7 @@ import prerna.util.Utility;
 
 public class PyUtils {
 	
-	private static final Logger LOGGER = LogManager.getLogger(PyUtils.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(PyUtils.class.getName());
 	
 	private static Boolean pyEnabled = null;
 	private static PyUtils instance;
@@ -78,7 +78,7 @@ public class PyUtils {
 	 * @return
 	 */
 	public PyExecutorThread getJep() {
-		LOGGER.info(">>>STARTING PYTHON THREAD FOR USER<<<");
+		classLogger.info(">>>STARTING PYTHON THREAD FOR USER<<<");
 		PyExecutorThread py = new PyExecutorThread();
 		py.start();
 		return py;
@@ -90,13 +90,13 @@ public class PyUtils {
 	 */
 	public void killPyThread(PyExecutorThread py) {
 		if(py != null) {
-			LOGGER.info(">>>>>> KILLING THREAD FOR USER <<<<<");
+			classLogger.info(">>>>>> KILLING THREAD FOR USER <<<<<");
 			py.killThread();
 			Object monitor = py.getMonitor();
 			synchronized(monitor) {
 				monitor.notify();
 			}
-			LOGGER.info(">>>>>> COMPLETE <<<<<");
+			classLogger.info(">>>>>> COMPLETE <<<<<");
 		}
 	}
 	
@@ -105,7 +105,7 @@ public class PyUtils {
 	{
 		if(user != null && !userTupleMap.containsKey(user)) {
 			try {
-				LOGGER.info(">>>STARTING PYTHON TUPESPACE FOR USER<<<");
+				classLogger.info(">>>STARTING PYTHON TUPESPACE FOR USER<<<");
 				// going to create this in insight cache dir
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path mainCachePath = Paths.get(dir);
@@ -116,13 +116,13 @@ public class PyUtils {
 				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
 				Process p = Utility.startTCPServer(cp, tempDirForUser.toString(), null);
 				userProcessMap.put(user,  p);
-				LOGGER.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
+				classLogger.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				LOGGER.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
 		}
 		return null;
 	}
@@ -134,7 +134,7 @@ public class PyUtils {
 		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
 			try {
-				LOGGER.info(">>>STARTING PyServe USER<<<");
+				classLogger.info(">>>STARTING PyServe USER<<<");
 				// going to create this in insight cache dir
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir));
@@ -144,13 +144,13 @@ public class PyUtils {
 				if(!relative.startsWith("/")) {
 					relative ="/"+relative;
 				}
-				LOGGER.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
+				classLogger.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
 				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
 				if(cp == null)
-					LOGGER.info("Unable to see class path ");
+					classLogger.info("Unable to see class path ");
 				Process  p = Utility.startTCPServer(cp, chrootDir, relative.toString(), port);
 				
 				
@@ -161,14 +161,14 @@ public class PyUtils {
 					if(user instanceof User)
 						((User)user).setPyProcess(p);
 				}
-				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
+				classLogger.info(">>>Pyserve Open on " + port + " <<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				LOGGER.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		else
-			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
 		return null;
 	}
 	
@@ -178,7 +178,7 @@ public class PyUtils {
 		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
 			try {
-				LOGGER.info(">>>STARTING PyServe USER<<<");
+				classLogger.info(">>>STARTING PyServe USER<<<");
 				// going to create this in insight cache dir
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path mainCachePath = Paths.get(dir);
@@ -188,7 +188,7 @@ public class PyUtils {
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
 				if(cp == null)
-					LOGGER.info("Unable to see class path ");
+					classLogger.info("Unable to see class path ");
 				Process  p = Utility.startTCPServer(cp, tempDirForUser.toString(), port);
 				
 				
@@ -199,14 +199,14 @@ public class PyUtils {
 					if(user instanceof User)
 						((User)user).setPyProcess(p);
 				}
-				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
+				classLogger.info(">>>Pyserve Open on " + port + " <<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				LOGGER.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		else
-			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
 		return null;
 	}
 
@@ -215,7 +215,7 @@ public class PyUtils {
 		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
 			try {
-				LOGGER.info(">>>STARTING PyServe USER<<<");
+				classLogger.info(">>>STARTING PyServe USER<<<");
 				// going to create this in insight cache dir
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path mainCachePath = Paths.get(dir);
@@ -225,7 +225,7 @@ public class PyUtils {
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
 				if(cp == null)
-					LOGGER.info("Unable to see class path ");
+					classLogger.info("Unable to see class path ");
 				// dont want to pass the user object into utility
 				// going to write the prefix and read it
 				Object[] output = Utility.startTCPServerNativePy(tempDirForUser.toString(), port);
@@ -239,14 +239,14 @@ public class PyUtils {
 					if(user instanceof User)
 						((User)user).setPyProcess(p);
 				}
-				LOGGER.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
+				classLogger.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				LOGGER.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		else
-			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
 		return null;
 	}
 
@@ -255,7 +255,7 @@ public class PyUtils {
 		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
 			try {
-				LOGGER.info(">>>STARTING PyServe USER<<<");
+				classLogger.info(">>>STARTING PyServe USER<<<");
 				// going to create this in insight cache dir
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); // /opt/kunal__sessionid/
@@ -265,13 +265,13 @@ public class PyUtils {
 				if(!relative.startsWith("/")) {
 					relative ="/"+relative;
 				}
-				LOGGER.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
+				classLogger.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
 				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
 				if(cp == null)
-					LOGGER.info("Unable to see class path ");
+					classLogger.info("Unable to see class path ");
 				// dont want to pass the user object into utility
 				// going to write the prefix and read it
 				Object[] output = Utility.startTCPServerNativePyChroot(relative.toString(), chrootDir, port);
@@ -282,24 +282,25 @@ public class PyUtils {
 					userProcessMap.put(user,  p);
 					
 					// set the py process into the user
-					if(user instanceof User)
+					if(user instanceof User) {
 						((User)user).setPyProcess(p);
+					}
 				}
-				LOGGER.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
+				classLogger.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				LOGGER.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		else
-			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
 		return null;
 	}
 	
 	public void killTempTupleSpace(Object user) {
 		// kill the process
 		// take out the dir
-		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER<<<");
+		classLogger.info(">>>KILLING PYTHON TUPESPACE FOR USER<<<");
 		if(userTupleMap.containsKey(user)) {
 			String dir = (String)userTupleMap.get(user);
 			// change this to just creating a file so it is simpler
@@ -311,7 +312,7 @@ public class PyUtils {
 				// delete the directory fully
 				FileUtils.deleteDirectory(new File(dir));
 			} catch(Exception e) {
-				LOGGER.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			userTupleMap.remove(user);
 		}
@@ -328,7 +329,7 @@ public class PyUtils {
 			}
 		}
 		*/		
-		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
+		classLogger.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
 	}
 	
 	// this is good for python dictionaries but also for making sure we can easily construct 
