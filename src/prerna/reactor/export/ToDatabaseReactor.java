@@ -22,7 +22,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.database.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -32,6 +31,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -353,25 +353,6 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			}
 		}
 		
-		// if we are overwriting the existing value
-		// we need to grab the current concept/columns
-		// and we need to delete them
-		// then do the add new table logic
-		if(this.override) {
-			long start = System.currentTimeMillis();
-			logger.info("Start to remove the exisitng concept from the OWL");
-			// i will just do the delete portion here
-			// since the add is the same in either case
-			RemoveOwlConceptReactor remover = new RemoveOwlConceptReactor();
-			remover.In();
-			remover.getNounStore().makeNoun(ReactorKeysEnum.DATABASE.getKey()).addLiteral(this.engineId);
-			remover.getNounStore().makeNoun(ReactorKeysEnum.CONCEPT.getKey()).addLiteral(this.targetTable);
-			remover.setInsight(this.insight);
-			remover.execute();
-			long end = System.currentTimeMillis();
-			logger.info("Finished removing concept from the OWL. Total time = "+((end-start)/1000)+" seconds");
-		}
-		
 		// if it is a new table
 		// this is easy
 		// just add everything
@@ -379,6 +360,18 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			long start = System.currentTimeMillis();
 			logger.info("Start to add the new exisitng concept from the OWL");
 			try (WriteOWLEngine owlEngine = targetEngine.getOWLEngineFactory().getWriteOWL()){
+				
+				// if we are overwriting the existing value
+				// we need to grab the current concept/columns
+				// and we need to delete them
+				// then do the add new table logic
+				if(this.override) {
+					long start2 = System.currentTimeMillis();
+					logger.info("Need to first remove the exisitng concept from the OWL");
+					owlEngine.removeConcept(targetTable);
+					long end2 = System.currentTimeMillis();
+					logger.info("Finished removing concept from the OWL. Total time = "+((end2-start2)/1000)+" seconds");
+				}
 				// choose the first column as the prim key
 				owlEngine.addConcept(targetTable, null, null);
 				owlEngine.addProp(targetTable, headers[0], sqlTypes[0]);
@@ -393,6 +386,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 					Utility.synchronizeEngineMetadata(engineId);
 					// also push to cloud
 					ClusterUtil.pushOwl(engineId, owlEngine);
+					EngineSyncUtility.clearEngineCache(this.engineId);
 					logger.info("Finished persisting engine metadata and synchronizing with local master");
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
