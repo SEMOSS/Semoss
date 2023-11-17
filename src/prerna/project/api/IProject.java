@@ -36,6 +36,7 @@ import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
 import prerna.reactor.IReactor;
@@ -214,6 +215,12 @@ public interface IProject extends IEngine, Closeable {
 	 * 
 	 * @return
 	 */
+	ClientProcessWrapper getClientProcessWrapper();
+	
+	/**
+	 * 
+	 * @return
+	 */
 	SocketClient getProjectTcpClient();
 	
 	/**
@@ -230,17 +237,6 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	SocketClient getProjectTcpClient(boolean create, int port);
-	
-	/**
-	 * 
-	 */
-	void setProjectTcpClient(SocketClient tcpClient);
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getProjectTcpServerDirectory();
 	
 	/**
 	 * 
