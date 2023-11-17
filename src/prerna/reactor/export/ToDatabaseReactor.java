@@ -353,13 +353,13 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			}
 		}
 		
-		
-		
 		// if we are overwriting the existing value
 		// we need to grab the current concept/columns
 		// and we need to delete them
 		// then do the add new table logic
 		if(this.override) {
+			long start = System.currentTimeMillis();
+			logger.info("Start to remove the exisitng concept from the OWL");
 			// i will just do the delete portion here
 			// since the add is the same in either case
 			RemoveOwlConceptReactor remover = new RemoveOwlConceptReactor();
@@ -368,16 +368,17 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			remover.getNounStore().makeNoun(ReactorKeysEnum.CONCEPT.getKey()).addLiteral(this.targetTable);
 			remover.setInsight(this.insight);
 			remover.execute();
+			long end = System.currentTimeMillis();
+			logger.info("Finished removing concept from the OWL. Total time = "+((end-start)/1000)+" seconds");
 		}
 		
 		// if it is a new table
 		// this is easy
 		// just add everything
 		if(this.override || this.newTable) {
-			logger.info("Need to update the engine metadata for the new table");
-			WriteOWLEngine owlEngine = null;
-			try {
-				owlEngine = targetEngine.getOWLEngineFactory().getWriteOWL();
+			long start = System.currentTimeMillis();
+			logger.info("Start to add the new exisitng concept from the OWL");
+			try (WriteOWLEngine owlEngine = targetEngine.getOWLEngineFactory().getWriteOWL()){
 				// choose the first column as the prim key
 				owlEngine.addConcept(targetTable, null, null);
 				owlEngine.addProp(targetTable, headers[0], sqlTypes[0]);
@@ -386,26 +387,22 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 					owlEngine.addProp(targetTable, headers[i], sqlTypes[i], null);
 				}
 				
-				logger.info("Persisting engine metadata and synchronizing with local master");
 				try {
+					logger.info("Persisting engine metadata and synchronizing with local master");
 					owlEngine.export();
 					Utility.synchronizeEngineMetadata(engineId);
 					// also push to cloud
 					ClusterUtil.pushOwl(engineId, owlEngine);
+					logger.info("Finished persisting engine metadata and synchronizing with local master");
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-			} catch (InterruptedException e) {
+
+			} catch (InterruptedException | IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(owlEngine != null) {
-					try {
-						owlEngine.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
 			}
+			long end = System.currentTimeMillis();
+			logger.info("Finished adding concept to the OWL. Total time = "+((end-start)/1000)+" seconds");
 		}
 	}
 
