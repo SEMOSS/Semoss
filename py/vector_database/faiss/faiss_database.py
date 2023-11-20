@@ -131,3 +131,19 @@ class FAISSDatabase():
         index_outputs = sorted(index_outputs, key=lambda x: x['Score'], reverse= not ascending)[:results]
         
         return index_outputs
+    
+    def getTokensInSentences(
+        self,
+        sentences:List[str]
+    ) -> List[int]:
+        num_tokens_in_sentences = [self.tokenizer.count_tokens(sentence) for sentence in sentences]
+        return num_tokens_in_sentences
+    
+    def getOverlapTokensAsString(
+        self,
+        chunk:str,
+        overlapLength:int
+    ) -> str:
+        prompt_tokens = self.tokenizer.get_tokens_ids(chunk)
+        overlap_string = self.tokenizer.decode_token_ids(prompt_tokens[len(prompt_tokens) - overlapLength:])
+        return overlap_string
