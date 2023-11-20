@@ -466,7 +466,11 @@ public class Constants {
 	public static final String QUESTION_MOD_PLAYSHEET_COMBOBOXLIST = "questionLayoutComboBox";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBO_LABEL = "lblQuestionLayoutText";
 	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
-
+	
+	// Model Configurations
+	public static final String MAX_TOKENS = "MAX_TOKENS";
+	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
+	
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
 	public static final String OLD_DB_COMBOBOX = "oldDBComboBox";
