@@ -388,6 +388,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				// loop through old tables and column names and remove them from existing metamodel
 				existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
 					boolean tableRemoved = false;
+					this.logger.info("Processing table " + Utility.cleanLogString(existingTableName) + " from owl");
 					if (!newRDBMSStructure.containsKey(existingTableName)) {
 						this.logger.info("Removing table " + Utility.cleanLogString(existingTableName) + " from owl");
 						owlEngine.removeConcept(existingTableName);
