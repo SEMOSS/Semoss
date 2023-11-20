@@ -186,6 +186,14 @@ public class MergeReactor extends AbstractReactor {
 					// get the url now
 					// we get the url because the focus area can be an app too
 					// this way we can be sure
+					
+					//TODO: need to account for closing connection created for connection pooling
+					//TODO: need to account for closing connection created for connection pooling
+					//TODO: need to account for closing connection created for connection pooling
+					//TODO: need to account for closing connection created for connection pooling
+					//TODO: need to account for closing connection created for connection pooling
+					//TODO: need to account for closing connection created for connection pooling
+
 					String curURL = ((IRDBMSEngine)curEngine).getConnectionMetadata().getURL();
 					String thisURL = ((IRDBMSEngine)thisEngine).getConnectionMetadata().getURL();
 
