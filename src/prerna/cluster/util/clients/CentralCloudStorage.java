@@ -831,33 +831,15 @@ public class CentralCloudStorage implements ICloudClient {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
-		boolean autoClose = false;
 		try {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			if(owlEngine == null) {
-				autoClose = true;
-				classLogger.info("Need to also grab Write OWL Engine");
-				owlEngine = database.getOWLEngineFactory().getWriteOWL();
-			}
-			//close the owl
-			owlEngine = database.getOWLEngineFactory().getWriteOWL();
-			//close the owl
-			owlEngine.closeOwl();
 			centralStorageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig);
 			if(hasPositionFile) {
 				centralStorageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig);
 			}
 		} finally {
-			try {
-				owlEngine.reloadOWLFile();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			if(autoClose) {
-				owlEngine.close();
-			}
 			if(sharedRCloneConfig != null) {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
@@ -898,10 +880,6 @@ public class CentralCloudStorage implements ICloudClient {
 		String sharedRCloneConfig = null;
 
 		// synchronize on the engine id
-		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to pull database owl and postions.json");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
-		lock.lock();
-		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		boolean autoClose = false;
 		try {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
@@ -909,7 +887,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			if(owlEngine == null) {
 				autoClose = true;
-				classLogger.info("Need to also grab Write OWL Engine");
+				classLogger.info("Grabbing current owl engine factory");
 				owlEngine = database.getOWLEngineFactory().getWriteOWL();
 			}
 			//close the owl
@@ -932,9 +910,6 @@ public class CentralCloudStorage implements ICloudClient {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			// always unlock regardless of errors
-			lock.unlock();
-			classLogger.info("Database "+ aliasAndDatabaseId + " is unlocked");
 		}
 	}
 
