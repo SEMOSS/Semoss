@@ -222,13 +222,14 @@ public class RDBMSEngineCreationHelper {
 
 		Connection con = null;
 		try {
+			DatabaseMetaData meta = null;
 			try {
 				con = rdbms.makeConnection();
+				meta = con.getMetaData();
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
-			DatabaseMetaData meta = rdbms.getConnectionMetadata();
 			
 			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
 			if(catalogFilter == null) {
