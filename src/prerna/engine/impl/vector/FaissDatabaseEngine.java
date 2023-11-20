@@ -110,7 +110,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
 		}
 		
-		IModelEngine modelEngine = Utility.getModel(engineId);
+		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
 		Properties modelProperties = modelEngine.getSmssProp();
 		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
 			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
