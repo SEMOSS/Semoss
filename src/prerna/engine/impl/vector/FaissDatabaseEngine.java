@@ -26,6 +26,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
@@ -109,18 +110,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
 		}
 		
-		String modelSmssFile = (String) DIHelper.getInstance().getEngineProperty(embedderEngineId + "_" + Constants.STORE);
-		Properties modelProperties = Utility.loadProperties(modelSmssFile);
-		if (modelProperties.isEmpty() || !modelProperties.containsKey("MODEL")) {
+		IModelEngine modelEngine = Utility.getModel(engineId);
+		Properties modelProperties = modelEngine.getSmssProp();
+		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
 			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
 		}
 		
-		this.smssProp.put("MODEL", modelProperties.getProperty("MODEL"));
+		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
 		this.smssProp.put("MODEL_TYPE", modelProperties.getProperty("MODEL_TYPE"));
-		if (!modelProperties.containsKey("MAX_TOKENS")) {
-			this.smssProp.put("MAX_TOKENS", "None");	
+		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
+			this.smssProp.put(Constants.MAX_TOKENS, "None");	
 		} else {
-			this.smssProp.put("MAX_TOKENS", modelProperties.getProperty("MAX_TOKENS"));
+			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
 		}
 		
 		// vars for string substitution
@@ -222,12 +223,14 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 		
+		int chunkMaxTokenLength = this.contentLength;
 		if (parameters.containsKey("contentLength")) {
-			this.contentLength = (int) parameters.get("contentLength");
+			chunkMaxTokenLength = (int) parameters.get("contentLength");
 		}
 		
+		int tokenOverlapBetweenChunks = this.contentOverlap;
 		if (parameters.containsKey("contentOverlap")) {
-			this.contentOverlap = (int) parameters.get("contentOverlap");
+			tokenOverlapBetweenChunks = (int) parameters.get("contentOverlap");
 		}
 		
 		Insight insight = getInsight(parameters.get("insight"));
@@ -302,7 +305,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					FileUtils.forceDelete(extractedFile);
 				}
 				if (!destinationFile.getName().toLowerCase().endsWith(".csv")) {
-					FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), this.contentLength, this.contentOverlap, destinationFile);
+					FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, destinationFile, this.vectorDatabaseSearcher, this.pyt);
 					columnsToIndex = "['Content']"; // this needs to match the column created in the new CSV
 				} else {
 					// copy csv over but make sure its only csvs

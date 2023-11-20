@@ -9,13 +9,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.TCPPyTranslator;
 import prerna.reactor.frame.gaas.processors.CSVWriter;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
@@ -25,10 +25,12 @@ import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 public class FaissDatabaseUtils {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseUtils.class);
 	
-	public static void convertFilesToCSV(String csvFileName, int contentLength, int contentOverlap, File file) throws IOException {
-		CSVWriter writer = new CSVWriter(csvFileName);
+	public static void convertFilesToCSV(String csvFileName, int contentLength, int contentOverlap, File file, String faissDbVarName, TCPPyTranslator vectorPyt) throws IOException {
+		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 		writer.setTokenLength(contentLength);
 		writer.overlapLength(contentOverlap);
+		writer.setFaissDbVarName(faissDbVarName);
+		writer.setPyTranslator(vectorPyt);
 
 		classLogger.info("Starting file conversions ");
 		List <String> processedList = new ArrayList<String>();
