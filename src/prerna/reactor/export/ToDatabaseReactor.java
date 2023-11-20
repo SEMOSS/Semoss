@@ -44,41 +44,54 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	private static final String TARGET_DATABASE = "targetDatabase";
 	private static final String TARGET_TABLE = "targetTable";
 	private static final String INSERT_ID_KEY = "insertId";
+	private static final String IGNORE_OWL = "ignoreOWL";
 
 	private String engineId = null;
 	private String targetTable = null;
 	private boolean override = false;
 	private boolean newTable = false;
 	private boolean genId = false;
+	private boolean ignoreOWL = false;
 	
 	public ToDatabaseReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), TARGET_DATABASE, TARGET_TABLE, ReactorKeysEnum.OVERRIDE.getKey(), INSERT_ID_KEY};
+		this.keysToGet = new String[]{ 
+				ReactorKeysEnum.TASK.getKey(), 
+				TARGET_DATABASE, 
+				TARGET_TABLE, 
+				ReactorKeysEnum.OVERRIDE.getKey(), 
+				INSERT_ID_KEY,
+				IGNORE_OWL
+				};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
-			this.task = getTask();
-			
-			this.engineId = getEngineId();
-			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
-				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
-			}
-			
 			User user = this.insight.getUser();
 			// throw error is user doesn't have rights to export data
 			if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 				AbstractReactor.throwUserNotExporterError();
 			}
-			this.targetTable = getTargetTable();
+			
+			organizeKeys();
+			this.task = getTask();
+			
+			this.engineId = this.keyValue.get(TARGET_DATABASE);
+			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
+				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
+			}
+			
+			this.targetTable = this.keyValue.get(TARGET_TABLE);
 			// clean up the table name
 			this.targetTable = Utility.makeAlphaNumeric(this.targetTable);
-			this.override = getOverride();
+			this.override = Boolean.parseBoolean( this.keyValue.get(ReactorKeysEnum.OVERRIDE.getKey())+"" );
 			// checks if targetTable doesn't exist in the engine
 			this.newTable = !MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(this.engineId).contains(this.targetTable);
 			// boolean check if a unique id will be generated
-			this.genId = getInsertKey();
+			this.genId = Boolean.parseBoolean( this.keyValue.get(INSERT_ID_KEY)+"" );
+			this.ignoreOWL = Boolean.parseBoolean( this.keyValue.get(IGNORE_OWL)+"" );
+
 			if(this.newTable && this.override) {
 				// you cannot override a table that doesn't exist
 				throw new SemossPixelException(
@@ -353,51 +366,55 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			}
 		}
 		
-		// if it is a new table
-		// this is easy
-		// just add everything
-		if(this.override || this.newTable) {
-			long start = System.currentTimeMillis();
-			logger.info("Start to add the new exisitng concept from the OWL");
-			try (WriteOWLEngine owlEngine = targetEngine.getOWLEngineFactory().getWriteOWL()){
-				ClusterUtil.pullOwl(engineId, owlEngine);
-
-				// if we are overwriting the existing value
-				// we need to grab the current concept/columns
-				// and we need to delete them
-				// then do the add new table logic
-				if(this.override) {
-					long start2 = System.currentTimeMillis();
-					logger.info("Need to first remove the exisitng concept from the OWL");
-					owlEngine.removeConcept(targetTable);
-					long end2 = System.currentTimeMillis();
-					logger.info("Finished removing concept from the OWL. Total time = "+((end2-start2)/1000)+" seconds");
-				}
-				// choose the first column as the prim key
-				owlEngine.addConcept(targetTable, null, null);
-				owlEngine.addProp(targetTable, headers[0], sqlTypes[0]);
-				// add all others as properties
-				for(int i = 1; i < targetSize; i++) {
-					owlEngine.addProp(targetTable, headers[i], sqlTypes[i], null);
-				}
-				
-				try {
-					logger.info("Persisting engine metadata and synchronizing with local master");
-					owlEngine.export();
-					Utility.synchronizeEngineMetadata(engineId);
-					// also push to cloud
-					ClusterUtil.pushOwl(engineId, owlEngine);
-					EngineSyncUtility.clearEngineCache(this.engineId);
-					logger.info("Finished persisting engine metadata and synchronizing with local master");
-				} catch (IOException e) {
+		if(this.ignoreOWL) {
+			logger.info("Ignoring any OWL modifications");
+		} else {
+			// if it is a new table
+			// this is easy
+			// just add everything
+			if(this.override || this.newTable) {
+				long start = System.currentTimeMillis();
+				logger.info("Start to add the new exisitng concept from the OWL");
+				try (WriteOWLEngine owlEngine = targetEngine.getOWLEngineFactory().getWriteOWL()){
+					ClusterUtil.pullOwl(engineId, owlEngine);
+	
+					// if we are overwriting the existing value
+					// we need to grab the current concept/columns
+					// and we need to delete them
+					// then do the add new table logic
+					if(this.override) {
+						long start2 = System.currentTimeMillis();
+						logger.info("Need to first remove the exisitng concept from the OWL");
+						owlEngine.removeConcept(targetTable);
+						long end2 = System.currentTimeMillis();
+						logger.info("Finished removing concept from the OWL. Total time = "+((end2-start2)/1000)+" seconds");
+					}
+					// choose the first column as the prim key
+					owlEngine.addConcept(targetTable, null, null);
+					owlEngine.addProp(targetTable, headers[0], sqlTypes[0]);
+					// add all others as properties
+					for(int i = 1; i < targetSize; i++) {
+						owlEngine.addProp(targetTable, headers[i], sqlTypes[i], null);
+					}
+					
+					try {
+						logger.info("Persisting engine metadata and synchronizing with local master");
+						owlEngine.export();
+						Utility.synchronizeEngineMetadata(engineId);
+						// also push to cloud
+						ClusterUtil.pushOwl(engineId, owlEngine);
+						EngineSyncUtility.clearEngineCache(this.engineId);
+						logger.info("Finished persisting engine metadata and synchronizing with local master");
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+	
+				} catch (InterruptedException | IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-
-			} catch (InterruptedException | IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				long end = System.currentTimeMillis();
+				logger.info("Finished adding concept to the OWL. Total time = "+((end-start)/1000)+" seconds");
 			}
-			long end = System.currentTimeMillis();
-			logger.info("Finished adding concept to the OWL. Total time = "+((end-start)/1000)+" seconds");
 		}
 	}
 
@@ -426,71 +443,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			return strInput.get(0);
 		}
 		
-		throw new IllegalArgumentException("Must define the app to persist the data");
+		throw new IllegalArgumentException("Must define the engine to persist the data");
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
-	private String getTargetTable() {
-		GenRowStruct grs = this.store.getNoun(TARGET_TABLE);
-		if(grs != null && !grs.isEmpty()) {
-			NounMetadata noun = grs.getNoun(0);
-			return noun.getValue().toString();
-		}
-		
-		// or it is the second string input
-		List<String> strInput = this.curRow.getAllStrValues();
-		if(strInput != null && !strInput.isEmpty()) {
-			return strInput.get(1);
-		}
-		
-		throw new IllegalArgumentException("Must define the table to persist the data into");
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private boolean getOverride() {
-		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[3]);
-		if(boolGrs != null) {
-			if(boolGrs.size() > 0) {
-				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-				return (boolean) val.get(0);
-			}
-		}
-		
-		List<NounMetadata> booleanInput = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
-		if(booleanInput != null && !booleanInput.isEmpty()) {
-			return (boolean) booleanInput.get(0).getValue();
-		}
-		
-		return false;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private boolean getInsertKey() {
-		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[4]);
-		if(boolGrs != null) {
-			if(boolGrs.size() > 0) {
-				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-				return (boolean) val.get(0);
-			}
-		}
-		
-		List<NounMetadata> booleanInput = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
-		if(booleanInput != null && !booleanInput.isEmpty()) {
-			return (boolean) booleanInput.get(0).getValue();
-		}
-		
-		return false;
-	}
 }
-
-
 
