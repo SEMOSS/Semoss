@@ -126,21 +126,23 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 		// and let it go that is it
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		String[] engineIds = new String[fileNames.length];
-
-		// loop through and load all the engines
-		// but we will ignore the local master and security database
-		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
-			try {
-				String fileName = fileNames[fileIdx];
-				// I really dont want to load anything here
-				// I only want to keep track of what are the engine names and their corresponding SMSS files
-				// so we will catalog instead of load
-				String loadedEngineId = catalogEngine(fileName, folderToWatch);
-				engineIds[fileIdx] = loadedEngineId;
-			} catch (RuntimeException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-				classLogger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+		if(fileNames != null) {
+			String[] engineIds = new String[fileNames.length];
+			
+			// loop through and load all the engines
+			// but we will ignore the local master and security database
+			for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
+				try {
+					String fileName = fileNames[fileIdx];
+					// I really dont want to load anything here
+					// I only want to keep track of what are the engine names and their corresponding SMSS files
+					// so we will catalog instead of load
+					String loadedEngineId = catalogEngine(fileName, folderToWatch);
+					engineIds[fileIdx] = loadedEngineId;
+				} catch (RuntimeException ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				}
 			}
 		}
 		
