@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +22,6 @@ import org.openrdf.model.vocabulary.RDFS;
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.MetadataUtility;
@@ -455,157 +453,100 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	 * @return
 	 */
 	public NounMetadata removeConcept(String tableName) {
-		// since RDF uses this multiple times, don't create it each time and just store
-		// it in a hash to send back
-		if (!conceptHash.containsKey(tableName)) {
-			// create the physical uri for the concept
-			// the base URI for the concept will be the baseNodeURI
-			String conceptPhysical = this.getPhysicalUriFromPixelSelector(tableName);
-			List<String> properties = this.getPropertyUris4PhysicalUri(conceptPhysical);
-			StringBuilder bindings = new StringBuilder();
-			for (String prop : properties) {
-				bindings.append("(<").append(prop).append(">)");
-			}
+		long start = System.currentTimeMillis();
 
-			// remove relationships to node
-			List<String[]> fkRelationships = getPhysicalRelationships(this.baseDataEngine);
-			classLogger.info("Removing relationships for concept='"+tableName+"'");
-			for (String[] relations: fkRelationships) {
-				String instanceName = Utility.getInstanceName(relations[2]);
-				String[] tablesAndPrimaryKeys = instanceName.split("\\.");
+		// create the physical uri for the concept
+		// the base URI for the concept will be the baseNodeURI
+		String conceptPhysical = this.getPhysicalUriFromPixelSelector(tableName);
 
-				for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
-					String key = tablesAndPrimaryKeys[i];
+		// remove relationships to node
+		List<String[]> fkRelationships = getPhysicalRelationships(this.baseDataEngine);
+		classLogger.info("Removing relationships for concept='"+tableName+"'");
+		for (String[] relations: fkRelationships) {
+			String instanceName = Utility.getInstanceName(relations[2]);
+			String[] tablesAndPrimaryKeys = instanceName.split("\\.");
 
-					if (tableName.equalsIgnoreCase(key)) {
-						this.baseDataEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[0], relations[2], relations[1], true });
-						this.baseDataEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
-					}
+			for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
+				String key = tablesAndPrimaryKeys[i];
+
+				if (tableName.equalsIgnoreCase(key)) {
+					this.baseDataEngine.removeStatement(new Object[] { relations[0], relations[2], relations[1], true });
+					this.baseDataEngine.removeStatement(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
 				}
 			}
+		}
+		
+		List<String> properties = this.getPropertyUris4PhysicalUri(conceptPhysical);
+		for(String prop : properties) {
+			 // pixel URI is always column/table
+	        String columnName = Utility.getClassName(prop);
+			removeProp(tableName, columnName);
+		}
 
-			if (bindings.length() > 0) {
-				classLogger.info("Removing downstream props for concept='"+tableName+"'");
-				// get everything downstream of the props
-				{
-					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?s {" + bindings.toString() + "}";
+		boolean hasTriple = false;
 
-					IRawSelectWrapper it = null;
+		classLogger.info("Removing downstream triples for concept='"+tableName+"'");
+		// now repeat for the node itself
+		// remove everything downstream of the node
+		{
+			String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?s) {?s ?p ?o} }";
+
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, query);
+				while (it.hasNext()) {
+					hasTriple = true;
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, this.baseDataEngine);
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(it != null) {
 					try {
-						it = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, query);
-						while (it.hasNext()) {
-							IHeadersDataRow headerRows = it.next();
-							executeRemoveQuery(headerRows, this.baseDataEngine);
-						}
-					} catch (Exception e) {
+						it.close();
+					} catch (IOException e) {
 						classLogger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(it != null) {
-							try {
-								it.close();
-							} catch (IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
 					}
 				}
+			}
+		}
 
-				classLogger.info("Removing upstream props for concept='"+tableName+"'");
-				// repeat for upstream of prop
-				{
-					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?o {"	+ bindings.toString() + "}";
+		classLogger.info("Removing upstream triples for concept='"+tableName+"'");
+		// repeat for upstream of the node
+		{
+			String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?o) {?s ?p ?o} }";
 
-					IRawSelectWrapper it = null;
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, query);
+				while (it.hasNext()) {
+					hasTriple = true;
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, this.baseDataEngine);
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(it != null) {
 					try {
-						it = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, query);
-						while (it.hasNext()) {
-							IHeadersDataRow headerRows = it.next();
-							executeRemoveQuery(headerRows, this.baseDataEngine);
-						}
-					} catch (Exception e) {
+						it.close();
+					} catch (IOException e) {
 						classLogger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(it != null) {
-							try {
-								it.close();
-							} catch (IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
 					}
 				}
 			}
+		}
 
-			boolean hasTriple = false;
-
-			classLogger.info("Removing downstream triples for concept='"+tableName+"'");
-			// now repeat for the node itself
-			// remove everything downstream of the node
-			{
-				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?s) {?s ?p ?o} }";
-
-				IRawSelectWrapper it = null;
-				try {
-					it = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, query);
-					while (it.hasNext()) {
-						hasTriple = true;
-						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, this.baseDataEngine);
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(it != null) {
-						try {
-							it.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-			}
-
-			classLogger.info("Removing upstream triples for concept='"+tableName+"'");
-			// repeat for upstream of the node
-			{
-				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?o) {?s ?p ?o} }";
-
-				IRawSelectWrapper it = null;
-				try {
-					it = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, query);
-					while (it.hasNext()) {
-						hasTriple = true;
-						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, this.baseDataEngine);
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(it != null) {
-						try {
-							it.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
-			}
-
-			if (!hasTriple) {
-				throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
-			}
+		if (!hasTriple) {
+			throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
 		}
 		
 		// remove from hash
 		conceptHash.remove(tableName);
 		
-		Iterator<String> propIterator = this.propHash.keySet().iterator();
-		while(propIterator.hasNext()) {
-			String thisProp = propIterator.next();
-			if(thisProp.startsWith(tableName + "%")) {
-				propIterator.remove();
-			}
-		}
+		long end = System.currentTimeMillis();
+		classLogger.info("Time for property concept = "+(end-start)+"ms");
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies",
@@ -661,6 +602,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	 * @return
 	 */
 	public NounMetadata removeProp(String tableName, String propertyCol) {
+		long start = System.currentTimeMillis();
 		// create the property URI
 		String property = null;
 		if (this.dbType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
@@ -671,6 +613,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		}
 
 		{
+			classLogger.info("Removing downstream of property ='"+propertyCol+"/"+tableName+"'");
 			// remove everything downstream of the property
 			String downstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?s) " + "{?s ?p ?o} }";
 			IRawSelectWrapper it = null;
@@ -694,6 +637,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		}
 
 		{
+			classLogger.info("Removing upstream of property ='"+propertyCol+"/"+tableName+"'");
 			// repeat for upstream of the property
 			String upstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?o) {?s ?p ?o} }";
 			IRawSelectWrapper it = null;
@@ -719,6 +663,9 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		// remove from hash
 		this.propHash.remove(tableName + "%" + propertyCol);
 
+		long end = System.currentTimeMillis();
+		classLogger.info("Time for property removal = "+(end-start)+"ms");
+		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
@@ -1249,7 +1196,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
 		
-		baseDataEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
+		baseDataEngine.addStatement(new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	/**
@@ -1273,7 +1220,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
 		
-		baseDataEngine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
+		baseDataEngine.removeStatement(new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	// set this as separate pieces as well
@@ -1313,7 +1260,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 				deleteExisitngTimestamp();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = DATE_FORMATTER.format(cal.getTime());
-				this.baseDataEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+				this.baseDataEngine.addStatement(new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseDataEngine.exportDB();
 		} catch (Exception e) {
@@ -1359,7 +1306,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			delTriples[2] = currTimes.get(delIndex+1);
 			delTriples[3] = false;
 			
-			this.baseDataEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, delTriples);
+			this.baseDataEngine.removeStatement(delTriples);
 		}
 	}
 
