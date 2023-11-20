@@ -126,8 +126,9 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 		// and let it go that is it
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
+		String[] engineIds = null;
 		if(fileNames != null) {
-			String[] engineIds = new String[fileNames.length];
+			engineIds = new String[fileNames.length];
 			
 			// loop through and load all the engines
 			// but we will ignore the local master and security database
@@ -144,21 +145,21 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 					classLogger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 				}
 			}
-		}
-		
-		// remove unused databases
-		if (!ClusterUtil.IS_CLUSTER) {
-			if(getEngineType() == null) {
-				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
-				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
-				classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
-			} else {
-				String engineType = getEngineType().name();
-				List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(engineType));
-				for(String engine : engines) {
-					if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-						classLogger.info("Deleting the engine " + Utility.cleanLogString(engine) + " of type " + engineType + " from security");
-						SecurityEngineUtils.deleteEngine(engine);
+			
+			// remove unused databases
+			if (!ClusterUtil.IS_CLUSTER) {
+				if(getEngineType() == null) {
+					classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+					classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+					classLogger.warn("This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+				} else {
+					String engineType = getEngineType().name();
+					List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(engineType));
+					for(String engine : engines) {
+						if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+							classLogger.info("Deleting the engine " + Utility.cleanLogString(engine) + " of type " + engineType + " from security");
+							SecurityEngineUtils.deleteEngine(engine);
+						}
 					}
 				}
 			}
