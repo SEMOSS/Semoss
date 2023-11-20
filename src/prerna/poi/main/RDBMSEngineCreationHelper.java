@@ -213,29 +213,6 @@ public class RDBMSEngineCreationHelper {
 		AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
 		RdbmsTypeEnum driverEnum = rdbms.getDbType();
 
-		Connection con = null;
-		try {
-			con = rdbms.makeConnection();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
-		DatabaseMetaData meta = rdbms.getConnectionMetadata();
-		
-		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
-		if(catalogFilter == null) {
-			try {
-				catalogFilter = con.getCatalog();
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
-		if(schemaFilter == null) {
-			schemaFilter = (String) rdbms.getSchema();
-		}
-		
 		// table that will store 
 		// table_name -> {
 		// 					colname1 -> coltype,
@@ -243,46 +220,77 @@ public class RDBMSEngineCreationHelper {
 		//				}
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
 
-
-		String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
-		final String COLUMN_NAME_STR = columnKeys[0];
-		final String COLUMN_TYPE_STR = columnKeys[1];
-
-		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tablesToRetrieve); 
+		Connection con = null;
 		try {
-			while (tableViewIterator.hasNext()) {
-				String[] nextRow = tableViewIterator.next();
-				String tableOrView = nextRow[0];
-
-				// keep a map of the columns
-				Map<String, String> colDetails = new HashMap<String, String>();
-				// iterate through the columns
-				
-				ResultSet columnsRs = null;
+			try {
+				con = rdbms.makeConnection();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(e.getMessage());
+			}
+			DatabaseMetaData meta = rdbms.getConnectionMetadata();
+			
+			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+			if(catalogFilter == null) {
 				try {
-					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driverEnum);
-					while(columnsRs.next()) {
-						colDetails.put(columnsRs.getString(COLUMN_NAME_STR), columnsRs.getString(COLUMN_TYPE_STR));
-					}
-				} catch(SQLException e) {
-					e.printStackTrace();
-				} finally {
-					try {
-						if(columnsRs != null) {
-							columnsRs.close();
-						}
-					} catch (SQLException e1) {
-						e1.printStackTrace();
-					}
+					catalogFilter = con.getCatalog();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
 				}
-				tableColumnMap.put(tableOrView, colDetails);
+			}
+	
+			String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+			if(schemaFilter == null) {
+				schemaFilter = (String) rdbms.getSchema();
+			}
+	
+			String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
+			final String COLUMN_NAME_STR = columnKeys[0];
+			final String COLUMN_TYPE_STR = columnKeys[1];
+	
+			CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tablesToRetrieve); 
+			try {
+				while (tableViewIterator.hasNext()) {
+					String[] nextRow = tableViewIterator.next();
+					String tableOrView = nextRow[0];
+	
+					// keep a map of the columns
+					Map<String, String> colDetails = new HashMap<String, String>();
+					// iterate through the columns
+					
+					ResultSet columnsRs = null;
+					try {
+						columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driverEnum);
+						while(columnsRs.next()) {
+							colDetails.put(columnsRs.getString(COLUMN_NAME_STR), columnsRs.getString(COLUMN_TYPE_STR));
+						}
+					} catch(SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					} finally {
+						try {
+							if(columnsRs != null) {
+								columnsRs.close();
+							}
+						} catch (SQLException e1) {
+							classLogger.error(Constants.STACKTRACE, e1);
+						}
+					}
+					tableColumnMap.put(tableOrView, colDetails);
+				}
+			} finally {
+				if(tableViewIterator != null) {
+					tableViewIterator.close();
+				}
 			}
 		} finally {
-			if(tableViewIterator != null) {
-				tableViewIterator.close();
+			if(con != null && rdbms.isConnectionPooling()) {
+				try {
+					con.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-
 		return tableColumnMap;
 	}
 
