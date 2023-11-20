@@ -2602,7 +2602,7 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		// select logicalname from concept where conceptualname='MovieBudget'
