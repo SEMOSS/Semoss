@@ -23,13 +23,13 @@ public class CSVWriter {
 	
 	// takes an input file
 	// starts appending CSV to it
-	String fileName = null;
-	int contentLength = 512;
-	int overlapLength = 10;
-	float tokenLimit = 0.1f;
-	PrintWriter pw = null;
-	int minContentLength = 30;
-	FileWriter fw = null;
+	protected String fileName = null;
+	protected int contentLength = 512;
+	protected int overlapLength = 10;
+	protected float tokenLimit = 0.1f;
+	protected PrintWriter pw = null;
+	protected int minContentLength = 30;
+	protected FileWriter fw = null;
 
 	public CSVWriter(String fileName) {
 		this.fileName = fileName;
@@ -63,7 +63,7 @@ public class CSVWriter {
 		this.overlapLength = overlap;
 	}
 
-	private void writeHeader() {
+	protected void writeHeader() {
 		StringBuffer row = new StringBuffer();
 		row.append("Source").append(",")
 		.append("Divider").append(",")
@@ -112,7 +112,7 @@ public class CSVWriter {
 	 * @param inputString
 	 * @return
 	 */
-	private String cleanString(String inputString) {
+	protected String cleanString(String inputString) {
 		inputString = inputString.replace("\n", " ");
 		inputString = inputString.replace("\r", " ");
 		inputString = inputString.replace("\\", "\\\\");
