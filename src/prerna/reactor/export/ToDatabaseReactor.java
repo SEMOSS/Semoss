@@ -82,7 +82,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			if(this.newTable && this.override) {
 				// you cannot override a table that doesn't exist
 				throw new SemossPixelException(
-						new NounMetadata("Table " + this.newTable + " cannot be found to override. Please enter an existing table name or turn override to false",
+						new NounMetadata("Table " + this.targetTable + " cannot be found to override. Please enter an existing table name or turn override to false",
 								PixelDataType.CONST_STRING));
 			}
 		
