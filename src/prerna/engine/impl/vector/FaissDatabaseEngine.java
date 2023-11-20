@@ -104,7 +104,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
-		String modelSmssFile = (String) DIHelper.getInstance().getEngineProperty(this.smssProp.getProperty("ENCODER_ID") + "_" + Constants.STORE);
+		String embedderEngineId = this.smssProp.getProperty("EMBEDDER_ENGINE_ID");
+		if (embedderEngineId == null) {
+			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
+		}
+		
+		String modelSmssFile = (String) DIHelper.getInstance().getEngineProperty(embedderEngineId + "_" + Constants.STORE);
 		Properties modelProperties = Utility.loadProperties(modelSmssFile);
 		if (modelProperties.isEmpty() || !modelProperties.containsKey("MODEL")) {
 			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
