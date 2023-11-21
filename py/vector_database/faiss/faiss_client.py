@@ -16,6 +16,7 @@ class FAISSSearcher():
     '''
 
     datasetType = 'datasets'
+    encodingOptions = ['iso-8859-1', 'latin1', 'cp1252']
 
     def __init__(
         self, 
@@ -444,11 +445,27 @@ class FAISSSearcher():
 
             # Create the Dataset for every file
             # TODO change this to json so we dont have encoding issue
-            dataset = Dataset.from_csv(
-                path_or_paths = document, 
-                encoding ='iso-8859-1',
-                keep_in_memory = True
-            )
+            
+            try:  
+                dataset = Dataset.from_csv(
+                    path_or_paths = document, 
+                    encoding ='iso-8859-1',
+                    keep_in_memory = True
+                )
+            except:
+                for encoding in FAISSSearcher.encodingOptions:
+                    try:
+                        temp_df = pd.read_csv(document, encoding = encoding)
+                        dataset = Dataset.from_pandas(
+                            temp_df,
+                            keep_in_memory=True
+                        )
+                        break
+                    except:
+                        continue
+                else:
+                    # The else clause is executed if the loop completes without encountering a break
+                    raise Exception("Unable to read the file with any of the specified encodings")
 
             if (columns_to_index == None or len(columns_to_index) == 0):
                 columns_to_index = list(dataset.features)
@@ -545,7 +562,6 @@ class FAISSSearcher():
         # Use glob.glob to find all matching files in the directory
         matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
         for i, file in enumerate(matching_files):
-            print(file)
             dataset = self._load_dataset(dataset_location=file)
             if i == 0:
                 self.ds = dataset
@@ -558,7 +574,6 @@ class FAISSSearcher():
         # Use glob.glob to find all matching files in the directory
         matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
         for i, file in enumerate(matching_files):
-            print(file)
             vectors = self._load_encoded_vectors(encoded_vectors_location=file)
             if i == 0:
                 self.encoded_vectors = vectors
