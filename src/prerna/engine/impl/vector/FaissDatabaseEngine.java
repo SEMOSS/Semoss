@@ -58,7 +58,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
-	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_id = '${ENCODER_ID}', encoder_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, encoder_type = '${MODEL_TYPE}', distance_method = '${DISTANCE_METHOD}')";
+	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_id = '${EMBEDDER_ENGINE_ID}', encoder_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, encoder_type = '${MODEL_TYPE}', distance_method = '${DISTANCE_METHOD}')";
 
 	protected String vectorDatabaseSearcher = null;
 	
@@ -108,6 +108,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String embedderEngineId = this.smssProp.getProperty("EMBEDDER_ENGINE_ID");
 		if (embedderEngineId == null) {
 			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
+			if (embedderEngineId == null) {
+				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
+			}
+			
+			this.smssProp.put("EMBEDDER_ENGINE_ID", embedderEngineId);
 		}
 		
 		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
@@ -378,7 +383,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// inform the user that some chunks are too large and they might loose semantic value
 		Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
-		
 	}
 
 	@Override
