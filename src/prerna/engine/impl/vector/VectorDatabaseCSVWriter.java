@@ -136,7 +136,11 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 				chunks.add(new String [] {chunk, String.valueOf(tokensInCurrentChunk)});
 				
 				// start new chunk
-				String overlap = getOverlap(chunk, overlapLength);
+				String overlap = "";
+				if (overlapLength > 0) {
+					overlap = getOverlap(chunk, overlapLength);
+				}
+				
 				currentChunk = new StringBuilder(overlap).append(" ").append(sentence);
 				tokensInCurrentChunk = overlapLength + numTokensInSentence;
 			}
