@@ -13,6 +13,7 @@ class FAISSDatabase():
         encoder_id:str,
         encoder_name:str,
         encoder_type:str,
+        distance_method:str,
         searchers: list = [], 
         max_tokens:int = None
     ) -> None:
@@ -29,8 +30,13 @@ class FAISSDatabase():
         # set the encoder class so it can be used when new searchers/indexClasses are added
         self.encoder_class = ModelEngine(engine_id = encoder_id)
         
+        # 
+        self.metric_type_is_cosine_similarity = False
+        if distance_method.lower().find('cosine') > -1:
+            self.metric_type_is_cosine_similarity = True
+        
         # register all the searchers passed in
-        self.searchers = {searcher:FAISSSearcher(encoder_class = self.encoder_class, tokenizer = self.tokenizer) for searcher in searchers}
+        self.searchers = {searcher:FAISSSearcher(encoder_class = self.encoder_class, tokenizer = self.tokenizer, metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity) for searcher in searchers}
 
     def create_searcher(
         self, 
@@ -50,7 +56,12 @@ class FAISSDatabase():
         if (searcher_name in self.searchers.keys()):
             raise ValueError("The searcher/table/class already exists")
         
-        self.searchers[searcher_name] = FAISSSearcher(encoder_class = self.encoder_class, tokenizer = self.tokenizer, **kwargs)
+        self.searchers[searcher_name] = FAISSSearcher(
+            encoder_class = self.encoder_class, 
+            tokenizer = self.tokenizer, 
+            metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity,
+            **kwargs
+        )
 
     def delete_searcher(
         self, 
