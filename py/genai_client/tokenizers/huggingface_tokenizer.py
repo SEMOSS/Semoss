@@ -12,7 +12,26 @@ class HuggingfaceTokenizer(AbstractTokenizer):
             return AutoTokenizer.from_pretrained(encoder_name)
         except:
             # this is the defacto default tokenizer
-            return AutoTokenizer.from_pretrained("bert-base-uncased")
+            from transformers import PreTrainedTokenizer
+            class WordCountTokenizer(PreTrainedTokenizer):
+                '''
+                This tokenizer does nothing more than split sentences by spaces.
+                
+                The `encode` method does not return actual IDs so it can break if an input is expecting integers
+                '''
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    
+                def _tokenize(self, text, **kwargs):
+                    # Simple whitespace-based tokenization
+                    return text.split()
+                
+                def encode(self, input, **kwargs):
+                    return self._tokenize(input)
+
+                def decode(self, tokens, **kwargs):
+                    return ' '.join(tokens)
+            return WordCountTokenizer()
 
     def count_tokens(self, input:str) -> int:
         '''Use the model tokenizer to get the number of tokens'''
