@@ -123,6 +123,6 @@ class LocalEmbedder():
         output_payload = {
             'response':response,
             'numberOfTokensInPrompt': 0,
-            'numberOfTokensInResponse': len(self.tokenizer.count_tokens(response))
+            'numberOfTokensInResponse': self.tokenizer.count_tokens(response)
         }
         return output_payload
