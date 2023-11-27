@@ -164,7 +164,7 @@ class FAISSSearcher():
             strings_to_embed = [question], 
             insight_id = insight_id
         )
-        query_vector = np.array(search_vector[0], dtype=np.float32)
+        query_vector = np.array(search_vector[0]['response'], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
         # check to see if need to normalize the vector
@@ -496,7 +496,7 @@ class FAISSSearcher():
                 strings_to_embed = dataset[target_column], 
                 insight_id = insight_id
             )
-            vectors = np.array(vectors[0], dtype=np.float32)
+            vectors = np.array(vectors[0]['response'], dtype=np.float32)
             assert vectors.ndim == 2
 
             columns_to_remove.append(target_column)
