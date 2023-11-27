@@ -280,7 +280,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 		classLogger.info("Embeddings Received from engine " + this.engineId);
  			
-		return output.get(RESPONSE);
+		return output;
 	}
 	
 	public Object model(String question, Insight insight, Map <String, Object> parameters) {
