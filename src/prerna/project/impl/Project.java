@@ -1082,7 +1082,7 @@ public class Project implements IProject {
 				this.publishedPortal = true;
 				this.republishPortal = false;
 				this.lastPortalPublishDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
-				classLogger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
+				classLogger.info("Project '" + SmssUtilities.getUniqueName(this.projectName, this.projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1557,8 +1557,19 @@ public class Project implements IProject {
 	 * @return
 	 */
 	public TCPRTranslator getProjectRTranslator() {
+		if(this.cpw.getSocketClient() == null) {
+			createProjectTcpServer(-1);
+		} else if( !this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown();
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
+			}
+		}
 		TCPRTranslator rJavaTranslator = new TCPRTranslator();
-		rJavaTranslator.setClient(getProjectTcpClient());
+		rJavaTranslator.setClient(this.cpw.getSocketClient());
 		return rJavaTranslator;
 	}
 
@@ -1567,8 +1578,19 @@ public class Project implements IProject {
 	 * @return
 	 */
 	public TCPPyTranslator getProjectPyTranslator() {
+		if(this.cpw.getSocketClient() == null) {
+			createProjectTcpServer(-1);
+		} else if( !this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown();
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
+			}
+		}
 		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
-		pyJavaTranslator.setSocketClient(getProjectTcpClient());
+		pyJavaTranslator.setSocketClient(this.cpw.getSocketClient());
 		return pyJavaTranslator;
 	}
 	
@@ -1584,7 +1606,7 @@ public class Project implements IProject {
 			if(nativePyServerStr == null || (nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
 				nativePyServerStr = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER);
 			}
-			if(nativePyServerStr != null) {
+			if(nativePyServerStr != null && !(nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
 				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
 			}
 			
@@ -1617,8 +1639,14 @@ public class Project implements IProject {
 				throw new IllegalArgumentException("Could not create directory to launch project process");
 			}
 			
-			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.smssProp));
-			this.cpw.createProcessAndClient(nativePyServer, port, serverDirectoryPath.toString(), customClassPath, debug);
+			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
+			// TODO: ignoring chroot for now...
+			try {
+				this.cpw.createProcessAndClient(nativePyServer, null, port, serverDirectoryPath.toString(), customClassPath, debug);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
+			}
 		}
 	}
 

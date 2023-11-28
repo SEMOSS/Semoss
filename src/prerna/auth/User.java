@@ -1,7 +1,11 @@
 package prerna.auth;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -27,6 +31,7 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
+import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
@@ -60,11 +65,9 @@ public class User implements Serializable {
 	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private transient SocketClient socketClient;
+	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	private transient PyTranslator pyt = null;
-	private String port = null;
-	public String pyTupleSpace = null;
-	public String tupleSpace = null;
+	
 	private transient MountHelper mountHelper = null;
 	private String mountTuple = null;
 
@@ -382,16 +385,6 @@ public class User implements Serializable {
 		this.cp = null;
 	}
 	
-	public void setTupleSpace(String tupleSpace)
-	{
-		this.tupleSpace = tupleSpace;
-	}
-	
-	public String getTupleSpace()
-	{
-		return this.tupleSpace;
-	}
-	
 	/**
 	 * Store the open insight
 	 * @param operation
@@ -613,47 +606,46 @@ public class User implements Serializable {
 	}
 	
 	/////////////////////////////////////////////////////
-	
-	/**
-	 * 
-	 * @param nc
-	 */
-	public void setSocketClient(SocketClient sc) {
-		this.socketClient = sc;
-	}
-	
-	/**
-	 * 
-	 * @param createServer
-	 * @return
-	 */
-	public SocketClient getSocketClient(boolean createServer) {
-		return getSocketClient(createServer, -1);
-	}
 
 	/**
 	 * 
-	 * @param createServer
+	 * @return
+	 */
+	public ClientProcessWrapper getClientProcessWrapper() {
+		return this.cpw;
+	}
+	
+	/**
+	 * 
+	 * @param create
+	 * @return
+	 */
+	public SocketClient getSocketClient(boolean create) {
+		return getSocketClient(create, -1);
+	}
+	
+	/**
+	 * 
+	 * @param create
 	 * @param port
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean createServer, int port) {
-		// then restart it
-		if((this.socketClient == null && createServer) || (this.socketClient != null && !this.socketClient.isConnected() && createServer)) {
-			// set the port
-			forcePort = port;
-			this.port = null;
-			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
-			startSocketServerAndClient();
-			this.pyt = new TCPPyTranslator();
-			((TCPPyTranslator) pyt).setSocketClient(this.socketClient);
-			socketClient.setUser(this);
-
-			// invalidate the serialization map
-			insightSerializedMap.clear();
-
+	public SocketClient getSocketClient(boolean create, int port) {
+		if(!create) {
+			return this.cpw.getSocketClient();
 		}
-		return this.socketClient;
+		
+		if(this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return this.cpw.getSocketClient();
+		}
+		
+		this.startSocketServerAndClient(port);
+		this.cpw.getSocketClient().setUser(this);
+		
+		// invalidate the serialization map
+		this.insightSerializedMap.clear();
+
+		return this.cpw.getSocketClient();
 	}
 
 	/**
@@ -915,20 +907,27 @@ public class User implements Serializable {
 				// check to see if the py translator needs to be set ?
 				// check to see if the py translator needs to be set ?
 				else {
-					//this.pyt = new TCPPyTranslator();
-					//((TCPPyTranslator) pyt).nc = 
-					getSocketClient(true); // starts it
+					TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+					pyJavaTranslator.setSocketClient(getSocketClient(true, -1));
+					this.pyt = pyJavaTranslator;
 				}
 			}
 		}
-		else if(useNettyPy && (socketClient != null && !socketClient.isConnected()) )
+		else if(useNettyPy && (this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) )
 		{
-			// need to check if this is netty py
-			//System.err.println("TCP Server has crashed !!");
-			//this.pyt = null;
-			//this.tcpServer = null;
-			PyUtils.getInstance().killTempTupleSpace(this);
+			this.cpw.shutdown();
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to connect to user server");
+			}
+			TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+			pyJavaTranslator.setSocketClient(getSocketClient(true, -1));
+			this.pyt = pyJavaTranslator;
 		}
+		
+		// return the translator reference
 		return this.pyt;
 	}
 	
@@ -964,8 +963,8 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(cmdUtil != null && socketClient != null && socketClient.isConnected()) {
-			cmdUtil.setTcpClient(socketClient);
+		if(cmdUtil != null && this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			cmdUtil.setTcpClient(this.cpw.getSocketClient());
 		}
 		return this.cmdUtil;
 	}
@@ -973,102 +972,83 @@ public class User implements Serializable {
 	public MountHelper getUserMountHelper() {
 		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			if(mountHelper == null) {		
-				String uniqueUserName =getSingleLogginName(this)+ "-" + UUID.randomUUID().toString();
+				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
 				String baseMountPath = DIHelper.getInstance().getProperty("CHROOT_DIR");
 				mountTuple = baseMountPath + DIR_SEPARATOR + uniqueUserName;
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
 				mountHelper = new MountHelper(mountTuple);
-		} 
+			}
 			return mountHelper;
 		} else {
 			throw new IllegalArgumentException("Mounting + Chroot is set to false for this instance");
 		}
 	}
 	
-	public void startSocketServerAndClient() {
-		if (socketClient == null || !socketClient.isConnected())  // start only if it not already in progress
-		{
-			classLogger.info("Starting TCP Server for User = " + User.getSingleLogginName(this));
-			
-			// first preference given to user
-			if(forcePort > 0) {
-				port = forcePort +"";
+	public void startSocketServerAndClient(int port) {
+		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			boolean nativePyServer = false;
+			// defined in rdf map
+			String nativePyServerStr = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER);
+			if(nativePyServerStr != null && !(nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
+				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
 			}
 			
-			if(port == null) {
-				// this means someone has
-				// started it for debug
-				port = DIHelper.getInstance().getProperty(Settings.FORCE_PORT); 
-			}
-			
-			// port has not been forced
-			if (port == null) 
-			{
-				port = Utility.findOpenPort();
-				boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
-						&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
-				if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
-					//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-					mountHelper = getUserMountHelper();
-					
-					//maker.mountTarget(userLoginName);
-					//pyTupleSpace = mountTuple;
-					//pyTupleSpace = mountTuple + DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-					if(nativePyServer) {
-						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePyChroot(this, mountTuple,  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
-					} else {
-						pyTupleSpace = PyUtils.getInstance().startTCPServe(this, mountTuple, DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
+			boolean debug = false;
+			if(port < 0) {
+				String forcePort = DIHelper.getInstance().getProperty(Settings.FORCE_PORT);
+				// port has not been forced
+				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch(NumberFormatException e) {
+						// ignore
+						classLogger.warn("User " + User.getSingleLogginName(this) + " has an invalid FORCE_PORT value");
 					}
-				} else {
-					if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
-						pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
-					} 
-					else {
-						pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-					}
-
-					if(nativePyServer) {
-						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePy(this, pyTupleSpace, port);
-					} else {
-						pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
-					}
-					
-					setTupleSpace(pyTupleSpace);
 				}
 			}
 			
-			// instrumenting the client class also now
-			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
-			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
-				pyClient = SocketClient.class.getName(); 
+			String customClassPath = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+			if(customClassPath == null) {
+				classLogger.info("No custom class path set");
 			}
-			try
-			{
-				SocketClient socketClient = (SocketClient)Class.forName(pyClient).newInstance();
-				this.setSocketClient(socketClient);
-				socketClient.connect("127.0.0.1", Integer.parseInt(port), false);
-				//nc.run(); - you cannot do this because then the client goes into listener mode
-				Thread t = new Thread(socketClient);
-				t.start();
-				while(!socketClient.isReady())
-				{
-					synchronized(socketClient)
-					{
-						try 
-						{
-							socketClient.wait();
-							classLogger.info("Setting the socket client ");
-						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}								
-					}
+			
+			Path serverDirectoryPath = null;
+			String serverDirectory = null;
+
+			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
+				this.mountHelper = getUserMountHelper();
+				
+				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
+				try {
+					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, customClassPath, debug);
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to connect to user server");
+				}
+			} else {
+				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE") != null 
+						&& !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
+					serverDirectory = DIHelper.getInstance().getProperty("PY_TUPLE_SPACE");
+				} else {
+					serverDirectory = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				}
 				
-				setPyPort(Integer.parseInt(port));
-			}
-			catch(Exception e)
-			{
-				classLogger.error(Constants.STACKTRACE, e);
+				try {
+					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Could not create directory to launch project process");
+				}
+				
+				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
+				try {
+					this.cpw.createProcessAndClient(nativePyServer, null, port, serverDirectoryPath.toString(), customClassPath, debug);
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to connect to user server");
+				}
 			}
 		}
 	}
