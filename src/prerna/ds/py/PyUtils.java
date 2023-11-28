@@ -129,48 +129,49 @@ public class PyUtils {
 	
 	
 	//chroot
-	public String startTCPServe(User user, String chrootDir, String paramDir, String port)
-	{
-		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
-		{
-			try {
-				classLogger.info(">>>STARTING PyServe USER<<<");
-				// going to create this in insight cache dir
-				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir));
-				Path mainCachePath = Paths.get(chrootDir+paramDir);
-				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-				String relative = chrootPath.relativize(tempDirForUser).toString();
-				if(!relative.startsWith("/")) {
-					relative ="/"+relative;
-				}
-				classLogger.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
-				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
-				userTupleMap.put(user, tempDirForUser.toString());
-				// this should possibly also launch the thread
-				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
-				if(cp == null)
-					classLogger.info("Unable to see class path ");
-				Process  p = Utility.startTCPServer(cp, chrootDir, relative.toString(), port);
-				
-				
-				if(p != null) {
-					userProcessMap.put(user,  p);
-					
-					// set the py process into the user
-					if(user instanceof User)
-						((User)user).setPyProcess(p);
-				}
-				classLogger.info(">>>Pyserve Open on " + port + " <<<");
-				return tempDirForUser.toString();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		else
-			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
-		return null;
-	}
+//	public String startTCPServeChroot(User user, String chrootDir, String paramDir, String port)
+//	{
+//		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
+//		{
+//			try {
+//				classLogger.info(">>>STARTING PyServe USER<<<");
+//				// going to create this in insight cache dir
+//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir));
+//				Path mainCachePath = Paths.get(chrootDir+paramDir);
+//				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
+//				String relative = chrootPath.relativize(tempDirForUser).toString();
+//				if(!relative.startsWith("/")) {
+//					relative ="/"+relative;
+//				}
+//				classLogger.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
+//				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
+//				userTupleMap.put(user, tempDirForUser.toString());
+//				// this should possibly also launch the thread
+//				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+//				if(cp == null) {
+//					classLogger.info("Unable to see class path ");
+//				}
+//				Process  p = Utility.startTCPServerChroot(cp, chrootDir, relative.toString(), port);
+//				
+//				
+//				if(p != null) {
+//					userProcessMap.put(user,  p);
+//					
+//					// set the py process into the user
+//					if(user instanceof User)
+//						((User)user).setPyProcess(p);
+//				}
+//				classLogger.info(">>>Pyserve Open on " + port + " <<<");
+//				return tempDirForUser.toString();
+//			} catch (Exception e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		else
+//			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
+//		return null;
+//	}
 	
 
 	public String startTCPServe(User user, String dir, String port)
@@ -210,92 +211,92 @@ public class PyUtils {
 		return null;
 	}
 
-	public String startTCPServeNativePy(User user, String dir, String port)
-	{
-		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
-		{
-			try {
-				classLogger.info(">>>STARTING PyServe USER<<<");
-				// going to create this in insight cache dir
-				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-				Path mainCachePath = Paths.get(dir);
-				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-				Utility.writeLogConfigurationFile(tempDirForUser.toString());
-				userTupleMap.put(user, tempDirForUser.toString());
-				// this should possibly also launch the thread
-				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
-				if(cp == null)
-					classLogger.info("Unable to see class path ");
-				// dont want to pass the user object into utility
-				// going to write the prefix and read it
-				Object[] output = Utility.startTCPServerNativePy(tempDirForUser.toString(), port);
-				Process  p = (Process)output[0];
-				user.prefix = (String)output[1];
-				
-				if(p != null) {
-					userProcessMap.put(user,  p);
-					
-					// set the py process into the user
-					if(user instanceof User)
-						((User)user).setPyProcess(p);
-				}
-				classLogger.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
-				return tempDirForUser.toString();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		else
-			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
-		return null;
-	}
+//	public String startTCPServeNativePy(User user, String dir, String port)
+//	{
+//		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
+//		{
+//			try {
+//				classLogger.info(">>>STARTING PyServe USER<<<");
+//				// going to create this in insight cache dir
+//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				Path mainCachePath = Paths.get(dir);
+//				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
+//				Utility.writeLogConfigurationFile(tempDirForUser.toString());
+//				userTupleMap.put(user, tempDirForUser.toString());
+//				// this should possibly also launch the thread
+//				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+//				if(cp == null)
+//					classLogger.info("Unable to see class path ");
+//				// dont want to pass the user object into utility
+//				// going to write the prefix and read it
+//				Object[] output = Utility.startTCPServerNativePy(tempDirForUser.toString(), port);
+//				Process  p = (Process)output[0];
+//				user.prefix = (String)output[1];
+//				
+//				if(p != null) {
+//					userProcessMap.put(user,  p);
+//					
+//					// set the py process into the user
+//					if(user instanceof User)
+//						((User)user).setPyProcess(p);
+//				}
+//				classLogger.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
+//				return tempDirForUser.toString();
+//			} catch (Exception e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		else
+//			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
+//		return null;
+//	}
 
-	public String startTCPServeNativePyChroot(User user, String chrootDir,  String dir, String port)
-	{
-		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
-		{
-			try {
-				classLogger.info(">>>STARTING PyServe USER<<<");
-				// going to create this in insight cache dir
-				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); // /opt/kunal__sessionid/
-				Path mainCachePath = Paths.get(chrootDir+dir); // /opt/semosshome
-				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-				String relative = chrootPath.relativize(tempDirForUser).toString();
-				if(!relative.startsWith("/")) {
-					relative ="/"+relative;
-				}
-				classLogger.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
-				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
-				userTupleMap.put(user, tempDirForUser.toString());
-				// this should possibly also launch the thread
-				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
-				if(cp == null)
-					classLogger.info("Unable to see class path ");
-				// dont want to pass the user object into utility
-				// going to write the prefix and read it
-				Object[] output = Utility.startTCPServerNativePyChroot(relative.toString(), chrootDir, port);
-				Process  p = (Process)output[0];
-				user.prefix = (String)output[1];
-				
-				if(p != null) {
-					userProcessMap.put(user,  p);
-					
-					// set the py process into the user
-					if(user instanceof User) {
-						((User)user).setPyProcess(p);
-					}
-				}
-				classLogger.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
-				return tempDirForUser.toString();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		else
-			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
-		return null;
-	}
+//	public String startTCPServeNativePyChroot(User user, String chrootDir, String dir, String port)
+//	{
+//		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
+//		{
+//			try {
+//				classLogger.info(">>>STARTING PyServe USER<<<");
+//				// going to create this in insight cache dir
+//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); // /opt/kunal__sessionid/
+//				Path mainCachePath = Paths.get(chrootDir+dir); // /opt/semosshome
+//				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
+//				String relative = chrootPath.relativize(tempDirForUser).toString();
+//				if(!relative.startsWith("/")) {
+//					relative ="/"+relative;
+//				}
+//				classLogger.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
+//				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
+//				userTupleMap.put(user, tempDirForUser.toString());
+//				// this should possibly also launch the thread
+//				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+//				if(cp == null)
+//					classLogger.info("Unable to see class path ");
+//				// dont want to pass the user object into utility
+//				// going to write the prefix and read it
+//				Object[] output = Utility.startTCPServerNativePyChroot(chrootDir, relative.toString(), port);
+//				Process  p = (Process)output[0];
+//				user.prefix = (String)output[1];
+//				
+//				if(p != null) {
+//					userProcessMap.put(user,  p);
+//					
+//					// set the py process into the user
+//					if(user instanceof User) {
+//						((User)user).setPyProcess(p);
+//					}
+//				}
+//				classLogger.info(">>>Pyserve Open on " + port + "with prefix " + user.prefix + "<<<");
+//				return tempDirForUser.toString();
+//			} catch (Exception e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		else
+//			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
+//		return null;
+//	}
 	
 	public void killTempTupleSpace(Object user) {
 		// kill the process
