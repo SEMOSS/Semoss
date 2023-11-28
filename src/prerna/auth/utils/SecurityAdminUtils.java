@@ -2923,6 +2923,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
@@ -2948,6 +2949,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getProjectUsersNoCredentials(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
