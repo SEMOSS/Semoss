@@ -1265,7 +1265,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			this.baseDataEngine.exportDB();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Error in writing OWL file");
+			throw new IOException("Error in writing OWL file. Detailed message = " + e.getMessage());
 		}
 	}
 
