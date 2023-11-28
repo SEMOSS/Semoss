@@ -7,19 +7,18 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.nio.file.Path;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class MountHelper {
 
+	private static final Logger classLogger = LogManager.getLogger(MountHelper.class);
+
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final Logger logger = LogManager.getLogger(MountHelper.class);
 
 	// store a mount helper in the user object
 	// upon creation of a new mount helper it should
@@ -30,8 +29,8 @@ public class MountHelper {
 	// 4. save the mount location to unmount in the future
 
 	// targetDirName = user chroot
-	String targetDirName = null;
-	Boolean enableSudo = false;
+	private String targetDirName = null;
+	private Boolean enableSudo = false;
 
 	//	public static void main(String[] args) {
 	//		
@@ -99,15 +98,14 @@ public class MountHelper {
 		this.targetDirName = targetDirName;
 		File targetDir = new File(Utility.normalizePath(targetDirName));
 		if (!targetDir.exists()) {
-			logger.info("Target folder doesn't exist. Making folder now at: " + targetDirName);
+			classLogger.info("Target folder doesn't exist. Making folder now at: " + targetDirName);
 			boolean success = targetDir.mkdir(); // make directory
-			logger.info("Target folder creation at " + targetDirName + " " + success);
+			classLogger.info("Target folder creation at " + targetDirName + " " + success);
 		}
 
 		// also create the semoss home folder
-		String appHome = this.targetDirName + FILE_SEPARATOR
-				+ DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		targetDir = new File(Utility.normalizePath(appHome));
+		String newSemossHomeFolderPath = this.targetDirName + FILE_SEPARATOR + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		targetDir = new File(Utility.normalizePath(newSemossHomeFolderPath));
 		if (!targetDir.exists()) {
 			targetDir.mkdirs(); // make app home directory
 		}
@@ -120,6 +118,10 @@ public class MountHelper {
 		// create the RDF and py/R folders
 		createCustomRDFMap();
 	}
+	
+	public String getTargetDirName() {
+		return this.targetDirName;
+	}
 
 	// TODO include the files at the top directory level if possible here
 
@@ -130,28 +132,26 @@ public class MountHelper {
 	public void mountTarget(String sourceDirName, String subPath, boolean readOnly) {
 		if (subPath == null) {
 			subPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			;
 		}
+		
 		File sourceDir = new File(sourceDirName);
-		if (!sourceDir.exists())
-			logger.info("Source directory not available" + sourceDirName);
-
+		if (!sourceDir.exists()) {
+			classLogger.info("Source directory not available" + sourceDirName);
+		}
+		
 		// list files from source file and make a copy
 		String[] allSourceFiles = sourceDir.list();
-
 		for (int sourceFileIndex = 0; sourceFileIndex < allSourceFiles.length; sourceFileIndex++) {
 			String srcPath = sourceDirName + FILE_SEPARATOR + allSourceFiles[sourceFileIndex];
-
 			File thisFile = new File(srcPath);
-
 			//Thos is the check where it needs to be a subfolder to get mounted. files at the top directory dont get mounted
 			if (thisFile.isDirectory()) {
 				String targetPath = targetDirName + FILE_SEPARATOR + subPath + FILE_SEPARATOR
 						+ allSourceFiles[sourceFileIndex];
 				File thisTargetFile = new File(targetPath);
 				boolean success = thisTargetFile.mkdirs();
-				logger.debug("Making dir at " + targetPath + " was a " + success);
-				logger.debug("Mounting dir at srcPat:  " + srcPath + " and targetPath: " + targetPath);
+				classLogger.debug("Making dir at " + targetPath + " was a " + success);
+				classLogger.debug("Mounting dir at srcPat:  " + srcPath + " and targetPath: " + targetPath);
 
 				mountDir(srcPath, targetPath, enableSudo, readOnly);
 			}
@@ -164,21 +164,21 @@ public class MountHelper {
 	public void mountFolder(String sourceDirName, String subPath, boolean readOnly) {
 		if (subPath == null) {
 			subPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			;
 		}
+		
 		File sourceDir = new File(Utility.normalizePath(sourceDirName));
-		if (!sourceDir.exists() || !sourceDir.isDirectory())
-			logger.info("Source directory not available" + Utility.cleanLogString(sourceDirName));
-
+		if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+			classLogger.info("Source directory not available" + Utility.cleanLogString(sourceDirName));
+		}
+		
 		String targetPath = targetDirName + FILE_SEPARATOR + subPath;
 
 		File thisTargetFile = new File(Utility.normalizePath(targetPath));
 		boolean success = thisTargetFile.mkdirs();
-		logger.info("Making folder at " + Utility.cleanLogString(targetPath) + " was a " + success);
-		logger.info("Mounting folder at srcPat:  " + Utility.cleanLogString(sourceDirName) + " and targetPath: " + Utility.cleanLogString(targetPath));
+		classLogger.info("Making folder at " + Utility.cleanLogString(targetPath) + " was a " + success);
+		classLogger.info("Mounting folder at srcPat:  " + Utility.cleanLogString(sourceDirName) + " and targetPath: " + Utility.cleanLogString(targetPath));
 
 		mountDir(sourceDirName, targetPath, enableSudo, readOnly);
-
 	}
 
 	// mount directory
@@ -186,90 +186,86 @@ public class MountHelper {
 		try {
 			ProcessBuilder pb = null;
 			if (readOnly) {
-				if (sudo)
+				if (sudo) {
 					pb = new ProcessBuilder(new String[] { "sudo", "bindfs", "-r", srcDir, tgtDir });
-				else
+				} else {
 					pb = new ProcessBuilder(new String[] { "bindfs", "-r", srcDir, tgtDir });
-
+				}
 			} else {
-				if (sudo)
+				if (sudo) {
 					pb = new ProcessBuilder(new String[] { "sudo", "bindfs", srcDir, tgtDir });
-				else
+				} else {
 					pb = new ProcessBuilder(new String[] { "bindfs", srcDir, tgtDir });
+				}
 			}
 
 			// Process pb = Runtime.getRuntime().exec(new String[] {"mkdir",
 			// "/home/prabhuk/mn1/bin2"});
-			logger.debug(pb.command().toString());
+			classLogger.debug(pb.command().toString());
 			Process p = pb.start();
 			// Thread.sleep(5000);
 			 p.waitFor(10, TimeUnit.SECONDS);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
 	// unmount
 	public void unmountDir(String srcDir, boolean sudo) {
-		logger.info("Unmounting.. " + srcDir);
+		classLogger.info("Unmounting.. " + srcDir);
 		try {
 			ProcessBuilder pb = null;
-			if (sudo)
+			if (sudo) {
 				pb = new ProcessBuilder(new String[] { "sudo", "umount", srcDir });
-			else
+			} else {
 				pb = new ProcessBuilder(new String[] { "umount", srcDir });
-
+			}
 			// Process pb = Runtime.getRuntime().exec(new String[] {"mkdir",
 			// "/home/prabhuk/mn1/bin2"});
 			Process p = pb.start();
 			// Thread.sleep(5000);
 			// p.waitFor(5, TimeUnit.SECONDS);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
 	public void deleteTarget(boolean sudo) {
 		File tgtDir = new File(targetDirName);
-
 		try {
 			FileUtils.deleteDirectory(tgtDir);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-
 	}
 
 
 	// removes all the mount session folder via grep of /proc/mounts
 	public void unmountTargetProc() {
-
-
 		//try to any extra processes in the mount point
 		try {
 			ProcessBuilder pb = null;
 			String command = "fuser -k " + targetDirName;
-			logger.debug("Running fuser command: " + command);
+			classLogger.debug("Running fuser command: " + command);
 			pb = new ProcessBuilder(new String[] { "/bin/sh", "-c", command });
 			Process p = pb.start();
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-
 
 		// try to umount all mounts under the mount point
 		try {
 			ProcessBuilder pb = null;
 			String command = "grep " + targetDirName + " /proc/mounts | cut -f2 -d' ' | xargs -r -n 1 umount";
-			logger.debug("Running umount command " + command);
+			classLogger.debug("Running umount command " + command);
 			pb = new ProcessBuilder(new String[] { "/bin/sh", "-c", command });
 			//pb.redirectOutput(tempFile);
 			Process p = pb.start();
@@ -277,9 +273,9 @@ public class MountHelper {
 			// Thread.sleep(5000);
 			// p.waitFor(5, TimeUnit.SECONDS);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		deleteTarget(enableSudo);
@@ -289,9 +285,7 @@ public class MountHelper {
 	// removes all the mount session folder recursive
 	public void unmountTarget() {
 		File tgtDir = new File(targetDirName);
-
 		String[] allSourceFiles = tgtDir.list();
-
 		for (int tgtFileIndex = 0; tgtFileIndex < allSourceFiles.length; tgtFileIndex++) {
 			String tgtPath = targetDirName + FILE_SEPARATOR + allSourceFiles[tgtFileIndex];
 
@@ -306,7 +300,6 @@ public class MountHelper {
 	// create a custom RDF Map
 	public void createCustomRDFMap() {
 		// properties I need in a string array
-
 		String[] propsNeeded = new String[] { Constants.BASE_FOLDER, Constants.NETTY_R, Constants.NETTY_PYTHON,
 				Constants.USE_R, Constants.USE_PYTHON, Constants.R_MEM_LIMIT, Constants.INSIGHT_CACHE_DIR,
 				Settings.MVN_HOME, Settings.REPO_HOME, Constants.PY_BASE_FOLDER, Constants.R_CONNECTION_JRI};
@@ -316,14 +309,13 @@ public class MountHelper {
 			String key = propsNeeded[propIndex];
 			String value = DIHelper.getInstance().getProperty(key);
 
-			if (key != null && value != null)
+			if (key != null && value != null) {
 				prop.put(key, value);
-			logger.debug("Writing Value " + key + " <> " + value);
+			}
+			classLogger.debug("Writing Value " + key + " <> " + value);
 		}
 
 		// set the base folder
-
-
 		// write this out as RDF_MAP
 		File file = new File(targetDirName + FILE_SEPARATOR + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ FILE_SEPARATOR + "RDF_Map.prop");
@@ -331,12 +323,12 @@ public class MountHelper {
 			prop.store(fos, "Chrooted Output");
 			fos.flush();
 			fos.close();
-
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
+		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		mountFolder(baseFolder + FILE_SEPARATOR + Constants.R_BASE_FOLDER,
@@ -349,9 +341,7 @@ public class MountHelper {
 		if(!nativePyServer) {
 			// MOUNTING CP IS NEEDED FOR TCP with java/jvm
 			mountFolder(getCP(), getCP(), true);
-			
 		}
-
 		
 		String m2Location = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
 		File m2LocationF = new File(m2Location);
@@ -364,7 +354,6 @@ public class MountHelper {
 		if(mvnLocationF.exists() && mvnLocationF.isDirectory()) {
 			mountFolder(mvnLocation, mvnLocation, false);
 		}
-
 		
 		// TODO add insight cache here too - get users insight cache
 		mountTarget(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),
@@ -415,7 +404,7 @@ public class MountHelper {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return webInfPath;
 	}

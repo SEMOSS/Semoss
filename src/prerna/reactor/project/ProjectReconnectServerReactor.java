@@ -11,6 +11,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ProjectReconnectServerReactor extends AbstractReactor {
@@ -45,14 +46,23 @@ public class ProjectReconnectServerReactor extends AbstractReactor {
 		// otherwise the reconnect method does nto 
 		project.getProjectTcpClient();
 		ClientProcessWrapper cpw = project.getClientProcessWrapper();
+		if(cpw == null || cpw.getSocketClient() == null) {
+			project.getProjectTcpClient(true);
+			return new NounMetadata("TCP Server was not initialized but is now started and connected for project '" + projectId + "'", PixelDataType.CONST_STRING);
+		}
 		cpw.shutdown();
-		cpw.reconnect();
+		try {
+			cpw.reconnect();
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return new NounMetadata("Unable to restart TCP Server", PixelDataType.CONST_STRING);
+		}
 		SocketClient client = project.getProjectTcpClient(false);
-		if(client.isConnected()) {
-			return new NounMetadata("Project '" + projectId + "' TCP Server available and connected", PixelDataType.CONST_STRING);
+		if(client == null || !client.isConnected()) {
+			return new NounMetadata("Unable to connect to project '" + projectId + "' TCP Server", PixelDataType.CONST_STRING);
 		}
 		
-		return new NounMetadata("Unable to connect to project '" + projectId + "' TCP Server", PixelDataType.CONST_STRING);
+		return new NounMetadata("Project '" + projectId + "' TCP Server available and connected", PixelDataType.CONST_STRING);
 	}
 	
 }
