@@ -5201,7 +5201,7 @@ public class Utility {
 		return envClassPath.toString();
 	}
 	
-	public static Process startTCPServer(String cp, String chrootDir, String insightFolder, String port) {
+	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		Process thisProcess = null;
@@ -5591,7 +5591,7 @@ public class Utility {
 		return new Object[] {thisProcess, prefix};
 	}
 	
-	public static Object [] startTCPServerNativePyChroot(String insightFolder, String chrootDir, String port, String ...otherProps ) {
+	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String ...otherProps ) {
 		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
 		// this basically starts a java process
 		// the string is an identifier for this process
