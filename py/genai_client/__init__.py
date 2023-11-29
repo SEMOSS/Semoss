@@ -12,7 +12,8 @@ from .text_generation import (
 from .embedders import (
     LocalEmbedder,
     OpenAiEmbedder,
-    AzureOpenAiEmbedder
+    AzureOpenAiEmbedder,
+    TextEmbeddingsInference
 )
 
 from .tokenizers import (
@@ -49,8 +50,12 @@ def get_embedder(embedder_type, **kwargs):
             return AzureOpenAiEmbedder(**kwargs)
         else:
             return OpenAiEmbedder(**kwargs)
-    elif (embedder_type == 'EMBEDDED') or (embedder_type == 'TEXT_GENERATION'):
-        LocalEmbedder(**kwargs)
+    elif (embedder_type == 'EMBEDDED'):
+        return LocalEmbedder(**kwargs)
+    elif (embedder_type == 'TEXT_GENERATION'):
+        return TextEmbeddingsInference(**kwargs)
+    else:
+        raise ValueError('Embedder type has not been defined.')
 
 def get_tokenizer(encoder_type:str, encoder_name, max_tokens):
     '''
@@ -61,4 +66,4 @@ def get_tokenizer(encoder_type:str, encoder_name, max_tokens):
     elif (encoder_type == 'OPEN_AI'):
         return OpenAiTokenizer(encoder_name = encoder_name, max_tokens = max_tokens)
     else:
-        raise ValueError('Encoder type has not been defined.')
+        raise ValueError('Tokenizer type has not been defined.')
