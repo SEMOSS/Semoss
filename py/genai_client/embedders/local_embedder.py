@@ -92,7 +92,7 @@ class LocalEmbedder():
         assert isinstance(list_to_embed, list) or isinstance(object_to_encode, str)
         
 
-        embedded_tensor = self.embedder.encode(
+        embedded_list = self.embedder.encode(
             sentences = list_to_embed, 
         )
         
@@ -108,8 +108,11 @@ class LocalEmbedder():
         #   )
         #   print(prefix + "Completed Embedding " + str(i) + "/" + str(number_of_items_to_encode) + " Chunks")
         
+        if not isinstance(embedded_list, list):
+            embedded_list = embedded_list.tolist()
+        
         return {
-            'response':embedded_tensor.tolist(),
+            'response':embedded_list,
             'numberOfTokensInPrompt': total_tokens,
             'numberOfTokensInResponse': 0
         }
