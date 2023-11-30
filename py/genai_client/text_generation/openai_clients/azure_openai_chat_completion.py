@@ -18,29 +18,10 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
         super().__init__(
             api_key = api_key,
             model_name = model_name,
+            api_version = api_version,
+            azure_endpoint = endpoint,
             **kwargs
         )
-
-        openai.api_base = endpoint
-        openai.api_type ='azure'
-        openai.api_version = api_version
-
-    def _inference_call(self, prefix:str, kwargs):
-        final_query = ""
-        responses = openai.ChatCompletion.create(
-            engine=self.model_name, 
-            stream = True, 
-            **kwargs
-        )
-        for chunk in responses:
-            if chunk.choices:
-                if len(chunk.choices) > 0:
-                    response = chunk.choices[0].get('delta', {}).get('content')
-                    if response != None:
-                        final_query += response
-                        print(prefix+response, end ='')
-
-        return final_query
 
     def _get_tokenizer(self, init_args):
         try:
@@ -52,3 +33,10 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
                 "gpt-3.5-turbo"
             )
             return super()._get_tokenizer(init_args)
+        
+    def _get_client(self, api_key, **kwargs):
+        from openai import AzureOpenAI
+        return AzureOpenAI(
+            api_key=api_key,
+            **kwargs
+        )

@@ -93,6 +93,14 @@ class BedrockClient(BaseClient):
         client = self._get_client()
         final_response = ""
         output_payload = {}
+        
+        # TODO remove once
+        # check whether to include logprobs in the response
+        include_logprobs = kwargs.pop(
+            'include_logprobs', 
+            False
+        )
+        
         try:
             message_payload = []
 
