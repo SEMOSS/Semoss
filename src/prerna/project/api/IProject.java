@@ -47,7 +47,14 @@ import prerna.util.SemossClassloader;
 public interface IProject extends IEngine, Closeable {
 	
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
-
+	String BLOCK_FILE_NAME = "blocks.json";
+	
+	enum PROJECT_TYPE {
+		BLOCKS,
+		CODE,
+		INSIGHTS
+	};
+	
 	/**
 	 * Sets the unique id for the project 
 	 * @param projectId - id to set the project 
@@ -60,6 +67,12 @@ public interface IProject extends IEngine, Closeable {
 	 */
 	String getProjectId();
 
+	/**
+	 * 
+	 * @return
+	 */
+	IProject.PROJECT_TYPE getProjectType();
+	
 	/**
 	 * Sets the name for the project 
 	 * @param projectName - name of the project 

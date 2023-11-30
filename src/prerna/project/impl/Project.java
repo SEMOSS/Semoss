@@ -106,6 +106,7 @@ public class Project implements IProject {
 	private String projectGitProvider;
 	private String projectGitRepo;
 	private AuthProvider gitProvider;
+	private IProject.PROJECT_TYPE projectType;
 	
 	private Properties smssProp = null;
 	private String projectSmssFilePath = null;
@@ -194,9 +195,27 @@ public class Project implements IProject {
 			GitRepoUtils.init(this.projectVersionFolder);
 		}
 		
-		// is portal enabled in SMSS?
 		this.hasPortal = Boolean.parseBoolean(this.smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ "");
 
+		// project type is new
+		// if has portal
+		// will assume code if not provided
+		// else will assume it is insight
+		// TODO: potentially remove hasportal entirely
+		String projectTypeStr = this.smssProp.getProperty(Constants.PROJECT_ENUM_TYPE);
+		// is portal enabled in SMSS?
+		if(this.hasPortal) {
+			if(projectTypeStr == null) {
+				this.projectType = IProject.PROJECT_TYPE.CODE;
+			} else {
+				this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+			}
+		} else if(projectTypeStr != null) {
+			this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+		} else {
+			this.projectType = IProject.PROJECT_TYPE.INSIGHTS;
+		}
+		
 		if(!isAsset) {
 			loadInsightsRdbms();
 		}
@@ -1705,11 +1724,15 @@ public class Project implements IProject {
 	public IEngine.CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.PROJECT;
 	}
+	
+	@Override
+	public PROJECT_TYPE getProjectType() {
+		return this.projectType;
+	}
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		// TODO Auto-generated method stub
-		return null;
+		return this.projectType.name();
 	}
 
 }

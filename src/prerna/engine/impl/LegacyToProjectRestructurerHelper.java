@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -358,6 +359,7 @@ public class LegacyToProjectRestructurerHelper {
 	private void createProjectSmssFile(String projectName, String projectId, String dbSmssFile) throws IOException {
 		Properties prop = null;
 		RdbmsTypeEnum existingRdbmsType = null;
+		IProject.PROJECT_TYPE projectEnumType = IProject.PROJECT_TYPE.INSIGHTS;
 		boolean hasPortal = false;
 		String portalName = null;
 		String projectGitProvider = null;
@@ -374,7 +376,7 @@ public class LegacyToProjectRestructurerHelper {
 		}
 		
 		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
-				hasPortal, portalName, projectGitProvider, projectGitCloneUrl, existingRdbmsType);
+				projectEnumType, hasPortal, portalName, projectGitProvider, projectGitCloneUrl, existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);

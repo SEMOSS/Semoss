@@ -144,6 +144,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
+		IProject.PROJECT_TYPE projectEnumType = IProject.PROJECT_TYPE.INSIGHTS;
 		boolean hasPortal = false;
 		String portalName = null;
 		String projectGitProvider = null;
@@ -214,6 +215,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 				// move smss file
 				File tempUnzippedSmssF = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
+						projectEnumType,
 						hasPortal, portalName, 
 						projectGitProvider, projectGitCloneUrl, 
 						null);
