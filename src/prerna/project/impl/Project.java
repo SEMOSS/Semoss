@@ -303,6 +303,11 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public String getPortalName() {
+		return this.portalName;
+	}
+	
+	@Override
 	public boolean isHasPortal() {
 		return hasPortal;
 	}
@@ -311,7 +316,7 @@ public class Project implements IProject {
 	public void setHasPortal(boolean hasPortal) {
 		this.hasPortal = hasPortal;
 	}
-
+	
 	@Override
 	public Vector<String> getPerspectives() {
 		Vector<String> perspectives = Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRdbms, false);
