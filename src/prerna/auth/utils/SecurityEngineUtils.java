@@ -87,7 +87,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
         	engineName = engineId;
         }
 		
-		boolean engineExists = containsDatabaseId(engineId);
+		boolean engineExists = containsEngineId(engineId);
 		if(engineExists) {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 			updateEngineTypeAndSubType(engineId, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1]);

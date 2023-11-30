@@ -3,6 +3,7 @@ package prerna.solr.reactor;
 import java.util.List;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,6 +31,11 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		}
 		
 		List<String> dependentEngineIds = getDependentEngineIds();
+		for(String eId : dependentEngineIds) {
+			if(!SecurityEngineUtils.containsEngineId(eId)) {
+				throw new IllegalArgumentException("Engine id = '" + eId + "' does not exist");
+			}
+		}
 		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
