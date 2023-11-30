@@ -1811,6 +1811,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
 
 	/*
 	 * Project Metadata

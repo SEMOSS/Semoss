@@ -130,10 +130,10 @@ public class ExportProjectReactor extends AbstractReactor {
 					logger.info("Done zipping project metadata...");
 				}
 				
-				// zip up the project metadata
+				// zip up the project dependencies
 				{
 					logger.info("Grabbing project dependencies to write to temporary file to zip...");
-					List<String> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
+					List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId);
 					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
 					logger.info("Done zipping project dependencies...");
 				}
