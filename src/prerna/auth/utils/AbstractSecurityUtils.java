@@ -1970,13 +1970,11 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 
-	public static boolean containsDatabaseId(String databaseId) {
+	public static boolean containsEngineId(String databaseId) {
 		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return true;
 		}
-		//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
-		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
