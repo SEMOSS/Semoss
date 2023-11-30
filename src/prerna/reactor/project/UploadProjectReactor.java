@@ -266,8 +266,15 @@ public class UploadProjectReactor extends AbstractReactor {
 				
 				File dependenciesFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
 				if(dependenciesFile.exists() && dependenciesFile.isFile()) {
-					List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
-					SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
+					List<Map<String, Object>> projectDependencies = (List<Map<String, Object>>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<Map<String, Object>>>() {}.getType());
+					// List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
+					if(projectDependencies != null && !projectDependencies.isEmpty()) {
+						List<String> dependentEngineIds = new ArrayList<>();
+						for(Map<String, Object> dep : projectDependencies) {
+							dependentEngineIds.add((String) dep.get("engine_id"));
+						}
+						SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
+					}
 				}
 			}
 			
