@@ -36,7 +36,7 @@ public class ValidateUserProjectDependenciesReactor extends AbstractSetMetadataR
 			hasAccess.put(depEngineId, canView);
 		}
 		
-		NounMetadata noun = new NounMetadata(hasAccess, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(hasAccess, PixelDataType.MAP);
 		return noun;
 	}
 	
