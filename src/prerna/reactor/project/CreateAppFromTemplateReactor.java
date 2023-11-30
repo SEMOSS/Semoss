@@ -58,11 +58,12 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		IProject templateProject = Utility.getProject(projectTemplateId);
 
 		// Use the template to populate the parameters needed to create the new project
+		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
 		boolean templateHasPortal = templateProject.isHasPortal();
 		String templatePortalName = templateProject.getPortalName();
-				
+		
 		// Create new project
-		IProject newProject = ProjectHelper.generateNewProject(newProjectName, templateHasPortal, templatePortalName, 
+		IProject newProject = ProjectHelper.generateNewProject(newProjectName, projectEnumType, templateHasPortal, templatePortalName, 
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 		
 		// now we just need to move over the files for assets
