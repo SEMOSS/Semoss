@@ -23,7 +23,7 @@ class LocalEmbedder():
         )
 
         self.tokenizer = HuggingfaceTokenizer(
-            encoder_name = model_name, 
+            encoder_name = self.model_name, 
             max_tokens = kwargs.pop(
                 'max_tokens', 
                 None
