@@ -1,5 +1,5 @@
 from typing import Union, List, Dict, Any
-import openai
+from openai import OpenAI
 from ..tokenizers import OpenAiTokenizer
 
 class OpenAiEmbedder():
@@ -11,7 +11,6 @@ class OpenAiEmbedder():
         **kwargs
     ):
         self.model_name = model_name
-        openai.api_key = api_key
         
         self.tokenizer = OpenAiTokenizer(
             encoder_name = model_name, 
@@ -19,6 +18,18 @@ class OpenAiEmbedder():
                 'max_tokens', 
                 None
             )
+        )
+        
+        self.client = self._get_client(
+            api_key=api_key,
+            **kwargs
+        )
+    
+    def _get_client(self, api_key, **kwargs):
+        from openai import OpenAI
+        return OpenAI(
+            api_key=api_key,
+            **kwargs
         )
         
     def ask(
@@ -54,7 +65,7 @@ class OpenAiEmbedder():
                     list_to_embed
                 )
 
-                embedded_list = [vector['embedding'] for vector in single_batch_results['data']]
+                embedded_list = [vector.embedding for vector in single_batch_results.data]
 
             else:
                 # Split the list into batches
@@ -105,4 +116,4 @@ class OpenAiEmbedder():
         
     def _make_openai_embedding_call(self, list_of_text:List[str]):
         '''this method is responsible for making the openai embeddings call. it takes in a single'''
-        return openai.Embedding.create(input = list_of_text, model=self.model_name)
+        return self.client.embeddings.create(model=self.model_name, input = list_of_text)

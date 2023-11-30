@@ -1,5 +1,4 @@
 from typing import Optional, Union, List, Dict, Any, Tuple
-import openai
 import numpy as np
 from .abstract_openai_client import AbstractOpenAiClient
 
@@ -58,7 +57,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         # add the message payload as a kwarg
         kwargs['messages'] = message_payload
         
-        output_payload['response'] = self._inference_call(prefix = prefix, kwargs = kwargs)
+        print(kwargs)
+        output_payload['response'] = self._inference_call(prefix = prefix, **kwargs)
         output_payload['numberOfTokensInResponse'] = self.tokenizer.count_tokens(output_payload['response'])
         
         return output_payload
@@ -67,19 +67,25 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
     def _inference_call(
         self, 
         prefix:str, 
-        kwargs
+        **kwargs
     ) -> str:
         final_query = ""
-        responses = openai.ChatCompletion.create(
+        
+        kwargs['stream'] = kwargs.get('stream', True)
+        stream = self.client.chat.completions.create(
             model=self.model_name, 
-            stream = True, 
             **kwargs
         )
-        for chunk in responses:
-            response = chunk.choices[0].get('delta', {}).get('content')
-            if response != None:
-                final_query += response
-                print(prefix+response, end ='')
+        
+        if kwargs['stream']:
+            for chunk in stream:
+                if chunk.choices and (len(chunk.choices) > 0):
+                    response = chunk.choices[0].delta.content
+                    if response != None:
+                        final_query += response
+                        print(prefix + response, end ='')
+        else:
+            final_query = stream.choices[0].message.content
 
         return final_query
     
