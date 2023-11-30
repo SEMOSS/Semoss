@@ -31,6 +31,7 @@ public class CreateProjectReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
+		
 		this.organizeKeys();
 		int index = 0;
 		String projectName = this.keyValue.get(this.keysToGet[index++]);
@@ -38,7 +39,9 @@ public class CreateProjectReactor extends AbstractReactor {
 		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
-		IProject project = ProjectHelper.generateNewProject(projectName, hasPortal, portalName, gitProvider, gitCloneUrl, this.insight.getUser(), logger);
+		
+		IProject project = ProjectHelper.generateNewProject(projectName, hasPortal, portalName, 
+				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
@@ -48,11 +51,12 @@ public class CreateProjectReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
-		} else if(key.equals(ReactorKeysEnum.URL.getKey())) {
+		} else if(key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
 			return "The GIT provider - user must be logged in with this provider for credentials";
 		} else if(key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "The GIT repository URL to clone for this project";
 		}
 		return super.getDescriptionForKey(key);
 	}
+	
 }

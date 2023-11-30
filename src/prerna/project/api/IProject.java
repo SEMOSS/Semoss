@@ -207,6 +207,12 @@ public interface IProject extends IEngine, Closeable {
 	AuthProvider getGitProvider();
 	
 	/**
+	 * Get the project's portal name
+	 * @return
+	 */
+	String getPortalName();
+	
+	/**
 	 * Clears the class cache
 	 */
 	void clearClassCache();
