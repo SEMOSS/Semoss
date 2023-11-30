@@ -26,6 +26,10 @@ class HuggingfaceTokenizer(AbstractTokenizer):
                     # Simple whitespace-based tokenization
                     return text.split()
                 
+                # need this so the object can be initialized
+                def _add_tokens(self, *args, **kwargs):
+                    pass
+                
                 def encode(self, input, **kwargs):
                     return self._tokenize(input)
 
