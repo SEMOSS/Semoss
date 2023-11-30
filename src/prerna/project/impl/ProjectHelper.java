@@ -58,10 +58,11 @@ public class ProjectHelper {
 	 * @return
 	 */
 	public static IProject generateNewProject(String projectName, 
+			IProject.PROJECT_TYPE projectType,
 			boolean hasPortal, String portalName,
 			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
-		return generateNewProject(projectId, projectName, hasPortal, portalName, gitProvider, gitCloneUrl, user, logger);
+		return generateNewProject(projectId, projectName, projectType, hasPortal, portalName, gitProvider, gitCloneUrl, user, logger);
 	}
 
 	/**
@@ -77,6 +78,7 @@ public class ProjectHelper {
 	 * @return
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, 
+			IProject.PROJECT_TYPE projectType,
 			boolean hasPortal, String portalName, 
 			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		if(projectName == null || projectName.isEmpty()) {
@@ -121,7 +123,7 @@ public class ProjectHelper {
 		try {
 			logger.info("Creating project workspace");
 			// Add database into DIHelper so that the web watcher doesn't try to load as well
-			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, hasPortal, portalName, gitProvider, gitCloneUrl, null);
+			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, hasPortal, portalName, gitProvider, gitCloneUrl, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 
 			// Only at end do we add to DIHelper

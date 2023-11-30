@@ -23,7 +23,7 @@ public class CreateProjectReactor extends AbstractReactor {
 	 */
 
 	public CreateProjectReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), 
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
 				ReactorKeysEnum.PORTAL.getKey(), ReactorKeysEnum.PORTAL_NAME.getKey(),
 				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey()};
 	}
@@ -33,14 +33,32 @@ public class CreateProjectReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		
 		this.organizeKeys();
+		IProject.PROJECT_TYPE projectType = null;
+
 		int index = 0;
 		String projectName = this.keyValue.get(this.keysToGet[index++]);
+		String projectTypeStr = this.keyValue.get(this.keysToGet[index++]);
 		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]));
+		
+		// project type is new
+		// if has portal
+		// will assume code if not provided
+		// else will assume it is insight
+		// TODO: potentially remove hasportal entirely
+		if(hasPortal) {
+			if(projectTypeStr == null || (projectTypeStr=projectTypeStr.trim()).isEmpty()) {
+				projectType = IProject.PROJECT_TYPE.CODE;
+			} else {
+				projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+			}
+		} else {
+			projectType = IProject.PROJECT_TYPE.INSIGHTS;
+		}
 		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
 		
-		IProject project = ProjectHelper.generateNewProject(projectName, hasPortal, portalName, 
+		IProject project = ProjectHelper.generateNewProject(projectName, projectType, hasPortal, portalName, 
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
