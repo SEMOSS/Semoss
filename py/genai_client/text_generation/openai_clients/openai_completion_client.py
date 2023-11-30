@@ -1,5 +1,4 @@
 from typing import Optional, Union, List, Dict, Any, Tuple
-import openai
 from .abstract_openai_client import AbstractOpenAiClient
 import numpy as np
 
@@ -79,14 +78,22 @@ class OpenAiCompletion(AbstractOpenAiClient):
         final_query = prompt + " "
         finish = False
 
-        print(prefix+final_query, end ='')
-        responses = openai.Completion.create(model=self.model_name, prompt=prompt, stream = True, **kwargs)
-        for chunk in responses:
-            response = chunk.choices[0].text
-            if response != None:
-                final_query += response
-                print(prefix+response, end ='')
-
+        kwargs['stream'] = kwargs.get('stream', True)
+        stream = self.client.completions.create(
+            model=self.model_name, 
+            prompt=prompt, 
+            **kwargs
+        )
+        if kwargs['stream']:
+            print(prefix+final_query, end ='')
+            for chunk in stream:
+                response = chunk.choices[0].text
+                if response != None:
+                    final_query += response
+                    print(prefix+response, end ='')
+        else:
+            final_query = stream.choices[0].text
+            
         return final_query
 
     def _process_completion(self):
