@@ -76,6 +76,12 @@ class VertexClient(BaseClient):
         final_response = ""  # Initialize final_query once
         output_payload = {}
         
+        # check whether to include logprobs in the response
+        include_logprobs = kwargs.pop(
+            'include_logprobs', 
+            False
+        )
+        
         try:
             message_payload = []
 
