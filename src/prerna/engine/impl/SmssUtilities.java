@@ -19,6 +19,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
+import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -448,6 +449,7 @@ public class SmssUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryProjectSmss(String projectId, String projectName, 
+			IProject.PROJECT_TYPE projectEnumType,
 			boolean hasPortal, String portalName,
 			String gitProvider, String gitCloneUrl, 
 			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
@@ -476,6 +478,8 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
+			bufferedWriter.write(Constants.PROJECT_ENUM_TYPE + tab + projectEnumType.name() + newLine);
+
 			// git details
 			if(gitProvider != null && !(gitProvider=gitProvider.trim()).isEmpty()) {
 				bufferedWriter.write(Constants.PROJECT_GIT_PROVIDER + tab + gitProvider + newLine);

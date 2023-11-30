@@ -102,8 +102,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			reloadInsights = Boolean.parseBoolean(booleanStr);
 		}
 		
-		// TODO: we do not need type and cost for project
-		String[] typeAndCost = new String[] {"",""};
+		// TODO: we do not need cost for project
+		String[] typeAndCost = new String[] {prop.getOrDefault(Constants.PROJECT_ENUM_TYPE,"")+"",""};
 		boolean projectExists = containsProjectId(projectId);
  		if(projectExists && !reloadInsights) {
 			classLogger.info("Security database already contains project with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
@@ -449,15 +449,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			String projectType, String projectCost, 
 			boolean hasPortal, String portalName,
 			boolean global, User user) {
-		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, HASPORTAL, PORTALNAME) "
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, HASPORTAL, PORTALNAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, projectName);
 			ps.setString(parameterIndex++, projectID);
+			ps.setString(parameterIndex++, projectName);
 			ps.setString(parameterIndex++, projectType);
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
