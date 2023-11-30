@@ -635,12 +635,18 @@ public class User implements Serializable {
 			return this.cpw.getSocketClient();
 		}
 		
-		if(this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return this.cpw.getSocketClient();
+		if(this.cpw == null || this.cpw.getSocketClient() == null) {
+			startSocketServerAndClient(-1);
+			this.cpw.getSocketClient().setUser(this);
+		} else if(!this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown();
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to connect to user server");
+			}
 		}
-		
-		this.startSocketServerAndClient(port);
-		this.cpw.getSocketClient().setUser(this);
 		
 		// invalidate the serialization map
 		this.insightSerializedMap.clear();
@@ -907,24 +913,23 @@ public class User implements Serializable {
 				// check to see if the py translator needs to be set ?
 				// check to see if the py translator needs to be set ?
 				else {
-					TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
-					pyJavaTranslator.setSocketClient(getSocketClient(true, -1));
-					this.pyt = pyJavaTranslator;
+					SocketClient sc = getSocketClient(create, -1);
+					if(sc != null) {
+						TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+						pyJavaTranslator.setSocketClient(sc);
+						this.pyt = pyJavaTranslator;
+					}
 				}
 			}
 		}
-		else if(useNettyPy && (this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) )
+		else if(useNettyPy) 
 		{
-			this.cpw.shutdown();
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to user server");
+			SocketClient sc = getSocketClient(create, -1);
+			if(sc != null) {
+				TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+				pyJavaTranslator.setSocketClient(sc);
+				this.pyt = pyJavaTranslator;
 			}
-			TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
-			pyJavaTranslator.setSocketClient(getSocketClient(true, -1));
-			this.pyt = pyJavaTranslator;
 		}
 		
 		// return the translator reference
