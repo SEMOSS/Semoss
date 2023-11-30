@@ -103,7 +103,7 @@ class TextGenClient(BaseClient):
         )
         
         # TODO remove once client is updated
-        kwargs['stream'] = kwargs.pop('stream', True)
+        kwargs.pop('stream', True)
         
         # configure the generator request object
         responses = self.client.generate_stream(
