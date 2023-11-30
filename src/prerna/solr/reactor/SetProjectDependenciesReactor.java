@@ -14,9 +14,7 @@ import prerna.util.upload.UploadInputUtility;
 public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	
 	public SetProjectDependenciesReactor() {
-		this.keysToGet = new String[]{
-				ReactorKeysEnum.PROJECT.getKey(), "dependencies", 
-			};
+		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), "dependencies" };
 	}
 
 	@Override
