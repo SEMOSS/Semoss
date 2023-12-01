@@ -53,9 +53,9 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
 		
-		Map<String, Object> json = getPromptJSON();
+		Map<String, Object> json = getBlocksJSON();
 		if(json == null || json.isEmpty()) {
-			throw new IllegalArgumentException("Must provide the prompt builder JSON");
+			throw new IllegalArgumentException("Must provide the blocks JSON");
 		}
 		
 		// Create new project
@@ -81,7 +81,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
-	private Map<String,Object> getPromptJSON() {
+	private Map<String,Object> getBlocksJSON() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.JSON.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
@@ -105,7 +105,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		} else if(key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "The GIT repository URL to clone for this project";
 		} else if(key.equals(ReactorKeysEnum.JSON.getKey())) {
-			return "The JSON that represents the prompt builder";
+			return "The JSON that represents the blocks for the app";
 		}
 		return super.getDescriptionForKey(key);
 	}
