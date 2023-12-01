@@ -86,6 +86,7 @@ public enum ReactorKeysEnum {
 	GITLAB_JOB_SCOPE("gitlabJobScope",							"The scope of GitLab jobs to show. Either one of or an array of the following: created, pending, running, failed, success, canceled, skipped, waiting_for_resource, or manual. All jobs are returned if scope is not provided."),
 	GITLAB_PRIVATE_TOKEN("gitlabPrivateToken",					"The private GitLab token to access the project"),
 	GITLAB_PROJECT_ID("gitlabProjectId",						"The unqiue GitLab project id (integer) for the project"),
+	GLOBAL("global",                        	    			"Boolean true/false if this is should be global for all users"),
 	GGPLOT("ggplot",                	             			"The GGPlot expression used to create the graph"),
 	GRAPH_LAYOUT("graphLayout",         	                    "The layout of the igraph"),
 	GRAPH_NAME("graphName",                 	                "The name of the graph"),

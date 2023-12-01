@@ -55,7 +55,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	
 	public SaveInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
-				ReactorKeysEnum.LAYOUT_KEY.getKey(), GLOBAL_KEY, ReactorKeysEnum.RECIPE.getKey(), 
+				ReactorKeysEnum.LAYOUT_KEY.getKey(), ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.RECIPE.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), 
 				ENCODED_KEY, CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT, SCHEMA_NAME};
