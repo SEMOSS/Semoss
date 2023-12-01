@@ -1,7 +1,6 @@
 package prerna.reactor.vector.upload;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,10 +33,10 @@ import prerna.util.upload.UploadUtilities;
 public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateVectorDatabaseEngineReactor.class);
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public CreateVectorDatabaseEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONNECTION_DETAILS.getKey(), "filePaths"};
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONNECTION_DETAILS.getKey(), 
+				ReactorKeysEnum.GLOBAL.getKey()};
 		this.keyRequired = new int[] {1, 1, 0};
 	}
 	
@@ -76,7 +75,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		if (!vectorDbDetails.containsKey("vectorDbDetails")) {
 			vectorDbDetails.put("INDEX_CLASSES", "default");
 		}
-		List<String> filePaths = getFiles();
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 		
 		String vectorDbTypeStr = vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
 		
@@ -113,7 +112,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			vectorDb.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
-			SecurityEngineUtils.addEngine(vectorDbId, false, user);
+			SecurityEngineUtils.addEngine(vectorDbId, global, user);
 			
 			// even if no security, just add user as database owner
 			if (user != null) {
@@ -202,28 +201,4 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		throw new NullPointerException("Must define the properties for the new vector database engine");
 	}
 
-	/**
-	 * Get inputs
-	 * @return list of engines to delete
-	 */
-	public List<String> getFiles() {
-		List<String> filePaths = new ArrayList<>();
-
-		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				filePaths.add(grs.get(i).toString());
-			}
-			return filePaths;
-		}
-
-		// no key is added, grab all inputs
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) {
-			filePaths.add(this.curRow.get(i).toString());
-		}
-		return filePaths;
-	}
 }
