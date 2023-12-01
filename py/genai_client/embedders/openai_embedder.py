@@ -95,8 +95,7 @@ class OpenAiEmbedder():
                         batches[i]
                     )
                     print(prefix + "Completed Embedding " + str(i+1) + "/" + str(number_of_batches) + " Batches")
-                    embedded_list.extend([vector['embedding'] for vector in batch_results['data']])
-            
+                    embedded_list.extend([vector.embedding for vector in batch_results.data])
         else:
             # We have no choice but to try send the entire thing
             print(prefix + "Waiting for OpenAI to process all chunks")
@@ -104,7 +103,7 @@ class OpenAiEmbedder():
                 list_to_embed
             )
 
-            embedded_list = [vector['embedding'] for vector in single_batch_results['data']]
+            embedded_list = [vector.embedding for vector in single_batch_results.data]
             
         print(prefix + "Sending Embeddings back from Model Engine")
         
