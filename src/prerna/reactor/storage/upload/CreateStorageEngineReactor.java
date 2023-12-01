@@ -35,7 +35,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateStorageEngineReactor.class);
 
 	public CreateStorageEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
 	
 	@Override
@@ -70,6 +70,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		
 		String storageName = getStorageName();
 		Map<String, String> storageDetails = getStorageDetails();
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
+
 		String storageTypeStr = storageDetails.get(IStorageEngine.STORAGE_TYPE);
 		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
@@ -104,7 +106,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
-			SecurityEngineUtils.addEngine(storageId, false, user);
+			SecurityEngineUtils.addEngine(storageId, global, user);
 			
 			// even if no security, just add user as database owner
 			if (user != null) {
