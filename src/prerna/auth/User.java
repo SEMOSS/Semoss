@@ -968,7 +968,7 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(cmdUtil != null && this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+		if(cmdUtil != null && this.cpw.getSocketClient() != null || !this.cpw.getSocketClient().isConnected()) {
 			cmdUtil.setTcpClient(this.cpw.getSocketClient());
 		}
 		return this.cmdUtil;
