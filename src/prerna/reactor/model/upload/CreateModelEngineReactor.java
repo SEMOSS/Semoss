@@ -35,7 +35,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
 
 	public CreateModelEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
 	
 	@Override
@@ -70,6 +70,8 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		
 		String modelName = getModelName();
 		Map<String, String> modelDetails = getModelDetails();
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
+
 		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_TYPE);
 		if(modelTypeStr == null || (modelTypeStr=modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
@@ -104,7 +106,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
-			SecurityEngineUtils.addEngine(modelId, false, user);
+			SecurityEngineUtils.addEngine(modelId, global, user);
 			
 			// even if no security, just add user as database owner
 			if (user != null) {
