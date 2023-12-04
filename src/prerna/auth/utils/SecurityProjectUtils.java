@@ -72,8 +72,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Add an entire project into the security db - Expectation is not to call this method but addProject(projectId, boolean global = true)
 	 * @param projectId
+	 * 
+	 * PLEASE DEFINE GLOBAL {@link #addProject(String, boolean, User)}
 	 * @throws Exception 
 	 */
+	@Deprecated
 	public static void addProject(String projectId, User user) throws Exception {
 		// default project is not global
 		addProject(projectId, false, user);
