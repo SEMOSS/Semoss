@@ -52,7 +52,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		organizeKeys();
 		int index = 0;
 		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
-		boolean global = Boolean.parseBoolean(this.keysToGet[index++]);
+		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
 		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
