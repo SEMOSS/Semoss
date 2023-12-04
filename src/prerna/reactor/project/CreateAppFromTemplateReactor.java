@@ -47,7 +47,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		int index = 0;
 		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
 		String projectTemplateId = this.keyValue.get(this.keysToGet[index++]);
-		boolean global = Boolean.parseBoolean(this.keysToGet[index++]);
+		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
 		
