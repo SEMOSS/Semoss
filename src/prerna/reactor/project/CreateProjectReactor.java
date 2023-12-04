@@ -38,8 +38,8 @@ public class CreateProjectReactor extends AbstractReactor {
 		int index = 0;
 		String projectName = this.keyValue.get(this.keysToGet[index++]);
 		String projectTypeStr = this.keyValue.get(this.keysToGet[index++]);
-		boolean global = Boolean.parseBoolean(this.keysToGet[index++]);
-		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]));
+		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
+		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
 		
 		// project type is new
 		// if has portal
