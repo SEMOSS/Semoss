@@ -60,7 +60,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	/**
 	 * Add an entire database into the security db
 	 * @param engineId
+	 * 
+	 * PLEASE DEFINE GLOBAL {@link #addEngine(String, boolean, User)}
 	 */
+	@Deprecated
 	public static void addEngine(String engineId, User user) {
 		if(ignoreDatabase(engineId)) {
 			// dont add local master or security db to security db
