@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.cluster.util.ClusterUtil;
@@ -21,6 +22,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.upload.UploadUtilities;
 
@@ -88,11 +90,19 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 			if(mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
+			
+			List<NounMetadata> encodedStrGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+			if(encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
+				String encodedStr = (String) encodedStrGrs.get(0).getValue();
+				String mapStr = Utility.decodeURIComponent(encodedStr);
+				return new Gson().fromJson(mapStr, Map.class);
+			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
+		
 		return null;
 	}
 	
