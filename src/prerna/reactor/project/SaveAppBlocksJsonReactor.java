@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityProjectUtils;
@@ -86,11 +87,19 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			if(mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
+			
+			List<NounMetadata> encodedStrGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+			if(encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
+				String encodedStr = (String) encodedStrGrs.get(0).getValue();
+				String mapStr = Utility.decodeURIComponent(encodedStr);
+				return new Gson().fromJson(mapStr, Map.class);
+			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
+		
 		return null;
 	}
 	
