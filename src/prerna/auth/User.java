@@ -632,6 +632,9 @@ public class User implements Serializable {
 	 */
 	public SocketClient getSocketClient(boolean create, int port) {
 		if(!create) {
+			if(this.cpw == null) {
+				return null;
+			}
 			return this.cpw.getSocketClient();
 		}
 		
