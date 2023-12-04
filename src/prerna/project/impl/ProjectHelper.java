@@ -59,10 +59,11 @@ public class ProjectHelper {
 	 */
 	public static IProject generateNewProject(String projectName, 
 			IProject.PROJECT_TYPE projectType,
+			boolean global,
 			boolean hasPortal, String portalName,
 			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
-		return generateNewProject(projectId, projectName, projectType, hasPortal, portalName, gitProvider, gitCloneUrl, user, logger);
+		return generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName, gitProvider, gitCloneUrl, user, logger);
 	}
 
 	/**
@@ -79,6 +80,7 @@ public class ProjectHelper {
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, 
 			IProject.PROJECT_TYPE projectType,
+			boolean global, 
 			boolean hasPortal, String portalName, 
 			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		if(projectName == null || projectName.isEmpty()) {
@@ -147,7 +149,7 @@ public class ProjectHelper {
 				ClusterUtil.pushProject(projectId);
 			}
 
-			SecurityProjectUtils.addProject(projectId, user);
+			SecurityProjectUtils.addProject(projectId, global, user);
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
