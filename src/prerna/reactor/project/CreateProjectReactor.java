@@ -24,7 +24,7 @@ public class CreateProjectReactor extends AbstractReactor {
 
 	public CreateProjectReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
-				ReactorKeysEnum.PORTAL.getKey(), ReactorKeysEnum.PORTAL_NAME.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PORTAL.getKey(), ReactorKeysEnum.PORTAL_NAME.getKey(),
 				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey()};
 	}
 
@@ -38,6 +38,7 @@ public class CreateProjectReactor extends AbstractReactor {
 		int index = 0;
 		String projectName = this.keyValue.get(this.keysToGet[index++]);
 		String projectTypeStr = this.keyValue.get(this.keysToGet[index++]);
+		boolean global = Boolean.parseBoolean(this.keysToGet[index++]);
 		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]));
 		
 		// project type is new
@@ -57,8 +58,8 @@ public class CreateProjectReactor extends AbstractReactor {
 		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
-		
-		IProject project = ProjectHelper.generateNewProject(projectName, projectType, hasPortal, portalName, 
+
+		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, hasPortal, portalName, 
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
