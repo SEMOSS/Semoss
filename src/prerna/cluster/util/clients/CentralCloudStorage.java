@@ -29,6 +29,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
+import prerna.engine.impl.storage.LocalFileSystemStorageEngine;
 import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
@@ -175,6 +176,12 @@ public class CentralCloudStorage implements ICloudClient {
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_REGION, clientProps, AbstractClientBuilder.GCP_REGION_KEY);
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_FILE_KEY, clientProps, AbstractClientBuilder.GCP_SERVICE_ACCOUNT_FILE_KEY);
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_BUCKET_KEY, clientProps, AbstractClientBuilder.GCP_BUCKET_KEY);
+			
+		}
+		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("LOCAL_FILE_SYSTEM")){
+			
+			centralStorageEngine = new LocalFileSystemStorageEngine();
+			propertiesMigratePut(props, LocalFileSystemStorageEngine.LOCAL_PATH_PREFIX, clientProps, LocalFileSystemStorageEngine.LOCAL_PATH_PREFIX);
 			
 		}
 		else {
