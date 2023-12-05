@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -65,8 +66,36 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_SALT_COL));
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
-		qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
 		qs.addSelector(new QueryColumnSelector(TYPE_COL));
+		// since we had a bad name
+		// will check for the old column if it exists and use that
+		{
+			Connection conn = null;
+			try {
+				conn  = securityDb.getConnection();
+				List<String> allCols = securityDb.getQueryUtil().getTableColumns(
+						conn, 
+						SMSS_USER_ACCESS_KEYS_TABLE_NAME, 
+						securityDb.getDatabase(), 
+						securityDb.getSchema());
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if(allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase())) {
+					qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
+				}
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(securityDb.isConnectionPooling()) {
+					try {
+						conn.close();
+					} catch (SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		// filter to this access key
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
 
 		IRawSelectWrapper wrapper = null;
@@ -74,11 +103,20 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
-				saltedSecretKey = (String) values[0];
-				salt = (String) values[1];
-				userId = (String) values[2];
-				oldUserId = (String) values[3];
-				loginType = (String) values[4];
+				if(values.length == 4) {
+					int index = 0;
+					saltedSecretKey = (String) values[index++];
+					salt = (String) values[index++];
+					userId = (String) values[index++];
+					loginType = (String) values[index++];
+				} else {
+					int index = 0;
+					saltedSecretKey = (String) values[index++];
+					salt = (String) values[index++];
+					userId = (String) values[index++];
+					loginType = (String) values[index++];
+					oldUserId = (String) values[index++];
+				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
