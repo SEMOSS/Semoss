@@ -659,8 +659,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String databaseId, String userId, String permission, long limit, long offset) {
-		return SecurityUserEngineUtils.getFullEngineOwnersAndEditors(databaseId, userId, permission, limit, offset);
+	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String databaseId, String searchParam, String permission, long limit, long offset) {
+		return SecurityUserEngineUtils.getFullEngineOwnersAndEditors(databaseId, searchParam, permission, limit, offset);
 	}
 	
 	/**
@@ -718,11 +718,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static long getEngineUsersCount(User user, String engineId, String userId, String permission) throws IllegalAccessException {
+	public static long getEngineUsersCount(User user, String engineId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("The user does not have access to view this engine");
 		}
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector fSelector = new QueryFunctionSelector();
@@ -731,8 +731,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
         fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
         qs.addSelector(fSelector);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
+		if (hasSearchParam) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchParam));
+			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
