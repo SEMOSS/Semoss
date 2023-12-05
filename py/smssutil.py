@@ -460,12 +460,14 @@ def chat_gpt_3(nl_query, max_tokens_value):
 def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora-int4"):
   #import os
   import openai
-  # forcing the api_key to a dummy value
-  if openai.api_key is None:
-    openai.api_key = "Non Existent API Key"
-  openai.api_base = api_base
+  from openai import OpenAI
+
+  client = OpenAI(
+    api_key="Non Existent API Key",
+    base_url=api_base
+  )
   #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
-  response = openai.Completion.create(model=model_name, prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  response = client.completions.create(model=model_name, prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   #response = openai.Completion.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   query=response.choices[0].text
   print (query)
@@ -474,6 +476,7 @@ def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora
 def run_guanaco(nl_query, max_tokens_value,api_base, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
   from text_generation import Client
   client = Client(api_base)
+  client.timeout=60
   text = ""
   #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
   for response in client.generate_stream(compose_sql_prompt(nl_query), temperature=temperature_val,top_p=top_p_val, max_new_tokens=max_tokens_value, stop_sequences=stop_sequences, **kwargs):
