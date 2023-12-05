@@ -4219,6 +4219,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if for this instance only the admin can set the project discoverable
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyProjectSetDiscoverable() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
 	 * Determine if for this instance only the admin can add a database
 	 * @return
 	 */
