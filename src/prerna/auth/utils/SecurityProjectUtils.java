@@ -1235,11 +1235,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
-	public static long getProjectUsersCount(User user, String projectId, String userId, String permission) throws IllegalAccessException {
+	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project");
 		}
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector fSelector = new QueryFunctionSelector();
@@ -1248,8 +1248,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
         fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
         qs.addSelector(fSelector);
         qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", userId));
+		if (hasSearchParam) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchParam));
+			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
@@ -1277,8 +1282,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getFullProjectOwnersAndEditors(String projectId, String userId, String permission, long limit, long offset) {
-		return SecurityUserProjectUtils.getFullProjectOwnersAndEditors(projectId, userId, permission, limit, offset);
+	public static List<Map<String, Object>> getFullProjectOwnersAndEditors(String projectId, String searchParam, String permission, long limit, long offset) {
+		return SecurityUserProjectUtils.getFullProjectOwnersAndEditors(projectId, searchParam, permission, limit, offset);
 	}
 
 	/**
