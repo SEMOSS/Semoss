@@ -69,31 +69,9 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(TYPE_COL));
 		// since we had a bad name
 		// will check for the old column if it exists and use that
-		{
-			Connection conn = null;
-			try {
-				conn  = securityDb.getConnection();
-				List<String> allCols = securityDb.getQueryUtil().getTableColumns(
-						conn, 
-						SMSS_USER_ACCESS_KEYS_TABLE_NAME, 
-						securityDb.getDatabase(), 
-						securityDb.getSchema());
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if(allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase())) {
-					qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
-				}
-			} catch(Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(securityDb.isConnectionPooling()) {
-					try {
-						conn.close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+		boolean hasOldColumnName = hasOldColumnName();
+		if(hasOldColumnName) {
+			qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
 		}
 		// filter to this access key
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
@@ -292,12 +270,17 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(ACCESS_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(DATE_CREATED_COL));
 		qs.addSelector(new QueryColumnSelector(LAST_USED_COL));
-		{
-			// account for legacy table structure
-			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter(OLD_USERID_COL, "==", token.getId()));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
-			qs.addExplicitFilter(or);
+		boolean hasOldColumnName = hasOldColumnName();
+		if(hasOldColumnName) {
+			{
+				// account for legacy table structure
+				OrQueryFilter or = new OrQueryFilter();
+				or.addFilter(SimpleQueryFilter.makeColToValFilter(OLD_USERID_COL, "==", token.getId()));
+				or.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
+				qs.addExplicitFilter(or);
+			}
+		} else {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", token.getProvider().toString()));
 		if(accessKey != null && !(accessKey=accessKey.trim()).isEmpty()) {
@@ -306,5 +289,39 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
+	
+	@Deprecated
+	// added on 12/05/2023
+	private static boolean hasOldColumnName() {
+		// since we had a bad name
+		// will check for the old column if it exists and use that
+		Connection conn = null;
+		try {
+			conn  = securityDb.getConnection();
+			List<String> allCols = securityDb.getQueryUtil().getTableColumns(
+					conn, 
+					SMSS_USER_ACCESS_KEYS_TABLE_NAME, 
+					securityDb.getDatabase(), 
+					securityDb.getSchema());
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase())) {
+				return true;
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(securityDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return false;
+	}
+	
 	
 }
