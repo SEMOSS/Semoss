@@ -475,8 +475,8 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String engineId, String userId, String permission, long limit, long offset) {
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String engineId, String searchParam, String permission, long limit, long offset) {
+		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
@@ -485,8 +485,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
+		if (hasSearchParam) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchParam));
+			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
