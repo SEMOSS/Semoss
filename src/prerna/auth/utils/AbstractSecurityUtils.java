@@ -58,6 +58,7 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyProjectDelete = false;
 	static boolean adminOnlyProjectAddAccess = false;
 	static boolean adminOnlyProjectSetPublic = false;
+	static boolean adminOnlyProjectSetDiscoverable = false;
 
 	static boolean adminOnlyDatabaseAdd = false;
 	static boolean adminOnlyDatabaseDelete = false;
@@ -119,7 +120,8 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyProjectDelete = Utility.getApplicationAdminOnlyProjectDelete();
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
-
+		adminOnlyProjectSetDiscoverable = Utility.getApplicationAdminOnlyProjectSetDiscoverable();
+		
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
 		adminOnlyDatabaseAddAccess = Utility.getApplicationAdminOnlyDbAddAccess();
@@ -165,6 +167,10 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectSetPublic;
 	}
 
+	public static boolean adminOnlyProjectSetDiscoverable() {
+		return adminOnlyProjectSetDiscoverable;
+	}
+	
 	public static boolean adminOnlyEngineAdd() {
 		return adminOnlyDatabaseAdd;
 	}
