@@ -1,0 +1,6 @@
+datasets==2.14.3
+faiss-cpu==1.7.4
+numpy==1.24.4
+pandas==2.0.0
+tiktoken==0.3.3
+transformers==4.35.2
