@@ -246,7 +246,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				if(endpoint == null || endpoint.trim().isEmpty()) {
 					throw new IllegalArgumentException("Must define endpoint to run custom models");
 				} 
-				output = insight.getPyTranslator().runScript("smssutil.run_alpaca(\"" + finalDbString + "\", " + maxTokens + " ,\" "  + endpoint.trim() + "\")");
+				output = insight.getPyTranslator().runScript("smssutil.run_alpaca(\"" + finalDbString + "\", " + maxTokens + " ,\""  + endpoint.trim() + "\")");
 			} else if(model.equalsIgnoreCase("run_guanaco"))
 			{
 				// create the client first
