@@ -1192,18 +1192,18 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Retrieve the list of users for a given project with parameters
 	 * @param user
 	 * @param projectId
-	 * @param userId
+	 * @param searchParam
 	 * @param permission
 	 * @param limit
 	 * @param offset
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
+	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project");
 		}
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
@@ -1211,8 +1211,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", userId));
+		if (hasSearchParam) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchParam));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchParam));
+			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
