@@ -443,32 +443,35 @@ def get_function_signature(func_name):
 
 def run_gpt_3(nl_query, max_tokens_value):
   #import os
-  import openai
-  response = openai.Completion.create(model="code-davinci-002", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  from openai import OpenAI
+
+  client = OpenAI()
+  response = client.completions.create(model="code-davinci-002", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   query = " SELECT " + response.choices[0].text
   print (query)
   return query
   
 def chat_gpt_3(nl_query, max_tokens_value):
   #import os
-  import openai
-  response = openai.Completion.create(model="code-davinci-002", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  from openai import OpenAI
+
+  client = OpenAI()
+  response = client.completions.create(model="code-davinci-002", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   query = " SELECT " + response.choices[0].text
   print (query)
   return query
 
 def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora-int4"):
   #import os
-  import openai
   from openai import OpenAI
 
   client = OpenAI(
     api_key="Non Existent API Key",
     base_url=api_base
   )
-  #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  #response = client.completions.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   response = client.completions.create(model=model_name, prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
-  #response = openai.Completion.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  #response = client.completions.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   query=response.choices[0].text
   print (query)
   return query
@@ -488,11 +491,13 @@ def run_guanaco(nl_query, max_tokens_value,api_base, stop_sequences=["#", ";"], 
 
 def chat_alpaca(context, nl_query, max_tokens_value, api_base, model_name="guanaco-33b", long=False):
   #import os
-  import openai
-  # forcing the api_key to a dummy value
-  if openai.api_key is None:
-    openai.api_key = "Non Existent API Key"
-  openai.api_base = api_base
+  from openai import OpenAI
+
+  client = OpenAI(
+    api_key="Non Existent API Key",
+    base_url=api_base
+  )
+
   query = ""
   if context is None:
     context = ""
@@ -502,9 +507,9 @@ def chat_alpaca(context, nl_query, max_tokens_value, api_base, model_name="guana
     query = f"A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the following paragraphs, answer the human's question:\n\n{context}.\n\n### Questions:\n\n{nl_query}\n\n### Response:"
   print(query)
   
-  #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
-  response = openai.Completion.create(model=model_name, prompt=query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
-  #response = openai.Completion.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  #response = client.completions.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  response = client.completions.create(model=model_name, prompt=query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  #response = client.completions.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   query=response.choices[0].text
   print (query)
   return query
