@@ -475,62 +475,63 @@ class FAISSSearcher():
             )
 
             # if applicable, create the concatenated columns
-            dataset = dataset.map(
-                self._concatenate_columns,           
-                fn_kwargs = {
-                "columns_to_index": columns_to_index, 
-                "target_column": target_column, 
-                "separator":separator
-                }
-            )
+            if (dataset.num_rows > 0):
+                dataset = dataset.map(
+                    self._concatenate_columns,           
+                    fn_kwargs = {
+                    "columns_to_index": columns_to_index, 
+                    "target_column": target_column, 
+                    "separator":separator
+                    }
+                )
 
-            # need to check that the chunks are not greater than what the tokenizer can handle
-            chunks_with_larger_tokens = self._check_chunks_token_size(dataset[target_column])
-            createDocumentsResponse['documentsWithLargerChunks'][document] = chunks_with_larger_tokens
+                # need to check that the chunks are not greater than what the tokenizer can handle
+                chunks_with_larger_tokens = self._check_chunks_token_size(dataset[target_column])
+                createDocumentsResponse['documentsWithLargerChunks'][document] = chunks_with_larger_tokens
 
-            # get the embeddings for the document
-            #vectors = self.encoder_class.get_embeddings(dataset[target_column])
-            vectors = self.encoder_class.embeddings(
-                strings_to_embed = dataset[target_column], 
-                insight_id = insight_id
-            )
-            vectors = np.array(vectors[0]['response'], dtype=np.float32)
-            assert vectors.ndim == 2
+                # get the embeddings for the document
+                #vectors = self.encoder_class.get_embeddings(dataset[target_column])
+                vectors = self.encoder_class.embeddings(
+                    strings_to_embed = dataset[target_column], 
+                    insight_id = insight_id
+                )
+                vectors = np.array(vectors[0]['response'], dtype=np.float32)
+                assert vectors.ndim == 2
 
-            columns_to_remove.append(target_column)
-            columns_to_drop = list(set(columns_to_remove).intersection(set(dataset.features)))
-            dataset = dataset.remove_columns(column_names= columns_to_drop)
+                columns_to_remove.append(target_column)
+                columns_to_drop = list(set(columns_to_remove).intersection(set(dataset.features)))
+                dataset = dataset.remove_columns(column_names= columns_to_drop)
 
-            with open(new_file_path, "wb") as file:
-                pickle.dump(dataset, file)
-            
-            # add the created dataset file path
-            createDocumentsResponse['createdDocuments'].append(new_file_path)
-            
-            # normalize the vectors if using huggingface
-            if isinstance(self.tokenizer, HuggingfaceTokenizer) or self.metric_type_is_cosine_similarity:
-                faiss.normalize_L2(vectors)
+                with open(new_file_path, "wb") as file:
+                    pickle.dump(dataset, file)
+                
+                # add the created dataset file path
+                createDocumentsResponse['createdDocuments'].append(new_file_path)
+                
+                # normalize the vectors if using huggingface
+                if isinstance(self.tokenizer, HuggingfaceTokenizer) or self.metric_type_is_cosine_similarity:
+                    faiss.normalize_L2(vectors)
 
-            # write out the vectors with the same file name
-            # Change the file extension to ".pkl"
-            new_file_path = os.path.join(
-                directory, 
-                file_name_without_extension + '_vectors' + new_file_extension
-            )
-            with open(new_file_path, "wb") as file:
-                pickle.dump(vectors, file)
+                # write out the vectors with the same file name
+                # Change the file extension to ".pkl"
+                new_file_path = os.path.join(
+                    directory, 
+                    file_name_without_extension + '_vectors' + new_file_extension
+                )
+                with open(new_file_path, "wb") as file:
+                    pickle.dump(vectors, file)
 
-            # add the created embeddings file path
-            createDocumentsResponse['createdDocuments'].append(new_file_path)
+                # add the created embeddings file path
+                createDocumentsResponse['createdDocuments'].append(new_file_path)
 
-            # TODO need to update the flow for how we instatiate
-            if (np.any(self.encoded_vectors) == None):
-                self.encoded_vectors = np.copy(vectors)
-                self.vector_dimensions = self.encoded_vectors.shape
-            else:
-                # make sure the dimensions are the same
-                assert self.vector_dimensions[1] == vectors.shape[1]
-                self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
+                # TODO need to update the flow for how we instatiate
+                if (np.any(self.encoded_vectors) == None):
+                    self.encoded_vectors = np.copy(vectors)
+                    self.vector_dimensions = self.encoded_vectors.shape
+                else:
+                    # make sure the dimensions are the same
+                    assert self.vector_dimensions[1] == vectors.shape[1]
+                    self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
 
         master_indexClass_files = self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
         createDocumentsResponse['createdDocuments'].extend(master_indexClass_files)
@@ -587,12 +588,13 @@ class FAISSSearcher():
         created_documents.append(encoded_vectors_location)
         created_documents.append(dataset_location)
 
-        if self.metric_type_is_cosine_similarity:
+        if (self.metric_type_is_cosine_similarity) and (self.vector_dimensions != None):
             self.index = faiss.index_factory(self.vector_dimensions[1], "Flat", faiss.METRIC_INNER_PRODUCT)
-        else:
+        elif (self.vector_dimensions != None):
             self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
-  
-        self.index.add(self.encoded_vectors)
+
+        if (self.encoded_vectors != None):
+            self.index.add(self.encoded_vectors)
 
         return created_documents
 
