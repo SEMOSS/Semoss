@@ -142,10 +142,23 @@ public class NativePyEngineWorker implements Runnable {
 			// got the response
 			ps.response = true;
 			
-		}catch(Exception ex)
+		} catch(Exception ex)
 		{
 			ex.printStackTrace();
-			ps.ex = ex.getLocalizedMessage();
+			
+			String errorMessage = "Runtime Error Processing Python Command";
+			
+			// Get the message from the cause exception (if any)
+		    if (ex.getCause() != null) {
+		    	errorMessage =  ex.getCause().getMessage();
+		    }
+			
+		    // Get the message from the current exception
+		    if (errorMessage == null) {
+		    	errorMessage = ex.getLocalizedMessage();
+		    }
+		    
+			ps.ex = errorMessage;
 			ps.response = true;
 		}
 		output = ps;
