@@ -17,6 +17,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.reactor.AbstractReactor;
@@ -28,6 +29,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.upload.UploadUtilities;
 
 public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
@@ -70,18 +72,16 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
+		// get the reactor inputs
 		String vectorDbName = getVectorDatabaseName();
 		Map<String, String> vectorDbDetails = getVectorDatabaseDetails();
-		if (!vectorDbDetails.containsKey("vectorDbDetails")) {
-			vectorDbDetails.put("INDEX_CLASSES", "default");
-		}
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
-		
+
 		String vectorDbTypeStr = vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
-		
 		if(vectorDbTypeStr == null || (vectorDbTypeStr=vectorDbTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
 		}
+		
 		VectorDatabaseTypeEnum vectorDbType = null;
 		try {
 			vectorDbType = VectorDatabaseTypeEnum.getEnumFromName(vectorDbTypeStr);
@@ -89,6 +89,20 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Invalid model type " + vectorDbTypeStr);
 		}
 		
+		if (!vectorDbDetails.containsKey("INDEX_CLASSES")) {
+			vectorDbDetails.put("INDEX_CLASSES", "default");
+		}
+		if (!vectorDbDetails.containsKey("EMBEDDER_ENGINE_NAME") && vectorDbType == VectorDatabaseTypeEnum.FAISS) {
+			String embedderEngineId = vectorDbDetails.getOrDefault("EMBEDDER_ENGINE_ID", null);
+			if (embedderEngineId == null) {
+				throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for FAISS database");
+			}
+			
+			IModelEngine embeddingModel = Utility.getModel(embedderEngineId);
+			String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
+			vectorDbDetails.put("EMBEDDER_ENGINE_NAME", embeddingModelAlias);
+		}
+				
 		String vectorDbId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
