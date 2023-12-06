@@ -29,6 +29,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageMount;
+import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
@@ -621,7 +622,17 @@ public class User implements Serializable {
 	 * @return
 	 */
 	public SocketClient getSocketClient(boolean create) {
-		return getSocketClient(create, -1);
+		return getSocketClient(create, -1, null);
+	}
+	
+	/**
+	 * 
+	 * @param create
+	 * @param venvName
+	 * @return
+	 */
+	public SocketClient getSocketClient(boolean create, String venvEngineId) {
+		return getSocketClient(create, -1, venvEngineId);
 	}
 	
 	/**
@@ -630,7 +641,7 @@ public class User implements Serializable {
 	 * @param port
 	 * @return
 	 */
-	public SocketClient getSocketClient(boolean create, int port) {
+	public SocketClient getSocketClient(boolean create, int port, String venvEngineId) {
 		if(!create) {
 			if(this.cpw == null) {
 				return null;
@@ -639,7 +650,7 @@ public class User implements Serializable {
 		}
 		
 		if(this.cpw == null || this.cpw.getSocketClient() == null) {
-			startSocketServerAndClient(-1);
+			startSocketServerAndClient(-1, venvEngineId);
 			this.cpw.getSocketClient().setUser(this);
 		} else if(!this.cpw.getSocketClient().isConnected()) {
 			this.cpw.shutdown();
@@ -879,8 +890,12 @@ public class User implements Serializable {
 	public PyTranslator getPyTranslator() {
 		return getPyTranslator(true);
 	}
-
+	
 	public PyTranslator getPyTranslator(boolean create) {
+		return getPyTranslator(create, null);
+	}
+	
+	public PyTranslator getPyTranslator(boolean create, String venvEngineId) {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
@@ -916,7 +931,7 @@ public class User implements Serializable {
 				// check to see if the py translator needs to be set ?
 				// check to see if the py translator needs to be set ?
 				else {
-					SocketClient sc = getSocketClient(create, -1);
+					SocketClient sc = getSocketClient(create, -1, venvEngineId);
 					if(sc != null) {
 						TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
 						pyJavaTranslator.setSocketClient(sc);
@@ -927,7 +942,7 @@ public class User implements Serializable {
 		}
 		else if(useNettyPy) 
 		{
-			SocketClient sc = getSocketClient(create, -1);
+			SocketClient sc = getSocketClient(create, -1, venvEngineId);
 			if(sc != null) {
 				TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
 				pyJavaTranslator.setSocketClient(sc);
@@ -992,7 +1007,7 @@ public class User implements Serializable {
 		}
 	}
 	
-	public void startSocketServerAndClient(int port) {
+	public void startSocketServerAndClient(int port, String venvEngineId) {
 		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			boolean nativePyServer = false;
 			// defined in rdf map
@@ -1030,7 +1045,8 @@ public class User implements Serializable {
 				
 				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
 				try {
-					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, customClassPath, debug);
+					// TODO update once venv with chroot is enabled
+					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
@@ -1052,7 +1068,8 @@ public class User implements Serializable {
 				
 				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
 				try {
-					this.cpw.createProcessAndClient(nativePyServer, null, port, serverDirectoryPath.toString(), customClassPath, debug);
+					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug);				
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");

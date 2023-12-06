@@ -382,6 +382,7 @@ public class Constants {
 	public static final String MODEL_FOLDER = "model";
 	public static final String FUNCTION_FOLDER = "function";
 	public static final String VECTOR_FOLDER = "vector";
+	public static final String VENV_FOLDER = "venv";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
 	public static final String APP_ROOT_FOLDER = "app_root";
@@ -884,6 +885,9 @@ public class Constants {
 	public static final String PROJECT_ENUM_TYPE = "PROJECT_ENUM_TYPE";
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
+	
+	// venv
+	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
 	
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";

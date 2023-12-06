@@ -165,6 +165,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
@@ -2996,6 +2997,8 @@ public class Utility {
 			return getVectorDatabase(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return getFunctionEngine(engineId, pullIfNeeded);
+		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+			return getVenvEngine(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
@@ -3236,6 +3239,25 @@ public class Utility {
 	 */
 	public static IReactorEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
 		return (IReactorEngine) baseGetEngine(engineId, pullIfNeeded);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IVenvEngine getVenvEngine(String engineId) {
+		return getVenvEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IVenvEngine getVenvEngine(String engineId, boolean pullIfNeeded) {
+		return (IVenvEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**
@@ -5497,7 +5519,7 @@ public class Utility {
 		return thisProcess;
 	}
 
-	public static Object [] startTCPServerNativePy(String insightFolder, String port, String ...otherProps ) {
+	public static Object [] startTCPServerNativePy(String insightFolder, String port, String py, String ...otherProps ) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
@@ -5509,20 +5531,25 @@ public class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			String py = System.getenv(Settings.PYTHONHOME);
-			if(py == null) {
-				py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
-			}
-			if(py == null) {
-				System.getenv(Settings.PY_HOME);
-			}
-			if (py == null) {
-				py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
-			}
-			if(py == null) {
-				throw new NullPointerException("Must define python home");
+			
+			// only try to find the base python if one was not passed in
+			if (py == null || py.isEmpty()) {
+				py = System.getenv(Settings.PYTHONHOME);
+				if(py == null) {
+					py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+				}
+				if(py == null) {
+					System.getenv(Settings.PY_HOME);
+				}
+				if (py == null) {
+					py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+				}
+				if(py == null) {
+					throw new NullPointerException("Must define python home");
+				}
 			}
 			
+			// append the executable
 			if (SystemUtils.IS_OS_WINDOWS) {
 				py = py + "/python.exe";
 			} else {
@@ -6051,6 +6078,8 @@ public class Utility {
 	
 	public static int compileJava(String folder, String classpath) {
 		int status = -1;
+		
+		int lol = classpath.indexOf("C:/workspace/apache-tomcat-9.0.73/webapps/Monolith_Dev/WEB-INF/lib/semoss-0.0.1-SNAPSHOT.jar");
 		
 		String javaFolder = folder + "/java";
 		Path path = Paths.get(Utility.normalizePath(javaFolder));

@@ -28,6 +28,7 @@ public class EngineUtility {
 	public static final String MODEL_FOLDER = BASE_FOLDER + Constants.MODEL_FOLDER;
 	public static final String VECTOR_FOLDER = BASE_FOLDER + Constants.VECTOR_FOLDER;
 	public static final String FUNCTION_FOLDER = BASE_FOLDER + Constants.FUNCTION_FOLDER;
+	public static final String VENV_FOLDER = BASE_FOLDER + Constants.VENV_FOLDER;
 	// project is special engine
 	public static final String PROJECT_FOLDER = BASE_FOLDER + Constants.PROJECT_FOLDER;
 	public static final String USER_FOLDER = BASE_FOLDER + Constants.USER_FOLDER;
@@ -99,6 +100,8 @@ public class EngineUtility {
 			return VECTOR_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return FUNCTION_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+			return VENV_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_FOLDER;
 		}

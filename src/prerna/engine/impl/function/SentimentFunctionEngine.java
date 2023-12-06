@@ -130,8 +130,10 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 			this.createCacheFolder();
 		}
 
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
-		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, timeout);
+		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
