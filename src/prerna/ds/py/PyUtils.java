@@ -1,6 +1,7 @@
 package prerna.ds.py;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,12 +14,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.common.base.Strings;
 
 import prerna.auth.User;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PyUtils {
@@ -403,7 +408,93 @@ public class PyUtils {
 			theSet.append("}");
 			return theSet.toString();
     	} else {
-    		return "\'"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "\'";
+    		return "'''"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "'''";
     	}
+    }
+    
+    public static boolean isPyPIReachable() {
+    	try {
+    		// Try to reach pypi.org with a timeout of 1000 milliseconds
+            java.net.InetAddress.getByName("pypi.org").isReachable(1000);
+            return true;
+        } catch (java.io.IOException e) {
+            // An exception occurred, indicating no internet connection to PyPI
+            return false;
+        }
+    }
+    
+    public static String getPythonHomeDir() {
+    	String py = System.getenv(Settings.PYTHONHOME);
+    	if(py == null) {
+    		py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+    	}
+    	if(py == null) {
+    		System.getenv(Settings.PY_HOME);
+    	}
+    	if (py == null) {
+    		py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+    	}
+    	if(py == null) {
+    		throw new NullPointerException("Must define python home");
+    	}
+    	return py;
+    }
+    
+    public static String appendVenvPythonExecutable(String interpreterDir) {
+    	if (SystemUtils.IS_OS_WINDOWS) {
+    		return  interpreterDir + "Scripts/python.exe";
+    	} else {
+    		return  interpreterDir + "/bin/python3";
+    	}
+    }
+    
+    public static String appendVenvPipExecutable(String interpreterDir) {
+    	if (SystemUtils.IS_OS_WINDOWS) {
+    		return  interpreterDir + "/Scripts/pip.exe";
+    	} else {
+    		return  interpreterDir + "/bin/pip3";
+    	}
+    }
+    
+    public static String appendSitePackagesPath(String interpreterDir) throws IOException {
+    	if (SystemUtils.IS_OS_WINDOWS) {
+    		if (new File(interpreterDir + "/Lib/site-packages").isDirectory()) {
+    			return interpreterDir + "/Lib/site-packages";
+    		}
+    	} else {
+    		String libDirPath = interpreterDir + "/lib";
+    		File libDir = new File(libDirPath);
+    		if (libDir.exists() && libDir.isDirectory()) {
+    	        File[] libSubDirs = libDir.listFiles(File::isDirectory);
+    	        if (libSubDirs != null && libSubDirs.length > 0) {
+    	            // Filter subdirectories based on naming convention for Python versions
+    	            File pythonVersionDir = Arrays.stream(libSubDirs)
+    	                    .filter(subDir -> subDir.getName().startsWith("python"))
+    	                    .findFirst()
+    	                    .orElse(null);
+
+    	            if (pythonVersionDir != null) {
+    	                String pythonVersion = pythonVersionDir.getName();
+    	                return libDirPath + "/" + pythonVersion + "/site-packages";
+    	            }
+    	        }
+    	    }
+
+    	}
+	    throw new IOException("Unable to find site packages directory for OS");
+    }
+    
+    public static String [] applyUlimit (String [] commands) {
+    	// need to make sure we are not windows cause ulimit will not work
+    	if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+    		String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+    		StringBuilder sb = new StringBuilder();
+    		for (String str : commands) {
+    			sb.append(str).append(" ");
+    		}
+    		sb.substring(0, sb.length() - 1);
+    		commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+    	}
+    	return commands;
     }
 }

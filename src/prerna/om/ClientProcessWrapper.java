@@ -14,6 +14,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IVenvEngine;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
@@ -29,6 +30,7 @@ public class ClientProcessWrapper {
 	private Process process;
 	private String prefix;
 	private int port;
+	private String venvPath;
 	private String serverDirectory;
 	
 	private boolean nativePyServer;
@@ -46,7 +48,8 @@ public class ClientProcessWrapper {
 	 */
 	public synchronized void createProcessAndClient(boolean nativePyServer,
 			MountHelper chrootMountHelper,
-			int port, 
+			int port,
+			String venvPath,
 			String serverDirectory, 
 			String classPath,
 			boolean debug) throws Exception 
@@ -55,6 +58,7 @@ public class ClientProcessWrapper {
 		this.chrootMountHelper = chrootMountHelper;
 		this.classPath = classPath;
 		this.port = calculatePort(port);
+		this.venvPath = venvPath;
 		this.serverDirectory = serverDirectory;
 		this.debug = debug;
 		
@@ -88,7 +92,7 @@ public class ClientProcessWrapper {
 				} else {
 					// write the log4j file in the server directory
 					Utility.writeLogConfigurationFile(this.serverDirectory);
-					Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", timeout);
+					Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", this.venvPath, timeout);
 					this.process = (Process) ret[0];
 					this.prefix = (String) ret[1];
 				}
@@ -176,6 +180,9 @@ public class ClientProcessWrapper {
 	        	classLogger.error(Constants.STACKTRACE, e);
 	        } finally {
 	            executor.shutdown();
+	            
+	            // reset the venv path
+	            this.venvPath = null;
 	        }
 		} else if(this.process != null){
 			try {
@@ -187,7 +194,12 @@ public class ClientProcessWrapper {
 	}
 	
 	public void reconnect() throws Exception {
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, serverDirectory, classPath, debug);
+		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug);
+	}
+	
+	public void reconnect(String venvEngineId) throws Exception {
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug);
 	}
 	
 	private int calculatePort(int port) {
@@ -237,7 +249,6 @@ public class ClientProcessWrapper {
 	public void setServerDirectory(String serverDirectory) {
 		this.serverDirectory = serverDirectory;
 	}
-	
 	
 	
 //	  //chroot dir is created by MountHelper and initialized at /opt/user_id__sessionid

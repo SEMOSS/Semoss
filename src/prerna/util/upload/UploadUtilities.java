@@ -1462,6 +1462,70 @@ public class UploadUtilities {
 		return functionTempSmss;
 	}
 	
+	/**
+	 * Create a temporary smss file for venv engine
+	 * 
+	 * @param functionId
+	 * @param functionName
+	 * @param functionClassName
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryVenvSmss(String venvId, String venvName, String venvClassName, Map<String, String> properties) throws IOException {
+		String venvTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.VENV, venvId, venvName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File venvTempSmss = new File(venvTempSmssLoc);
+		if (venvTempSmss.exists()) {
+			venvTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		FileReader fileRead = null;
+		BufferedReader bufferedReader = null;
+
+		try {
+			writer = new FileWriter(venvTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultEngineSettings(bufferedWriter, venvId, venvName, venvClassName, newLine, tab);
+			bufferedWriter.write(newLine);
+			
+			for(String key : properties.keySet()) {
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not generate temporary smss file for function");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileRead != null) {
+					fileRead.close();
+				}
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		return venvTempSmss;
+	}
 	
 	/**
 	 * 

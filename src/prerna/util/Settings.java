@@ -23,6 +23,7 @@ public class Settings {
 	@Deprecated
 	public static final String PY_HOME = "PY_HOME";
 	public static final String PYTHONHOME = "PYTHONHOME";
+	public static final String PYTHONHOME_SITE_PACKAGES = "PYTHONHOME_SITE_PACKAGES";
 	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
 	
 	public static final String PROMPT_STOPPER = "PROMPT_STOPPER";
