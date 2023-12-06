@@ -14,6 +14,7 @@ public interface IEngine extends Closeable {
 		MODEL,
 		VECTOR,
 		FUNCTION,
+		VENV,
 		// special kind for IProject
 		PROJECT,
 	};

@@ -96,8 +96,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_CONVERSATION_HISTORY));
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_INPUT_OUTPUT));
-		
-		
+				
 		if (this.smssProp.containsKey(ModelEngineConstants.KEEP_CONTEXT)) {
 			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_CONTEXT));
 			this.keepConversationHistory = keepContext;
@@ -133,8 +132,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		if (this.workingDirectoryBasePath == null) {
 			this.createCacheFolder();
 		}
-		
-		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, timeout);
+
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			
+		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
@@ -184,12 +186,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		Map<String, Object> retMap = null;
 		String messageId = UUID.randomUUID().toString();
-
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+		
+		
 		if (Utility.isModelInferenceLogsEnabled()) {
-			if(parameters == null) {
-				parameters = new HashMap<String, Object>();
-			}
-			
 			LocalDateTime inputTime = LocalDateTime.now();
 			retMap = askQuestion(question, context, insight, parameters);
 			LocalDateTime outputTime = LocalDateTime.now();
@@ -256,6 +258,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		Map<String, Object> output;
 		classLogger.info("Making embeddings call on engine " + this.engineId);
+
 		if (Utility.isModelInferenceLogsEnabled()) {			
 			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
