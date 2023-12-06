@@ -491,6 +491,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 			this.pyt.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
 			this.indexClasses.remove(indexClass);
+			this.indexClassHasDatasetLoaded.remove(indexClass);
 		} else {
 			String script = this.vectorDatabaseSearcher + ".searchers['"+indexClass+"'].createMasterFiles(path_to_files = '" + indexedFilesPath.replace(FILE_SEPARATOR, DIR_SEPARATOR) + "')";
 			this.pyt.runScript(script);
