@@ -77,6 +77,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	File cacheFolder;
 
 	
+	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
+	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -94,7 +96,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.smssProp.put("WORKING_DIR", this.schemaFolder.getAbsolutePath());
 		
 		// third layer - All the separate tables,classes, or searchers that can be added to this db
-		this.indexClasses = new ArrayList<>(Arrays.asList(this.schemaFolder.list()));
+		this.indexClasses = new ArrayList<>();
+        for (File file : this.schemaFolder.listFiles()) {
+            if (file.isDirectory() && !file.getName().equals("temp")) {
+            	this.indexClasses.add(file.getName());
+            }
+        }
 		
 		//this.documentsFolder = new File(this.connectionURL + DIR_SEPARATOR + "documents");
 		//this.indexFolder = new File(this.connectionURL + DIR_SEPARATOR + "indexed_files");
@@ -196,6 +203,21 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		classLogger.info("Initializing FAISS db with the following py commands >>>" + intitPyCommands.toString());
 		pyt.runEmptyPy(commands);
+		
+		// check if the index class was able to load in its documents
+		
+		if (this.indexClasses.size() > 0) {
+			for (String indexClass : this.indexClasses) {
+				StringBuilder checkForEmptyDatabase = new StringBuilder();
+				checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
+									 .append(".searchers['")
+									 .append(indexClass)
+									 .append("']")
+									 .append(".datasetsLoaded()");
+				boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+				this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
+			}
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -384,8 +406,19 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			copyFilesToCloudThread.start();
 		}
 		
+		// verify the index class loaded the dataset
+		StringBuilder checkForEmptyDatabase = new StringBuilder();
+		checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
+							 .append(".searchers['")
+							 .append(indexClass)
+							 .append("']")
+							 .append(".datasetsLoaded()");
+		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
+		
+		
 		// inform the user that some chunks are too large and they might loose semantic value
-		Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
+		// Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
 	}
 
 	@Override
@@ -474,7 +507,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public Object nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
 		
 		checkSocketStatus();
-		
+				
 		Insight insight = getInsight(parameters.get("insight"));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
@@ -511,11 +544,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					 .append(".nearestNeighbor(");
 		}
 		
-		// TODO we will need the insight when runnings encode call through IModelEngine
-		//Insight insight = (Insight) parameters.get("insight");
-		//if (insight == null) {
-		//	throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		//}
+		// make sure the database has docuemnts loaded / added
+		if (!this.indexClassHasDatasetLoaded.containsKey(indexClass) || this.indexClassHasDatasetLoaded.get(indexClass) == false) {
+			throw new IllegalArgumentException("There are no documents loaded in the index class of the vector database.");
+		}
 	
 		// make the question arg
 		callMaker.append("question=\"\"\"")

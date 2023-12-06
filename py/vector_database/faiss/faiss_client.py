@@ -1,5 +1,4 @@
 from typing import List, Dict, Union, Optional, Any
-import transformers
 from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching
 import pandas as pd
 import faiss
@@ -457,8 +456,7 @@ class FAISSSearcher():
                     try:
                         temp_df = pd.read_csv(document, encoding = encoding)
                         dataset = Dataset.from_pandas(
-                            temp_df,
-                            keep_in_memory=True
+                            temp_df
                         )
                         break
                     except:
@@ -612,3 +610,15 @@ class FAISSSearcher():
                 chunks_with_higher_tokens.append(i)
     
         return chunks_with_higher_tokens
+    
+    def datasetsLoaded(
+        self
+    ) -> bool:
+        '''
+        Check if data was loaded in from the csv
+        '''
+        if (self.ds == None) or (list(self.ds.features) == []) or (len(list(self.ds.features)) == 0) or (self.ds.num_rows == 0):
+            return False
+        else:
+            return True
+
