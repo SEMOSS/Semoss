@@ -32,6 +32,11 @@ SMSSFunctionWatcher_DIR	C:\\workspace\\Semoss_Dev\\function
 SMSSFunctionWatcher_EXT	.smss
 SMSSFunctionWatcher_ETYPE	FUNCTION
 
+SMSSFunctionWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSFunctionWatcher_DIR	C:\\workspace\\Semoss_Dev\\venv
+SMSSFunctionWatcher_EXT	.smss
+SMSSFunctionWatcher_ETYPE	VENV
+
 ProjectWatcher	prerna.util.ProjectWatcher
 ProjectWatcher_DIR		C:\\workspace\\Semoss_Dev\\project
 ProjectWatcher_EXT	.smss
