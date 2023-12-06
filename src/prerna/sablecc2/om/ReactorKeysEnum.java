@@ -263,6 +263,8 @@ public enum ReactorKeysEnum {
 	VALUES("values", 											"Numeric or string values used as input text or inputs to an operation"),
 	VECTORDB("vectorDb", 										"The id/name of the vector db engine to use"),
 	VECTORDB_DETAILS("vectorDbDetails", 						"Map containing the necessary details to establish a connection to vector db engine"),
+	VENV("venv",												"The id/name of the virtual environment engine"),
+	VENV_DETAILS("venvDetails", 								"Map containing the necessary details to establish a connection to venv engine"),
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
