@@ -49,6 +49,10 @@
 			<outputDirectory>vector</outputDirectory>
 		</fileSet>
 		<fileSet>
+			<directory>venv</directory>
+			<outputDirectory>venv</outputDirectory>
+		</fileSet>
+		<fileSet>
 			<directory>project</directory>
 			<outputDirectory>project</outputDirectory>
 		</fileSet>
