@@ -32,7 +32,7 @@ import prerna.util.DIHelper;
 
 public class VirusTotalScannerUtils implements IVirusScanner {
 
-	private static final Logger logger = LogManager.getLogger(VirusTotalScannerUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(VirusTotalScannerUtils.class);
 
 	public static final String VIRUSTOTAL_API_KEY = "VIRUSTOTAL_API_KEY";
 	public static final String VIRUSTOTAL_USE_CERT = "VIRUSTOTAL_USE_CERT";
@@ -57,7 +57,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 					try {
 						instance = new VirusTotalScannerUtils();
 					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -142,28 +142,28 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     		return analysisFileId;
     		
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
 			if(entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(httpClient != null) {
 				try {
 					httpClient.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -232,28 +232,28 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     		
     		return retMap;
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
 			if(entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(httpClient != null) {
 				try {
 					httpClient.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

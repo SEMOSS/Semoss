@@ -1000,18 +1000,18 @@ public class Project implements IProject {
         URL[] urls = ((URLClassLoader)cl).getURLs();
 
         if(System.getProperty("os.name").toLowerCase().contains("win")) {
-        for(URL url: urls){
-        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-        	if(thisURL.endsWith("/"))
-        		thisURL = thisURL.substring(0, thisURL.length()-1);
-
-        	retClassPath
-        		//.append("\"")
-        		.append(thisURL)
-        		//.append("\"")
-        		.append(";");
-        	
-        }
+	        for(URL url: urls){
+	        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+	        	if(thisURL.endsWith("/"))
+	        		thisURL = thisURL.substring(0, thisURL.length()-1);
+	
+	        	retClassPath
+	        		//.append("\"")
+	        		.append(thisURL)
+	        		//.append("\"")
+	        		.append(";");
+	        	
+	        }
         } else {
             for(URL url: urls){
             	String thisURL = URLDecoder.decode((url.getFile()));

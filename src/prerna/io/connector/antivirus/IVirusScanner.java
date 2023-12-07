@@ -11,6 +11,7 @@ public interface IVirusScanner {
 	
 	enum VIRUS_SCANNER_TYPE
 	{
+		APACHE_TIKA,
 		CLAM_AV,
 		VIRUS_TOTAL,
 	}
