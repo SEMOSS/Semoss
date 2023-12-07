@@ -1774,11 +1774,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Return the databases the user has explicit access to
+	 * Return the engines the user has explicit access to
 	 * @param singleUserId
 	 * @return
 	 */
-	public static Set<String> getDatabasesUserHasExplicitAccess(User user) {
+	public static Set<String> getEngineUserHasExplicitAccess(User user) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -1787,6 +1787,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(orFilter);
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
+	}
+	
+	/**
+	 * Return if user has explicit permissions to this engine
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static boolean userHasExplicitAccess(User user, String engineId) {
+		return SecurityUserEngineUtils.getUserEnginePermission(user, engineId) != null;
 	}
 	
 	/**

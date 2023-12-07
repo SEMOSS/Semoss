@@ -125,6 +125,42 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 
 		return null;
 	}
+	
+	/**
+	 * Get the project permissions for a specific user
+	 * @param user
+	 * @param projectId
+	 * @return
+	 */
+	public static Integer getUserProjectPermission(User user, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		// TODO: account for different logins with different levels of access
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null && val instanceof Number) {
+					return ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return null;
+	}
 
 	/**
 	 * Determine if the user is the owner of a project
