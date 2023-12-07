@@ -29,7 +29,6 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageMount;
-import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
@@ -648,7 +647,6 @@ public class User implements Serializable {
 			}
 			return this.cpw.getSocketClient();
 		}
-		
 		if(this.cpw == null || this.cpw.getSocketClient() == null) {
 			startSocketServerAndClient(-1, venvEngineId);
 			this.cpw.getSocketClient().setUser(this);
@@ -1008,6 +1006,9 @@ public class User implements Serializable {
 	}
 	
 	public void startSocketServerAndClient(int port, String venvEngineId) {
+		if(this.cpw == null) {
+			this.cpw = new ClientProcessWrapper();
+		}
 		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			boolean nativePyServer = false;
 			// defined in rdf map
