@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import io.netty.channel.ChannelFuture;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
@@ -24,16 +23,17 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class NativePySocketClient extends SocketClient implements Runnable  {
+public class NativePySocketClient extends SocketClient implements Runnable, Closeable  {
 	
-	private static final String CLASS_NAME = NativePySocketClient.class.getName();
-	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
 	
     private String HOST = null;
     private int PORT = -1;
-    private boolean ssl = false;
+    private boolean SSL = false;
+    
     //Map requestMap = new HashMap();
     //Map responseMap = new HashMap();
+    
     private boolean ready = false;
     private boolean connected = false;
     private AtomicInteger count = new AtomicInteger(0);
@@ -52,14 +52,21 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     {
     	this.HOST = HOST;
     	this.PORT = PORT;
-    	this.ssl = SSL;
+    	this.SSL = SSL;
     }
     
-    public ChannelFuture disconnect()
-    {
-    	return null;
+    @Override
+    public void close() {
+    	if(this.requestMap != null) {
+    		this.requestMap.clear();
+    	}
+    	closeStream(this.os);
+    	closeStream(this.is);
+    	closeStream(this.clientSocket);
+    	this.connected = false;
+    	this.killall = true;
     }
-
+    
     public void run()	
     {
     	// there is 2 portions to the run
@@ -75,7 +82,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    		SLEEP_TIME = Integer.parseInt(DIHelper.getInstance().getProperty("SLEEP_TIME"));
 	    	}
 	    	
-	    	logger.info("Trying with the sleep time of " + SLEEP_TIME);
+	    	classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
 	    	while(!connected && attempt < 6) // I do an attempt here too hmm.. 
 	    	{
 		    	try
@@ -85,11 +92,11 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		    		// pick input and output stream and start the threads
 		    		this.is = clientSocket.getInputStream();
 		    		this.os = clientSocket.getOutputStream();
-		            logger.info("CLIENT Connection complete !!!!!!!");
+		            classLogger.info("CLIENT Connection complete !!!!!!!");
 
 		            Thread.sleep(100); // sleep some before executing command
 		            // prime it 
-		            //logger.info("First command.. Prime" + executeCommand("2+2"));
+		            //classLogger.info("First command.. Prime" + executeCommand("2+2"));
 		            connected = true;
 		            ready = true;
 		            killall = false;
@@ -99,7 +106,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		            }
 		    	} catch(Exception ex) {
 		    		attempt++;
-		    		logger.info("Attempting Number " + attempt);
+		    		classLogger.info("Attempting Number " + attempt);
 		    		// see if sleeping helps ?
 		    		try {
 		    			// sleeping only for 1 second here
@@ -112,7 +119,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    	}
 	    	
 	    	if(attempt > 6) {
-	            logger.info("CLIENT Connection Failed !!!!!!!");
+	            classLogger.info("CLIENT Connection Failed !!!!!!!");
 	            killall = true;
 	            connected = false;
 	            ready = false;
@@ -155,26 +162,26 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
-	    				logger.debug("incoming payload " + ps);
+	    				classLogger.debug("incoming payload " + ps);
 
 	    				// std out no questions
 	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
 	    				{
-	    					//logger.info(ps.payload[0]);
-	    					//logger.info("Standard output");
+	    					//classLogger.info(ps.payload[0]);
+	    					//classLogger.info("Standard output");
 
 	    					outputAssimilator.append(ps.payload[0]);
 	    					if(lock != null)
 	    						exposeLog((String)ps.payload[0], lock.insightId);
 	    				}
 	    				
-	       				// need some way to say this is the output from the actual python vs. something that is a logger
+	       				// need some way to say this is the output from the actual python vs. something that is a classLogger
 	    				// this is done through interim and operations
 	    				// partial stdout
 	    				// i.e. response is true and it is being sent as a stdout
 	    				else if(ps.response && ps.operation == ps.operation.STDOUT)
 	    				{
-	    					//logger.info("Partial Response from the py");
+	    					//classLogger.info("Partial Response from the py");
 	    					// need to return output here
 	    					if(ps.payload != null && !((String)ps.payload[0]).equalsIgnoreCase("NONE"))
 	    					{
@@ -185,7 +192,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					if(!ps.interim)
 	    					{
 	    						//System.err.println("Final message.. ");
-		    					logger.info("FINAL PARTIALs OUTPUT <<<<<<<" + partialAssimilator + ">>>>>>>>>>>>");
+		    					classLogger.info("FINAL PARTIALs OUTPUT <<<<<<<" + partialAssimilator + ">>>>>>>>>>>>");
 		    					// re-initialize it
 
 	    					}
@@ -193,7 +200,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				// this is the response.. i.e. the full response
 	    				else if(ps.response)
 	    				{
-	    					//logger.info("Response from the py");
+	    					//classLogger.info("Response from the py");
 	    					//System.err.println("This is working as designed");
 	    					if(ps != null 
 	    							&& ps.payload !=null 
@@ -236,7 +243,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				// this is a request
 	    				else if(ps.operation == ps.operation.ENGINE)
 	    				{
-	    					//logger.info("reverse request for data");
+	    					//classLogger.info("reverse request for data");
 	    					// this is a request we need to process
 	    					// need a way here to also push the payload classes
 	    					// will come to it in a bit
@@ -248,7 +255,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				// so we dont choke the thread
 	    				else
 	    				{
-	    					logger.info("message not handled by py server");
+	    					classLogger.info("message not handled by py server");
 		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
 	    					responseMap.put(ps.epoc, ps);
 	    					if(lock != null)
@@ -281,7 +288,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     		}
     		connected = false;
     		System.err.println("NativePySocketClient is disconnected");
-    		logger.warn("NativePySocketClient is disconnected");
+    		classLogger.warn("NativePySocketClient is disconnected");
     	}
     }
     
@@ -374,7 +381,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     			requestMap.put(id, ps);
     		}
     		writePayload(ps);
-			logger.debug("outgoing payload " + ps.epoc);
+			classLogger.debug("outgoing payload " + ps.epoc);
 
 	    	// send the message
     		// time to wait = average time * 10
@@ -384,7 +391,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 				int pollNum = 1; // 1 second
 				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
 				{
-					//logger.info("Checking to see if there was a response");
+					//classLogger.info("Checking to see if there was a response");
 					try
 					{
 						if(pollNum < 10) {
@@ -401,7 +408,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 				}
 				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 				{
-					logger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
+					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
 					
 				}
     		}
@@ -486,7 +493,6 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     {
     	if(isConnected()) {
 	    	PayloadStruct ps = new PayloadStruct();
-	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
 	    	ps.epoc = "stop_all";
 	    	ps.hasReturn = false;
 	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
@@ -499,36 +505,43 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		t.start();
     }
 
-    public void crash()
-    {
+    /**
+     * 
+     */
+    public void crash() {
     	// this happens when the client has completely crashed
     	// make the connected to be false
     	// take everything that is waiting on it
     	// go through request map and start pushing
-    	for(Object k : this.requestMap.keySet()) {
-    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
-    		logger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-    		synchronized(ps) {
-    			ps.notifyAll();
-    		}
+    	try {
+	    	for(Object k : this.requestMap.keySet()) {
+	    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
+	    		classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+	    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+	    		synchronized(ps) {
+	    			ps.notifyAll();
+	    		}
+	    	}
+    	} catch(Exception e) {
+    		classLogger.error(Constants.STACKTRACE, e);
     	}
-    	this.requestMap.clear();
-    	closeStream(this.os);
-    	closeStream(this.is);
-    	closeStream(this.clientSocket);
-    	this.connected = false;
-    	this.killall = true;
-    	this.ready = false;
+    	
+    	this.close();
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     }
     
+    /**
+     * 
+     * @param closeThis
+     */
     private void closeStream(Closeable closeThis) {
-    	try {
-			closeThis.close();
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
+    	if(closeThis != null) {
+	    	try {
+				closeThis.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+    	}
     }
     
     /**
@@ -570,6 +583,4 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     public boolean isReady() {
     	return this.ready;
     }
-    
-    
 }
