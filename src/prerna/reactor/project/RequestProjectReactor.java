@@ -36,7 +36,6 @@ public class RequestProjectReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
@@ -75,8 +74,8 @@ public class RequestProjectReactor extends AbstractReactor {
 		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
 			throw new IllegalArgumentException("This user has already requested access to this project with the given permission level");
 		}
-		// checking to make sure project is discoverable
-		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId);
+		// checking to make sure you can request access
+		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId) || SecurityProjectUtils.userHasExplicitAccess(user, projectId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
 			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission, user);
@@ -84,7 +83,6 @@ public class RequestProjectReactor extends AbstractReactor {
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {
 			return NounMetadata.getErrorNounMessage("Unable to request the project");
-
 		}
 	}
 
