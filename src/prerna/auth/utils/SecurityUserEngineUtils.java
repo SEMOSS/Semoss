@@ -106,6 +106,42 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get the engine permissions for a specific user
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static Integer getUserEnginePermission(User user, String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		// TODO: account for different logins with different levels of access
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null && val instanceof Number) {
+					return ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Determine if the user is the owner of an engine
 	 * @param userFilters
 	 * @param engineId
