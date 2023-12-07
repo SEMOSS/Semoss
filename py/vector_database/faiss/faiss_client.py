@@ -593,7 +593,7 @@ class FAISSSearcher():
         elif (self.vector_dimensions != None):
             self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
 
-        if (self.encoded_vectors != None):
+        if (self.encoded_vectors is not None):
             self.index.add(self.encoded_vectors)
 
         return created_documents
