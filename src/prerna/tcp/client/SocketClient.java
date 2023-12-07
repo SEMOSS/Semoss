@@ -315,14 +315,6 @@ public class SocketClient implements Runnable, Closeable {
     
     /**
      * 
-     * @param connected
-     */
-    public void setConnected(boolean connected) {
-		this.connected = connected;
-	}
-    
-    /**
-     * 
      * @return
      */
     public boolean isConnected() {
