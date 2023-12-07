@@ -11,7 +11,7 @@ public class CleanerThread extends Thread {
 	// store the folder to delete
 	public String folder = null;
 	
-	private static final Logger logger = LogManager.getLogger(CleanerThread.class);
+	private static final Logger classLogger = LogManager.getLogger(CleanerThread.class);
 	
 	public CleanerThread(String folder) {
 		this.folder = folder;
@@ -30,15 +30,15 @@ public class CleanerThread extends Thread {
 				try {
 					Thread.sleep(attempt * 1000);
 				} catch (InterruptedException e1) {
-					logger.error(Constants.STACKTRACE, e1);
+					classLogger.error(Constants.STACKTRACE, e1);
 				}
 			}
 		}
 		
 		if(attempt >= 10) {
-			logger.error(Constants.STACKTRACE, "Unable to delete directory on netty cleanup: " + folder);
+			classLogger.error(Constants.STACKTRACE, "Unable to delete directory on netty cleanup: " + folder);
 		} else {
-			logger.info("Deleted directory " + folder);
+			classLogger.info("Deleted directory " + folder);
 		}
 	}
 

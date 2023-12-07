@@ -293,8 +293,10 @@ public class SocketClient implements Runnable, Closeable {
     		// always call close on the IO
     		close();
     		
-    		CleanerThread t = new CleanerThread(dir);
-    		t.start();
+    		if(dir != null) {
+	    		CleanerThread t = new CleanerThread(dir);
+	    		t.start();
+    		}
     	}
 		
     }
