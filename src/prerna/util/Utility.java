@@ -6079,8 +6079,6 @@ public class Utility {
 	public static int compileJava(String folder, String classpath) {
 		int status = -1;
 		
-		int lol = classpath.indexOf("C:/workspace/apache-tomcat-9.0.73/webapps/Monolith_Dev/WEB-INF/lib/semoss-0.0.1-SNAPSHOT.jar");
-		
 		String javaFolder = folder + "/java";
 		Path path = Paths.get(Utility.normalizePath(javaFolder));
 		
