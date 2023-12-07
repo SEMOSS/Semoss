@@ -6,6 +6,13 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
@@ -513,18 +520,41 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     	// make the connected to be false
     	// take everything that is waiting on it
     	// go through request map and start pushing
-    	try {
-	    	for(Object k : this.requestMap.keySet()) {
-	    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
-	    		classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-	    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-	    		synchronized(ps) {
-	    			ps.notifyAll();
-	    		}
-	    	}
-    	} catch(Exception e) {
-    		classLogger.error(Constants.STACKTRACE, e);
-    	}
+    	
+    	// run as executor since it is synchronized
+    	// and dont want to get stuck if an issue occurs and the notify never happens
+    	// we will close and kill process anyway
+    	ExecutorService executor = Executors.newSingleThreadExecutor();
+    	
+        Callable<String> callableTask = () -> {
+        	try {
+    	    	for(Object k : this.requestMap.keySet()) {
+    	    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
+    	    		classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+    	    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+    	    		synchronized(ps) {
+    	    			ps.notifyAll();
+    	    		}
+    	    	}
+        	} catch(Exception e) {
+        		classLogger.error(Constants.STACKTRACE, e);
+        	}
+            return "Successfully released the payload structs";
+        };
+
+        Future<String> future = executor.submit(callableTask);
+        try {
+        	// wait 1 minute at most
+            String result = future.get(60, TimeUnit.SECONDS);
+            classLogger.info(result);
+        } catch (TimeoutException e) {
+        	classLogger.warn("Not able to release the payload structs within a timely fashion");
+            future.cancel(true); 
+        } catch (InterruptedException | ExecutionException e) {
+        	classLogger.error(Constants.STACKTRACE, e);
+        } finally {
+            executor.shutdown();
+        }
     	
     	this.close();
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
