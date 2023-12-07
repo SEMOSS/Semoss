@@ -252,17 +252,51 @@ public class SocketClient implements Runnable, Closeable {
     	writePayload(ps);
     }
 
-    
-    public void stopPyServe(String dir) {
-    	if(isConnected()) {
-	    	PayloadStruct ps = new PayloadStruct();
-	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-	    	ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>"};
-	    	writePayload(ps);
+    /**
+     * 
+     * @param dir
+     * @return
+     */
+    public boolean stopPyServe(String dir) {
+		try {
+    		if(isConnected()) {
+    			ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    			Callable<Boolean> callableTask = () -> {
+    				PayloadStruct ps = new PayloadStruct();
+    		    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+    		    	ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>"};
+    		    	writePayload(ps);
+    				return true;
+    			};
+
+    			Future<Boolean> future = executor.submit(callableTask);
+    			try {
+    				// wait 1 minute at most
+    				boolean result = future.get(60, TimeUnit.SECONDS);
+    				classLogger.info("Stop PyServe result = " + result);
+    				return result;
+    			} catch (TimeoutException e) {
+    				classLogger.warn("Not able to release the payload structs within a timely fashion");
+    				future.cancel(true);
+    				return false;
+    			} catch (InterruptedException | ExecutionException e) {
+    				classLogger.error(Constants.STACKTRACE, e);
+    				return false;
+    			} finally {
+    				executor.shutdown();
+    			}
+    		} else {
+    			return true;
+    		}
+    	} finally {
+    		// always call close on the IO
+    		close();
+    		
+    		CleanerThread t = new CleanerThread(dir);
+    		t.start();
     	}
-    	
-		CleanerThread t = new CleanerThread(dir);
-		t.start();
+		
     }
 
     /**
