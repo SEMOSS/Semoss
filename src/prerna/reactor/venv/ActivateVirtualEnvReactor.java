@@ -38,7 +38,7 @@ public class ActivateVirtualEnvReactor extends AbstractReactor {
 			user.getSocketClient(true, venvName);
 			return new NounMetadata("TCP Server was not initialized but is now started and connected", PixelDataType.CONST_STRING);
 		}
-		cpw.shutdown();
+		cpw.shutdown(false);
 		try {
 			cpw.reconnect(venvName);
 		} catch (Exception e) {
