@@ -2929,6 +2929,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
+	
+	/**
+	 * Return if user has explicit permissions to this project
+	 * @param user
+	 * @param projectId
+	 * @return
+	 */
+	public static boolean userHasExplicitAccess(User user, String projectId) {
+		return SecurityUserProjectUtils.getUserProjectPermission(user, projectId) != null;
+	}
 
 	public static List<Map<String, Object>> getProjectInfo(Collection dbFilter) {
 		SelectQueryStruct qs = new SelectQueryStruct();

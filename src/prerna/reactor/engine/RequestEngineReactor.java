@@ -65,18 +65,18 @@ public class RequestEngineReactor extends AbstractReactor {
 					
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
-		// check user permission for the database
+		// check user permission for the engine
 		Integer currentUserPermission = SecurityEngineUtils.getUserEnginePermission(userId, engineId);
 		if(currentUserPermission != null && requestPermission == currentUserPermission) {
 			throw new IllegalArgumentException("This user already has access to this engine with the given permission level");
 		}
-		//check user pending permission for database
+		//check user pending permission for engine
 		Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestDatabasePermission(userId, engineId);
 		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
 			throw new IllegalArgumentException("This user has already requested access to this engine with the given permission level");
 		}
-		// checking to make sure database is discoverable
-		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(engineId);
+		// checking to make sure you can request access
+		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(engineId) || SecurityEngineUtils.userHasExplicitAccess(user, engineId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
 			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestComment, requestPermission, user);
