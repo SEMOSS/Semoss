@@ -651,7 +651,7 @@ public class User implements Serializable {
 			startSocketServerAndClient(-1, venvEngineId);
 			this.cpw.getSocketClient().setUser(this);
 		} else if(!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown();
+			this.cpw.shutdown(false);
 			try {
 				this.cpw.reconnect();
 			} catch (Exception e) {

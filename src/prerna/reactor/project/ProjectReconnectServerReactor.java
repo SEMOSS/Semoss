@@ -50,7 +50,7 @@ public class ProjectReconnectServerReactor extends AbstractReactor {
 			project.getProjectTcpClient(true);
 			return new NounMetadata("TCP Server was not initialized but is now started and connected for project '" + projectId + "'", PixelDataType.CONST_STRING);
 		}
-		cpw.shutdown();
+		cpw.shutdown(false);
 		try {
 			cpw.reconnect();
 		} catch (Exception e) {
