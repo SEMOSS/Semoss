@@ -14,7 +14,6 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IVenvEngine;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
@@ -159,7 +158,7 @@ public class ClientProcessWrapper {
 	
 	        Callable<String> callableTask = () -> {
 	        	this.socketClient.stopPyServe(this.serverDirectory);
-	    		this.socketClient.disconnect();
+	    		this.socketClient.close();
 	            return "Successfully stopped the process";
 	        };
 	
@@ -171,6 +170,8 @@ public class ClientProcessWrapper {
 	        } catch (TimeoutException e) {
 	        	classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
 	        	try {
+	        		// still call the close to shut down the io streams
+	        		this.socketClient.close();
 	    			this.process.destroy();
 	    		} catch(Exception e2) {
 	            	classLogger.error(Constants.STACKTRACE, e2);
@@ -184,7 +185,9 @@ public class ClientProcessWrapper {
 	            // reset the venv path
 	            this.venvPath = null;
 	        }
-		} else if(this.process != null){
+		}
+		// no socket but have a process? try to kill it
+		else if(this.process != null){
 			try {
     			this.process.destroy();
     		} catch(Exception e) {
