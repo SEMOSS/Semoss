@@ -5557,6 +5557,8 @@ public class Utility {
 			}
 			
 			py = py.replace("\\", "/");
+			
+			classLogger.info("The python executable being used is: " + py);
 
 			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
 			pyBase = pyBase.replace("\\", "/");
