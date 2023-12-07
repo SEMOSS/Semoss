@@ -85,4 +85,19 @@ class BaseClient(ABC):
     def ask(self, *args: Any, **kwargs: Any) -> Dict:
         pass
 
-    
+    def embeddings(self, *args: Any, **kwargs: Any) -> Dict:
+        response = 'This model does not support embeddings.'
+        
+        numberOfTokensInResponse = 6
+        try:
+            self.tokenizer.count_tokens(response)
+        except:
+            pass
+        
+        output_payload = {
+            'response':response,
+            'numberOfTokensInPrompt': 0,
+            'numberOfTokensInResponse': numberOfTokensInResponse
+        }
+        
+        return output_payload
