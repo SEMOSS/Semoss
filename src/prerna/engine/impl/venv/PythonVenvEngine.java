@@ -264,7 +264,7 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 
 	@Override
 	public void addPackage(Map<String, Object> parameters) throws Exception {
-		if (parameters.containsKey("packageName")) {
+		if (!parameters.containsKey("packageName")) {
 			throw new IllegalArgumentException("\"packageName\" must be provided to add a package to this virtual environment.");
 		}
 		String packageName = (String) parameters.get("packageName");
@@ -356,7 +356,7 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 
 	@Override
 	public void removePackage(Map<String, Object> parameters) throws Exception {
-		if (parameters.containsKey("packageName")) {
+		if (!parameters.containsKey("packageName")) {
 			throw new IllegalArgumentException("\"packageName\" must be provided to remove the package from this virtual environment.");
 		}
 		String packageName = (String) parameters.get("packageName");
