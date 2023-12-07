@@ -1584,7 +1584,7 @@ public class Project implements IProject {
 		if(this.cpw.getSocketClient() == null) {
 			createProjectTcpServer(-1);
 		} else if( !this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown();
+			this.cpw.shutdown(false);
 			try {
 				this.cpw.reconnect();
 			} catch (Exception e) {
@@ -1605,7 +1605,7 @@ public class Project implements IProject {
 		if(this.cpw.getSocketClient() == null) {
 			createProjectTcpServer(-1);
 		} else if( !this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown();
+			this.cpw.shutdown(false);
 			try {
 				this.cpw.reconnect();
 			} catch (Exception e) {
