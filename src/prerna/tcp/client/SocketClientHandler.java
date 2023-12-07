@@ -14,7 +14,7 @@ import prerna.util.FstUtil;
 
 public class SocketClientHandler implements Runnable {
 
-	private static final Logger logger = LogManager.getLogger(SocketClientHandler.class);
+	private static final Logger classLogger = LogManager.getLogger(SocketClientHandler.class);
 
     private int offset = 4;
 	
@@ -76,7 +76,7 @@ public class SocketClientHandler implements Runnable {
 				}
 			}		
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		}		
 	}
 	
@@ -103,7 +103,7 @@ public class SocketClientHandler implements Runnable {
 						{
 							Object retObject = FstUtil.deserialize(curBytes);
 							PayloadStruct ps = (PayloadStruct)retObject;
-							logger.info("  Received payload  " + ps.epoc  + " <> bytes " + curBytes.length);
+							classLogger.info("  Received payload  " + ps.epoc  + " <> bytes " + curBytes.length);
 							if(retObject != null)
 							{
 								if(ps.response)
@@ -141,7 +141,7 @@ public class SocketClientHandler implements Runnable {
 							}
 							else
 							{
-								logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);	
+								classLogger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);	
 								lenBytes = null;
 								bytesReadSoFar = 0;
 								lenBytesReadSoFar = 0;
@@ -149,7 +149,7 @@ public class SocketClientHandler implements Runnable {
 							}
 						} catch(Exception ex) 
 						{
-							logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);
+							classLogger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);
 							// I need somehting to get rid of this, we have a bad packet
 							// dont know why we have a bad packet in the first place
 							// the problem here is the thread will hang
@@ -158,7 +158,7 @@ public class SocketClientHandler implements Runnable {
 							bytesReadSoFar = 0;
 							lenBytesReadSoFar = 0;
 							curBytes = null;							
-							logger.error(Constants.STACKTRACE, ex);
+							classLogger.error(Constants.STACKTRACE, ex);
 						}
 					}
 				}
@@ -173,13 +173,11 @@ public class SocketClientHandler implements Runnable {
 				if(readBytes < 0) // stream is closed kill this thread
 				{
 					done = true;
-					this.socketClient.setConnected(false);
 					this.socketClient.crash();
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				done = true;
-				this.socketClient.setConnected(false);
 				this.socketClient.crash();
 				// at some point we can relisten if we want.. 
 			}

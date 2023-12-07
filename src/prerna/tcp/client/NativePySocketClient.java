@@ -562,14 +562,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     
     /**
      * 
-     * @param connected
-     */
-    public void setConnected(boolean connected) {
-		this.connected = connected;
-	}
-    
-    /**
-     * 
      * @return
      */
     public boolean isConnected() {

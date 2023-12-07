@@ -323,8 +323,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public void close() throws IOException {
 		if(this.socketClient != null && this.socketClient.isConnected() ) {
 			this.socketClient.stopPyServe(cacheFolder.getAbsolutePath());
-			this.socketClient.disconnect();
-			this.socketClient.setConnected(false);
+			this.socketClient.close();
 			
 			// we delete this directory so need to reset
 			this.workingDirectoryBasePath = null;
