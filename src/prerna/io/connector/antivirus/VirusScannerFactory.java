@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.antivirus.clamav.ClamAVScannerUtils;
+import prerna.io.connector.antivirus.tika.ApacheTikaScannerUtils;
 import prerna.io.connector.antivirus.virustotal.VirusTotalScannerUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -25,9 +26,15 @@ public class VirusScannerFactory {
 		
 		if(scanType.equals(IVirusScanner.VIRUS_SCANNER_TYPE.CLAM_AV.toString())) {
 			return ClamAVScannerUtils.getInstance();
-		} else if(scanType.equals(IVirusScanner.VIRUS_SCANNER_TYPE.VIRUS_TOTAL.toString())) {
+		} 
+		else if(scanType.equals(IVirusScanner.VIRUS_SCANNER_TYPE.VIRUS_TOTAL.toString())) {
 			return VirusTotalScannerUtils.getInstance();
-		} else if (scanType.equalsIgnoreCase(IVirusScanner.CLAM_AV)) {
+		} 
+		else if(scanType.equals(IVirusScanner.VIRUS_SCANNER_TYPE.APACHE_TIKA.toString())) {
+			return new ApacheTikaScannerUtils();
+		} 
+		
+		else if (scanType.equalsIgnoreCase(IVirusScanner.CLAM_AV)) {
 			logger.warn("Using deprecated value - please update parameter value for " + Constants.VIRUS_SCANNING_METHOD + "to CLAM_AV");
 			logger.warn("Using deprecated value - please update parameter value for " + Constants.VIRUS_SCANNING_METHOD + "to CLAM_AV");
 			logger.warn("Using deprecated value - please update parameter value for " + Constants.VIRUS_SCANNING_METHOD + "to CLAM_AV");
