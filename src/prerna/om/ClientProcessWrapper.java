@@ -40,10 +40,13 @@ public class ClientProcessWrapper {
 	/**
 	 * 
 	 * @param nativePyServer
+	 * @param chrootMountHelper
 	 * @param port
+	 * @param venvPath
 	 * @param serverDirectory
 	 * @param classPath
-	 * @throws Exception 
+	 * @param debug
+	 * @throws Exception
 	 */
 	public synchronized void createProcessAndClient(boolean nativePyServer,
 			MountHelper chrootMountHelper,
@@ -152,6 +155,9 @@ public class ClientProcessWrapper {
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	public synchronized void shutdown() {
 		if(this.socketClient != null && this.socketClient.isConnected()) {
 	        ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -196,15 +202,29 @@ public class ClientProcessWrapper {
 		}
 	}
 	
+	/**
+	 * 
+	 * @throws Exception
+	 */
 	public void reconnect() throws Exception {
 		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug);
 	}
 	
+	/**
+	 * 
+	 * @param venvEngineId
+	 * @throws Exception
+	 */
 	public void reconnect(String venvEngineId) throws Exception {
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug);
 	}
 	
+	/**
+	 * 
+	 * @param port
+	 * @return
+	 */
 	private int calculatePort(int port) {
 		if(port < 0) {
 			port = Integer.parseInt(Utility.findOpenPort());
@@ -213,42 +233,82 @@ public class ClientProcessWrapper {
 		return port;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public SocketClient getSocketClient() {
 		return socketClient;
 	}
 
+	/**
+	 * 
+	 * @param socketClient
+	 */
 	public void setSocketClient(SocketClient socketClient) {
 		this.socketClient = socketClient;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public String getPrefix() {
 		return prefix;
 	}
 	
+	/**
+	 * 
+	 * @param prefix
+	 */
 	public void setPrefix(String prefix) {
 		this.prefix = prefix;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public Process getProcess() {
 		return process;
 	}
 	
+	/**
+	 * 
+	 * @param process
+	 */
 	public void setProcess(Process process) {
 		this.process = process;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public int getPort() {
 		return port;
 	}
 
+	/**
+	 * 
+	 * @param port
+	 */
 	public void setPort(int port) {
 		this.port = port;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public String getServerDirectory() {
 		return serverDirectory;
 	}
 
+	/**
+	 * 
+	 * @param serverDirectory
+	 */
 	public void setServerDirectory(String serverDirectory) {
 		this.serverDirectory = serverDirectory;
 	}

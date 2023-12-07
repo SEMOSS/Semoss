@@ -678,8 +678,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public void close() {
 		if (this.socketClient != null && this.socketClient.isConnected()) {
 			this.socketClient.stopPyServe(this.pyDirectoryBasePath);
-			this.socketClient.disconnect();
-			this.socketClient.setConnected(false);
+			this.socketClient.close();
 			this.pyDirectoryBasePath = null;
 		}
 		if(this.p != null && this.p.isAlive()) {
