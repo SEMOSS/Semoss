@@ -164,7 +164,6 @@ public class ClientProcessWrapper {
 	
 	        Callable<String> callableTask = () -> {
 	        	this.socketClient.stopPyServe(this.serverDirectory);
-	    		this.socketClient.close();
 	            return "Successfully stopped the process";
 	        };
 	
