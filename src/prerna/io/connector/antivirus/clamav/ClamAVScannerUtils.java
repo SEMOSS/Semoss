@@ -19,7 +19,7 @@ import xyz.capybara.clamav.commands.scan.result.ScanResult;
 
 public class ClamAVScannerUtils implements IVirusScanner {
 	
-	private static final Logger logger = LogManager.getLogger(ClamAVScannerUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(ClamAVScannerUtils.class);
 	
 	public static final String CLAMAV_SCANNING_PORT = "CLAMAV_SCANNING_PORT";
 	public static final String CLAMAV_SCANNING_ADDRESS = "CLAMAV_SCANNING_ADDRESS";
@@ -38,7 +38,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 		Platform platform = Optional.ofNullable(getVirusScanningFileSystem())
 				.orElseThrow(() -> new Exception("Platform cannot be null"));
 		
-		logger.info("address: " + address + " port: " + port + " platform: " + platform.toString());
+		classLogger.info("address: " + address + " port: " + port + " platform: " + platform.toString());
 		
 		this.client = new ClamavClient(address, port, platform);
 	}
@@ -54,7 +54,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 					try {
 						instance = new ClamAVScannerUtils();
 					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
