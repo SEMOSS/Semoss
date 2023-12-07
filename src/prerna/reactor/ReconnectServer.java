@@ -30,7 +30,7 @@ public class ReconnectServer extends AbstractReactor {
 			user.getSocketClient(true);
 			return new NounMetadata("TCP Server was not initialized but is now started and connected", PixelDataType.CONST_STRING);
 		}
-		cpw.shutdown();
+		cpw.shutdown(false);
 		try {
 			cpw.reconnect();
 		} catch (Exception e) {

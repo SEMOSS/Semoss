@@ -158,12 +158,16 @@ public class ClientProcessWrapper {
 	/**
 	 * 
 	 */
-	public synchronized void shutdown() {
+	public synchronized void shutdown(boolean cleanUpFolder) {
 		if(this.socketClient != null && this.socketClient.isConnected()) {
 	        ExecutorService executor = Executors.newSingleThreadExecutor();
 	
 	        Callable<String> callableTask = () -> {
-	        	this.socketClient.stopPyServe(this.serverDirectory);
+	        	if(cleanUpFolder) {
+	        		this.socketClient.stopPyServe(this.serverDirectory);
+	        	} else {
+	        		this.socketClient.stopPyServe(null);
+	        	}
 	            return "Successfully stopped the process";
 	        };
 	

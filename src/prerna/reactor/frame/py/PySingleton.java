@@ -14,6 +14,7 @@ import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
+@Deprecated
 public class PySingleton {
 	
 	// singleton to give you a py reactor when no user is there
