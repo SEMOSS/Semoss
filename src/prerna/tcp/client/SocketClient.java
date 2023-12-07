@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import io.netty.channel.ChannelFuture;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -26,14 +25,14 @@ import prerna.util.FstUtil;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-public class SocketClient implements Runnable {
+public class SocketClient implements Runnable, Closeable {
 	
-	private static final String CLASS_NAME = SocketClient.class.getName();
-	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	private static final Logger classLogger = LogManager.getLogger(SocketClient.class);
 	
     private String HOST = null;
     private int PORT = -1;
-    private boolean ssl = false;
+    private boolean SSL = false;
+    
     Map requestMap = new HashMap();
     Map responseMap = new HashMap();
     private boolean ready = false;
@@ -49,19 +48,31 @@ public class SocketClient implements Runnable {
 	SocketClientHandler sch = new SocketClientHandler();
 	Map <String, Insight> insightMap = new HashMap<String, Insight>();
 
-	
-    public void connect(String HOST, int PORT, boolean SSL)
-    {
+	/**
+	 * 
+	 * @param HOST
+	 * @param PORT
+	 * @param SSL
+	 */
+    public void connect(final String HOST, final int PORT, final boolean SSL) {
     	this.HOST = HOST;
     	this.PORT = PORT;
-    	this.ssl = SSL;
+    	this.SSL = SSL;
     }
     
-    public ChannelFuture disconnect()
-    {
-    	return null;
+    @Override
+    public void close() {
+    	if(this.requestMap != null) {
+    		this.requestMap.clear();
+    	}
+    	closeStream(this.os);
+    	closeStream(this.is);
+    	closeStream(this.clientSocket);
+    	this.connected = false;
+    	this.killall = true;
     }
 
+    @Override
     public void run()	
     {
         // Configure SSL.git
@@ -71,13 +82,13 @@ public class SocketClient implements Runnable {
     		SLEEP_TIME = Integer.parseInt(DIHelper.getInstance().getProperty("SLEEP_TIME"));
     	}
     	
-    	logger.info("Trying with the sleep time of " + SLEEP_TIME);
+    	classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
     	while(!connected && attempt < 6) // I do an attempt here too hmm.. 
     	{
 	    	try
 	    	{
 		        final SslContext sslCtx;
-		        if (ssl) {
+		        if (SSL) {
 		            sslCtx = SslContextBuilder.forClient()
 		                .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 		        } else {
@@ -99,7 +110,7 @@ public class SocketClient implements Runnable {
 	    		Thread readerThread = new Thread(sch);
 	    		readerThread.start();
 	    		
-	            logger.info("CLIENT Connection complete !!!!!!!");
+	            classLogger.info("CLIENT Connection complete !!!!!!!");
 	            Thread.sleep(100); // sleep some before executing command
 	            // prime it 
 	            //logger.info("First command.. Prime" + executeCommand("2+2"));
@@ -112,7 +123,7 @@ public class SocketClient implements Runnable {
 	            }
 	    	} catch(Exception ex) {
 	    		attempt++;
-	    		logger.info("Attempting Number " + attempt);
+	    		classLogger.info("Attempting Number " + attempt);
 	    		// see if sleeping helps ?
 	    		try {
 	    			// sleeping only for 1 second here
@@ -125,7 +136,7 @@ public class SocketClient implements Runnable {
     	}
     	
     	if(attempt > 6) {
-            logger.info("CLIENT Connection Failed !!!!!!!");
+            classLogger.info("CLIENT Connection Failed !!!!!!!");
             ready = true; // come out of the loop
             synchronized(this)
             {
@@ -159,7 +170,7 @@ public class SocketClient implements Runnable {
     		if(!ps.response) {
     			requestMap.put(id, ps);
     		}
-    		logger.info("Outgoing epoc " + ps.epoc);
+    		classLogger.info("Outgoing epoc " + ps.epoc);
     		writePayload(ps);
 	    	// send the message
 			
@@ -195,7 +206,7 @@ public class SocketClient implements Runnable {
 				}
 				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 				{
-					logger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
+					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
 					
 				}
     		}
@@ -235,8 +246,7 @@ public class SocketClient implements Runnable {
     }
 
     
-    public void stopPyServe(String dir)
-    {
+    public void stopPyServe(String dir) {
     	if(isConnected()) {
 	    	PayloadStruct ps = new PayloadStruct();
 	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
@@ -248,36 +258,43 @@ public class SocketClient implements Runnable {
 		t.start();
     }
 
-    public void crash()
-    {
+    /**
+     * 
+     */
+    public void crash() {
     	// this happens when the client has completely crashed
     	// make the connected to be false
     	// take everything that is waiting on it
     	// go through request map and start pushing
-    	for(Object k : this.requestMap.keySet()) {
-    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
-    		logger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-    		synchronized(ps) {
-    			ps.notifyAll();
-    		}
+    	try {
+	    	for(Object k : this.requestMap.keySet()) {
+	    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
+	    		classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+	    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+	    		synchronized(ps) {
+	    			ps.notifyAll();
+	    		}
+	    	}
+    	} catch(Exception e) {
+    		classLogger.error(Constants.STACKTRACE, e);
     	}
     	
-    	this.requestMap.clear();
-    	closeStream(this.os);
-    	closeStream(this.is);
-    	closeStream(this.clientSocket);
-    	this.connected = false;
-    	this.killall = true;
+    	this.close();
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     }
     
+    /**
+     * 
+     * @param closeThis
+     */
     private void closeStream(Closeable closeThis) {
-    	try {
-			closeThis.close();
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
+    	if(closeThis != null) {
+	    	try {
+				closeThis.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+    	}
     }
     
     /**
