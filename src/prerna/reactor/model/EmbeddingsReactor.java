@@ -19,7 +19,7 @@ public class EmbeddingsReactor extends AbstractReactor {
 	public EmbeddingsReactor() {
 		this.keysToGet = new String[] {
 			ReactorKeysEnum.ENGINE.getKey(), 
-			ReactorKeysEnum.COMMAND.getKey(), 
+			ReactorKeysEnum.VALUES.getKey(), 
 			ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
 		};
 		this.keyRequired = new int[] {1, 1, 0};
@@ -89,5 +89,13 @@ public class EmbeddingsReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "This reactor is used to interact with Embedding Model Engines. If the model does not support embeddings " +
 				"it will return \"This model does not support embeddings.\"";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.VALUES.getKey())) {
+			return "Specify the string value(s) serving as input text, from which you aim to generate embeddings vector(s).";
+		} 
+		return super.getDescriptionForKey(key);
 	}
 }
