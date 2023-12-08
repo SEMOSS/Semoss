@@ -10,14 +10,15 @@ import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 
 public enum ModelTypeEnum {
 
+	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
 	EMBEDDED("EMBEDDED", EmbeddedModelEngine.class.getName()),
 	FAST_CHAT("FAST_CHAT", FastChatProcessModel.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
-	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
-	VERTEX("VERTEX", VertexEngine.class.getName()),
+	REMOTE("REMOTE", RemoteModelEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
-	REMOTE("REMOTE", RemoteModelEngine.class.getName());
-	
+	VERTEX("VERTEX", VertexEngine.class.getName()),
+	;
+
 	private String modelName;
 	private String modelClass;
 	
