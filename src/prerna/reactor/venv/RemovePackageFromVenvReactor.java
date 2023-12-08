@@ -1,6 +1,5 @@
 package prerna.reactor.venv;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +39,7 @@ public class RemovePackageFromVenvReactor extends AbstractReactor {
 		
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
-			paramMap = new HashMap<String, Object>();
+			throw new SemossPixelException("Unable to get param values map.");
 		}
 		
 		IVenvEngine engine = Utility.getVenvEngine(engineId);
