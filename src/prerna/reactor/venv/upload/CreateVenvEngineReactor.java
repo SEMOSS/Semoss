@@ -1,6 +1,7 @@
 package prerna.reactor.venv.upload;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.engine.api.VenvTypeEnum;
@@ -124,6 +126,21 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 			}
 			
 			ClusterUtil.pushEngine(venvId);
+			
+			venv.pullRequirementsFile();
+			venv.createVirtualEnv();
+			
+			if (ClusterUtil.IS_CLUSTER) {
+				File [] engineSubFiles = specificEngineFolder.listFiles();
+				
+				String[] subFilesAbsolutePaths = Arrays.stream(engineSubFiles)
+		                .map(File::getAbsolutePath)
+		                .toArray(String[]::new);
+				
+				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(venvId, venv.getCatalogType(), subFilesAbsolutePaths));
+				copyFilesToCloudThread.start();
+			}
+			
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(venv, venvId, tempSmss, smssFile, specificEngineFolder);
