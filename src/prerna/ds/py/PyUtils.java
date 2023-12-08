@@ -499,7 +499,7 @@ public class PyUtils {
     	String mainPySitePackages = DIHelper.getInstance().getProperty(Settings.PYTHONHOME_SITE_PACKAGES);
     	if (mainPySitePackages == null || (mainPySitePackages=mainPySitePackages.trim()).isEmpty()) {
     		String pythonExecutablePath = appendPythonExecutable(getPythonHomeDir());
-    		ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutablePath, "-c", "\"import site; print(site.getsitepackages())\"");
+    		ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutablePath, "-c", "\"import site; import json; print(json.dumps(site.getsitepackages()))\"");
 
     		try {
                 Process process = processBuilder.start();
