@@ -27,22 +27,31 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractDatabaseEngine;
+import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -106,7 +115,7 @@ public class ActiveSystemUpdater {
 //		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
 //		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
 //		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
-//		existingEngine.addStatement(new Object[]{activeSystemURI, Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS + "/" + Owler.CONCEPTUAL_RELATION_NAME, activeSystemURI, true});
+//		existingEngine.addStatement(new Object[]{activeSystemURI, AbstractOWLEngine.SEMOSS_URI_PREFIX + AbstractOWLEngine.DEFAULT_RELATION_CLASS + "/" + AbstractOWLEngine.CONCEPTUAL_RELATION_NAME, activeSystemURI, true});
 //
 //		RepositoryConnection exportRC = existingEngine.getRc();
 //		
