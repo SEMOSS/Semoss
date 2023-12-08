@@ -22,9 +22,9 @@ public enum ModelTypeEnum {
 	private String modelName;
 	private String modelClass;
 	
-	ModelTypeEnum(String storageName, String storageClass) {
-		this.modelName = storageName;
-		this.modelClass = storageClass;
+	ModelTypeEnum(String modelName, String modelClass) {
+		this.modelName = modelName;
+		this.modelClass = modelClass;
 	}
 	
 	/**
