@@ -11,6 +11,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -19,6 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.util.Constants;
@@ -440,6 +443,14 @@ public class PyUtils {
     	return py;
     }
     
+    public static String appendPythonExecutable(String interpreterDir) {
+		if (SystemUtils.IS_OS_WINDOWS) {
+			return interpreterDir + "/python.exe";
+		} else {
+			return interpreterDir + "/bin/python3";
+		}
+    }
+    
     public static String appendVenvPythonExecutable(String interpreterDir) {
     	if (SystemUtils.IS_OS_WINDOWS) {
     		return  interpreterDir + "Scripts/python.exe";
@@ -482,6 +493,34 @@ public class PyUtils {
 
     	}
 	    throw new IOException("Unable to find site packages directory for OS");
+    }
+    
+    public static List<String> getPythonHomeSitePackages() throws IOException {
+    	String mainPySitePackages = DIHelper.getInstance().getProperty(Settings.PYTHONHOME_SITE_PACKAGES);
+    	if (mainPySitePackages == null || (mainPySitePackages=mainPySitePackages.trim()).isEmpty()) {
+    		String pythonExecutablePath = appendPythonExecutable(getPythonHomeDir());
+    		ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutablePath, "-c", "\"import site; print(site.getsitepackages())\"");
+
+    		try {
+                Process process = processBuilder.start();
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+
+                // Read the input stream using a BufferedReader and collect lines into a list
+                String sitePackagePathsString = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+                // Create a TypeToken for List<String>
+                TypeToken<List<String>> token = new TypeToken<List<String>>() {};
+                // Use Gson to deserialize the JSON string into a List<String>
+                List<String> sitePackagePaths = new Gson().fromJson(sitePackagePathsString, token.getType());
+                process.waitFor();
+
+                return sitePackagePaths;
+            } catch (IOException | InterruptedException e) {
+            	classLogger.error(Constants.STACKTRACE, e);
+            	throw new IOException("Unable to find site packages using python home executable");
+            }
+    	} else {
+    		return Arrays.asList(mainPySitePackages);
+    	}
     }
     
     public static String [] applyUlimit (String [] commands) {
