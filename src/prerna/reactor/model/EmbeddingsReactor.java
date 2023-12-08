@@ -52,7 +52,7 @@ public class EmbeddingsReactor extends AbstractReactor {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.COMMAND.getKey());
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
