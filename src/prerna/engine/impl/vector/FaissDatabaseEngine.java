@@ -484,7 +484,14 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		File indexedFolder = new File(indexedFilesPath);
 		if (indexedFolder.list().length == 0) {
 			try {
-				FileUtils.forceDelete(new File(indexedFolder.getParent()));
+				File indexClassDirectory = new File(indexedFolder.getParent());
+				
+				// remove the master dataset and vector files
+				filesToRemoveFromCloud.add(new File(indexClassDirectory, "dataset.pkl").getAbsolutePath());
+				filesToRemoveFromCloud.add(new File(indexClassDirectory, "vectors.pkl").getAbsolutePath());
+				
+				// delete the entire folder
+				FileUtils.forceDelete(indexClassDirectory);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");

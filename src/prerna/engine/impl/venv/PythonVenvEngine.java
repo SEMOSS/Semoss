@@ -5,13 +5,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +26,6 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.TransportConfigCallback;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
@@ -43,9 +41,7 @@ import prerna.engine.api.VenvTypeEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
-import prerna.util.Settings;
 import prerna.util.git.GitRepoUtils;
 
 public class PythonVenvEngine extends AbstractVenvEngine {
@@ -123,13 +119,11 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 				}
 				if(thisGit != null) {
 					thisGit.close();
-					pullRequirementsFile();
-					createVirtualEnv();
 				}
 			}
 		}
 		
-		if (this.sitePackagesDirectory == null) {
+		if (this.sitePackagesDirectory == null && (new File(this.localVenvVersionFolder, "lib").exists())) {
 			String sitePackagesPath = PyUtils.appendSitePackagesPath(this.localVenvVersionFolder);
 			this.sitePackagesDirectory = new File(sitePackagesPath);
 		}
@@ -324,15 +318,8 @@ public class PythonVenvEngine extends AbstractVenvEngine {
             Set<String> removedFolders = new HashSet<>(foldersBeforePipProcess);
             removedFolders.removeAll(foldersAfterPipProcess);
             
-            if (addedFolders.size() > 0) {
-            	Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), addedFolders.stream().toArray(String[]::new)));
-    			copyFilesToCloudThread.start();
-            }
-            if (removedFolders.size() > 0) {
-            	Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), removedFolders.stream().toArray(String[]::new)));
-    			deleteFilesFromCloudThread.start();
-            }
-            
+            addPackagesToCloudStorage(addedFolders);
+            removePackagesFromCloudStorage(removedFolders);
         } else {
         	Process process = processBuilder.start();
 
@@ -396,11 +383,7 @@ public class PythonVenvEngine extends AbstractVenvEngine {
         	Set<String> foldersAfterPipProcess = new HashSet<>(Arrays.asList(this.sitePackagesDirectory.list()));
             Set<String> removedFolders = new HashSet<>(foldersBeforePipProcess);
             removedFolders.removeAll(foldersAfterPipProcess);
-            
-            if (removedFolders.size() > 0) {
-            	Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), removedFolders.stream().toArray(String[]::new)));
-    			deleteFilesFromCloudThread.start();
-            }
+            removePackagesFromCloudStorage(removedFolders);
         } else {
         	// Start the process
             Process process = processBuilder.start();
@@ -425,6 +408,32 @@ public class PythonVenvEngine extends AbstractVenvEngine {
         }
 	}
 
+	private void removePackagesFromCloudStorage(Set<String> foldersToRemove) {
+		if (foldersToRemove.size() > 0) {
+        	List<String> foldersToRemoveFromCloud = new ArrayList<String>();
+        	for (String removedPackage: foldersToRemove) {
+        		File packageFile = new File(this.sitePackagesDirectory, removedPackage);
+        		foldersToRemoveFromCloud.add(packageFile.getAbsolutePath());
+        	}
+
+        	Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), foldersToRemoveFromCloud.stream().toArray(String[]::new)));
+			deleteFilesFromCloudThread.start();
+        }
+	}
+	
+	private void addPackagesToCloudStorage(Set<String> foldersToAdd) {
+		if (foldersToAdd.size() > 0) {
+        	List<String> filesToAddToCloud = new ArrayList<String>();
+        	for (String removedPackage: foldersToAdd) {
+        		File packageFile = new File(this.sitePackagesDirectory, removedPackage);
+        		filesToAddToCloud.add(packageFile.getAbsolutePath());
+        	}
+			
+        	Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToAddToCloud.stream().toArray(String[]::new)));
+			copyFilesToCloudThread.start();
+        }
+	}
+	
 	@Override
 	public VenvTypeEnum getVenvType() {
 		return VenvTypeEnum.PYTHON;
