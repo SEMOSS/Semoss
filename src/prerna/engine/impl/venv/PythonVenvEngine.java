@@ -7,9 +7,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -250,14 +252,15 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 		String sitePackagesPath = PyUtils.appendSitePackagesPath(this.localVenvVersionFolder);
 		this.sitePackagesDirectory = new File(sitePackagesPath);
 		
-		// add the base packages as backups
-		String mainPySitePackages = DIHelper.getInstance().getProperty(Settings.PYTHONHOME_SITE_PACKAGES);
+		// get the base pythons package locations as backups
+		List<String> mainPySitePackages = PyUtils.getPythonHomeSitePackages();
 		
+		// create the .pth file to hold the base package paths
         Path path = Paths.get(this.sitePackagesDirectory.getAbsolutePath() + DIR_SEPERATOR + "mainPySitePackages.pth");
         Files.createFile(path);
 
         // Write the string content to the file
-        Files.write(path, mainPySitePackages.getBytes());
+        Files.write(path, mainPySitePackages, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
         classLogger.info("File created and content written successfully.");
 	}
