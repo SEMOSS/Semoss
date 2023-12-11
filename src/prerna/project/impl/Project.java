@@ -827,14 +827,14 @@ public class Project implements IProject {
 	private void compileReactorsFromJavaFiles(SemossClassloader customLoader) {
 		String classesFolder = this.projectAssetFolder + "/classes";
 		File classesDir = new File(classesFolder);
-		if(classesDir.exists() && classesDir.isDirectory()) {
-			try {
-				//FileUtils.cleanDirectory(classesDir);
-				//classesDir.mkdir();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
+//		if(classesDir.exists() && classesDir.isDirectory()) {
+//			try {
+//				//FileUtils.cleanDirectory(classesDir);
+//				//classesDir.mkdir();
+//			} catch (Exception e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		}
 		
 		SemossClassloader cl = projectClassLoader;
 		if(customLoader != null) {
