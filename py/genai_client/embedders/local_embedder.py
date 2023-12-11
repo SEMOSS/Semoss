@@ -89,7 +89,7 @@ class LocalEmbedder():
         prefix=""
     ) -> List[float]:
         # Determine what object was bassed in so we can pre-configure it before making the call
-        assert isinstance(list_to_embed, list) or isinstance(object_to_encode, str)
+        assert isinstance(list_to_embed, list)
         
 
         embedded_list = self.embedder.encode(
