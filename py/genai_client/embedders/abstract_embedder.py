@@ -1,6 +1,9 @@
 from typing import Dict, Any, TypeVar
 from abc import ABC, abstractmethod
-from ..constants import MODEL_NAME
+from ..constants import (
+    MODEL_NAME,
+    ModelEngineResponseKeys
+)
 from ..tokenizers.abstract_tokenizer import AbstractTokenizer
 
 class AbstractEmbedder(ABC):
@@ -27,8 +30,8 @@ class AbstractEmbedder(ABC):
     ) -> Dict:
         response = 'This model does not support text generation.'
         output_payload = {
-            'response':response,
-            'numberOfTokensInPrompt': 0,
-            'numberOfTokensInResponse': self.tokenizer.count_tokens(response)
+            ModelEngineResponseKeys.RESPONSE:response,
+            ModelEngineResponseKeys.NUMBER_OF_TOKENS_IN_PROMPT: 0,
+            ModelEngineResponseKeys.NUMBER_OF_TOKENS_IN_RESPONSE: self.tokenizer.count_tokens(response)
         }
         return output_payload
