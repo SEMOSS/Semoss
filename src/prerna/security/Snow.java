@@ -259,60 +259,60 @@ public class Snow {
 	
 
 		// Entry point to the program.
-	public static void	main (String argv[]) {
-		Snow snow = new Snow();
-		
-		if (!snow.parse_args(argv)) {
-			logger.error("Usage: Snow.class [-C][-Q][-S]");
-			logger.error("[-p passwd][-l line-len]");
-			logger.error(" [-f file][-m message]");
-			logger.error("\t\t\t\t\t[infile [outfile]]");
-			System.exit(1);
-		}
-
-	    if (snow.space_flag) {
-		SnowEncode	se = new SnowEncode (true, snow.quiet_flag, null,
-				snow.stream_in, null, snow.line_length);
-
-			se.space_calculate();
-		} else if (snow.stream_message != null) {
-			PrintWriter pw = new PrintWriter(snow.stream_out);
-			BitFilter bf = new SnowEncode(true, snow.quiet_flag, null, snow.stream_in, pw, snow.line_length);
-
-			if (snow.passwd_string != null)
-				bf = new SnowEncrypt(true, snow.quiet_flag, bf, snow.passwd_string);
-			if (snow.compress_flag)
-				bf = new SnowCompress(true, snow.quiet_flag, bf);
-			if (!snow.message_encode(bf))
-				System.exit(1);
-
-			pw.close ();
-		} else {
-			BitFilter bf = new SnowOutput(snow.quiet_flag, snow.stream_out);
-			SnowEncode se;
-
-			if (snow.compress_flag)
-				bf = new SnowCompress(false, snow.quiet_flag, bf);
-			if (snow.passwd_string != null)
-				bf = new SnowEncrypt(false, snow.quiet_flag, bf, snow.passwd_string);
-
-			se = new SnowEncode(false, snow.quiet_flag, bf, snow.stream_in, null, snow.line_length);
-			if (!se.decode())
-				System.exit(1);
-
-			try {
-				snow.stream_out.close();
-			} catch (IOException e) {
-				logger.error("Problem closing output file.");
-				System.exit(1);
-			}
-		}
-
-		try {
-			snow.stream_in.close();
-		} catch (IOException e) {
-			logger.error("Problem closing input file.");
-			System.exit(1);
-		}
-	}
+//	public static void	main (String argv[]) {
+//		Snow snow = new Snow();
+//		
+//		if (!snow.parse_args(argv)) {
+//			logger.error("Usage: Snow.class [-C][-Q][-S]");
+//			logger.error("[-p passwd][-l line-len]");
+//			logger.error(" [-f file][-m message]");
+//			logger.error("\t\t\t\t\t[infile [outfile]]");
+//			System.exit(1);
+//		}
+//
+//	    if (snow.space_flag) {
+//		SnowEncode	se = new SnowEncode (true, snow.quiet_flag, null,
+//				snow.stream_in, null, snow.line_length);
+//
+//			se.space_calculate();
+//		} else if (snow.stream_message != null) {
+//			PrintWriter pw = new PrintWriter(snow.stream_out);
+//			BitFilter bf = new SnowEncode(true, snow.quiet_flag, null, snow.stream_in, pw, snow.line_length);
+//
+//			if (snow.passwd_string != null)
+//				bf = new SnowEncrypt(true, snow.quiet_flag, bf, snow.passwd_string);
+//			if (snow.compress_flag)
+//				bf = new SnowCompress(true, snow.quiet_flag, bf);
+//			if (!snow.message_encode(bf))
+//				System.exit(1);
+//
+//			pw.close ();
+//		} else {
+//			BitFilter bf = new SnowOutput(snow.quiet_flag, snow.stream_out);
+//			SnowEncode se;
+//
+//			if (snow.compress_flag)
+//				bf = new SnowCompress(false, snow.quiet_flag, bf);
+//			if (snow.passwd_string != null)
+//				bf = new SnowEncrypt(false, snow.quiet_flag, bf, snow.passwd_string);
+//
+//			se = new SnowEncode(false, snow.quiet_flag, bf, snow.stream_in, null, snow.line_length);
+//			if (!se.decode())
+//				System.exit(1);
+//
+//			try {
+//				snow.stream_out.close();
+//			} catch (IOException e) {
+//				logger.error("Problem closing output file.");
+//				System.exit(1);
+//			}
+//		}
+//
+//		try {
+//			snow.stream_in.close();
+//		} catch (IOException e) {
+//			logger.error("Problem closing input file.");
+//			System.exit(1);
+//		}
+//	}
 }
