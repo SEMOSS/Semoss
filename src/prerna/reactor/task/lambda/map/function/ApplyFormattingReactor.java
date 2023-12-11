@@ -96,26 +96,26 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 		return new HeadersDataRow(headers, values);
 	}
 	
-	public static void main(String[] args) throws ParseException {		
-//		String dateColV = "2018-05-31";
-//		DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-//		Date d = sdf.parse(dateColV);
-//		DateFormat df= new SimpleDateFormat("yyyy-MMM-dd");
-//		System.out.println(df.format(d));
+//	public static void main(String[] args) throws ParseException {		
+////		String dateColV = "2018-05-31";
+////		DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+////		Date d = sdf.parse(dateColV);
+////		DateFormat df= new SimpleDateFormat("yyyy-MMM-dd");
+////		System.out.println(df.format(d));
+////		
+////		String dTV = "2018-05-31 13:22:00";
+////		DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+////		Date t = stf.parse(dTV);
+////		DateFormat tf= new SimpleDateFormat("yyyy/MM/dd'T'HH:mm:ss");
+////		System.out.println(tf.format(t));
 //		
-//		String dTV = "2018-05-31 13:22:00";
-//		DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//		Date t = stf.parse(dTV);
-//		DateFormat tf= new SimpleDateFormat("yyyy/MM/dd'T'HH:mm:ss");
-//		System.out.println(tf.format(t));
-		
-//		String tV = "13:22";
-		String tV = "11:09:01.001";
-		DateFormat stf1 = new SimpleDateFormat("HH:mm:ss.SSS"); //HH:mm:ss won't work
-		Date t1 = stf1.parse(tV);
-		DateFormat tf1= new SimpleDateFormat("HH:mm:ss:SSS");
-		System.out.println(tf1.format(t1));	
-	}
+////		String tV = "13:22";
+//		String tV = "11:09:01.001";
+//		DateFormat stf1 = new SimpleDateFormat("HH:mm:ss.SSS"); //HH:mm:ss won't work
+//		Date t1 = stf1.parse(tV);
+//		DateFormat tf1= new SimpleDateFormat("HH:mm:ss:SSS");
+//		System.out.println(tf1.format(t1));	
+//	}
 }
 
 

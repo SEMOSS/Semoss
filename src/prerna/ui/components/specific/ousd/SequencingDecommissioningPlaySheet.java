@@ -422,61 +422,61 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		return null;
 	}
 
-	public static void main(String args[]){
-
-//		PropertyConfigurator.configure("log4j.prop");
-
-		Integer[][] testSystems = new Integer [5][5];
-
-		testSystems[0][0] = null;
-		testSystems[0][1] = 1;
-		testSystems[0][2] = null;
-		testSystems[0][3] = null;
-		testSystems[0][4] = null;
-		testSystems[1][0] = null;
-		testSystems[1][1] = null;
-		testSystems[1][2] = 1;
-		testSystems[1][3] = 1;
-		testSystems[1][4] = 1;
-		testSystems[2][0] = null;
-		testSystems[2][1] = null;
-		testSystems[2][2] = null;
-		testSystems[2][3] = 1;
-		testSystems[2][4] = 1;
-		testSystems[3][0] = null;
-		testSystems[3][1] = null;
-		testSystems[3][2] = 1;
-		testSystems[3][3] = null;
-		testSystems[3][4] = 1;
-		testSystems[4][0] = null;
-		testSystems[4][1] = null;
-		testSystems[4][2] = 1;
-		testSystems[4][3] = 1;
-		testSystems[4][4] = null;
-
-
-		List<List<Integer>> groups = createGroups(testSystems);
-		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, new HashMap()); 
-
-		ArrayList <Object []> list = new ArrayList<>();
-		int groupCounter = 0;
-
-		//key is counter for one level above group
-		for(Integer key: decomGroups.keySet()){
-			for(List<Integer> depGroup: decomGroups.get(key)){
-				for(Integer compObj: depGroup){
-					String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
-					double location = Double.parseDouble(keyToGroupCounter);
-					Object[] depObj = new Object[]{compObj, location};
-					list.add(depObj);
-					logger.info("Added ["+depObj[0]+", "+depObj[1]+"]");
-				}
-				groupCounter++;
-			}
-			groupCounter = 0;
-		}
-
-	}
+//	public static void main(String args[]){
+//
+////		PropertyConfigurator.configure("log4j.prop");
+//
+//		Integer[][] testSystems = new Integer [5][5];
+//
+//		testSystems[0][0] = null;
+//		testSystems[0][1] = 1;
+//		testSystems[0][2] = null;
+//		testSystems[0][3] = null;
+//		testSystems[0][4] = null;
+//		testSystems[1][0] = null;
+//		testSystems[1][1] = null;
+//		testSystems[1][2] = 1;
+//		testSystems[1][3] = 1;
+//		testSystems[1][4] = 1;
+//		testSystems[2][0] = null;
+//		testSystems[2][1] = null;
+//		testSystems[2][2] = null;
+//		testSystems[2][3] = 1;
+//		testSystems[2][4] = 1;
+//		testSystems[3][0] = null;
+//		testSystems[3][1] = null;
+//		testSystems[3][2] = 1;
+//		testSystems[3][3] = null;
+//		testSystems[3][4] = 1;
+//		testSystems[4][0] = null;
+//		testSystems[4][1] = null;
+//		testSystems[4][2] = 1;
+//		testSystems[4][3] = 1;
+//		testSystems[4][4] = null;
+//
+//
+//		List<List<Integer>> groups = createGroups(testSystems);
+//		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, new HashMap()); 
+//
+//		ArrayList <Object []> list = new ArrayList<>();
+//		int groupCounter = 0;
+//
+//		//key is counter for one level above group
+//		for(Integer key: decomGroups.keySet()){
+//			for(List<Integer> depGroup: decomGroups.get(key)){
+//				for(Integer compObj: depGroup){
+//					String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
+//					double location = Double.parseDouble(keyToGroupCounter);
+//					Object[] depObj = new Object[]{compObj, location};
+//					list.add(depObj);
+//					logger.info("Added ["+depObj[0]+", "+depObj[1]+"]");
+//				}
+//				groupCounter++;
+//			}
+//			groupCounter = 0;
+//		}
+//
+//	}
 
 	@Override
 	public Hashtable getDataMakerOutput(String... selectors){

@@ -464,22 +464,22 @@ public class ChromeDriverUtility {
 	}
 
 
-	public static void main(String[] args) {
-		TestUtilityMethods.loadDIHelper();
-		ChromeDriver driver = (ChromeDriver)ChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020",
-				"https://www.buzzfeed.com/hbraga/best-gifts-2020", 30, 40);
-		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-		String eTitle = "Demo Guru99 Page";
-		String aTitle = "";
-		logger.info("Starting wait");
-		// launch Chrome and redirect it to the Base URL
-		driver.get("http://demo.guru99.com/test/guru99home/");
-		// Maximizes the browser window
-		driver.manage().window().maximize();
-		// get the actual value of the title
-		aTitle = driver.getTitle();
-		// compare the actual title with the expected title
-		logger.info("Title is " + aTitle);
-	}
+//	public static void main(String[] args) {
+//		TestUtilityMethods.loadDIHelper();
+//		ChromeDriver driver = (ChromeDriver)ChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020",
+//				"https://www.buzzfeed.com/hbraga/best-gifts-2020", 30, 40);
+//		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+//		String eTitle = "Demo Guru99 Page";
+//		String aTitle = "";
+//		logger.info("Starting wait");
+//		// launch Chrome and redirect it to the Base URL
+//		driver.get("http://demo.guru99.com/test/guru99home/");
+//		// Maximizes the browser window
+//		driver.manage().window().maximize();
+//		// get the actual value of the title
+//		aTitle = driver.getTitle();
+//		// compare the actual title with the expected title
+//		logger.info("Title is " + aTitle);
+//	}
 
 }

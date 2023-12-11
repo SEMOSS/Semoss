@@ -105,12 +105,12 @@ public class NginxClient implements Watcher{
 		return null;
 	}
 	
-	public static void main(String [] args) throws Exception
-	{
-		NginxClient c = NginxClient.getInstance();
-		System.out.println("Wait here.. ");
-		c.waitHere();
-	}
+//	public static void main(String [] args) throws Exception
+//	{
+//		NginxClient c = NginxClient.getInstance();
+//		System.out.println("Wait here.. ");
+//		c.waitHere();
+//	}
 	
 	public void waitHere()
 	{

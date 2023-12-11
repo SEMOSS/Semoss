@@ -746,46 +746,46 @@ public class XLFileHelper {
 	
 	///// TESTING CODE STARTS HERE /////
 
-	public static void main(String [] args) throws Exception
-	{
-		// ugh, need to load this in for the header exceptions
-		// this contains all the sql reserved words
-		TestUtilityMethods.loadDIHelper();
-		
-		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		long before, after;
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
-		
-		fileName = "C:/Users/mahkhalil/Desktop/Copy of eXAMPLE_DATA.xlsx";
-		before = System.nanoTime();
-		XLFileHelper test = new XLFileHelper();
-		test.parse(fileName);
-		String [] tables = test.getTables();
-		test.printRow(tables);
-		for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
-		{
-			test.printRow(test.getHeaders(tables[tabIndex]));
-			test.printRow(test.getNextRow(tables[tabIndex]));
-			test.printRow(test.getNextRow(tables[tabIndex]));
-			test.printRow(test.getNextRow(tables[tabIndex]));
-			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
-			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
-			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
-		}
-		Vector <String> allRels = test.getRelations();
-		
-		for(int tabIndex = 0;tabIndex < allRels.size();tabIndex++)
-		{
-			System.out.println(allRels.elementAt(tabIndex));
-		}
-		
-		//test.printRow(test.getRow());
-		after = System.nanoTime();
-		System.out.println((after - before)/1000000);
-	}
+//	public static void main(String [] args) throws Exception
+//	{
+//		// ugh, need to load this in for the header exceptions
+//		// this contains all the sql reserved words
+//		TestUtilityMethods.loadDIHelper();
+//		
+//		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
+//		long before, after;
+//		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
+//		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
+//		fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/XLUploadTester.xlsx";
+//		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Medical_devices_data.xlsx";
+//		
+//		fileName = "C:/Users/mahkhalil/Desktop/Copy of eXAMPLE_DATA.xlsx";
+//		before = System.nanoTime();
+//		XLFileHelper test = new XLFileHelper();
+//		test.parse(fileName);
+//		String [] tables = test.getTables();
+//		test.printRow(tables);
+//		for(int tabIndex = 0;tabIndex < tables.length;tabIndex++)
+//		{
+//			test.printRow(test.getHeaders(tables[tabIndex]));
+//			test.printRow(test.getNextRow(tables[tabIndex]));
+//			test.printRow(test.getNextRow(tables[tabIndex]));
+//			test.printRow(test.getNextRow(tables[tabIndex]));
+//			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+//			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+//			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>");
+//		}
+//		Vector <String> allRels = test.getRelations();
+//		
+//		for(int tabIndex = 0;tabIndex < allRels.size();tabIndex++)
+//		{
+//			System.out.println(allRels.elementAt(tabIndex));
+//		}
+//		
+//		//test.printRow(test.getRow());
+//		after = System.nanoTime();
+//		System.out.println((after - before)/1000000);
+//	}
 
 	private void printRow(Object[] nextRow) {
 		if(nextRow != null) {

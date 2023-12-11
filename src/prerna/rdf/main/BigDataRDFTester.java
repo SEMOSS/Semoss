@@ -618,328 +618,328 @@ public class BigDataRDFTester {
 	 * Method main.
 	 * @param args String[]
 	 */
-	public static void main(String[] args) throws Exception {
-		try {
-			BigDataRDFTester tester = new BigDataRDFTester();
-			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String db = workingDir + "/BigData.Properties";
-
-			//tester.testToken();
-			
-			tester.loadProperties(db);
-			tester.openGraph();
-			
-			// tester.createRDFData();
-			// tester.createGraphData();
-			// tester.createSubClassTest();
-			// tester.readDataAsRDF();
-			// tester.doSPARQL();
-			// tester.readRDFAsGraph();
-			// tester.readDataAsGraph();
-
-			
-			String queryString = "CONSTRUCT {?x ?y ?z. ?p ?q ?z.} WHERE" + " { " +
-		    "{?z <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/DataObject>;} " +
-	 		"{?y <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Payload> ;}" +
-	 		"{?x <" + RDFS.LABEL + "> \"PHARM-ART-Allergy Information\"; }" +
-	 		"{?z <" + RDFS.LABEL + "> \"Allergy Information\";}" + 
-	 		" {?x ?y ?z ;}" +
-	 		"{?p <"+RDF.TYPE +"> <http://semoss.org/ontologies/Concept/Activity>;}" +
-	 		"{?p <" + RDFS.LABEL + "> \"Treat Patient\";}"+
-	 		"{?p ?q ?z .}" +
-	 		"}";
-			
-			String systemNeighbors = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?carries ?data} WHERE" + " { " +
-		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?system1 <" + RDFS.LABEL + "> \"ABTS\"; }" +
-	 		"{?system1 ?upstream ?icd ;}" +
-	 		"{?icd ?downstream ?system2 ;}" +
-	 		"{?icd ?carries ?data .}"+
-	 		"}";
-			
-			
-			String a1 = "SELECT ?Subject ?Predicate ?Object WHERE {SELECT DISTINCT ?Subject WHERE {{?Predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation>;} {?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;} {?Subject  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}}BINDINGS ?Subject{(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)}} BINDINGS ?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}";
-
-
-			String yo = "SELECT ?Subject ?Predicate ?Object WHERE { " +
-					"SELECT DISTINCT ?Subject WHERE {" +
-					"{?Predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation>;} {?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;} {?Subject  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;} {?Subject ?Predicate ?Object}}BINDINGS ?Subject{(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)}" +
-					"SELECT DISTINCT ?Predicate WHERE {{?Subject ?Predicate ?Object}} BINDINGS ?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}";
-			
-			
-			
-			String systemSytemInterface = "PREFIX dbcmConcept:	<http://semoss.org/ontologies/Concept/System> CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2.} WHERE" + " { " +
-		    "{?system1 <" + RDF.TYPE + "> " +	"dbcmConcept:System ;} " +
-	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?system1 <" + RDFS.LABEL + "> \"DMLSS\"; }" +
-	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?carries <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Payload>;} " +
-	 		"{?data <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+//	public static void main(String[] args) throws Exception {
+//		try {
+//			BigDataRDFTester tester = new BigDataRDFTester();
+//			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+//			String db = workingDir + "/BigData.Properties";
+//
+//			//tester.testToken();
+//			
+//			tester.loadProperties(db);
+//			tester.openGraph();
+//			
+//			// tester.createRDFData();
+//			// tester.createGraphData();
+//			// tester.createSubClassTest();
+//			// tester.readDataAsRDF();
+//			// tester.doSPARQL();
+//			// tester.readRDFAsGraph();
+//			// tester.readDataAsGraph();
+//
+//			
+//			String queryString = "CONSTRUCT {?x ?y ?z. ?p ?q ?z.} WHERE" + " { " +
+//		    "{?z <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/DataObject>;} " +
+//	 		"{?y <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Payload> ;}" +
+//	 		"{?x <" + RDFS.LABEL + "> \"PHARM-ART-Allergy Information\"; }" +
+//	 		"{?z <" + RDFS.LABEL + "> \"Allergy Information\";}" + 
+//	 		" {?x ?y ?z ;}" +
+//	 		"{?p <"+RDF.TYPE +"> <http://semoss.org/ontologies/Concept/Activity>;}" +
+//	 		"{?p <" + RDFS.LABEL + "> \"Treat Patient\";}"+
+//	 		"{?p ?q ?z .}" +
+//	 		"}";
+//			
+//			String systemNeighbors = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?carries ?data} WHERE" + " { " +
+//		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?system1 <" + RDFS.LABEL + "> \"ABTS\"; }" +
+//	 		"{?system1 ?upstream ?icd ;}" +
+//	 		"{?icd ?downstream ?system2 ;}" +
+//	 		"{?icd ?carries ?data .}"+
+//	 		"}";
+//			
+//			
+//			String a1 = "SELECT ?Subject ?Predicate ?Object WHERE {SELECT DISTINCT ?Subject WHERE {{?Predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation>;} {?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;} {?Subject  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}}BINDINGS ?Subject{(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)}} BINDINGS ?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}";
+//
+//
+//			String yo = "SELECT ?Subject ?Predicate ?Object WHERE { " +
+//					"SELECT DISTINCT ?Subject WHERE {" +
+//					"{?Predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation>;} {?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;} {?Subject  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;} {?Subject ?Predicate ?Object}}BINDINGS ?Subject{(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)}" +
+//					"SELECT DISTINCT ?Predicate WHERE {{?Subject ?Predicate ?Object}} BINDINGS ?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}";
+//			
+//			
+//			
+//			String systemSytemInterface = "PREFIX dbcmConcept:	<http://semoss.org/ontologies/Concept/System> CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2.} WHERE" + " { " +
+//		    "{?system1 <" + RDF.TYPE + "> " +	"dbcmConcept:System ;} " +
+//	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?system1 <" + RDFS.LABEL + "> \"DMLSS\"; }" +
+//	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?carries <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Payload>;} " +
+//	 		"{?data <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+////	 		"{?system2 <" + RDFS.LABEL + "> \"DEERS\";}"+
+//	 		"{?system1 ?upstream ?icd ;}" +
+//	 		"{?icd ?downstream ?system2 .}" +
+//	 		"}";
+//			
+//			String systemSytemInterface2 = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data} WHERE" + " { " +
+//		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
+//	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 //	 		"{?system2 <" + RDFS.LABEL + "> \"DEERS\";}"+
-	 		"{?system1 ?upstream ?icd ;}" +
-	 		"{?icd ?downstream ?system2 .}" +
-	 		"}";
-			
-			String systemSytemInterface2 = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data} WHERE" + " { " +
-		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
-	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?system2 <" + RDFS.LABEL + "> \"DEERS\";}"+
-	 		"{?system1 ?upstream ?icd ;}" +
-	 		"{?icd ?downstream ?system2 ;}" +
-	 		"{?icd ?carries ?data .}"+
-	 		"}";
-
-			
-			
-			String systemInformation = "CONSTRUCT {?system1 ?upstream ?icd. ?icd2 ?downstream2 ?system1. ?icd ?downstream ?system2. ?system3 ?upstream2 ?icd. ?icd ?carries ?data1. ?icd2 ?carries ?data2} WHERE" + " { " +
-		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-		    "{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-		    "{?system3 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?upstream2 <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?system1 <" + RDFS.LABEL + "> \"DMLSS\"; }" +
-	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?downstream2 <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?carries <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Payload>;} " +
-	 		"{?data1 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
-	 		"{?data2 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
-	 		"{?system1 ?upstream ?icd ;}" +
-	 		"{?icd ?downstream ?system2 ;}" +
-	 		"{?icd2 ?downstream2 ?system1;}" +
-	 		"{?system3 ?upstream2 ?icd2;}" +
-	 		"{?icd ?carries ?data1;}" +
-	 		"{?icd2 ?carries ?data2;}" +
-	 		"}";
-
-			String systemInformation2 = "CONSTRUCT {?system1 ?upstream ?icd. ?icd2 ?downstream ?system1. ?icd ?downstream ?system2. ?system3 ?upstream2 ?icd. ?icd ?carries ?data1. ?icd2 ?carries ?data2} WHERE" + " { " +
-		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-		    "{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-		    "{?system3 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?upstream2 <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
-	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?downstream2 <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?carries <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Payload>;} " +
-	 		"{?data1 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
-	 		"{?data2 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
-	 		"{?system1 ?upstream ?icd ;}" +
-	 		"{?icd ?downstream ?system2 ;}" +
-	 		"{?icd2 ?downstream2 ?system1;}" +
-	 		"{?system3 ?upstream2 ?icd2;}" +
-	 		"{?icd ?carries ?data1;}" +
-	 		"{?icd2 ?carries ?data2;}" +
-	 		"}";
-			
-			String systemProp = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data1. ?system1 ?contains 								?attribute1. ?system2 ?contains2 ?attribute2. ?icd ?contains3 ?attribute3} \n WHERE { {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} \n {?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} \n {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} \n {?system1 <http://www.w3.org/2000/01/rdf-schema#label> \"ABTS\"; } {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?system1 ?upstream ?icd ;}{?icd ?downstream ?system2 ;} \n {?icd ?carries ?data1;} \n  \n  {?system1 ?contains ?attribute1;} \n {?system2 ?contains2 ?attribute2;} OPTIONAL {?icd ?contains3 ?attribute3.}   }";
-			
-			String icdProp = "CONSTRUCT {?icd ?contains3 ?attribute3} \n WHERE {{?icd <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
-					"<http://semoss.org/ontologies/Relation> ;} {?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
-					"<http://semoss.org/ontologies/Relation/Contains>;} {?icd ?contains3 ?attribute3.}   }";
-			
-			
-			//?system1 ?contains 								?attribute1. ?system2 ?contains2 ?attribute2.{?system1 ?contains ?attribute1;} \n {?system2 ?contains2 ?attribute2;}
-			
-			String url2Encode = URLEncoder.encode("ABTS-CHCS-Patient ID", "UTF-8");
-			String typeQuery = "SELECT ?entity WHERE {?entity <" + RDF.TYPE + ">  <http://semoss.org/ontologies/Concept/System>;}";
-			
-			String icdDataQuery = "CONSTRUCT {?interface ?carries ?data. ?interface ?label ?name} WHERE { {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} {?interface ?label ?name;}" + "FILTER regex(?name, \"CHCS\") }";
-					//"Filter (?name in (\"ABTS-CHCS-Order Information\",\"ABTS-CHCS-Patient Demographics and Information\",\"ABTS-CHCS-Patient ID\",\"ABTS-CHCS-Patient Test Results\"))}";
-			
-			
-			
-			
-			String icdDataQuery2 = "CONSTRUCT {?interface ?carries ?data.} WHERE { " +
-					"{?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} " +
-					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} Filter (?interface in (<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Order Information>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient Demographics and Information>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient ID>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient Test Results>))}";
-			
-			String systemBLData = "CONSTRUCT {?system ?provide ?data.  ?system ?provide2 ?BL} WHERE {" +
-				"{?system <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-				"{?provide <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Provide>;} " +  
-				"{?provide2 <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Provide>;} " +
-		 		"{?data <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
-		 		"{?BL <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}"+
-		 		"{?system <" + RDFS.LABEL + "> \"BHIE\"; }" +
-		 		"{?system ?provide ?data.} {?system2 ?provide2 ?BL.}}";
-				
-			String swQuery = "CONSTRUCT {?system ?has ?softwareModule.} WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
-					"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
-					"{?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion> ;} " +
-					"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
-					"{?typeof <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/SoftwareModuleForSoftwareVersion>;} " +
-					"{?system ?has ?softwareModule;} {?softwareModule ?typeof ?softwareVersion;} {?softwareVersion ?label ?name;}" + "FILTER regex(?name, \"Oracle\", \"i\") }";
-				
-			String swQuerySelect = "SELECT DISTINCT ?system ?softwareModule WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
-			"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
-			"{?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion> ;} " +
-			"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
-			"{?typeof <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/SoftwareModuleForSoftwareVersion>;} " +
-			"{?system ?has ?softwareModule;} {?softwareModule ?typeof ?softwareVersion;} {?softwareVersion ?label ?name;}" + "FILTER regex(?name, \"Oracle\", \"i\") }";
-			
-			String swSystemQuerySelect = "SELECT DISTINCT ?system ?softwareModule WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
-			"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
-			"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
-			"{?system ?has ?softwareModule;} {?system <" +  RDFS.LABEL + "> ?name } FILTER regex(?name, \"DMLSS\", \"i\") }";
-			//icdDataQuery = URLEncoder.encode(icdDataQuery, "UTF-8");//(icdDataQuery);
-			String swSystemQuerySelect2 = "SELECT DISTINCT ?system ?softwareModule WHERE { " +
-					"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
-			"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
-			"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
-			"{?system <" +  RDFS.LABEL + "> \"DMLSS\" }" +
-			"{?system ?has ?softwareModule;} }";
-			
-			String neighborICDHoodQuery = "CONSTRUCT {?focus ?predicate ?object. ?subject ?predicate2 ?focus} WHERE {" +
-					"{?focus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
-					"{?focus2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" + 
-					"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" + 
-					"{?predicate2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume> ;}" + 
-					"{?focus <" +  RDFS.LABEL + "> ?name ;}" + 
-					"{?focus ?predicate ?object}" + 
-					"{?subject ?predicate2 ?focus}" +
-					"FILTER (?name in (\"DMLSS\"))" +
-					"}";
-			
-			String neighborICDHoodQuery2 = "SELECT  DISTINCT ?focus ?predicate ?object WHERE {" +
-			"{?focus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
-			"{?focus2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
-			"{?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}" +
-			"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" + 
-			"{?predicate2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume> ;}" + 
-			"{?focus <" +  RDFS.LABEL + "> ?name ;}" + 
-			"{?focus ?predicate ?object}" + 
-			//"{?subject ?predicate2 ?focus}" +
-			"FILTER (?name in (\"ABTS\"))" +
-			"}";
-
-			String capReq = "CONSTRUCT {?cap ?help ?req. ?cap ?label ?name} WHERE " +
-					"{ {?req <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Requirement>;} " +
-					"{?help <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/FulFill>;} " +
-					"{?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} " +
-					"{?cap ?help ?req;} {?bp <http://www.w3.org/2000/01/rdf-schema#label> ?name;} " +
-					"Filter (?name in (\"Laboratory\"))}";
-			
-			String serviceData = "CONSTRUCT {?service ?provide ?data} WHERE " +
-					"{ {?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>}" +
-					" {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>} " +
-					" {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}" +
-					"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
-					"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Upstream> ;}" +
-					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}" +
-			 		//"{?system <" + RDFS.LABEL + "> \"DMLSS\"; }" +
-			 		"{?system ?upstream ?icd;}" + 
-			 		"{?icd ?carries ?data;}" + 
-			 		"{?service ?provide ?data}"+
-			 		"}" ;
-					
-
-			String serviceData2 = "CONSTRUCT " + "{?system ?upstream ?icd}"+
-					//"{?service ?provide ?data}" +
-					//"{?system ?upstream ?icd. ?icd ?carries ?data} " +
-					"WHERE " +
-			"{ " +
-			"{?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>}" +
-			" {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>} " +
-			" {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}" +
-			"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
-			"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-			"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-			"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}" +
-	 		"{?service <" + RDFS.LABEL + "> \"Equipment Monitoring Service\"; }" +
-	 		"{?system ?upstream ?icd;}" + 
-	 		"{?icd ?carries ?data;}" + 
-	 		"{?service ?provide ?data}"+
-	 		"}" ;
-
-			
-			/*+ 
-					"FILTER regex(?name, \"ADM eForms\", \"i\")" + 
-					"FILTER regex(?name2, \"ADM eForms\", \"i\") }";
-			*/
-			//AHLTA-BHIE-Patient Demographics and Information
-			/*String labMigrate = "CONSTRUCT {?businessprocess ?consist ?activity. " +
-											"?activity ?need ?data. " +
-											"?data ?provide ?system1. " +
-											"?system1 ?upstream ?icd. " +
-											"?icd ?downstream ?system2.} " +
-											"?service ?provide ?data.} " +
-											"WHERE" + " { " +
-											"{?businessprocess <" + RDFS.LABEL + "> " +	"<http://semoss.org/ontologies/Concept/BusinessProcess/>;} " +
-									 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-									 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-			"{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
-	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
-	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
-	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
-	 		"{?system2 <" + RDFS.LABEL + "> \"DEERS\";}"+
-	 		"{?system1 ?upstream ?icd ;}" +
-	 		"{?icd ?downstream ?system2 .}" +
-	 		"}";
-			*/
-			
-			String bindQ = "SELECT  DISTINCT ?predicate WHERE " +
-					"{?subject ?predicate ?object. " +
-					"BIND (<http://semoss.org/ontologies/Concept/System/ABTS>" +
-					" AS ?subject).}";
-
-			String bindQ4 = "SELECT  ?subject ?predicate ?object WHERE " +
-			"{{?subject ?predicate ?object.} " +
-			"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}"+
-			"BIND (<http://semoss.org/ontologies/Concept/System/ABTS>" +
-			" AS ?subject).}";
-
-			String bindQ2 = "SELECT ?upstream   WHERE { BIND (<http://semoss.org/ontologies/Concept/System/ABTS>  AS ?sys ). " +
-					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
-					"<http://semoss.org/ontologies/Concept/SystemInterface> ;} " +
-					"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
-					"<http://semoss.org/ontologies/Relation/Provide>;} {?sys ?upstream ?icd .} }";
-			
-			String bindQ3 = "SELECT  ?predicate WHERE { " +
-					"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
-					"<http:/health.mil/ontologies/dbcm/Relation> ;} " +
-					//"BIND (<http://semoss.org/ontologies/Concept/System/CHCS> AS ?subject). " +
-					"}";
-			
-			String bindQ5 = "SELECT  ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.} {?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>.} BIND (<http://semoss.org/ontologies/Concept/System/ABTS> AS ?subject).}";
-			String bindQ6 = "CONSTRUCT  {?subject ?predicate ?object} WHERE {{?object  <http://www.w3.org/2000/01/rdf-schema#label> \"CRUD Procedure Order\";} {?subject <http://www.w3.org/2000/01/rdf-schema#label> \"ABTS-CHCS-Order Information\";} {?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;} {?subject ?predicate ?object.} }";
-			
-			String bindQ7 = "SELECT  ?subject ?predicate ?object WHERE {BIND (<http://semoss.org/ontologies/Concept/Service/AlertOnAbnormalValue> AS ?subject). ?subject ?predicate ?object;}";
-			
-			String tommyT = "INSERT {<http://semoss.org/ontologies/Concept/Service/AlertOnAbnormalValue><http://semoss.org/ontologies/Relation/Exposes><http://semoss.org/ontologies/Concept/DataObject/tom1>} WHERE{}";
-			String tommyT2 = "INSERT { <http://semoss.org/ontologies/Concept/DataObject/tom1><http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}WHERE{}"; 
-
-			//logger.debug(" Query >>> \n" + serviceData2);
-			//Forest f = tester.convertSailtoGraph(res);
-			//tester.painGraph(f);
-			tester.getCoreData(null);
-			String [] names = {"focus"}; //,"predicate", "object"};
-			//tester.doRemoveSelect(bindQ7,names);
-			tester.execInsertQuery(tommyT2);
-			tester.closeGraph();
-			tester.testTemp();
-
-			
-			//SELECT  DISTINCT ?predicate WHERE {BIND (<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient ID> AS ?subject). {?subject ?predicate ?object.}}
-		} catch (Exception ignored) {
-			System.err.println("Exception " + ignored);
-			ignored.printStackTrace();
-		}
-
-	}
+//	 		"{?system1 ?upstream ?icd ;}" +
+//	 		"{?icd ?downstream ?system2 ;}" +
+//	 		"{?icd ?carries ?data .}"+
+//	 		"}";
+//
+//			
+//			
+//			String systemInformation = "CONSTRUCT {?system1 ?upstream ?icd. ?icd2 ?downstream2 ?system1. ?icd ?downstream ?system2. ?system3 ?upstream2 ?icd. ?icd ?carries ?data1. ?icd2 ?carries ?data2} WHERE" + " { " +
+//		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//		    "{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//		    "{?system3 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?upstream2 <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?system1 <" + RDFS.LABEL + "> \"DMLSS\"; }" +
+//	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?downstream2 <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?carries <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Payload>;} " +
+//	 		"{?data1 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+//	 		"{?data2 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+//	 		"{?system1 ?upstream ?icd ;}" +
+//	 		"{?icd ?downstream ?system2 ;}" +
+//	 		"{?icd2 ?downstream2 ?system1;}" +
+//	 		"{?system3 ?upstream2 ?icd2;}" +
+//	 		"{?icd ?carries ?data1;}" +
+//	 		"{?icd2 ?carries ?data2;}" +
+//	 		"}";
+//
+//			String systemInformation2 = "CONSTRUCT {?system1 ?upstream ?icd. ?icd2 ?downstream ?system1. ?icd ?downstream ?system2. ?system3 ?upstream2 ?icd. ?icd ?carries ?data1. ?icd2 ?carries ?data2} WHERE" + " { " +
+//		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//		    "{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//		    "{?system3 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?upstream2 <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
+//	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?downstream2 <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?carries <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Payload>;} " +
+//	 		"{?data1 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+//	 		"{?data2 <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+//	 		"{?system1 ?upstream ?icd ;}" +
+//	 		"{?icd ?downstream ?system2 ;}" +
+//	 		"{?icd2 ?downstream2 ?system1;}" +
+//	 		"{?system3 ?upstream2 ?icd2;}" +
+//	 		"{?icd ?carries ?data1;}" +
+//	 		"{?icd2 ?carries ?data2;}" +
+//	 		"}";
+//			
+//			String systemProp = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data1. ?system1 ?contains 								?attribute1. ?system2 ?contains2 ?attribute2. ?icd ?contains3 ?attribute3} \n WHERE { {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} \n {?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} \n {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} \n {?system1 <http://www.w3.org/2000/01/rdf-schema#label> \"ABTS\"; } {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?system1 ?upstream ?icd ;}{?icd ?downstream ?system2 ;} \n {?icd ?carries ?data1;} \n  \n  {?system1 ?contains ?attribute1;} \n {?system2 ?contains2 ?attribute2;} OPTIONAL {?icd ?contains3 ?attribute3.}   }";
+//			
+//			String icdProp = "CONSTRUCT {?icd ?contains3 ?attribute3} \n WHERE {{?icd <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
+//					"<http://semoss.org/ontologies/Relation> ;} {?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
+//					"<http://semoss.org/ontologies/Relation/Contains>;} {?icd ?contains3 ?attribute3.}   }";
+//			
+//			
+//			//?system1 ?contains 								?attribute1. ?system2 ?contains2 ?attribute2.{?system1 ?contains ?attribute1;} \n {?system2 ?contains2 ?attribute2;}
+//			
+//			String url2Encode = URLEncoder.encode("ABTS-CHCS-Patient ID", "UTF-8");
+//			String typeQuery = "SELECT ?entity WHERE {?entity <" + RDF.TYPE + ">  <http://semoss.org/ontologies/Concept/System>;}";
+//			
+//			String icdDataQuery = "CONSTRUCT {?interface ?carries ?data. ?interface ?label ?name} WHERE { {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} {?interface ?label ?name;}" + "FILTER regex(?name, \"CHCS\") }";
+//					//"Filter (?name in (\"ABTS-CHCS-Order Information\",\"ABTS-CHCS-Patient Demographics and Information\",\"ABTS-CHCS-Patient ID\",\"ABTS-CHCS-Patient Test Results\"))}";
+//			
+//			
+//			
+//			
+//			String icdDataQuery2 = "CONSTRUCT {?interface ?carries ?data.} WHERE { " +
+//					"{?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} " +
+//					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} Filter (?interface in (<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Order Information>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient Demographics and Information>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient ID>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient Test Results>))}";
+//			
+//			String systemBLData = "CONSTRUCT {?system ?provide ?data.  ?system ?provide2 ?BL} WHERE {" +
+//				"{?system <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//				"{?provide <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Provide>;} " +  
+//				"{?provide2 <" + RDFS.SUBPROPERTYOF + "> " +	"<http://semoss.org/ontologies/Relation/Provide>;} " +
+//		 		"{?data <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/DataObject>;}"+
+//		 		"{?BL <" + RDF.TYPE + "> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}"+
+//		 		"{?system <" + RDFS.LABEL + "> \"BHIE\"; }" +
+//		 		"{?system ?provide ?data.} {?system2 ?provide2 ?BL.}}";
+//				
+//			String swQuery = "CONSTRUCT {?system ?has ?softwareModule.} WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
+//					"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
+//					"{?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion> ;} " +
+//					"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
+//					"{?typeof <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/SoftwareModuleForSoftwareVersion>;} " +
+//					"{?system ?has ?softwareModule;} {?softwareModule ?typeof ?softwareVersion;} {?softwareVersion ?label ?name;}" + "FILTER regex(?name, \"Oracle\", \"i\") }";
+//				
+//			String swQuerySelect = "SELECT DISTINCT ?system ?softwareModule WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
+//			"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
+//			"{?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion> ;} " +
+//			"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
+//			"{?typeof <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/SoftwareModuleForSoftwareVersion>;} " +
+//			"{?system ?has ?softwareModule;} {?softwareModule ?typeof ?softwareVersion;} {?softwareVersion ?label ?name;}" + "FILTER regex(?name, \"Oracle\", \"i\") }";
+//			
+//			String swSystemQuerySelect = "SELECT DISTINCT ?system ?softwareModule WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
+//			"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
+//			"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
+//			"{?system ?has ?softwareModule;} {?system <" +  RDFS.LABEL + "> ?name } FILTER regex(?name, \"DMLSS\", \"i\") }";
+//			//icdDataQuery = URLEncoder.encode(icdDataQuery, "UTF-8");//(icdDataQuery);
+//			String swSystemQuerySelect2 = "SELECT DISTINCT ?system ?softwareModule WHERE { " +
+//					"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} " +
+//			"{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule> ;} " +
+//			"{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} " +
+//			"{?system <" +  RDFS.LABEL + "> \"DMLSS\" }" +
+//			"{?system ?has ?softwareModule;} }";
+//			
+//			String neighborICDHoodQuery = "CONSTRUCT {?focus ?predicate ?object. ?subject ?predicate2 ?focus} WHERE {" +
+//					"{?focus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
+//					"{?focus2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" + 
+//					"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" + 
+//					"{?predicate2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume> ;}" + 
+//					"{?focus <" +  RDFS.LABEL + "> ?name ;}" + 
+//					"{?focus ?predicate ?object}" + 
+//					"{?subject ?predicate2 ?focus}" +
+//					"FILTER (?name in (\"DMLSS\"))" +
+//					"}";
+//			
+//			String neighborICDHoodQuery2 = "SELECT  DISTINCT ?focus ?predicate ?object WHERE {" +
+//			"{?focus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
+//			"{?focus2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
+//			"{?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}" +
+//			"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" + 
+//			"{?predicate2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume> ;}" + 
+//			"{?focus <" +  RDFS.LABEL + "> ?name ;}" + 
+//			"{?focus ?predicate ?object}" + 
+//			//"{?subject ?predicate2 ?focus}" +
+//			"FILTER (?name in (\"ABTS\"))" +
+//			"}";
+//
+//			String capReq = "CONSTRUCT {?cap ?help ?req. ?cap ?label ?name} WHERE " +
+//					"{ {?req <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Requirement>;} " +
+//					"{?help <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/FulFill>;} " +
+//					"{?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} " +
+//					"{?cap ?help ?req;} {?bp <http://www.w3.org/2000/01/rdf-schema#label> ?name;} " +
+//					"Filter (?name in (\"Laboratory\"))}";
+//			
+//			String serviceData = "CONSTRUCT {?service ?provide ?data} WHERE " +
+//					"{ {?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>}" +
+//					" {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>} " +
+//					" {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}" +
+//					"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
+//					"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Upstream> ;}" +
+//					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}" +
+//			 		//"{?system <" + RDFS.LABEL + "> \"DMLSS\"; }" +
+//			 		"{?system ?upstream ?icd;}" + 
+//			 		"{?icd ?carries ?data;}" + 
+//			 		"{?service ?provide ?data}"+
+//			 		"}" ;
+//					
+//
+//			String serviceData2 = "CONSTRUCT " + "{?system ?upstream ?icd}"+
+//					//"{?service ?provide ?data}" +
+//					//"{?system ?upstream ?icd. ?icd ?carries ?data} " +
+//					"WHERE " +
+//			"{ " +
+//			"{?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>}" +
+//			" {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>} " +
+//			" {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}" +
+//			"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
+//			"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//			"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//			"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}" +
+//	 		"{?service <" + RDFS.LABEL + "> \"Equipment Monitoring Service\"; }" +
+//	 		"{?system ?upstream ?icd;}" + 
+//	 		"{?icd ?carries ?data;}" + 
+//	 		"{?service ?provide ?data}"+
+//	 		"}" ;
+//
+//			
+//			/*+ 
+//					"FILTER regex(?name, \"ADM eForms\", \"i\")" + 
+//					"FILTER regex(?name2, \"ADM eForms\", \"i\") }";
+//			*/
+//			//AHLTA-BHIE-Patient Demographics and Information
+//			/*String labMigrate = "CONSTRUCT {?businessprocess ?consist ?activity. " +
+//											"?activity ?need ?data. " +
+//											"?data ?provide ?system1. " +
+//											"?system1 ?upstream ?icd. " +
+//											"?icd ?downstream ?system2.} " +
+//											"?service ?provide ?data.} " +
+//											"WHERE" + " { " +
+//											"{?businessprocess <" + RDFS.LABEL + "> " +	"<http://semoss.org/ontologies/Concept/BusinessProcess/>;} " +
+//									 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//									 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//			"{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
+//	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+//	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
+//	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
+//	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
+//	 		"{?system2 <" + RDFS.LABEL + "> \"DEERS\";}"+
+//	 		"{?system1 ?upstream ?icd ;}" +
+//	 		"{?icd ?downstream ?system2 .}" +
+//	 		"}";
+//			*/
+//			
+//			String bindQ = "SELECT  DISTINCT ?predicate WHERE " +
+//					"{?subject ?predicate ?object. " +
+//					"BIND (<http://semoss.org/ontologies/Concept/System/ABTS>" +
+//					" AS ?subject).}";
+//
+//			String bindQ4 = "SELECT  ?subject ?predicate ?object WHERE " +
+//			"{{?subject ?predicate ?object.} " +
+//			"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}"+
+//			"BIND (<http://semoss.org/ontologies/Concept/System/ABTS>" +
+//			" AS ?subject).}";
+//
+//			String bindQ2 = "SELECT ?upstream   WHERE { BIND (<http://semoss.org/ontologies/Concept/System/ABTS>  AS ?sys ). " +
+//					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
+//					"<http://semoss.org/ontologies/Concept/SystemInterface> ;} " +
+//					"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
+//					"<http://semoss.org/ontologies/Relation/Provide>;} {?sys ?upstream ?icd .} }";
+//			
+//			String bindQ3 = "SELECT  ?predicate WHERE { " +
+//					"{?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
+//					"<http:/health.mil/ontologies/dbcm/Relation> ;} " +
+//					//"BIND (<http://semoss.org/ontologies/Concept/System/CHCS> AS ?subject). " +
+//					"}";
+//			
+//			String bindQ5 = "SELECT  ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.} {?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>.} BIND (<http://semoss.org/ontologies/Concept/System/ABTS> AS ?subject).}";
+//			String bindQ6 = "CONSTRUCT  {?subject ?predicate ?object} WHERE {{?object  <http://www.w3.org/2000/01/rdf-schema#label> \"CRUD Procedure Order\";} {?subject <http://www.w3.org/2000/01/rdf-schema#label> \"ABTS-CHCS-Order Information\";} {?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;} {?subject ?predicate ?object.} }";
+//			
+//			String bindQ7 = "SELECT  ?subject ?predicate ?object WHERE {BIND (<http://semoss.org/ontologies/Concept/Service/AlertOnAbnormalValue> AS ?subject). ?subject ?predicate ?object;}";
+//			
+//			String tommyT = "INSERT {<http://semoss.org/ontologies/Concept/Service/AlertOnAbnormalValue><http://semoss.org/ontologies/Relation/Exposes><http://semoss.org/ontologies/Concept/DataObject/tom1>} WHERE{}";
+//			String tommyT2 = "INSERT { <http://semoss.org/ontologies/Concept/DataObject/tom1><http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}WHERE{}"; 
+//
+//			//logger.debug(" Query >>> \n" + serviceData2);
+//			//Forest f = tester.convertSailtoGraph(res);
+//			//tester.painGraph(f);
+//			tester.getCoreData(null);
+//			String [] names = {"focus"}; //,"predicate", "object"};
+//			//tester.doRemoveSelect(bindQ7,names);
+//			tester.execInsertQuery(tommyT2);
+//			tester.closeGraph();
+//			tester.testTemp();
+//
+//			
+//			//SELECT  DISTINCT ?predicate WHERE {BIND (<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient ID> AS ?subject). {?subject ?predicate ?object.}}
+//		} catch (Exception ignored) {
+//			System.err.println("Exception " + ignored);
+//			ignored.printStackTrace();
+//		}
+//
+//	}
 	/**
 	 * Method execInsertQuery.
 	 * @param query String

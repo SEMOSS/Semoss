@@ -140,78 +140,78 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	//////////////////////////////////////////// Main function to test //////////////////////////////////////
 
-	public static void main(String[] args) {
-		// load engine
-//		TestUtilityMethods.loadDIHelper("C:/Users/laurlai/workspace/Semoss/RDF_Map.prop");
+//	public static void main(String[] args) {
+//		// load engine
+////		TestUtilityMethods.loadDIHelper("C:/Users/laurlai/workspace/Semoss/RDF_Map.prop");
+////		
+////		String engineProp = "C:/Users/laurlai/workspace/Semoss/db/LocalMasterDatabase.smss";
+////		IEngine coreEngine = new RDBMSNativeEngine();
+////		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+////		coreEngine.open(engineProp);
+////		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+////
+////		engineProp = "C:/Users/laurlai/workspace/Semoss/db/MovieDB.smss";
+////		coreEngine = new RDBMSNativeEngine();
+////		coreEngine.setEngineName("MovieDB");
+////		coreEngine.open(engineProp);
+////		DIHelper.getInstance().setLocalProperty("MovieDB", coreEngine);
 //		
-//		String engineProp = "C:/Users/laurlai/workspace/Semoss/db/LocalMasterDatabase.smss";
-//		IEngine coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-//
-//		engineProp = "C:/Users/laurlai/workspace/Semoss/db/MovieDB.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("MovieDB");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("MovieDB", coreEngine);
-		
-		
-		// Create qs object
-		UpdateQueryStruct qs = new UpdateQueryStruct();
-		
-		/**
-		 * Update one column on one table
-		 */
-		qs.addSelector("Nominated", "Nominated");
-		List<Object> values = new ArrayList<Object>();
-		values.add("N");
-		qs.setValues(values);
-		QueryColumnSelector tab = new QueryColumnSelector("Nominated__Title_FK");
-		NounMetadata fil1 = new NounMetadata(tab, PixelDataType.COLUMN);
-		NounMetadata fil2 = new NounMetadata("Chocolat", PixelDataType.CONST_STRING);
-		SimpleQueryFilter filter1 = new SimpleQueryFilter(fil2, "=", fil1);
-		qs.addExplicitFilter(filter1);
-		
-		/**
-		 * Update one table using values of another for reference
-		 * UPDATE Genre SET Genre.Genre='Comedy' WHERE Genre.Title_FK IN (SELECT Title.Title FROM Title WHERE Title = 'Avatar')
-		 */
-//		qs.addSelector("Genre", "Genre");
+//		
+//		// Create qs object
+//		UpdateQueryStruct qs = new UpdateQueryStruct();
+//		
+//		/**
+//		 * Update one column on one table
+//		 */
+//		qs.addSelector("Nominated", "Nominated");
 //		List<Object> values = new ArrayList<Object>();
-//		values.add("Drama");
+//		values.add("N");
 //		qs.setValues(values);
+//		QueryColumnSelector tab = new QueryColumnSelector("Nominated__Title_FK");
+//		NounMetadata fil1 = new NounMetadata(tab, PixelDataType.COLUMN);
+//		NounMetadata fil2 = new NounMetadata("Chocolat", PixelDataType.CONST_STRING);
+//		SimpleQueryFilter filter1 = new SimpleQueryFilter(fil2, "=", fil1);
+//		qs.addExplicitFilter(filter1);
 //		
-//		// Making subquery
-//		QueryStruct2 subQuery = new QueryStruct2();
-//		QueryColumnSelector title = new QueryColumnSelector("Title__Title");
-//		subQuery.addSelector(title);
-//		NounMetadata fil3 = new NounMetadata(title, PixelDataType.COLUMN);
-//		NounMetadata fil4 = new NounMetadata("Avatar", PixelDataType.CONST_STRING);
-//		SimpleQueryFilter subQueryFilter = new SimpleQueryFilter(fil3, "=", fil4);
-//		subQuery.addExplicitFilter(subQueryFilter);
+//		/**
+//		 * Update one table using values of another for reference
+//		 * UPDATE Genre SET Genre.Genre='Comedy' WHERE Genre.Title_FK IN (SELECT Title.Title FROM Title WHERE Title = 'Avatar')
+//		 */
+////		qs.addSelector("Genre", "Genre");
+////		List<Object> values = new ArrayList<Object>();
+////		values.add("Drama");
+////		qs.setValues(values);
+////		
+////		// Making subquery
+////		QueryStruct2 subQuery = new QueryStruct2();
+////		QueryColumnSelector title = new QueryColumnSelector("Title__Title");
+////		subQuery.addSelector(title);
+////		NounMetadata fil3 = new NounMetadata(title, PixelDataType.COLUMN);
+////		NounMetadata fil4 = new NounMetadata("Avatar", PixelDataType.CONST_STRING);
+////		SimpleQueryFilter subQueryFilter = new SimpleQueryFilter(fil3, "=", fil4);
+////		subQuery.addExplicitFilter(subQueryFilter);
+////		
+//////		// Add to qs
+////		NounMetadata col = new NounMetadata(new QueryColumnSelector("Genre__Title_FK"), PixelDataType.COLUMN);
+////		NounMetadata filquery = new NounMetadata(subQuery, PixelDataType.QUERY_STRUCT);
+////		SimpleQueryFilter filter5 = new SimpleQueryFilter(col, "==", filquery);
+////		qs.addExplicitFilter(filter5);
+////				
+//		// Create interpreter and compose query
+//		UpdateSqlInterpreter interpreter = new UpdateSqlInterpreter(qs);
+//		String s = interpreter.composeQuery();
+//		System.out.println(s);
 //		
-////		// Add to qs
-//		NounMetadata col = new NounMetadata(new QueryColumnSelector("Genre__Title_FK"), PixelDataType.COLUMN);
-//		NounMetadata filquery = new NounMetadata(subQuery, PixelDataType.QUERY_STRUCT);
-//		SimpleQueryFilter filter5 = new SimpleQueryFilter(col, "==", filquery);
-//		qs.addExplicitFilter(filter5);
-//				
-		// Create interpreter and compose query
-		UpdateSqlInterpreter interpreter = new UpdateSqlInterpreter(qs);
-		String s = interpreter.composeQuery();
-		System.out.println(s);
-		
-		// run query on engine
-//		coreEngine.insertData(s);
-//		
-//		// viewing results
-////		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Nominated");
-//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Genre");
-//		while(it.hasNext()) {
-//			System.out.println(Arrays.toString(it.next().getValues()));
-//		}
-	}
-	
+//		// run query on engine
+////		coreEngine.insertData(s);
+////		
+////		// viewing results
+//////		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Nominated");
+////		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Genre");
+////		while(it.hasNext()) {
+////			System.out.println(Arrays.toString(it.next().getValues()));
+////		}
+//	}
+//	
 	
 }

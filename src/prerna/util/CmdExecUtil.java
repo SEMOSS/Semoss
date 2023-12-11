@@ -369,11 +369,11 @@ public class CmdExecUtil {
 		pushMountToSocket();
 	}
 	
-	public static void main(String[] args) throws Exception{
-		// TODO Auto-generated method stub
-		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest", null);
-		test.runUserCommand();
-	}
+//	public static void main(String[] args) throws Exception{
+//		// TODO Auto-generated method stub
+//		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest", null);
+//		test.runUserCommand();
+//	}
 	
 }
 

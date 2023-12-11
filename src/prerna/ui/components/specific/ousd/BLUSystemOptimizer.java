@@ -215,58 +215,58 @@ public class BLUSystemOptimizer extends LPOptimizer{
 //		this.sysList = array.toArray(this.sysList);
 	}
 
-	public static void main(String args[]){
-
-//		PropertyConfigurator.configure("log4j.prop");
-		
-		List<Object[]> myList = new ArrayList<Object[]>();
-		
-		String[] names = new String[]{"System", "BLU"};
-		
-		Object[] r1 = new Object[]{"S1", "B1"};
-		myList.add(r1);
-		
-		Object[] r2 = new Object[]{"S1", "B2"};
-		myList.add(r2);
-		
-		Object[] r3 = new Object[]{"S2", "B1"};
-		myList.add(r3);
-		
-		Object[] r4 = new Object[]{"S3", "B2"};
-		myList.add(r4);
-		
-		Object[] r5 = new Object[]{"S3", "B1"};
-		myList.add(r5);
-		
-		Map<String, Integer> map = new HashMap<String, Integer>();
-		map.put("S1", 0);
-		map.put("S2", 1);
-		map.put("S3", 2);
-		
-		String[] systems = new String[]{"S1", "S2", "S3"};
-		Double[] buds = new Double[]{10., 5., 20.};
-		
-		BLUSystemOptimizer ps = new BLUSystemOptimizer();
-		ps.setSystemData(systems, buds, 20., myList, map);
-		
-		try {
-			ps.setupModel();
-		} catch (LpSolveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		ps.execute();
-		
-		ps.deleteModel();
-		
-		
-		
-		
-		
-		
-		
-		
-		
-	}
+//	public static void main(String args[]){
+//
+////		PropertyConfigurator.configure("log4j.prop");
+//		
+//		List<Object[]> myList = new ArrayList<Object[]>();
+//		
+//		String[] names = new String[]{"System", "BLU"};
+//		
+//		Object[] r1 = new Object[]{"S1", "B1"};
+//		myList.add(r1);
+//		
+//		Object[] r2 = new Object[]{"S1", "B2"};
+//		myList.add(r2);
+//		
+//		Object[] r3 = new Object[]{"S2", "B1"};
+//		myList.add(r3);
+//		
+//		Object[] r4 = new Object[]{"S3", "B2"};
+//		myList.add(r4);
+//		
+//		Object[] r5 = new Object[]{"S3", "B1"};
+//		myList.add(r5);
+//		
+//		Map<String, Integer> map = new HashMap<String, Integer>();
+//		map.put("S1", 0);
+//		map.put("S2", 1);
+//		map.put("S3", 2);
+//		
+//		String[] systems = new String[]{"S1", "S2", "S3"};
+//		Double[] buds = new Double[]{10., 5., 20.};
+//		
+//		BLUSystemOptimizer ps = new BLUSystemOptimizer();
+//		ps.setSystemData(systems, buds, 20., myList, map);
+//		
+//		try {
+//			ps.setupModel();
+//		} catch (LpSolveException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//		ps.execute();
+//		
+//		ps.deleteModel();
+//		
+//		
+//		
+//		
+//		
+//		
+//		
+//		
+//		
+//	}
 }

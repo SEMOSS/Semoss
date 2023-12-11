@@ -1234,120 +1234,120 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		this.rDataTable = rDataTable;
 	}
 	
-	public static void main(String[] args) {
-//		SelectQueryStruct qsTest = new SelectQueryStruct();
-//		qsTest.addSelector("Title", null);
-//		qsTest.addSelector("Other2", null);
-//		//qsTest.addSelector("Movie_Budget", null);
+//	public static void main(String[] args) {
+////		SelectQueryStruct qsTest = new SelectQueryStruct();
+////		qsTest.addSelector("Title", null);
+////		qsTest.addSelector("Other2", null);
+////		//qsTest.addSelector("Movie_Budget", null);
+////
+////		//Vector filterData1 = new Vector<>();
+////		//filterData1.add("American Hustle");
+////		//filterData1.add("Captain Phillips");
+////
+////		NounMetadata test1 = new NounMetadata("Title", PixelDataType.COLUMN);
+////		List<Object> values = new Vector<Object>();
+////		values.add(500);
+////		//values.add("string2");
+////		//values.add(2.3);
+////		NounMetadata test2 = new NounMetadata(values, PixelDataType.CONST_INT);
+////		NounMetadata test3 = new NounMetadata("Nominated", PixelDataType.CONST_STRING);
+////
+////		SimpleQueryFilter filter1 = new SimpleQueryFilter(test1, "=", test3);
+////		qsTest.addExplicitFilter(filter1);
+////
+////		//Vector filterData2 = new Vector<>();
+////		//filterData2.add(40000000);
+////		//qs.addFilter("Movie_Budget", ">", filterData2);
+////
+////		RInterpreter rI = new RInterpreter();
+////		rI.setQueryStruct(qsTest);
+////
+////		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
+////		colDataTypes.put("Title", SemossDataType.STRING);
+////		colDataTypes.put("Other2", SemossDataType.STRING);
+////
+////		rI.setColDataTypes(colDataTypes);
+////
+////		String query = rI.composeQuery();
+////		System.out.println(query);
+//		
+////		String jFormat = "sss:SSS";
+//		String jFormat = "MM-dd'T'HH:mm:ss.SSS'Z'" ;
+//		//String jFormat = "M-d'T'HH:mm:ss" ;
+//		//String jFormat = "M-d'T'HH:mm" ;
+//		
+//		String rFormat = "%m-%dT%H:%M:%OSZ";
+//		
+//		StringBuilder sb = new StringBuilder();
+//		//regex that correspond to values that may potentially not need a leading zero
+//		String regex = "MdHm" ;
+//        String firstParam = rFormat;
+//        String secondParam = "";
 //
-//		//Vector filterData1 = new Vector<>();
-//		//filterData1.add("American Hustle");
-//		//filterData1.add("Captain Phillips");
+//        //remove anything that is wrapped in single quotes
+//        Pattern sqPattern = Pattern.compile("([\"'])(\\\\?.)*?\\1");
+//        jFormat = sqPattern.matcher(jFormat).replaceAll("");
+//        
+//        List<String> matchedRRegex = new ArrayList<String>();
+//        for (char ch: regex.toCharArray()) {
+//        	Pattern pattern = Pattern.compile(String.valueOf(ch));
+//            Matcher matcher = pattern.matcher(jFormat);
+//            int count = 0;
+//            while (matcher.find()){
+//            	count++;
+//            }
+//            if (count == 1) {
+//            	//if the character is matched once in the jFormat, then fetch corresponding r syntax 
+//            	String rRegex = (String.valueOf(ch).equals("M")) ? RSyntaxHelper.getValueJavaRDatTimeTranslationMap(ch + "1") : 
+//                	RSyntaxHelper.getValueJavaRDatTimeTranslationMap(String.valueOf(ch));
+//            	matchedRRegex.add(rRegex);
+//            }
+//        }
 //
-//		NounMetadata test1 = new NounMetadata("Title", PixelDataType.COLUMN);
-//		List<Object> values = new Vector<Object>();
-//		values.add(500);
-//		//values.add("string2");
-//		//values.add(2.3);
-//		NounMetadata test2 = new NounMetadata(values, PixelDataType.CONST_INT);
-//		NounMetadata test3 = new NounMetadata("Nominated", PixelDataType.CONST_STRING);
-//
-//		SimpleQueryFilter filter1 = new SimpleQueryFilter(test1, "=", test3);
-//		qsTest.addExplicitFilter(filter1);
-//
-//		//Vector filterData2 = new Vector<>();
-//		//filterData2.add(40000000);
-//		//qs.addFilter("Movie_Budget", ">", filterData2);
-//
-//		RInterpreter rI = new RInterpreter();
-//		rI.setQueryStruct(qsTest);
-//
-//		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
-//		colDataTypes.put("Title", SemossDataType.STRING);
-//		colDataTypes.put("Other2", SemossDataType.STRING);
-//
-//		rI.setColDataTypes(colDataTypes);
-//
-//		String query = rI.composeQuery();
-//		System.out.println(query);
-		
-//		String jFormat = "sss:SSS";
-		String jFormat = "MM-dd'T'HH:mm:ss.SSS'Z'" ;
-		//String jFormat = "M-d'T'HH:mm:ss" ;
-		//String jFormat = "M-d'T'HH:mm" ;
-		
-		String rFormat = "%m-%dT%H:%M:%OSZ";
-		
-		StringBuilder sb = new StringBuilder();
-		//regex that correspond to values that may potentially not need a leading zero
-		String regex = "MdHm" ;
-        String firstParam = rFormat;
-        String secondParam = "";
-
-        //remove anything that is wrapped in single quotes
-        Pattern sqPattern = Pattern.compile("([\"'])(\\\\?.)*?\\1");
-        jFormat = sqPattern.matcher(jFormat).replaceAll("");
-        
-        List<String> matchedRRegex = new ArrayList<String>();
-        for (char ch: regex.toCharArray()) {
-        	Pattern pattern = Pattern.compile(String.valueOf(ch));
-            Matcher matcher = pattern.matcher(jFormat);
-            int count = 0;
-            while (matcher.find()){
-            	count++;
-            }
-            if (count == 1) {
-            	//if the character is matched once in the jFormat, then fetch corresponding r syntax 
-            	String rRegex = (String.valueOf(ch).equals("M")) ? RSyntaxHelper.getValueJavaRDatTimeTranslationMap(ch + "1") : 
-                	RSyntaxHelper.getValueJavaRDatTimeTranslationMap(String.valueOf(ch));
-            	matchedRRegex.add(rRegex);
-            }
-        }
-
-        if (matchedRRegex.size() > 0) {
-        	//if leading zero is absent, then construct the R gsub syntax
-            int secondParamValue = 1;
-            for (int i=0; i < rFormat.length(); i++){
-                String c = Character.toString(rFormat.charAt(i));
-                if (c.equals("%")) {
-                    String substr = (rFormat.substring(i, i+2).equals("%O")) ? rFormat.substring(i, i+3) : rFormat.substring(i, i+2);
-                	System.out.println("INDEX: " + i + " ::: " + substr);
-                    if (matchedRRegex.contains(substr)){
-                        firstParam = firstParam.replaceAll(substr, "0?(.+)");
-                    } else {
-                        firstParam = firstParam.replaceAll(substr, "(.*)");
-                    }
-                    secondParam += "\\\\" + secondParamValue;
-                    secondParamValue++;
-                    //increment i appropriately
-                    i = (substr.equals("%OS")) ? i+2 : i+1;
-                } else {
-                    secondParam += c;
-                }
-            }
-            
-            //if minutes is one where we have to handle leading zeros, then need to ensure "00" is left as such 
-            if (matchedRRegex.contains("%M")) {
-            	sb.append("('" + firstParam + "','" + secondParam + "', COLUMNNAME) %>% gsub(':0:', ':00:', .)");
-            } else {
-            	sb.append("('" + firstParam + "','" + secondParam + "', COLUMNNAME)");
-            }
-        }
-        
-        //get delimiter between seconds and milliseconds, if present, from the java format
-        int indexSeconds = jFormat.lastIndexOf("s");
-        int indexMilliSeconds = jFormat.indexOf("S");
-        if (indexSeconds < indexMilliSeconds) {
-        	String delimiter = jFormat.substring(indexSeconds + 1,  indexMilliSeconds);
-        	if (!delimiter.equals(".")){
-        		sb.append(" %>% gsub('.([^.]+)$', '\\\\2" + delimiter + "\\\\1', .)");
-        	}
-        }
-        String x = sb.toString();
-        
-        System.out.println(sb.toString()==null);
-        System.out.println(sb.length());
-	}
+//        if (matchedRRegex.size() > 0) {
+//        	//if leading zero is absent, then construct the R gsub syntax
+//            int secondParamValue = 1;
+//            for (int i=0; i < rFormat.length(); i++){
+//                String c = Character.toString(rFormat.charAt(i));
+//                if (c.equals("%")) {
+//                    String substr = (rFormat.substring(i, i+2).equals("%O")) ? rFormat.substring(i, i+3) : rFormat.substring(i, i+2);
+//                	System.out.println("INDEX: " + i + " ::: " + substr);
+//                    if (matchedRRegex.contains(substr)){
+//                        firstParam = firstParam.replaceAll(substr, "0?(.+)");
+//                    } else {
+//                        firstParam = firstParam.replaceAll(substr, "(.*)");
+//                    }
+//                    secondParam += "\\\\" + secondParamValue;
+//                    secondParamValue++;
+//                    //increment i appropriately
+//                    i = (substr.equals("%OS")) ? i+2 : i+1;
+//                } else {
+//                    secondParam += c;
+//                }
+//            }
+//            
+//            //if minutes is one where we have to handle leading zeros, then need to ensure "00" is left as such 
+//            if (matchedRRegex.contains("%M")) {
+//            	sb.append("('" + firstParam + "','" + secondParam + "', COLUMNNAME) %>% gsub(':0:', ':00:', .)");
+//            } else {
+//            	sb.append("('" + firstParam + "','" + secondParam + "', COLUMNNAME)");
+//            }
+//        }
+//        
+//        //get delimiter between seconds and milliseconds, if present, from the java format
+//        int indexSeconds = jFormat.lastIndexOf("s");
+//        int indexMilliSeconds = jFormat.indexOf("S");
+//        if (indexSeconds < indexMilliSeconds) {
+//        	String delimiter = jFormat.substring(indexSeconds + 1,  indexMilliSeconds);
+//        	if (!delimiter.equals(".")){
+//        		sb.append(" %>% gsub('.([^.]+)$', '\\\\2" + delimiter + "\\\\1', .)");
+//        	}
+//        }
+//        String x = sb.toString();
+//        
+//        System.out.println(sb.toString()==null);
+//        System.out.println(sb.length());
+//	}
 	
 	public String getMainQuery() {
 		return this.mainQuery.toString();
