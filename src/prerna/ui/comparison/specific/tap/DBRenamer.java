@@ -210,8 +210,8 @@ public class DBRenamer {
 		window.setVisible(true);
 	}
 
-	public static void main(String[] args) {
-		DBRenamer ui = new DBRenamer();
-	}
+//	public static void main(String[] args) {
+//		DBRenamer ui = new DBRenamer();
+//	}
 
 }

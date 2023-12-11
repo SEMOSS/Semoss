@@ -15,12 +15,12 @@ public class SelfOrganizingMapGrid {
 	private int width;
 	private int numGrids;
 
-	public static void main(String[] args) {
-		SelfOrganizingMapGrid grid = new SelfOrganizingMapGrid(26, 17);
-		System.out.println(grid.getAdjacentCellsInRadius(104, 13));
-		
-		System.out.println(Arrays.toString(SelfOrganizingMapGrid.getCoordinatesOfCell(354, 26)));
-	}
+//	public static void main(String[] args) {
+//		SelfOrganizingMapGrid grid = new SelfOrganizingMapGrid(26, 17);
+//		System.out.println(grid.getAdjacentCellsInRadius(104, 13));
+//		
+//		System.out.println(Arrays.toString(SelfOrganizingMapGrid.getCoordinatesOfCell(354, 26)));
+//	}
 
 	public SelfOrganizingMapGrid() {
 

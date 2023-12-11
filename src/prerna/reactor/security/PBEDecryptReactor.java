@@ -103,20 +103,20 @@ public class PBEDecryptReactor extends AbstractReactor {
 		return PBEDecryptReactor.password;
 	}
 	
-	
-	public static void main(String[] args) {
-		String value = "SELECT * FROM MOVIE_DATA";
-		
-		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
-		encryptor.setPassword("password123");
-		byte[] queryBytes = encryptor.encrypt(value.getBytes());
-		String encoded = new String(queryBytes);
-		System.out.println("Encode array > " + Arrays.toString(queryBytes));
-		System.out.println("Encoded >> " + encoded);
-		
-//		byte[] decodedBytes = encryptor.decrypt(queryBytes);
-//		String decoded = new String(decodedBytes);
-//		System.out.println("Decoded >> " + decoded);
-	}
+//	
+//	public static void main(String[] args) {
+//		String value = "SELECT * FROM MOVIE_DATA";
+//		
+//		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
+//		encryptor.setPassword("password123");
+//		byte[] queryBytes = encryptor.encrypt(value.getBytes());
+//		String encoded = new String(queryBytes);
+//		System.out.println("Encode array > " + Arrays.toString(queryBytes));
+//		System.out.println("Encoded >> " + encoded);
+//		
+////		byte[] decodedBytes = encryptor.decrypt(queryBytes);
+////		String decoded = new String(decodedBytes);
+////		System.out.println("Decoded >> " + decoded);
+//	}
 	
 }

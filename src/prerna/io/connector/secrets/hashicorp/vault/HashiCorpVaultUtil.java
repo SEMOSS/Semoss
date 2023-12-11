@@ -395,17 +395,17 @@ public class HashiCorpVaultUtil implements ISecrets {
 	///////////////////////////////////////////////////////////////////////////
 
 	
-	public static void main(String[] args) throws VaultException, ParseException, IOException {
-		HashiCorpVaultUtil instance = HashiCorpVaultUtil.getInstance();
-		instance.createDatabaseSecretEngine();
-		instance.createProjectSecretEngine();
-		
-		Map<String, Object> nameValuePairs = new HashMap<>();
-		nameValuePairs.put("PASSWORD","password");
-		instance.writeDatabaseSecrets("Sql Server VHA Supply", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", nameValuePairs);
-		
-		Map<String, String> dbSecrets = instance.getDatabaseSecrets("Sql Server VHA Supply", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c");
-		System.out.println(dbSecrets);
-	}
+//	public static void main(String[] args) throws VaultException, ParseException, IOException {
+//		HashiCorpVaultUtil instance = HashiCorpVaultUtil.getInstance();
+//		instance.createDatabaseSecretEngine();
+//		instance.createProjectSecretEngine();
+//		
+//		Map<String, Object> nameValuePairs = new HashMap<>();
+//		nameValuePairs.put("PASSWORD","password");
+//		instance.writeDatabaseSecrets("Sql Server VHA Supply", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", nameValuePairs);
+//		
+//		Map<String, String> dbSecrets = instance.getDatabaseSecrets("Sql Server VHA Supply", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c");
+//		System.out.println(dbSecrets);
+//	}
 
 }

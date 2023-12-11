@@ -576,141 +576,141 @@ public class MatrixHashMap {
 	/**
 	 * Main contains uses of every function of the MatrixHashMap as test cases.
 	 */
-	public static void main(String[] args)
-	{
-		HashMap<String, Double> inner = new HashMap<String, Double>();
-		HashMap<String, Double> inner2 = new HashMap<String, Double>();
-		inner.put("1", 1.0);
-		inner.put("2", 2.0);
-		inner.put("3", 3.0);
-		inner.put("4", 4.0);
-		
-		inner2.put("1", 2.0);
-		inner2.put("2", 3.0);
-		inner2.put("3", 4.0);
-		inner2.put("4", 5.0);
-		
-		MatrixHashMap M = new MatrixHashMap(new HashMap<String,HashMap<String,Double>>());
-		
-		HashMap<String, HashMap<String,Double>> firstHashMap = new HashMap<String, HashMap<String,Double>>();
-		firstHashMap.put("a", inner);
-		firstHashMap.put("b", M.addVector(inner,inner));
-		firstHashMap.put("c", inner2);
-		firstHashMap.put("d", M.addVector(inner2,inner2));
-		//firstHashMap.put("3", addVector(inner,inner2));
-		
-		MatrixHashMap M1 = new MatrixHashMap(firstHashMap);
-		
-		inner = new HashMap<String, Double>();
-		inner2 = new HashMap<String, Double>();
-		inner.put("1", 0.1);
-		inner.put("2", 2.0);
-		inner.put("3", 0.5);
-		inner2.put("1", 1.0);
-		inner2.put("2", 2.0);
-		inner2.put("3", 3.0);
-		
-		
-		
-		HashMap<String, HashMap<String,Double>> secondHashMap = new HashMap<String, HashMap<String,Double>>();
-		secondHashMap.put("a", inner);
-		secondHashMap.put("b", M.addVector(inner,inner));
-		secondHashMap.put("e", M.addVector(inner,inner2));
-		
-		MatrixHashMap M2 = new MatrixHashMap(secondHashMap);
-		
-		inner = new HashMap<String, Double>();
-		inner.put("1", 0.0);
-		inner.put("2", 0.0);
-		inner.put("3", 0.0);
-		
-		HashMap<String, HashMap<String,Double>> thirdHashMap = new HashMap<String, HashMap<String,Double>>();
-		thirdHashMap.put("a", inner);
-		thirdHashMap.put("b", inner);
-		thirdHashMap.put("c", inner);
-		
-		MatrixHashMap M3 = new MatrixHashMap(thirdHashMap);
-		
-		System.out.println("M1\n" +M1);
-		System.out.println("M2\n" +M2);
-		
-		MatrixHashMap add = M1.addMatrix(M2);
-		System.out.println("Added M1 and M2: \n" + add);
-		
-		MatrixHashMap M2T = M2.transposeMatrix();
-		System.out.println("M2 Transposed (M2T): \n" + M2T);
-		
-		MatrixHashMap mult = M1.multiplyMatrix(M2T);
-		System.out.println("Multiplied M1 and M2T: \n" + mult);
-		
-		System.out.println("getRow a of M1: \n" );
-		print(M1.getRow("a"));
-		
-		System.out.println("getColumn 1 of M2: \n" );
-		print(M2.getColumn("1"));
-		
-		System.out.println("M1.getRowSum(): \n" );
-		System.out.println(M1.getRowSum());
-		
-		System.out.println("M1.getColumnSum(): \n" );
-		System.out.println(M1.getColumnSum());
-		
-		System.out.println("M1.getSum(): \n" );
-		System.out.println(M1.getSum());
-		
-		System.out.println("M3:\n"+M3);
-		
-		System.out.println("M3 is a zeros Matrix");
-		System.out.println("M3.isZeros() = "+M3.isZeros());
-		System.out.println("M3.getRows():");
-		print(M3.getRows());
-		System.out.println("M3.getColumns():");
-		print(M3.getColumns());
-		
-		inner = new HashMap<String, Double>();
-		inner2 = new HashMap<String, Double>();
-		inner.put("1", 0.0);
-		inner.put("2", 1.0);
-		inner.put("3", 0.0);
-		inner2.put("1", 1.0);
-		inner2.put("2", 0.0);
-		inner2.put("3", 1.0);
-		HashMap<String,HashMap<String,Double>> m4 = new HashMap<String,HashMap<String,Double>>();
-		m4.put("a", inner);
-		m4.put("b", inner2);
-		m4.put("c", inner);
-		
-		MatrixHashMap M4 = new MatrixHashMap(m4);
-		System.out.println("Matrix M4: \n" + M4);
-		
-		System.out.println("Matrix M1 masked by M4: \n" + M1.maskMatrix(M4));
-		
-		Set<String> mask = new HashSet<String>();
-		mask.add("e");
-		mask.add("4");
-		System.out.println("Matrix M1+M2 masked on rows by \"e\" \n" + add.maskRows(mask));
-		System.out.println("Matrix M1+M2 masked on columns by \"4\" \n" + add.maskColumns(mask));
-		
-		System.out.println("Mask and Generate New Mask of Rows on M1+M2 by \"4\" \n");
-		print(add.getRowMask(mask));
-		
-		System.out.println("Mask and Generate New Mask of Columns on M1+M2 by \"e\" \n");
-		print(add.getColumnMask(mask));
-		
-		System.out.println("Multiplication of M1 by the scalar of 4\n" + M1.multiplyByScalar(4.0));
-		
-		HashMap<String,Double> scalar = new HashMap<String,Double>();
-		scalar.put("a", 1.0);
-		scalar.put("b", 2.0);
-		scalar.put("c", 3.0);
-		scalar.put("d", 4.0);
-		System.out.println("Multiplication of M1 by the scalar Vector acrros rows [1, 2, 3, 4]\n" + M1.multiplyRowsByScalarVector(scalar));
-		
-		System.out.println("Does M1 equal M2:" + M1.isEqual(M2));
-		System.out.println("Does M1 equal M1:" + M1.isEqual(M1));
-		System.out.println("Does M2 equal M2:" + M2.isEqual(M2));
-		System.out.println("Does M3 equal M1:" + M3.isEqual(M1));
-	}
+//	public static void main(String[] args)
+//	{
+//		HashMap<String, Double> inner = new HashMap<String, Double>();
+//		HashMap<String, Double> inner2 = new HashMap<String, Double>();
+//		inner.put("1", 1.0);
+//		inner.put("2", 2.0);
+//		inner.put("3", 3.0);
+//		inner.put("4", 4.0);
+//		
+//		inner2.put("1", 2.0);
+//		inner2.put("2", 3.0);
+//		inner2.put("3", 4.0);
+//		inner2.put("4", 5.0);
+//		
+//		MatrixHashMap M = new MatrixHashMap(new HashMap<String,HashMap<String,Double>>());
+//		
+//		HashMap<String, HashMap<String,Double>> firstHashMap = new HashMap<String, HashMap<String,Double>>();
+//		firstHashMap.put("a", inner);
+//		firstHashMap.put("b", M.addVector(inner,inner));
+//		firstHashMap.put("c", inner2);
+//		firstHashMap.put("d", M.addVector(inner2,inner2));
+//		//firstHashMap.put("3", addVector(inner,inner2));
+//		
+//		MatrixHashMap M1 = new MatrixHashMap(firstHashMap);
+//		
+//		inner = new HashMap<String, Double>();
+//		inner2 = new HashMap<String, Double>();
+//		inner.put("1", 0.1);
+//		inner.put("2", 2.0);
+//		inner.put("3", 0.5);
+//		inner2.put("1", 1.0);
+//		inner2.put("2", 2.0);
+//		inner2.put("3", 3.0);
+//		
+//		
+//		
+//		HashMap<String, HashMap<String,Double>> secondHashMap = new HashMap<String, HashMap<String,Double>>();
+//		secondHashMap.put("a", inner);
+//		secondHashMap.put("b", M.addVector(inner,inner));
+//		secondHashMap.put("e", M.addVector(inner,inner2));
+//		
+//		MatrixHashMap M2 = new MatrixHashMap(secondHashMap);
+//		
+//		inner = new HashMap<String, Double>();
+//		inner.put("1", 0.0);
+//		inner.put("2", 0.0);
+//		inner.put("3", 0.0);
+//		
+//		HashMap<String, HashMap<String,Double>> thirdHashMap = new HashMap<String, HashMap<String,Double>>();
+//		thirdHashMap.put("a", inner);
+//		thirdHashMap.put("b", inner);
+//		thirdHashMap.put("c", inner);
+//		
+//		MatrixHashMap M3 = new MatrixHashMap(thirdHashMap);
+//		
+//		System.out.println("M1\n" +M1);
+//		System.out.println("M2\n" +M2);
+//		
+//		MatrixHashMap add = M1.addMatrix(M2);
+//		System.out.println("Added M1 and M2: \n" + add);
+//		
+//		MatrixHashMap M2T = M2.transposeMatrix();
+//		System.out.println("M2 Transposed (M2T): \n" + M2T);
+//		
+//		MatrixHashMap mult = M1.multiplyMatrix(M2T);
+//		System.out.println("Multiplied M1 and M2T: \n" + mult);
+//		
+//		System.out.println("getRow a of M1: \n" );
+//		print(M1.getRow("a"));
+//		
+//		System.out.println("getColumn 1 of M2: \n" );
+//		print(M2.getColumn("1"));
+//		
+//		System.out.println("M1.getRowSum(): \n" );
+//		System.out.println(M1.getRowSum());
+//		
+//		System.out.println("M1.getColumnSum(): \n" );
+//		System.out.println(M1.getColumnSum());
+//		
+//		System.out.println("M1.getSum(): \n" );
+//		System.out.println(M1.getSum());
+//		
+//		System.out.println("M3:\n"+M3);
+//		
+//		System.out.println("M3 is a zeros Matrix");
+//		System.out.println("M3.isZeros() = "+M3.isZeros());
+//		System.out.println("M3.getRows():");
+//		print(M3.getRows());
+//		System.out.println("M3.getColumns():");
+//		print(M3.getColumns());
+//		
+//		inner = new HashMap<String, Double>();
+//		inner2 = new HashMap<String, Double>();
+//		inner.put("1", 0.0);
+//		inner.put("2", 1.0);
+//		inner.put("3", 0.0);
+//		inner2.put("1", 1.0);
+//		inner2.put("2", 0.0);
+//		inner2.put("3", 1.0);
+//		HashMap<String,HashMap<String,Double>> m4 = new HashMap<String,HashMap<String,Double>>();
+//		m4.put("a", inner);
+//		m4.put("b", inner2);
+//		m4.put("c", inner);
+//		
+//		MatrixHashMap M4 = new MatrixHashMap(m4);
+//		System.out.println("Matrix M4: \n" + M4);
+//		
+//		System.out.println("Matrix M1 masked by M4: \n" + M1.maskMatrix(M4));
+//		
+//		Set<String> mask = new HashSet<String>();
+//		mask.add("e");
+//		mask.add("4");
+//		System.out.println("Matrix M1+M2 masked on rows by \"e\" \n" + add.maskRows(mask));
+//		System.out.println("Matrix M1+M2 masked on columns by \"4\" \n" + add.maskColumns(mask));
+//		
+//		System.out.println("Mask and Generate New Mask of Rows on M1+M2 by \"4\" \n");
+//		print(add.getRowMask(mask));
+//		
+//		System.out.println("Mask and Generate New Mask of Columns on M1+M2 by \"e\" \n");
+//		print(add.getColumnMask(mask));
+//		
+//		System.out.println("Multiplication of M1 by the scalar of 4\n" + M1.multiplyByScalar(4.0));
+//		
+//		HashMap<String,Double> scalar = new HashMap<String,Double>();
+//		scalar.put("a", 1.0);
+//		scalar.put("b", 2.0);
+//		scalar.put("c", 3.0);
+//		scalar.put("d", 4.0);
+//		System.out.println("Multiplication of M1 by the scalar Vector acrros rows [1, 2, 3, 4]\n" + M1.multiplyRowsByScalarVector(scalar));
+//		
+//		System.out.println("Does M1 equal M2:" + M1.isEqual(M2));
+//		System.out.println("Does M1 equal M1:" + M1.isEqual(M1));
+//		System.out.println("Does M2 equal M2:" + M2.isEqual(M2));
+//		System.out.println("Does M3 equal M1:" + M3.isEqual(M1));
+//	}
 	
 	private static void print( HashMap<String,Double> map)
 	{

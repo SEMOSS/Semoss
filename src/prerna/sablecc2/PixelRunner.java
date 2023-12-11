@@ -281,12 +281,12 @@ public class PixelRunner {
 	/*
 	 * Other methods here
 	 */
-	
-	public static void main(String[] args) throws Exception {
-		String pixel = "A = 10; B = \"Apple\";";
-		List<String> x = parsePixel(pixel);
-		logger.info(Utility.cleanLogString(Arrays.toString(x.toArray())));
-	}
+//	
+//	public static void main(String[] args) throws Exception {
+//		String pixel = "A = 10; B = \"Apple\";";
+//		List<String> x = parsePixel(pixel);
+//		logger.info(Utility.cleanLogString(Arrays.toString(x.toArray())));
+//	}
 	
 	/**
 	 * 

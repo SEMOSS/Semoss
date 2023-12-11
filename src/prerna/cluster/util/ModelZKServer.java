@@ -757,39 +757,39 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 		}	
 	}
 	
-	public static void main(String [] args)
-	{
-		DIHelper helper = DIHelper.getInstance();
-		helper.loadCoreProp("C:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_Map.prop");
-		ModelZKServer zkc = ModelZKServer.getInstance("RANDOM_ID");
-		
-		
-		InterProcessMutex lock = new InterProcessMutex(zkc.client, "/locker");
-		try {
-		     lock.acquire(); //(3, TimeUnit.SECONDS)) 
-		    {
-		        try {
-		            // do some work inside of the critical section here
-		        	System.err.println("Starting this thread ");
-		        	Thread.sleep(10000);
-		        	System.err.println("Going to release lock");
-		        } finally {
-		            lock.release();
-		        }
-		    }
-		} catch (Exception e) {
-		    throw new RuntimeException(e);
-		}
-		try {
-			Thread.sleep(10000000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		//zkc.waitHere();
-		
-	}
+//	public static void main(String [] args)
+//	{
+//		DIHelper helper = DIHelper.getInstance();
+//		helper.loadCoreProp("C:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_Map.prop");
+//		ModelZKServer zkc = ModelZKServer.getInstance("RANDOM_ID");
+//		
+//		
+//		InterProcessMutex lock = new InterProcessMutex(zkc.client, "/locker");
+//		try {
+//		     lock.acquire(); //(3, TimeUnit.SECONDS)) 
+//		    {
+//		        try {
+//		            // do some work inside of the critical section here
+//		        	System.err.println("Starting this thread ");
+//		        	Thread.sleep(10000);
+//		        	System.err.println("Going to release lock");
+//		        } finally {
+//		            lock.release();
+//		        }
+//		    }
+//		} catch (Exception e) {
+//		    throw new RuntimeException(e);
+//		}
+//		try {
+//			Thread.sleep(10000000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		//zkc.waitHere();
+//		
+//	}
 
 
 }

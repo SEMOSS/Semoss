@@ -106,18 +106,18 @@ public class ExcelRange {
 		return this.startRow;
 	}
 	
-	public static void main(String[] args) {
-		String rStr = "A1:EJ1459";
-		int[] rIdx = getSheetRangeIndex(rStr);
-		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
-		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
-
-		System.out.println(">>> ");
-		
-		rStr = "A1:AA9";
-		rIdx = getSheetRangeIndex(rStr);
-		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
-		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
-	}
+//	public static void main(String[] args) {
+//		String rStr = "A1:EJ1459";
+//		int[] rIdx = getSheetRangeIndex(rStr);
+//		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
+//		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
+//
+//		System.out.println(">>> ");
+//		
+//		rStr = "A1:AA9";
+//		rIdx = getSheetRangeIndex(rStr);
+//		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
+//		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
+//	}
 	
 }

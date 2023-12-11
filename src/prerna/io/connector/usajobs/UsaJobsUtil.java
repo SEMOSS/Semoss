@@ -44,21 +44,21 @@ public class UsaJobsUtil {
 
 
 	
-	public static void main(String[] args)
-	{
-		String date = getToday("_");
-		UsaJobsUtil test = new UsaJobsUtil("c:/temp/output" + date + ".csv");
-		//test.runStateSearch(new String[]{"CA", "CO", "CT", "GA", "IN", "KY", "MN", "MI", "NV", "NH", "NY", "OH", "VA", "WI"});
-		List <String> states = new ArrayList<String>();
-		states.add("VA");
-		List <String> cred = new ArrayList<String>();
-		cred.add("prabhuk12@gmail.com");
-		cred.add("v1y+niWf2+6TDnDU/uXyqtojViOvLryPIhBO7WfG5So=");
-		cred.add("data.usajobs.gov");
-
-		// make sure the credential is fulled properly
-		test.runStateSearch(cred, states); //", "CO", "CT", "GA", "IN", "KY", "MN", "MI", "NV", "NH", "NY", "OH", "VA", "WI"});
-	}
+//	public static void main(String[] args)
+//	{
+//		String date = getToday("_");
+//		UsaJobsUtil test = new UsaJobsUtil("c:/temp/output" + date + ".csv");
+//		//test.runStateSearch(new String[]{"CA", "CO", "CT", "GA", "IN", "KY", "MN", "MI", "NV", "NH", "NY", "OH", "VA", "WI"});
+//		List <String> states = new ArrayList<String>();
+//		states.add("VA");
+//		List <String> cred = new ArrayList<String>();
+//		cred.add("prabhuk12@gmail.com");
+//		cred.add("v1y+niWf2+6TDnDU/uXyqtojViOvLryPIhBO7WfG5So=");
+//		cred.add("data.usajobs.gov");
+//
+//		// make sure the credential is fulled properly
+//		test.runStateSearch(cred, states); //", "CO", "CT", "GA", "IN", "KY", "MN", "MI", "NV", "NH", "NY", "OH", "VA", "WI"});
+//	}
 	
 	public UsaJobsUtil(String fileName)
 	{

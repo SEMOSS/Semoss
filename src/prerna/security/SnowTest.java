@@ -33,13 +33,13 @@ public class SnowTest {
 		snow.runSnow(args);
 	}
 
-	public static void main(String[] args)
-	{
-		SnowTest snow = new SnowTest();
-		// encrypt the file
-		//snow.encryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\message.txt", "password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
-
-		snow.decryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt", "password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\decrypt.txt");
-		
-	}	
+//	public static void main(String[] args)
+//	{
+//		SnowTest snow = new SnowTest();
+//		// encrypt the file
+//		//snow.encryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\message.txt", "password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
+//
+//		snow.decryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt", "password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\decrypt.txt");
+//		
+//	}	
 }

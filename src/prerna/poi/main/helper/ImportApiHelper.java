@@ -108,44 +108,44 @@ public class ImportApiHelper extends WebAPIHelper{
 	
 
 	//For testing
-	public static void main(String[] args) throws IOException{
-
-		ImportApiHelper helper = new ImportApiHelper();
-		helper.setApiParam("https://extraction.import.io/query/extractor/f2f7910c-274d-4111-9264-184477512188?_apikey=ab733af8464e4aa597e01e5f96fd60a8820cf0ebcb07fd24106ba9cd8f2cfa1da647aa9f7a2df55079ef2a8fbd4d29623520f9d3edef779ce8ab5e59fc6b893cc6393d9276519b0ef7aa1be0fc5f2022&url=http%3A%2F%2Fen.wikipedia.org%2Fwiki%2FDancing_with_the_Stars_(U.S._TV_series)");
-		helper.parse();
-		System.out.println("**");
-
-		String[] headers = helper.getHeaders();
-		System.out.println("***Headers:");
-		for(String header: headers){
-			System.out.print(header + "|");
-		}
-
-		String[] datatypes = helper.getDatatypes();
-		System.out.println("\n***Datatypes:");
-		for(String datatype: datatypes){
-			System.out.print(datatype + "|");
-		}
-
-		int i = 0;
-		String[] rowData;
-		System.out.println("No. of rows: " + helper.getDataSize());
-		while(i<helper.getDataSize()){
-			rowData = helper.getNextRow();
-			if(rowData != null){
-
-				System.out.println("\n***RowData " + i +" :");
-				for(String cell: rowData){
-					System.out.print(cell +"|");
-				}
-				System.out.println("***");
-				i++;
-			}
-		}
-
-
-
-	}
+//	public static void main(String[] args) throws IOException{
+//
+//		ImportApiHelper helper = new ImportApiHelper();
+//		helper.setApiParam("https://extraction.import.io/query/extractor/f2f7910c-274d-4111-9264-184477512188?_apikey=ab733af8464e4aa597e01e5f96fd60a8820cf0ebcb07fd24106ba9cd8f2cfa1da647aa9f7a2df55079ef2a8fbd4d29623520f9d3edef779ce8ab5e59fc6b893cc6393d9276519b0ef7aa1be0fc5f2022&url=http%3A%2F%2Fen.wikipedia.org%2Fwiki%2FDancing_with_the_Stars_(U.S._TV_series)");
+//		helper.parse();
+//		System.out.println("**");
+//
+//		String[] headers = helper.getHeaders();
+//		System.out.println("***Headers:");
+//		for(String header: headers){
+//			System.out.print(header + "|");
+//		}
+//
+//		String[] datatypes = helper.getDatatypes();
+//		System.out.println("\n***Datatypes:");
+//		for(String datatype: datatypes){
+//			System.out.print(datatype + "|");
+//		}
+//
+//		int i = 0;
+//		String[] rowData;
+//		System.out.println("No. of rows: " + helper.getDataSize());
+//		while(i<helper.getDataSize()){
+//			rowData = helper.getNextRow();
+//			if(rowData != null){
+//
+//				System.out.println("\n***RowData " + i +" :");
+//				for(String cell: rowData){
+//					System.out.print(cell +"|");
+//				}
+//				System.out.println("***");
+//				i++;
+//			}
+//		}
+//
+//
+//
+//	}
 
 }
 

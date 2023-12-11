@@ -253,28 +253,28 @@ public void doSPARQL() throws Exception
 	 * Method main.
 	 * @param args String[]
 	 */
-	public static void main(String [] args) throws Exception
-	{
-		try
-		{
-			RDFTester tester = new RDFTester();
-			tester.openGraph();
-			//tester.createRDFData();
-			//tester.createGraphData();
-			tester.createSubClassTest();
-			//tester.readDataAsRDF();
-			//tester.doSPARQL();
-			//tester.readDataAsGraph();
-			tester.closeGraph();
-			
-		}catch(Exception ignored)
-		{
-			System.err.println("Exception " + ignored);
-			ignored.printStackTrace();
-		} 
-		
-		
-	}
+//	public static void main(String [] args) throws Exception
+//	{
+//		try
+//		{
+//			RDFTester tester = new RDFTester();
+//			tester.openGraph();
+//			//tester.createRDFData();
+//			//tester.createGraphData();
+//			tester.createSubClassTest();
+//			//tester.readDataAsRDF();
+//			//tester.doSPARQL();
+//			//tester.readDataAsGraph();
+//			tester.closeGraph();
+//			
+//		}catch(Exception ignored)
+//		{
+//			System.err.println("Exception " + ignored);
+//			ignored.printStackTrace();
+//		} 
+//		
+//		
+//	}
 	
 	
 }

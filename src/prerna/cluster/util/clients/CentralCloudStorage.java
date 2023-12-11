@@ -1664,28 +1664,28 @@ public class CentralCloudStorage implements ICloudClient {
 	////////////////////////////////////////////////////////////////////////
 
 	
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadAll("C:/workspace/Semoss_Dev/RDF_Map.prop");
-		Properties coreProp = DIHelper.getInstance().getCoreProp();
-		coreProp.put("SEMOSS_STORAGE_PROVIDER", "MINIO");
-		coreProp.put(MinioStorageEngine.MINIO_REGION_KEY, "us-east-1");
-		coreProp.put(MinioStorageEngine.MINIO_ACCESS_KEY, "aq7eJfuoYwDrtOVeWoGb");
-		coreProp.put(MinioStorageEngine.MINIO_SECRET_KEY, "14A9uh4eXwJYvBxBzcY32p4aYufzv6Sn7Ogkq7p2");
-		coreProp.put(MinioStorageEngine.MINIO_ENDPOINT_KEY, "http://localhost:9000");
-		coreProp.put(Constants.ENGINE, "CENTRAL_STORAGE");
-
-		{
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String engineProp = baseFolder + "\\db\\diabetes sanjay and sarji__56af9395-64fd-40a2-b68c-bbd6961336a5.smss";
-			IDatabaseEngine sampleDb = new RDBMSNativeEngine();
-			sampleDb.open(engineProp);
-			DIHelper.getInstance().setEngineProperty("56af9395-64fd-40a2-b68c-bbd6961336a5", sampleDb);
-		}
-		
-		ICloudClient centralStorage = CentralCloudStorage.getInstance();
-		centralStorage.pushEngine("56af9395-64fd-40a2-b68c-bbd6961336a5");
-		centralStorage.pullEngine("56af9395-64fd-40a2-b68c-bbd6961336a5", null, true);
-		centralStorage.pullLocalDatabaseFile("56af9395-64fd-40a2-b68c-bbd6961336a5", RdbmsTypeEnum.H2_DB);
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadAll("C:/workspace/Semoss_Dev/RDF_Map.prop");
+//		Properties coreProp = DIHelper.getInstance().getCoreProp();
+//		coreProp.put("SEMOSS_STORAGE_PROVIDER", "MINIO");
+//		coreProp.put(MinioStorageEngine.MINIO_REGION_KEY, "us-east-1");
+//		coreProp.put(MinioStorageEngine.MINIO_ACCESS_KEY, "aq7eJfuoYwDrtOVeWoGb");
+//		coreProp.put(MinioStorageEngine.MINIO_SECRET_KEY, "14A9uh4eXwJYvBxBzcY32p4aYufzv6Sn7Ogkq7p2");
+//		coreProp.put(MinioStorageEngine.MINIO_ENDPOINT_KEY, "http://localhost:9000");
+//		coreProp.put(Constants.ENGINE, "CENTRAL_STORAGE");
+//
+//		{
+//			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+//			String engineProp = baseFolder + "\\db\\diabetes sanjay and sarji__56af9395-64fd-40a2-b68c-bbd6961336a5.smss";
+//			IDatabaseEngine sampleDb = new RDBMSNativeEngine();
+//			sampleDb.open(engineProp);
+//			DIHelper.getInstance().setEngineProperty("56af9395-64fd-40a2-b68c-bbd6961336a5", sampleDb);
+//		}
+//		
+//		ICloudClient centralStorage = CentralCloudStorage.getInstance();
+//		centralStorage.pushEngine("56af9395-64fd-40a2-b68c-bbd6961336a5");
+//		centralStorage.pullEngine("56af9395-64fd-40a2-b68c-bbd6961336a5", null, true);
+//		centralStorage.pullLocalDatabaseFile("56af9395-64fd-40a2-b68c-bbd6961336a5", RdbmsTypeEnum.H2_DB);
+//	}
 
 }
