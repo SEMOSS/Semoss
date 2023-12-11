@@ -58,9 +58,9 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 		super(query);
 	}
 	
-	public static void main(String[] args) throws Exception {
-		basicParseTest();
-	}
+//	public static void main(String[] args) throws Exception {
+//		basicParseTest();
+//	}
 	
 	@Override
 	public void parseQuery(){

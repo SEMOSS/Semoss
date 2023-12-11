@@ -111,55 +111,55 @@ public class ExcelWorkbookFilePreProcessor {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) {
-		String fileLocation = "C:\\Users\\SEMOSS\\Desktop\\shifted.xlsx";
-
-		ExcelWorkbookFilePreProcessor processor = new ExcelWorkbookFilePreProcessor();
-		processor.parse(fileLocation);
-		processor.determineTableRanges();
-		Map<String, ExcelSheetPreProcessor> sheetProcessors = processor.getSheetProcessors();
-		for(String sheet : sheetProcessors.keySet()) {
-			ExcelSheetPreProcessor sProcessor = sheetProcessors.get(sheet);
-			
-			{
-				List<ExcelBlock> blocks = sProcessor.getAllBlocks();
-				System.out.println("Streaming approach for types");
-				for(int i = 0; i < blocks.size(); i++) {
-					ExcelBlock block = blocks.get(i);
-					List<ExcelRange> blockRanges = block.getRanges();
-					for(int j = 0; j < blockRanges.size(); j++) {
-						ExcelRange r = blockRanges.get(j);
-						System.out.println("Found range = " + r.getRangeSyntax());
-						
-						System.out.println("Predicted range with headers " + Arrays.toString(sProcessor.getRangeHeaders(r)));
-						System.out.println("Predicted types for range");
-						Object[][] rangeTypes = block.getRangeTypes(r);
-						for(Object[] p : rangeTypes) {
-							System.out.println(Arrays.toString(p));
-						}
-					}
-				}
-			}
-			
-			System.out.println();
-			System.out.println();
-
-			{
-				System.out.println("Brute force method for types");
-				List<ExcelBlock> blocks = sProcessor.getAllBlocks();
-				for(int i = 0; i < blocks.size(); i++) {
-					ExcelBlock block = blocks.get(i);
-					List<ExcelRange> blockRanges = block.getRanges();
-					for(int j = 0; j < blockRanges.size(); j++) {
-						ExcelRange r = blockRanges.get(j);
-						System.out.println("Getting prediciton for range = " + r.getRangeSyntax());
-						Object[][] prediction = ExcelParsing.predictTypes(sProcessor.getSheet(), r.getRangeSyntax());
-						for(Object[] p : prediction) {
-							System.out.println(Arrays.toString(p));
-						}
-					}
-				}
-			}
-		}
-	}
+//	public static void main(String[] args) {
+//		String fileLocation = "C:\\Users\\SEMOSS\\Desktop\\shifted.xlsx";
+//
+//		ExcelWorkbookFilePreProcessor processor = new ExcelWorkbookFilePreProcessor();
+//		processor.parse(fileLocation);
+//		processor.determineTableRanges();
+//		Map<String, ExcelSheetPreProcessor> sheetProcessors = processor.getSheetProcessors();
+//		for(String sheet : sheetProcessors.keySet()) {
+//			ExcelSheetPreProcessor sProcessor = sheetProcessors.get(sheet);
+//			
+//			{
+//				List<ExcelBlock> blocks = sProcessor.getAllBlocks();
+//				System.out.println("Streaming approach for types");
+//				for(int i = 0; i < blocks.size(); i++) {
+//					ExcelBlock block = blocks.get(i);
+//					List<ExcelRange> blockRanges = block.getRanges();
+//					for(int j = 0; j < blockRanges.size(); j++) {
+//						ExcelRange r = blockRanges.get(j);
+//						System.out.println("Found range = " + r.getRangeSyntax());
+//						
+//						System.out.println("Predicted range with headers " + Arrays.toString(sProcessor.getRangeHeaders(r)));
+//						System.out.println("Predicted types for range");
+//						Object[][] rangeTypes = block.getRangeTypes(r);
+//						for(Object[] p : rangeTypes) {
+//							System.out.println(Arrays.toString(p));
+//						}
+//					}
+//				}
+//			}
+//			
+//			System.out.println();
+//			System.out.println();
+//
+//			{
+//				System.out.println("Brute force method for types");
+//				List<ExcelBlock> blocks = sProcessor.getAllBlocks();
+//				for(int i = 0; i < blocks.size(); i++) {
+//					ExcelBlock block = blocks.get(i);
+//					List<ExcelRange> blockRanges = block.getRanges();
+//					for(int j = 0; j < blockRanges.size(); j++) {
+//						ExcelRange r = blockRanges.get(j);
+//						System.out.println("Getting prediciton for range = " + r.getRangeSyntax());
+//						Object[][] prediction = ExcelParsing.predictTypes(sProcessor.getSheet(), r.getRangeSyntax());
+//						for(Object[] p : prediction) {
+//							System.out.println(Arrays.toString(p));
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
 }

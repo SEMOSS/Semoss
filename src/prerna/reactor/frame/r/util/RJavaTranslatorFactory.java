@@ -285,30 +285,30 @@ public class RJavaTranslatorFactory {
 		}
 	}
 
-
-	public static void main(String[] args) {
-		String r_home = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable";
-		String r_libs = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library";
-
-		String path = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable;"
-				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library;"
-				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library\\rJava\\jri;"
-				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\bin";
-
-		String cleanedRHome = r_home.replace("\\", "/");
-		String cleanedRLibs = r_libs.replace("\\", "/");
-		// we need R_HOME
-		// we need R_HOME\bin\x64 or R_HOME\bin\x86
-		// we need R_LIBS
-		// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-		boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
-				.anyMatch(p -> 
-				p.matches(Pattern.quote(cleanedRHome))
-				|| p.matches(Pattern.quote(cleanedRHome + "/bin/"))
-				|| p.matches(Pattern.quote(cleanedRLibs))
-				|| p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/"))
-				);
-
-		System.out.println(hasAllRequiredPaths);
-	}
+//
+//	public static void main(String[] args) {
+//		String r_home = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable";
+//		String r_libs = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library";
+//
+//		String path = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable;"
+//				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library;"
+//				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library\\rJava\\jri;"
+//				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\bin";
+//
+//		String cleanedRHome = r_home.replace("\\", "/");
+//		String cleanedRLibs = r_libs.replace("\\", "/");
+//		// we need R_HOME
+//		// we need R_HOME\bin\x64 or R_HOME\bin\x86
+//		// we need R_LIBS
+//		// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+//		boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
+//				.anyMatch(p -> 
+//				p.matches(Pattern.quote(cleanedRHome))
+//				|| p.matches(Pattern.quote(cleanedRHome + "/bin/"))
+//				|| p.matches(Pattern.quote(cleanedRLibs))
+//				|| p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/"))
+//				);
+//
+//		System.out.println(hasAllRequiredPaths);
+//	}
 }

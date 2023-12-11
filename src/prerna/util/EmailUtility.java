@@ -323,79 +323,79 @@ public class EmailUtility {
 
 	
 
-	public static void main(String[] args) throws Exception {
-		readEmailPOP3();
-//		readEmailIMAP();
-		//		// GMAIL
-		//		String smtpHost = "smtp.gmail.com";
-		//		String smtpPort = "465";
-		//		String username = "***REMOVED***";
-		//		String password = "***REMOVED***";
-		//
-		//		Properties props = new Properties();
-		//		props.put("mail.smtp.host", smtpHost);
-		//		props.put("mail.smtp.port", smtpPort);
-		//		props.put("mail.smtp.socketFactory.port", smtpPort);
-		//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-		//		Session emailSession = null;
-		//		if (username != null && password != null) {
-		//			props.put("mail.smtp.auth", true);
-		//			props.put("mail.smtp.starttls.enable", true);
-		//			System.out.println("Making connection");
-		//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
-		//				protected PasswordAuthentication getPasswordAuthentication() {
-		//					return new PasswordAuthentication(username, password);
-		//				}
-		//			});
-		//		} else {
-		//			System.out.println("Making connection");
-		//			emailSession = Session.getInstance(props);
-		//		}
-		//
-		//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
-		//		boolean isHtml = true;
-		//
-		//		System.out.println("Connection Made");
-		//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
-		//		if(success) {
-		//			System.out.println("Email Sent");
-		//		} else {
-		//			System.out.println("Email Failed");
-		//		}
-
-//		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
-//		String username = prop.getProperty("username");
-//		//		if(username == null) {
-//		//			username = "***REMOVED***";
+//	public static void main(String[] args) throws Exception {
+//		readEmailPOP3();
+////		readEmailIMAP();
+//		//		// GMAIL
+//		//		String smtpHost = "smtp.gmail.com";
+//		//		String smtpPort = "465";
+//		//		String username = "***REMOVED***";
+//		//		String password = "***REMOVED***";
+//		//
+//		//		Properties props = new Properties();
+//		//		props.put("mail.smtp.host", smtpHost);
+//		//		props.put("mail.smtp.port", smtpPort);
+//		//		props.put("mail.smtp.socketFactory.port", smtpPort);
+//		//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+//		//		Session emailSession = null;
+//		//		if (username != null && password != null) {
+//		//			props.put("mail.smtp.auth", true);
+//		//			props.put("mail.smtp.starttls.enable", true);
+//		//			System.out.println("Making connection");
+//		//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
+//		//				protected PasswordAuthentication getPasswordAuthentication() {
+//		//					return new PasswordAuthentication(username, password);
+//		//				}
+//		//			});
+//		//		} else {
+//		//			System.out.println("Making connection");
+//		//			emailSession = Session.getInstance(props);
 //		//		}
-//		String password = prop.getProperty("password");
-//		//		if(password == null) {
-//		//			password = "***REMOVED***"; 
+//		//
+//		//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+//		//		boolean isHtml = true;
+//		//
+//		//		System.out.println("Connection Made");
+//		//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+//		//		if(success) {
+//		//			System.out.println("Email Sent");
+//		//		} else {
+//		//			System.out.println("Email Failed");
 //		//		}
 //
-//		Session emailSession = null;
-//		if (username != null && password != null) {
-//			System.out.println("Making connection");
-//			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
-//				protected PasswordAuthentication getPasswordAuthentication() {
-//					return new PasswordAuthentication(username, password);
-//				}
-//			});
-//		} else {
-//			System.out.println("Making connection");
-//			emailSession = Session.getInstance(prop);
-//		}
-//
-//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
-//		boolean isHtml = true;
-//
-//		System.out.println("Connection Made");
-//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
-//		if(success) {
-//			System.out.println("Email Sent");
-//		} else {
-//			System.out.println("Email Failed");
-//		}
-	}
+////		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
+////		String username = prop.getProperty("username");
+////		//		if(username == null) {
+////		//			username = "***REMOVED***";
+////		//		}
+////		String password = prop.getProperty("password");
+////		//		if(password == null) {
+////		//			password = "***REMOVED***"; 
+////		//		}
+////
+////		Session emailSession = null;
+////		if (username != null && password != null) {
+////			System.out.println("Making connection");
+////			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
+////				protected PasswordAuthentication getPasswordAuthentication() {
+////					return new PasswordAuthentication(username, password);
+////				}
+////			});
+////		} else {
+////			System.out.println("Making connection");
+////			emailSession = Session.getInstance(prop);
+////		}
+////
+////		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+////		boolean isHtml = true;
+////
+////		System.out.println("Connection Made");
+////		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+////		if(success) {
+////			System.out.println("Email Sent");
+////		} else {
+////			System.out.println("Email Failed");
+////		}
+//	}
 
 }

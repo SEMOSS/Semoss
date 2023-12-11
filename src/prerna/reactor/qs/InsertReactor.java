@@ -432,31 +432,31 @@ public class InsertReactor extends AbstractReactor {
 		return engine.getLegacyPrimKey4Table(physicalUri);
 	}
 	
-	public static void main(String[] args) {
-		GenRowStruct grs = new GenRowStruct();
-		grs.add(new NounMetadata(1, PixelDataType.CONST_INT));
-		List<Object> l1 = new Vector<>();
-		l1.add("a");
-		l1.add("b");
-		l1.add("c");
-		grs.add(new NounMetadata(l1, PixelDataType.VECTOR));
-		List<Object> l2 = new Vector<>();
-		l2.add("d");
-		l2.add("e");
-		grs.add(new NounMetadata(l2, PixelDataType.VECTOR));
-		List<Object> l3 = new Vector<>();
-		l3.add("x");
-		l3.add("y");
-		l3.add("z");
-		grs.add(new NounMetadata(l3, PixelDataType.VECTOR));
-		
-		InsertReactor qir = new InsertReactor();
-		List<Object[]> combinations = qir.flattenCombinations(grs);
-		
-		for(int i = 0; i < combinations.size(); i++) {
-			logger.debug(Arrays.toString(combinations.get(i)));
-		}
-	}
+//	public static void main(String[] args) {
+//		GenRowStruct grs = new GenRowStruct();
+//		grs.add(new NounMetadata(1, PixelDataType.CONST_INT));
+//		List<Object> l1 = new Vector<>();
+//		l1.add("a");
+//		l1.add("b");
+//		l1.add("c");
+//		grs.add(new NounMetadata(l1, PixelDataType.VECTOR));
+//		List<Object> l2 = new Vector<>();
+//		l2.add("d");
+//		l2.add("e");
+//		grs.add(new NounMetadata(l2, PixelDataType.VECTOR));
+//		List<Object> l3 = new Vector<>();
+//		l3.add("x");
+//		l3.add("y");
+//		l3.add("z");
+//		grs.add(new NounMetadata(l3, PixelDataType.VECTOR));
+//		
+//		InsertReactor qir = new InsertReactor();
+//		List<Object[]> combinations = qir.flattenCombinations(grs);
+//		
+//		for(int i = 0; i < combinations.size(); i++) {
+//			logger.debug(Arrays.toString(combinations.get(i)));
+//		}
+//	}
 
 	@Override
 	public String getName()

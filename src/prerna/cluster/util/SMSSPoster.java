@@ -313,15 +313,15 @@ public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheLi
 	}
 
 	
-	public static void main(String [] args)
-	{
-		SMSSPoster poster = SMSSPoster.getInstance();
-		String smssFileName = "c:/users/pkapaleeswaran/workspacej3/SemossDev/model/Orca_Embedded__EMB_30991037-1e73-49f5-99d3-f28210e6b95c11.smss";
-		poster.postSMSS(smssFileName);
-		System.err.println("Posted node.. ");
-		poster.deleteNode();
-		
-	}
+//	public static void main(String [] args)
+//	{
+//		SMSSPoster poster = SMSSPoster.getInstance();
+//		String smssFileName = "c:/users/pkapaleeswaran/workspacej3/SemossDev/model/Orca_Embedded__EMB_30991037-1e73-49f5-99d3-f28210e6b95c11.smss";
+//		poster.postSMSS(smssFileName);
+//		System.err.println("Posted node.. ");
+//		poster.deleteNode();
+//		
+//	}
 
 
 }

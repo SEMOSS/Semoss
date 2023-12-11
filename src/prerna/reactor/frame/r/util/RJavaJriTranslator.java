@@ -643,27 +643,27 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	}
 	
 	
-	// trying to see if I can get a connection and close it
-	public static void main(String [] args)
-	{
-		RJavaJriTranslator rjt = new RJavaJriTranslator();
-		rjt.logger = LogManager.getLogger();
-		rjt.startR();
-		System.err.println(" >> " + rjt.executeR("2+2"));
-		rjt.executeR("mv <- fread(\"c:/users/pkapaleeswaran/workspacej3/datasets/Movie3.csv\")");
-		
-		try
-		{
-			Method meth = rjt.getClass().getSuperclass().getDeclaredMethod("getString", String.class);
-			Object myObj = meth.invoke(rjt, "'haha'");
-			System.out.println("Number of rows is " + myObj);
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-		rjt.endR();
-		
-	}
+//	// trying to see if I can get a connection and close it
+//	public static void main(String [] args)
+//	{
+//		RJavaJriTranslator rjt = new RJavaJriTranslator();
+//		rjt.logger = LogManager.getLogger();
+//		rjt.startR();
+//		System.err.println(" >> " + rjt.executeR("2+2"));
+//		rjt.executeR("mv <- fread(\"c:/users/pkapaleeswaran/workspacej3/datasets/Movie3.csv\")");
+//		
+//		try
+//		{
+//			Method meth = rjt.getClass().getSuperclass().getDeclaredMethod("getString", String.class);
+//			Object myObj = meth.invoke(rjt, "'haha'");
+//			System.out.println("Number of rows is " + myObj);
+//		}catch(Exception ex)
+//		{
+//			ex.printStackTrace();
+//		}
+//		rjt.endR();
+//		
+//	}
 
 	
 }

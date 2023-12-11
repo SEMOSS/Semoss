@@ -19,23 +19,23 @@ public class RuntimeClassTest extends AbstractReactor {
 	Map<String, Object> variables = new HashMap<>();
 	int methodCount = 0;
 	
-	public static void main(String[] args) {
-		long startTime = System.currentTimeMillis();
-		RuntimeClassTest test = new RuntimeClassTest();
-		addVariables(test);
-		addEquations(test);
-		List<String> methods  = test.buildMethods();
-		methods.add(test.buildMainExecutionMethod());
-		AbstractTestClass testClass = test.buildTestClass(methods);
-		testClass.execute();
-		
-		long endTime = System.currentTimeMillis();
-		System.out.println(endTime - startTime);
-		Map<String, Object> varMap = testClass.getVariables();
-		for(String var : varMap.keySet()) {
-			System.out.println(var+" : "+varMap.get(var));
-		}
-	}
+//	public static void main(String[] args) {
+//		long startTime = System.currentTimeMillis();
+//		RuntimeClassTest test = new RuntimeClassTest();
+//		addVariables(test);
+//		addEquations(test);
+//		List<String> methods  = test.buildMethods();
+//		methods.add(test.buildMainExecutionMethod());
+//		AbstractTestClass testClass = test.buildTestClass(methods);
+//		testClass.execute();
+//		
+//		long endTime = System.currentTimeMillis();
+//		System.out.println(endTime - startTime);
+//		Map<String, Object> varMap = testClass.getVariables();
+//		for(String var : varMap.keySet()) {
+//			System.out.println(var+" : "+varMap.get(var));
+//		}
+//	}
 	
 	@Override
 	public NounMetadata execute() {

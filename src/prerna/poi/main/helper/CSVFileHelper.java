@@ -564,19 +564,19 @@ public class CSVFileHelper {
 
 	///// TESTING CODE STARTS HERE /////
 
-	public static void main(String [] args) throws Exception {
-		// ugh, need to load this in for the header exceptions
-		// this contains all the sql reserved words
-		TestUtilityMethods.loadDIHelper();
-
-		String fileName = "C:/Users/SEMOSS/Desktop/data.csv";
-		CSVFileHelper test = new CSVFileHelper();
-		
-		test.parse(fileName);
-		test.getHeaders();
-		Object[][] predictions = test.predictTypes();
-		for(Object[] r : predictions) {
-			System.out.println(java.util.Arrays.toString(r));
-		}
-	}
+//	public static void main(String [] args) throws Exception {
+//		// ugh, need to load this in for the header exceptions
+//		// this contains all the sql reserved words
+//		TestUtilityMethods.loadDIHelper();
+//
+//		String fileName = "C:/Users/SEMOSS/Desktop/data.csv";
+//		CSVFileHelper test = new CSVFileHelper();
+//		
+//		test.parse(fileName);
+//		test.getHeaders();
+//		Object[][] predictions = test.predictTypes();
+//		for(Object[] r : predictions) {
+//			System.out.println(java.util.Arrays.toString(r));
+//		}
+//	}
 }

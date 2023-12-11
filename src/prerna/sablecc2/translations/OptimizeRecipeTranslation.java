@@ -1173,75 +1173,75 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
-
-	public static void main(String[] args) {
-		String[] recipeArr = new String[]{"AddPanel ( 0 ) ;",
-				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
-				"Panel ( 0 ) | RetrievePanelEvents ( ) ;",
-				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
-				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\" ) ;",
-				"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME228199' ] ) ;",
-				"Database ( database = [ \"93857bba-5aea-447b-94f4-f9d9179da4da\" ] ) | Select ( Director , Title , Nominated , Studio , Genre ) .as ( [ Director , Title , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Genre ) , ( Title , inner.join , Nominated ) , ( Title , inner.join , Director ) , ( Title , inner.join , Studio ) ) | Import ( ) ;",
-				"Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;",
-				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ;",
-				"Select ( Director , Genre , Nominated , Studio ) .as ( [ Director , Genre , Nominated , Studio ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" , \"Studio\" ] } } } ) | Collect ( 500 ) ;",
-				"Select ( Director , Genre , Nominated ) .as ( [ Director , Genre , Nominated ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" ] } } } ) | Collect ( 500 ) ;",
-				"Select ( Director , Genre ) .as ( [ Director , Genre ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" ] } } } ) | Collect ( 500 ) ;",
-				"Select ( Director ) .as ( [ Director ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" ] } } } ) | Collect ( 500 ) ;",
-				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
-				"if ( ( HasDuplicates ( Studio ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;" ,
-				"Panel ( 0 ) | Clone ( 1 ) ;",
-				"Panel ( 0 ) | Clone ( 2 ) ;",
-				"Select ( Director ) .as ( [ Director ] ) | With ( Panel ( 2 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"2\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" ] } } } ) | Collect ( 500 ) ;",
-				//				"if ( ( HasDuplicates ( Genre ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;",
-				"RunNumericalCorrelation ( attributes = [ MovieBudget, Revenue_Domestic, Revenue_International, RottenTomatoes_Audience, RottenTomatoes_Critics] , panel = [ 0 ] ) ;",
-				"x = Select(Genre) | Filter(Genre == \"Thriller-Horror\");",
-				"Panel(0) | AddPanelColorByValue(name=[\"abc\"], qs=[x], options=[{\"a\":\"b\"}]);",
-				"Panel(0) | RetrievePanelColorByValue(name=[\"abc\"]) | Collect(-1);",
-				"Select ( Genre , Average ( MovieBudget ) ) .as ( [ Genre , Average_of_MovieBudget ] ) | Group ( Genre ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"Average_of_MovieBudget\" ] , \"tooltip\" : [ ] , \"facet\" : [ ] } } } ) | Collect ( 2000 );",  
-				"Select ( Genre , Average ( Revenue_Domestic ) ) .as ( [ Genre , Average_of_Revenue_Domestic ] ) | Group ( Genre ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Line\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"Average_of_Revenue_Domestic\" ] , \"tooltip\" : [ ] , \"facet\" : [ ] }, \"layer\": { \"id\": \"1\", \"addYAxis\": true, \"addXAxis\": true } } } ) | Collect ( 2000 );",  
-				"Select ( Genre , Average ( Revenue_International ) ) .as ( [ Genre , Average_of_Revenue_International ] ) | Group ( Genre ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Area\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"Average_of_Revenue_International\" ] , \"tooltip\" : [ ] , \"facet\" : [ ] }, \"layer\": { \"id\": \"2\", \"addYAxis\": true, \"addXAxis\": true } } } ) | Collect ( 2000 );",
-				"Panel ( 0 ) | Clone ( 3 ) ;",
-				"RemoveLayer( panel=[\"0\"] , layer=[\"1\"] );",
-				"Panel ( 0 ) | Clone ( 4 ) ;",
-				"SetInsightGoldenLayout({\"0\":{\"zeroSum\":{\"settings\":{\"hasHeaders\":true,\"constrainDragToContainer\":true,\"reorderEnabled\":true,\"selectionEnabled\":false,\"popoutWholeStack\":false,\"blockedPopoutsThrowError\":true,\"closePopoutsOnUnload\":true,\"showPopoutIcon\":false,\"showMaximiseIcon\":true,\"showCloseIcon\":true,\"responsiveMode\":\"onload\",\"tabOverlapAllowance\":0,\"reorderOnTabMenuClick\":true,\"tabControlOffset\":10},\"dimensions\":{\"borderWidth\":5,\"borderGrabWidth\":15,\"minItemHeight\":10,\"minItemWidth\":10,\"headerHeight\":20,\"dragProxyWidth\":300,\"dragProxyHeight\":200},\"labels\":{\"close\":\"close\",\"maximise\":\"maximise\",\"minimise\":\"minimise\",\"popout\":\"open in new window\",\"popin\":\"pop in\",\"tabDropdown\":\"additional tabs\"},\"content\":[{\"type\":\"row\",\"isClosable\":false,\"reorderEnabled\":true,\"title\":\"\",\"content\":[{\"type\":\"stack\",\"width\":50,\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"activeItemIndex\":0,\"content\":[{\"labelOverride\":false,\"label\":\"Pipeline\",\"type\":\"component\",\"panelstatus\":\"normalized\",\"sheetId\":\"0\",\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___0\",\"panelId\":\"0\",\"componentName\":\"panel\",\"opacity\":100,\"componentState\":{\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___0\",\"sheetId\":\"0\"},\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"Pipeline\"}]},{\"type\":\"stack\",\"width\":50,\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"activeItemIndex\":0,\"content\":[{\"labelOverride\":false,\"label\":\"Pipeline\",\"type\":\"component\",\"panelstatus\":\"normalized\",\"sheetId\":\"0\",\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___2\",\"panelId\":\"2\",\"componentName\":\"panel\",\"sheet\":\"0\",\"componentState\":{\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___2\",\"sheetId\":\"0\"},\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"Pipeline\"}]}]}],\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"openPopouts\":[],\"maximisedItemId\":null}}});"
-		};
-		
-		List<String> pixelList = new Vector<String>();
-		for(int i = 0; i < recipeArr.length; i++) {
-			String pixelString = recipeArr[i].toString();
-			List<String> breakdown;
-			try {
-				breakdown = PixelUtility.parsePixel(pixelString);
-				pixelList.addAll(breakdown);
-			} catch (ParserException | LexerException | IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
-		for (int i = 0; i < pixelList.size(); i++) {
-			String expression = pixelList.get(i);
-			// fill in the encodedToOriginal with map for the current expression
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
-			try {
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-				// parsing the pixel - this process also determines if expression is syntactically correct
-				Start tree = p.parse();
-				// apply the translation
-				// when we apply the translation, we will change encoded expressions back to their original form
-				tree.apply(translation);
-				// reset translation.encodedToOriginal for each expression
-				translation.encodedToOriginal = new HashMap<String, String>();
-			} catch (ParserException | LexerException | IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
-		// this way we can find the last expression index used 
-		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-		//		System.out.println(gson.toJson(translation.finalizeExpressionsToKeep()));
-		System.out.println(gson.toJson(translation.getCachedPixelRecipeSteps()));
-	}
+//
+//	public static void main(String[] args) {
+//		String[] recipeArr = new String[]{"AddPanel ( 0 ) ;",
+//				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
+//				"Panel ( 0 ) | RetrievePanelEvents ( ) ;",
+//				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
+//				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\" ) ;",
+//				"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME228199' ] ) ;",
+//				"Database ( database = [ \"93857bba-5aea-447b-94f4-f9d9179da4da\" ] ) | Select ( Director , Title , Nominated , Studio , Genre ) .as ( [ Director , Title , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Genre ) , ( Title , inner.join , Nominated ) , ( Title , inner.join , Director ) , ( Title , inner.join , Studio ) ) | Import ( ) ;",
+//				"Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;",
+//				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ;",
+//				"Select ( Director , Genre , Nominated , Studio ) .as ( [ Director , Genre , Nominated , Studio ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" , \"Studio\" ] } } } ) | Collect ( 500 ) ;",
+//				"Select ( Director , Genre , Nominated ) .as ( [ Director , Genre , Nominated ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" ] } } } ) | Collect ( 500 ) ;",
+//				"Select ( Director , Genre ) .as ( [ Director , Genre ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" ] } } } ) | Collect ( 500 ) ;",
+//				"Select ( Director ) .as ( [ Director ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" ] } } } ) | Collect ( 500 ) ;",
+//				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
+//				"if ( ( HasDuplicates ( Studio ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;" ,
+//				"Panel ( 0 ) | Clone ( 1 ) ;",
+//				"Panel ( 0 ) | Clone ( 2 ) ;",
+//				"Select ( Director ) .as ( [ Director ] ) | With ( Panel ( 2 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"2\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" ] } } } ) | Collect ( 500 ) ;",
+//				//				"if ( ( HasDuplicates ( Genre ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;",
+//				"RunNumericalCorrelation ( attributes = [ MovieBudget, Revenue_Domestic, Revenue_International, RottenTomatoes_Audience, RottenTomatoes_Critics] , panel = [ 0 ] ) ;",
+//				"x = Select(Genre) | Filter(Genre == \"Thriller-Horror\");",
+//				"Panel(0) | AddPanelColorByValue(name=[\"abc\"], qs=[x], options=[{\"a\":\"b\"}]);",
+//				"Panel(0) | RetrievePanelColorByValue(name=[\"abc\"]) | Collect(-1);",
+//				"Select ( Genre , Average ( MovieBudget ) ) .as ( [ Genre , Average_of_MovieBudget ] ) | Group ( Genre ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"Average_of_MovieBudget\" ] , \"tooltip\" : [ ] , \"facet\" : [ ] } } } ) | Collect ( 2000 );",  
+//				"Select ( Genre , Average ( Revenue_Domestic ) ) .as ( [ Genre , Average_of_Revenue_Domestic ] ) | Group ( Genre ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Line\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"Average_of_Revenue_Domestic\" ] , \"tooltip\" : [ ] , \"facet\" : [ ] }, \"layer\": { \"id\": \"1\", \"addYAxis\": true, \"addXAxis\": true } } } ) | Collect ( 2000 );",  
+//				"Select ( Genre , Average ( Revenue_International ) ) .as ( [ Genre , Average_of_Revenue_International ] ) | Group ( Genre ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Area\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"Average_of_Revenue_International\" ] , \"tooltip\" : [ ] , \"facet\" : [ ] }, \"layer\": { \"id\": \"2\", \"addYAxis\": true, \"addXAxis\": true } } } ) | Collect ( 2000 );",
+//				"Panel ( 0 ) | Clone ( 3 ) ;",
+//				"RemoveLayer( panel=[\"0\"] , layer=[\"1\"] );",
+//				"Panel ( 0 ) | Clone ( 4 ) ;",
+//				"SetInsightGoldenLayout({\"0\":{\"zeroSum\":{\"settings\":{\"hasHeaders\":true,\"constrainDragToContainer\":true,\"reorderEnabled\":true,\"selectionEnabled\":false,\"popoutWholeStack\":false,\"blockedPopoutsThrowError\":true,\"closePopoutsOnUnload\":true,\"showPopoutIcon\":false,\"showMaximiseIcon\":true,\"showCloseIcon\":true,\"responsiveMode\":\"onload\",\"tabOverlapAllowance\":0,\"reorderOnTabMenuClick\":true,\"tabControlOffset\":10},\"dimensions\":{\"borderWidth\":5,\"borderGrabWidth\":15,\"minItemHeight\":10,\"minItemWidth\":10,\"headerHeight\":20,\"dragProxyWidth\":300,\"dragProxyHeight\":200},\"labels\":{\"close\":\"close\",\"maximise\":\"maximise\",\"minimise\":\"minimise\",\"popout\":\"open in new window\",\"popin\":\"pop in\",\"tabDropdown\":\"additional tabs\"},\"content\":[{\"type\":\"row\",\"isClosable\":false,\"reorderEnabled\":true,\"title\":\"\",\"content\":[{\"type\":\"stack\",\"width\":50,\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"activeItemIndex\":0,\"content\":[{\"labelOverride\":false,\"label\":\"Pipeline\",\"type\":\"component\",\"panelstatus\":\"normalized\",\"sheetId\":\"0\",\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___0\",\"panelId\":\"0\",\"componentName\":\"panel\",\"opacity\":100,\"componentState\":{\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___0\",\"sheetId\":\"0\"},\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"Pipeline\"}]},{\"type\":\"stack\",\"width\":50,\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"activeItemIndex\":0,\"content\":[{\"labelOverride\":false,\"label\":\"Pipeline\",\"type\":\"component\",\"panelstatus\":\"normalized\",\"sheetId\":\"0\",\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___2\",\"panelId\":\"2\",\"componentName\":\"panel\",\"sheet\":\"0\",\"componentState\":{\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___2\",\"sheetId\":\"0\"},\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"Pipeline\"}]}]}],\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"openPopouts\":[],\"maximisedItemId\":null}}});"
+//		};
+//		
+//		List<String> pixelList = new Vector<String>();
+//		for(int i = 0; i < recipeArr.length; i++) {
+//			String pixelString = recipeArr[i].toString();
+//			List<String> breakdown;
+//			try {
+//				breakdown = PixelUtility.parsePixel(pixelString);
+//				pixelList.addAll(breakdown);
+//			} catch (ParserException | LexerException | IOException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		
+//		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
+//		for (int i = 0; i < pixelList.size(); i++) {
+//			String expression = pixelList.get(i);
+//			// fill in the encodedToOriginal with map for the current expression
+//			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
+//			try {
+//				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+//				// parsing the pixel - this process also determines if expression is syntactically correct
+//				Start tree = p.parse();
+//				// apply the translation
+//				// when we apply the translation, we will change encoded expressions back to their original form
+//				tree.apply(translation);
+//				// reset translation.encodedToOriginal for each expression
+//				translation.encodedToOriginal = new HashMap<String, String>();
+//			} catch (ParserException | LexerException | IOException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
+//		// this way we can find the last expression index used 
+//		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+//		//		System.out.println(gson.toJson(translation.finalizeExpressionsToKeep()));
+//		System.out.println(gson.toJson(translation.getCachedPixelRecipeSteps()));
+//	}
 
 }
