@@ -647,27 +647,27 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	
 	///////////////////////////////////////// test method /////////////////////////////////////////////////
 	
-	public static void main(String[] args) {
-		/*// load in the engine
-		TestUtilityMethods.loadDIHelper();
-		
-		//TODO: put in correct path for your database
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId("Movie_RDBMS");
-		coreEngine.open(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-		
-		String str = "curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\"";
-		Pattern p = Pattern.compile("[^ ]*\\.");
-		Matcher m = p.matcher(str);
-		while (m.find()){
-			System.out.println(m.group(0));
-		}
-		String str1 = str.replaceAll("[^ ]*\\.", "tempTABLE.");
-		System.out.println(str1);*/
-		
-	}
+//	public static void main(String[] args) {
+//		/*// load in the engine
+//		TestUtilityMethods.loadDIHelper();
+//		
+//		//TODO: put in correct path for your database
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId("Movie_RDBMS");
+//		coreEngine.open(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+//		
+//		String str = "curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\"";
+//		Pattern p = Pattern.compile("[^ ]*\\.");
+//		Matcher m = p.matcher(str);
+//		while (m.find()){
+//			System.out.println(m.group(0));
+//		}
+//		String str1 = str.replaceAll("[^ ]*\\.", "tempTABLE.");
+//		System.out.println(str1);*/
+//		
+//	}
 
 	///////////////////////////////////////// end test methods //////////////////////////////////////////////
 	

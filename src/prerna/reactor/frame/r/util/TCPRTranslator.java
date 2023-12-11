@@ -800,11 +800,11 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	
 
 
-	public static void main(String [] args)
-	{
-		TCPRTranslator tr = new TCPRTranslator();
-		tr.getBoolean("abcd");
-	}
+//	public static void main(String [] args)
+//	{
+//		TCPRTranslator tr = new TCPRTranslator();
+//		tr.getBoolean("abcd");
+//	}
 
 
 

@@ -761,35 +761,35 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	 * @param args
 	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper();
-
-		String engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Core_Data.smss";
-		IDatabaseEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Core_Data");
-		coreEngine.open(engineProp);
-		coreEngine.setEngineId("TAP_Core_Data");
-		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
-
-		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Site_Data.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Site_Data");
-		coreEngine.open(engineProp);
-		coreEngine.setEngineId("TAP_Site_Data");
-		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
-
-		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Portfolio.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Portfolio");
-		coreEngine.open(engineProp);
-		coreEngine.setEngineId("TAP_Portfolio");
-		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
-
-		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
-		MHSGenesisDeploymentStrategyPlaySheet ps = new MHSGenesisDeploymentStrategyPlaySheet();
-		ps.processDataMakerComponent(null);
-		ps.getDataMakerOutput("");
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper();
+//
+//		String engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Core_Data.smss";
+//		IDatabaseEngine coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Core_Data");
+//		coreEngine.open(engineProp);
+//		coreEngine.setEngineId("TAP_Core_Data");
+//		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
+//
+//		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Site_Data.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Site_Data");
+//		coreEngine.open(engineProp);
+//		coreEngine.setEngineId("TAP_Site_Data");
+//		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
+//
+//		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Portfolio.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Portfolio");
+//		coreEngine.open(engineProp);
+//		coreEngine.setEngineId("TAP_Portfolio");
+//		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
+//
+//		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
+//		MHSGenesisDeploymentStrategyPlaySheet ps = new MHSGenesisDeploymentStrategyPlaySheet();
+//		ps.processDataMakerComponent(null);
+//		ps.getDataMakerOutput("");
+//	}
 
 
 }

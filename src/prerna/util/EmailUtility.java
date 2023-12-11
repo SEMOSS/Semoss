@@ -323,79 +323,79 @@ public class EmailUtility {
 
 	
 
-	public static void main(String[] args) throws Exception {
-		readEmailPOP3();
-//		readEmailIMAP();
-		//		// GMAIL
-		//		String smtpHost = "smtp.gmail.com";
-		//		String smtpPort = "465";
-		//		String username = "ncrt.test.email@gmail.com";
-		//		String password = "pmpbgpvzhkptsijc";
-		//
-		//		Properties props = new Properties();
-		//		props.put("mail.smtp.host", smtpHost);
-		//		props.put("mail.smtp.port", smtpPort);
-		//		props.put("mail.smtp.socketFactory.port", smtpPort);
-		//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-		//		Session emailSession = null;
-		//		if (username != null && password != null) {
-		//			props.put("mail.smtp.auth", true);
-		//			props.put("mail.smtp.starttls.enable", true);
-		//			System.out.println("Making connection");
-		//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
-		//				protected PasswordAuthentication getPasswordAuthentication() {
-		//					return new PasswordAuthentication(username, password);
-		//				}
-		//			});
-		//		} else {
-		//			System.out.println("Making connection");
-		//			emailSession = Session.getInstance(props);
-		//		}
-		//
-		//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
-		//		boolean isHtml = true;
-		//
-		//		System.out.println("Connection Made");
-		//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"ncrt.test.email@gmail.com"}, "VHAMSPOPMOSupport@VA.gov", "Covid Response Test", message, isHtml, null);
-		//		if(success) {
-		//			System.out.println("Email Sent");
-		//		} else {
-		//			System.out.println("Email Failed");
-		//		}
-
-//		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
-//		String username = prop.getProperty("username");
-//		//		if(username == null) {
-//		//			username = "VHAMSPOPMOSupport";
+//	public static void main(String[] args) throws Exception {
+//		readEmailPOP3();
+////		readEmailIMAP();
+//		//		// GMAIL
+//		//		String smtpHost = "smtp.gmail.com";
+//		//		String smtpPort = "465";
+//		//		String username = "ncrt.test.email@gmail.com";
+//		//		String password = "pmpbgpvzhkptsijc";
+//		//
+//		//		Properties props = new Properties();
+//		//		props.put("mail.smtp.host", smtpHost);
+//		//		props.put("mail.smtp.port", smtpPort);
+//		//		props.put("mail.smtp.socketFactory.port", smtpPort);
+//		//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+//		//		Session emailSession = null;
+//		//		if (username != null && password != null) {
+//		//			props.put("mail.smtp.auth", true);
+//		//			props.put("mail.smtp.starttls.enable", true);
+//		//			System.out.println("Making connection");
+//		//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
+//		//				protected PasswordAuthentication getPasswordAuthentication() {
+//		//					return new PasswordAuthentication(username, password);
+//		//				}
+//		//			});
+//		//		} else {
+//		//			System.out.println("Making connection");
+//		//			emailSession = Session.getInstance(props);
 //		//		}
-//		String password = prop.getProperty("password");
-//		//		if(password == null) {
-//		//			password = "P@ssword1P@ssword1"; 
+//		//
+//		//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+//		//		boolean isHtml = true;
+//		//
+//		//		System.out.println("Connection Made");
+//		//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"ncrt.test.email@gmail.com"}, "VHAMSPOPMOSupport@VA.gov", "Covid Response Test", message, isHtml, null);
+//		//		if(success) {
+//		//			System.out.println("Email Sent");
+//		//		} else {
+//		//			System.out.println("Email Failed");
 //		//		}
 //
-//		Session emailSession = null;
-//		if (username != null && password != null) {
-//			System.out.println("Making connection");
-//			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
-//				protected PasswordAuthentication getPasswordAuthentication() {
-//					return new PasswordAuthentication(username, password);
-//				}
-//			});
-//		} else {
-//			System.out.println("Making connection");
-//			emailSession = Session.getInstance(prop);
-//		}
-//
-//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
-//		boolean isHtml = true;
-//
-//		System.out.println("Connection Made");
-//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "VHAMSPOPMOSupport@VA.gov", "Covid Response Test", message, isHtml, null);
-//		if(success) {
-//			System.out.println("Email Sent");
-//		} else {
-//			System.out.println("Email Failed");
-//		}
-	}
+////		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
+////		String username = prop.getProperty("username");
+////		//		if(username == null) {
+////		//			username = "VHAMSPOPMOSupport";
+////		//		}
+////		String password = prop.getProperty("password");
+////		//		if(password == null) {
+////		//			password = "P@ssword1P@ssword1"; 
+////		//		}
+////
+////		Session emailSession = null;
+////		if (username != null && password != null) {
+////			System.out.println("Making connection");
+////			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
+////				protected PasswordAuthentication getPasswordAuthentication() {
+////					return new PasswordAuthentication(username, password);
+////				}
+////			});
+////		} else {
+////			System.out.println("Making connection");
+////			emailSession = Session.getInstance(prop);
+////		}
+////
+////		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+////		boolean isHtml = true;
+////
+////		System.out.println("Connection Made");
+////		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "VHAMSPOPMOSupport@VA.gov", "Covid Response Test", message, isHtml, null);
+////		if(success) {
+////			System.out.println("Email Sent");
+////		} else {
+////			System.out.println("Email Failed");
+////		}
+//	}
 
 }

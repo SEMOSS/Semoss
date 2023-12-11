@@ -513,15 +513,15 @@ public class ReactorFactory {
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
 	}
 	
-	public static void main(String [] args)
-	{
-		// print the inconsistencies
-		
-		printInconsistency("Generic", reactorHash);
-		printInconsistency("h2", h2FrameHash);
-		printInconsistency("R", rFrameHash);
-		printInconsistency("Pandas", pandasFrameHash);
-	}
+//	public static void main(String [] args)
+//	{
+//		// print the inconsistencies
+//		
+//		printInconsistency("Generic", reactorHash);
+//		printInconsistency("h2", h2FrameHash);
+//		printInconsistency("R", rFrameHash);
+//		printInconsistency("Pandas", pandasFrameHash);
+//	}
 	
 	public static void printInconsistency(String mapname, Map map)
 	{

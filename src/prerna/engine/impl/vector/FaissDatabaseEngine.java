@@ -961,17 +961,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return colName;
 	}
 	
-	public static void main(String[] args) throws Exception {
-		Properties tempSmss = new Properties();
-		tempSmss.put("CONNECTION_URL", "Semoss_Dev/vector/");
-		tempSmss.put("VECTOR_TYPE", "FAISS");
-		tempSmss.put("INDEX_CLASSES", "default");
-		tempSmss.put("ENCODER_TYPE", "huggingface");
-		tempSmss.put("ENCODER_NAME", "sentence-transformers/paraphrase-mpnet-base-v2");
-		
-		FaissDatabaseEngine engine = new FaissDatabaseEngine();
-		engine.open(tempSmss);
-		
-		engine.close();
-	}
+//	public static void main(String[] args) throws Exception {
+//		Properties tempSmss = new Properties();
+//		tempSmss.put("CONNECTION_URL", "Semoss_Dev/vector/");
+//		tempSmss.put("VECTOR_TYPE", "FAISS");
+//		tempSmss.put("INDEX_CLASSES", "default");
+//		tempSmss.put("ENCODER_TYPE", "huggingface");
+//		tempSmss.put("ENCODER_NAME", "sentence-transformers/paraphrase-mpnet-base-v2");
+//		
+//		FaissDatabaseEngine engine = new FaissDatabaseEngine();
+//		engine.open(tempSmss);
+//		
+//		engine.close();
+//	}
 }

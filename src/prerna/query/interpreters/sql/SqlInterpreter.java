@@ -1988,17 +1988,17 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	///////////////////////////////////////// test method /////////////////////////////////////////////////
 	
-	public static void main(String[] args) throws Exception {
-		// load in the engine
-		TestUtilityMethods.loadDIHelper();
-
-		//TODO: put in correct path for your database
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId("Movie_RDBMS");
-		coreEngine.open(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-	}
+//	public static void main(String[] args) throws Exception {
+//		// load in the engine
+//		TestUtilityMethods.loadDIHelper();
+//
+//		//TODO: put in correct path for your database
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId("Movie_RDBMS");
+//		coreEngine.open(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+//	}
 
 	///////////////////////////////////////// end test methods //////////////////////////////////////////////
 	

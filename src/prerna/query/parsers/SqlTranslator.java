@@ -98,32 +98,32 @@ public class SqlTranslator {
 		return buffer.toString();
 	}
 
-	public static void main(String args[]) throws JSQLParserException {
-
-		Map<String, List<String>> map = new HashMap<>();
-		map.put("a", Arrays.asList(new String[] { "x", "y" }));
-		map.put("b", Arrays.asList(new String[] { "z", "d" }));
-		map.put("c", Arrays.asList(new String[] { "d", "f" }));
-		String sql = "select a , b from t";
-
-		sql = "SELECT t1.a, t2.b FROM t t1 INNER JOIN t t2 ON t1.a = t2.b";
-		sql = "select min(a)from(select distinct b from t order by salary desc)where rownum<=2;";
-		sql = "Select * from Employee a where rowid <>( select max(rowid) from Employee b where a.Employee_num=b.Employee_num);";
-		sql = " Select * from Employee where t =1;";
-		sql = "SELECT DISTINCT TEDI.a AS \"DeersEnrollmentFacilityName\" , TEDI.b AS \"totalPatientCostShare\" FROM t TEDI";
-		sql = "select distinct salary from employee a where 3 >= (select count(distinct salary) from employee b where a.salary <= b.salary) order by a.salary desc;";
-		sql = "select a, b from c;";
-		SqlTranslator translator = new SqlTranslator(map);
-		try {
-			Set<String> queries = translator.processQuery(sql);
-			for(String q: queries) {
-				System.out.println(q);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-	}
+//	public static void main(String args[]) throws JSQLParserException {
+//
+//		Map<String, List<String>> map = new HashMap<>();
+//		map.put("a", Arrays.asList(new String[] { "x", "y" }));
+//		map.put("b", Arrays.asList(new String[] { "z", "d" }));
+//		map.put("c", Arrays.asList(new String[] { "d", "f" }));
+//		String sql = "select a , b from t";
+//
+//		sql = "SELECT t1.a, t2.b FROM t t1 INNER JOIN t t2 ON t1.a = t2.b";
+//		sql = "select min(a)from(select distinct b from t order by salary desc)where rownum<=2;";
+//		sql = "Select * from Employee a where rowid <>( select max(rowid) from Employee b where a.Employee_num=b.Employee_num);";
+//		sql = " Select * from Employee where t =1;";
+//		sql = "SELECT DISTINCT TEDI.a AS \"DeersEnrollmentFacilityName\" , TEDI.b AS \"totalPatientCostShare\" FROM t TEDI";
+//		sql = "select distinct salary from employee a where 3 >= (select count(distinct salary) from employee b where a.salary <= b.salary) order by a.salary desc;";
+//		sql = "select a, b from c;";
+//		SqlTranslator translator = new SqlTranslator(map);
+//		try {
+//			Set<String> queries = translator.processQuery(sql);
+//			for(String q: queries) {
+//				System.out.println(q);
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//
+//	}
 	
 	/**
 	 * Generate combinations for Lists 

@@ -377,61 +377,61 @@ public class SqlJoinStructList {
 	}
 	
 	
-	public static void main(String[] args) {
-		
-		SqlJoinStructList jList = new SqlJoinStructList();
-		
-		/*
-			FROM offices offices  
-			inner  join employees employees ON offices.officeCode = employees.officeCode 
-			inner  join customers customers ON employees.employeeNumber = customers.salesRepEmployeeNumber 
-			inner  join orders orders ON customers.customerNumber = orders.customerNumber 
-			inner  join payments payments ON customers.customerNumber = payments.customerNumber LIMIT 100
-		 */
-		
-		SqlJoinStruct j0 = new SqlJoinStruct();
-		j0.setJoinType("inner join");
-		j0.setSourceTable("customers");
-		j0.setSourceCol("customerNumber");
-		j0.setTargetTable("payments");
-		j0.setTargetCol("customerNumber");
-		jList.addJoin(j0);
-		
-		SqlJoinStruct j1 = new SqlJoinStruct();
-		j1.setJoinType("inner join");
-		j1.setSourceTable("offices");
-		j1.setSourceCol("officeCode");
-		j1.setTargetTable("employees");
-		j1.setTargetCol("officeCode");
-		jList.addJoin(j1);
-		
-		SqlJoinStruct j2 = new SqlJoinStruct();
-		j2.setJoinType("inner join");
-		j2.setSourceTable("employees");
-		j2.setSourceCol("employeeNumber");
-		j2.setTargetTable("customers");
-		j2.setTargetCol("salesRepEmployeeNumber");
-		jList.addJoin(j2);
-		
-		SqlJoinStruct j3 = new SqlJoinStruct();
-		j3.setJoinType("inner join");
-		j3.setSourceTable("customers");
-		j3.setSourceCol("customerNumber");
-		j3.setTargetTable("orders");
-		j3.setTargetCol("customerNumber");
-		jList.addJoin(j3);
-		
-		SqlJoinStruct j4 = new SqlJoinStruct();
-		j4.setUseSubQuery(true);
-		j4.setJoinType("inner join");
-		j4.setSubQuery("select customerNumber, someOtherColumn, someOtherColumn2 from customers");
-		j4.setSubQueryAlias("sub_customer");
-		j4.addJoinOnList(new String[] {"sub_customer", "customerNumber", "customers", "customerNumber", "="});
-		j4.addJoinOnList(new String[] {"sub_customer", "someOtherColumn", "customers", "someOtherColumn", "="});
-		jList.addJoin(j4);
-		
-		System.out.println(jList.getJoinSyntax(true));
-	}
+//	public static void main(String[] args) {
+//		
+//		SqlJoinStructList jList = new SqlJoinStructList();
+//		
+//		/*
+//			FROM offices offices  
+//			inner  join employees employees ON offices.officeCode = employees.officeCode 
+//			inner  join customers customers ON employees.employeeNumber = customers.salesRepEmployeeNumber 
+//			inner  join orders orders ON customers.customerNumber = orders.customerNumber 
+//			inner  join payments payments ON customers.customerNumber = payments.customerNumber LIMIT 100
+//		 */
+//		
+//		SqlJoinStruct j0 = new SqlJoinStruct();
+//		j0.setJoinType("inner join");
+//		j0.setSourceTable("customers");
+//		j0.setSourceCol("customerNumber");
+//		j0.setTargetTable("payments");
+//		j0.setTargetCol("customerNumber");
+//		jList.addJoin(j0);
+//		
+//		SqlJoinStruct j1 = new SqlJoinStruct();
+//		j1.setJoinType("inner join");
+//		j1.setSourceTable("offices");
+//		j1.setSourceCol("officeCode");
+//		j1.setTargetTable("employees");
+//		j1.setTargetCol("officeCode");
+//		jList.addJoin(j1);
+//		
+//		SqlJoinStruct j2 = new SqlJoinStruct();
+//		j2.setJoinType("inner join");
+//		j2.setSourceTable("employees");
+//		j2.setSourceCol("employeeNumber");
+//		j2.setTargetTable("customers");
+//		j2.setTargetCol("salesRepEmployeeNumber");
+//		jList.addJoin(j2);
+//		
+//		SqlJoinStruct j3 = new SqlJoinStruct();
+//		j3.setJoinType("inner join");
+//		j3.setSourceTable("customers");
+//		j3.setSourceCol("customerNumber");
+//		j3.setTargetTable("orders");
+//		j3.setTargetCol("customerNumber");
+//		jList.addJoin(j3);
+//		
+//		SqlJoinStruct j4 = new SqlJoinStruct();
+//		j4.setUseSubQuery(true);
+//		j4.setJoinType("inner join");
+//		j4.setSubQuery("select customerNumber, someOtherColumn, someOtherColumn2 from customers");
+//		j4.setSubQueryAlias("sub_customer");
+//		j4.addJoinOnList(new String[] {"sub_customer", "customerNumber", "customers", "customerNumber", "="});
+//		j4.addJoinOnList(new String[] {"sub_customer", "someOtherColumn", "customers", "someOtherColumn", "="});
+//		jList.addJoin(j4);
+//		
+//		System.out.println(jList.getJoinSyntax(true));
+//	}
 	
 	
 }
