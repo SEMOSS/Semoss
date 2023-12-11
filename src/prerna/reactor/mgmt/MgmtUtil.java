@@ -246,21 +246,21 @@ public class MgmtUtil {
 		return userCount.longValue();
 	}
 	
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		int pid=9696;
-		pid = 7672;
-		printChild(pid);
-		
-		getFreeMemory();
-		
-		/*
-        for (int i = 0; i < 10; i++) {
-            diskUtilizationPerProcess(pid);
-            memoryUtilizationPerProcess(pid);
-            Util.sleep(5000);
-        }
-        */
-    }
+//	public static void main(String[] args) {
+//		// TODO Auto-generated method stub
+//		int pid=9696;
+//		pid = 7672;
+//		printChild(pid);
+//		
+//		getFreeMemory();
+//		
+//		/*
+//        for (int i = 0; i < 10; i++) {
+//            diskUtilizationPerProcess(pid);
+//            memoryUtilizationPerProcess(pid);
+//            Util.sleep(5000);
+//        }
+//        */
+//    }
 
 }

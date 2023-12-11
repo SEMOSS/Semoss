@@ -1812,2732 +1812,2732 @@ public class SqlParser2 {
 	///////////////////////////////////////////////////////////
 
 
-	public static void main(String [] args) throws Exception {
-		SqlParser2 test = new SqlParser2();
-		String query = "Select * from employee";
-		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
-				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
-				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
-
-		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
-		
-		// thank you so much anthem
-		String query2 = " SELECT	Member_Engagement_Tier AS `Member Engagement Tier`,Site_Service_Name AS `Site Service Name`," + 
-				"		Age_Group_Description AS `Age " + 
-				"Group Description`," + 
-				"		Medical_Member_Paid_PMPM AS `Medical Member Paid PMPM`  " + 
-				"FROM	 (  " + 
-				"	SELECT	MBRSHP.MBR_ENGGMNT_TIER AS `Member_Engagement_Tier`," + 
-				"			CLMS.SITE_SRVC_NM AS `Site_Service_Name`," + 
-				"			MBRSHP.AGE_GRP_DESC AS `Age_Group_Description`," + 
-				"			case " + 
-				"				when sum( MBRSHP.MDCL_MBR_CVRG_CNT ) = 0 then 0 " + 
-				"				else sum(CLMS.MDCL_ACCT_PAID_AMT )/sum( MBRSHP.MDCL_MBR_CVRG_CNT )" + 
-				"			end AS `Medical_Member_Paid_PMPM`," + 
-				"			MBRSHP.TM_PRD_NM AS `Time_Period`  " + 
-				"	FROM	 (  " + 
-				"		SELECT	coalesce(TMBRENGGMNT.ENGGMNT_TIER," + 
-				"				'Not Engaged' ) AS MBR_ENGGMNT_TIER," + 
-				"				DIM_AGE_GRP.AGE_GRP_DESC AS AGE_GRP_DESC," + 
-				"				TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM," + 
-				"				SUM(" + 
-				"				case " + 
-				"					when CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD='001' then CII_FACT_MBRSHP.MBR_CVRG_CNT " + 
-				"					else 0 " + 
-				"				end) AS MDCL_MBR_CVRG_CNT," + 
-				"				CII_ACCT_PRFL.ACCT_ID AS ACCT_ID," + 
-				"				CII_FACT_MBRSHP.MCID AS MCID," + 
-				"				CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  " + 
-				"		FROM	CII_FACT_MBRSHP " + 
-				"		INNER JOIN (" + 
-				"			SELECT	B.*," + 
-				"					case " + 
-				"						when paidIncurred='Paid' then 111101 " + 
-				"						else B.START_YEAR_MNTH " + 
-				"					end as STRT_SRVC_YEAR_MNTH," + 
-				"					case " + 
-				"						WHEN paidIncurred='Paid' then 888811 " + 
-				"						else B." + 
-				"					END_YEAR_MNTH " + 
-				"					end as " + 
-				"					END_SRVC_YEAR_MNTH," + 
-				"					Case " + 
-				"						when paidIncurred='Paid' then B." + 
-				"					END_YEAR_MNTH " + 
-				"						when paidIncurred='Incurred' " + 
-				"				and 0=0 then 202002 " + 
-				"						else 888811 " + 
-				"					end as " + 
-				"					END_RPTG_PAID_YEAR_MNTH " + 
-				"			FROM	ACIISST_PERIOD_KEY A JOIN     (" + 
-				"				SELECT	LKUP_ID," + 
-				"						YEAR_ID," + 
-				"						 CONCAT(''," + 
-				"						'Paid') AS paidIncurred," + 
-				"						CASE " + 
-				"							WHEN YEAR_ID=1 THEN 'Current Period' " + 
-				"							WHEN YEAR_ID=2 THEN 'Prior Period' " + 
-				"							ELSE 'Prior Period 2' " + 
-				"						END AS TM_PRD_NM," + 
-				"						CASE " + 
-				"							WHEN YEAR_ID=1 THEN 201903 " + 
-				"							WHEN YEAR_ID=2 THEN 201803 " + 
-				"							ELSE 201703 " + 
-				"						END AS START_YEAR_MNTH," + 
-				"						    " + 
-				"						CASE " + 
-				"							WHEN YEAR_ID=1 THEN 202002 " + 
-				"							WHEN YEAR_ID=2 THEN 201902    " + 
-				"							ELSE  201802 " + 
-				"						END AS " + 
-				"						END_YEAR_MNTH " + 
-				"				FROM	ACIISST_PERIOD_KEY) B " + 
-				"				ON A.LKUP_ID = B.LKUP_ID " + 
-				"				AND B.YEAR_ID = A.YEAR_ID " + 
-				"			WHERE	A.LKUP_ID=1 " + 
-				"				AND A.YEAR_ID <= 1) TM_PRD_FNCTN " + 
-				"			ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH " + 
-				"			and TM_PRD_FNCTN." + 
-				"				END_YEAR_MNTH " + 
-				"		INNER JOIN CII_ACCT_PRFL " + 
-				"			ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID " + 
-				"		LEFT	JOIN  ( " + 
-				"			select	a.acct_id," + 
-				"					a.MCID," + 
-				"					a.TM_PRD_NM," + 
-				"					a.ENGGMNT," + 
-				"					b.ENGGMNT_TIER  " + 
-				"			from	 ( " + 
-				"				select	CII_FACT_CP_ENGGMNT.acct_id," + 
-				"						CII_FACT_CP_ENGGMNT.MCID," + 
-				"						TM_PRD_FNCTN.TM_PRD_NM ," + 
-				"								(" + 
-				"						CASE  	" + 
-				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'       	" + 
-				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0  	" + 
-				"					AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'       	" + 
-				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0   	" + 
-				"					AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0  	" + 
-				"					AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'       	" + 
-				"							ELSE 'Not Engaged'  " + 
-				"						END) AS ENGGMNT 	  " + 
-				"				from	CII_FACT_CP_ENGGMNT  " + 
-				"				inner join DIM_ENGGMNT      	" + 
-				"					on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN ( " + 
-				"					SELECT	B.*," + 
-				"							  case	   	" + 
-				"								when paidIncurred='Paid' then 111101    	" + 
-				"								else B.START_YEAR_MNTH   " + 
-				"							end	as STRT_SRVC_YEAR_MNTH," + 
-				"							 case	   	" + 
-				"								WHEN paidIncurred='Paid' then 888811    	" + 
-				"								else B." + 
-				"							END_YEAR_MNTH   " + 
-				"							end	as " + 
-				"							END_SRVC_YEAR_MNTH," + 
-				"							 Case	   	" + 
-				"								when paidIncurred='Paid' then B." + 
-				"							END_YEAR_MNTH    	" + 
-				"								when paidIncurred='Incurred'    	" + 
-				"						and 0=0 then  202002    	" + 
-				"								else 888811   " + 
-				"							end	as " + 
-				"							END_RPTG_PAID_YEAR_MNTH   " + 
-				"					FROM	ACIISST_PERIOD_KEY A  JOIN (  " + 
-				"						SELECT	LKUP_ID," + 
-				"								YEAR_ID," + 
-				"								CONCAT(''," + 
-				"								'Paid' ) AS paidIncurred," + 
-				"										 " + 
-				"								CASE    	" + 
-				"									WHEN YEAR_ID=1 THEN 'Current Period'    	" + 
-				"									WHEN YEAR_ID=2 THEN 'Prior Period'    	" + 
-				"									ELSE 'Prior Period 2'  " + 
-				"								END	AS TM_PRD_NM," + 
-				"								  CASE	   	" + 
-				"									WHEN YEAR_ID=1 THEN 201903    	" + 
-				"									WHEN YEAR_ID=2 THEN 201803    	" + 
-				"									ELSE  201703   " + 
-				"								END	AS START_YEAR_MNTH," + 
-				"								  CASE	   	" + 
-				"									WHEN YEAR_ID=1 THEN 202002    	" + 
-				"									WHEN YEAR_ID=2 THEN  201902     	" + 
-				"									ELSE 201802   " + 
-				"								END	AS " + 
-				"								END_YEAR_MNTH   " + 
-				"						FROM	ACIISST_PERIOD_KEY) B    	" + 
-				"						ON A.LKUP_ID = B.LKUP_ID    	" + 
-				"						AND B.YEAR_ID = A.YEAR_ID   " + 
-				"					WHERE	A.LKUP_ID=1    	" + 
-				"						AND A.YEAR_ID <= 1  )  TM_PRD_FNCTN    	" + 
-				"					ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   	" + 
-				"					and TM_PRD_FNCTN." + 
-				"						END_YEAR_MNTH  " + 
-				"				WHERE	CII_FACT_CP_ENGGMNT.ACCT_ID = 'W0016437'  " + 
-				"				group by  CII_FACT_CP_ENGGMNT.acct_id," + 
-				"						CII_FACT_CP_ENGGMNT.MCID ," + 
-				"						TM_PRD_FNCTN.TM_PRD_NM ) a " + 
-				"			inner join ( " + 
-				"				select	 " + 
-				"						CASE	 	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND = 0  	" + 
-				"					AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))  	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 0   	" + 
-				"					AND DIM_ENGGMNT.ENHNCD_IND = 0  	" + 
-				"					AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))  	" + 
-				"							ELSE cast('Not Engaged' as char(20))  " + 
-				"						END	AS ENGGMNT ," + 
-				"						 CASE	 	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND = 0  	" + 
-				"					AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))  	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 0   	" + 
-				"					AND DIM_ENGGMNT.ENHNCD_IND = 0  	" + 
-				"					AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))  	" + 
-				"							ELSE cast('Not Engaged' as char(20))  " + 
-				"						END	AS ENGGMNT_TIER                        " + 
-				"				from	DIM_ENGGMNT 					   " + 
-				"				union	all 					   " + 
-				"				select	 " + 
-				"						CASE	 	" + 
-				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
-				"							else cast('Care Coordination' as char(20))  " + 
-				"						end	as ENGGMNT ," + 
-				"						cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER  " + 
-				"				from	DIM_ENGGMNT  " + 
-				"				where	DIM_ENGGMNT.TRDTNL_IND= 1  	" + 
-				"					or DIM_ENGGMNT.ENHNCD_IND= 1 					   " + 
-				"				union	all 					   " + 
-				"				select	cast('Traditional' as char(20)) as ENGGMNT," + 
-				"						cast('Care Coordination' as char(20))  AS ENGGMNT_TIER  " + 
-				"				from	DIM_ENGGMNT  " + 
-				"				where	DIM_ENGGMNT.TRDTNL_IND= 1 ) b  	" + 
-				"				on a.ENGGMNT = b.ENGGMNT				   )  TMBRENGGMNT   	" + 
-				"			ON CII_FACT_MBRSHP.ACCT_ID = TMBRENGGMNT.ACCT_ID   	" + 
-				"			and CII_FACT_MBRSHP.MCID=TMBRENGGMNT.MCID   	" + 
-				"			and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM " + 
-				"		INNER JOIN DIM_AGE_GRP " + 
-				"			ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY  " + 
-				"		WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   " + 
-				"		GROUP BY coalesce(TMBRENGGMNT.ENGGMNT_TIER," + 
-				"				'Not Engaged' )," + 
-				"				DIM_AGE_GRP.AGE_GRP_DESC," + 
-				"				TM_PRD_FNCTN.TM_PRD_NM," + 
-				"				CII_ACCT_PRFL.ACCT_ID," + 
-				"				CII_FACT_MBRSHP.MCID," + 
-				"				CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY ) AS MBRSHP " + 
-				"	LEFT OUTER JOIN  (  " + 
-				"		SELECT	DIM_SITE_SRVC.SITE_SRVC_NM AS SITE_SRVC_NM," + 
-				"				SUM(" + 
-				"				case " + 
-				"					when CII_FACT_CLM_LINE.MBR_CVRG_TYPE_CD='001' then CII_FACT_CLM_LINE.ACCT_PAID_AMT " + 
-				"					else 0 " + 
-				"				end ) AS MDCL_ACCT_PAID_AMT," + 
-				"				TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM," + 
-				"				CII_FACT_CLM_LINE.MCID AS MCID," + 
-				"				CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY," + 
-				"				CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  " + 
-				"		FROM	CII_FACT_CLM_LINE " + 
-				"		INNER JOIN (" + 
-				"			SELECT	B.*," + 
-				"					case " + 
-				"						when paidIncurred='Paid' then 111101 " + 
-				"						else B.START_YEAR_MNTH " + 
-				"					end as STRT_SRVC_YEAR_MNTH," + 
-				"					case " + 
-				"						WHEN paidIncurred='Paid' then 888811 " + 
-				"						else B." + 
-				"					END_YEAR_MNTH " + 
-				"					end as " + 
-				"					END_SRVC_YEAR_MNTH," + 
-				"					Case " + 
-				"						when paidIncurred='Paid' then B." + 
-				"					END_YEAR_MNTH " + 
-				"						when paidIncurred='Incurred' " + 
-				"				and 0=0 then 202002 " + 
-				"						else 888811 " + 
-				"					end as " + 
-				"					END_RPTG_PAID_YEAR_MNTH " + 
-				"			FROM	ACIISST_PERIOD_KEY A JOIN     (" + 
-				"				SELECT	LKUP_ID," + 
-				"						YEAR_ID," + 
-				"						 CONCAT(''," + 
-				"						'Paid') AS paidIncurred," + 
-				"						CASE " + 
-				"							WHEN YEAR_ID=1 THEN 'Current Period' " + 
-				"							WHEN YEAR_ID=2 THEN 'Prior Period' " + 
-				"							ELSE 'Prior Period 2' " + 
-				"						END AS TM_PRD_NM," + 
-				"						CASE " + 
-				"							WHEN YEAR_ID=1 THEN 201903 " + 
-				"							WHEN YEAR_ID=2 THEN 201803 " + 
-				"							ELSE 201703 " + 
-				"						END AS START_YEAR_MNTH," + 
-				"						    " + 
-				"						CASE " + 
-				"							WHEN YEAR_ID=1 THEN 202002 " + 
-				"							WHEN YEAR_ID=2 THEN 201902    " + 
-				"							ELSE  201802 " + 
-				"						END AS " + 
-				"						END_YEAR_MNTH " + 
-				"				FROM	ACIISST_PERIOD_KEY) B " + 
-				"				ON A.LKUP_ID = B.LKUP_ID " + 
-				"				AND B.YEAR_ID = A.YEAR_ID " + 
-				"			WHERE	A.LKUP_ID=1 " + 
-				"				AND A.YEAR_ID <= 1) TM_PRD_FNCTN " + 
-				"			ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH " + 
-				"			and TM_PRD_FNCTN." + 
-				"				END_SRVC_YEAR_MNTH " + 
-				"			AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH " + 
-				"			and TM_PRD_FNCTN." + 
-				"				END_RPTG_PAID_YEAR_MNTH " + 
-				"		INNER JOIN DIM_SITE_SRVC " + 
-				"			ON CII_FACT_CLM_LINE.SITE_SRVC_CD = DIM_SITE_SRVC.SITE_SRVC_CD " + 
-				"			AND CII_FACT_CLM_LINE.MBR_cvrg_type_cd <> 'back_fill'  " + 
-				"		WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   " + 
-				"		GROUP BY DIM_SITE_SRVC.SITE_SRVC_NM," + 
-				"				TM_PRD_FNCTN.TM_PRD_NM," + 
-				"				CII_FACT_CLM_LINE.MCID," + 
-				"				CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY," + 
-				"				CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS " + 
-				"		ON MBRSHP.MCID=CLMS.MCID " + 
-				"		AND MBRSHP.TM_PRD_NM=CLMS.TM_PRD_NM " + 
-				"		AND MBRSHP.ACCT_AGE_GRP_KEY=CLMS.ACCT_AGE_GRP_KEY " + 
-				"		AND MBRSHP.ACCT_ID=CLMS.ACCT_ID  " + 
-				"	GROUP BY MBRSHP.MBR_ENGGMNT_TIER," + 
-				"			CLMS.SITE_SRVC_NM," + 
-				"			MBRSHP.AGE_GRP_DESC," + 
-				"			MBRSHP.TM_PRD_NM ) AS FNL   " + 
-				"ORDER BY Member_Engagement_Tier," + 
-				"		Site_Service_Name," + 
-				"		Age_Group_Description," + 
-				"		Medical_Member_Paid_PMPM";
-
-		 /*query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
-		 
-				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
-				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
-		*/
-		
-		// key things to look at
-		// select expression item and select item
-		// from - seems to be many combinations to from that is interesting
-		// selectbody - it can either be a simple one or a set operation - This is where the union sits. This can be a plain select or something else - I only accomodate for plain select at this point
-		// same with join as well
-		// the select item itself can be a expression
-		
-		// we need a way to parse
-		// but more importantly - we also need a way to express it in pixel
-		
-		// I need the query struct to have to have a full select query struct
-		
-		/*query = "SELECT City FROM Customers\r\n" + 
-				"UNION\r\n" + 
-				"SELECT City FROM Suppliers\r\n" + 
-				"ORDER BY City;";
-		*/
-		String query3 = "Select col as abc from (select mango from t) k";
-
-		String query4 = " SELECT Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
-				"		Total_Utilization_Count AS \"Total Utilization Count\"  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
-				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,CLMS.TM_PRD_NM AS Time_Period  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		sum(CII_FACT_CLM_LINE.ACCT_ADMT_CNT + CII_FACT_CLM_LINE.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
-				"		TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  \r\n" + 
-				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 1) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
-				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
-				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY  \r\n" + 
-				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,TM_PRD_FNCTN.TM_PRD_NM ) AS CLMS  \r\n" + 
-				"GROUP BY CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.TM_PRD_NM ) AS FNL   \r\n" + 
-				"ORDER BY Health_Condition_Category_Description,Total_Utilization_Count";
-		
-		String query5 = "SELECT Time_Period AS \"Time Period\",Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
-				"		Total_Utilization_Count AS \"Total Utilization Count\",Paid_Amount AS \"Paid Amount\",\r\n" + 
-				"		Account_Name AS \"Account Name\",CBSA_Name AS \"CBSA Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD Diagnosis Source Short Code Definition Text\",\r\n" + 
-				"		Paid_PMPM AS \"Paid PMPM\",Paid_HCC_Indicator AS \"Paid HCC Indicator\"  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
-				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
-				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
-				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
-				"		CASE \r\n" + 
-				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
-				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
-				"		6))) \r\n" + 
-				"END	AS Paid_PMPM,CLMS.PAID_HCC_IND AS Paid_HCC_Indicator  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
-				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
-				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
-				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N') AS PAID_HCC_IND,CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,\r\n" + 
-				"		CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  \r\n" + 
-				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
-				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
-				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
-				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID LEFT JOIN (\r\n" + 
-				"select TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID,  \r\n" + 
-				"CASE \r\n" + 
-				"	WHEN  CONCAT('','Paid') = 'Paid' THEN \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN SUM(cii_fact_clm_line.ACCT_PAID_AMT) >= 100000  THEN 'Y' \r\n" + 
-				"	ELSE 'N' \r\n" + 
-				"END\r\n" + 
-				"	ELSE \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN SUM(cii_fact_clm_line.ACCT_ALWD_AMT) >= 100000  THEN 'Y' \r\n" + 
-				"	ELSE 'N' \r\n" + 
-				"END\r\n" + 
-				"END AS PAID_HCC_IND\r\n" + 
-				"from cii_fact_clm_line \r\n" + 
-				"JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case \r\n" + 
-				" when paidIncurred='Paid' then 111101 \r\n" + 
-				" else B.START_YEAR_MNTH \r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case \r\n" + 
-				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				" else B.END_YEAR_MNTH \r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case \r\n" + 
-				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				" when paidIncurred='Incurred' \r\n" + 
-				" and 0=0 then 201908 \r\n" + 
-				" else 888811 \r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
-				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				" ELSE 'Prior Period 2'\r\n" + 
-				"END AS TM_PRD_NM, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				" ELSE 201609 \r\n" + 
-				"END AS START_YEAR_MNTH, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
-				" ELSE  201708 \r\n" + 
-				"END AS END_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
-				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE A.LKUP_ID=1 \r\n" + 
-				" AND A.YEAR_ID <= 3)  TM_PRD_FNCTN \r\n" + 
-				" ON CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH\r\n" + 
-				"	AND RPTG_PAID_YEAR_MNTH_NBR between TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"WHERE cii_fact_clm_line.ACCT_ID = 'W0016437'\r\n" + 
-				"	AND cii_fact_clm_line.MBR_CVRG_TYPE_CD IN ('001','102')\r\n" + 
-				"group by TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID\r\n" + 
-				")HCC_CHK \r\n" + 
-				"	ON HCC_CHK.MCID=CII_FACT_CLM_LINE.MCID \r\n" + 
-				"	and HCC_CHK.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM  \r\n" + 
-				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
-				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N'),CII_FACT_CLM_LINE.CBSA_ID,\r\n" + 
-				"		CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
-				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
-				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
-				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID  \r\n" + 
-				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
-				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
-				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
-				"from cii_fact_mbrshp \r\n" + 
-				"JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case \r\n" + 
-				" when paidIncurred='Paid' then 111101 \r\n" + 
-				" else B.START_YEAR_MNTH \r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case \r\n" + 
-				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				" else B.END_YEAR_MNTH \r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case \r\n" + 
-				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				" when paidIncurred='Incurred' \r\n" + 
-				" and 0=0 then 201908 \r\n" + 
-				" else 888811 \r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
-				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				" ELSE 'Prior Period 2'\r\n" + 
-				"END AS TM_PRD_NM, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				" ELSE 201609 \r\n" + 
-				"END AS START_YEAR_MNTH, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
-				" ELSE  201708 \r\n" + 
-				"END AS END_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
-				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE A.LKUP_ID=1 \r\n" + 
-				" AND A.YEAR_ID <= 3) \r\n" + 
-				" TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
-				"\r\n" + 
-				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
-				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
-				")  TMBRSHP \r\n" + 
-				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
-				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
-				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
-				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
-				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID ) AS MBRSHP \r\n" + 
-				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
-				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
-				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM  \r\n" + 
-				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
-				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,CLMS.PAID_HCC_IND ) AS FNL   \r\n" + 
-				"ORDER BY Time_Period,Health_Condition_Category_Description,Total_Utilization_Count,\r\n" + 
-				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
-				"		Paid_PMPM,Paid_HCC_Indicator";
-		
-		String query6 = "\r\n" + 
-				" SELECT Time_Period AS \"Time_Period\",Health_Condition_Category_Description AS \"Health_Condition_Category_Description\",\r\n" + 
-				"		Total_Utilization_Count AS \"Total_Utilization_Count\",Paid_Amount AS \"Paid_Amount\",\r\n" + 
-				"		Account_Name AS \"Account_Name\",CBSA_Name AS \"CBSA_Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD_Diagnosis_Source_Short_Code_Definition_Text \" ,\r\n" + 
-				"		Paid_PMPM AS \"Paid_PMPM\", Paid_HCC_Indicator AS \"Paid_HCC_Indicator\",\r\n" + 
-				"		Age_Group_Description AS \"Age_Group_Description\"  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
-				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
-				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
-				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
-				"		CASE \r\n" + 
-				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
-				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
-				"		6))) \r\n" + 
-				"END	AS Paid_PMPM,CLMS.PAID_HCC_IND AS Paid_HCC_Indicator,\r\n" + 
-				"		CLMS.DIM_AGE_GRP_AGE_GRP_DESC AS Age_Group_Description  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
-				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
-				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
-				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N') AS PAID_HCC_IND,\r\n" + 
-				"		DIM_AGE_GRP.AGE_GRP_DESC AS DIM_AGE_GRP_AGE_GRP_DESC,CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,\r\n" + 
-				"		CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID,CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  \r\n" + 
-				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
-				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
-				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
-				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID LEFT JOIN (\r\n" + 
-				"select TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID,  \r\n" + 
-				"CASE \r\n" + 
-				"	WHEN  CONCAT('','Paid') = 'Paid' THEN \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN SUM(cii_fact_clm_line.ACCT_PAID_AMT) >= 100000  THEN 'Y' \r\n" + 
-				"	ELSE 'N' \r\n" + 
-				"END\r\n" + 
-				"	ELSE \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN SUM(cii_fact_clm_line.ACCT_ALWD_AMT) >= 100000  THEN 'Y' \r\n" + 
-				"	ELSE 'N' \r\n" + 
-				"END\r\n" + 
-				"END AS PAID_HCC_IND\r\n" + 
-				"from cii_fact_clm_line \r\n" + 
-				"JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case \r\n" + 
-				" when paidIncurred='Paid' then 111101 \r\n" + 
-				" else B.START_YEAR_MNTH \r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case \r\n" + 
-				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				" else B.END_YEAR_MNTH \r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case \r\n" + 
-				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				" when paidIncurred='Incurred' \r\n" + 
-				" and 0=0 then 201908 \r\n" + 
-				" else 888811 \r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
-				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				" ELSE 'Prior Period 2'\r\n" + 
-				"END AS TM_PRD_NM, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				" ELSE 201609 \r\n" + 
-				"END AS START_YEAR_MNTH, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
-				" ELSE  201708 \r\n" + 
-				"END AS END_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
-				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE A.LKUP_ID=1 \r\n" + 
-				" AND A.YEAR_ID <= 3)  TM_PRD_FNCTN \r\n" + 
-				" ON CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH\r\n" + 
-				"	AND RPTG_PAID_YEAR_MNTH_NBR between TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"WHERE cii_fact_clm_line.ACCT_ID = 'W0016437'\r\n" + 
-				"	AND cii_fact_clm_line.MBR_CVRG_TYPE_CD IN ('001','102')\r\n" + 
-				"group by TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID\r\n" + 
-				")HCC_CHK \r\n" + 
-				"	ON HCC_CHK.MCID=CII_FACT_CLM_LINE.MCID \r\n" + 
-				"	and HCC_CHK.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM \r\n" + 
-				"	INNER JOIN DIM_AGE_GRP \r\n" + 
-				"	ON CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY  \r\n" + 
-				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
-				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N'),\r\n" + 
-				"			DIM_AGE_GRP.AGE_GRP_DESC,CII_FACT_CLM_LINE.CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID,\r\n" + 
-				"		CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
-				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
-				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
-				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID,\r\n" + 
-				"		CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  \r\n" + 
-				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
-				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
-				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
-				"from cii_fact_mbrshp \r\n" + 
-				"JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case \r\n" + 
-				" when paidIncurred='Paid' then 111101 \r\n" + 
-				" else B.START_YEAR_MNTH \r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case \r\n" + 
-				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				" else B.END_YEAR_MNTH \r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case \r\n" + 
-				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				" when paidIncurred='Incurred' \r\n" + 
-				" and 0=0 then 201908 \r\n" + 
-				" else 888811 \r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
-				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				" ELSE 'Prior Period 2'\r\n" + 
-				"END AS TM_PRD_NM, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				" ELSE 201609 \r\n" + 
-				"END AS START_YEAR_MNTH, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
-				" ELSE  201708 \r\n" + 
-				"END AS END_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
-				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE A.LKUP_ID=1 \r\n" + 
-				" AND A.YEAR_ID <= 3) \r\n" + 
-				" TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
-				"\r\n" + 
-				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
-				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
-				")  TMBRSHP \r\n" + 
-				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
-				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
-				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
-				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
-				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID,\r\n" + 
-				"		CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY ) AS MBRSHP \r\n" + 
-				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
-				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
-				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM \r\n" + 
-				"	AND CLMS.ACCT_AGE_GRP_KEY=MBRSHP.ACCT_AGE_GRP_KEY  \r\n" + 
-				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
-				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,CLMS.PAID_HCC_IND,\r\n" + 
-				"		CLMS.DIM_AGE_GRP_AGE_GRP_DESC ) AS FNL\r\n" + 
-				"	";
-		String query7 = "SELECT Time_Period AS \"Time Period\",Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
-				"		Total_Utilization_Count AS \"Total Utilization Count\",Paid_Amount AS \"Paid Amount\",\r\n" + 
-				"		Account_Name AS \"Account Name\",CBSA_Name AS \"CBSA Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD Diagnosis Source Short Code Definition Text\",\r\n" + 
-				"		Paid_PMPM AS \"Paid PMPM\"  \r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
-				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
-				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
-				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
-				"		CASE \r\n" + 
-				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
-				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
-				"		6))) \r\n" + 
-				"END	AS Paid_PMPM\r\n" + 
-				"FROM	 (  \r\n" + 
-				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
-				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
-				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
-				"		CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  \r\n" + 
-				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
-				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
-				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
-				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
-				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID  \r\n" + 
-				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
-				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
-				"		CII_FACT_CLM_LINE.CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
-				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
-				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
-				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID  \r\n" + 
-				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case	\r\n" + 
-				"	when paidIncurred='Paid' then 111101 \r\n" + 
-				"	else B.START_YEAR_MNTH \r\n" + 
-				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case	\r\n" + 
-				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				"	else B.END_YEAR_MNTH \r\n" + 
-				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case	\r\n" + 
-				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				"	when paidIncurred='Incurred' \r\n" + 
-				"	and 0=0 then 201908 \r\n" + 
-				"	else 888811 \r\n" + 
-				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
-				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				"	ELSE 'Prior Period 2' \r\n" + 
-				"END	AS TM_PRD_NM, \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				"	ELSE 201609 \r\n" + 
-				"END	AS START_YEAR_MNTH,     \r\n" + 
-				"CASE	\r\n" + 
-				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
-				"	ELSE  201708 \r\n" + 
-				"END	AS END_YEAR_MNTH \r\n" + 
-				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
-				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE	A.LKUP_ID=1 \r\n" + 
-				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
-				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
-				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
-				"from cii_fact_mbrshp \r\n" + 
-				"JOIN (\r\n" + 
-				"SELECT	B.*, \r\n" + 
-				"case \r\n" + 
-				" when paidIncurred='Paid' then 111101 \r\n" + 
-				" else B.START_YEAR_MNTH \r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case \r\n" + 
-				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
-				" else B.END_YEAR_MNTH \r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"Case \r\n" + 
-				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
-				" when paidIncurred='Incurred' \r\n" + 
-				" and 0=0 then 201908 \r\n" + 
-				" else 888811 \r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
-				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
-				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
-				" ELSE 'Prior Period 2'\r\n" + 
-				"END AS TM_PRD_NM, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
-				" ELSE 201609 \r\n" + 
-				"END AS START_YEAR_MNTH, \r\n" + 
-				"CASE \r\n" + 
-				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
-				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
-				" ELSE  201708 \r\n" + 
-				"END AS END_YEAR_MNTH \r\n" + 
-				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
-				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
-				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
-				"WHERE A.LKUP_ID=1 \r\n" + 
-				" AND A.YEAR_ID <= 3) \r\n" + 
-				" TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN 20 \r\n" + 
-				"	and 30\r\n" + 
-				"\r\n" + 
-				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
-				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
-				")  TMBRSHP \r\n" + 
-				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
-				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
-				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
-				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
-				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
-				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID ) AS MBRSHP \r\n" + 
-				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
-				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
-				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM  \r\n" + 
-				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
-				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT ) AS FNL   \r\n" + 
-				"ORDER BY Time_Period,Health_Condition_Category_Description,Total_Utilization_Count,\r\n" + 
-				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
-				"		Paid_PMPM";
-		
-		String query8 = "Select a.abc, b.b1,  coalesce(a.a1, 'abcd'), a.a1 + 2 from a as a, (b) as b, (c) as c on a.id = b.id";
-		
-		String query9 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
-
-		String query10 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR in ('a', 'b') THEN 0 WHEN TMBRSHP.MIN_CVRG_PRTY_NBR=30 THEN 21 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title WHERE Genre in ('abc', 'y') or Genre=20";
-		
-		String query11 = "SELECT DISTINCT Title.MovieBudget AS \"MovieBudget\" , Title.RevenueDomestic AS \"RevenueDomestic\" , Title.RevenueInternational AS \"RevenueInternational\" , Title.RottenTomatoesAudience AS \"RottenTomatoesAudience\" , Title.RottenTomatoesCritics AS \"RottenTomatoesCritics\" , Title.Title AS \"Title\" FROM Title Title  WHERE (Title.MovieBudget) IN ( 1000000 , 1700000 ) \r\n";
-
-		String query12 = "SELECT DISTINCT customquery.\"MovieBudget\" AS \"MovieBudget\" , customquery.\"RevenueDomestic\" AS \"RevenueDomestic\" , customquery.\"RevenueInternational\" AS \"RevenueInternational\" , customquery.\"RottenTomatoesAudience\" AS \"RottenTomatoesAudience\" , customquery.\"RottenTomatoesCritics\" AS \"RottenTomatoesCritics\" , customquery.\"Title\" AS \"Title\" FROM (SELECT  avqLBU.\"MovieBudget\", avqLBU.\"RevenueDomestic\", avqLBU.\"RevenueInternational\", avqLBU.\"RottenTomatoesAudience\", avqLBU.\"RottenTomatoesCritics\", avqLBU.\"Title\"  FROM ( SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (1000000, 1700000)  UNION ALL  SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (500000, 800000)) AS avqLBU ) AS customquery\r\n";
-		
-		// testing queries for smart measure
-		
-		// harness 1 - multi level no join
-		// all with alias
-		String query13 = "Select B1 as A1, A.A2, A.A3 as A3 from "
-				+ "("
-				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
-				+ "("
-				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
-				+ " where B3='Roof' ) B"
-				+ ") A where A3='poof'"
-				+ ";";
-		
-		// without alias
-		String query14 = "Select B1, A.A2, A.A3 as A3 from "
-				+ "("
-				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
-				+ "("
-				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
-				+ ") B"
-				+ ") A"
-				+ ";";
-		
-		// without alias
-		// not in projection, but only in group by
-		String query15 = "Select A.A2, A.A3 as A3 from "
-				+ "("
-				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
-				+ "("
-				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
-				+ ") B"
-				+ ") A group by B1"
-				+ ";";
-
-
-		// joins
-		String query16 = "Select A.A2, A.A3 as A3, detok(E.E1), E.E2 from "
-				+ "("
-				+ "Select B.B1, detok(B.B2) as A2, B3 as A3 from "
-				+ "("
-				+ "Select C1 as B1, C2 as B2, C3 as B3 from C "
-				+ "inner join ("
-				+ "Select D1, D2, detok(D3) as D3 from D where D3='Roof') D on "
-				+ "C.C1 = D.D1"
-				+ ") B"
-				+ ") A inner join ("
-				+ "Select E1, E2, E3 from E) E on B1=E.E1"
-				+ " where (A3 = 'Fun' and A3 = 'Bun') or A3 = 'Gun';";
-		
-		// A3 - Age Less Than
-		// Second A3 - Age Less than
-		
-		
-		String query17 = "Select a,b, c from tabla where 1 = 0 and (a = 'a' or c = 'q')";
-
-		String query18 = "Select A.A2, A.A3 as A3, detok(E.E1), E.E2 from "
-				+ "("
-				+ "Select B.B1, detok(B.B2) as A2, B3 as A3 from "
-				+ "("
-				+ "Select C1 as B1, C2 as B2, C3 as B3 from C "
-				+ "inner join ("
-				+ "Select D1, D2, detok(D3) as D3 from D where D3='Roof') D on "
-				+ "C.C1 = D.D1"
-				+ ") B"
-				+ ") A inner join ("
-				+ "Select E1, E2, E3 from E) E on B1=E.E1"
-				+ " where (A3 = 'Fun' or A3 = 'Bun') or A2 = 'Gun';";
-
-		
-		String query19 = "Select Nominated, Genre, Studio, Title, MovieBudget, RevenueDomestic, RevenueInternational from Movie2 where Studio = 'WB' and (MovieBudget > 10000000 or MovieBudget > 20000000)";
-		// there are a couple of scenarios to model for join
-		// I have only one join easy for me to drop this - what happens to remaining stuff ?
-		// I have 2 joins 
-		String query20 = "Select Nominated, Genre, Studio, Title, MovieBudget, RevenueDomestic, RevenueInternational from Movie2 where MovieBudget = 1000 and Studio ='WB' and RevenueDomestic in (1,2,3,4)";
-
-		String query21 = "Select d123.a, b, c from d as d123 where a = NULL";
-		
-		String query22 = "SELECT Account_ID AS \"Account ID\",Master_Consumer_ID AS \"Master Consumer ID\",Member_Coverage_Type_Description AS \"Member Coverage Type Description\",Member_Gender_Code AS \"Member Gender Code\",Reporting_Member_Relationship_Description AS \"Reporting Member Relationship Description\",Age_Group_Description AS \"Age Group Description\",Age_In_Years AS \"Age In Years\",Contract_Type_Code AS \"Contract Type Code\",Eligibility_Year_Month_Ending_Number AS \"Eligibility Year Month Ending Number\",State_Code AS \"State Code\",CBSA_Name AS \"CBSA Name\",Member_PCP_Indicator AS \"Member PCP Indicator\",Subscriber_ID AS \"Subscriber ID\",Continuous_Enrollment_for_1_Period AS \"Continuous Enrollment for 1 Period\",Member_Birth_Date AS \"Member Birth Date\",Account_Name AS \"Account Name\",Time_Period_Start AS \"Time Period Start\",Time_Period_End AS \"Time Period End\",Non_Utilizer_Indicator AS \"Non Utilizer Indicator\",Member_Coverage_Count AS \"Member Coverage Count\"  FROM  (  SELECT MBRSHP.ACCT_ID AS Account_ID,MBRSHP.MCID AS Master_Consumer_ID,MBRSHP.MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,MBRSHP.MBR_GNDR_CD AS Member_Gender_Code,MBRSHP.RPTG_MBR_RLTNSHP_DESC AS Reporting_Member_Relationship_Description,MBRSHP.AGE_GRP_DESC AS Age_Group_Description,MBRSHP.AGE_IN_YRS_NBR AS Age_In_Years,MBRSHP.CNTRCT_TYPE_CD AS Contract_Type_Code,MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS Eligibility_Year_Month_Ending_Number,MBRSHP.ST_CD AS State_Code,MBRSHP.CBSA_NM AS CBSA_Name,MBRSHP.PCP_IND AS Member_PCP_Indicator,MBRSHP.FMBRSHP_SBSCRBR_ID AS Subscriber_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD AS Continuous_Enrollment_for_1_Period,MBRSHP.MBR_BRTH_DT AS Member_Birth_Date,MBRSHP.ACCT_NM AS Account_Name,MBRSHP.TIME_PRD_STRT_NBR AS Time_Period_Start,MBRSHP.TIME_PRD_END_NBR AS Time_Period_End,MBRSHP.Non_Utilizer_Ind AS Non_Utilizer_Indicator,SUM(MBRSHP.SUM_MBR_CVRG_CNT) AS Member_Coverage_Count,MBRSHP.TM_PRD_NM AS Time_Period  FROM  (  SELECT CII_ACCT_PRFL.ACCT_ID AS ACCT_ID,CII_FACT_MBRSHP.MCID AS MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD AS MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC AS RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end AS AGE_GRP_DESC,CII_FACT_MBRSHP.AGE_IN_YRS_NBR AS AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD AS CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD AS ST_CD,DIM_CBSA.CBSA_NM AS CBSA_NM,CII_FACT_MBRSHP.PCP_IND AS PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID AS FMBRSHP_SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD AS CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT AS MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end AS TIME_PRD_STRT_NBR,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end AS TIME_PRD_END_NBR,UT.Non_Utilizer_Ind AS Non_Utilizer_Ind,SUM(MBR_CVRG_CNT) AS SUM_MBR_CVRG_CNT,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  FROM CII_FACT_MBRSHP INNER JOIN (SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
-				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                        else SRVC_END_MNTH_NBR\r\n" + 
-				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"            DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2') \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN ( Select\r\n" + 
-				"mbrshp.ACCT_ID,\r\n" + 
-				"mbrshp.MCID,\r\n" + 
-				"mbrshp.mbr_cvrg_type_cd,\r\n" + 
-				"mbrshp.tm_prd_nm,\r\n" + 
-				"Case \r\n" + 
-				"            when (mbrshp.mcid = clms.mcid \r\n" + 
-				"            and mbrshp.mbr_cvrg_type_cd = clms.mbr_cvrg_type_cd) then 'N' \r\n" + 
-				"            Else 'Y' \r\n" + 
-				"End      as Non_Utilizer_Ind\r\n" + 
-				"from\r\n" + 
-				"(\r\n" + 
-				"Select\r\n" + 
-				"fact.ACCT_ID,\r\n" + 
-				"MCID,\r\n" + 
-				"MBR_CVRG_TYPE_CD,\r\n" + 
-				"  TM_PRD_NM\r\n" + 
-				"  from\r\n" + 
-				"cii_fact_mbrshp fact\r\n" + 
-				"\r\n" + 
-				"JOIN (             \r\n" + 
-				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
-				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                        else SRVC_END_MNTH_NBR\r\n" + 
-				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"            DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2') \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
-				"    ON fact.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH                \r\n" + 
-				"    and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
-				"            INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID  \r\n" + 
-				"WHERE      fact.ACCT_ID = 'W0004156'                  \r\n" + 
-				"GROUP BY  fact.acct_id,  fact.MCID, TM_PRD_FNCTN.TM_PRD_NM, fact.MBR_CVRG_TYPE_CD\r\n" + 
-				") mbrshp\r\n" + 
-				"\r\n" + 
-				"left outer join\r\n" + 
-				"(\r\n" + 
-				"Select\r\n" + 
-				"clm.ACCT_ID,\r\n" + 
-				"MCID,\r\n" + 
-				"MBR_CVRG_TYPE_CD,\r\n" + 
-				"TM_PRD_NM\r\n" + 
-				"\r\n" + 
-				"from\r\n" + 
-				"cii_fact_clm_line clm\r\n" + 
-				"JOIN (             \r\n" + 
-				"SELECT     YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
-				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                        else SRVC_END_MNTH_NBR\r\n" + 
-				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"            DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2') \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
-				"    ON clm.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   \r\n" + 
-				"            and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
-				"            INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on clm.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and clm.ACCT_ID=SGMNTN.ACCT_ID\r\n" + 
-				"WHERE      clm.ACCT_ID =  'W0004156'                        \r\n" + 
-				"GROUP BY  clm.acct_id,  clm.MCID, TM_PRD_FNCTN.TM_PRD_NM, clm.MBR_CVRG_TYPE_CD\r\n" + 
-				") clms\r\n" + 
-				"\r\n" + 
-				"            on\r\n" + 
-				"mbrshp.acct_id = clms.acct_id \r\n" + 
-				"            and mbrshp.mcid=clms.mcid  \r\n" + 
-				"            and mbrshp.TM_PRD_NM = clms.tm_prd_nm \r\n" + 
-				"            and mbrshp.mbr_cvrg_type_cd  = clms.mbr_cvrg_type_cd  ) UT\r\n" + 
-				"\r\n" + 
-				"            ON TM_PRD_FNCTN.TM_PRD_NM = UT.TM_PRD_NM  \r\n" + 
-				"            AND  CII_FACT_MBRSHP.ACCT_ID =UT.ACCT_ID  \r\n" + 
-				"            AND  CII_FACT_MBRSHP.MCID =UT.MCID  \r\n" + 
-				"            and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = UT.MBR_CVRG_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_AGE_GRP ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY INNER JOIN DIM_CBSA ON CII_FACT_MBRSHP.CBSA_ID = DIM_CBSA.CBSA_ID INNER  JOIN ( \r\n" + 
-				"            select     m.TM_PRD_NM,  m.acct_id, m.mcid, m. MBR_CVRG_TYPE_CD ,\r\n" + 
-				"   case\r\n" + 
-				"    when m.mnths = b.mnths\r\n" + 
-				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Continuous'\r\n" + 
-				"          when strt_mnth = start_prd\r\n" + 
-				"    and end_mnth<>end_prd\r\n" + 
-				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Termed'\r\n" + 
-				"          when strt_mnth <> start_prd\r\n" + 
-				"    and end_mnth=end_prd\r\n" + 
-				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill'then 'Added'\r\n" + 
-				"          when m.MBR_CVRG_TYPE_CD = 'back_fill' Then 'NA'\r\n" + 
-				"          else 'Other'\r\n" + 
-				"    end as CNTNUS_ENRLMNT_1_PRD_CD\r\n" + 
-				"            from     (\r\n" + 
-				"                        select   fact .acct_id,\r\n" + 
-				"                                                fact .MCID,\r\n" + 
-				"                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
-				"                                                fact.MBR_CVRG_TYPE_CD ,\r\n" + 
-				"                                                count (distinct fact .ELGBLTY_CY_MNTH_END_NBR) mnths ,\r\n" + 
-				"                                                min(fact .ELGBLTY_CY_MNTH_END_NBR) strt_mnth ,\r\n" + 
-				"                                                max(fact .ELGBLTY_CY_MNTH_END_NBR) \r\n" + 
-				"                                                end_mnth \r\n" + 
-				"                        from     cii_fact_mbrshp fact  JOIN (              \r\n" + 
-				"                                    SELECT                YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
-				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                        else SRVC_END_MNTH_NBR\r\n" + 
-				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"            case\r\n" + 
-				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"            DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2')  \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"            and dtp.YEAR_ID <= 1\r\n" + 
-				"            --In ('Current','Prior','Prior 2') \r\n" + 
-				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"            and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN                      \r\n" + 
-				"                                    ON fact .ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  \r\n" + 
-				"                                    and TM_PRD_FNCTN. \r\n" + 
-				"                                                END_YEAR_MNTH INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID   \r\n" + 
-				"                        WHERE            fact .ACCT_ID = 'W0004156'                         \r\n" + 
-				"                        GROUP BY  fact .acct_id,\r\n" + 
-				"                                                fact .MCID,\r\n" + 
-				"                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
-				"                                                fact .MBR_CVRG_TYPE_CD ) m \r\n" + 
-				"            inner join (\r\n" + 
-				"                        select   \r\n" + 
-				"                                                case \r\n" + 
-				"                                                            when YEAR_ID= 1 then 'Current Period'  \r\n" + 
-				"                                                            when YEAR_ID= 2 then 'Prior Period' \r\n" + 
-				"                                                            when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
-				"                                                            ELSE    'FOO' \r\n" + 
-				"                                                END as TM_PRD_NM,\r\n" + 
-				"                                                max(e_abs) - max(s_abs)+ 1 mnths,\r\n" + 
-				"                                                max(s_prd) as start_prd,\r\n" + 
-				"                                                max(e_prd)  as \r\n" + 
-				"                                                end_prd \r\n" + 
-				"                        from        ( \r\n" + 
-				"                                    select        \r\n" + 
-				"                                                            CASE \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 202009 then 1 \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                or YEAR_MNTH_NBR =  201909   then 2   \r\n" + 
-				"                                                                        WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
-				"                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
-				"                                                                        ELSE  4 \r\n" + 
-				"                                                            END  as YEAR_ID,\r\n" + 
-				"                                                            CASE \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                or  YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 201801  then ABS_YEAR_MNTH_NBR \r\n" + 
-				"                                                                        else null \r\n" + 
-				"                                                            end as s_abs ,\r\n" + 
-				"                                                            CASE \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 201801  then YEAR_MNTH_NBR \r\n" + 
-				"                                                                        else null \r\n" + 
-				"                                                            end as s_prd ,\r\n" + 
-				"                                                                             \r\n" + 
-				"                                                            CASE  \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
-				"                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 201809  then ABS_YEAR_MNTH_NBR \r\n" + 
-				"                                                                        else null \r\n" + 
-				"                                                            end as e_abs,\r\n" + 
-				"                                                            CASE \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
-				"                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 201809  then YEAR_MNTH_NBR \r\n" + 
-				"                                                                        else null \r\n" + 
-				"                                                            end as e_prd                 \r\n" + 
-				"                                    from     dim_mnth   \r\n" + 
-				"                                    where    \r\n" + 
-				"                                                            CASE \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                or YEAR_MNTH_NBR = 202009 then 1               \r\n" + 
-				"                                                                        WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                or YEAR_MNTH_NBR =  201909   then 2 \r\n" + 
-				"                                                                        WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
-				"                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
-				"                                                                        ELSE 0 \r\n" + 
-				"                                                            END  > 0 ) a  \r\n" + 
-				"                        group by \r\n" + 
-				"                                                case \r\n" + 
-				"                                                            when YEAR_ID= 1 then 'Current Period' \r\n" + 
-				"                                                            when YEAR_ID= 2 then 'Prior Period'  \r\n" + 
-				"                                                            when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
-				"                                                            ELSE    'FOO' \r\n" + 
-				"                                                END) b     \r\n" + 
-				"                        on  m.TM_PRD_NM = b.TM_PRD_NM) CE              \r\n" + 
-				"            ON TM_PRD_FNCTN.TM_PRD_NM = CE.TM_PRD_NM      \r\n" + 
-				"            AND  CII_FACT_MBRSHP.ACCT_ID =CE.ACCT_ID     \r\n" + 
-				"            AND  CII_FACT_MBRSHP.MCID =CE.MCID     \r\n" + 
-				"            and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = CE.MBR_CVRG_TYPE_CD INNER JOIN DIM_MCID ON CII_FACT_MBRSHP.MCID = DIM_MCID.MCID AND CII_FACT_MBRSHP.ACCT_ID = DIM_MCID.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0004156')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_FACT_MBRSHP.MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end,CII_FACT_MBRSHP.AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD,DIM_CBSA.CBSA_NM,CII_FACT_MBRSHP.PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end,UT.Non_Utilizer_Ind,TM_PRD_FNCTN.TM_PRD_NM ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.MCID,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.MBR_GNDR_CD,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.AGE_GRP_DESC,MBRSHP.AGE_IN_YRS_NBR,MBRSHP.CNTRCT_TYPE_CD,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.ST_CD,MBRSHP.CBSA_NM,MBRSHP.PCP_IND,MBRSHP.FMBRSHP_SBSCRBR_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD,MBRSHP.MBR_BRTH_DT,MBRSHP.ACCT_NM,MBRSHP.TIME_PRD_STRT_NBR,MBRSHP.TIME_PRD_END_NBR,MBRSHP.Non_Utilizer_Ind,MBRSHP.TM_PRD_NM ) AS FNL   ORDER BY Account_ID,Master_Consumer_ID,Member_Coverage_Type_Description,Member_Gender_Code,Reporting_Member_Relationship_Description,Age_Group_Description,Age_In_Years,Contract_Type_Code,Eligibility_Year_Month_Ending_Number,State_Code,CBSA_Name,Member_PCP_Indicator,Subscriber_ID,Continuous_Enrollment_for_1_Period,Member_Birth_Date,Account_Name,Time_Period_Start,Time_Period_End,Non_Utilizer_Indicator,Member_Coverage_Count\r\n";
-		
-		String query23 = "SELECT Account_ID AS \"Account ID\",Master_Consumer_ID AS \"Master Consumer ID\",Member_Coverage_Type_Description AS \"Member Coverage Type Description\",Member_Gender_Code AS \"Member Gender Code\",Reporting_Member_Relationship_Description AS \"Reporting Member Relationship Description\",Age_Group_Description AS \"Age Group Description\",Age_In_Years AS \"Age In Years\",Contract_Type_Code AS \"Contract Type Code\",Eligibility_Year_Month_Ending_Number AS \"Eligibility Year Month Ending Number\",State_Code AS \"State Code\",CBSA_Name AS \"CBSA Name\",Member_PCP_Indicator AS \"Member PCP Indicator\",Subscriber_ID AS \"Subscriber ID\",Continuous_Enrollment_for_1_Period AS \"Continuous Enrollment for 1 Period\",Member_Birth_Date AS \"Member Birth Date\",Account_Name AS \"Account Name\",Time_Period_Start AS \"Time Period Start\",Time_Period_End AS \"Time Period End\",Non_Utilizer_Indicator AS \"Non Utilizer Indicator\",Member_Coverage_Count AS \"Member Coverage Count\"  FROM  (  SELECT MBRSHP.ACCT_ID AS Account_ID,MBRSHP.MCID AS Master_Consumer_ID,MBRSHP.MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,MBRSHP.MBR_GNDR_CD AS Member_Gender_Code,MBRSHP.RPTG_MBR_RLTNSHP_DESC AS Reporting_Member_Relationship_Description,MBRSHP.AGE_GRP_DESC AS Age_Group_Description,MBRSHP.AGE_IN_YRS_NBR AS Age_In_Years,MBRSHP.CNTRCT_TYPE_CD AS Contract_Type_Code,MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS Eligibility_Year_Month_Ending_Number,MBRSHP.ST_CD AS State_Code,MBRSHP.CBSA_NM AS CBSA_Name,MBRSHP.PCP_IND AS Member_PCP_Indicator,MBRSHP.FMBRSHP_SBSCRBR_ID AS Subscriber_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD AS Continuous_Enrollment_for_1_Period,MBRSHP.MBR_BRTH_DT AS Member_Birth_Date,MBRSHP.ACCT_NM AS Account_Name,MBRSHP.TIME_PRD_STRT_NBR AS Time_Period_Start,MBRSHP.TIME_PRD_END_NBR AS Time_Period_End,MBRSHP.Non_Utilizer_Ind AS Non_Utilizer_Indicator,SUM(MBRSHP.SUM_MBR_CVRG_CNT) AS Member_Coverage_Count,MBRSHP.TM_PRD_NM AS Time_Period  FROM  (  SELECT CII_ACCT_PRFL.ACCT_ID AS ACCT_ID,CII_FACT_MBRSHP.MCID AS MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD AS MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC AS RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end AS AGE_GRP_DESC,CII_FACT_MBRSHP.AGE_IN_YRS_NBR AS AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD AS CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD AS ST_CD,DIM_CBSA.CBSA_NM AS CBSA_NM,CII_FACT_MBRSHP.PCP_IND AS PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID AS FMBRSHP_SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD AS CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT AS MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end AS TIME_PRD_STRT_NBR,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end AS TIME_PRD_END_NBR,UT.Non_Utilizer_Ind AS Non_Utilizer_Ind,SUM(MBR_CVRG_CNT) AS SUM_MBR_CVRG_CNT,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  FROM CII_FACT_MBRSHP INNER JOIN (SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
-				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                                else SRVC_END_MNTH_NBR\r\n" + 
-				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"                DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2') \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN ( Select\r\n" + 
-				"mbrshp.ACCT_ID,\r\n" + 
-				"mbrshp.MCID,\r\n" + 
-				"mbrshp.mbr_cvrg_type_cd,\r\n" + 
-				"mbrshp.tm_prd_nm,\r\n" + 
-				"Case \r\n" + 
-				"                when (mbrshp.mcid = clms.mcid \r\n" + 
-				"                and mbrshp.mbr_cvrg_type_cd = clms.mbr_cvrg_type_cd) then 'N' \r\n" + 
-				"                Else 'Y' \r\n" + 
-				"End        as Non_Utilizer_Ind\r\n" + 
-				"from\r\n" + 
-				"(\r\n" + 
-				"Select\r\n" + 
-				"fact.ACCT_ID,\r\n" + 
-				"MCID,\r\n" + 
-				"MBR_CVRG_TYPE_CD,\r\n" + 
-				"  TM_PRD_NM\r\n" + 
-				"  from\r\n" + 
-				"cii_fact_mbrshp fact\r\n" + 
-				"\r\n" + 
-				"JOIN (             \r\n" + 
-				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
-				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                                else SRVC_END_MNTH_NBR\r\n" + 
-				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"                DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2') \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
-				"    ON fact.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH                \r\n" + 
-				"    and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
-				"                INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID  \r\n" + 
-				"WHERE      fact.ACCT_ID = 'W0016437'                  \r\n" + 
-				"GROUP BY  fact.acct_id,  fact.MCID, TM_PRD_FNCTN.TM_PRD_NM, fact.MBR_CVRG_TYPE_CD\r\n" + 
-				") mbrshp\r\n" + 
-				"\r\n" + 
-				"left outer join\r\n" + 
-				"(\r\n" + 
-				"Select\r\n" + 
-				"clm.ACCT_ID,\r\n" + 
-				"MCID,\r\n" + 
-				"MBR_CVRG_TYPE_CD,\r\n" + 
-				"TM_PRD_NM\r\n" + 
-				"\r\n" + 
-				"from\r\n" + 
-				"cii_fact_clm_line clm\r\n" + 
-				"JOIN (             \r\n" + 
-				"SELECT     YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
-				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                                else SRVC_END_MNTH_NBR\r\n" + 
-				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"                DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2') \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
-				"    ON clm.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   \r\n" + 
-				"                and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
-				"                INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on clm.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and clm.ACCT_ID=SGMNTN.ACCT_ID\r\n" + 
-				"WHERE      clm.ACCT_ID =  'W0016437'                        \r\n" + 
-				"GROUP BY  clm.acct_id,  clm.MCID, TM_PRD_FNCTN.TM_PRD_NM, clm.MBR_CVRG_TYPE_CD\r\n" + 
-				") clms\r\n" + 
-				"\r\n" + 
-				"                on\r\n" + 
-				"mbrshp.acct_id = clms.acct_id \r\n" + 
-				"                and mbrshp.mcid=clms.mcid  \r\n" + 
-				"                and mbrshp.TM_PRD_NM = clms.tm_prd_nm \r\n" + 
-				"                and mbrshp.mbr_cvrg_type_cd  = clms.mbr_cvrg_type_cd  ) UT\r\n" + 
-				"\r\n" + 
-				"                ON TM_PRD_FNCTN.TM_PRD_NM = UT.TM_PRD_NM  \r\n" + 
-				"                AND  CII_FACT_MBRSHP.ACCT_ID =UT.ACCT_ID  \r\n" + 
-				"                AND  CII_FACT_MBRSHP.MCID =UT.MCID  \r\n" + 
-				"                and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = UT.MBR_CVRG_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_AGE_GRP ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY INNER JOIN DIM_CBSA ON CII_FACT_MBRSHP.CBSA_ID = DIM_CBSA.CBSA_ID INNER  JOIN ( \r\n" + 
-				"                select      m.TM_PRD_NM,  m.acct_id, m.mcid, m. MBR_CVRG_TYPE_CD ,\r\n" + 
-				"   case\r\n" + 
-				"    when m.mnths = b.mnths\r\n" + 
-				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Continuous'\r\n" + 
-				"          when strt_mnth = start_prd\r\n" + 
-				"    and end_mnth<>end_prd\r\n" + 
-				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Termed'\r\n" + 
-				"          when strt_mnth <> start_prd\r\n" + 
-				"    and end_mnth=end_prd\r\n" + 
-				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill'then 'Added'\r\n" + 
-				"          when m.MBR_CVRG_TYPE_CD = 'back_fill' Then 'NA'\r\n" + 
-				"          else 'Other'\r\n" + 
-				"    end as CNTNUS_ENRLMNT_1_PRD_CD\r\n" + 
-				"                from      (\r\n" + 
-				"                                select    fact .acct_id,\r\n" + 
-				"                                                                fact .MCID,\r\n" + 
-				"                                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
-				"                                                                fact.MBR_CVRG_TYPE_CD ,\r\n" + 
-				"                                                                count (distinct fact .ELGBLTY_CY_MNTH_END_NBR) mnths ,\r\n" + 
-				"                                                                min(fact .ELGBLTY_CY_MNTH_END_NBR) strt_mnth ,\r\n" + 
-				"                                                                max(fact .ELGBLTY_CY_MNTH_END_NBR) \r\n" + 
-				"                                                                end_mnth \r\n" + 
-				"                                from      cii_fact_mbrshp fact  JOIN (              \r\n" + 
-				"                                                SELECT      YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
-				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"                                else SRVC_END_MNTH_NBR\r\n" + 
-				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"                case\r\n" + 
-				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"                DIM_TM_PRD_ADHC dtp\r\n" + 
-				"cross join DIM_MNTH dm\r\n" + 
-				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
-				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
-				")\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2')  \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
-				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
-				"                and dtp.YEAR_ID <= 1\r\n" + 
-				"                --In ('Current','Prior','Prior 2') \r\n" + 
-				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
-				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
-				"                and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN                      \r\n" + 
-				"                                                ON fact .ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  \r\n" + 
-				"                                                and TM_PRD_FNCTN. \r\n" + 
-				"                                                                END_YEAR_MNTH INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID   \r\n" + 
-				"                                WHERE fact .ACCT_ID = 'W0016437'                         \r\n" + 
-				"                                GROUP BY  fact .acct_id,\r\n" + 
-				"                                                                fact .MCID,\r\n" + 
-				"                                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
-				"                                                                fact .MBR_CVRG_TYPE_CD ) m \r\n" + 
-				"                inner join (\r\n" + 
-				"                                select    \r\n" + 
-				"                                                                case \r\n" + 
-				"                                                                                when YEAR_ID= 1 then 'Current Period'  \r\n" + 
-				"                                                                                when YEAR_ID= 2 then 'Prior Period' \r\n" + 
-				"                                                                                when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
-				"                                                                                ELSE    'FOO' \r\n" + 
-				"                                                                END as TM_PRD_NM,\r\n" + 
-				"                                                                max(e_abs) - max(s_abs)+ 1 mnths,\r\n" + 
-				"                                                                max(s_prd) as start_prd,\r\n" + 
-				"                                                                max(e_prd)  as \r\n" + 
-				"                                                                end_prd \r\n" + 
-				"                                from         ( \r\n" + 
-				"                                                select         \r\n" + 
-				"                                                                                CASE \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 202009 then 1 \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR =  201909   then 2   \r\n" + 
-				"                                                                                                WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
-				"                                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
-				"                                                                                                ELSE  4 \r\n" + 
-				"                                                                                END  as YEAR_ID,\r\n" + 
-				"                                                                                CASE \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                                or  YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 201801  then ABS_YEAR_MNTH_NBR \r\n" + 
-				"                                                                                                else null \r\n" + 
-				"                                                                                end as s_abs ,\r\n" + 
-				"                                                                                CASE \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 201801  then YEAR_MNTH_NBR \r\n" + 
-				"                                                                                                else null \r\n" + 
-				"                                                                                end as s_prd ,\r\n" + 
-				"                                                                                                 \r\n" + 
-				"                                                                                CASE  \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 201809  then ABS_YEAR_MNTH_NBR \r\n" + 
-				"                                                                                                else null \r\n" + 
-				"                                                                                end as e_abs,\r\n" + 
-				"                                                                                CASE \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 201809  then YEAR_MNTH_NBR \r\n" + 
-				"                                                                                                else null \r\n" + 
-				"                                                                                end as e_prd                 \r\n" + 
-				"                                                from      dim_mnth   \r\n" + 
-				"                                                where   \r\n" + 
-				"                                                                                CASE \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR = 202009 then 1               \r\n" + 
-				"                                                                                                WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
-				"                                                                or YEAR_MNTH_NBR =  201909   then 2 \r\n" + 
-				"                                                                                                WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
-				"                                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
-				"                                                                                                ELSE 0 \r\n" + 
-				"                                                                                END  > 0 ) a  \r\n" + 
-				"                                group by \r\n" + 
-				"                                                                case \r\n" + 
-				"                                                                                when YEAR_ID= 1 then 'Current Period' \r\n" + 
-				"                                                                                when YEAR_ID= 2 then 'Prior Period'  \r\n" + 
-				"                                                                                when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
-				"                                                                                ELSE    'FOO' \r\n" + 
-				"                                                                END) b     \r\n" + 
-				"                                on  m.TM_PRD_NM = b.TM_PRD_NM) CE              \r\n" + 
-				"                ON TM_PRD_FNCTN.TM_PRD_NM = CE.TM_PRD_NM      \r\n" + 
-				"                AND  CII_FACT_MBRSHP.ACCT_ID =CE.ACCT_ID     \r\n" + 
-				"                AND  CII_FACT_MBRSHP.MCID =CE.MCID     \r\n" + 
-				"                and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = CE.MBR_CVRG_TYPE_CD INNER JOIN DIM_MCID ON CII_FACT_MBRSHP.MCID = DIM_MCID.MCID AND CII_FACT_MBRSHP.ACCT_ID = DIM_MCID.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_FACT_MBRSHP.MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end,CII_FACT_MBRSHP.AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD,DIM_CBSA.CBSA_NM,CII_FACT_MBRSHP.PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end,UT.Non_Utilizer_Ind,TM_PRD_FNCTN.TM_PRD_NM ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.MCID,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.MBR_GNDR_CD,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.AGE_GRP_DESC,MBRSHP.AGE_IN_YRS_NBR,MBRSHP.CNTRCT_TYPE_CD,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.ST_CD,MBRSHP.CBSA_NM,MBRSHP.PCP_IND,MBRSHP.FMBRSHP_SBSCRBR_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD,MBRSHP.MBR_BRTH_DT,MBRSHP.ACCT_NM,MBRSHP.TIME_PRD_STRT_NBR,MBRSHP.TIME_PRD_END_NBR,MBRSHP.Non_Utilizer_Ind,MBRSHP.TM_PRD_NM ) AS FNL   ORDER BY Account_ID,Master_Consumer_ID,Member_Coverage_Type_Description,Member_Gender_Code,Reporting_Member_Relationship_Description,Age_Group_Description,Age_In_Years,Contract_Type_Code,Eligibility_Year_Month_Ending_Number,State_Code,CBSA_Name,Member_PCP_Indicator,Subscriber_ID,Continuous_Enrollment_for_1_Period,Member_Birth_Date,Account_Name,Time_Period_Start,Time_Period_End,Non_Utilizer_Indicator,Member_Coverage_Count";
-		
-		String query30 = "SELECT Account_Name AS \"Account Name\",Gaps_Closed AS \"Gaps Closed\",Member_Engaged_Indicator AS \"Member Engaged Indicator\",Member_Engagement_Tier AS \"Member Engagement Tier\",Time_Period AS \"Time Period\",Earned_Incentive_Indicator AS \"Earned Incentive Indicator\"  FROM  (  SELECT GAPSVNGS.ACCT_NM AS Account_Name,SUM(GAPSVNGS.GPS_CLSD) AS Gaps_Closed,GAPSVNGS.MBR_ENGGD_IND AS Member_Engaged_Indicator,GAPSVNGS.MBR_ENGGMNT_TIER AS Member_Engagement_Tier,GAPSVNGS.TM_PRD_NM AS Time_Period,GAPSVNGS.EARND_INCNTV_CD AS Earned_Incentive_Indicator  FROM  (  SELECT CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,SUM( CASE WHEN CII_FACT_GAP_SVNGS.CMPLNC_YEAR_MNTH_YEAR_NBR <= CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH  as varchar(6)) ,5,2) = '01' THEN TM_PRD_FNCTN.END_YEAR_MNTH   - 89 ELSE TM_PRD_FNCTN.END_YEAR_MNTH   - 1 END  THEN CII_FACT_GAP_SVNGS.CLSUR_CNT ELSE 0 END) AS GPS_CLSD,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N') AS MBR_ENGGD_IND,coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged') AS MBR_ENGGMNT_TIER,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD AS EARND_INCNTV_CD  FROM CII_FACT_GAP_SVNGS INNER JOIN (\r\n" + 
-				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"else SRVC_STRT_MNTH_NBR\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"else SRVC_END_MNTH_NBR\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN ON CII_FACT_GAP_SVNGS.RLSET_RUN_YEAR_MNTH_NBR BETWEEN CASE WHEN substr(cast(TM_PRD_FNCTN.START_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.START_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.START_YEAR_MNTH  - 6 END and CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.END_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.END_YEAR_MNTH  - 6 END INNER JOIN (    SELECT MBRSHP.TM_PRD_NM AS Time_Period,MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,   MBRSHP.CII_FACT_MBRSHP_MCID AS Master_Consumer_ID  FROM (       SELECT TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID AS CII_FACT_MBRSHP_MCID      FROM CII_FACT_MBRSHP     INNER JOIN (       \r\n" + 
-				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"else SRVC_STRT_MNTH_NBR\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"else SRVC_END_MNTH_NBR\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN      ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH       and TM_PRD_FNCTN.      END_YEAR_MNTH      INNER JOIN DIM_MBR_CVRG_TYPE       ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD  INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID    WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')       AND DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC = 'Medical'      GROUP BY TM_PRD_FNCTN.TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID ) AS MBRSHP    GROUP BY MBRSHP.TM_PRD_NM,    MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,    CII_FACT_MBRSHP_MCID ) AS MDCL_MBRSHP  on (TM_PRD_FNCTN.TM_PRD_NM = MDCL_MBRSHP.Time_Period  and CII_FACT_GAP_SVNGS.MCID = MDCL_MBRSHP.Master_Consumer_ID) INNER JOIN  (SELECT MAX(CII_FACT_MBRSHP.EARND_INCNTV_CD) EARND_INCNTV_CD, CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM FROM CII_FACT_MBRSHP \r\n" + 
-				"JOIN\r\n" + 
-				"(SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"  else SRVC_STRT_MNTH_NBR\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"  else SRVC_END_MNTH_NBR\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN   \r\n" + 
-				" ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  and TM_PRD_FNCTN.END_YEAR_MNTH WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')  and ELGBL_INCNTV_IND='Y'\r\n" + 
-				"group by CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM)\r\n" + 
-				"INCNTV_MBRSHP \r\n" + 
-				"ON CII_FACT_GAP_SVNGS.MCID=INCNTV_MBRSHP.MCID AND TM_PRD_FNCTN.TM_PRD_NM=INCNTV_MBRSHP.TM_PRD_NM AND CII_FACT_GAP_SVNGS.ACCT_ID=INCNTV_MBRSHP.ACCT_ID INNER JOIN CII_ACCT_PRFL ON CII_FACT_GAP_SVNGS.ACCT_ID = CII_ACCT_PRFL.ACCT_ID LEFT JOIN  (   \r\n" + 
-				"select CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID, TM_PRD_FNCTN.TM_PRD_NM ,\r\n" + 
-				"  (  \r\n" + 
-				"CASE     \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'          \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0     \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'          \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0      \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0     \r\n" + 
-				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'          \r\n" + 
-				" ELSE 'Not Engaged'    \r\n" + 
-				"END) AS MBR_ENGGMNT_LVL  , \r\n" + 
-				"case  \r\n" + 
-				" when MAX(DIM_ENGGMNT.EXPNDD_IND)= 0 then 'N'  \r\n" + 
-				" else 'Y'  \r\n" + 
-				"end as MBR_ENGGD_IND , MAX(DIM_ENGGMNT.ENHNCD_IND) as isEnhanced ,\r\n" + 
-				"  MAX(DIM_ENGGMNT.EXPNDD_IND) as isExpanded , MAX(DIM_ENGGMNT.TRDTNL_IND) as isTraditional  \r\n" + 
-				"from CII_FACT_CP_ENGGMNT   inner join DIM_ENGGMNT         \r\n" + 
-				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
-				"SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"\r\n" + 
-				"from\r\n" + 
-				"\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"\r\n" + 
-				"join DIM_MNTH dm \r\n" + 
-				" on 1=1\r\n" + 
-				"\r\n" + 
-				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"\r\n" + 
-				"and (\r\n" + 
-				"\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
-				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN       \r\n" + 
-				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH      \r\n" + 
-				" and TM_PRD_FNCTN. END_YEAR_MNTH   \r\n" + 
-				"WHERE CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
-				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
-				"  TM_PRD_FNCTN.TM_PRD_NM )   TMBRENGGMNT2      \r\n" + 
-				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT2.ACCT_ID      \r\n" + 
-				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT2.MCID      \r\n" + 
-				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT2.TM_PRD_NM LEFT    JOIN  (   \r\n" + 
-				"select    a.acct_id, a.MCID,a.TM_PRD_NM, a.ENGGMNT, b.ENGGMNT_TIER    \r\n" + 
-				"from     (   \r\n" + 
-				"select    CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID,\r\n" + 
-				"  TM_PRD_FNCTN.TM_PRD_NM ,                 (  \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'                 \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0            \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'                 \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0             \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0            \r\n" + 
-				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'                 \r\n" + 
-				" ELSE 'Not Engaged'    \r\n" + 
-				"END) AS ENGGMNT         \r\n" + 
-				"from    CII_FACT_CP_ENGGMNT  inner join DIM_ENGGMNT                \r\n" + 
-				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
-				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				" and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"\r\n" + 
-				"from\r\n" + 
-				"\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"\r\n" + 
-				"join DIM_MNTH dm \r\n" + 
-				" on 1=1\r\n" + 
-				"\r\n" + 
-				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"\r\n" + 
-				"and (\r\n" + 
-				"\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
-				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN              \r\n" + 
-				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH             \r\n" + 
-				" and TM_PRD_FNCTN. END_YEAR_MNTH    \r\n" + 
-				"WHERE    CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
-				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
-				"          TM_PRD_FNCTN.TM_PRD_NM ) a  inner join (   \r\n" + 
-				"select       \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))            \r\n" + 
-				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
-				"END    AS ENGGMNT ,   \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))            \r\n" + 
-				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
-				"END    AS ENGGMNT_TIER                          \r\n" + 
-				"from    DIM_ENGGMNT                          \r\n" + 
-				"union    all                          \r\n" + 
-				"select       \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
-				" else cast('Care Coordination' as char(20))    \r\n" + 
-				"end    as ENGGMNT , cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER    \r\n" + 
-				"from    DIM_ENGGMNT    \r\n" + 
-				"where    DIM_ENGGMNT.TRDTNL_IND= 1            \r\n" + 
-				" or DIM_ENGGMNT.ENHNCD_IND= 1                          \r\n" + 
-				"union    all                          \r\n" + 
-				"select    cast('Traditional' as char(20)) as ENGGMNT, cast('Care Coordination' as char(20))  AS ENGGMNT_TIER    \r\n" + 
-				"from    DIM_ENGGMNT    \r\n" + 
-				"where    DIM_ENGGMNT.TRDTNL_IND= 1 ) b            \r\n" + 
-				" on a.ENGGMNT = b.ENGGMNT                   )  TMBRENGGMNT             \r\n" + 
-				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT.ACCT_ID             \r\n" + 
-				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT.MCID             \r\n" + 
-				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_GAP_SVNGS.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_GAP_SVNGS.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_GAP_SVNGS.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_NM,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N'),coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged'),TM_PRD_FNCTN.TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD ) AS GAPSVNGS  GROUP BY GAPSVNGS.ACCT_NM,GAPSVNGS.MBR_ENGGD_IND,GAPSVNGS.MBR_ENGGMNT_TIER,GAPSVNGS.TM_PRD_NM,GAPSVNGS.EARND_INCNTV_CD ) AS FNL   ORDER BY Account_Name,Gaps_Closed,Member_Engaged_Indicator,Member_Engagement_Tier,Time_Period,Earned_Incentive_Indicator\r\n" + 
-				"";
-		
-		String query31 = "SELECT Account_Name AS \"Account Name\",Gaps_Closed AS \"Gaps Closed\",Member_Engaged_Indicator AS \"Member Engaged Indicator\",Member_Engagement_Tier AS \"Member Engagement Tier\",Time_Period AS \"Time Period\",Earned_Incentive_Indicator AS \"Earned Incentive Indicator\"  FROM  (  SELECT GAPSVNGS.ACCT_NM AS Account_Name,SUM(GAPSVNGS.GPS_CLSD) AS Gaps_Closed,GAPSVNGS.MBR_ENGGD_IND AS Member_Engaged_Indicator,GAPSVNGS.MBR_ENGGMNT_TIER AS Member_Engagement_Tier,GAPSVNGS.TM_PRD_NM AS Time_Period,GAPSVNGS.EARND_INCNTV_CD AS Earned_Incentive_Indicator  FROM  (  SELECT CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,SUM( CASE WHEN CII_FACT_GAP_SVNGS.CMPLNC_YEAR_MNTH_YEAR_NBR <= CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH  as varchar(6)) ,5,2) = '01' THEN TM_PRD_FNCTN.END_YEAR_MNTH   - 89 ELSE TM_PRD_FNCTN.END_YEAR_MNTH   - 1 END  THEN CII_FACT_GAP_SVNGS.CLSUR_CNT ELSE 0 END) AS GPS_CLSD,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N') AS MBR_ENGGD_IND,coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged') AS MBR_ENGGMNT_TIER,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD AS EARND_INCNTV_CD  FROM CII_FACT_GAP_SVNGS INNER JOIN (\r\n" + 
-				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"else SRVC_STRT_MNTH_NBR\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"else SRVC_END_MNTH_NBR\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN ON CII_FACT_GAP_SVNGS.RLSET_RUN_YEAR_MNTH_NBR BETWEEN CASE WHEN substr(cast(TM_PRD_FNCTN.START_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.START_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.START_YEAR_MNTH  - 6 END and CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.END_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.END_YEAR_MNTH  - 6 END INNER JOIN (    SELECT MBRSHP.TM_PRD_NM AS Time_Period,MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,   MBRSHP.CII_FACT_MBRSHP_MCID AS Master_Consumer_ID  FROM (       SELECT TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID AS CII_FACT_MBRSHP_MCID      FROM CII_FACT_MBRSHP     INNER JOIN (       \r\n" + 
-				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"else SRVC_STRT_MNTH_NBR\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"else SRVC_END_MNTH_NBR\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN      ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH       and TM_PRD_FNCTN.      END_YEAR_MNTH      INNER JOIN DIM_MBR_CVRG_TYPE       ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD  INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID    WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')       AND DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC = 'Medical'      GROUP BY TM_PRD_FNCTN.TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID ) AS MBRSHP    GROUP BY MBRSHP.TM_PRD_NM,    MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,    CII_FACT_MBRSHP_MCID ) AS MDCL_MBRSHP  on (TM_PRD_FNCTN.TM_PRD_NM = MDCL_MBRSHP.Time_Period  and CII_FACT_GAP_SVNGS.MCID = MDCL_MBRSHP.Master_Consumer_ID) INNER JOIN  (SELECT MAX(CII_FACT_MBRSHP.EARND_INCNTV_CD) EARND_INCNTV_CD, CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM FROM CII_FACT_MBRSHP \r\n" + 
-				"JOIN\r\n" + 
-				"(SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"  else SRVC_STRT_MNTH_NBR\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"  else SRVC_END_MNTH_NBR\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"case\r\n" + 
-				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN   \r\n" + 
-				" ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  and TM_PRD_FNCTN.END_YEAR_MNTH WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')  and ELGBL_INCNTV_IND='Y'\r\n" + 
-				"group by CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM)\r\n" + 
-				"INCNTV_MBRSHP \r\n" + 
-				"ON CII_FACT_GAP_SVNGS.MCID=INCNTV_MBRSHP.MCID AND TM_PRD_FNCTN.TM_PRD_NM=INCNTV_MBRSHP.TM_PRD_NM AND CII_FACT_GAP_SVNGS.ACCT_ID=INCNTV_MBRSHP.ACCT_ID INNER JOIN CII_ACCT_PRFL ON CII_FACT_GAP_SVNGS.ACCT_ID = CII_ACCT_PRFL.ACCT_ID LEFT JOIN  (   \r\n" + 
-				"select CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID, TM_PRD_FNCTN.TM_PRD_NM ,\r\n" + 
-				"  (  \r\n" + 
-				"CASE     \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'          \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0     \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'          \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0      \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0     \r\n" + 
-				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'          \r\n" + 
-				" ELSE 'Not Engaged'    \r\n" + 
-				"END) AS MBR_ENGGMNT_LVL  , \r\n" + 
-				"case  \r\n" + 
-				" when MAX(DIM_ENGGMNT.EXPNDD_IND)= 0 then 'N'  \r\n" + 
-				" else 'Y'  \r\n" + 
-				"end as MBR_ENGGD_IND , MAX(DIM_ENGGMNT.ENHNCD_IND) as isEnhanced ,\r\n" + 
-				"  MAX(DIM_ENGGMNT.EXPNDD_IND) as isExpanded , MAX(DIM_ENGGMNT.TRDTNL_IND) as isTraditional  \r\n" + 
-				"from CII_FACT_CP_ENGGMNT   inner join DIM_ENGGMNT         \r\n" + 
-				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
-				"SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"\r\n" + 
-				"from\r\n" + 
-				"\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"\r\n" + 
-				"join DIM_MNTH dm \r\n" + 
-				" on 1=1\r\n" + 
-				"\r\n" + 
-				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"\r\n" + 
-				"and (\r\n" + 
-				"\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
-				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN       \r\n" + 
-				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH      \r\n" + 
-				" and TM_PRD_FNCTN. END_YEAR_MNTH   \r\n" + 
-				"WHERE CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
-				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
-				"  TM_PRD_FNCTN.TM_PRD_NM )   TMBRENGGMNT2      \r\n" + 
-				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT2.ACCT_ID      \r\n" + 
-				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT2.MCID      \r\n" + 
-				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT2.TM_PRD_NM LEFT    JOIN  (   \r\n" + 
-				"select    a.acct_id, a.MCID,a.TM_PRD_NM, a.ENGGMNT, b.ENGGMNT_TIER    \r\n" + 
-				"from     (   \r\n" + 
-				"select    CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID,\r\n" + 
-				"  TM_PRD_FNCTN.TM_PRD_NM ,                 (  \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'                 \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0            \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'                 \r\n" + 
-				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0             \r\n" + 
-				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0            \r\n" + 
-				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'                 \r\n" + 
-				" ELSE 'Not Engaged'    \r\n" + 
-				"END) AS ENGGMNT         \r\n" + 
-				"from    CII_FACT_CP_ENGGMNT  inner join DIM_ENGGMNT                \r\n" + 
-				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
-				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"\r\n" + 
-				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				" and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_STRT_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  else SRVC_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"\r\n" + 
-				"case\r\n" + 
-				"\r\n" + 
-				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"\r\n" + 
-				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"\r\n" + 
-				"from\r\n" + 
-				"\r\n" + 
-				"DIM_TM_PRD_ADHC dtp\r\n" + 
-				"\r\n" + 
-				"join DIM_MNTH dm \r\n" + 
-				" on 1=1\r\n" + 
-				"\r\n" + 
-				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
-				"\r\n" + 
-				"and (\r\n" + 
-				"\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
-				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
-				"\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
-				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN              \r\n" + 
-				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH             \r\n" + 
-				" and TM_PRD_FNCTN. END_YEAR_MNTH    \r\n" + 
-				"WHERE    CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
-				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
-				"          TM_PRD_FNCTN.TM_PRD_NM ) a  inner join (   \r\n" + 
-				"select       \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))            \r\n" + 
-				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
-				"END    AS ENGGMNT ,   \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
-				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
-				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))            \r\n" + 
-				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
-				"END    AS ENGGMNT_TIER                          \r\n" + 
-				"from    DIM_ENGGMNT                          \r\n" + 
-				"union    all                          \r\n" + 
-				"select       \r\n" + 
-				"CASE               \r\n" + 
-				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
-				" else cast('Care Coordination' as char(20))    \r\n" + 
-				"end    as ENGGMNT , cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER    \r\n" + 
-				"from    DIM_ENGGMNT    \r\n" + 
-				"where    DIM_ENGGMNT.TRDTNL_IND= 1            \r\n" + 
-				" or DIM_ENGGMNT.ENHNCD_IND= 1                          \r\n" + 
-				"union    all                          \r\n" + 
-				"select    cast('Traditional' as char(20)) as ENGGMNT, cast('Care Coordination' as char(20))  AS ENGGMNT_TIER    \r\n" + 
-				"from    DIM_ENGGMNT    \r\n" + 
-				"where    DIM_ENGGMNT.TRDTNL_IND= 1 ) b            \r\n" + 
-				" on a.ENGGMNT = b.ENGGMNT                   )  TMBRENGGMNT             \r\n" + 
-				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT.ACCT_ID             \r\n" + 
-				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT.MCID             \r\n" + 
-				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_GAP_SVNGS.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_GAP_SVNGS.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_GAP_SVNGS.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_NM,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N'),coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged'),TM_PRD_FNCTN.TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD ) AS GAPSVNGS  GROUP BY GAPSVNGS.ACCT_NM,GAPSVNGS.MBR_ENGGD_IND,GAPSVNGS.MBR_ENGGMNT_TIER,GAPSVNGS.TM_PRD_NM,GAPSVNGS.EARND_INCNTV_CD ) AS FNL   ORDER BY Account_Name,Gaps_Closed,Member_Engaged_Indicator,Member_Engagement_Tier,Time_Period,Earned_Incentive_Indicator\r\n" + 
-				"";
-		
-		String query24 = "Select a,b,c from d where (age > 20 and age < 40) or (age > 40 and age < 70)";
-		
-		String query25 = "Select  count(distinct a), c from b";
-		String query26 = "Select  distinct a, max(distinct c) from b";
-		
-		String query27 = "select cast('Traditional' as char(20)) as abc from table123";
-		String query28 = "select '123' as abc from table123";
-		
-		String query29 = "select substr(cast(TM_PRD_FNCTN.START_YEAR_MNTH as varchar(6)) ,5,2) from abc";
-		
-		String query32 = "select stupid(count(*)) from mango";
-		
-		String query33 = "select count(*) from ( SELECT AS \"Account ID\",AS \"Account Name\",AS \"Time Period\",AS \"Member Coverage Type Description\",AS \"Eligibility Year Month Ending Number\",AS \"Member Coverage Count\",CASE WHEN sum(CAST(AS decimal (22,6))) over(partition by )=0 then 0.00 else SUM(CAST(AS decimal (22,6))) over(partition by )/ sum(CAST(AS decimal (22,6))) over(partition by ) *100 end AS \"Member Coverage Count - Total %: Member Coverage Type Description,Reporting Member Relationship Description,Eligibility Year Month Ending Number,,Eligibility Calendar Month Year  Name\",AS \"Reporting Member Relationship Description\",AS \"Eligibility Calendar Month Year  Name\", AS \"Contract Type Description\"  FROM  (  SELECT MBRSHP.ACCT_ID AS MBRSHP.ACCT_NM AS MBRSHP.TM_PRD_NM AS MBRSHP.MBR_CVRG_TYPE_DESC AS MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS SUM(MBRSHP.SUM_MBR_CVRG_CNT) AS MBRSHP.RPTG_MBR_RLTNSHP_DESC AS MBRSHP.CLNDR_MNTH_YEAR_NM AS MBRSHP.CNTRCT_TYPE_DESC AS   FROM  (  SELECT CII_ACCT_PRFL.ACCT_ID AS ACCT_ID,CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS ELGBLTY_CY_MNTH_END_NBR,SUM(MBR_CVRG_CNT) AS SUM_MBR_CVRG_CNT,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC AS RPTG_MBR_RLTNSHP_DESC,DIM_MNTH.CLNDR_MNTH_YEAR_NM AS CLNDR_MNTH_YEAR_NM,DIM_CNTRCT_TYPE.CNTRCT_TYPE_DESC AS CNTRCT_TYPE_DESC  FROM CII_FACT_MBRSHP INNER JOIN (SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
-				"	STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
-				"	END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
-				"	case\r\n" + 
-				"		when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"		and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
-				"		when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
-				"		else SRVC_STRT_MNTH_NBR\r\n" + 
-				"	end as STRT_SRVC_YEAR_MNTH,\r\n" + 
-				"	case\r\n" + 
-				"		when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"		and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
-				"		when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
-				"		else SRVC_END_MNTH_NBR\r\n" + 
-				"	end as END_SRVC_YEAR_MNTH,\r\n" + 
-				"	case\r\n" + 
-				"		when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
-				"		when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
-				"		when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
-				"		when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
-				"		when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
-				"	end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
-				"from\r\n" + 
-				"	DIM_TM_PRD_ADHC dtp\r\n" + 
-				"join DIM_MNTH dm on 1=1\r\n" + 
-				"where	dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
-				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
-				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
-				"and dtp.YEAR_ID <= 3\r\n" + 
-				"and dm.YEAR_MNTH_NBR = 202102\r\n" + 
-				"and (\r\n" + 
-				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 202003 and dtp.CSTM_END_CURNT_MNTH_NBR = 202102)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201903 and dtp.CSTM_END_PRIOR_MNTH_NBR = 202002)\r\n" + 
-				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201803 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201902) ) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_MNTH ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR = DIM_MNTH.YEAR_MNTH_NBR INNER JOIN DIM_CNTRCT_TYPE ON CII_FACT_MBRSHP.CNTRCT_TYPE_CD = DIM_CNTRCT_TYPE.CNTRCT_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0003618') and SRC_FLTR_ID in ('195d1b33-4e3c-4ebc-b51f-acfb59d288a1'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0003618')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_ACCT_PRFL.ACCT_NM,TM_PRD_FNCTN.TM_PRD_NM,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,DIM_MNTH.CLNDR_MNTH_YEAR_NM,DIM_CNTRCT_TYPE.CNTRCT_TYPE_DESC ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.ACCT_NM,MBRSHP.TM_PRD_NM,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.CLNDR_MNTH_YEAR_NM,MBRSHP.CNTRCT_TYPE_DESC ) AS FNL    ) t";
-		
-		String query34 = "SELECT actor_name, title, gender " + 
-				" FROM actor" + 
-				" WHERE gender > 'm' and title in (SELECT title" + 
-				"                FROM mv" + 
-				"                WHERE director = 'Steven Spielberg' AND revenue_domestic > budget)"
-				+ "and actor_name in ('brad', 'chad', 'mad')" ;
-		
-		test.parameterize = true;
-		//test.processCase = true;
-		//Map<String, List<GenExpression>> tableColumns = test.getTableColumns(query4);
-		//test.printRealColumns(tableColumns);
-		//test.printOutput(wrapper.root);
-
-		
-		GenExpressionWrapper wrapper = test.processQuery(query34);
-		test.generateQuery(wrapper.root);
-		GenExpression root = wrapper.root;
-		
-		// now that the sql is parameterized
-		// every <> block can then be used to understand what are the values inside of it
-		// the main index is primarily paramStringToParamStruct
-		// which then tags into gen expression
-		// you can set any of this and then invoke fill parameters which will fill the query and send result back as a query
-		String paramName = "actor_genderand0_left>";
-		Object paramValue = wrapper.getCurrentValueOfParam(paramName);
-
-		String defaultQuery = wrapper.getQueryForParam(paramName);		
-		System.err.println(paramName + "<>" + paramValue);
-		System.err.println("Query for param " + defaultQuery);
-		wrapper.setCurrentValueOfParam(paramName, "'monkeshwaran'");
-		wrapper.fillParameters();
-		test.generateQuery(wrapper.root);
-		
-		
-		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
-		ParamStructDetails pStruct = new ParamStructDetails();
-		pStruct.setColumnName("MovieBudget");
-		pStruct.setTableName("Movie2");
-		pStruct.setuOperator("or1_left>");
-		pStruct = new ParamStructDetails();
-		pStruct.setColumnName("RevenueDomestic");
-		pStruct.setTableName("Movie2");
-		pStruct.setuOperator("in");
-		plist.add(pStruct);
-		String finalQuery = GenExpressionWrapper.transformQueryWithParams(query20, plist);
-		System.err.println(" transformed query ..  " + finalQuery);
-		
-		// YEAR_ID
-		wrapper.replaceColumn("gender", "'fractor'");
-		//wrapper.replaceColumn("YER_ID", "123456");
-
-		wrapper.fillParameters();
-		test.generateQuery(wrapper.root);
-
-		// works with Query 2
-		//Object [] output = root.printLineage(root, "Member Engagement Tier", null ,null, null, 0);
-		
-		// with alias
-		//Object [] output = root.printLineage(root, "A1", null ,null, null, 0);
-		
-		// without alias
-		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
-
-		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
-
-		System.out.println("Physical Name for B3 >> " + wrapper.getPhysicalColumnName(root, "B3"));
-		System.out.println("Physical Name for A3 >> " + wrapper.getPhysicalColumnName(root, "A3"));
-		
-		System.out.println("Detok List >> " + wrapper.getColumnsForFunction("detok"));
-		
-		wrapper.neutralizeSelector(root, "A3", true);
-		System.err.println("After removing it");
-		test.generateQuery(wrapper.root);
-		
-		wrapper.neutralizeSelector(root, "A3", false);
-		System.err.println("After adding it");
-		test.generateQuery(wrapper.root);
-		
-
-		wrapper.neutralizeFunction(root, "detok", true);
-		System.err.println("After removing Function");
-		test.generateQuery(wrapper.root);
-
-		wrapper.neutralizeFunction(root, "detok", false);
-		System.err.println("After Adding Function");
-		test.generateQuery(wrapper.root);
-		
-		System.out.println("Adding detok to existing function");
-		wrapper.addFunctionToSelector(root, "A2", "detok");
-		test.generateQuery(wrapper.root);
-
-		// get the param map and modify the value
-		// =CII_FACT_MBRSHP.ACCT_ID
-		/*
-		ParamStruct replaceStruct = test.operatorTableColumnParamIndex.get("=CII_FACT_MBRSHP.ACCT_ID");
-		replaceStruct.setCurrentValue("DA_REPLACEMENTS");
-		List <ParamStruct> paramList = new Vector<ParamStruct>();
-		paramList.add(replaceStruct);
-		*/
-		wrapper.replaceColumn("A2", "'Helloworld'");
-		//wrapper.replaceColumn("A3", "'Helloworld'");
-		wrapper.replaceTableColumnOperator("A.A3or1.right=", "'Mango boy'");
-		wrapper.replaceColumn("YEAR_ID", "123");
-		//wrapper.replaceColumn("YER_ID", "123456");
-
-		wrapper.fillParameters();
-		test.generateQuery(wrapper.root);
-
-//		String mkquery = "select abc from table xyz";
-//		GenExpressionWrapper wrapper = test.processQuery(mkquery);
-//		System.out.println(GenExpression.printQS(wrapper.root, null) + "");
-		
-		/*
-		Map <String, GenExpression> filterMap = new HashMap<String, GenExpression>();
-		
-		// remove the groupby on cii_fact_mbrshp.acct_id
-		List <String> columnsToRemove = new Vector<String>();
-		columnsToRemove.add("cii_fact_mbrshp.ELGBLTY_CY_MNTH_END_NBR");
-
-		// parameterize something else
-		GenExpression ge = new GenExpression();
-		ge.setOperation("Opaque");
-		ge.setLeftExpr("  Account = 'PK Imagined'  ");
-		//ACIISST_PERIOD_KEY
-		//filterMap.put("CII_FACT_CLM_LINE", ge);
-		filterMap.put("CII_FACT_MBRSHP.ACCT_ID", ge);
-		
-		//test.addRowFilter(filterMap);
-		test.appendParameter(columnsToRemove, filterMap);
-		test.printOutput(qs);
-		*/
-	}
+//	public static void main(String [] args) throws Exception {
+//		SqlParser2 test = new SqlParser2();
+//		String query = "Select * from employee";
+//		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
+//				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
+//				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
+//
+//		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
+//		
+//		// thank you so much anthem
+//		String query2 = " SELECT	Member_Engagement_Tier AS `Member Engagement Tier`,Site_Service_Name AS `Site Service Name`," + 
+//				"		Age_Group_Description AS `Age " + 
+//				"Group Description`," + 
+//				"		Medical_Member_Paid_PMPM AS `Medical Member Paid PMPM`  " + 
+//				"FROM	 (  " + 
+//				"	SELECT	MBRSHP.MBR_ENGGMNT_TIER AS `Member_Engagement_Tier`," + 
+//				"			CLMS.SITE_SRVC_NM AS `Site_Service_Name`," + 
+//				"			MBRSHP.AGE_GRP_DESC AS `Age_Group_Description`," + 
+//				"			case " + 
+//				"				when sum( MBRSHP.MDCL_MBR_CVRG_CNT ) = 0 then 0 " + 
+//				"				else sum(CLMS.MDCL_ACCT_PAID_AMT )/sum( MBRSHP.MDCL_MBR_CVRG_CNT )" + 
+//				"			end AS `Medical_Member_Paid_PMPM`," + 
+//				"			MBRSHP.TM_PRD_NM AS `Time_Period`  " + 
+//				"	FROM	 (  " + 
+//				"		SELECT	coalesce(TMBRENGGMNT.ENGGMNT_TIER," + 
+//				"				'Not Engaged' ) AS MBR_ENGGMNT_TIER," + 
+//				"				DIM_AGE_GRP.AGE_GRP_DESC AS AGE_GRP_DESC," + 
+//				"				TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM," + 
+//				"				SUM(" + 
+//				"				case " + 
+//				"					when CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD='001' then CII_FACT_MBRSHP.MBR_CVRG_CNT " + 
+//				"					else 0 " + 
+//				"				end) AS MDCL_MBR_CVRG_CNT," + 
+//				"				CII_ACCT_PRFL.ACCT_ID AS ACCT_ID," + 
+//				"				CII_FACT_MBRSHP.MCID AS MCID," + 
+//				"				CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  " + 
+//				"		FROM	CII_FACT_MBRSHP " + 
+//				"		INNER JOIN (" + 
+//				"			SELECT	B.*," + 
+//				"					case " + 
+//				"						when paidIncurred='Paid' then 111101 " + 
+//				"						else B.START_YEAR_MNTH " + 
+//				"					end as STRT_SRVC_YEAR_MNTH," + 
+//				"					case " + 
+//				"						WHEN paidIncurred='Paid' then 888811 " + 
+//				"						else B." + 
+//				"					END_YEAR_MNTH " + 
+//				"					end as " + 
+//				"					END_SRVC_YEAR_MNTH," + 
+//				"					Case " + 
+//				"						when paidIncurred='Paid' then B." + 
+//				"					END_YEAR_MNTH " + 
+//				"						when paidIncurred='Incurred' " + 
+//				"				and 0=0 then 202002 " + 
+//				"						else 888811 " + 
+//				"					end as " + 
+//				"					END_RPTG_PAID_YEAR_MNTH " + 
+//				"			FROM	ACIISST_PERIOD_KEY A JOIN     (" + 
+//				"				SELECT	LKUP_ID," + 
+//				"						YEAR_ID," + 
+//				"						 CONCAT(''," + 
+//				"						'Paid') AS paidIncurred," + 
+//				"						CASE " + 
+//				"							WHEN YEAR_ID=1 THEN 'Current Period' " + 
+//				"							WHEN YEAR_ID=2 THEN 'Prior Period' " + 
+//				"							ELSE 'Prior Period 2' " + 
+//				"						END AS TM_PRD_NM," + 
+//				"						CASE " + 
+//				"							WHEN YEAR_ID=1 THEN 201903 " + 
+//				"							WHEN YEAR_ID=2 THEN 201803 " + 
+//				"							ELSE 201703 " + 
+//				"						END AS START_YEAR_MNTH," + 
+//				"						    " + 
+//				"						CASE " + 
+//				"							WHEN YEAR_ID=1 THEN 202002 " + 
+//				"							WHEN YEAR_ID=2 THEN 201902    " + 
+//				"							ELSE  201802 " + 
+//				"						END AS " + 
+//				"						END_YEAR_MNTH " + 
+//				"				FROM	ACIISST_PERIOD_KEY) B " + 
+//				"				ON A.LKUP_ID = B.LKUP_ID " + 
+//				"				AND B.YEAR_ID = A.YEAR_ID " + 
+//				"			WHERE	A.LKUP_ID=1 " + 
+//				"				AND A.YEAR_ID <= 1) TM_PRD_FNCTN " + 
+//				"			ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH " + 
+//				"			and TM_PRD_FNCTN." + 
+//				"				END_YEAR_MNTH " + 
+//				"		INNER JOIN CII_ACCT_PRFL " + 
+//				"			ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID " + 
+//				"		LEFT	JOIN  ( " + 
+//				"			select	a.acct_id," + 
+//				"					a.MCID," + 
+//				"					a.TM_PRD_NM," + 
+//				"					a.ENGGMNT," + 
+//				"					b.ENGGMNT_TIER  " + 
+//				"			from	 ( " + 
+//				"				select	CII_FACT_CP_ENGGMNT.acct_id," + 
+//				"						CII_FACT_CP_ENGGMNT.MCID," + 
+//				"						TM_PRD_FNCTN.TM_PRD_NM ," + 
+//				"								(" + 
+//				"						CASE  	" + 
+//				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'       	" + 
+//				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0  	" + 
+//				"					AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'       	" + 
+//				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0   	" + 
+//				"					AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0  	" + 
+//				"					AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'       	" + 
+//				"							ELSE 'Not Engaged'  " + 
+//				"						END) AS ENGGMNT 	  " + 
+//				"				from	CII_FACT_CP_ENGGMNT  " + 
+//				"				inner join DIM_ENGGMNT      	" + 
+//				"					on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN ( " + 
+//				"					SELECT	B.*," + 
+//				"							  case	   	" + 
+//				"								when paidIncurred='Paid' then 111101    	" + 
+//				"								else B.START_YEAR_MNTH   " + 
+//				"							end	as STRT_SRVC_YEAR_MNTH," + 
+//				"							 case	   	" + 
+//				"								WHEN paidIncurred='Paid' then 888811    	" + 
+//				"								else B." + 
+//				"							END_YEAR_MNTH   " + 
+//				"							end	as " + 
+//				"							END_SRVC_YEAR_MNTH," + 
+//				"							 Case	   	" + 
+//				"								when paidIncurred='Paid' then B." + 
+//				"							END_YEAR_MNTH    	" + 
+//				"								when paidIncurred='Incurred'    	" + 
+//				"						and 0=0 then  202002    	" + 
+//				"								else 888811   " + 
+//				"							end	as " + 
+//				"							END_RPTG_PAID_YEAR_MNTH   " + 
+//				"					FROM	ACIISST_PERIOD_KEY A  JOIN (  " + 
+//				"						SELECT	LKUP_ID," + 
+//				"								YEAR_ID," + 
+//				"								CONCAT(''," + 
+//				"								'Paid' ) AS paidIncurred," + 
+//				"										 " + 
+//				"								CASE    	" + 
+//				"									WHEN YEAR_ID=1 THEN 'Current Period'    	" + 
+//				"									WHEN YEAR_ID=2 THEN 'Prior Period'    	" + 
+//				"									ELSE 'Prior Period 2'  " + 
+//				"								END	AS TM_PRD_NM," + 
+//				"								  CASE	   	" + 
+//				"									WHEN YEAR_ID=1 THEN 201903    	" + 
+//				"									WHEN YEAR_ID=2 THEN 201803    	" + 
+//				"									ELSE  201703   " + 
+//				"								END	AS START_YEAR_MNTH," + 
+//				"								  CASE	   	" + 
+//				"									WHEN YEAR_ID=1 THEN 202002    	" + 
+//				"									WHEN YEAR_ID=2 THEN  201902     	" + 
+//				"									ELSE 201802   " + 
+//				"								END	AS " + 
+//				"								END_YEAR_MNTH   " + 
+//				"						FROM	ACIISST_PERIOD_KEY) B    	" + 
+//				"						ON A.LKUP_ID = B.LKUP_ID    	" + 
+//				"						AND B.YEAR_ID = A.YEAR_ID   " + 
+//				"					WHERE	A.LKUP_ID=1    	" + 
+//				"						AND A.YEAR_ID <= 1  )  TM_PRD_FNCTN    	" + 
+//				"					ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   	" + 
+//				"					and TM_PRD_FNCTN." + 
+//				"						END_YEAR_MNTH  " + 
+//				"				WHERE	CII_FACT_CP_ENGGMNT.ACCT_ID = 'W0016437'  " + 
+//				"				group by  CII_FACT_CP_ENGGMNT.acct_id," + 
+//				"						CII_FACT_CP_ENGGMNT.MCID ," + 
+//				"						TM_PRD_FNCTN.TM_PRD_NM ) a " + 
+//				"			inner join ( " + 
+//				"				select	 " + 
+//				"						CASE	 	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND = 0  	" + 
+//				"					AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))  	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 0   	" + 
+//				"					AND DIM_ENGGMNT.ENHNCD_IND = 0  	" + 
+//				"					AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))  	" + 
+//				"							ELSE cast('Not Engaged' as char(20))  " + 
+//				"						END	AS ENGGMNT ," + 
+//				"						 CASE	 	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND = 0  	" + 
+//				"					AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))  	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 0   	" + 
+//				"					AND DIM_ENGGMNT.ENHNCD_IND = 0  	" + 
+//				"					AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))  	" + 
+//				"							ELSE cast('Not Engaged' as char(20))  " + 
+//				"						END	AS ENGGMNT_TIER                        " + 
+//				"				from	DIM_ENGGMNT 					   " + 
+//				"				union	all 					   " + 
+//				"				select	 " + 
+//				"						CASE	 	" + 
+//				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
+//				"							else cast('Care Coordination' as char(20))  " + 
+//				"						end	as ENGGMNT ," + 
+//				"						cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER  " + 
+//				"				from	DIM_ENGGMNT  " + 
+//				"				where	DIM_ENGGMNT.TRDTNL_IND= 1  	" + 
+//				"					or DIM_ENGGMNT.ENHNCD_IND= 1 					   " + 
+//				"				union	all 					   " + 
+//				"				select	cast('Traditional' as char(20)) as ENGGMNT," + 
+//				"						cast('Care Coordination' as char(20))  AS ENGGMNT_TIER  " + 
+//				"				from	DIM_ENGGMNT  " + 
+//				"				where	DIM_ENGGMNT.TRDTNL_IND= 1 ) b  	" + 
+//				"				on a.ENGGMNT = b.ENGGMNT				   )  TMBRENGGMNT   	" + 
+//				"			ON CII_FACT_MBRSHP.ACCT_ID = TMBRENGGMNT.ACCT_ID   	" + 
+//				"			and CII_FACT_MBRSHP.MCID=TMBRENGGMNT.MCID   	" + 
+//				"			and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM " + 
+//				"		INNER JOIN DIM_AGE_GRP " + 
+//				"			ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY  " + 
+//				"		WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   " + 
+//				"		GROUP BY coalesce(TMBRENGGMNT.ENGGMNT_TIER," + 
+//				"				'Not Engaged' )," + 
+//				"				DIM_AGE_GRP.AGE_GRP_DESC," + 
+//				"				TM_PRD_FNCTN.TM_PRD_NM," + 
+//				"				CII_ACCT_PRFL.ACCT_ID," + 
+//				"				CII_FACT_MBRSHP.MCID," + 
+//				"				CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY ) AS MBRSHP " + 
+//				"	LEFT OUTER JOIN  (  " + 
+//				"		SELECT	DIM_SITE_SRVC.SITE_SRVC_NM AS SITE_SRVC_NM," + 
+//				"				SUM(" + 
+//				"				case " + 
+//				"					when CII_FACT_CLM_LINE.MBR_CVRG_TYPE_CD='001' then CII_FACT_CLM_LINE.ACCT_PAID_AMT " + 
+//				"					else 0 " + 
+//				"				end ) AS MDCL_ACCT_PAID_AMT," + 
+//				"				TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM," + 
+//				"				CII_FACT_CLM_LINE.MCID AS MCID," + 
+//				"				CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY," + 
+//				"				CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  " + 
+//				"		FROM	CII_FACT_CLM_LINE " + 
+//				"		INNER JOIN (" + 
+//				"			SELECT	B.*," + 
+//				"					case " + 
+//				"						when paidIncurred='Paid' then 111101 " + 
+//				"						else B.START_YEAR_MNTH " + 
+//				"					end as STRT_SRVC_YEAR_MNTH," + 
+//				"					case " + 
+//				"						WHEN paidIncurred='Paid' then 888811 " + 
+//				"						else B." + 
+//				"					END_YEAR_MNTH " + 
+//				"					end as " + 
+//				"					END_SRVC_YEAR_MNTH," + 
+//				"					Case " + 
+//				"						when paidIncurred='Paid' then B." + 
+//				"					END_YEAR_MNTH " + 
+//				"						when paidIncurred='Incurred' " + 
+//				"				and 0=0 then 202002 " + 
+//				"						else 888811 " + 
+//				"					end as " + 
+//				"					END_RPTG_PAID_YEAR_MNTH " + 
+//				"			FROM	ACIISST_PERIOD_KEY A JOIN     (" + 
+//				"				SELECT	LKUP_ID," + 
+//				"						YEAR_ID," + 
+//				"						 CONCAT(''," + 
+//				"						'Paid') AS paidIncurred," + 
+//				"						CASE " + 
+//				"							WHEN YEAR_ID=1 THEN 'Current Period' " + 
+//				"							WHEN YEAR_ID=2 THEN 'Prior Period' " + 
+//				"							ELSE 'Prior Period 2' " + 
+//				"						END AS TM_PRD_NM," + 
+//				"						CASE " + 
+//				"							WHEN YEAR_ID=1 THEN 201903 " + 
+//				"							WHEN YEAR_ID=2 THEN 201803 " + 
+//				"							ELSE 201703 " + 
+//				"						END AS START_YEAR_MNTH," + 
+//				"						    " + 
+//				"						CASE " + 
+//				"							WHEN YEAR_ID=1 THEN 202002 " + 
+//				"							WHEN YEAR_ID=2 THEN 201902    " + 
+//				"							ELSE  201802 " + 
+//				"						END AS " + 
+//				"						END_YEAR_MNTH " + 
+//				"				FROM	ACIISST_PERIOD_KEY) B " + 
+//				"				ON A.LKUP_ID = B.LKUP_ID " + 
+//				"				AND B.YEAR_ID = A.YEAR_ID " + 
+//				"			WHERE	A.LKUP_ID=1 " + 
+//				"				AND A.YEAR_ID <= 1) TM_PRD_FNCTN " + 
+//				"			ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH " + 
+//				"			and TM_PRD_FNCTN." + 
+//				"				END_SRVC_YEAR_MNTH " + 
+//				"			AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH " + 
+//				"			and TM_PRD_FNCTN." + 
+//				"				END_RPTG_PAID_YEAR_MNTH " + 
+//				"		INNER JOIN DIM_SITE_SRVC " + 
+//				"			ON CII_FACT_CLM_LINE.SITE_SRVC_CD = DIM_SITE_SRVC.SITE_SRVC_CD " + 
+//				"			AND CII_FACT_CLM_LINE.MBR_cvrg_type_cd <> 'back_fill'  " + 
+//				"		WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   " + 
+//				"		GROUP BY DIM_SITE_SRVC.SITE_SRVC_NM," + 
+//				"				TM_PRD_FNCTN.TM_PRD_NM," + 
+//				"				CII_FACT_CLM_LINE.MCID," + 
+//				"				CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY," + 
+//				"				CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS " + 
+//				"		ON MBRSHP.MCID=CLMS.MCID " + 
+//				"		AND MBRSHP.TM_PRD_NM=CLMS.TM_PRD_NM " + 
+//				"		AND MBRSHP.ACCT_AGE_GRP_KEY=CLMS.ACCT_AGE_GRP_KEY " + 
+//				"		AND MBRSHP.ACCT_ID=CLMS.ACCT_ID  " + 
+//				"	GROUP BY MBRSHP.MBR_ENGGMNT_TIER," + 
+//				"			CLMS.SITE_SRVC_NM," + 
+//				"			MBRSHP.AGE_GRP_DESC," + 
+//				"			MBRSHP.TM_PRD_NM ) AS FNL   " + 
+//				"ORDER BY Member_Engagement_Tier," + 
+//				"		Site_Service_Name," + 
+//				"		Age_Group_Description," + 
+//				"		Medical_Member_Paid_PMPM";
+//
+//		 /*query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
+//		 
+//				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
+//				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
+//		*/
+//		
+//		// key things to look at
+//		// select expression item and select item
+//		// from - seems to be many combinations to from that is interesting
+//		// selectbody - it can either be a simple one or a set operation - This is where the union sits. This can be a plain select or something else - I only accomodate for plain select at this point
+//		// same with join as well
+//		// the select item itself can be a expression
+//		
+//		// we need a way to parse
+//		// but more importantly - we also need a way to express it in pixel
+//		
+//		// I need the query struct to have to have a full select query struct
+//		
+//		/*query = "SELECT City FROM Customers\r\n" + 
+//				"UNION\r\n" + 
+//				"SELECT City FROM Suppliers\r\n" + 
+//				"ORDER BY City;";
+//		*/
+//		String query3 = "Select col as abc from (select mango from t) k";
+//
+//		String query4 = " SELECT Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
+//				"		Total_Utilization_Count AS \"Total Utilization Count\"  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+//				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,CLMS.TM_PRD_NM AS Time_Period  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		sum(CII_FACT_CLM_LINE.ACCT_ADMT_CNT + CII_FACT_CLM_LINE.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+//				"		TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  \r\n" + 
+//				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 1) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+//				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY  \r\n" + 
+//				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,TM_PRD_FNCTN.TM_PRD_NM ) AS CLMS  \r\n" + 
+//				"GROUP BY CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.TM_PRD_NM ) AS FNL   \r\n" + 
+//				"ORDER BY Health_Condition_Category_Description,Total_Utilization_Count";
+//		
+//		String query5 = "SELECT Time_Period AS \"Time Period\",Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
+//				"		Total_Utilization_Count AS \"Total Utilization Count\",Paid_Amount AS \"Paid Amount\",\r\n" + 
+//				"		Account_Name AS \"Account Name\",CBSA_Name AS \"CBSA Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD Diagnosis Source Short Code Definition Text\",\r\n" + 
+//				"		Paid_PMPM AS \"Paid PMPM\",Paid_HCC_Indicator AS \"Paid HCC Indicator\"  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+//				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
+//				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
+//				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+//				"		CASE \r\n" + 
+//				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
+//				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
+//				"		6))) \r\n" + 
+//				"END	AS Paid_PMPM,CLMS.PAID_HCC_IND AS Paid_HCC_Indicator  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+//				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+//				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+//				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N') AS PAID_HCC_IND,CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,\r\n" + 
+//				"		CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  \r\n" + 
+//				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+//				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID LEFT JOIN (\r\n" + 
+//				"select TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID,  \r\n" + 
+//				"CASE \r\n" + 
+//				"	WHEN  CONCAT('','Paid') = 'Paid' THEN \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN SUM(cii_fact_clm_line.ACCT_PAID_AMT) >= 100000  THEN 'Y' \r\n" + 
+//				"	ELSE 'N' \r\n" + 
+//				"END\r\n" + 
+//				"	ELSE \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN SUM(cii_fact_clm_line.ACCT_ALWD_AMT) >= 100000  THEN 'Y' \r\n" + 
+//				"	ELSE 'N' \r\n" + 
+//				"END\r\n" + 
+//				"END AS PAID_HCC_IND\r\n" + 
+//				"from cii_fact_clm_line \r\n" + 
+//				"JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case \r\n" + 
+//				" when paidIncurred='Paid' then 111101 \r\n" + 
+//				" else B.START_YEAR_MNTH \r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case \r\n" + 
+//				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				" else B.END_YEAR_MNTH \r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case \r\n" + 
+//				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				" when paidIncurred='Incurred' \r\n" + 
+//				" and 0=0 then 201908 \r\n" + 
+//				" else 888811 \r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+//				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				" ELSE 'Prior Period 2'\r\n" + 
+//				"END AS TM_PRD_NM, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				" ELSE 201609 \r\n" + 
+//				"END AS START_YEAR_MNTH, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+//				" ELSE  201708 \r\n" + 
+//				"END AS END_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+//				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE A.LKUP_ID=1 \r\n" + 
+//				" AND A.YEAR_ID <= 3)  TM_PRD_FNCTN \r\n" + 
+//				" ON CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH\r\n" + 
+//				"	AND RPTG_PAID_YEAR_MNTH_NBR between TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"WHERE cii_fact_clm_line.ACCT_ID = 'W0016437'\r\n" + 
+//				"	AND cii_fact_clm_line.MBR_CVRG_TYPE_CD IN ('001','102')\r\n" + 
+//				"group by TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID\r\n" + 
+//				")HCC_CHK \r\n" + 
+//				"	ON HCC_CHK.MCID=CII_FACT_CLM_LINE.MCID \r\n" + 
+//				"	and HCC_CHK.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM  \r\n" + 
+//				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+//				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N'),CII_FACT_CLM_LINE.CBSA_ID,\r\n" + 
+//				"		CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
+//				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
+//				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
+//				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID  \r\n" + 
+//				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
+//				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
+//				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+//				"from cii_fact_mbrshp \r\n" + 
+//				"JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case \r\n" + 
+//				" when paidIncurred='Paid' then 111101 \r\n" + 
+//				" else B.START_YEAR_MNTH \r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case \r\n" + 
+//				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				" else B.END_YEAR_MNTH \r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case \r\n" + 
+//				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				" when paidIncurred='Incurred' \r\n" + 
+//				" and 0=0 then 201908 \r\n" + 
+//				" else 888811 \r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+//				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				" ELSE 'Prior Period 2'\r\n" + 
+//				"END AS TM_PRD_NM, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				" ELSE 201609 \r\n" + 
+//				"END AS START_YEAR_MNTH, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+//				" ELSE  201708 \r\n" + 
+//				"END AS END_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+//				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE A.LKUP_ID=1 \r\n" + 
+//				" AND A.YEAR_ID <= 3) \r\n" + 
+//				" TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
+//				"\r\n" + 
+//				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
+//				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
+//				")  TMBRSHP \r\n" + 
+//				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
+//				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
+//				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+//				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
+//				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID ) AS MBRSHP \r\n" + 
+//				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
+//				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
+//				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM  \r\n" + 
+//				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+//				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,CLMS.PAID_HCC_IND ) AS FNL   \r\n" + 
+//				"ORDER BY Time_Period,Health_Condition_Category_Description,Total_Utilization_Count,\r\n" + 
+//				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+//				"		Paid_PMPM,Paid_HCC_Indicator";
+//		
+//		String query6 = "\r\n" + 
+//				" SELECT Time_Period AS \"Time_Period\",Health_Condition_Category_Description AS \"Health_Condition_Category_Description\",\r\n" + 
+//				"		Total_Utilization_Count AS \"Total_Utilization_Count\",Paid_Amount AS \"Paid_Amount\",\r\n" + 
+//				"		Account_Name AS \"Account_Name\",CBSA_Name AS \"CBSA_Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD_Diagnosis_Source_Short_Code_Definition_Text \" ,\r\n" + 
+//				"		Paid_PMPM AS \"Paid_PMPM\", Paid_HCC_Indicator AS \"Paid_HCC_Indicator\",\r\n" + 
+//				"		Age_Group_Description AS \"Age_Group_Description\"  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+//				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
+//				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
+//				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+//				"		CASE \r\n" + 
+//				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
+//				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
+//				"		6))) \r\n" + 
+//				"END	AS Paid_PMPM,CLMS.PAID_HCC_IND AS Paid_HCC_Indicator,\r\n" + 
+//				"		CLMS.DIM_AGE_GRP_AGE_GRP_DESC AS Age_Group_Description  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+//				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+//				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+//				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N') AS PAID_HCC_IND,\r\n" + 
+//				"		DIM_AGE_GRP.AGE_GRP_DESC AS DIM_AGE_GRP_AGE_GRP_DESC,CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,\r\n" + 
+//				"		CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID,CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  \r\n" + 
+//				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+//				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID LEFT JOIN (\r\n" + 
+//				"select TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID,  \r\n" + 
+//				"CASE \r\n" + 
+//				"	WHEN  CONCAT('','Paid') = 'Paid' THEN \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN SUM(cii_fact_clm_line.ACCT_PAID_AMT) >= 100000  THEN 'Y' \r\n" + 
+//				"	ELSE 'N' \r\n" + 
+//				"END\r\n" + 
+//				"	ELSE \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN SUM(cii_fact_clm_line.ACCT_ALWD_AMT) >= 100000  THEN 'Y' \r\n" + 
+//				"	ELSE 'N' \r\n" + 
+//				"END\r\n" + 
+//				"END AS PAID_HCC_IND\r\n" + 
+//				"from cii_fact_clm_line \r\n" + 
+//				"JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case \r\n" + 
+//				" when paidIncurred='Paid' then 111101 \r\n" + 
+//				" else B.START_YEAR_MNTH \r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case \r\n" + 
+//				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				" else B.END_YEAR_MNTH \r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case \r\n" + 
+//				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				" when paidIncurred='Incurred' \r\n" + 
+//				" and 0=0 then 201908 \r\n" + 
+//				" else 888811 \r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+//				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				" ELSE 'Prior Period 2'\r\n" + 
+//				"END AS TM_PRD_NM, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				" ELSE 201609 \r\n" + 
+//				"END AS START_YEAR_MNTH, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+//				" ELSE  201708 \r\n" + 
+//				"END AS END_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+//				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE A.LKUP_ID=1 \r\n" + 
+//				" AND A.YEAR_ID <= 3)  TM_PRD_FNCTN \r\n" + 
+//				" ON CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH\r\n" + 
+//				"	AND RPTG_PAID_YEAR_MNTH_NBR between TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"WHERE cii_fact_clm_line.ACCT_ID = 'W0016437'\r\n" + 
+//				"	AND cii_fact_clm_line.MBR_CVRG_TYPE_CD IN ('001','102')\r\n" + 
+//				"group by TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID\r\n" + 
+//				")HCC_CHK \r\n" + 
+//				"	ON HCC_CHK.MCID=CII_FACT_CLM_LINE.MCID \r\n" + 
+//				"	and HCC_CHK.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM \r\n" + 
+//				"	INNER JOIN DIM_AGE_GRP \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY  \r\n" + 
+//				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+//				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N'),\r\n" + 
+//				"			DIM_AGE_GRP.AGE_GRP_DESC,CII_FACT_CLM_LINE.CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID,\r\n" + 
+//				"		CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
+//				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
+//				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
+//				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID,\r\n" + 
+//				"		CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  \r\n" + 
+//				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
+//				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
+//				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+//				"from cii_fact_mbrshp \r\n" + 
+//				"JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case \r\n" + 
+//				" when paidIncurred='Paid' then 111101 \r\n" + 
+//				" else B.START_YEAR_MNTH \r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case \r\n" + 
+//				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				" else B.END_YEAR_MNTH \r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case \r\n" + 
+//				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				" when paidIncurred='Incurred' \r\n" + 
+//				" and 0=0 then 201908 \r\n" + 
+//				" else 888811 \r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+//				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				" ELSE 'Prior Period 2'\r\n" + 
+//				"END AS TM_PRD_NM, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				" ELSE 201609 \r\n" + 
+//				"END AS START_YEAR_MNTH, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+//				" ELSE  201708 \r\n" + 
+//				"END AS END_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+//				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE A.LKUP_ID=1 \r\n" + 
+//				" AND A.YEAR_ID <= 3) \r\n" + 
+//				" TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
+//				"\r\n" + 
+//				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
+//				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
+//				")  TMBRSHP \r\n" + 
+//				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
+//				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
+//				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+//				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
+//				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID,\r\n" + 
+//				"		CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY ) AS MBRSHP \r\n" + 
+//				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
+//				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
+//				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM \r\n" + 
+//				"	AND CLMS.ACCT_AGE_GRP_KEY=MBRSHP.ACCT_AGE_GRP_KEY  \r\n" + 
+//				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+//				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,CLMS.PAID_HCC_IND,\r\n" + 
+//				"		CLMS.DIM_AGE_GRP_AGE_GRP_DESC ) AS FNL\r\n" + 
+//				"	";
+//		String query7 = "SELECT Time_Period AS \"Time Period\",Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
+//				"		Total_Utilization_Count AS \"Total Utilization Count\",Paid_Amount AS \"Paid Amount\",\r\n" + 
+//				"		Account_Name AS \"Account Name\",CBSA_Name AS \"CBSA Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD Diagnosis Source Short Code Definition Text\",\r\n" + 
+//				"		Paid_PMPM AS \"Paid PMPM\"  \r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+//				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
+//				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
+//				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+//				"		CASE \r\n" + 
+//				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
+//				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
+//				"		6))) \r\n" + 
+//				"END	AS Paid_PMPM\r\n" + 
+//				"FROM	 (  \r\n" + 
+//				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+//				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+//				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+//				"		CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  \r\n" + 
+//				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+//				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
+//				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID  \r\n" + 
+//				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+//				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+//				"		CII_FACT_CLM_LINE.CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
+//				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
+//				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
+//				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID  \r\n" + 
+//				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case	\r\n" + 
+//				"	when paidIncurred='Paid' then 111101 \r\n" + 
+//				"	else B.START_YEAR_MNTH \r\n" + 
+//				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case	\r\n" + 
+//				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				"	else B.END_YEAR_MNTH \r\n" + 
+//				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case	\r\n" + 
+//				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				"	when paidIncurred='Incurred' \r\n" + 
+//				"	and 0=0 then 201908 \r\n" + 
+//				"	else 888811 \r\n" + 
+//				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+//				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				"	ELSE 'Prior Period 2' \r\n" + 
+//				"END	AS TM_PRD_NM, \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				"	ELSE 201609 \r\n" + 
+//				"END	AS START_YEAR_MNTH,     \r\n" + 
+//				"CASE	\r\n" + 
+//				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+//				"	ELSE  201708 \r\n" + 
+//				"END	AS END_YEAR_MNTH \r\n" + 
+//				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+//				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE	A.LKUP_ID=1 \r\n" + 
+//				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+//				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
+//				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
+//				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+//				"from cii_fact_mbrshp \r\n" + 
+//				"JOIN (\r\n" + 
+//				"SELECT	B.*, \r\n" + 
+//				"case \r\n" + 
+//				" when paidIncurred='Paid' then 111101 \r\n" + 
+//				" else B.START_YEAR_MNTH \r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case \r\n" + 
+//				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+//				" else B.END_YEAR_MNTH \r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"Case \r\n" + 
+//				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+//				" when paidIncurred='Incurred' \r\n" + 
+//				" and 0=0 then 201908 \r\n" + 
+//				" else 888811 \r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+//				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+//				" ELSE 'Prior Period 2'\r\n" + 
+//				"END AS TM_PRD_NM, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+//				" ELSE 201609 \r\n" + 
+//				"END AS START_YEAR_MNTH, \r\n" + 
+//				"CASE \r\n" + 
+//				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+//				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+//				" ELSE  201708 \r\n" + 
+//				"END AS END_YEAR_MNTH \r\n" + 
+//				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+//				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+//				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+//				"WHERE A.LKUP_ID=1 \r\n" + 
+//				" AND A.YEAR_ID <= 3) \r\n" + 
+//				" TM_PRD_FNCTN \r\n" + 
+//				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN 20 \r\n" + 
+//				"	and 30\r\n" + 
+//				"\r\n" + 
+//				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
+//				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
+//				")  TMBRSHP \r\n" + 
+//				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
+//				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
+//				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+//				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
+//				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
+//				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID ) AS MBRSHP \r\n" + 
+//				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
+//				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
+//				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM  \r\n" + 
+//				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+//				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT ) AS FNL   \r\n" + 
+//				"ORDER BY Time_Period,Health_Condition_Category_Description,Total_Utilization_Count,\r\n" + 
+//				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+//				"		Paid_PMPM";
+//		
+//		String query8 = "Select a.abc, b.b1,  coalesce(a.a1, 'abcd'), a.a1 + 2 from a as a, (b) as b, (c) as c on a.id = b.id";
+//		
+//		String query9 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
+//
+//		String query10 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR in ('a', 'b') THEN 0 WHEN TMBRSHP.MIN_CVRG_PRTY_NBR=30 THEN 21 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title WHERE Genre in ('abc', 'y') or Genre=20";
+//		
+//		String query11 = "SELECT DISTINCT Title.MovieBudget AS \"MovieBudget\" , Title.RevenueDomestic AS \"RevenueDomestic\" , Title.RevenueInternational AS \"RevenueInternational\" , Title.RottenTomatoesAudience AS \"RottenTomatoesAudience\" , Title.RottenTomatoesCritics AS \"RottenTomatoesCritics\" , Title.Title AS \"Title\" FROM Title Title  WHERE (Title.MovieBudget) IN ( 1000000 , 1700000 ) \r\n";
+//
+//		String query12 = "SELECT DISTINCT customquery.\"MovieBudget\" AS \"MovieBudget\" , customquery.\"RevenueDomestic\" AS \"RevenueDomestic\" , customquery.\"RevenueInternational\" AS \"RevenueInternational\" , customquery.\"RottenTomatoesAudience\" AS \"RottenTomatoesAudience\" , customquery.\"RottenTomatoesCritics\" AS \"RottenTomatoesCritics\" , customquery.\"Title\" AS \"Title\" FROM (SELECT  avqLBU.\"MovieBudget\", avqLBU.\"RevenueDomestic\", avqLBU.\"RevenueInternational\", avqLBU.\"RottenTomatoesAudience\", avqLBU.\"RottenTomatoesCritics\", avqLBU.\"Title\"  FROM ( SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (1000000, 1700000)  UNION ALL  SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (500000, 800000)) AS avqLBU ) AS customquery\r\n";
+//		
+//		// testing queries for smart measure
+//		
+//		// harness 1 - multi level no join
+//		// all with alias
+//		String query13 = "Select B1 as A1, A.A2, A.A3 as A3 from "
+//				+ "("
+//				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
+//				+ "("
+//				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
+//				+ " where B3='Roof' ) B"
+//				+ ") A where A3='poof'"
+//				+ ";";
+//		
+//		// without alias
+//		String query14 = "Select B1, A.A2, A.A3 as A3 from "
+//				+ "("
+//				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
+//				+ "("
+//				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
+//				+ ") B"
+//				+ ") A"
+//				+ ";";
+//		
+//		// without alias
+//		// not in projection, but only in group by
+//		String query15 = "Select A.A2, A.A3 as A3 from "
+//				+ "("
+//				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
+//				+ "("
+//				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
+//				+ ") B"
+//				+ ") A group by B1"
+//				+ ";";
+//
+//
+//		// joins
+//		String query16 = "Select A.A2, A.A3 as A3, detok(E.E1), E.E2 from "
+//				+ "("
+//				+ "Select B.B1, detok(B.B2) as A2, B3 as A3 from "
+//				+ "("
+//				+ "Select C1 as B1, C2 as B2, C3 as B3 from C "
+//				+ "inner join ("
+//				+ "Select D1, D2, detok(D3) as D3 from D where D3='Roof') D on "
+//				+ "C.C1 = D.D1"
+//				+ ") B"
+//				+ ") A inner join ("
+//				+ "Select E1, E2, E3 from E) E on B1=E.E1"
+//				+ " where (A3 = 'Fun' and A3 = 'Bun') or A3 = 'Gun';";
+//		
+//		// A3 - Age Less Than
+//		// Second A3 - Age Less than
+//		
+//		
+//		String query17 = "Select a,b, c from tabla where 1 = 0 and (a = 'a' or c = 'q')";
+//
+//		String query18 = "Select A.A2, A.A3 as A3, detok(E.E1), E.E2 from "
+//				+ "("
+//				+ "Select B.B1, detok(B.B2) as A2, B3 as A3 from "
+//				+ "("
+//				+ "Select C1 as B1, C2 as B2, C3 as B3 from C "
+//				+ "inner join ("
+//				+ "Select D1, D2, detok(D3) as D3 from D where D3='Roof') D on "
+//				+ "C.C1 = D.D1"
+//				+ ") B"
+//				+ ") A inner join ("
+//				+ "Select E1, E2, E3 from E) E on B1=E.E1"
+//				+ " where (A3 = 'Fun' or A3 = 'Bun') or A2 = 'Gun';";
+//
+//		
+//		String query19 = "Select Nominated, Genre, Studio, Title, MovieBudget, RevenueDomestic, RevenueInternational from Movie2 where Studio = 'WB' and (MovieBudget > 10000000 or MovieBudget > 20000000)";
+//		// there are a couple of scenarios to model for join
+//		// I have only one join easy for me to drop this - what happens to remaining stuff ?
+//		// I have 2 joins 
+//		String query20 = "Select Nominated, Genre, Studio, Title, MovieBudget, RevenueDomestic, RevenueInternational from Movie2 where MovieBudget = 1000 and Studio ='WB' and RevenueDomestic in (1,2,3,4)";
+//
+//		String query21 = "Select d123.a, b, c from d as d123 where a = NULL";
+//		
+//		String query22 = "SELECT Account_ID AS \"Account ID\",Master_Consumer_ID AS \"Master Consumer ID\",Member_Coverage_Type_Description AS \"Member Coverage Type Description\",Member_Gender_Code AS \"Member Gender Code\",Reporting_Member_Relationship_Description AS \"Reporting Member Relationship Description\",Age_Group_Description AS \"Age Group Description\",Age_In_Years AS \"Age In Years\",Contract_Type_Code AS \"Contract Type Code\",Eligibility_Year_Month_Ending_Number AS \"Eligibility Year Month Ending Number\",State_Code AS \"State Code\",CBSA_Name AS \"CBSA Name\",Member_PCP_Indicator AS \"Member PCP Indicator\",Subscriber_ID AS \"Subscriber ID\",Continuous_Enrollment_for_1_Period AS \"Continuous Enrollment for 1 Period\",Member_Birth_Date AS \"Member Birth Date\",Account_Name AS \"Account Name\",Time_Period_Start AS \"Time Period Start\",Time_Period_End AS \"Time Period End\",Non_Utilizer_Indicator AS \"Non Utilizer Indicator\",Member_Coverage_Count AS \"Member Coverage Count\"  FROM  (  SELECT MBRSHP.ACCT_ID AS Account_ID,MBRSHP.MCID AS Master_Consumer_ID,MBRSHP.MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,MBRSHP.MBR_GNDR_CD AS Member_Gender_Code,MBRSHP.RPTG_MBR_RLTNSHP_DESC AS Reporting_Member_Relationship_Description,MBRSHP.AGE_GRP_DESC AS Age_Group_Description,MBRSHP.AGE_IN_YRS_NBR AS Age_In_Years,MBRSHP.CNTRCT_TYPE_CD AS Contract_Type_Code,MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS Eligibility_Year_Month_Ending_Number,MBRSHP.ST_CD AS State_Code,MBRSHP.CBSA_NM AS CBSA_Name,MBRSHP.PCP_IND AS Member_PCP_Indicator,MBRSHP.FMBRSHP_SBSCRBR_ID AS Subscriber_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD AS Continuous_Enrollment_for_1_Period,MBRSHP.MBR_BRTH_DT AS Member_Birth_Date,MBRSHP.ACCT_NM AS Account_Name,MBRSHP.TIME_PRD_STRT_NBR AS Time_Period_Start,MBRSHP.TIME_PRD_END_NBR AS Time_Period_End,MBRSHP.Non_Utilizer_Ind AS Non_Utilizer_Indicator,SUM(MBRSHP.SUM_MBR_CVRG_CNT) AS Member_Coverage_Count,MBRSHP.TM_PRD_NM AS Time_Period  FROM  (  SELECT CII_ACCT_PRFL.ACCT_ID AS ACCT_ID,CII_FACT_MBRSHP.MCID AS MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD AS MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC AS RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end AS AGE_GRP_DESC,CII_FACT_MBRSHP.AGE_IN_YRS_NBR AS AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD AS CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD AS ST_CD,DIM_CBSA.CBSA_NM AS CBSA_NM,CII_FACT_MBRSHP.PCP_IND AS PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID AS FMBRSHP_SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD AS CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT AS MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end AS TIME_PRD_STRT_NBR,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end AS TIME_PRD_END_NBR,UT.Non_Utilizer_Ind AS Non_Utilizer_Ind,SUM(MBR_CVRG_CNT) AS SUM_MBR_CVRG_CNT,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  FROM CII_FACT_MBRSHP INNER JOIN (SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                        else SRVC_END_MNTH_NBR\r\n" + 
+//				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"            DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2') \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN ( Select\r\n" + 
+//				"mbrshp.ACCT_ID,\r\n" + 
+//				"mbrshp.MCID,\r\n" + 
+//				"mbrshp.mbr_cvrg_type_cd,\r\n" + 
+//				"mbrshp.tm_prd_nm,\r\n" + 
+//				"Case \r\n" + 
+//				"            when (mbrshp.mcid = clms.mcid \r\n" + 
+//				"            and mbrshp.mbr_cvrg_type_cd = clms.mbr_cvrg_type_cd) then 'N' \r\n" + 
+//				"            Else 'Y' \r\n" + 
+//				"End      as Non_Utilizer_Ind\r\n" + 
+//				"from\r\n" + 
+//				"(\r\n" + 
+//				"Select\r\n" + 
+//				"fact.ACCT_ID,\r\n" + 
+//				"MCID,\r\n" + 
+//				"MBR_CVRG_TYPE_CD,\r\n" + 
+//				"  TM_PRD_NM\r\n" + 
+//				"  from\r\n" + 
+//				"cii_fact_mbrshp fact\r\n" + 
+//				"\r\n" + 
+//				"JOIN (             \r\n" + 
+//				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                        else SRVC_END_MNTH_NBR\r\n" + 
+//				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"            DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2') \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
+//				"    ON fact.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH                \r\n" + 
+//				"    and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
+//				"            INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID  \r\n" + 
+//				"WHERE      fact.ACCT_ID = 'W0004156'                  \r\n" + 
+//				"GROUP BY  fact.acct_id,  fact.MCID, TM_PRD_FNCTN.TM_PRD_NM, fact.MBR_CVRG_TYPE_CD\r\n" + 
+//				") mbrshp\r\n" + 
+//				"\r\n" + 
+//				"left outer join\r\n" + 
+//				"(\r\n" + 
+//				"Select\r\n" + 
+//				"clm.ACCT_ID,\r\n" + 
+//				"MCID,\r\n" + 
+//				"MBR_CVRG_TYPE_CD,\r\n" + 
+//				"TM_PRD_NM\r\n" + 
+//				"\r\n" + 
+//				"from\r\n" + 
+//				"cii_fact_clm_line clm\r\n" + 
+//				"JOIN (             \r\n" + 
+//				"SELECT     YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                        else SRVC_END_MNTH_NBR\r\n" + 
+//				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"            DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2') \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
+//				"    ON clm.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   \r\n" + 
+//				"            and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
+//				"            INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on clm.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and clm.ACCT_ID=SGMNTN.ACCT_ID\r\n" + 
+//				"WHERE      clm.ACCT_ID =  'W0004156'                        \r\n" + 
+//				"GROUP BY  clm.acct_id,  clm.MCID, TM_PRD_FNCTN.TM_PRD_NM, clm.MBR_CVRG_TYPE_CD\r\n" + 
+//				") clms\r\n" + 
+//				"\r\n" + 
+//				"            on\r\n" + 
+//				"mbrshp.acct_id = clms.acct_id \r\n" + 
+//				"            and mbrshp.mcid=clms.mcid  \r\n" + 
+//				"            and mbrshp.TM_PRD_NM = clms.tm_prd_nm \r\n" + 
+//				"            and mbrshp.mbr_cvrg_type_cd  = clms.mbr_cvrg_type_cd  ) UT\r\n" + 
+//				"\r\n" + 
+//				"            ON TM_PRD_FNCTN.TM_PRD_NM = UT.TM_PRD_NM  \r\n" + 
+//				"            AND  CII_FACT_MBRSHP.ACCT_ID =UT.ACCT_ID  \r\n" + 
+//				"            AND  CII_FACT_MBRSHP.MCID =UT.MCID  \r\n" + 
+//				"            and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = UT.MBR_CVRG_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_AGE_GRP ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY INNER JOIN DIM_CBSA ON CII_FACT_MBRSHP.CBSA_ID = DIM_CBSA.CBSA_ID INNER  JOIN ( \r\n" + 
+//				"            select     m.TM_PRD_NM,  m.acct_id, m.mcid, m. MBR_CVRG_TYPE_CD ,\r\n" + 
+//				"   case\r\n" + 
+//				"    when m.mnths = b.mnths\r\n" + 
+//				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Continuous'\r\n" + 
+//				"          when strt_mnth = start_prd\r\n" + 
+//				"    and end_mnth<>end_prd\r\n" + 
+//				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Termed'\r\n" + 
+//				"          when strt_mnth <> start_prd\r\n" + 
+//				"    and end_mnth=end_prd\r\n" + 
+//				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill'then 'Added'\r\n" + 
+//				"          when m.MBR_CVRG_TYPE_CD = 'back_fill' Then 'NA'\r\n" + 
+//				"          else 'Other'\r\n" + 
+//				"    end as CNTNUS_ENRLMNT_1_PRD_CD\r\n" + 
+//				"            from     (\r\n" + 
+//				"                        select   fact .acct_id,\r\n" + 
+//				"                                                fact .MCID,\r\n" + 
+//				"                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
+//				"                                                fact.MBR_CVRG_TYPE_CD ,\r\n" + 
+//				"                                                count (distinct fact .ELGBLTY_CY_MNTH_END_NBR) mnths ,\r\n" + 
+//				"                                                min(fact .ELGBLTY_CY_MNTH_END_NBR) strt_mnth ,\r\n" + 
+//				"                                                max(fact .ELGBLTY_CY_MNTH_END_NBR) \r\n" + 
+//				"                                                end_mnth \r\n" + 
+//				"                        from     cii_fact_mbrshp fact  JOIN (              \r\n" + 
+//				"                                    SELECT                YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"            STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"            END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                        else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"            end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                        and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                        when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                        else SRVC_END_MNTH_NBR\r\n" + 
+//				"            end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"            case\r\n" + 
+//				"                        when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                        when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"            end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"            DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"            where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"            and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"            or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"            and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"            and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"            --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"            and dtp.YEAR_ID <= 1\r\n" + 
+//				"            --In ('Current','Prior','Prior 2') \r\n" + 
+//				"            and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"            and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"            and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN                      \r\n" + 
+//				"                                    ON fact .ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  \r\n" + 
+//				"                                    and TM_PRD_FNCTN. \r\n" + 
+//				"                                                END_YEAR_MNTH INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID   \r\n" + 
+//				"                        WHERE            fact .ACCT_ID = 'W0004156'                         \r\n" + 
+//				"                        GROUP BY  fact .acct_id,\r\n" + 
+//				"                                                fact .MCID,\r\n" + 
+//				"                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
+//				"                                                fact .MBR_CVRG_TYPE_CD ) m \r\n" + 
+//				"            inner join (\r\n" + 
+//				"                        select   \r\n" + 
+//				"                                                case \r\n" + 
+//				"                                                            when YEAR_ID= 1 then 'Current Period'  \r\n" + 
+//				"                                                            when YEAR_ID= 2 then 'Prior Period' \r\n" + 
+//				"                                                            when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
+//				"                                                            ELSE    'FOO' \r\n" + 
+//				"                                                END as TM_PRD_NM,\r\n" + 
+//				"                                                max(e_abs) - max(s_abs)+ 1 mnths,\r\n" + 
+//				"                                                max(s_prd) as start_prd,\r\n" + 
+//				"                                                max(e_prd)  as \r\n" + 
+//				"                                                end_prd \r\n" + 
+//				"                        from        ( \r\n" + 
+//				"                                    select        \r\n" + 
+//				"                                                            CASE \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 202009 then 1 \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR =  201909   then 2   \r\n" + 
+//				"                                                                        WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
+//				"                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
+//				"                                                                        ELSE  4 \r\n" + 
+//				"                                                            END  as YEAR_ID,\r\n" + 
+//				"                                                            CASE \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                or  YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 201801  then ABS_YEAR_MNTH_NBR \r\n" + 
+//				"                                                                        else null \r\n" + 
+//				"                                                            end as s_abs ,\r\n" + 
+//				"                                                            CASE \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 201801  then YEAR_MNTH_NBR \r\n" + 
+//				"                                                                        else null \r\n" + 
+//				"                                                            end as s_prd ,\r\n" + 
+//				"                                                                             \r\n" + 
+//				"                                                            CASE  \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 201809  then ABS_YEAR_MNTH_NBR \r\n" + 
+//				"                                                                        else null \r\n" + 
+//				"                                                            end as e_abs,\r\n" + 
+//				"                                                            CASE \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 201809  then YEAR_MNTH_NBR \r\n" + 
+//				"                                                                        else null \r\n" + 
+//				"                                                            end as e_prd                 \r\n" + 
+//				"                                    from     dim_mnth   \r\n" + 
+//				"                                    where    \r\n" + 
+//				"                                                            CASE \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR = 202009 then 1               \r\n" + 
+//				"                                                                        WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                or YEAR_MNTH_NBR =  201909   then 2 \r\n" + 
+//				"                                                                        WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
+//				"                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
+//				"                                                                        ELSE 0 \r\n" + 
+//				"                                                            END  > 0 ) a  \r\n" + 
+//				"                        group by \r\n" + 
+//				"                                                case \r\n" + 
+//				"                                                            when YEAR_ID= 1 then 'Current Period' \r\n" + 
+//				"                                                            when YEAR_ID= 2 then 'Prior Period'  \r\n" + 
+//				"                                                            when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
+//				"                                                            ELSE    'FOO' \r\n" + 
+//				"                                                END) b     \r\n" + 
+//				"                        on  m.TM_PRD_NM = b.TM_PRD_NM) CE              \r\n" + 
+//				"            ON TM_PRD_FNCTN.TM_PRD_NM = CE.TM_PRD_NM      \r\n" + 
+//				"            AND  CII_FACT_MBRSHP.ACCT_ID =CE.ACCT_ID     \r\n" + 
+//				"            AND  CII_FACT_MBRSHP.MCID =CE.MCID     \r\n" + 
+//				"            and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = CE.MBR_CVRG_TYPE_CD INNER JOIN DIM_MCID ON CII_FACT_MBRSHP.MCID = DIM_MCID.MCID AND CII_FACT_MBRSHP.ACCT_ID = DIM_MCID.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY from ACIISST_SGMNTN_BRDG where ACIISST_USER_ID= 16200068 and ACCT_ID in ('W0004156') and SRC_FLTR_ID= '2c64ebe7-d64b-48ee-99cc-d66eb263819d' and FLTR_SRC_NM= 'User Session')SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0004156')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_FACT_MBRSHP.MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end,CII_FACT_MBRSHP.AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD,DIM_CBSA.CBSA_NM,CII_FACT_MBRSHP.PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end,UT.Non_Utilizer_Ind,TM_PRD_FNCTN.TM_PRD_NM ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.MCID,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.MBR_GNDR_CD,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.AGE_GRP_DESC,MBRSHP.AGE_IN_YRS_NBR,MBRSHP.CNTRCT_TYPE_CD,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.ST_CD,MBRSHP.CBSA_NM,MBRSHP.PCP_IND,MBRSHP.FMBRSHP_SBSCRBR_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD,MBRSHP.MBR_BRTH_DT,MBRSHP.ACCT_NM,MBRSHP.TIME_PRD_STRT_NBR,MBRSHP.TIME_PRD_END_NBR,MBRSHP.Non_Utilizer_Ind,MBRSHP.TM_PRD_NM ) AS FNL   ORDER BY Account_ID,Master_Consumer_ID,Member_Coverage_Type_Description,Member_Gender_Code,Reporting_Member_Relationship_Description,Age_Group_Description,Age_In_Years,Contract_Type_Code,Eligibility_Year_Month_Ending_Number,State_Code,CBSA_Name,Member_PCP_Indicator,Subscriber_ID,Continuous_Enrollment_for_1_Period,Member_Birth_Date,Account_Name,Time_Period_Start,Time_Period_End,Non_Utilizer_Indicator,Member_Coverage_Count\r\n";
+//		
+//		String query23 = "SELECT Account_ID AS \"Account ID\",Master_Consumer_ID AS \"Master Consumer ID\",Member_Coverage_Type_Description AS \"Member Coverage Type Description\",Member_Gender_Code AS \"Member Gender Code\",Reporting_Member_Relationship_Description AS \"Reporting Member Relationship Description\",Age_Group_Description AS \"Age Group Description\",Age_In_Years AS \"Age In Years\",Contract_Type_Code AS \"Contract Type Code\",Eligibility_Year_Month_Ending_Number AS \"Eligibility Year Month Ending Number\",State_Code AS \"State Code\",CBSA_Name AS \"CBSA Name\",Member_PCP_Indicator AS \"Member PCP Indicator\",Subscriber_ID AS \"Subscriber ID\",Continuous_Enrollment_for_1_Period AS \"Continuous Enrollment for 1 Period\",Member_Birth_Date AS \"Member Birth Date\",Account_Name AS \"Account Name\",Time_Period_Start AS \"Time Period Start\",Time_Period_End AS \"Time Period End\",Non_Utilizer_Indicator AS \"Non Utilizer Indicator\",Member_Coverage_Count AS \"Member Coverage Count\"  FROM  (  SELECT MBRSHP.ACCT_ID AS Account_ID,MBRSHP.MCID AS Master_Consumer_ID,MBRSHP.MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,MBRSHP.MBR_GNDR_CD AS Member_Gender_Code,MBRSHP.RPTG_MBR_RLTNSHP_DESC AS Reporting_Member_Relationship_Description,MBRSHP.AGE_GRP_DESC AS Age_Group_Description,MBRSHP.AGE_IN_YRS_NBR AS Age_In_Years,MBRSHP.CNTRCT_TYPE_CD AS Contract_Type_Code,MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS Eligibility_Year_Month_Ending_Number,MBRSHP.ST_CD AS State_Code,MBRSHP.CBSA_NM AS CBSA_Name,MBRSHP.PCP_IND AS Member_PCP_Indicator,MBRSHP.FMBRSHP_SBSCRBR_ID AS Subscriber_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD AS Continuous_Enrollment_for_1_Period,MBRSHP.MBR_BRTH_DT AS Member_Birth_Date,MBRSHP.ACCT_NM AS Account_Name,MBRSHP.TIME_PRD_STRT_NBR AS Time_Period_Start,MBRSHP.TIME_PRD_END_NBR AS Time_Period_End,MBRSHP.Non_Utilizer_Ind AS Non_Utilizer_Indicator,SUM(MBRSHP.SUM_MBR_CVRG_CNT) AS Member_Coverage_Count,MBRSHP.TM_PRD_NM AS Time_Period  FROM  (  SELECT CII_ACCT_PRFL.ACCT_ID AS ACCT_ID,CII_FACT_MBRSHP.MCID AS MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD AS MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC AS RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end AS AGE_GRP_DESC,CII_FACT_MBRSHP.AGE_IN_YRS_NBR AS AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD AS CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD AS ST_CD,DIM_CBSA.CBSA_NM AS CBSA_NM,CII_FACT_MBRSHP.PCP_IND AS PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID AS FMBRSHP_SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD AS CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT AS MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end AS TIME_PRD_STRT_NBR,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end AS TIME_PRD_END_NBR,UT.Non_Utilizer_Ind AS Non_Utilizer_Ind,SUM(MBR_CVRG_CNT) AS SUM_MBR_CVRG_CNT,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  FROM CII_FACT_MBRSHP INNER JOIN (SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                                else SRVC_END_MNTH_NBR\r\n" + 
+//				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"                DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2') \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN ( Select\r\n" + 
+//				"mbrshp.ACCT_ID,\r\n" + 
+//				"mbrshp.MCID,\r\n" + 
+//				"mbrshp.mbr_cvrg_type_cd,\r\n" + 
+//				"mbrshp.tm_prd_nm,\r\n" + 
+//				"Case \r\n" + 
+//				"                when (mbrshp.mcid = clms.mcid \r\n" + 
+//				"                and mbrshp.mbr_cvrg_type_cd = clms.mbr_cvrg_type_cd) then 'N' \r\n" + 
+//				"                Else 'Y' \r\n" + 
+//				"End        as Non_Utilizer_Ind\r\n" + 
+//				"from\r\n" + 
+//				"(\r\n" + 
+//				"Select\r\n" + 
+//				"fact.ACCT_ID,\r\n" + 
+//				"MCID,\r\n" + 
+//				"MBR_CVRG_TYPE_CD,\r\n" + 
+//				"  TM_PRD_NM\r\n" + 
+//				"  from\r\n" + 
+//				"cii_fact_mbrshp fact\r\n" + 
+//				"\r\n" + 
+//				"JOIN (             \r\n" + 
+//				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                                else SRVC_END_MNTH_NBR\r\n" + 
+//				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"                DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2') \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
+//				"    ON fact.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH                \r\n" + 
+//				"    and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
+//				"                INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID  \r\n" + 
+//				"WHERE      fact.ACCT_ID = 'W0016437'                  \r\n" + 
+//				"GROUP BY  fact.acct_id,  fact.MCID, TM_PRD_FNCTN.TM_PRD_NM, fact.MBR_CVRG_TYPE_CD\r\n" + 
+//				") mbrshp\r\n" + 
+//				"\r\n" + 
+//				"left outer join\r\n" + 
+//				"(\r\n" + 
+//				"Select\r\n" + 
+//				"clm.ACCT_ID,\r\n" + 
+//				"MCID,\r\n" + 
+//				"MBR_CVRG_TYPE_CD,\r\n" + 
+//				"TM_PRD_NM\r\n" + 
+//				"\r\n" + 
+//				"from\r\n" + 
+//				"cii_fact_clm_line clm\r\n" + 
+//				"JOIN (             \r\n" + 
+//				"SELECT     YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                                else SRVC_END_MNTH_NBR\r\n" + 
+//				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"                DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2') \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009)) TM_PRD_FNCTN                 \r\n" + 
+//				"    ON clm.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   \r\n" + 
+//				"                and TM_PRD_FNCTN.END_YEAR_MNTH  \r\n" + 
+//				"                INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on clm.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and clm.ACCT_ID=SGMNTN.ACCT_ID\r\n" + 
+//				"WHERE      clm.ACCT_ID =  'W0016437'                        \r\n" + 
+//				"GROUP BY  clm.acct_id,  clm.MCID, TM_PRD_FNCTN.TM_PRD_NM, clm.MBR_CVRG_TYPE_CD\r\n" + 
+//				") clms\r\n" + 
+//				"\r\n" + 
+//				"                on\r\n" + 
+//				"mbrshp.acct_id = clms.acct_id \r\n" + 
+//				"                and mbrshp.mcid=clms.mcid  \r\n" + 
+//				"                and mbrshp.TM_PRD_NM = clms.tm_prd_nm \r\n" + 
+//				"                and mbrshp.mbr_cvrg_type_cd  = clms.mbr_cvrg_type_cd  ) UT\r\n" + 
+//				"\r\n" + 
+//				"                ON TM_PRD_FNCTN.TM_PRD_NM = UT.TM_PRD_NM  \r\n" + 
+//				"                AND  CII_FACT_MBRSHP.ACCT_ID =UT.ACCT_ID  \r\n" + 
+//				"                AND  CII_FACT_MBRSHP.MCID =UT.MCID  \r\n" + 
+//				"                and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = UT.MBR_CVRG_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_AGE_GRP ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY INNER JOIN DIM_CBSA ON CII_FACT_MBRSHP.CBSA_ID = DIM_CBSA.CBSA_ID INNER  JOIN ( \r\n" + 
+//				"                select      m.TM_PRD_NM,  m.acct_id, m.mcid, m. MBR_CVRG_TYPE_CD ,\r\n" + 
+//				"   case\r\n" + 
+//				"    when m.mnths = b.mnths\r\n" + 
+//				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Continuous'\r\n" + 
+//				"          when strt_mnth = start_prd\r\n" + 
+//				"    and end_mnth<>end_prd\r\n" + 
+//				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill' then 'Termed'\r\n" + 
+//				"          when strt_mnth <> start_prd\r\n" + 
+//				"    and end_mnth=end_prd\r\n" + 
+//				"    and m.MBR_CVRG_TYPE_CD <> 'back_fill'then 'Added'\r\n" + 
+//				"          when m.MBR_CVRG_TYPE_CD = 'back_fill' Then 'NA'\r\n" + 
+//				"          else 'Other'\r\n" + 
+//				"    end as CNTNUS_ENRLMNT_1_PRD_CD\r\n" + 
+//				"                from      (\r\n" + 
+//				"                                select    fact .acct_id,\r\n" + 
+//				"                                                                fact .MCID,\r\n" + 
+//				"                                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
+//				"                                                                fact.MBR_CVRG_TYPE_CD ,\r\n" + 
+//				"                                                                count (distinct fact .ELGBLTY_CY_MNTH_END_NBR) mnths ,\r\n" + 
+//				"                                                                min(fact .ELGBLTY_CY_MNTH_END_NBR) strt_mnth ,\r\n" + 
+//				"                                                                max(fact .ELGBLTY_CY_MNTH_END_NBR) \r\n" + 
+//				"                                                                end_mnth \r\n" + 
+//				"                                from      cii_fact_mbrshp fact  JOIN (              \r\n" + 
+//				"                                                SELECT      YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"                STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"                END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"                                else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"                end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                                and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"                                when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"                                else SRVC_END_MNTH_NBR\r\n" + 
+//				"                end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"                case\r\n" + 
+//				"                                when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"                                when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"                end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"                DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"cross join DIM_MNTH dm\r\n" + 
+//				"                where (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --    AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'  \r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_CURNT_MNTH_NBR = 201910\r\n" + 
+//				"                and dtp.CSTM_END_CURNT_MNTH_NBR = 202009\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009\r\n" + 
+//				")\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2')  \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201810\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_MNTH_NBR = 201909\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009)\r\n" + 
+//				"                or (dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"                and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"                and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"                --AND DIM_TM_PRD_ADHC.TM_3061_RULE_IND = 'N'\r\n" + 
+//				"                and dtp.YEAR_ID <= 1\r\n" + 
+//				"                --In ('Current','Prior','Prior 2') \r\n" + 
+//				"                and dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801\r\n" + 
+//				"                and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201809\r\n" + 
+//				"                and dm.YEAR_MNTH_NBR = 202009) ) TM_PRD_FNCTN                      \r\n" + 
+//				"                                                ON fact .ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  \r\n" + 
+//				"                                                and TM_PRD_FNCTN. \r\n" + 
+//				"                                                                END_YEAR_MNTH INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on fact.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and fact.ACCT_ID=SGMNTN.ACCT_ID   \r\n" + 
+//				"                                WHERE fact .ACCT_ID = 'W0016437'                         \r\n" + 
+//				"                                GROUP BY  fact .acct_id,\r\n" + 
+//				"                                                                fact .MCID,\r\n" + 
+//				"                                                                TM_PRD_FNCTN.TM_PRD_NM,\r\n" + 
+//				"                                                                fact .MBR_CVRG_TYPE_CD ) m \r\n" + 
+//				"                inner join (\r\n" + 
+//				"                                select    \r\n" + 
+//				"                                                                case \r\n" + 
+//				"                                                                                when YEAR_ID= 1 then 'Current Period'  \r\n" + 
+//				"                                                                                when YEAR_ID= 2 then 'Prior Period' \r\n" + 
+//				"                                                                                when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
+//				"                                                                                ELSE    'FOO' \r\n" + 
+//				"                                                                END as TM_PRD_NM,\r\n" + 
+//				"                                                                max(e_abs) - max(s_abs)+ 1 mnths,\r\n" + 
+//				"                                                                max(s_prd) as start_prd,\r\n" + 
+//				"                                                                max(e_prd)  as \r\n" + 
+//				"                                                                end_prd \r\n" + 
+//				"                                from         ( \r\n" + 
+//				"                                                select         \r\n" + 
+//				"                                                                                CASE \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 202009 then 1 \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR =  201909   then 2   \r\n" + 
+//				"                                                                                                WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
+//				"                                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
+//				"                                                                                                ELSE  4 \r\n" + 
+//				"                                                                                END  as YEAR_ID,\r\n" + 
+//				"                                                                                CASE \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                                or  YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 201801  then ABS_YEAR_MNTH_NBR \r\n" + 
+//				"                                                                                                else null \r\n" + 
+//				"                                                                                end as s_abs ,\r\n" + 
+//				"                                                                                CASE \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 201801  then YEAR_MNTH_NBR \r\n" + 
+//				"                                                                                                else null \r\n" + 
+//				"                                                                                end as s_prd ,\r\n" + 
+//				"                                                                                                 \r\n" + 
+//				"                                                                                CASE  \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 201809  then ABS_YEAR_MNTH_NBR \r\n" + 
+//				"                                                                                                else null \r\n" + 
+//				"                                                                                end as e_abs,\r\n" + 
+//				"                                                                                CASE \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR = 202009  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR =  201909  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 201809  then YEAR_MNTH_NBR \r\n" + 
+//				"                                                                                                else null \r\n" + 
+//				"                                                                                end as e_prd                 \r\n" + 
+//				"                                                from      dim_mnth   \r\n" + 
+//				"                                                where   \r\n" + 
+//				"                                                                                CASE \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR =  201910  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR = 202009 then 1               \r\n" + 
+//				"                                                                                                WHEN YEAR_MNTH_NBR = 201810  \r\n" + 
+//				"                                                                or YEAR_MNTH_NBR =  201909   then 2 \r\n" + 
+//				"                                                                                                WHEN  YEAR_MNTH_NBR = 201801  \r\n" + 
+//				"                                                                or  YEAR_MNTH_NBR = 201809 then  3 \r\n" + 
+//				"                                                                                                ELSE 0 \r\n" + 
+//				"                                                                                END  > 0 ) a  \r\n" + 
+//				"                                group by \r\n" + 
+//				"                                                                case \r\n" + 
+//				"                                                                                when YEAR_ID= 1 then 'Current Period' \r\n" + 
+//				"                                                                                when YEAR_ID= 2 then 'Prior Period'  \r\n" + 
+//				"                                                                                when YEAR_ID= 3 then 'Prior Period 2'   \r\n" + 
+//				"                                                                                ELSE    'FOO' \r\n" + 
+//				"                                                                END) b     \r\n" + 
+//				"                                on  m.TM_PRD_NM = b.TM_PRD_NM) CE              \r\n" + 
+//				"                ON TM_PRD_FNCTN.TM_PRD_NM = CE.TM_PRD_NM      \r\n" + 
+//				"                AND  CII_FACT_MBRSHP.ACCT_ID =CE.ACCT_ID     \r\n" + 
+//				"                AND  CII_FACT_MBRSHP.MCID =CE.MCID     \r\n" + 
+//				"                and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = CE.MBR_CVRG_TYPE_CD INNER JOIN DIM_MCID ON CII_FACT_MBRSHP.MCID = DIM_MCID.MCID AND CII_FACT_MBRSHP.ACCT_ID = DIM_MCID.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_FACT_MBRSHP.MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end,CII_FACT_MBRSHP.AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD,DIM_CBSA.CBSA_NM,CII_FACT_MBRSHP.PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end,UT.Non_Utilizer_Ind,TM_PRD_FNCTN.TM_PRD_NM ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.MCID,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.MBR_GNDR_CD,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.AGE_GRP_DESC,MBRSHP.AGE_IN_YRS_NBR,MBRSHP.CNTRCT_TYPE_CD,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.ST_CD,MBRSHP.CBSA_NM,MBRSHP.PCP_IND,MBRSHP.FMBRSHP_SBSCRBR_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD,MBRSHP.MBR_BRTH_DT,MBRSHP.ACCT_NM,MBRSHP.TIME_PRD_STRT_NBR,MBRSHP.TIME_PRD_END_NBR,MBRSHP.Non_Utilizer_Ind,MBRSHP.TM_PRD_NM ) AS FNL   ORDER BY Account_ID,Master_Consumer_ID,Member_Coverage_Type_Description,Member_Gender_Code,Reporting_Member_Relationship_Description,Age_Group_Description,Age_In_Years,Contract_Type_Code,Eligibility_Year_Month_Ending_Number,State_Code,CBSA_Name,Member_PCP_Indicator,Subscriber_ID,Continuous_Enrollment_for_1_Period,Member_Birth_Date,Account_Name,Time_Period_Start,Time_Period_End,Non_Utilizer_Indicator,Member_Coverage_Count";
+//		
+//		String query30 = "SELECT Account_Name AS \"Account Name\",Gaps_Closed AS \"Gaps Closed\",Member_Engaged_Indicator AS \"Member Engaged Indicator\",Member_Engagement_Tier AS \"Member Engagement Tier\",Time_Period AS \"Time Period\",Earned_Incentive_Indicator AS \"Earned Incentive Indicator\"  FROM  (  SELECT GAPSVNGS.ACCT_NM AS Account_Name,SUM(GAPSVNGS.GPS_CLSD) AS Gaps_Closed,GAPSVNGS.MBR_ENGGD_IND AS Member_Engaged_Indicator,GAPSVNGS.MBR_ENGGMNT_TIER AS Member_Engagement_Tier,GAPSVNGS.TM_PRD_NM AS Time_Period,GAPSVNGS.EARND_INCNTV_CD AS Earned_Incentive_Indicator  FROM  (  SELECT CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,SUM( CASE WHEN CII_FACT_GAP_SVNGS.CMPLNC_YEAR_MNTH_YEAR_NBR <= CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH  as varchar(6)) ,5,2) = '01' THEN TM_PRD_FNCTN.END_YEAR_MNTH   - 89 ELSE TM_PRD_FNCTN.END_YEAR_MNTH   - 1 END  THEN CII_FACT_GAP_SVNGS.CLSUR_CNT ELSE 0 END) AS GPS_CLSD,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N') AS MBR_ENGGD_IND,coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged') AS MBR_ENGGMNT_TIER,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD AS EARND_INCNTV_CD  FROM CII_FACT_GAP_SVNGS INNER JOIN (\r\n" + 
+//				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"else SRVC_END_MNTH_NBR\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN ON CII_FACT_GAP_SVNGS.RLSET_RUN_YEAR_MNTH_NBR BETWEEN CASE WHEN substr(cast(TM_PRD_FNCTN.START_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.START_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.START_YEAR_MNTH  - 6 END and CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.END_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.END_YEAR_MNTH  - 6 END INNER JOIN (    SELECT MBRSHP.TM_PRD_NM AS Time_Period,MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,   MBRSHP.CII_FACT_MBRSHP_MCID AS Master_Consumer_ID  FROM (       SELECT TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID AS CII_FACT_MBRSHP_MCID      FROM CII_FACT_MBRSHP     INNER JOIN (       \r\n" + 
+//				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"else SRVC_END_MNTH_NBR\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN      ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH       and TM_PRD_FNCTN.      END_YEAR_MNTH      INNER JOIN DIM_MBR_CVRG_TYPE       ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD  INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID    WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')       AND DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC = 'Medical'      GROUP BY TM_PRD_FNCTN.TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID ) AS MBRSHP    GROUP BY MBRSHP.TM_PRD_NM,    MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,    CII_FACT_MBRSHP_MCID ) AS MDCL_MBRSHP  on (TM_PRD_FNCTN.TM_PRD_NM = MDCL_MBRSHP.Time_Period  and CII_FACT_GAP_SVNGS.MCID = MDCL_MBRSHP.Master_Consumer_ID) INNER JOIN  (SELECT MAX(CII_FACT_MBRSHP.EARND_INCNTV_CD) EARND_INCNTV_CD, CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM FROM CII_FACT_MBRSHP \r\n" + 
+//				"JOIN\r\n" + 
+//				"(SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"  else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"  else SRVC_END_MNTH_NBR\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN   \r\n" + 
+//				" ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  and TM_PRD_FNCTN.END_YEAR_MNTH WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')  and ELGBL_INCNTV_IND='Y'\r\n" + 
+//				"group by CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM)\r\n" + 
+//				"INCNTV_MBRSHP \r\n" + 
+//				"ON CII_FACT_GAP_SVNGS.MCID=INCNTV_MBRSHP.MCID AND TM_PRD_FNCTN.TM_PRD_NM=INCNTV_MBRSHP.TM_PRD_NM AND CII_FACT_GAP_SVNGS.ACCT_ID=INCNTV_MBRSHP.ACCT_ID INNER JOIN CII_ACCT_PRFL ON CII_FACT_GAP_SVNGS.ACCT_ID = CII_ACCT_PRFL.ACCT_ID LEFT JOIN  (   \r\n" + 
+//				"select CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID, TM_PRD_FNCTN.TM_PRD_NM ,\r\n" + 
+//				"  (  \r\n" + 
+//				"CASE     \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'          \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0     \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'          \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0      \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0     \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'          \r\n" + 
+//				" ELSE 'Not Engaged'    \r\n" + 
+//				"END) AS MBR_ENGGMNT_LVL  , \r\n" + 
+//				"case  \r\n" + 
+//				" when MAX(DIM_ENGGMNT.EXPNDD_IND)= 0 then 'N'  \r\n" + 
+//				" else 'Y'  \r\n" + 
+//				"end as MBR_ENGGD_IND , MAX(DIM_ENGGMNT.ENHNCD_IND) as isEnhanced ,\r\n" + 
+//				"  MAX(DIM_ENGGMNT.EXPNDD_IND) as isExpanded , MAX(DIM_ENGGMNT.TRDTNL_IND) as isTraditional  \r\n" + 
+//				"from CII_FACT_CP_ENGGMNT   inner join DIM_ENGGMNT         \r\n" + 
+//				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
+//				"SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"\r\n" + 
+//				"from\r\n" + 
+//				"\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"\r\n" + 
+//				"join DIM_MNTH dm \r\n" + 
+//				" on 1=1\r\n" + 
+//				"\r\n" + 
+//				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"\r\n" + 
+//				"and (\r\n" + 
+//				"\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
+//				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN       \r\n" + 
+//				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH      \r\n" + 
+//				" and TM_PRD_FNCTN. END_YEAR_MNTH   \r\n" + 
+//				"WHERE CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
+//				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
+//				"  TM_PRD_FNCTN.TM_PRD_NM )   TMBRENGGMNT2      \r\n" + 
+//				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT2.ACCT_ID      \r\n" + 
+//				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT2.MCID      \r\n" + 
+//				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT2.TM_PRD_NM LEFT    JOIN  (   \r\n" + 
+//				"select    a.acct_id, a.MCID,a.TM_PRD_NM, a.ENGGMNT, b.ENGGMNT_TIER    \r\n" + 
+//				"from     (   \r\n" + 
+//				"select    CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID,\r\n" + 
+//				"  TM_PRD_FNCTN.TM_PRD_NM ,                 (  \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'                 \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0            \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'                 \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0             \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0            \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'                 \r\n" + 
+//				" ELSE 'Not Engaged'    \r\n" + 
+//				"END) AS ENGGMNT         \r\n" + 
+//				"from    CII_FACT_CP_ENGGMNT  inner join DIM_ENGGMNT                \r\n" + 
+//				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
+//				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				" and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"\r\n" + 
+//				"from\r\n" + 
+//				"\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"\r\n" + 
+//				"join DIM_MNTH dm \r\n" + 
+//				" on 1=1\r\n" + 
+//				"\r\n" + 
+//				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"\r\n" + 
+//				"and (\r\n" + 
+//				"\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
+//				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN              \r\n" + 
+//				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH             \r\n" + 
+//				" and TM_PRD_FNCTN. END_YEAR_MNTH    \r\n" + 
+//				"WHERE    CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
+//				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
+//				"          TM_PRD_FNCTN.TM_PRD_NM ) a  inner join (   \r\n" + 
+//				"select       \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))            \r\n" + 
+//				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
+//				"END    AS ENGGMNT ,   \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))            \r\n" + 
+//				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
+//				"END    AS ENGGMNT_TIER                          \r\n" + 
+//				"from    DIM_ENGGMNT                          \r\n" + 
+//				"union    all                          \r\n" + 
+//				"select       \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
+//				" else cast('Care Coordination' as char(20))    \r\n" + 
+//				"end    as ENGGMNT , cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER    \r\n" + 
+//				"from    DIM_ENGGMNT    \r\n" + 
+//				"where    DIM_ENGGMNT.TRDTNL_IND= 1            \r\n" + 
+//				" or DIM_ENGGMNT.ENHNCD_IND= 1                          \r\n" + 
+//				"union    all                          \r\n" + 
+//				"select    cast('Traditional' as char(20)) as ENGGMNT, cast('Care Coordination' as char(20))  AS ENGGMNT_TIER    \r\n" + 
+//				"from    DIM_ENGGMNT    \r\n" + 
+//				"where    DIM_ENGGMNT.TRDTNL_IND= 1 ) b            \r\n" + 
+//				" on a.ENGGMNT = b.ENGGMNT                   )  TMBRENGGMNT             \r\n" + 
+//				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT.ACCT_ID             \r\n" + 
+//				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT.MCID             \r\n" + 
+//				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_GAP_SVNGS.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_GAP_SVNGS.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_GAP_SVNGS.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_NM,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N'),coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged'),TM_PRD_FNCTN.TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD ) AS GAPSVNGS  GROUP BY GAPSVNGS.ACCT_NM,GAPSVNGS.MBR_ENGGD_IND,GAPSVNGS.MBR_ENGGMNT_TIER,GAPSVNGS.TM_PRD_NM,GAPSVNGS.EARND_INCNTV_CD ) AS FNL   ORDER BY Account_Name,Gaps_Closed,Member_Engaged_Indicator,Member_Engagement_Tier,Time_Period,Earned_Incentive_Indicator\r\n" + 
+//				"";
+//		
+//		String query31 = "SELECT Account_Name AS \"Account Name\",Gaps_Closed AS \"Gaps Closed\",Member_Engaged_Indicator AS \"Member Engaged Indicator\",Member_Engagement_Tier AS \"Member Engagement Tier\",Time_Period AS \"Time Period\",Earned_Incentive_Indicator AS \"Earned Incentive Indicator\"  FROM  (  SELECT GAPSVNGS.ACCT_NM AS Account_Name,SUM(GAPSVNGS.GPS_CLSD) AS Gaps_Closed,GAPSVNGS.MBR_ENGGD_IND AS Member_Engaged_Indicator,GAPSVNGS.MBR_ENGGMNT_TIER AS Member_Engagement_Tier,GAPSVNGS.TM_PRD_NM AS Time_Period,GAPSVNGS.EARND_INCNTV_CD AS Earned_Incentive_Indicator  FROM  (  SELECT CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,SUM( CASE WHEN CII_FACT_GAP_SVNGS.CMPLNC_YEAR_MNTH_YEAR_NBR <= CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH  as varchar(6)) ,5,2) = '01' THEN TM_PRD_FNCTN.END_YEAR_MNTH   - 89 ELSE TM_PRD_FNCTN.END_YEAR_MNTH   - 1 END  THEN CII_FACT_GAP_SVNGS.CLSUR_CNT ELSE 0 END) AS GPS_CLSD,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N') AS MBR_ENGGD_IND,coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged') AS MBR_ENGGMNT_TIER,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD AS EARND_INCNTV_CD  FROM CII_FACT_GAP_SVNGS INNER JOIN (\r\n" + 
+//				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"else SRVC_END_MNTH_NBR\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN ON CII_FACT_GAP_SVNGS.RLSET_RUN_YEAR_MNTH_NBR BETWEEN CASE WHEN substr(cast(TM_PRD_FNCTN.START_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.START_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.START_YEAR_MNTH  - 6 END and CASE WHEN substr(cast(TM_PRD_FNCTN.END_YEAR_MNTH as varchar(6)) ,5,2) <= '06' THEN TM_PRD_FNCTN.END_YEAR_MNTH  - 94 ELSE TM_PRD_FNCTN.END_YEAR_MNTH  - 6 END INNER JOIN (    SELECT MBRSHP.TM_PRD_NM AS Time_Period,MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC AS Member_Coverage_Type_Description,   MBRSHP.CII_FACT_MBRSHP_MCID AS Master_Consumer_ID  FROM (       SELECT TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID AS CII_FACT_MBRSHP_MCID      FROM CII_FACT_MBRSHP     INNER JOIN (       \r\n" + 
+//				"Select YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"else SRVC_END_MNTH_NBR\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )) TM_PRD_FNCTN      ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH       and TM_PRD_FNCTN.      END_YEAR_MNTH      INNER JOIN DIM_MBR_CVRG_TYPE       ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD  INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID    WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')       AND DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC = 'Medical'      GROUP BY TM_PRD_FNCTN.TM_PRD_NM,       DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,       CII_FACT_MBRSHP.MCID ) AS MBRSHP    GROUP BY MBRSHP.TM_PRD_NM,    MBRSHP.DIM_MBR_CVRG_TYPE_MBR_CVRG_TYPE_DESC,    CII_FACT_MBRSHP_MCID ) AS MDCL_MBRSHP  on (TM_PRD_FNCTN.TM_PRD_NM = MDCL_MBRSHP.Time_Period  and CII_FACT_GAP_SVNGS.MCID = MDCL_MBRSHP.Master_Consumer_ID) INNER JOIN  (SELECT MAX(CII_FACT_MBRSHP.EARND_INCNTV_CD) EARND_INCNTV_CD, CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM FROM CII_FACT_MBRSHP \r\n" + 
+//				"JOIN\r\n" + 
+//				"(SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"  else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"  else SRVC_END_MNTH_NBR\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"case\r\n" + 
+//				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where   dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN   \r\n" + 
+//				" ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH  and TM_PRD_FNCTN.END_YEAR_MNTH WHERE CII_FACT_MBRSHP.ACCT_ID IN ('W0016437')  and ELGBL_INCNTV_IND='Y'\r\n" + 
+//				"group by CII_FACT_MBRSHP.MCID, CII_FACT_MBRSHP.ACCT_ID, TM_PRD_NM)\r\n" + 
+//				"INCNTV_MBRSHP \r\n" + 
+//				"ON CII_FACT_GAP_SVNGS.MCID=INCNTV_MBRSHP.MCID AND TM_PRD_FNCTN.TM_PRD_NM=INCNTV_MBRSHP.TM_PRD_NM AND CII_FACT_GAP_SVNGS.ACCT_ID=INCNTV_MBRSHP.ACCT_ID INNER JOIN CII_ACCT_PRFL ON CII_FACT_GAP_SVNGS.ACCT_ID = CII_ACCT_PRFL.ACCT_ID LEFT JOIN  (   \r\n" + 
+//				"select CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID, TM_PRD_FNCTN.TM_PRD_NM ,\r\n" + 
+//				"  (  \r\n" + 
+//				"CASE     \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'          \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0     \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'          \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0      \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0     \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'          \r\n" + 
+//				" ELSE 'Not Engaged'    \r\n" + 
+//				"END) AS MBR_ENGGMNT_LVL  , \r\n" + 
+//				"case  \r\n" + 
+//				" when MAX(DIM_ENGGMNT.EXPNDD_IND)= 0 then 'N'  \r\n" + 
+//				" else 'Y'  \r\n" + 
+//				"end as MBR_ENGGD_IND , MAX(DIM_ENGGMNT.ENHNCD_IND) as isEnhanced ,\r\n" + 
+//				"  MAX(DIM_ENGGMNT.EXPNDD_IND) as isExpanded , MAX(DIM_ENGGMNT.TRDTNL_IND) as isTraditional  \r\n" + 
+//				"from CII_FACT_CP_ENGGMNT   inner join DIM_ENGGMNT         \r\n" + 
+//				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
+//				"SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"\r\n" + 
+//				"from\r\n" + 
+//				"\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"\r\n" + 
+//				"join DIM_MNTH dm \r\n" + 
+//				" on 1=1\r\n" + 
+//				"\r\n" + 
+//				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"\r\n" + 
+//				"and (\r\n" + 
+//				"\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
+//				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN       \r\n" + 
+//				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH      \r\n" + 
+//				" and TM_PRD_FNCTN. END_YEAR_MNTH   \r\n" + 
+//				"WHERE CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
+//				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
+//				"  TM_PRD_FNCTN.TM_PRD_NM )   TMBRENGGMNT2      \r\n" + 
+//				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT2.ACCT_ID      \r\n" + 
+//				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT2.MCID      \r\n" + 
+//				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT2.TM_PRD_NM LEFT    JOIN  (   \r\n" + 
+//				"select    a.acct_id, a.MCID,a.TM_PRD_NM, a.ENGGMNT, b.ENGGMNT_TIER    \r\n" + 
+//				"from     (   \r\n" + 
+//				"select    CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID,\r\n" + 
+//				"  TM_PRD_FNCTN.TM_PRD_NM ,                 (  \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'                 \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0            \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'                 \r\n" + 
+//				" WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0             \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0            \r\n" + 
+//				" AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'                 \r\n" + 
+//				" ELSE 'Not Engaged'    \r\n" + 
+//				"END) AS ENGGMNT         \r\n" + 
+//				"from    CII_FACT_CP_ENGGMNT  inner join DIM_ENGGMNT                \r\n" + 
+//				" on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN (   \r\n" + 
+//				"SELECT    YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"\r\n" + 
+//				"STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				" and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"  and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  else SRVC_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"\r\n" + 
+//				"case\r\n" + 
+//				"\r\n" + 
+//				"  when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"  when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"\r\n" + 
+//				"end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"\r\n" + 
+//				"from\r\n" + 
+//				"\r\n" + 
+//				"DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"\r\n" + 
+//				"join DIM_MNTH dm \r\n" + 
+//				" on 1=1\r\n" + 
+//				"\r\n" + 
+//				"where dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202011\r\n" + 
+//				"\r\n" + 
+//				"and (\r\n" + 
+//				"\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 201912 \r\n" + 
+//				" and dtp.CSTM_END_CURNT_MNTH_NBR = 202011)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201812 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_MNTH_NBR = 201911)\r\n" + 
+//				"\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201801 \r\n" + 
+//				" and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201811) )   )  TM_PRD_FNCTN              \r\n" + 
+//				" ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH             \r\n" + 
+//				" and TM_PRD_FNCTN. END_YEAR_MNTH    \r\n" + 
+//				"WHERE    CII_FACT_CP_ENGGMNT.ACCT_ID IN ('W0016437')    \r\n" + 
+//				"group by  CII_FACT_CP_ENGGMNT.acct_id, CII_FACT_CP_ENGGMNT.MCID ,\r\n" + 
+//				"          TM_PRD_FNCTN.TM_PRD_NM ) a  inner join (   \r\n" + 
+//				"select       \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))            \r\n" + 
+//				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
+//				"END    AS ENGGMNT ,   \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))            \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 0             \r\n" + 
+//				" AND DIM_ENGGMNT.ENHNCD_IND = 0            \r\n" + 
+//				" AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))            \r\n" + 
+//				" ELSE cast('Not Engaged' as char(20))    \r\n" + 
+//				"END    AS ENGGMNT_TIER                          \r\n" + 
+//				"from    DIM_ENGGMNT                          \r\n" + 
+//				"union    all                          \r\n" + 
+//				"select       \r\n" + 
+//				"CASE               \r\n" + 
+//				" WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))            \r\n" + 
+//				" else cast('Care Coordination' as char(20))    \r\n" + 
+//				"end    as ENGGMNT , cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER    \r\n" + 
+//				"from    DIM_ENGGMNT    \r\n" + 
+//				"where    DIM_ENGGMNT.TRDTNL_IND= 1            \r\n" + 
+//				" or DIM_ENGGMNT.ENHNCD_IND= 1                          \r\n" + 
+//				"union    all                          \r\n" + 
+//				"select    cast('Traditional' as char(20)) as ENGGMNT, cast('Care Coordination' as char(20))  AS ENGGMNT_TIER    \r\n" + 
+//				"from    DIM_ENGGMNT    \r\n" + 
+//				"where    DIM_ENGGMNT.TRDTNL_IND= 1 ) b            \r\n" + 
+//				" on a.ENGGMNT = b.ENGGMNT                   )  TMBRENGGMNT             \r\n" + 
+//				" ON CII_FACT_GAP_SVNGS.ACCT_ID = TMBRENGGMNT.ACCT_ID             \r\n" + 
+//				" and CII_FACT_GAP_SVNGS.MCID=TMBRENGGMNT.MCID             \r\n" + 
+//				" and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('d97ef60a-2503-41d2-acac-2c91c904e9e0'))SGMNTN on CII_FACT_GAP_SVNGS.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_GAP_SVNGS.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_GAP_SVNGS.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_NM,coalesce( TMBRENGGMNT2.MBR_ENGGD_IND,'N'),coalesce(TMBRENGGMNT.ENGGMNT_TIER, 'Not Engaged'),TM_PRD_FNCTN.TM_PRD_NM,INCNTV_MBRSHP.EARND_INCNTV_CD ) AS GAPSVNGS  GROUP BY GAPSVNGS.ACCT_NM,GAPSVNGS.MBR_ENGGD_IND,GAPSVNGS.MBR_ENGGMNT_TIER,GAPSVNGS.TM_PRD_NM,GAPSVNGS.EARND_INCNTV_CD ) AS FNL   ORDER BY Account_Name,Gaps_Closed,Member_Engaged_Indicator,Member_Engagement_Tier,Time_Period,Earned_Incentive_Indicator\r\n" + 
+//				"";
+//		
+//		String query24 = "Select a,b,c from d where (age > 20 and age < 40) or (age > 40 and age < 70)";
+//		
+//		String query25 = "Select  count(distinct a), c from b";
+//		String query26 = "Select  distinct a, max(distinct c) from b";
+//		
+//		String query27 = "select cast('Traditional' as char(20)) as abc from table123";
+//		String query28 = "select '123' as abc from table123";
+//		
+//		String query29 = "select substr(cast(TM_PRD_FNCTN.START_YEAR_MNTH as varchar(6)) ,5,2) from abc";
+//		
+//		String query32 = "select stupid(count(*)) from mango";
+//		
+//		String query33 = "select count(*) from ( SELECT AS \"Account ID\",AS \"Account Name\",AS \"Time Period\",AS \"Member Coverage Type Description\",AS \"Eligibility Year Month Ending Number\",AS \"Member Coverage Count\",CASE WHEN sum(CAST(AS decimal (22,6))) over(partition by )=0 then 0.00 else SUM(CAST(AS decimal (22,6))) over(partition by )/ sum(CAST(AS decimal (22,6))) over(partition by ) *100 end AS \"Member Coverage Count - Total %: Member Coverage Type Description,Reporting Member Relationship Description,Eligibility Year Month Ending Number,,Eligibility Calendar Month Year  Name\",AS \"Reporting Member Relationship Description\",AS \"Eligibility Calendar Month Year  Name\", AS \"Contract Type Description\"  FROM  (  SELECT MBRSHP.ACCT_ID AS MBRSHP.ACCT_NM AS MBRSHP.TM_PRD_NM AS MBRSHP.MBR_CVRG_TYPE_DESC AS MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS SUM(MBRSHP.SUM_MBR_CVRG_CNT) AS MBRSHP.RPTG_MBR_RLTNSHP_DESC AS MBRSHP.CLNDR_MNTH_YEAR_NM AS MBRSHP.CNTRCT_TYPE_DESC AS   FROM  (  SELECT CII_ACCT_PRFL.ACCT_ID AS ACCT_ID,CII_ACCT_PRFL.ACCT_NM AS ACCT_NM,TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC AS MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR AS ELGBLTY_CY_MNTH_END_NBR,SUM(MBR_CVRG_CNT) AS SUM_MBR_CVRG_CNT,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC AS RPTG_MBR_RLTNSHP_DESC,DIM_MNTH.CLNDR_MNTH_YEAR_NM AS CLNDR_MNTH_YEAR_NM,DIM_CNTRCT_TYPE.CNTRCT_TYPE_DESC AS CNTRCT_TYPE_DESC  FROM CII_FACT_MBRSHP INNER JOIN (SELECT YEAR_CD_NM as TM_PRD_NM,\r\n" + 
+//				"	STRT_MNTH_NBR as START_YEAR_MNTH,\r\n" + 
+//				"	END_MNTH_NBR as END_YEAR_MNTH,\r\n" + 
+//				"	case\r\n" + 
+//				"		when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"		and INCRD_PAID_CD = 'PAID' then 111101\r\n" + 
+//				"		when TM_PRD_TYPE_CD = 'Custom' then STRT_MNTH_NBR\r\n" + 
+//				"		else SRVC_STRT_MNTH_NBR\r\n" + 
+//				"	end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+//				"	case\r\n" + 
+//				"		when TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"		and INCRD_PAID_CD = 'PAID' then 888812\r\n" + 
+//				"		when TM_PRD_TYPE_CD = 'Custom' then END_MNTH_NBR\r\n" + 
+//				"		else SRVC_END_MNTH_NBR\r\n" + 
+//				"	end as END_SRVC_YEAR_MNTH,\r\n" + 
+//				"	case\r\n" + 
+//				"		when TM_PRD_TYPE_CD <> 'Custom' then PAID_END_MNTH_NBR\r\n" + 
+//				"		when INCRD_PAID_CD = 'PAID' then END_MNTH_NBR\r\n" + 
+//				"		when INCRD_PAID_CD = 'INC2' then 888811\r\n" + 
+//				"		when INCRD_PAID_CD = 'INC3' then dm.YEAR_MNTH_NBR\r\n" + 
+//				"		when INCRD_PAID_CD = 'INC1' then PAID_END_MNTH_NBR\r\n" + 
+//				"	end as END_RPTG_PAID_YEAR_MNTH\r\n" + 
+//				"from\r\n" + 
+//				"	DIM_TM_PRD_ADHC dtp\r\n" + 
+//				"join DIM_MNTH dm on 1=1\r\n" + 
+//				"where	dtp.TM_PRD_TYPE_CD = 'Custom'\r\n" + 
+//				"and dtp.INCRD_PAID_CD = 'PAID'\r\n" + 
+//				"and dtp.LAG_MNTH_NBR = 0\r\n" + 
+//				"and dtp.YEAR_ID <= 3\r\n" + 
+//				"and dm.YEAR_MNTH_NBR = 202102\r\n" + 
+//				"and (\r\n" + 
+//				"(dtp.CSTM_STRT_CURNT_MNTH_NBR = 202003 and dtp.CSTM_END_CURNT_MNTH_NBR = 202102)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201903 and dtp.CSTM_END_PRIOR_MNTH_NBR = 202002)\r\n" + 
+//				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201803 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201902) ) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_MNTH ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR = DIM_MNTH.YEAR_MNTH_NBR INNER JOIN DIM_CNTRCT_TYPE ON CII_FACT_MBRSHP.CNTRCT_TYPE_CD = DIM_CNTRCT_TYPE.CNTRCT_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0003618') and SRC_FLTR_ID in ('195d1b33-4e3c-4ebc-b51f-acfb59d288a1'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0003618')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_ACCT_PRFL.ACCT_NM,TM_PRD_FNCTN.TM_PRD_NM,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,DIM_MNTH.CLNDR_MNTH_YEAR_NM,DIM_CNTRCT_TYPE.CNTRCT_TYPE_DESC ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.ACCT_NM,MBRSHP.TM_PRD_NM,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.CLNDR_MNTH_YEAR_NM,MBRSHP.CNTRCT_TYPE_DESC ) AS FNL    ) t";
+//		
+//		String query34 = "SELECT actor_name, title, gender " + 
+//				" FROM actor" + 
+//				" WHERE gender > 'm' and title in (SELECT title" + 
+//				"                FROM mv" + 
+//				"                WHERE director = 'Steven Spielberg' AND revenue_domestic > budget)"
+//				+ "and actor_name in ('brad', 'chad', 'mad')" ;
+//		
+//		test.parameterize = true;
+//		//test.processCase = true;
+//		//Map<String, List<GenExpression>> tableColumns = test.getTableColumns(query4);
+//		//test.printRealColumns(tableColumns);
+//		//test.printOutput(wrapper.root);
+//
+//		
+//		GenExpressionWrapper wrapper = test.processQuery(query34);
+//		test.generateQuery(wrapper.root);
+//		GenExpression root = wrapper.root;
+//		
+//		// now that the sql is parameterized
+//		// every <> block can then be used to understand what are the values inside of it
+//		// the main index is primarily paramStringToParamStruct
+//		// which then tags into gen expression
+//		// you can set any of this and then invoke fill parameters which will fill the query and send result back as a query
+//		String paramName = "actor_genderand0_left>";
+//		Object paramValue = wrapper.getCurrentValueOfParam(paramName);
+//
+//		String defaultQuery = wrapper.getQueryForParam(paramName);		
+//		System.err.println(paramName + "<>" + paramValue);
+//		System.err.println("Query for param " + defaultQuery);
+//		wrapper.setCurrentValueOfParam(paramName, "'monkeshwaran'");
+//		wrapper.fillParameters();
+//		test.generateQuery(wrapper.root);
+//		
+//		
+//		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
+//		ParamStructDetails pStruct = new ParamStructDetails();
+//		pStruct.setColumnName("MovieBudget");
+//		pStruct.setTableName("Movie2");
+//		pStruct.setuOperator("or1_left>");
+//		pStruct = new ParamStructDetails();
+//		pStruct.setColumnName("RevenueDomestic");
+//		pStruct.setTableName("Movie2");
+//		pStruct.setuOperator("in");
+//		plist.add(pStruct);
+//		String finalQuery = GenExpressionWrapper.transformQueryWithParams(query20, plist);
+//		System.err.println(" transformed query ..  " + finalQuery);
+//		
+//		// YEAR_ID
+//		wrapper.replaceColumn("gender", "'fractor'");
+//		//wrapper.replaceColumn("YER_ID", "123456");
+//
+//		wrapper.fillParameters();
+//		test.generateQuery(wrapper.root);
+//
+//		// works with Query 2
+//		//Object [] output = root.printLineage(root, "Member Engagement Tier", null ,null, null, 0);
+//		
+//		// with alias
+//		//Object [] output = root.printLineage(root, "A1", null ,null, null, 0);
+//		
+//		// without alias
+//		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
+//
+//		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
+//
+//		System.out.println("Physical Name for B3 >> " + wrapper.getPhysicalColumnName(root, "B3"));
+//		System.out.println("Physical Name for A3 >> " + wrapper.getPhysicalColumnName(root, "A3"));
+//		
+//		System.out.println("Detok List >> " + wrapper.getColumnsForFunction("detok"));
+//		
+//		wrapper.neutralizeSelector(root, "A3", true);
+//		System.err.println("After removing it");
+//		test.generateQuery(wrapper.root);
+//		
+//		wrapper.neutralizeSelector(root, "A3", false);
+//		System.err.println("After adding it");
+//		test.generateQuery(wrapper.root);
+//		
+//
+//		wrapper.neutralizeFunction(root, "detok", true);
+//		System.err.println("After removing Function");
+//		test.generateQuery(wrapper.root);
+//
+//		wrapper.neutralizeFunction(root, "detok", false);
+//		System.err.println("After Adding Function");
+//		test.generateQuery(wrapper.root);
+//		
+//		System.out.println("Adding detok to existing function");
+//		wrapper.addFunctionToSelector(root, "A2", "detok");
+//		test.generateQuery(wrapper.root);
+//
+//		// get the param map and modify the value
+//		// =CII_FACT_MBRSHP.ACCT_ID
+//		/*
+//		ParamStruct replaceStruct = test.operatorTableColumnParamIndex.get("=CII_FACT_MBRSHP.ACCT_ID");
+//		replaceStruct.setCurrentValue("DA_REPLACEMENTS");
+//		List <ParamStruct> paramList = new Vector<ParamStruct>();
+//		paramList.add(replaceStruct);
+//		*/
+//		wrapper.replaceColumn("A2", "'Helloworld'");
+//		//wrapper.replaceColumn("A3", "'Helloworld'");
+//		wrapper.replaceTableColumnOperator("A.A3or1.right=", "'Mango boy'");
+//		wrapper.replaceColumn("YEAR_ID", "123");
+//		//wrapper.replaceColumn("YER_ID", "123456");
+//
+//		wrapper.fillParameters();
+//		test.generateQuery(wrapper.root);
+//
+////		String mkquery = "select abc from table xyz";
+////		GenExpressionWrapper wrapper = test.processQuery(mkquery);
+////		System.out.println(GenExpression.printQS(wrapper.root, null) + "");
+//		
+//		/*
+//		Map <String, GenExpression> filterMap = new HashMap<String, GenExpression>();
+//		
+//		// remove the groupby on cii_fact_mbrshp.acct_id
+//		List <String> columnsToRemove = new Vector<String>();
+//		columnsToRemove.add("cii_fact_mbrshp.ELGBLTY_CY_MNTH_END_NBR");
+//
+//		// parameterize something else
+//		GenExpression ge = new GenExpression();
+//		ge.setOperation("Opaque");
+//		ge.setLeftExpr("  Account = 'PK Imagined'  ");
+//		//ACIISST_PERIOD_KEY
+//		//filterMap.put("CII_FACT_CLM_LINE", ge);
+//		filterMap.put("CII_FACT_MBRSHP.ACCT_ID", ge);
+//		
+//		//test.addRowFilter(filterMap);
+//		test.appendParameter(columnsToRemove, filterMap);
+//		test.printOutput(qs);
+//		*/
+//	}
 }
 

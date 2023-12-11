@@ -381,12 +381,12 @@ public class DBSynchronizer extends ZKClient
 	}
 
 	
-	public static void main(String [] args)
-	{
-		DBSynchronizer dbw = DBSynchronizer.getInstance("c:/workspace/Semoss_Dev");
-		dbw.semossHome = "c:/workspace/Semoss_Dev";
-		dbw.registerDB("Diabetes__995cf169-6b44-4a42-b75c-af12f9f45c36");
-		
-	}
+//	public static void main(String [] args)
+//	{
+//		DBSynchronizer dbw = DBSynchronizer.getInstance("c:/workspace/Semoss_Dev");
+//		dbw.semossHome = "c:/workspace/Semoss_Dev";
+//		dbw.registerDB("Diabetes__995cf169-6b44-4a42-b75c-af12f9f45c36");
+//		
+//	}
 	
 }

@@ -553,43 +553,43 @@ public class QueryStruct {
 		return copy;
 	}
 	
-	public static void main(String [] args) throws Exception
-	{
-		// test code for getting proper edge hash when there are intermediary nodes that
-		// i.e. the query requires a specific node that you do not want in your selectors
-		// e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
-		// thus, the edge hash should only contain a -> d 
-		
-		QueryStruct qs = new QueryStruct();
-		qs.addSelector("a", "x");
-		qs.addSelector("b", null);
-		qs.addSelector("b", "y");
-		qs.addSelector("d", null);
-
-		qs.addRelation("a__x", "b__y", "inner.join");
-		qs.addRelation("b__y", "c", "inner.join");
-		qs.addRelation("c", "d", "inner.join");
-
-		System.out.println(qs.getReturnConnectionsHash());
-		
-		// previous test code .. based on path assuming it is done by b.s.s
+//	public static void main(String [] args) throws Exception
+//	{
+//		// test code for getting proper edge hash when there are intermediary nodes that
+//		// i.e. the query requires a specific node that you do not want in your selectors
+//		// e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
+//		// thus, the edge hash should only contain a -> d 
 //		
 //		QueryStruct qs = new QueryStruct();
-//		qs.addSelector("Title", "Title");
-//		qs.addFilter("Title__Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
-//		qs.addRelation("Title__Title", "Actor__Title_FK", "inner.join");
+//		qs.addSelector("a", "x");
+//		qs.addSelector("b", null);
+//		qs.addSelector("b", "y");
+//		qs.addSelector("d", null);
+//
+//		qs.addRelation("a__x", "b__y", "inner.join");
+//		qs.addRelation("b__y", "c", "inner.join");
+//		qs.addRelation("c", "d", "inner.join");
+//
+//		System.out.println(qs.getReturnConnectionsHash());
 //		
-//		Gson gson = new Gson();
-//		System.out.println(gson.toJson(qs));
-//		
-//		loadEngine4Test();
-//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("Movie_DB"); 
-//		SPARQLInterpreter in = new SPARQLInterpreter(engine);
-//		
-//		in.setQueryStruct(qs);
-//		String query = in.composeQuery();
-//		System.out.println(query);
-	}
+//		// previous test code .. based on path assuming it is done by b.s.s
+////		
+////		QueryStruct qs = new QueryStruct();
+////		qs.addSelector("Title", "Title");
+////		qs.addFilter("Title__Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
+////		qs.addRelation("Title__Title", "Actor__Title_FK", "inner.join");
+////		
+////		Gson gson = new Gson();
+////		System.out.println(gson.toJson(qs));
+////		
+////		loadEngine4Test();
+////		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("Movie_DB"); 
+////		SPARQLInterpreter in = new SPARQLInterpreter(engine);
+////		
+////		in.setQueryStruct(qs);
+////		String query = in.composeQuery();
+////		System.out.println(query);
+//	}
 
 //	private static void loadEngine4Test(){
 //		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");

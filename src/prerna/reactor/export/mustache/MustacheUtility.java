@@ -165,58 +165,58 @@ public class MustacheUtility {
 	}
 	
 	
-	public static void main(String[] args) throws Exception {
-		Map<String, Object> taskOutput = new HashMap<>();
-		taskOutput.put("headers", new String[] {"header1", "header2", "header3"});
-		taskOutput.put("values", new ArrayList<Object[]>());
-		((List<Object[]>) taskOutput.get("values")).add(new Object[] {"row11", 1, "row13"});
-		((List<Object[]>) taskOutput.get("values")).add(new Object[] {"row21", 2, "row23"});
-		((List<Object[]>) taskOutput.get("values")).add(new Object[] {"row23", 3, "row33"});
-
-		Map<String, Object> variables = new HashMap<>();
-		variables.put("data", taskOutput);
-		
-		String template = "<html>"
-				+ "<table>\n" + 
-				"  <tr>\n" + 
-				"    <th>{{data.headers.0}}</th>\n" + 
-				"    <th>{{data.headers.1}}</th>\n" + 
-				"    <th>{{data.headers.2}}</th>\n" + 
-				"  </tr>\n" + 
-				"  <tr>\n" + 
-				"    <td>{{data.values.0.0}}</td>\n" + 
-				"    <td>{{data.values.0.1}}</td>\n" + 
-				"    <td>{{data.values.0.2}}</td>\n" + 
-				"  </tr>\n" + 
-				"  <tr>\n" + 
-				"    <td>{{data.values.1.0}}</td>\n" + 
-				"    <td>{{data.values.1.2}}</td>\n" + 
-				"    <td>{{data.values.1.2}}</td>\n" + 
-				"  </tr>\n" + 
-				"</table>\n</html>";
-		
-		System.out.println("Example 1");
-		System.out.println(MustacheUtility.compile(template, variables));
-		System.out.println("");
-		System.out.println("Example 2");
-		
-		template = "<html>"
-				+ "<table>\n" + 
-				"  <tr>\n" + 
-				"    <th>{{data.headers.0}}</th>\n" + 
-				"    <th>{{data.headers.1}}</th>\n" + 
-				"    <th>{{data.headers.2}}</th>\n" + 
-				"  </tr>\n" 
-				+ "{{#data.values}}"
-				+ "  <tr>\n"
-				+ "{{#.}}"
-				+ "    <td>{{.}}</td>\n" 
-				+"{{/.}}"
-				+ "\n  </tr>\n"
-				+ "{{/data.values}}" +
-				"</table>\n</html>";
-				
-		System.out.println(MustacheUtility.compile(template, variables));
-	}
+//	public static void main(String[] args) throws Exception {
+//		Map<String, Object> taskOutput = new HashMap<>();
+//		taskOutput.put("headers", new String[] {"header1", "header2", "header3"});
+//		taskOutput.put("values", new ArrayList<Object[]>());
+//		((List<Object[]>) taskOutput.get("values")).add(new Object[] {"row11", 1, "row13"});
+//		((List<Object[]>) taskOutput.get("values")).add(new Object[] {"row21", 2, "row23"});
+//		((List<Object[]>) taskOutput.get("values")).add(new Object[] {"row23", 3, "row33"});
+//
+//		Map<String, Object> variables = new HashMap<>();
+//		variables.put("data", taskOutput);
+//		
+//		String template = "<html>"
+//				+ "<table>\n" + 
+//				"  <tr>\n" + 
+//				"    <th>{{data.headers.0}}</th>\n" + 
+//				"    <th>{{data.headers.1}}</th>\n" + 
+//				"    <th>{{data.headers.2}}</th>\n" + 
+//				"  </tr>\n" + 
+//				"  <tr>\n" + 
+//				"    <td>{{data.values.0.0}}</td>\n" + 
+//				"    <td>{{data.values.0.1}}</td>\n" + 
+//				"    <td>{{data.values.0.2}}</td>\n" + 
+//				"  </tr>\n" + 
+//				"  <tr>\n" + 
+//				"    <td>{{data.values.1.0}}</td>\n" + 
+//				"    <td>{{data.values.1.2}}</td>\n" + 
+//				"    <td>{{data.values.1.2}}</td>\n" + 
+//				"  </tr>\n" + 
+//				"</table>\n</html>";
+//		
+//		System.out.println("Example 1");
+//		System.out.println(MustacheUtility.compile(template, variables));
+//		System.out.println("");
+//		System.out.println("Example 2");
+//		
+//		template = "<html>"
+//				+ "<table>\n" + 
+//				"  <tr>\n" + 
+//				"    <th>{{data.headers.0}}</th>\n" + 
+//				"    <th>{{data.headers.1}}</th>\n" + 
+//				"    <th>{{data.headers.2}}</th>\n" + 
+//				"  </tr>\n" 
+//				+ "{{#data.values}}"
+//				+ "  <tr>\n"
+//				+ "{{#.}}"
+//				+ "    <td>{{.}}</td>\n" 
+//				+"{{/.}}"
+//				+ "\n  </tr>\n"
+//				+ "{{/data.values}}" +
+//				"</table>\n</html>";
+//				
+//		System.out.println(MustacheUtility.compile(template, variables));
+//	}
 	
 }

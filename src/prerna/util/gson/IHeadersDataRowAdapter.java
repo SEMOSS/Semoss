@@ -228,31 +228,31 @@ public class IHeadersDataRowAdapter extends AbstractSemossTypeAdapter<IHeadersDa
 				.toJson(new JsonParser().parse(jsonString).getAsJsonObject());
 	}
 	
-	public static void main(String[] args) throws IOException {
-		String[] headers = new String[] {"STRING_H", "NULL_H", "INT_H", "DOUBLE_H", "LONG_H", "FLOAT_H", "BOOLEAN_H", "CHAR_H", "BYTE_H", "SHORT_H", "ENCODED_H"};
-		String[] rawHeaders = new String[] {"R_STRING_H", "R_NULL_H", "R_INT_H", "R_DOUBLE_H", "R_LONG_H", "R_FLOAT_H", "R_BOOLEAN_H", "R_CHAR_H", "R_BYTE_H", "R_SHORT_H", "R_ENCODED_H"};
-		Object[] values = new Object[] {"foo", null, 1, 2.1D, 3L, 4.1F, true, 'a', new Byte("0"), new Short("1"), new Date()};
-		Object[] rawValues = new Object[] {"R_foo", null, 2, 3000000000.0D, 4L, 5.1F, false, 'b', new Byte("1"), new Short("0"), new Date()};
-		System.out.println(">>>");
-		for (int i = 0; i < 3; i++) {
-			SerializedValuesAndTypes result = serializeValues(values);
-			System.out.println(Arrays.toString(values));
-			System.out.println(Arrays.toString(result.getSerializedValues()));
-			System.out.println(Arrays.toString(result.getSerializedValueTypes()));
-			values = deserializeValues(result.getSerializedValues(), result.getSerializedValueTypes());
-			System.out.println(">>>");
-		}
-		IHeadersDataRow dataRow = new HeadersDataRow(headers, rawHeaders, values, rawValues);
-		System.out.println(dataRow.toRawString());
-		System.out.println(">>>");
-		IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
-		System.out.println(toPrettyFormat(adapter.toJson(dataRow)));
-		System.out.println(">>>");
-		IHeadersDataRow dataRow2 = adapter.fromJson(adapter.toJson(dataRow));
-		System.out.println(dataRow2.toRawString());
-		System.out.println(">>>");
-		System.out.println(dataRow.toRawString().equals(dataRow2.toRawString()));
-		System.out.println(">>>");
-	}
+//	public static void main(String[] args) throws IOException {
+//		String[] headers = new String[] {"STRING_H", "NULL_H", "INT_H", "DOUBLE_H", "LONG_H", "FLOAT_H", "BOOLEAN_H", "CHAR_H", "BYTE_H", "SHORT_H", "ENCODED_H"};
+//		String[] rawHeaders = new String[] {"R_STRING_H", "R_NULL_H", "R_INT_H", "R_DOUBLE_H", "R_LONG_H", "R_FLOAT_H", "R_BOOLEAN_H", "R_CHAR_H", "R_BYTE_H", "R_SHORT_H", "R_ENCODED_H"};
+//		Object[] values = new Object[] {"foo", null, 1, 2.1D, 3L, 4.1F, true, 'a', new Byte("0"), new Short("1"), new Date()};
+//		Object[] rawValues = new Object[] {"R_foo", null, 2, 3000000000.0D, 4L, 5.1F, false, 'b', new Byte("1"), new Short("0"), new Date()};
+//		System.out.println(">>>");
+//		for (int i = 0; i < 3; i++) {
+//			SerializedValuesAndTypes result = serializeValues(values);
+//			System.out.println(Arrays.toString(values));
+//			System.out.println(Arrays.toString(result.getSerializedValues()));
+//			System.out.println(Arrays.toString(result.getSerializedValueTypes()));
+//			values = deserializeValues(result.getSerializedValues(), result.getSerializedValueTypes());
+//			System.out.println(">>>");
+//		}
+//		IHeadersDataRow dataRow = new HeadersDataRow(headers, rawHeaders, values, rawValues);
+//		System.out.println(dataRow.toRawString());
+//		System.out.println(">>>");
+//		IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
+//		System.out.println(toPrettyFormat(adapter.toJson(dataRow)));
+//		System.out.println(">>>");
+//		IHeadersDataRow dataRow2 = adapter.fromJson(adapter.toJson(dataRow));
+//		System.out.println(dataRow2.toRawString());
+//		System.out.println(">>>");
+//		System.out.println(dataRow.toRawString().equals(dataRow2.toRawString()));
+//		System.out.println(">>>");
+//	}
 	
 }

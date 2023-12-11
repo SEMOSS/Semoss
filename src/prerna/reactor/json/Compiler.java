@@ -19,102 +19,102 @@ import prerna.sablecc2.parser.ParserException;
 
 public class Compiler
 {
-	public static void main(String[] arguments) throws ParserException, LexerException, IOException
-	{
-
-		//	 String test = "{'Type':'pkql','EXPRESSION':'panel[0].config({'panelstatus':'normalized','size':{'width':'900px','height':'400px'},'position':{'top':'3px','left':'5px'}});'}";
-		//	 Object yes = new Gson().fromJson(test, Object.class);
-		//	 System.out.println("yes");
-
-		//	String workingDir = System.getProperty("user.dir");
-		//	String propFile = workingDir + "/RDF_Map.prop";
-		//	DIHelper.getInstance().loadCoreProp(propFile);
-		
-		Parser p =
-				new Parser(
-						new Lexer(
-								new PushbackReader(
-										//new InputStreamReader(new StringBufferInputStream("5;")), 1024)));
-										// new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
-										//new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
-										new InputStreamReader(new StringBufferInputStream(""
-												+ "{\"SuperParent\":"
-												+ "{\"hello\":\"world\", "
-												+ "\"Parent2\": {"
-													+ "\"Parent\": "
-															+ "{\"YoMama\":\"Fat\", \"array2\":[\"x\", \"y\"]}, "
-												+"\"YoMama\":\"Thin\", \"email\":\"test@anthem.com\", \"npi\":\"1234567890\", \"phone\":\"111-222-3333\", \"ssn\":\"123-45-6789\" , \"zipcode\":\"12345\", \"somerandom2\":\"null\"},"
-												+ "\"Random\": "
-														+ "{\"randomKey\":\"randomValue\", \"hello\":\"childworld\","
-														+ "\"Child\": "
-															+ "{\"name\":\"Child\", \"array2\":[{\"a\":\"b\", \"b\":\"c\"}, {\"a\":\"b\", \"b\":\"c\"}]}"
-														+ "}"
-												+ "}};"
-/*												+ "		{sp1:\"value\","
-												+ "		 Parent: {"
-												+ "				name: \"Parent\""
-												+ "				}"
-												+ "		}"
-												+ "};"
-*/													)))));
-
-		Compiler compiler = new Compiler();
-		
-		/*StringBuffer bf = compiler.composeStringFromFile("C:\\Users\\mahkhalil\\Desktop\\ProviderProfile.json");
-		System.out.println(bf.toString());
-		p =
-				new Parser(
-						new Lexer(
-								new PushbackReader(
-										//new InputStreamReader(new StringBufferInputStream("5;")), 1024)));
-										// new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
-										//new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
-										new InputStreamReader(new StringBufferInputStream(bf.toString())))));
-
-		
-		
-		*/
-		
-		long start = System.currentTimeMillis();
-		Start tree = p.parse();
-		long end = System.currentTimeMillis();
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
-
-		// Apply the translation.
-		PixelRunner runner = new PixelRunner();
-		JsonTranslation valTrans = new JsonTranslation(runner);
-		tree.apply(valTrans);
-		Hashtable finalOutput = (Hashtable)valTrans.finalOutput;
-		
-		// here you can decide whether to proceed or return this back
-//		if(finalOutput.containsKey("IS_ERROR"))
+//	public static void main(String[] arguments) throws ParserException, LexerException, IOException
+//	{
+//
+//		//	 String test = "{'Type':'pkql','EXPRESSION':'panel[0].config({'panelstatus':'normalized','size':{'width':'900px','height':'400px'},'position':{'top':'3px','left':'5px'}});'}";
+//		//	 Object yes = new Gson().fromJson(test, Object.class);
+//		//	 System.out.println("yes");
+//
+//		//	String workingDir = System.getProperty("user.dir");
+//		//	String propFile = workingDir + "/RDF_Map.prop";
+//		//	DIHelper.getInstance().loadCoreProp(propFile);
+//		
+//		Parser p =
+//				new Parser(
+//						new Lexer(
+//								new PushbackReader(
+//										//new InputStreamReader(new StringBufferInputStream("5;")), 1024)));
+//										// new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
+//										//new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
+//										new InputStreamReader(new StringBufferInputStream(""
+//												+ "{\"SuperParent\":"
+//												+ "{\"hello\":\"world\", "
+//												+ "\"Parent2\": {"
+//													+ "\"Parent\": "
+//															+ "{\"YoMama\":\"Fat\", \"array2\":[\"x\", \"y\"]}, "
+//												+"\"YoMama\":\"Thin\", \"email\":\"test@anthem.com\", \"npi\":\"1234567890\", \"phone\":\"111-222-3333\", \"ssn\":\"123-45-6789\" , \"zipcode\":\"12345\", \"somerandom2\":\"null\"},"
+//												+ "\"Random\": "
+//														+ "{\"randomKey\":\"randomValue\", \"hello\":\"childworld\","
+//														+ "\"Child\": "
+//															+ "{\"name\":\"Child\", \"array2\":[{\"a\":\"b\", \"b\":\"c\"}, {\"a\":\"b\", \"b\":\"c\"}]}"
+//														+ "}"
+//												+ "}};"
+///*												+ "		{sp1:\"value\","
+//												+ "		 Parent: {"
+//												+ "				name: \"Parent\""
+//												+ "				}"
+//												+ "		}"
+//												+ "};"
+//*/													)))));
+//
+//		Compiler compiler = new Compiler();
+//		
+//		/*StringBuffer bf = compiler.composeStringFromFile("C:\\Users\\mahkhalil\\Desktop\\ProviderProfile.json");
+//		System.out.println(bf.toString());
+//		p =
+//				new Parser(
+//						new Lexer(
+//								new PushbackReader(
+//										//new InputStreamReader(new StringBufferInputStream("5;")), 1024)));
+//										// new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
+//										//new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
+//										new InputStreamReader(new StringBufferInputStream(bf.toString())))));
+//
+//		
+//		
+//		*/
+//		
+//		long start = System.currentTimeMillis();
+//		Start tree = p.parse();
+//		long end = System.currentTimeMillis();
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//		System.out.println("TIME TO PARSE JSON = " + (end-start) + "ms!!!");
+//
+//		// Apply the translation.
+//		PixelRunner runner = new PixelRunner();
+//		JsonTranslation valTrans = new JsonTranslation(runner);
+//		tree.apply(valTrans);
+//		Hashtable finalOutput = (Hashtable)valTrans.finalOutput;
+//		
+//		// here you can decide whether to proceed or return this back
+////		if(finalOutput.containsKey("IS_ERROR"))
+////		{
+//			// the routine to return the error
+//			// for now we will just print it
+//			System.out.println("Errored " + finalOutput);
+////		}
+//		end = System.currentTimeMillis();
+//		System.out.println("TIME For End to End JSON = " + (end-start) + "ms!!!");
+//		
+//		//else
 //		{
-			// the routine to return the error
-			// for now we will just print it
-			System.out.println("Errored " + finalOutput);
+//			// now set the factory to be the processor factory and proceed
+//			
+//			
 //		}
-		end = System.currentTimeMillis();
-		System.out.println("TIME For End to End JSON = " + (end-start) + "ms!!!");
-		
-		//else
-		{
-			// now set the factory to be the processor factory and proceed
-			
-			
-		}
-		
-		JsonProcessorReactorFactory pf = new JsonProcessorReactorFactory();
-		valTrans.factory = pf;
-		tree.apply(valTrans);
-		
-//		System.out.println(runner.getResults());
-	}
+//		
+//		JsonProcessorReactorFactory pf = new JsonProcessorReactorFactory();
+//		valTrans.factory = pf;
+//		tree.apply(valTrans);
+//		
+////		System.out.println(runner.getResults());
+//	}
 	
 	public StringBuffer composeStringFromFile(String fileName)
 	{

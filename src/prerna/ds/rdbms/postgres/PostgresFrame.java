@@ -125,23 +125,23 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 				// close all the other stuff
 		super.close();
 	}
-
-	// Testing purposes
-	public static void main(String[] args) {
-		final Logger logger = LogManager.getLogger(PostgresFrame.class.getName());
-		DIHelper.getInstance().loadCoreProp("C:/workspace/Semoss_Dev/RDF_Map.prop");
-		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + CONFIGURATION_FILE)) {
-			Properties prop = new Properties();
-
-			prop.load(input);
-
-			logger.info("host: " + Utility.cleanLogString(prop.getProperty(POSTGRES_HOST)));
-			logger.info("port: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PORT)));
-			//logger.info("username: " + Utility.cleanLogString(prop.getProperty(POSTGRES_USERNAME)));
-			//logger.info("password: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PASSWORD)));
-		} catch (IOException ex) {
-			logger.error("Error with loading properties in config file" + ex.getMessage());
-		}
-	}
+//
+//	// Testing purposes
+//	public static void main(String[] args) {
+//		final Logger logger = LogManager.getLogger(PostgresFrame.class.getName());
+//		DIHelper.getInstance().loadCoreProp("C:/workspace/Semoss_Dev/RDF_Map.prop");
+//		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + CONFIGURATION_FILE)) {
+//			Properties prop = new Properties();
+//
+//			prop.load(input);
+//
+//			logger.info("host: " + Utility.cleanLogString(prop.getProperty(POSTGRES_HOST)));
+//			logger.info("port: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PORT)));
+//			//logger.info("username: " + Utility.cleanLogString(prop.getProperty(POSTGRES_USERNAME)));
+//			//logger.info("password: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PASSWORD)));
+//		} catch (IOException ex) {
+//			logger.error("Error with loading properties in config file" + ex.getMessage());
+//		}
+//	}
 	
 }

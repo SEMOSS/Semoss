@@ -18,66 +18,66 @@ import prerna.util.Utility;
 
 public class ModForms2 {
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper();
-
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
-		BigDataEngine formsEngine = new BigDataEngine();
-		formsEngine.open(engineProp);
-		formsEngine.setEngineId("Forms_TAP_Core_Data");
-		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", formsEngine);
-
-		// 1) remove availability actual
-		String query = "SELECT DISTINCT ?system ?avail WHERE {"
-				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
-				+ "{?system <http://semoss.org/ontologies/Relation/Contains/AvailabilityActual> ?avail}"
-				+ "}";
-		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/AvailabilityActual");
-		
-		// 2) remove availability required
-		query = "SELECT DISTINCT ?system ?avail WHERE {"
-				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
-				+ "{?system <http://semoss.org/ontologies/Relation/Contains/AvailabilityRequired> ?avail}"
-				+ "}";
-		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/AvailabilityRequired");
-		
-		// add in the new data from the csv files
-		String start = "C:\\Users\\SEMOSS\\Desktop\\Mod\\";
-		String[] fileLocations = new String[]{
-				start + "Availability Actual edits.csv",
-				start + "Availability Required edits.csv",
-		};
-
-		String[] dataTypes = new String[]{
-				"NUMBER",
-				"NUMBER",
-		};
-
-		int size = fileLocations.length;
-		for(int i = 0; i < size; i++) {
-			processFile(formsEngine, fileLocations[i], dataTypes[i]);
-		}
-		
-		// now remove the relationship
-		query = "SELECT DISTINCT ?system ?relationship ?portfolio WHERE {"
-				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
-				+ "{?portfolio a <http://semoss.org/ontologies/Concept/Portfolio>}"
-				+ "{?relationship ?anything <http://semoss.org/ontologies/Relation>}"
-				+ "{?system ?relationship ?portfolio}"
-				+ "}";
-		removeExistingRelationship(formsEngine, query);
-
-		fileLocations = new String[]{start + "Portfolio Board Mappings.csv"};
-		String[] rels = new String[]{"BelongsTo"};
-		size = fileLocations.length;
-		for(int i = 0; i < size; i++) {
-			processRelationFile(formsEngine, fileLocations[i], rels[i]);
-		}
-		
-		formsEngine.commit();
-		
-		System.out.println("Done");
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper();
+//
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
+//		BigDataEngine formsEngine = new BigDataEngine();
+//		formsEngine.open(engineProp);
+//		formsEngine.setEngineId("Forms_TAP_Core_Data");
+//		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", formsEngine);
+//
+//		// 1) remove availability actual
+//		String query = "SELECT DISTINCT ?system ?avail WHERE {"
+//				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+//				+ "{?system <http://semoss.org/ontologies/Relation/Contains/AvailabilityActual> ?avail}"
+//				+ "}";
+//		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/AvailabilityActual");
+//		
+//		// 2) remove availability required
+//		query = "SELECT DISTINCT ?system ?avail WHERE {"
+//				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+//				+ "{?system <http://semoss.org/ontologies/Relation/Contains/AvailabilityRequired> ?avail}"
+//				+ "}";
+//		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/AvailabilityRequired");
+//		
+//		// add in the new data from the csv files
+//		String start = "C:\\Users\\SEMOSS\\Desktop\\Mod\\";
+//		String[] fileLocations = new String[]{
+//				start + "Availability Actual edits.csv",
+//				start + "Availability Required edits.csv",
+//		};
+//
+//		String[] dataTypes = new String[]{
+//				"NUMBER",
+//				"NUMBER",
+//		};
+//
+//		int size = fileLocations.length;
+//		for(int i = 0; i < size; i++) {
+//			processFile(formsEngine, fileLocations[i], dataTypes[i]);
+//		}
+//		
+//		// now remove the relationship
+//		query = "SELECT DISTINCT ?system ?relationship ?portfolio WHERE {"
+//				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+//				+ "{?portfolio a <http://semoss.org/ontologies/Concept/Portfolio>}"
+//				+ "{?relationship ?anything <http://semoss.org/ontologies/Relation>}"
+//				+ "{?system ?relationship ?portfolio}"
+//				+ "}";
+//		removeExistingRelationship(formsEngine, query);
+//
+//		fileLocations = new String[]{start + "Portfolio Board Mappings.csv"};
+//		String[] rels = new String[]{"BelongsTo"};
+//		size = fileLocations.length;
+//		for(int i = 0; i < size; i++) {
+//			processRelationFile(formsEngine, fileLocations[i], rels[i]);
+//		}
+//		
+//		formsEngine.commit();
+//		
+//		System.out.println("Done");
+//	}
 	
 	private static void processRelationFile(IDatabaseEngine eng, String fileLoc, String relationship) {
 		CSVFileHelper helper = new CSVFileHelper();

@@ -318,16 +318,16 @@ public final class ZipUtils {
 		return paths;
 	}
 
-	public static void main(String[] args) throws FileNotFoundException, IOException {
-		//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
-		//		dest = "C:\\Users\\SEMOSS\\workspace";
-		//		dest = dest.replace("\\", "/");
-		String zip = "C:\\Users\\mahkhalil\\Desktop\\Movie.zip";
-		zip = zip.replace("\\", "/");
-		Path zipUri = Paths.get(zip);		
-		Map<String, List<String>> map = listFilesInZip(zipUri);
-		Gson gson = GsonUtility.getDefaultGson();
-		classLogger.info(gson.toJson(map));
-	}
+//	public static void main(String[] args) throws FileNotFoundException, IOException {
+//		//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
+//		//		dest = "C:\\Users\\SEMOSS\\workspace";
+//		//		dest = dest.replace("\\", "/");
+//		String zip = "C:\\Users\\mahkhalil\\Desktop\\Movie.zip";
+//		zip = zip.replace("\\", "/");
+//		Path zipUri = Paths.get(zip);		
+//		Map<String, List<String>> map = listFilesInZip(zipUri);
+//		Gson gson = GsonUtility.getDefaultGson();
+//		classLogger.info(gson.toJson(map));
+//	}
 
 }

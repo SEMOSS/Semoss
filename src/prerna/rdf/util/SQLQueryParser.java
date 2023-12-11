@@ -79,10 +79,10 @@ public class SQLQueryParser extends AbstractQueryParser {
 		super(query);
 	}
 	
-	public static void main(String[] args) throws Exception {
-		basicParseTest();
-	}
-	
+//	public static void main(String[] args) throws Exception {
+//		basicParseTest();
+//	}
+//	
 	
 	/**
 	 * parse the query into pieces

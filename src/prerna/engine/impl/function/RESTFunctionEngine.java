@@ -117,32 +117,32 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 	/*
 	 * Testing
 	 */
-	
-	public static void main(String[] args) throws Exception {
-		Properties tempSmss = new Properties();
-		tempSmss.put("URL", "http://127.0.0.1:5000/runML");
-		tempSmss.put("HTTP_METHOD", "post");
-		tempSmss.put("HEADERS", "{Content-Type: 'application/json'}");
-		tempSmss.put("CONTENT_TYPE", "JSON");
-		tempSmss.put(IFunctionEngine.NAME_KEY, "myExampleExecution");
-		tempSmss.put(IFunctionEngine.DESCRIPTION_KEY, "Perform addition");
-		List<FunctionParameter> parameters = new ArrayList<>();
-		parameters.add(new FunctionParameter("number1", "double", "the first number to use"));
-		parameters.add(new FunctionParameter("number2", "double", "the second number to use"));
-		tempSmss.put(IFunctionEngine.PARAMETER_KEY, new Gson().toJson(parameters));
-		tempSmss.put(IFunctionEngine.REQUIRED_PARAMETER_KEY, new Gson().toJson(Arrays.asList("number1", "number2")));
-		RESTFunctionEngine engine = new RESTFunctionEngine();
-		engine.open(tempSmss);
-		Map<String, Object> execMap = new HashMap<>();
-		execMap.put("number1", 1);
-		execMap.put("number2", 2);
-		Object output = engine.execute(execMap);
-		System.out.println(">>>>>>>>>>>>>>>>>>>>");
-		System.out.println("My output = " + output);
-		System.out.println(">>>>>>>>>>>>>>>>>>>>");
-		System.out.println(engine.getFunctionDefintionJson());
-		
-		engine.close();
-	}
+//	
+//	public static void main(String[] args) throws Exception {
+//		Properties tempSmss = new Properties();
+//		tempSmss.put("URL", "http://127.0.0.1:5000/runML");
+//		tempSmss.put("HTTP_METHOD", "post");
+//		tempSmss.put("HEADERS", "{Content-Type: 'application/json'}");
+//		tempSmss.put("CONTENT_TYPE", "JSON");
+//		tempSmss.put(IFunctionEngine.NAME_KEY, "myExampleExecution");
+//		tempSmss.put(IFunctionEngine.DESCRIPTION_KEY, "Perform addition");
+//		List<FunctionParameter> parameters = new ArrayList<>();
+//		parameters.add(new FunctionParameter("number1", "double", "the first number to use"));
+//		parameters.add(new FunctionParameter("number2", "double", "the second number to use"));
+//		tempSmss.put(IFunctionEngine.PARAMETER_KEY, new Gson().toJson(parameters));
+//		tempSmss.put(IFunctionEngine.REQUIRED_PARAMETER_KEY, new Gson().toJson(Arrays.asList("number1", "number2")));
+//		RESTFunctionEngine engine = new RESTFunctionEngine();
+//		engine.open(tempSmss);
+//		Map<String, Object> execMap = new HashMap<>();
+//		execMap.put("number1", 1);
+//		execMap.put("number2", 2);
+//		Object output = engine.execute(execMap);
+//		System.out.println(">>>>>>>>>>>>>>>>>>>>");
+//		System.out.println("My output = " + output);
+//		System.out.println(">>>>>>>>>>>>>>>>>>>>");
+//		System.out.println(engine.getFunctionDefintionJson());
+//		
+//		engine.close();
+//	}
 
 }

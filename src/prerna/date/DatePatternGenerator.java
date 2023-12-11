@@ -405,35 +405,35 @@ public class DatePatternGenerator {
 	*/
 
 
-	public static void main(String[] args) {
-		System.out.println("DATE FORMATS!!!!");
-		System.out.println("DATE FORMATS!!!!");
-		System.out.println("DATE FORMATS!!!!");
-		{
-			List<String[]> dateValues = DatePatternGenerator.getBasicDateFormats("/");
-			for(String[] vals : dateValues) {
-				System.out.println(Arrays.toString(vals));
-			}
-		}
-		System.out.println("PARTIAL DATE FORMATS!!!!");
-		System.out.println("PARTIAL DATE FORMATS!!!!");
-		System.out.println("PARTIAL DATE FORMATS!!!!");
-		{
-			List<String[]> dateValues = DatePatternGenerator.getPartialMonthDateFormats();
-			for(String[] vals : dateValues) {
-				System.out.println(Arrays.toString(vals));
-			}
-		}
-		System.out.println("TIME STAMP FORMATS!!!!");
-		System.out.println("TIME STAMP FORMATS!!!!");
-		System.out.println("TIME STAMP FORMATS!!!!");
-		{
-			List<String[]> dateValues = DatePatternGenerator.getDateTimeFormats("/", ":");
-			for(String[] vals : dateValues) {
-				System.out.println(Arrays.toString(vals));
-			}
-		}
-	}
+//	public static void main(String[] args) {
+//		System.out.println("DATE FORMATS!!!!");
+//		System.out.println("DATE FORMATS!!!!");
+//		System.out.println("DATE FORMATS!!!!");
+//		{
+//			List<String[]> dateValues = DatePatternGenerator.getBasicDateFormats("/");
+//			for(String[] vals : dateValues) {
+//				System.out.println(Arrays.toString(vals));
+//			}
+//		}
+//		System.out.println("PARTIAL DATE FORMATS!!!!");
+//		System.out.println("PARTIAL DATE FORMATS!!!!");
+//		System.out.println("PARTIAL DATE FORMATS!!!!");
+//		{
+//			List<String[]> dateValues = DatePatternGenerator.getPartialMonthDateFormats();
+//			for(String[] vals : dateValues) {
+//				System.out.println(Arrays.toString(vals));
+//			}
+//		}
+//		System.out.println("TIME STAMP FORMATS!!!!");
+//		System.out.println("TIME STAMP FORMATS!!!!");
+//		System.out.println("TIME STAMP FORMATS!!!!");
+//		{
+//			List<String[]> dateValues = DatePatternGenerator.getDateTimeFormats("/", ":");
+//			for(String[] vals : dateValues) {
+//				System.out.println(Arrays.toString(vals));
+//			}
+//		}
+//	}
 
 	
 	
