@@ -1,13 +1,13 @@
-from google.cloud import aiplatform
-
 # import vertexai
 from vertexai.language_models import TextGenerationModel
 from google.oauth2 import service_account
 import json
-from .base_client import BaseClient
+from ..base_client import BaseClient
 from string import Template
 import logging
-from ..tokenizers import HuggingfaceTokenizer
+from ...tokenizers import HuggingfaceTokenizer
+
+from ...clients.client_initializer import google_initializer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,16 +18,25 @@ class VertexClient(BaseClient):
         self,
         template=None,
         model_name="text-bison",
+        service_account_credentials=None,
         service_account_key_file=None,
         region=None,
         project=None,
         template_name=None,
         **kwargs,
     ):
+        # initialize the google aiplatform connection
+        google_initializer(
+            region=region,
+            service_account_credentials=service_account_credentials,
+            service_account_key_file=service_account_key_file,
+        )
+        
         super().__init__(
             template = template, 
             template_name = template_name
         )
+        
         self.kwargs = kwargs
         self.model_name = model_name
         self.region = region
@@ -47,17 +56,17 @@ class VertexClient(BaseClient):
             )
         )
 
-    def _init_client(self):
-        service_account_info = json.load(open(self.service_account_key_file))
-        saCredentials = service_account.Credentials.from_service_account_info(
-           service_account_info
-        )
+    # def _init_client(self):
+    #     service_account_info = json.load(open(self.service_account_key_file))
+    #     saCredentials = service_account.Credentials.from_service_account_info(
+    #        service_account_info
+    #     )
 
-        aiplatform.init(
-            project=self.project,
-            location=self.region,
-            credentials=saCredentials,
-        )
+    #     aiplatform.init(
+    #         project=service_account_info['project_id'],
+    #         location=self.region,
+    #         credentials=saCredentials,
+    #     )
 
     def ask(
         self,
@@ -72,7 +81,7 @@ class VertexClient(BaseClient):
         prefix="",
         **kwargs,
     ):
-        self._init_client()
+        #self._init_client()
         final_response = ""  # Initialize final_query once
         output_payload = {}
         
