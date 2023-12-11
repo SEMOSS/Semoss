@@ -20,20 +20,20 @@ public class PixelConsole {
 
 	private static Gson gson = GsonUtility.getDefaultGson();
 	
-	public static void main(String[] args) throws Exception{
-		TestUtilityMethods.loadDIHelper();
-		loadEngines();
-
-		Insight insight = new Insight();
-		InsightStore.getInstance().put(insight);
-		Thread thread = new Thread(){
-			public void run()
-			{
-				openCommandLine(insight);				
-			}
-		};
-		thread.start();
-	}
+//	public static void main(String[] args) throws Exception{
+//		TestUtilityMethods.loadDIHelper();
+//		loadEngines();
+//
+//		Insight insight = new Insight();
+//		InsightStore.getInstance().put(insight);
+//		Thread thread = new Thread(){
+//			public void run()
+//			{
+//				openCommandLine(insight);				
+//			}
+//		};
+//		thread.start();
+//	}
 
 	public static void openCommandLine(Insight insight)
 	{
