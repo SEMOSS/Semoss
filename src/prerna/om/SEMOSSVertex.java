@@ -325,11 +325,11 @@ public class SEMOSSVertex{
 			propUriHash = (Hashtable<String, String>) propHash.get("propUriHash");
 		}
 		
-		try {
-//			propUriHash.put(instanceName, propNameURI);
-		} catch(Exception e){
-			e.printStackTrace();
-		}
+//		try {
+////			propUriHash.put(instanceName, propNameURI);
+//		} catch(Exception e){
+//			e.printStackTrace();
+//		}
 		propHash.put("propUriHash", propUriHash);
 		
 		// I need to convert these decimals and other BS into a proper value
