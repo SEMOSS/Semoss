@@ -13,18 +13,18 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class RecreateInsightsDatabaseFromMosfetFiles {
 
-	public static void main(String[] args) throws Exception {
-		String mainDirectory = null;
-		String connUrl = null;
-		if(args.length == 0) {
-			mainDirectory = "C:/Users/mahkhalil/Desktop/review123/nogit_version_no_cache";
-			connUrl = "jdbc:h2:C:\\Users\\mahkhalil\\Desktop\\review123\\insights_database";
-		} else {
-			mainDirectory = args[0];
-			connUrl = args[1];
-		}
-		build(mainDirectory, connUrl);
-	}
+//	public static void main(String[] args) throws Exception {
+//		String mainDirectory = null;
+//		String connUrl = null;
+//		if(args.length == 0) {
+//			mainDirectory = "C:/Users/mahkhalil/Desktop/review123/nogit_version_no_cache";
+//			connUrl = "jdbc:h2:C:\\Users\\mahkhalil\\Desktop\\review123\\insights_database";
+//		} else {
+//			mainDirectory = args[0];
+//			connUrl = args[1];
+//		}
+//		build(mainDirectory, connUrl);
+//	}
 
 	private static void build(String mainDirectory, String connectionUrl) throws Exception {
 		Properties insightSmssProp = new Properties();

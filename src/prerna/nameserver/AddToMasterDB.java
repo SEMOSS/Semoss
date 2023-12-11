@@ -833,45 +833,45 @@ public class AddToMasterDB {
 	 * @param args
 	 * @throws IOException
 	 */
-    public static void main(String[] args) throws IOException {
-        // load the RDF map for testing purposes
-        String rdfMapDir = "C:/Users/pkapaleeswaran/Workspacej3/SemossDev";
-        // System.getProperty("user.dir")
-        DIHelper.getInstance().loadCoreProp(rdfMapDir + "/RDF_Map.prop");
-
-        final String WS_DIRECTORY = "C:/Users/pkapaleeswaran/Workspacej3";
-        final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
-
-        // load the local master database
-        Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB);
-        IDatabaseEngine localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB), localMasterProp);
-
-        // test loading in a new engine to the master database
-
-        // get the new engine
-        String engineName = "Mv1";
-        Properties engineProp = loadEngineProp(DB_DIRECTORY, engineName);
-        Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
-
-        // delete the engine from the master db so that we can re-add it fresh for
-        // testing purposes
-        DeleteFromMasterDB deleter = new DeleteFromMasterDB();
-        deleter.deleteEngineRDBMS(engineName);
-
-        String engineName2 = "actor";
-        Properties engineProp2 = loadEngineProp(DB_DIRECTORY, engineName2);
-        Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
-
-        // delete the engine from the master db so that we can re-add it fresh for
-        // testing purposes
-        deleter = new DeleteFromMasterDB();
-        deleter.deleteEngineRDBMS(engineName);
-
-        // test registering the engine
-        AddToMasterDB adder = new AddToMasterDB();
-        adder.registerEngineLocal(engineProp);
-        adder.registerEngineLocal(engineProp2);
-    }
+//    public static void main(String[] args) throws IOException {
+//        // load the RDF map for testing purposes
+//        String rdfMapDir = "C:/Users/pkapaleeswaran/Workspacej3/SemossDev";
+//        // System.getProperty("user.dir")
+//        DIHelper.getInstance().loadCoreProp(rdfMapDir + "/RDF_Map.prop");
+//
+//        final String WS_DIRECTORY = "C:/Users/pkapaleeswaran/Workspacej3";
+//        final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
+//
+//        // load the local master database
+//        Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB);
+//        IDatabaseEngine localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB), localMasterProp);
+//
+//        // test loading in a new engine to the master database
+//
+//        // get the new engine
+//        String engineName = "Mv1";
+//        Properties engineProp = loadEngineProp(DB_DIRECTORY, engineName);
+//        Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
+//
+//        // delete the engine from the master db so that we can re-add it fresh for
+//        // testing purposes
+//        DeleteFromMasterDB deleter = new DeleteFromMasterDB();
+//        deleter.deleteEngineRDBMS(engineName);
+//
+//        String engineName2 = "actor";
+//        Properties engineProp2 = loadEngineProp(DB_DIRECTORY, engineName2);
+//        Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
+//
+//        // delete the engine from the master db so that we can re-add it fresh for
+//        // testing purposes
+//        deleter = new DeleteFromMasterDB();
+//        deleter.deleteEngineRDBMS(engineName);
+//
+//        // test registering the engine
+//        AddToMasterDB adder = new AddToMasterDB();
+//        adder.registerEngineLocal(engineProp);
+//        adder.registerEngineLocal(engineProp2);
+//    }
 
     /**
      * 

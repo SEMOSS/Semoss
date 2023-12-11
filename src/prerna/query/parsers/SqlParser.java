@@ -831,15 +831,15 @@ public class SqlParser {
 	}
 
 
-	public static void main(String [] args) throws Exception {
-		SqlParser test = new SqlParser();
-		String query = "Select * from employee";
-		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
-				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
-				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
-
-		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
-		test.processQuery(query);
-	}
+//	public static void main(String [] args) throws Exception {
+//		SqlParser test = new SqlParser();
+//		String query = "Select * from employee";
+//		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
+//				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
+//				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
+//
+//		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
+//		test.processQuery(query);
+//	}
 }
 

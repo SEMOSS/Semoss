@@ -34,22 +34,22 @@ public class SnowApi {
 		snow.runSnow(args);
 	}
 
-	public static void main(String[] args)
-	{
-		SnowApi snow = new SnowApi();
-		
-		String encrypted = snow.encryptMessage("da monkey is here", "hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", null);
-		System.out.println("Encrpted data is" + encrypted);
-		//snow.encryptMessage("da monkey is here", "hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
-		//snow.decryptMessage("password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
-		
-		
-		// encrypt the file
-		//snow.encryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\message.txt", "password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
-
-		SnowApi snow2 = new SnowApi();
-		//snow.decryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt", "hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\passout.txt");
-		System.out.println(snow.decryptMessage("hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt"));
-		
-	}	
+//	public static void main(String[] args)
+//	{
+//		SnowApi snow = new SnowApi();
+//		
+//		String encrypted = snow.encryptMessage("da monkey is here", "hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", null);
+//		System.out.println("Encrpted data is" + encrypted);
+//		//snow.encryptMessage("da monkey is here", "hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
+//		//snow.decryptMessage("password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
+//		
+//		
+//		// encrypt the file
+//		//snow.encryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\message.txt", "password", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\input.txt", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt");
+//
+//		SnowApi snow2 = new SnowApi();
+//		//snow.decryptFile("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt", "hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\passout.txt");
+//		System.out.println(snow.decryptMessage("hello", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\output.txt"));
+//		
+//	}	
 }

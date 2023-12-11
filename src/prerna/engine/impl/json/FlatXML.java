@@ -65,22 +65,22 @@ public class FlatXML {
 	Properties prop = null;
 	Object document = null;
 	
-	
-	public static void main(String [] args) throws Exception
-	{
-		// get the XML
-		// convert to json
-		// flatten json
-		FlatXML client = new FlatXML();
-		//String file = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\interaction.json";
-		String file = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\repos.json";
-		String propFile = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\reposProp.prop";
-		//client.getURLData("https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:%22Robitussen%22+patient.reaction.reactionoutcome:%225%22");
-		//client.loadProp(propFile);
-		//client.getData(file);
-		//client.flattenJson(null);
-		client.flattenJsonFromFile(file);
-	}
+//	
+//	public static void main(String [] args) throws Exception
+//	{
+//		// get the XML
+//		// convert to json
+//		// flatten json
+//		FlatXML client = new FlatXML();
+//		//String file = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\interaction.json";
+//		String file = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\repos.json";
+//		String propFile = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\reposProp.prop";
+//		//client.getURLData("https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:%22Robitussen%22+patient.reaction.reactionoutcome:%225%22");
+//		//client.loadProp(propFile);
+//		//client.getData(file);
+//		//client.flattenJson(null);
+//		client.flattenJsonFromFile(file);
+//	}
 	
 	
 	

@@ -323,17 +323,17 @@ public class SesameQueryExpression {
 		return gp;
 	}
 	
-	public static void main(String [] args)
-	{
-		// tests 
-		
-		SesameQueryExpression expr = new SesameQueryExpression();
-		expr.addTypeProjection("http://semoss.org/concept/system");
-		expr.addRelationTriple("http://semoss.org/concept/system", "http://semoss.org/relation/provide", "http://semoss.org/concept/do");
-		expr.addRelationTriple("http://semoss.org/concept/service", "http://semoss.org/relation/exposes", "http://semoss.org/concept/do");
-		System.out.println(expr.buildExpr().buildTupleExpr());
-		
-	}
+//	public static void main(String [] args)
+//	{
+//		// tests 
+//		
+//		SesameQueryExpression expr = new SesameQueryExpression();
+//		expr.addTypeProjection("http://semoss.org/concept/system");
+//		expr.addRelationTriple("http://semoss.org/concept/system", "http://semoss.org/relation/provide", "http://semoss.org/concept/do");
+//		expr.addRelationTriple("http://semoss.org/concept/service", "http://semoss.org/relation/exposes", "http://semoss.org/concept/do");
+//		System.out.println(expr.buildExpr().buildTupleExpr());
+//		
+//	}
 	
 	
 	

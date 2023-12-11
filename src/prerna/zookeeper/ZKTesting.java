@@ -20,21 +20,21 @@ import prerna.engine.impl.storage.S3StorageEngine;
 
 public class ZKTesting {
 
-	public static void main(String[] args) throws Exception {
-		ZKEngine engine = new ZKEngine();
-		try {
-			Properties prop = new Properties();
-			prop.put(ZKEngine.ZOOKEEPER_ADDRESS_KEY, "localhost:2181");
-			engine.open(prop);
-
-			ZKCuratorUtility utility = engine.getCuratorUtility();
-			startTimeLockThread(utility);
-			Thread.sleep(3_000);
-			printTimeLockDetails(utility);
-		} finally {
-			engine.close();
-		}
-	}
+//	public static void main(String[] args) throws Exception {
+//		ZKEngine engine = new ZKEngine();
+//		try {
+//			Properties prop = new Properties();
+//			prop.put(ZKEngine.ZOOKEEPER_ADDRESS_KEY, "localhost:2181");
+//			engine.open(prop);
+//
+//			ZKCuratorUtility utility = engine.getCuratorUtility();
+//			startTimeLockThread(utility);
+//			Thread.sleep(3_000);
+//			printTimeLockDetails(utility);
+//		} finally {
+//			engine.close();
+//		}
+//	}
 
 	public static void startTimeLockThread(ZKCuratorUtility utility) {
 		Thread t = new Thread(new Runnable() {

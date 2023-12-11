@@ -169,11 +169,11 @@ public class DocProcessor {
 		return source;
 
 	}
-
-	public static void main(String[] args) throws Exception 
-	{
-
-		DocProcessor dp = new DocProcessor("c:/temp/ABACUS_ADP_FY24.docx", null);
-		dp.process();
-	}
+//
+//	public static void main(String[] args) throws Exception 
+//	{
+//
+//		DocProcessor dp = new DocProcessor("c:/temp/ABACUS_ADP_FY24.docx", null);
+//		dp.process();
+//	}
 }
