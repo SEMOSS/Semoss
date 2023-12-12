@@ -1,6 +1,10 @@
 from typing import Optional, Union, List, Dict, Any, Tuple
-from .abstract_openai_client import AbstractOpenAiClient
 import numpy as np
+
+from .abstract_openai_client import AbstractOpenAiClient
+from ...constants import (
+    ModelEngineResponse
+)
 
 class OpenAiCompletion(AbstractOpenAiClient):
             
@@ -51,23 +55,23 @@ class OpenAiCompletion(AbstractOpenAiClient):
             
         print(prompt)
         # check to see if we need to adjust the prompt or max_new_tokens
-        prompt, kwargs['max_tokens'], output_payload = self._check_token_limits(
+        prompt, kwargs['max_tokens'], model_engine_response = self._check_token_limits(
             prompt_payload = prompt,
             max_new_tokens = max_new_tokens
         )
 
         print(prompt)
-        output_payload['response'] = self._inference_call(
+        model_engine_response.response = self._inference_call(
             prompt = prompt,
             prefix = prefix, 
             kwargs = kwargs
         )
     
-        output_payload['numberOfTokensInResponse'] = self.tokenizer.count_tokens(
-            output_payload['response']
+        model_engine_response.response_tokens = self.tokenizer.count_tokens(
+            model_engine_response.response
         )
 
-        return output_payload
+        return model_engine_response.to_dict()
         
     def _inference_call(
         self,
@@ -123,12 +127,12 @@ class OpenAiCompletion(AbstractOpenAiClient):
         self, 
         prompt_payload:str, 
         max_new_tokens:int
-        ) -> Tuple[str, int, Dict]:
+        ) -> Tuple[str, int, ModelEngineResponse]:
         '''
         The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
         Instead we rather will send back a flag indicating adjustments have
         '''
-        output_payload = {}
+        model_engine_response = ModelEngineResponse()
         warnings = []
         # use the models tokenizer to get the number of tokens in the prompt
         prompt_tokens = self.tokenizer.get_tokens_ids(prompt_payload)
@@ -163,8 +167,8 @@ class OpenAiCompletion(AbstractOpenAiClient):
                 max_new_tokens = max_new_tokens + ((max_tokens - num_token_in_prompt) - max_new_tokens)
                 warnings.append(f'max_new_tokens was changed to: {max_new_tokens}')
 
-        output_payload['numberOfTokensInPrompt'] = num_token_in_prompt
+        model_engine_response.prompt_tokens = num_token_in_prompt
         if (len(warnings) > 0):
-            output_payload['warning'] = '\\n\\n'.join(warnings)
+            model_engine_response.warning = '\\n\\n'.join(warnings)
 
-        return prompt_payload, int(max_new_tokens), output_payload
+        return prompt_payload, int(max_new_tokens), model_engine_response

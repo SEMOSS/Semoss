@@ -1,6 +1,11 @@
 import requests
+
 from .local_embedder import LocalEmbedder
 from ..tokenizers import HuggingfaceTokenizer
+from ..constants import (
+    MAX_TOKENS,
+    MAX_INPUT_TOKENS
+)
 
 class TextEmbeddingsInference(LocalEmbedder):
     
@@ -20,11 +25,11 @@ class TextEmbeddingsInference(LocalEmbedder):
         self.tokenizer = HuggingfaceTokenizer(
             encoder_name = model_name, 
             max_tokens = kwargs.pop(
-                'max_tokens', 
+                MAX_TOKENS, 
                 None
             ),
             max_input_tokens = kwargs.pop(
-                'max_input_tokens', 
+                MAX_INPUT_TOKENS, 
                 None
             )
         )
