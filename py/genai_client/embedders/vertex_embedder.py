@@ -1,19 +1,30 @@
-from typing import Union, List, Dict, Any, Optional
+from typing import (
+    Union, 
+    List, 
+    Dict, 
+    Generator,
+    Optional,
+    Tuple
+)
+
+import math
+import functools
+import time
+from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+from tqdm.auto import tqdm
+
+# CFG classes/functions
 from ..clients.client_initializer import google_initializer
 from .abstract_embedder import AbstractEmbedder
+from ..constants import (
+    ModelEngineResponseKeys
+)
 
 # Load the "Vertex AI Embeddings for Text" model
 from vertexai.preview.language_models import TextEmbeddingModel
 
-import math
 
-import functools
-import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Generator, List, Tuple
-
-import numpy as np
-from tqdm.auto import tqdm
 
 class VertexAiEmbedder(AbstractEmbedder):
     
@@ -23,6 +34,7 @@ class VertexAiEmbedder(AbstractEmbedder):
         region:str,
         service_account_credentials:Dict = None,
         service_account_key_file:str = None,
+        project:str = None,
         **kwargs
     ):
         # initialize the google aiplatform connection
@@ -30,6 +42,7 @@ class VertexAiEmbedder(AbstractEmbedder):
             region=region,
             service_account_credentials=service_account_credentials,
             service_account_key_file=service_account_key_file,
+            project=project
         )
         
         # register the some of the model details with the abstract embedder class
@@ -61,9 +74,9 @@ class VertexAiEmbedder(AbstractEmbedder):
             embedded_list = [embedded_list]
         
         return {
-            'response': embedded_list,
-            'numberOfTokensInPrompt': self.tokenizer.count_tokens(list_to_embed).total_tokens,
-            'numberOfTokensInResponse': 0
+            ModelEngineResponseKeys.RESPONSE: embedded_list,
+            ModelEngineResponseKeys.NUMBER_OF_TOKENS_IN_PROMPT: self.tokenizer.count_tokens(list_to_embed).total_tokens,
+            ModelEngineResponseKeys.NUMBER_OF_TOKENS_IN_RESPONSE: 0
         }
         
     def _encode_texts_to_embeddings(self, sentences: List[str]) -> List[Optional[List[float]]]:
@@ -133,8 +146,8 @@ class VertexAiEmbedder(AbstractEmbedder):
     ) -> Dict:
         response = 'This model does not support text generation.'
         output_payload = {
-            'response':response,
-            'numberOfTokensInPrompt': 0,
-            'numberOfTokensInResponse': self.tokenizer.count_tokens([response]).total_tokens
+            ModelEngineResponseKeys.RESPONSE:response,
+            ModelEngineResponseKeys.NUMBER_OF_TOKENS_IN_PROMPT: 0,
+            ModelEngineResponseKeys.NUMBER_OF_TOKENS_IN_RESPONSE: self.tokenizer.count_tokens([response]).total_tokens
         }
         return output_payload

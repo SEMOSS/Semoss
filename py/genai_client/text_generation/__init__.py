@@ -5,4 +5,4 @@ from .openai_clients import (
 
 from .textgen_client import TextGenClient
 from .bedrock_client import BedrockClient
-from .google_clients.vertex_client import VertexClient
+from .google_clients.vertex_controller import VertexAiClientController as VertexClient
