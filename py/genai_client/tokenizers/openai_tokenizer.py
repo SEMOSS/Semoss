@@ -71,7 +71,7 @@ class OpenAiTokenizer(AbstractTokenizer):
         if isinstance(input, list):
             input = " ".join([message["content"] for message in input])
         elif isinstance(input, dict):
-            input = message["content"]
+            input = input["content"]
 
         return self.tokenizer.encode(input)
 
