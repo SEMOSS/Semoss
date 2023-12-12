@@ -13,7 +13,8 @@ from .embedders import (
     LocalEmbedder,
     OpenAiEmbedder,
     AzureOpenAiEmbedder,
-    TextEmbeddingsInference
+    TextEmbeddingsInference,
+    VertexAiEmbedder
 )
 
 from .tokenizers import (
@@ -54,6 +55,8 @@ def get_embedder(embedder_type, **kwargs):
         return LocalEmbedder(**kwargs)
     elif (embedder_type == 'TEXT_GENERATION'):
         return TextEmbeddingsInference(**kwargs)
+    elif (embedder_type == 'VERTEX'):
+        return VertexAiEmbedder(**kwargs)
     else:
         raise ValueError('Embedder type has not been defined.')
 
