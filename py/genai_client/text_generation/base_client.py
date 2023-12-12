@@ -100,9 +100,9 @@ class BaseClient(ABC):
             pass
         
         output_payload = ModelEngineResponse(
-            response:response,
-            promptTokens: 0,
-            responseTokens: numberOfTokensInResponse
+            response=response,
+            promptTokens=0,
+            responseTokens=numberOfTokensInResponse
         )
         
         return output_payload.to_dict()
