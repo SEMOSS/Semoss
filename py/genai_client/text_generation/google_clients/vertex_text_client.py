@@ -16,7 +16,7 @@ class VertexTextClient(AbstractVertextAiTextGeneration):
     
     def ask(
         self,
-        question: str,
+        question: str = None,
         context: Optional[str] = None,
         history: Optional[List] = [],
         max_new_tokens: Optional[int] = 500,
@@ -86,6 +86,6 @@ class VertexTextClient(AbstractVertextAiTextGeneration):
             final_response += response.text
             print(prefix + response.text, end ='')
             
-        output = ModelEngineResponse(response=final_response)
+        model_engine_response = ModelEngineResponse(response=final_response)
         
-        return output.to_dict()
+        return model_engine_response.to_dict()

@@ -4,6 +4,12 @@ from huggingface_hub import try_to_load_from_cache, _CACHED_NO_EXIST, snapshot_d
 from transformers import AutoModel
 from pathlib import Path
 from ..tokenizers import HuggingfaceTokenizer
+from ..constants import (
+    MAX_TOKENS,
+    MAX_INPUT_TOKENS,
+    ModelEngineResponse
+)
+
 
 class LocalEmbedder():
 
@@ -18,18 +24,16 @@ class LocalEmbedder():
         assert self.model_name != None
         
         self.model_folder = self.get_physical_folder(repo_id = self.model_name)
-        self.embedder = self.get_embedder(
-            self.model_folder
-        )
+        self.embedder = self.get_embedder()
 
         self.tokenizer = HuggingfaceTokenizer(
             encoder_name = self.model_name, 
             max_tokens = kwargs.pop(
-                'max_tokens', 
+                MAX_TOKENS, 
                 None
             ),
             max_input_tokens = kwargs.pop(
-                'max_input_tokens', 
+                MAX_INPUT_TOKENS, 
                 None
             )
         )
@@ -66,8 +70,7 @@ class LocalEmbedder():
                 )
                 
     def get_embedder(
-        self,
-        model_folder:str
+        self
     ):
         embedder = None
         try:
@@ -111,11 +114,13 @@ class LocalEmbedder():
         if not isinstance(embedded_list, list):
             embedded_list = embedded_list.tolist()
         
-        return {
-            'response':embedded_list,
-            'numberOfTokensInPrompt': total_tokens,
-            'numberOfTokensInResponse': 0
-        }
+        model_engine_response = ModelEngineResponse(
+            response=embedded_list,
+            prompt_tokens=total_tokens,
+            response_tokens=0
+        )
+        
+        return model_engine_response.to_dict()
 
     def ask(
         self, 
@@ -123,9 +128,10 @@ class LocalEmbedder():
         **kwargs
     ) -> str:
         response = 'This model does not support text generation.'
-        output_payload = {
-            'response':response,
-            'numberOfTokensInPrompt': 0,
-            'numberOfTokensInResponse': self.tokenizer.count_tokens(response)
-        }
-        return output_payload
+        model_engine_response = ModelEngineResponse(
+            response=response,
+            prompt_tokens=0,
+            response_tokens=self.tokenizer.count_tokens(response)
+        )
+        
+        return model_engine_response.to_dict()

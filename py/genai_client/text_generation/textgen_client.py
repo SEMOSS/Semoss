@@ -1,23 +1,28 @@
 
 from typing import Optional, Union, List, Dict, Any, Tuple
 from text_generation import Client
-import requests
-from .base_client import BaseClient
 import inspect
-from string import Template
+
+from .base_client import BaseClient
 from ..tokenizers import HuggingfaceTokenizer
+from ..constants import (
+    ModelEngineResponse,
+    MAX_TOKENS,
+    MAX_INPUT_TOKENS,
+    FULL_PROMPT
+)
 
 class TextGenClient(BaseClient):
     params = list(inspect.signature(Client.generate).parameters.keys())[1:]
 
     def __init__(
         self, 
-        template:Union[Dict, str] = None, 
-        endpoint:str = None, 
-        model_name:str = None,
-        template_name:str = None, 
-        stop_sequences:List[str] = None, 
-        timeout = 30,
+        endpoint:str,
+        template: Optional[Union[Dict, str]] = None, 
+        model_name: Optional[str] = None,
+        template_name: Optional[str] = None, 
+        stop_sequences: Optional[List[str]] = [], 
+        timeout: Optional[int] = 30,
         **kwargs
     ):
         assert endpoint is not None
@@ -35,32 +40,43 @@ class TextGenClient(BaseClient):
         self.tokenizer = HuggingfaceTokenizer(
             encoder_name = model_name, 
             max_tokens = kwargs.pop(
-                'max_tokens', 
+                MAX_TOKENS, 
                 None
             ),
             max_input_tokens = kwargs.pop(
-                'max_input_tokens', 
+                MAX_INPUT_TOKENS, 
                 None
             )
         )
 
-        self.stop_sequences = stop_sequences or self.tokenizer.tokenizer.eos_token
+        self.stop_sequences = stop_sequences or [self.tokenizer.tokenizer.eos_token]
 
     
     def ask(
         self, 
         question:str = None, 
-        context:str = None,
-        history:List = [],
-        template_name:str = None,
-        max_new_tokens:int = 1000,
-        prefix = "",
-        **kwargs:Dict
+        context: Optional[str] = None,
+        history: Optional[List] = [],
+        template_name: Optional[str] = None,
+        max_new_tokens: Optional[int] = 1000,
+        prefix: Optional[str] = "",
+        do_sample: bool = False,
+        repetition_penalty: Optional[float] = None,
+        return_full_text: bool = False,
+        seed: Optional[int] = None,
+        stop_sequences: Optional[List[str]] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        truncate: Optional[int] = None,
+        typical_p: Optional[float] = None,
+        watermark: bool = False,
+        **kwargs
     ) -> str:
         # start the prompt as an empty string
         prompt = ""
         
-        if 'full_prompt' not in kwargs.keys():
+        if FULL_PROMPT not in kwargs.keys():
             content = []
         
             if template_name == None:
@@ -87,29 +103,41 @@ class TextGenClient(BaseClient):
             prompt = "".join(content)
         else:
             prompt = self._process_full_prompt(
-                kwargs.pop('full_prompt')
+                kwargs.pop(FULL_PROMPT)
             )
     
         # check to see if we need to adjust the prompt or max_new_tokens
-        prompt, max_new_tokens, output_payload = self._check_token_limits(
+        prompt, max_new_tokens, model_engine_response = self._check_token_limits(
             prompt_payload = prompt,
             max_new_tokens = max_new_tokens
         )
     
+        # convert ask inputs to text gen params
+        parameters = {
+            "prompt": prompt,
+            "do_sample": do_sample,
+            "max_new_tokens": max_new_tokens,
+            'repetition_penalty': repetition_penalty,
+            "return_full_text": return_full_text,
+            "seed": seed,
+            "stop_sequences": stop_sequences if stop_sequences is not None else (stop_sequences := self.stop_sequences),
+            "temperature": temperature,
+            "top_k": top_k,
+            "top_p": top_p,
+            "truncate":truncate,
+            "typical_p": typical_p,
+            "watermark": watermark,
+        }
+        
         # check whether to include logprobs in the response
         include_logprobs = kwargs.pop(
             'include_logprobs', 
             False
         )
         
-        # TODO remove once client is updated
-        kwargs.pop('stream', True)
-        
         # configure the generator request object
         responses = self.client.generate_stream(
-            prompt, 
-            max_new_tokens=max_new_tokens, 
-            **kwargs
+            **parameters
         )
         
         response_tokens = []
@@ -118,7 +146,7 @@ class TextGenClient(BaseClient):
             response_token = response.token
             token_text = response_token.text
             
-            if token_text == self.stop_sequences:
+            if token_text in stop_sequences:
                 break
             
             # print out tokens so it can be picked up by partial endpoint
@@ -128,26 +156,13 @@ class TextGenClient(BaseClient):
             response_logprobs.append(response_token.logprob)
             
         if include_logprobs:
-            output_payload['tokens'] = response_tokens
-            output_payload['logprobs'] = response_logprobs
+            model_engine_response.tokens = response_tokens
+            model_engine_response.logprobs = response_logprobs
 
-        output_payload['response'] = ''.join(response_tokens) 
-        output_payload['numberOfTokensInResponse'] = len(response_tokens)
+        model_engine_response.response = ''.join(response_tokens) 
+        model_engine_response.response_tokens = len(response_tokens)
 
-        return output_payload
-
-    def _create_payload(
-        self, 
-        question:str,
-        context:str,
-        history:List[Dict],
-        template_name:str,
-        fill_variables:Dict
-    ) -> List[Dict]:
-        # the list to construct the payload from
-        message_payload = []
-        
-        return message_payload
+        return model_engine_response.to_dict()
 
     def _process_history(
         self, 
@@ -260,12 +275,12 @@ class TextGenClient(BaseClient):
         self, 
         prompt_payload:str, 
         max_new_tokens:int
-    ) -> Tuple[str, int, Dict]:
+    ) -> Tuple[str, int, ModelEngineResponse]:
         '''
         The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
         Instead we rather will send back a flag indicating adjustments have
         '''
-        output_payload = {}
+        model_engine_response = ModelEngineResponse()
         warnings = []
         # use the models tokenizer to get the number of tokens in the prompt
         prompt_tokens = self.tokenizer.get_tokens_ids(prompt_payload)
@@ -300,8 +315,8 @@ class TextGenClient(BaseClient):
                 max_new_tokens = max_new_tokens + ((max_tokens - num_token_in_prompt) - max_new_tokens)
                 warnings.append(f'max_new_tokens was changed to: {max_new_tokens}')
 
-        output_payload['numberOfTokensInPrompt'] = num_token_in_prompt
+        model_engine_response.prompt_tokens = num_token_in_prompt
         if (len(warnings) > 0):
-            output_payload['warning'] = '\\n\\n'.join(warnings)
+            model_engine_response.warning = '\\n\\n'.join(warnings)
 
-        return prompt_payload, int(max_new_tokens), output_payload
+        return prompt_payload, int(max_new_tokens), model_engine_response

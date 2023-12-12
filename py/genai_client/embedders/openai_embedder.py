@@ -1,7 +1,10 @@
 from typing import Union, List, Dict, Any
 from openai import OpenAI
 from ..tokenizers import OpenAiTokenizer
-
+from ..constants import (
+    MAX_TOKENS,
+    ModelEngineResponse
+)
 class OpenAiEmbedder():
     
     def __init__(
@@ -15,7 +18,7 @@ class OpenAiEmbedder():
         self.tokenizer = OpenAiTokenizer(
             encoder_name = model_name, 
             max_tokens = kwargs.pop(
-                'max_tokens', 
+                MAX_TOKENS, 
                 None
             )
         )
@@ -38,12 +41,13 @@ class OpenAiEmbedder():
         **kwargs
     ) -> str:
         response = 'This model does not support text generation.'
-        output_payload = {
-            'response':response,
-            'numberOfTokensInPrompt': 0,
-            'numberOfTokensInResponse': self.tokenizer.count_tokens(response)
-        }
-        return output_payload
+        model_engine_response = ModelEngineResponse(
+            response=response,
+            prompt_tokens=0,
+            response_tokens=self.tokenizer.count_tokens(response)
+        )
+
+        return model_engine_response.to_dict()
     
     def embeddings(
         self,
@@ -107,11 +111,13 @@ class OpenAiEmbedder():
             
         print(prefix + "Sending Embeddings back from Model Engine")
         
-        return {
-            'response': embedded_list,
-            'numberOfTokensInPrompt': total_num_of_tokens,
-            'numberOfTokensInResponse': 0
-        }
+        model_engine_response = ModelEngineResponse(
+            response=embedded_list,
+            prompt_tokens=total_num_of_tokens,
+            response_tokens=0
+        )
+        
+        return model_engine_response.to_dict()
         
     def _make_openai_embedding_call(self, list_of_text:List[str]):
         '''this method is responsible for making the openai embeddings call. it takes in a single'''
