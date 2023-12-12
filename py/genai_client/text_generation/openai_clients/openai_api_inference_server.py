@@ -1,7 +1,12 @@
+import openai
+
 from .openai_chat_completion_client import OpenAiChatCompletion
 from .openai_completion_client import OpenAiCompletion
 from ...tokenizers import HuggingfaceTokenizer
-import openai
+from ...constants import (
+    MAX_TOKENS,
+    MAX_INPUT_TOKENS
+)
 
 class OpenAiChatCompletionServer(OpenAiChatCompletion):
     def __init__(
@@ -14,20 +19,19 @@ class OpenAiChatCompletionServer(OpenAiChatCompletion):
         super().__init__(
             api_key = api_key,
             model_name = model_name,
+            base_url = endpoint,
             **kwargs
         )
         
-        openai.api_base = endpoint
-        
-    def _get_tokenizer(self):
+    def _get_tokenizer(self, init_args):
         return HuggingfaceTokenizer(
             encoder_name = self.model_name, 
-            max_tokens = kwargs.pop(
-                'max_tokens', 
+            max_tokens = init_args.pop(
+                MAX_TOKENS, 
                 None
             ),
-            max_input_tokens = kwargs.pop(
-                'max_input_tokens', 
+            max_input_tokens = init_args.pop(
+                MAX_INPUT_TOKENS, 
                 None
             )
         )
@@ -43,20 +47,19 @@ class OpenAiCompletionServer(OpenAiCompletion):
         super().__init__(
             api_key = api_key,
             model_name = model_name,
+            base_url = endpoint,
             **kwargs
         )
-        
-        openai.api_base = endpoint
         
     def _get_tokenizer(self, init_args):
         return HuggingfaceTokenizer(
             encoder_name = self.model_name, 
             max_tokens = init_args.pop(
-                'max_tokens', 
+                MAX_TOKENS, 
                 None
             ),
             max_input_tokens = init_args.pop(
-                'max_input_tokens', 
+                MAX_INPUT_TOKENS, 
                 None
             )
         )
