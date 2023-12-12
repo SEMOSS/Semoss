@@ -1,30 +1,31 @@
 from typing import List, Dict
-from .vertex_text_client import VertexTextClient
-from  .vertext_code_completion_client import VertexCodeCompletionClient
-from .vertex_code_chat_client import VertexCodeChatClient
-from .vertext_chat_client import VertexChatClient
 from ...constants import (
     CHAT_TYPE
 )
-
 
 class VertexAiClientController():
     
     def __init__(self, **kwargs):
         
-        self.chat_type = kwargs.pop(
+        chat_type = kwargs.pop(
             CHAT_TYPE, 
             'text'
         )
         
-        if (self.chat_type == 'text'):
+        if (chat_type == 'text'):
+            from .vertex_text_client import VertexTextClient
             self.vertex_class = VertexTextClient(**kwargs)
-        elif (self.chat_type == 'chat'):
+        elif (chat_type == 'chat'):
+            from .vertext_chat_client import VertexChatClient
             self.vertex_class = VertexChatClient(**kwargs)
-        elif (self.chat_type == 'codechat'):
+        elif (chat_type == 'codechat'):
+            from .vertex_code_chat_client import VertexCodeChatClient
             self.vertex_class = VertexCodeChatClient(**kwargs)
-        elif (self.chat_type == 'code'):
+        elif (chat_type == 'code'):
+            from  .vertext_code_completion_client import VertexCodeCompletionClient
             self.vertex_class = VertexCodeCompletionClient(**kwargs)
+        else:
+            raise ValueError(f"Chat type '{chat_type}' has not been defined.")
 
         
     def ask(self, **kwargs) -> Dict:
