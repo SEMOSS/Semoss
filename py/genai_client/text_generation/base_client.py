@@ -2,7 +2,13 @@ from typing import Optional, Union, List, Dict, Any
 import json
 import os
 from string import Template
-from abc import ABC, abstractmethod
+from abc import (
+    ABC, 
+    abstractmethod
+)
+from ..constants import (
+    ModelEngineResponse
+)
 
 class BaseClient(ABC):
   # loads all the templates
@@ -11,7 +17,6 @@ class BaseClient(ABC):
         self, 
         template:Union[Dict, str] = None,
         template_name:str = None,
-        **kwargs
     ):
         self.template_name = template_name
         self.templates= {}
@@ -94,10 +99,10 @@ class BaseClient(ABC):
         except:
             pass
         
-        output_payload = {
-            'response':response,
-            'numberOfTokensInPrompt': 0,
-            'numberOfTokensInResponse': numberOfTokensInResponse
-        }
+        output_payload = ModelEngineResponse(
+            response:response,
+            promptTokens: 0,
+            responseTokens: numberOfTokensInResponse
+        )
         
-        return output_payload
+        return output_payload.to_dict()

@@ -4,6 +4,7 @@ def google_initializer(
     region:str,
     service_account_credentials:Dict = None,
     service_account_key_file:str = None,
+    project:str = None
 ):
     '''
     Initialize the connection via the aiplatform sdk.
@@ -35,7 +36,8 @@ def google_initializer(
         service_account_info
     )
 
-    project = service_account_info.get('project_id') or \
+    project = project or \
+                service_account_info.get('project_id') or \
                 service_account_info.get('projectId') or \
                 service_account_info.get('projectID') or \
                 service_account_info.get('project')

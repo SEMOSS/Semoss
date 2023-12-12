@@ -1,6 +1,9 @@
 from typing import Optional, Union, List, Dict, Any
 import tiktoken
 from .abstract_tokenizer import AbstractTokenizer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class OpenAiTokenizer(AbstractTokenizer):
     
@@ -33,7 +36,11 @@ class OpenAiTokenizer(AbstractTokenizer):
         if "k_base" in encoder_name:
             return tiktoken.get_encoding(encoder_name)
         else:
-            return tiktoken.encoding_for_model(encoder_name)
+            try:
+                return tiktoken.encoding_for_model(encoder_name)
+            except KeyError:
+                logger.warning("Warning: model not found. Using cl100k_base encoding.")
+                return tiktoken.get_encoding("cl100k_base")
 
     def count_tokens(self, input: Union[List[Dict],str]) -> int:
         num_tokens = 0
