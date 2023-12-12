@@ -1,9 +1,16 @@
 import boto3
 import json
-from .base_client import BaseClient
 from string import Template
 import logging
+
+from .base_client import BaseClient
 from ..tokenizers import HuggingfaceTokenizer
+from ..constants import (
+    MAX_TOKENS,
+    MAX_INPUT_TOKENS,
+    FULL_PROMPT,
+    ModelEngineResponse
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,11 +44,11 @@ class BedrockClient(BaseClient):
         self.tokenizer = HuggingfaceTokenizer(
             encoder_name = "bert-base-uncased", 
             max_tokens = kwargs.pop(
-                'max_tokens', 
+                MAX_TOKENS, 
                 None
             ),
             max_input_tokens = kwargs.pop(
-                'max_input_tokens', 
+                MAX_INPUT_TOKENS, 
                 None
             )
         )
@@ -92,7 +99,7 @@ class BedrockClient(BaseClient):
     ):
         client = self._get_client()
         final_response = ""
-        output_payload = {}
+        model_engine_response = ModelEngineResponse()
         
         # TODO remove once
         # check whether to include logprobs in the response
@@ -108,7 +115,7 @@ class BedrockClient(BaseClient):
             mapping = {"question": question} | kwargs
 
 
-            if "full_prompt" not in kwargs.keys():
+            if FULL_PROMPT not in kwargs.keys():
                 if context and not template_name:
                     if isinstance(context, str):
                         context = self.fill_context(context, **mapping)[0]
@@ -143,7 +150,7 @@ class BedrockClient(BaseClient):
                     [msg["content"] for msg in message_payload]
                 )
                 prompt_content = "\n\nHuman:" + msg_content + "\n\nAssistant:"
-                output_payload['numberOfTokensInPrompt'] = self.tokenizer.count_tokens(prompt_content)
+                model_engine_response.prompt_tokens = self.tokenizer.count_tokens(prompt_content)
                 body = self.create_json_body(prompt_content,max_new_tokens, temperature,top_p)
                 # body = json.dumps(
                 #     {
@@ -168,9 +175,9 @@ class BedrockClient(BaseClient):
                             print(prefix+partial,end='')
                             final_response += partial
                 
-                output_payload['numberOfTokensInResponse'] = self.tokenizer.count_tokens(final_response)
-                output_payload['response'] = final_response
-                return output_payload
+                model_engine_response.response_tokens = self.tokenizer.count_tokens(final_response)
+                model_engine_response.response = final_response
+                return model_engine_response.to_dict()
 
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")

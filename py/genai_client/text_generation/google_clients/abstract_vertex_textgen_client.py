@@ -12,22 +12,10 @@ from ...constants import (
 )
 
 class AbstractVertextAiTextGeneration(BaseClient):
-    """Abstract class for Vertex AI inference.
-
-    Attributes:
-        inference_args (`List`): A list containing the args that can be send in a chat message
     """
-    
-    inference_args = [
-        "message"
-        "temperature",
-        "max_output_tokens",
-        "top_k",
-        "top_p",
-        "stop_sequences",
-        "candidate_count"
-    ]
-    
+    Abstract class for Vertex AI inference.
+    """
+
     def __init__(
         self,      
         model_name:str ,
@@ -63,39 +51,9 @@ class AbstractVertextAiTextGeneration(BaseClient):
     @abstractclassmethod
     def ask(
         self,
-        question: str,
-        context: Optional[str] = None,
-        history: Optional[List] = [],
-        max_new_tokens: Optional[int] = 500,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        top_k: Optional[int] = None,
-        stop_sequences: Optional[List[str]] = None,
-        prefix="",
         **kwargs
     ):
         pass
-    
-    # @abstractclassmethod
-    # def _process_history(
-    #     self, 
-    #     history:List,
-    # ) -> Union[List[ChatMessage], str]:
-    #     pass
-    
-    # @abstractclassmethod
-    # def _process_full_prompt(
-    #     self, 
-    #     full_prompt: Union[List, str]
-    # ) -> str:
-    #     pass
-    
-    # @abstractclassmethod
-    # def _inference_call(
-    #     self, 
-    #     full_prompt: Union[List, str]
-    # ) -> ModelEngineResponse:
-    #     pass
     
     @abstractclassmethod
     def _get_client(

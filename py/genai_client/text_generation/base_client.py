@@ -99,10 +99,10 @@ class BaseClient(ABC):
         except:
             pass
         
-        output_payload = ModelEngineResponse(
+        model_engine_response = ModelEngineResponse(
             response=response,
-            promptTokens=0,
-            responseTokens=numberOfTokensInResponse
+            prompt_tokens=0,
+            response_tokens=numberOfTokensInResponse
         )
         
-        return output_payload.to_dict()
+        return model_engine_response.to_dict()
