@@ -18,15 +18,15 @@ class OpenAiClientController():
             'chat-completion'
         )
         
-        endpoint = kwargs.get(
+        endpoint = kwargs.pop(
             'endpoint'
         )
         
-        if (endpoint != None) and (endpoint != openai.api_base):
+        if (endpoint != None) and (endpoint != "https://api.openai.com/v1"):
             if (self.chat_type == 'chat-completion'):
-                self.openai_class = OpenAiChatCompletionServer(**kwargs)
+                self.openai_class = OpenAiChatCompletionServer(endpoint = endpoint, **kwargs)
             else:
-                self.openai_class = OpenAiCompletionServer(**kwargs)
+                self.openai_class = OpenAiCompletionServer(endpoint = endpoint, **kwargs)
         else:
             if (self.chat_type == 'chat-completion'):
                 self.openai_class = OpenAiChatCompletion(**kwargs)
