@@ -19,7 +19,8 @@ class OpenAiClientController():
         )
         
         endpoint = kwargs.pop(
-            'endpoint'
+            'endpoint',
+            None
         )
         
         if (endpoint != None) and (endpoint != "https://api.openai.com/v1"):
