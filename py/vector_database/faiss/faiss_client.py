@@ -39,6 +39,8 @@ class FAISSSearcher():
         self.base_path = base_path
 
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
+        self.default_sort_direction = False if self.metric_type_is_cosine_similarity else True
+        
         # disable caching within the shell so that engines can be exported
         disable_caching()
 
@@ -102,7 +104,7 @@ class FAISSSearcher():
         results: Optional[int] = 5, 
         columns_to_return: Optional[List[str]] = None, 
         return_threshold: Optional[Union[int,float]] = 1000, 
-        ascending : Optional[bool] = True
+        ascending : Optional[bool] = None
     ) -> List[Dict]:
         '''
         Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
@@ -214,7 +216,7 @@ class FAISSSearcher():
         )
         samples_df.sort_values(
             "distances", 
-            ascending = ascending, 
+            ascending = (ascending if ascending is not None else self.default_sort_direction), 
             inplace=True
         )
         samples_df = samples_df[samples_df['distances'] <= return_threshold]
