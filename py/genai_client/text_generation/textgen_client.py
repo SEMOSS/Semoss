@@ -126,7 +126,7 @@ class TextGenClient(BaseClient):
             "top_p": top_p,
             "truncate":truncate,
             "typical_p": typical_p,
-            "watermark": watermark,
+            "watermark": watermark
         }
         
         # check whether to include logprobs in the response
@@ -135,32 +135,70 @@ class TextGenClient(BaseClient):
             False
         )
         
-        # configure the generator request object
-        responses = self.client.generate_stream(
-            **parameters
-        )
-        
-        response_tokens = []
-        response_logprobs = []
-        for response in responses:
-            response_token = response.token
-            token_text = response_token.text
+        # TODO this is ugly, NEED to updates
+        # check whether to stream the response or not
+        stream = kwargs.get('stream', True)
+        if (not stream):
+            decoder_input_details = kwargs.get('decoder_input_details', False)
+            parameters['decoder_input_details'] = decoder_input_details
+            # configure the generator request object
+            response = self.client.generate(
+                **parameters
+            )
             
-            if token_text in stop_sequences:
-                break
+            model_engine_response.response = response.generated_text
             
-            # print out tokens so it can be picked up by partial endpoint
-            print(prefix+token_text,end='')
+            response_tokens = []
+            response_logprobs = []
             
-            response_tokens.append(token_text)
-            response_logprobs.append(response_token.logprob)
-            
-        if include_logprobs:
-            model_engine_response.tokens = response_tokens
-            model_engine_response.logprobs = response_logprobs
+            if decoder_input_details:
+                for token in response.details.prefill:
+                    if token.logprob is None:
+                        continue
+                    response_tokens.append(token.text)
+                    response_logprobs.append(token.logprob)
+                    
+            for response_token in response.details.tokens:
+                token_text = response_token.text
+    
+                if token_text in stop_sequences:
+                    break
+                
+                response_tokens.append(token_text)
+                response_logprobs.append(response_token.logprob)
+                
+            model_engine_response.response_tokens = len(response_tokens)
+            if include_logprobs:
+                model_engine_response.tokens = response_tokens
+                model_engine_response.logprobs = response_logprobs
 
-        model_engine_response.response = ''.join(response_tokens) 
-        model_engine_response.response_tokens = len(response_tokens)
+        else:
+            # configure the generator request object
+            responses = self.client.generate_stream(
+                **parameters
+            )
+            
+            response_tokens = []
+            response_logprobs = []
+            for response in responses:
+                response_token = response.token
+                token_text = response_token.text
+                
+                if token_text in stop_sequences:
+                    break
+                
+                # print out tokens so it can be picked up by partial endpoint
+                print(prefix+token_text,end='')
+                
+                response_tokens.append(token_text)
+                response_logprobs.append(response_token.logprob)
+                
+            if include_logprobs:
+                model_engine_response.tokens = response_tokens
+                model_engine_response.logprobs = response_logprobs
+
+            model_engine_response.response = ''.join(response_tokens) 
+            model_engine_response.response_tokens = len(response_tokens)
 
         return model_engine_response.to_dict()
 
