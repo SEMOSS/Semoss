@@ -71,54 +71,6 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		Object output = pyt.runScript(callMaker.toString(), insight);
 		return (Map<String, Object>) output;
 	}
-	
-	@Override
-	public Object model(String question, Insight insight, Map <String, Object> parameters) 
-	{
-		// TODO Auto-generated method stub
-		//if(this.pyt == null)
-		//	return null;
-		if(this.socketClient == null || !this.socketClient.isConnected()) {
-			this.startServer();
-		}
-		
-		String varName = (String) smssProp.get(Settings.VAR_NAME);
-		
-		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question=\"\"\"").append(question.replace("\"", "\\\"")).append("\"\"\"");
-		
-		if (Utility.isModelInferenceLogsEnabled() && !parameters.containsKey("full_prompt")) { // have to check that inference logs are enabled so that query works
-			String history = getConversationHistory(insight.getUserId(), insight.getInsightId());
-			if(history != null) //could still be null if its the first question in the convo
-				callMaker.append(",").append("history=").append(history);
-		}
-		
-		if(parameters != null) {
-			Iterator <String> paramKeys = parameters.keySet().iterator();
-			while(paramKeys.hasNext()) {
-				String key = paramKeys.next();
-				callMaker.append(",").append(key).append("=");
-				Object value = parameters.get(key);
-				if(value instanceof String)
-				{
-					callMaker.append("'").append(value+"").append("'");
-				}
-				else
-				{
-					callMaker.append(PyUtils.determineStringType(value));
-				}
-			}
-		}
-		// also set the prefix if one exists
-		if(this.prefix != null)
-			callMaker.append(", prefix='").append(prefix).append("'");
-		
-		callMaker.append(")");
-		System.err.println("call maker.. " + callMaker);
-		
-		Object output = pyt.runScript(callMaker.toString(), insight);
-		return output;
-	}
 
 	
 	@Override

@@ -58,7 +58,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
-	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_id = '${EMBEDDER_ENGINE_ID}', encoder_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, encoder_type = '${MODEL_TYPE}', distance_method = '${DISTANCE_METHOD}')";
+	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', embedder_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, embedder_type = '${MODEL_TYPE}', keyword_engine_id = ${KEYWORD_ENGINE_ID}, distance_method = '${DISTANCE_METHOD}')";
 
 	protected String vectorDatabaseSearcher = null;
 	
@@ -135,6 +135,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		} else {
 			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
 		}
+
+		// model engine responsible for creating keywords
+		String keywordGeneratorEngineId = this.smssProp.getProperty("KEYWORD_ENGINE_ID");
+		if (keywordGeneratorEngineId != null) {
+			// pull the model smss if needed
+			Utility.getModel(keywordGeneratorEngineId);
+			this.smssProp.put("KEYWORD_ENGINE_ID", "'" + keywordGeneratorEngineId + "'");
+		} else {
+			// add it to the smss prop so the string substitution does not fail
+			this.smssProp.put("KEYWORD_ENGINE_ID", "None");
+		}
+
 		
 		// vars for string substitution
 		this.vars = new HashMap<>(this.smssProp);
@@ -267,7 +279,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
-		
+
 		File parentDirectory = (File) parameters.get("temporaryFileDirectory");
 		
 		
@@ -335,8 +347,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					FileUtils.forceDelete(extractedFile);
 				}
 				if (!destinationFile.getName().toLowerCase().endsWith(".csv")) {
-					FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, destinationFile, this.vectorDatabaseSearcher, this.pyt);
-					columnsToIndex = "['Content']"; // this needs to match the column created in the new CSV
+					int rowsCreated = FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, destinationFile, this.vectorDatabaseSearcher, this.pyt);
+					
+					// check to see if the file data was extracted
+					if (rowsCreated <= 1) {
+						// no text was extracted so delete the file
+						FileUtils.forceDelete(extractedFile); // delete the csv
+						FileUtils.forceDelete(destinationFile); // delete the input file e.g pdf
+						continue;
+					}
+					
+					// this needs to match the column created in the new CSV
+					columnsToIndex = "['Content']"; 
 				} else {
 					// copy csv over but make sure its only csvs
 					FileUtils.copyFileToDirectory(destinationFile, tableIndexFolder);
@@ -353,69 +375,82 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 		
-		// create dataset
-		StringBuilder addDocumentPyCommand = new StringBuilder();
-		
-		// get the relevant FAISS searcher object in python
-		addDocumentPyCommand.append(vectorDatabaseSearcher)
-							.append(".searchers['")
-							.append(indexClass)
-							.append("']");
-		
-		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
-							.append(String.join("','", extractedFiles))
-							.append("'], insight_id = '")
-							.append(insight.getInsightId())
-							.append("', columns_to_index = ")
-							.append(columnsToIndex);
-		
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey())) {
-			// add the columns based in the vector db query
-			addDocumentPyCommand.append(", ")
-					 			.append("columns_to_remove")
-					 			.append(" = ")
-					 			.append(PyUtils.determineStringType(
-								 parameters.get(
-										 VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey()
-										 )
-								 ));
-		}
-											
-		addDocumentPyCommand.append(")");
-		
-		String script = addDocumentPyCommand.toString();
-		
-		classLogger.info("Running >>>" + script);
-		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
-
-		try {
-			FileUtils.forceDelete(parentDirectory);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to delete the temporary file directory");
-		}
-		
-
-		if (ClusterUtil.IS_CLUSTER) {
-			// and the newly created csvs
-			filesToCopyToCloud.addAll(extractedFiles);
-			// add all the embeddings files and the datasets
-			filesToCopyToCloud.addAll((List<String>) pythonResponseAfterCreatingFiles.get("createdDocuments"));
+		if (extractedFiles.size() > 0) {
+			// create dataset
+			StringBuilder addDocumentPyCommand = new StringBuilder();
 			
-			Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-			copyFilesToCloudThread.start();
+			// get the relevant FAISS searcher object in python
+			addDocumentPyCommand.append(vectorDatabaseSearcher)
+								.append(".searchers['")
+								.append(indexClass)
+								.append("']");
+			
+			addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
+								.append(String.join("','", extractedFiles))
+								.append("'], insight_id = '")
+								.append(insight.getInsightId())
+								.append("', columns_to_index = ")
+								.append(columnsToIndex);
+			
+			if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey())) {
+				// add the columns based in the vector db query
+				addDocumentPyCommand.append(", ")
+						 			.append("columns_to_remove")
+						 			.append(" = ")
+						 			.append(PyUtils.determineStringType(
+									 parameters.get(
+											 VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey()
+											 )
+									 ));
+			}
+			
+			if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey())) {
+				// add the columns based in the vector db query
+				addDocumentPyCommand.append(", ")
+						 			.append("keyword_search_params")
+						 			.append(" = ")
+						 			.append(PyUtils.determineStringType(
+									 parameters.get(
+											 VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey()
+											 )
+									 ));
+			}
+												
+			addDocumentPyCommand.append(")");
+			
+			String script = addDocumentPyCommand.toString();
+			
+			classLogger.info("Running >>>" + script);
+			Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
+
+			try {
+				FileUtils.forceDelete(parentDirectory);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to delete the temporary file directory");
+			}
+			
+
+			if (ClusterUtil.IS_CLUSTER) {
+				// and the newly created csvs
+				filesToCopyToCloud.addAll(extractedFiles);
+				// add all the embeddings files and the datasets
+				filesToCopyToCloud.addAll((List<String>) pythonResponseAfterCreatingFiles.get("createdDocuments"));
+				
+				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+				copyFilesToCloudThread.start();
+			}
+			
+			// verify the index class loaded the dataset
+			StringBuilder checkForEmptyDatabase = new StringBuilder();
+			checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
+								 .append(".searchers['")
+								 .append(indexClass)
+								 .append("']")
+								 .append(".datasetsLoaded()");
+			boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+			this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 		}
-		
-		// verify the index class loaded the dataset
-		StringBuilder checkForEmptyDatabase = new StringBuilder();
-		checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
-							 .append(".searchers['")
-							 .append(indexClass)
-							 .append("']")
-							 .append(".datasetsLoaded()");
-		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
-		
 		
 		// inform the user that some chunks are too large and they might loose semantic value
 		// Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
