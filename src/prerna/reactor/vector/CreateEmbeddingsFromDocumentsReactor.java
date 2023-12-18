@@ -193,7 +193,11 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				VectorDatabaseTypeEnum.FAISS.getVectorDatabaseName(), 
 				Arrays.asList(
 					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey(), "Optional"}, 
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey(), "Optional"}					)
+					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey(), "Optional"},
+					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_LENGTH.getKey(), "Optional"},
+					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_OVERLAP.getKey(), "Optional"},
+					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey(), "Optional"}
+				)
 			);
 			
 			for (Entry<String, List<String[]>> entry : implementations.entrySet()) {
