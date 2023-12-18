@@ -408,7 +408,7 @@ class FAISSSearcher():
         columns_to_remove: Optional[List[str]] = [],
         target_column: Optional[str] = "text", 
         separator: Optional[str] = ',',
-        keyword_search_params: Optional[Dict] = False,
+        keyword_search_params: Optional[Dict] = {},
     ) -> Dict:
         '''
         Given a path to a CSV document, perform the following tasks:
