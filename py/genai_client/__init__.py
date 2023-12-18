@@ -60,13 +60,13 @@ def get_embedder(embedder_type, **kwargs):
     else:
         raise ValueError('Embedder type has not been defined.')
 
-def get_tokenizer(encoder_type:str, encoder_name, max_tokens):
+def get_tokenizer(tokenizer_type:str, tokenizer_name, max_tokens):
     '''
     Utility method to  get the appropriate tokenizer based on the Model Engine
     '''
-    if (encoder_type == 'EMBEDDED') or (encoder_type == 'TEXT_GENERATION'):
-        return HuggingfaceTokenizer(encoder_name = encoder_name, max_tokens = max_tokens)
-    elif (encoder_type == 'OPEN_AI'):
-        return OpenAiTokenizer(encoder_name = encoder_name, max_tokens = max_tokens)
+    if (tokenizer_type == 'EMBEDDED') or (tokenizer_type == 'TEXT_GENERATION'):
+        return HuggingfaceTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
+    elif (tokenizer_type == 'OPEN_AI'):
+        return OpenAiTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
     else:
         raise ValueError('Tokenizer type has not been defined.')
