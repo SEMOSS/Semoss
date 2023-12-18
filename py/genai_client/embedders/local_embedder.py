@@ -39,6 +39,8 @@ class LocalEmbedder():
                 None
             )
         )
+        
+        self.key_bert_model = None
     
     def get_physical_folder(
         self, 
@@ -137,3 +139,100 @@ class LocalEmbedder():
         )
         
         return model_engine_response.to_dict()
+    
+    def model(
+        self,
+        input: List[str],
+        percentile:int = 0,
+        max_keywords:int = 12
+    ) -> List[str]:
+        
+        if not isinstance(percentile, int):
+            percentile = int(percentile)
+        
+        if not isinstance(max_keywords, int):
+            max_keywords = int(max_keywords)
+        
+        # define what the actual input object is
+        list_of_chunks = input
+        
+        kw_model= self.get_key_bert_model()
+        keywords = [
+            LocalEmbedder.get_text_keywords(
+                kw_model=kw_model, 
+                text=chunk, 
+                percentile=percentile,
+                max_keywords=max_keywords
+            ) 
+            for chunk in list_of_chunks
+        ]
+        
+        return keywords
+    
+    def get_key_bert_model(
+        self
+    ):
+        if self.key_bert_model == None:
+            from keybert import KeyBERT
+            from transformers import PreTrainedModel
+            
+            # if (key_bert_model_name != None):
+            #     self.key_bert_model = KeyBERT(model=key_bert_model_name)
+            if (isinstance(self.embedder, PreTrainedModel)):
+                from transformers import pipeline
+                self.key_bert_model = KeyBERT(
+                    model = pipeline(
+                        task= 'feature-extraction',
+                        model=self.embedder, 
+                        tokenizer=self.tokenizer.tokenizer
+                    )
+                )
+            elif (isinstance(self.embedder, SentenceTransformer)):
+                from keybert.backend._sentencetransformers import SentenceTransformerBackend
+                self.key_bert_model = KeyBERT(
+                    model = SentenceTransformerBackend(
+                        embedding_model = self.embedder
+                    )
+                )
+            else:
+                raise TypeError("Only SentenceTransformer and PreTrainedModel embedders support the model method.")
+            
+        return self.key_bert_model  
+        
+    def get_text_keywords(kw_model, text:str, percentile:int, max_keywords:int):
+        '''Extracts keyword from the text string
+            Args:
+                kw_model `KeyBERT` : the keybert model being used to find the keywords
+                text `str`: a text string to extract keywords from
+                perc `int`: percentile threshold for the keywords to extract
+                max_keywords `int`: maxmimum numbers of keywords to return
+        
+            Returns
+                concatendated keywords `str` - dataframe with extracted keywords and their probabilities
+        '''
+
+        import enchant
+        import numpy as np
+
+        language_dictionary = enchant.Dict("en_US") 
+        keywords = kw_model.extract_keywords(
+            text,
+            top_n=max_keywords
+        )
+        
+        if len(keywords)>0:
+            keywords=[item for item in keywords if language_dictionary.check(item[0])]
+        else:
+            keywords=[('',1.0)]
+            
+        prob = [item[1] for item in keywords]
+        
+        # get the threshold based on percentile
+        threshold = np.percentile(
+            prob,
+            percentile
+        )
+
+        filtered_data = [word for word, score in keywords if score >= threshold]
+        
+        return ' '.join(filtered_data)
