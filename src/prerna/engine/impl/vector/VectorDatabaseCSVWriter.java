@@ -5,6 +5,8 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.ling.SentenceUtils;
 import edu.stanford.nlp.process.DocumentPreprocessor;
@@ -16,6 +18,7 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 
 	String faissDbVarName;
 	TCPPyTranslator vectorPyt;
+	int rowsCreated;
 	
 	public VectorDatabaseCSVWriter(String fileName) {
 		super(fileName);
@@ -28,6 +31,10 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 	public void setPyTranslator(TCPPyTranslator vectorPyt) {
 		this.vectorPyt = vectorPyt;
 	}
+	
+	public int getRowsInCsv() {
+		return this.rowsCreated;
+	}
 
 	@Override
 	protected void writeHeader() {
@@ -39,6 +46,9 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 		.append("Content")
 		.append("\r\n");
 		pw.print(row + "");
+		
+		// this should always be the first row
+		this.rowsCreated = 1;
 	}
 
 	/**
@@ -74,6 +84,8 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 				pw.print(row+"");
 				//pw.print(separator);
 				pw.flush();
+				
+				rowsCreated += 1;
 			}
 		}
 	}
@@ -93,13 +105,26 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 		for (List<HasWord> sentence : dp) {
 			// SentenceUtils not Sentence
 			String sentenceString = SentenceUtils.listToString(sentence);
+	        sentenceString = sentenceString.replaceAll("\\s+", " ");
+
+	        // Remove non-printable characters
+	        sentenceString = sentenceString.replaceAll("[^\\x20-\\x7E]", "");
+
+	        // Unescape HTML entities
+	        sentenceString = StringEscapeUtils.unescapeHtml4(sentenceString);
+	        
+	        // Remove underscores (especially repeated ones)
+	        sentenceString = sentenceString.replaceAll("_+", "");
+	        
 			sentenceList.add(sentenceString);
 		}
 		
-		List<Double> tokensInSentences = (List<Double>) this.vectorPyt.runScript(this.faissDbVarName + ".getTokensInSentences(sentences = "+ PyUtils.determineStringType(sentenceList) + ")");
+		List<Number> tokensInSentences = (List<Number>) this.vectorPyt.runScript(this.faissDbVarName + ".getTokensInSentences(sentences = "+ PyUtils.determineStringType(sentenceList) + ")");
 
-        double totalTokensInContent = tokensInSentences.stream().mapToDouble(Double::doubleValue).sum();
-
+		
+        double totalTokensInContent = tokensInSentences.stream()
+                .mapToDouble(Number::doubleValue)
+                .sum();
 		
 		//if there is only 30 chars, return empty
 		if(totalTokensInContent < this.minContentLength) {
@@ -117,13 +142,13 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 		return blockInformation;
 	}
 
-	public List<String []> createChunks(List<String> sentences, List<Double> tokensInSentences, List<String []> chunks) {
+	public List<String []> createChunks(List<String> sentences, List<Number> tokensInSentences, List<String []> chunks) {
 		StringBuilder currentChunk = new StringBuilder();
 		Double tokensInCurrentChunk = 0.0;
 		
 		for (int i = 0 ; i <sentences.size(); i++) {
 			String sentence = sentences.get(i);
-			Double numTokensInSentence = tokensInSentences.get(i);
+			Double numTokensInSentence = tokensInSentences.get(i).doubleValue();
 			
 			if (tokensInCurrentChunk + numTokensInSentence <= contentLength) {
 				if (currentChunk.length() > 0) {

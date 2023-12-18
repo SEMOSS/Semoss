@@ -61,6 +61,6 @@ public interface IModelEngine extends IEngine {
 	Object embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
 
-	Object model(String question, Insight insight, Map <String, Object> parameters);
+	Object model(Object input, Insight insight, Map <String, Object> parameters);
 
 }
