@@ -52,6 +52,7 @@ class PDFUtil:
         if self.is_table(f"{file_name}.png"):
           #os.rename(f'{file_name}.png',f'{file_name}.table') 
           self.convert_image_to_pdf(f"{file_name}.png")
+          os.remove(f"{file_name}.png")
           
         pix = None  
   
@@ -91,6 +92,7 @@ class PDFUtil:
             
             pix.save(f"{file_name}")
             self.convert_image_to_pdf(file_name)
+            os.remove(file_name)
           except:
             print(f"Failed .. {file_name}")
             pass        
