@@ -286,13 +286,26 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return output;
 	}
 	
-	public Object model(String question, Insight insight, Map <String, Object> parameters) {
+	@Override
+	public Object model(Object input, Insight insight, Map <String, Object> parameters) {
 		if(this.socketClient == null || !this.socketClient.isConnected())
 			this.startServer();
-		String varName = (String) smssProp.get(ModelEngineConstants.VAR_NAME);
-	
-		StringBuilder callMaker = new StringBuilder().append(varName).append(".model(");
-		callMaker.append("question=\"").append(question).append("\"").append(")");
+
+		
+		String varName = smssProp.getProperty(ModelEngineConstants.VAR_NAME);
+		
+		StringBuilder callMaker = new StringBuilder(varName);
+		
+		callMaker.append(".model(input = ")
+				 .append(PyUtils.determineStringType(input));
+				 
+		if (parameters != null && !parameters.isEmpty()) {
+			callMaker.append(", **")
+					 .append(PyUtils.determineStringType(parameters));
+		}
+
+		callMaker.append(")");
+		
 		Object output;
 		if (Utility.isModelInferenceLogsEnabled()) {			
 			String messageId = UUID.randomUUID().toString();
@@ -305,7 +318,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					this,
 					insight,
 					null,
-					question,
+					input,
 					null,
 					inputTime, 
 					PyUtils.determineStringType(output),
