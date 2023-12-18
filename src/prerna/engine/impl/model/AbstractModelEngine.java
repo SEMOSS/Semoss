@@ -296,8 +296,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		StringBuilder callMaker = new StringBuilder(varName);
 		
+		String inputAsString = PyUtils.determineStringType(input);
 		callMaker.append(".model(input = ")
-				 .append(PyUtils.determineStringType(input));
+				 .append(inputAsString);
 				 
 		if (parameters != null && !parameters.isEmpty()) {
 			callMaker.append(", **")
@@ -318,7 +319,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					this,
 					insight,
 					null,
-					input,
+					inputAsString,
 					null,
 					inputTime, 
 					PyUtils.determineStringType(output),
