@@ -15,15 +15,17 @@ class LocalEmbedder():
 
     def __init__(
         self,
-        model_name:str = None,
+        model_name:str,
+        model_path: Optional[str] = None,
         **kwargs
     ) -> None:
         # TODO - remove or options once existing local embedders have been changed
-        self.model_name = model_name or kwargs.get('model_path')
+        self.model_name = model_name
         
-        assert self.model_name != None
+        self.model_folder = model_path or self.get_physical_folder(repo_id = self.model_name)
         
-        self.model_folder = self.get_physical_folder(repo_id = self.model_name)
+        assert self.model_folder != None
+        
         self.embedder = self.get_embedder()
 
         self.tokenizer = HuggingfaceTokenizer(
