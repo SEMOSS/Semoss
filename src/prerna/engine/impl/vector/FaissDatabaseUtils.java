@@ -25,7 +25,7 @@ import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 public class FaissDatabaseUtils {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseUtils.class);
 	
-	public static void convertFilesToCSV(String csvFileName, int contentLength, int contentOverlap, File file, String faissDbVarName, TCPPyTranslator vectorPyt) throws IOException {
+	public static int convertFilesToCSV(String csvFileName, int contentLength, int contentOverlap, File file, String faissDbVarName, TCPPyTranslator vectorPyt) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 		writer.setTokenLength(contentLength);
 		writer.overlapLength(contentOverlap);
@@ -84,6 +84,8 @@ public class FaissDatabaseUtils {
 		
 		}
 		writer.close();
+		
+		return writer.getRowsInCsv();
 	}
 	
 	public static boolean verifyFileTypes(List<String> newFilesPaths, List<String> filesInDocumentsFolder) {
@@ -136,6 +138,21 @@ public class FaissDatabaseUtils {
 	}
 	
 	public static Set<String> extractFileTypesFromPaths(List<String> filePaths) {
+        Set<String> fileTypes = new HashSet<>();
+        for (String filePath : filePaths) {
+            // Find the last dot (.) in the file path
+            int lastDotIndex = filePath.lastIndexOf(".");
+            
+            if (lastDotIndex >= 0) {
+                // Extract the file extension
+                String fileType = filePath.substring(lastDotIndex + 1).toLowerCase();
+                fileTypes.add(fileType);
+            }
+        }
+        return fileTypes;
+    }
+	
+	public static Set<String> createKeywordsFromChunks(List<String> filePaths, TCPPyTranslator vectorPyt) {
         Set<String> fileTypes = new HashSet<>();
         for (String filePath : filePaths) {
             // Find the last dot (.) in the file path
