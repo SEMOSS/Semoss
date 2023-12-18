@@ -19,7 +19,8 @@ class FAISSSearcher():
 
     def __init__(
         self, 
-        encoder_class,
+        embeddings_engine,
+        keywords_engine,
         tokenizer,
         metric_type_is_cosine_similarity:bool,
         base_path = None,
@@ -33,7 +34,9 @@ class FAISSSearcher():
         self.encoded_vectors = None
         self.vector_dimensions = None
 
-        self.encoder_class = encoder_class
+        self.embeddings_engine = embeddings_engine
+        self.keyword_engine = keywords_engine
+        
         self.tokenizer = tokenizer
 
         self.base_path = base_path
@@ -55,7 +58,7 @@ class FAISSSearcher():
             if name in ['ds']:
                 if not isinstance(value, (pd.DataFrame, Dataset)):
                     raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
-            elif name in ['encoder_class']:
+            elif name in ['embeddings_engine', 'keyword_engine']:
                 pass
                 # if not isinstance(value, EncoderInterface):
                 #       raise TypeError(f"{name} must be an instance of EncoderInterface")
@@ -158,10 +161,10 @@ class FAISSSearcher():
             columns_to_return = list(self.ds.features)
 
         # make sure the encoder class is loaded and get the embeddings (vector) for the tokens
-        # search_vector = self.encoder_class.get_embeddings([question])
+        # search_vector = self.embeddings_engine.get_embeddings([question])
         # query_vector = np.array([search_vector])
 
-        search_vector = self.encoder_class.embeddings(
+        search_vector = self.embeddings_engine.embeddings(
             strings_to_embed = [question], 
             insight_id = insight_id
         )
@@ -334,7 +337,7 @@ class FAISSSearcher():
             self.index = faiss.index_factory(self.vector_dimensions[1], "Flat", faiss.METRIC_INNER_PRODUCT)
         else:
             self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
-        # if isinstance(self.encoder_class, HuggingfaceTokenizer):
+        # if isinstance(self.embeddings_engine, HuggingfaceTokenizer):
         #   faiss.normalize_L2(self.encoded_vectors)
         self.index.add(self.encoded_vectors)
 
@@ -405,6 +408,7 @@ class FAISSSearcher():
         columns_to_remove: Optional[List[str]] = [],
         target_column: Optional[str] = "text", 
         separator: Optional[str] = ',',
+        keyword_search_params: Optional[Dict] = False,
     ) -> Dict:
         '''
         Given a path to a CSV document, perform the following tasks:
@@ -424,6 +428,8 @@ class FAISSSearcher():
             The column name for the concatenated columns from which the embeddings will be created
         separator(`str`):
             The character to use as a delimeter between columns for the concatenated column that the embeddings will be created from
+        keyword_search_params (`Dict`):
+            A dictionary containing the keyword search parameters
 
         Returns:
         `None`
@@ -486,14 +492,25 @@ class FAISSSearcher():
                     "separator":separator
                     }
                 )
+                
+                # transform chunks into keywords
+                if keyword_search_params != None and keyword_search_params.pop('keywordSearch', None) is True:
+                    keywords_for_target_col = self.keyword_engine.model(
+                        input = dataset[target_column],
+                        insight_id = insight_id,
+                        param_dict = keyword_search_params
+                    )[0]
+                    #dataset = dataset.add_column(target_column, keywords_for_target_col)
+                    dataset = dataset.remove_columns(column_names= target_column)
+                    dataset = dataset.add_column(target_column, keywords_for_target_col)
 
                 # need to check that the chunks are not greater than what the tokenizer can handle
                 chunks_with_larger_tokens = self._check_chunks_token_size(dataset[target_column])
                 createDocumentsResponse['documentsWithLargerChunks'][document] = chunks_with_larger_tokens
 
                 # get the embeddings for the document
-                #vectors = self.encoder_class.get_embeddings(dataset[target_column])
-                vectors = self.encoder_class.embeddings(
+                #vectors = self.embeddings_engine.get_embeddings(dataset[target_column])
+                vectors = self.embeddings_engine.embeddings(
                     strings_to_embed = dataset[target_column], 
                     insight_id = insight_id
                 )

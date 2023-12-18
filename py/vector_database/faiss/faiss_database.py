@@ -10,9 +10,10 @@ class FAISSDatabase():
 
     def __init__(
         self, 
-        encoder_id:str,
-        encoder_name:str,
-        encoder_type:str,
+        embedder_engine_id:str,
+        embedder_name:str,
+        embedder_type:str,
+        keyword_engine_id:str,
         distance_method:str,
         searchers: list = [], 
         max_tokens:int = None
@@ -22,21 +23,34 @@ class FAISSDatabase():
         '''
         # first we have to determine what tokenizer we need
         self.tokenizer = get_tokenizer(
-            encoder_type= encoder_type, 
-            encoder_name = encoder_name,
-            max_tokens = max_tokens
+            tokenizer_name=embedder_name, 
+            tokenizer_type=embedder_type,
+            max_tokens=max_tokens
         )
 
-        # set the encoder class so it can be used when new searchers/indexClasses are added
-        self.encoder_class = ModelEngine(engine_id = encoder_id)
+        # set the embedder class so it can be used when new searchers/indexClasses are added
+        self.embeddings_engine = ModelEngine(engine_id = embedder_engine_id)
         
-        # 
+        if (keyword_engine_id != None):
+            self.keyword_engine = ModelEngine(engine_id = keyword_engine_id)
+        else:
+            self.keyword_engine = None
+        
+        # what type of similarity search are we performing
         self.metric_type_is_cosine_similarity = False
         if distance_method.lower().find('cosine') > -1:
             self.metric_type_is_cosine_similarity = True
         
         # register all the searchers passed in
-        self.searchers = {searcher:FAISSSearcher(encoder_class = self.encoder_class, tokenizer = self.tokenizer, metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity) for searcher in searchers}
+        self.searchers = {
+            searcher:FAISSSearcher(
+                embeddings_engine = self.embeddings_engine,
+                keywords_engine = self.keyword_engine,
+                tokenizer = self.tokenizer, 
+                metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity
+            ) 
+            for searcher in searchers
+        }
 
     def create_searcher(
         self, 
@@ -57,7 +71,8 @@ class FAISSDatabase():
             raise ValueError("The searcher/table/class already exists")
         
         self.searchers[searcher_name] = FAISSSearcher(
-            encoder_class = self.encoder_class, 
+            embeddings_engine = self.embeddings_engine,
+            keywords_engine = self.keyword_engine,
             tokenizer = self.tokenizer, 
             metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity,
             **kwargs
