@@ -157,15 +157,12 @@ class LocalEmbedder():
         list_of_chunks = input
         
         kw_model= self.get_key_bert_model()
-        keywords = [
-            LocalEmbedder.get_text_keywords(
+        keywords = LocalEmbedder.get_text_keywords(
                 kw_model=kw_model, 
-                text=chunk, 
+                list_of_chunks=list_of_chunks, 
                 percentile=percentile,
                 max_keywords=max_keywords
-            ) 
-            for chunk in list_of_chunks
-        ]
+            )
         
         return keywords
     
@@ -199,40 +196,67 @@ class LocalEmbedder():
             
         return self.key_bert_model  
         
-    def get_text_keywords(kw_model, text:str, percentile:int, max_keywords:int):
+    def get_text_keywords(
+        kw_model, 
+        list_of_chunks:List[str], 
+        percentile:int, 
+        max_keywords:int
+    ) -> List[str]:
         '''Extracts keyword from the text string
             Args:
-                kw_model `KeyBERT` : the keybert model being used to find the keywords
-                text `str`: a text string to extract keywords from
-                perc `int`: percentile threshold for the keywords to extract
-                max_keywords `int`: maxmimum numbers of keywords to return
+                kw_model (`KeyBERT`) : the keybert model being used to find the keywords
+                text (`str`): a text string to extract keywords from
+                perc (`int`): percentile threshold for the keywords to extract
+                max_keywords (`int`): maxmimum numbers of keywords to return
         
             Returns
-                concatendated keywords `str` - dataframe with extracted keywords and their probabilities
+                concatendated keywords (`List[str]`) - dataframe with extracted keywords and their probabilities
         '''
 
         import enchant
         import numpy as np
 
+        # define the english dictionary
         language_dictionary = enchant.Dict("en_US") 
-        keywords = kw_model.extract_keywords(
-            text,
-            top_n=max_keywords
-        )
         
-        if len(keywords)>0:
-            keywords=[item for item in keywords if language_dictionary.check(item[0])]
+        if len(list_of_chunks) == 0:
+            master_keywords_list = [kw_model.extract_keywords(
+                list_of_chunks,
+                top_n=max_keywords
+            )]
         else:
-            keywords=[('',1.0)]
-            
-        prob = [item[1] for item in keywords]
+            master_keywords_list = kw_model.extract_keywords(
+                list_of_chunks,
+                top_n=max_keywords
+            )
         
-        # get the threshold based on percentile
-        threshold = np.percentile(
-            prob,
-            percentile
-        )
+        # capitilize the outputs since the dictionary check doesnt seem valid with lower case
+        # TODO check other option -- embeddings do seem to come back the same
+        master_keywords_list = [[(word.upper(), value) for word, value in inner_list] for inner_list in master_keywords_list]
+        
+        for i, keywords in enumerate(master_keywords_list):
+            if len(keywords)>0:
+                temp_keywords = [item for item in keywords if language_dictionary.check(item[0])]
+                if len(temp_keywords) == 0:
+                    # we need to make sure that the list isnt empty after validating the words
+                    keywords = [('',1.0)]
+                else:
+                    keywords = temp_keywords
+            else:
+                keywords=[('',1.0)]
 
-        filtered_data = [word for word, score in keywords if score >= threshold]
+            
+            prob = [item[1] for item in keywords]
+            
+            # get the threshold based on percentile
+            threshold = np.percentile(
+                prob,
+                percentile
+            )
+
+            filtered_data = [word for word, score in keywords if score >= threshold]
+            
+            master_keywords_list[i] = ' '.join(filtered_data)
+
         
-        return ' '.join(filtered_data)
+        return master_keywords_list
