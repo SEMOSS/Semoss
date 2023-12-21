@@ -107,6 +107,7 @@ class Interrogator():
     input_ids = tok_input.input_ids.to(self.model.device)
     tok_input.attention_mask.to(self.model.device)
     #print(kwargs)
+    
     new_kwargs = self.configure_params(input_ids, **kwargs)
     
     #print(new_kwargs)
@@ -114,8 +115,18 @@ class Interrogator():
     #print("starting thread")
     #t = Thread(target=self.model.generate, kwargs=new_kwargs)
     #t.start()
-    self.model.generate(**new_kwargs)
-    model_output = ""
+    
+    model_output = self.model.generate(**new_kwargs)
+    
+    num_input_tokens = tok_input.input_ids.size(1)
+    output = model_output[0][num_input_tokens:]
+    response = self.tokenizer.decode(output, skip_special_tokens=True)
+    
+    return {
+        'response': response,
+        'numberOfTokensInPrompt': num_input_tokens,
+        'numberOfTokensInResponse': len(output)
+    }
     #for new_text in self.console_streamer:
     #  model_output += new_text
     #  #print(new_text, end="")
