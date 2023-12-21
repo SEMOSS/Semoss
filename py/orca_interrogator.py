@@ -20,9 +20,4 @@ class Interrogator(gi.Interrogator):
     console_streamer.set_output_prefix(prefix)
     output = super().ask(prompt, streamer=console_streamer, **kwargs)
     #output = console_streamer.complete_output
-    return {
-        'response': output,
-        'numberOfTokensInPrompt': len(self.tokenizer.encode(prompt)),
-        'numberOfTokensInResponse': len(self.tokenizer.encode(output))
-    }
-  
+    return output
