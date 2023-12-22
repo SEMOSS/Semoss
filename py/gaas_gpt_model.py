@@ -12,11 +12,24 @@ class ModelEngine(ServerProxy):
     def __init__(
         self, 
         engine_id: Optional[str], 
-        insight_id: Optional[str] = None
+        insight_id: Optional[str] = None,
+        local: Optional[bool]=False,
+        pipeline_type: Optional[str]=None
     ):
         super().__init__()
         self.engine_id = engine_id
         self.insight_id = insight_id
+        self.local = local
+        
+        if local:
+          # start the model and make it available
+          import torch
+          from transformers import pipeline 
+          device = "cpu"
+          if torch.cuda.is_available():
+            device = "cuda"
+          self.pipeline_type = pipeline_type
+          self.pipe = pipeline(pipeline_type, model=engine_id, device=device)
     
     def ask(
         self, 
@@ -69,31 +82,37 @@ class ModelEngine(ServerProxy):
         insight_id: Optional[str] = None, 
         param_dict: Optional[Dict] = None,
     ):
-        if insight_id is None:
-            insight_id = self.insight_id
-        assert insight_id is not None
-        
-        epoc = super().get_next_epoc()
-        return super().call(
-            epoc=epoc, 
-            engine_type='Model', 
-            engine_id=self.engine_id, 
-            insight_id=insight_id, 
-            method_name='model', 
-            method_args=[input, insight_id, param_dict],
-            method_arg_types=['java.lang.Object', 'prerna.om.Insight', 'java.util.Map']
-        )
+        if not self.local:
+          if insight_id is None:
+              insight_id = self.insight_id
+          assert insight_id is not None
+          
+          epoc = super().get_next_epoc()
+          return super().call(
+              epoc=epoc, 
+              engine_type='Model', 
+              engine_id=self.engine_id, 
+              insight_id=insight_id, 
+              method_name='model', 
+              method_args=[input, insight_id, param_dict],
+              method_arg_types=['java.lang.Object', 'prerna.om.Insight', 'java.util.Map']
+          )
+        else:
+          return self.pipe(input)
 
     def get_model_type(self, insight_id:str = None):
-        if insight_id is None:
-            insight_id = self.insight_id
-        epoc = super().get_next_epoc()
-        return super().call(
-            epoc=epoc, 
-            engine_type='Model', 
-            engine_id=self.engine_id, 
-            insight_id=insight_id, 
-            method_name='getModelType', 
-            method_args=[],
-            method_arg_types=[]
-        )
+        if not local:
+          if insight_id is None:
+              insight_id = self.insight_id
+          epoc = super().get_next_epoc()
+          return super().call(
+              epoc=epoc, 
+              engine_type='Model', 
+              engine_id=self.engine_id, 
+              insight_id=insight_id, 
+              method_name='getModelType', 
+              method_args=[],
+              method_arg_types=[]
+          )
+        else:
+          return self.pipeline_type
