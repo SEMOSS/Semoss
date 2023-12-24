@@ -15,9 +15,11 @@ from paddleocr import PPStructure,save_structure_res
 from paddleocr.ppstructure.recovery.recovery_to_doc import sorted_layout_boxes, convert_info_docx
 import torch
 import numpy
+import json
 
 
 class TableUtil:
+
   def __init__(self, target_folder=None):
     import gaas_gpt_model as ggm
     self.structure_recognizer = ggm.ModelEngine(local=True, engine_id="microsoft/table-transformer-structure-recognition", pipeline_type="object-detection")
@@ -158,10 +160,78 @@ class TableUtil:
     img = cv2.cvtColor(numpy.array(pil_image), cv2.COLOR_RGB2BGR)
     result = self.table_engine(img)
     save_structure_res(result, target_folder, image_name)
+    # try to get the headers and save the column names as metadata
+    file_name = f"{target_folder}/{image_name}/{result[0]['bbox']}_0.xlsx"
+    new_file_name = f"{target_folder}/{image_name}/{image_name}.xlsx"
+    if os.path.isfile(file_name):
+      os.rename(file_name, new_file_name)
+      file_name = new_file_name
+      pickle_name = f"{target_folder}/{image_name}/{image_name}.pickle"
+      meta_name = f"{target_folder}/{image_name}/{image_name}.meta"
+      sent_name = f"{target_folder}/{image_name}/{image_name}.txt"
+      
+      # capture all of the metadata
+      #try:
+      df = self.write_frame_meta(new_file_name, meta_name)
+      sentences = self.make_csv_to_sentences(df)
+      # eventually we should write this all to one file
+      with open(sent_name, "w") as f:
+        for s in sentences:
+          f.write(s)
+      #except :
+      #  print("Failed to capture metadata")
+      #  pass
     
+      # rename the file
+      
     
-        
-        
+  # should we be ffilling ?
+  def write_frame_meta(self, file_name, meta_name):
+    df = pd.read_excel(file_name) #.fillna(method='ffill')
+    meta = {}
+    details = []
+    columns = df.columns.values.tolist()
+    count = df.count().tolist()
+    types = df.dtypes.tolist()
+    meta.update({'column_list': columns})
+    for column in columns:
+      thiscol = {}
+      idx = columns.index(column)
+      thiscol.update({'name':column})
+      thiscol.update({'count': count[idx]})
+      thiscol.update({'type': str(types[idx])})
+      details.append(thiscol)
+    meta.update({'details':details})
+    with open(meta_name, "w") as f:
+      f.write(json.dumps(meta))
+      
+    return df
+      
+  def make_csv_to_sentences(self, df=None, prefix=""):
+    if df is None:
+      return
+    #takes the dataframe headers
+    # creates sentences in this format
+    # <prefix> column_name with value <row value>
+    columns = df.columns.values.tolist()
+    all_sent = []
+    
+    for index, row in df.iterrows():
+      row_sentence = prefix
+      this_row = list(row)
+      for column in list(row):
+        if not pd.isna(column):
+          #print(column)
+          idx = this_row.index(column)
+          header_name = columns[idx]
+          if len(row_sentence) == 0:
+            row_sentence = row_sentence + "  " + header_name + "  has value " + str(column)
+          else:
+            row_sentence = row_sentence + " and  " + header_name + "  has value " + str(column)
+        row_sentence = row_sentence + "."    
+      all_sent.append(row_sentence)  
+    return all_sent
+  
   def adjust_padding(self, input, padding=10):
     input = input + padding
     if input < 0:
