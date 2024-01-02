@@ -11,7 +11,7 @@ class ModelEngine(ServerProxy):
   
     def __init__(
         self, 
-        engine_id: Optional[str], 
+        engine_id: str, 
         insight_id: Optional[str] = None,
         local: Optional[bool]=False,
         pipeline_type: Optional[str]=None
@@ -100,8 +100,11 @@ class ModelEngine(ServerProxy):
         else:
           return self.pipe(input)
 
-    def get_model_type(self, insight_id:str = None):
-        if not local:
+    def get_model_type(
+        self, 
+        insight_id: Optional[str] = None
+    ):
+        if not self.local:
           if insight_id is None:
               insight_id = self.insight_id
           epoc = super().get_next_epoc()
