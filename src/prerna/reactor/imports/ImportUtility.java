@@ -408,7 +408,7 @@ public class ImportUtility {
 				String type = dataTypes.get(table);
 				metaData.setDataTypeToProperty(uniqueHeader, type);
 				
-				if(additionalTypes.get(table) != null) {
+				if(additionalTypes!= null && additionalTypes.get(table) != null) {
 					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(uniqueHeader));
 				}
 			} else {
@@ -416,7 +416,7 @@ public class ImportUtility {
 				String type = dataTypes.get(column);
 				metaData.setDataTypeToProperty(uniqueHeader, type);
 				
-				if(additionalTypes.get(column) != null) {
+				if(additionalTypes!= null && additionalTypes.get(column) != null) {
 					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(column));
 				}
 			}
