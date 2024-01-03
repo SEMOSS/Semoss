@@ -14,6 +14,7 @@ import java.util.Set;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tika.Tika;
 
 import prerna.ds.py.TCPPyTranslator;
 import prerna.reactor.frame.gaas.processors.CSVWriter;
@@ -43,13 +44,14 @@ public class FaissDatabaseUtils {
 		Path filePath = Paths.get(file.getAbsolutePath());
 		// process this file
 		String mimeType = null;
-		if (SystemUtils.IS_OS_MAC) {
-		     mimeType = URLConnection.guessContentTypeFromName(filePath.toFile().getName());
+		
+		//using tika for mime type check since it is more consistent across env + rhel OS and macOS
+		Tika tika = new Tika();
 
-		} else {
-			 mimeType = Files.probeContentType(filePath);
-		}
+		mimeType = tika.detect(filePath);
+
 		if(mimeType != null) {
+			classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
 			if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
 			{
 				// document
@@ -78,7 +80,7 @@ public class FaissDatabaseUtils {
 			}
 			else
 			{
-				classLogger.warn("We Currently do not support mime-type " + file.getAbsolutePath());
+				classLogger.warn("We Currently do not support mime-type " + mimeType);
 			}
 			classLogger.info("Completed Processing file : " + file.getAbsolutePath());
 		
