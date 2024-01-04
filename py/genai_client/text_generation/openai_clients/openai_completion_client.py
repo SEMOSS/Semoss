@@ -53,14 +53,12 @@ class OpenAiCompletion(AbstractOpenAiClient):
         if history is not None:
             prompt = f"{prompt} {history}"
             
-        print(prompt)
         # check to see if we need to adjust the prompt or max_new_tokens
         prompt, kwargs['max_tokens'], model_engine_response = self._check_token_limits(
             prompt_payload = prompt,
             max_new_tokens = max_new_tokens
         )
 
-        print(prompt)
         model_engine_response.response = self._inference_call(
             prompt = prompt,
             prefix = prefix, 
