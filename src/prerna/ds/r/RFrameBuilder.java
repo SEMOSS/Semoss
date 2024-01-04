@@ -420,7 +420,10 @@ public class RFrameBuilder {
 			} else if(type == SemossDataType.BOOLEAN) {
 				booleanColumns.add(header);
 			} else if(type == SemossDataType.DATE) {
-				String format = javaDateFormatMap.get(header);
+				String format = null;
+				if(javaDateFormatMap != null) {
+					format = javaDateFormatMap.get(header);
+				}
 				if(format == null) {
 					format = "yyyy-MM-dd";
 				}
@@ -433,7 +436,10 @@ public class RFrameBuilder {
 					datesMap.put(format, headerList);
 				}
 			} else if( type == SemossDataType.TIMESTAMP) {
-				String format = javaDateFormatMap.get(header);
+				String format = null;
+				if(javaDateFormatMap != null) {
+					format = javaDateFormatMap.get(header);
+				}
 				if(format == null) {
 					format = "yyyy-MM-dd HH:mm:ss.SSS";
 				}
