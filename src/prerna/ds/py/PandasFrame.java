@@ -310,16 +310,18 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// proper logic first
 		Map<String, String> newHeaders = qs.getNewHeaderNames();
 		String[] selectedHeaders = it.getHeaders();
-		String [] cleanNewHeaders = new String [selectedHeaders.length];
-		int i = 0;
-		for(String newColName : selectedHeaders) {
-			String oldColName = newHeaders.get(newColName);
-			if (oldColName != null) {
-				cleanNewHeaders[i] = oldColName;
-			} else {
-				cleanNewHeaders[i] = newColName;
+		String [] cleanNewHeaders = selectedHeaders;
+		if(newHeaders != null) {
+			int i = 0;
+			for(String newColName : selectedHeaders) {
+				String oldColName = newHeaders.get(newColName);
+				if (oldColName != null) {
+					cleanNewHeaders[i] = oldColName;
+				} else {
+					cleanNewHeaders[i] = newColName;
+				}
+				i++;
 			}
-			i++;
 		}
 		
 		String selectedColumns = PandasSyntaxHelper.filterByColumn(tableName, tableName,  Arrays.asList(cleanNewHeaders) );
