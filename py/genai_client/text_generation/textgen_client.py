@@ -4,7 +4,7 @@ from text_generation import Client
 import inspect
 
 from .base_client import BaseClient
-from ..tokenizers import HuggingfaceTokenizer
+from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     ModelEngineResponse,
     MAX_TOKENS,
@@ -48,9 +48,9 @@ class TextGenClient(BaseClient):
                 None
             )
         )
-
-        self.stop_sequences = stop_sequences or [self.tokenizer.tokenizer.eos_token]
-
+        
+        default_stop_sequence = [self.tokenizer.tokenizer.eos_token] if self.tokenizer.tokenizer.eos_token is not None else []
+        self.stop_sequences = stop_sequences or default_stop_sequence
     
     def ask(
         self, 
@@ -178,6 +178,8 @@ class TextGenClient(BaseClient):
                 **parameters
             )
             
+            
+            # TODO - handle server side crash
             response_tokens = []
             response_logprobs = []
             for response in responses:
