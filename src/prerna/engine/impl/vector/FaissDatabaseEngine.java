@@ -57,7 +57,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
 	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	private static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
+	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -113,8 +113,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 		
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);	
-
+		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
+		
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
 		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
