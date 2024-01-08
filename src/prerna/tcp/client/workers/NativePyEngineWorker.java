@@ -136,8 +136,8 @@ public class NativePyEngineWorker implements Runnable {
 			}
 			else
 			{
-				ps.payload = new Object[] {"User does not have permission"};
-				ps.payloadClasses = new Class[] {java.lang.String.class};
+				// this should just go into the catch below
+				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to it");
 			}
 			// got the response
 			ps.response = true;
@@ -146,16 +146,12 @@ public class NativePyEngineWorker implements Runnable {
 		{
 			ex.printStackTrace();
 			
-			String errorMessage = "Runtime Error Processing Python Command";
-			
-			// Get the message from the cause exception (if any)
-		    if (ex.getCause() != null) {
-		    	errorMessage =  ex.getCause().getMessage();
-		    }
-			
 		    // Get the message from the current exception
+		    String errorMessage = (ex.getCause() != null) ? ex.getCause().getMessage() : ex.getLocalizedMessage();
+
+		    // if its null, pass a generic message
 		    if (errorMessage == null) {
-		    	errorMessage = ex.getLocalizedMessage();
+		        errorMessage = "Runtime Error Processing Python Command";
 		    }
 		    
 			ps.ex = errorMessage;
