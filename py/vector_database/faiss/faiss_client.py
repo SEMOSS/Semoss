@@ -317,16 +317,30 @@ class FAISSSearcher():
     
         assert isinstance(loaded_dataset, (Dataset, pd.DataFrame))
         
-        if isinstance(loaded_dataset, Dataset):
+        if (FAISSSearcher.datasetType == 'pandas'):
+            dataset_columns = loaded_dataset.columns
+        else:
+            # Dataset
+            dataset_columns = list(loaded_dataset.features)
+        
+        extracted_with_cfg = all(col in dataset_columns for col in ['Divider', 'Part', 'Tokens'])
+        if isinstance(loaded_dataset, Dataset) and extracted_with_cfg:
             new_features = loaded_dataset.features.copy()
             new_features["Divider"] = Value(dtype='string', id=None)
             new_features["Part"] = Value(dtype='string', id=None)
             new_features["Tokens"] = Value(dtype='int64', id=None)
             loaded_dataset = loaded_dataset.cast(new_features)
         
-        if 'Modality' not in list(loaded_dataset.features):
-            loaded_dataset = loaded_dataset.add_column("Modality", ['text' for i in range(loaded_dataset.num_rows)])
+            if 'Modality' not in dataset_columns:
+                loaded_dataset = loaded_dataset.add_column("Modality", ['text' for i in range(loaded_dataset.num_rows)])
+        elif isinstance(loaded_dataset, pd.DataFrame) and extracted_with_cfg:
+            loaded_dataset["Divider"] = loaded_dataset["Divider"].astype(str)
+            loaded_dataset["Part"] = loaded_dataset["Part"].astype(str)
+            loaded_dataset["Tokens"] = loaded_dataset["Tokens"].astype(int)
         
+            if 'Modality' not in dataset_columns:
+                loaded_dataset["Modality"] = 'text' 
+                
         return loaded_dataset
 
     def save_dataset(
