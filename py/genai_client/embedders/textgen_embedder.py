@@ -2,7 +2,7 @@ from typing import List
 import requests
 
 from .local_embedder import LocalEmbedder
-from ..tokenizers import HuggingfaceTokenizer
+from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     MAX_TOKENS,
     MAX_INPUT_TOKENS
