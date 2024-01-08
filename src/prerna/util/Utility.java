@@ -2524,13 +2524,9 @@ public class Utility {
 				// always load into security
 				SecurityEngineUtils.addEngine(engineId, null);
 			}
-		} catch (InstantiationException ie) {
-			classLogger.error(Constants.STACKTRACE, ie);
-		} catch (IllegalAccessException iae) {
-			classLogger.error(Constants.STACKTRACE, iae);
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
 		} catch (Exception e) {
+			// null out the engine
+			engine = null;
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
