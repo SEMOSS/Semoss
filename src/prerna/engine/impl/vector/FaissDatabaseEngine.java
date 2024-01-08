@@ -56,6 +56,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
+	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
+	private static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
+	
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
@@ -95,7 +98,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if(!this.schemaFolder.exists()) {
 			this.schemaFolder.mkdirs();
 		}
-		this.smssProp.put("WORKING_DIR", this.schemaFolder.getAbsolutePath());
+		this.smssProp.put(Constants.WORKING_DIR, this.schemaFolder.getAbsolutePath());
 		
 		// third layer - All the separate tables,classes, or searchers that can be added to this db
 		this.indexClasses = new ArrayList<>();
@@ -110,18 +113,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 		
-		this.smssProp.put("VECTOR_SEARCHER_NAME", this.vectorDatabaseSearcher);	
+		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);	
 
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
-		String embedderEngineId = this.smssProp.getProperty("EMBEDDER_ENGINE_ID");
+		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
 		if (embedderEngineId == null) {
 			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
 			if (embedderEngineId == null) {
 				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
 			}
 			
-			this.smssProp.put("EMBEDDER_ENGINE_ID", embedderEngineId);
+			this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, embedderEngineId);
 		}
 		
 		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
@@ -131,7 +134,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
-		this.smssProp.put("MODEL_TYPE", modelProperties.getProperty("MODEL_TYPE"));
+		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
 		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
 			this.smssProp.put(Constants.MAX_TOKENS, "None");	
 		} else {
@@ -139,16 +142,15 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// model engine responsible for creating keywords
-		String keywordGeneratorEngineId = this.smssProp.getProperty("KEYWORD_ENGINE_ID");
+		String keywordGeneratorEngineId = this.smssProp.getProperty(KEYWORD_ENGINE_ID);
 		if (keywordGeneratorEngineId != null) {
 			// pull the model smss if needed
 			Utility.getModel(keywordGeneratorEngineId);
-			this.smssProp.put("KEYWORD_ENGINE_ID", "'" + keywordGeneratorEngineId + "'");
+			this.smssProp.put(KEYWORD_ENGINE_ID, "'" + keywordGeneratorEngineId + "'");
 		} else {
 			// add it to the smss prop so the string substitution does not fail
-			this.smssProp.put("KEYWORD_ENGINE_ID", "None");
+			this.smssProp.put(KEYWORD_ENGINE_ID, "None");
 		}
-
 		
 		// vars for string substitution
 		this.vars = new HashMap<>(this.smssProp);
@@ -169,10 +171,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
 				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
-				modifiedCommands.add("${VECTOR_SEARCHER_NAME}.create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+				modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
 				if (fileToCheck.exists()) {
-			        modifiedCommands.add("${VECTOR_SEARCHER_NAME}.searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add("${VECTOR_SEARCHER_NAME}.searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
+			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
+			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
 		        }
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
@@ -268,18 +270,23 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		int chunkMaxTokenLength = this.contentLength;
-		if (parameters.containsKey("contentLength")) {
-			chunkMaxTokenLength = (int) parameters.get("contentLength");
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_LENGTH.getKey())) {
+			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_LENGTH.getKey());
 		}
 		
 		int tokenOverlapBetweenChunks = this.contentOverlap;
-		if (parameters.containsKey("contentOverlap")) {
-			tokenOverlapBetweenChunks = (int) parameters.get("contentOverlap");
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_OVERLAP.getKey())) {
+			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_OVERLAP.getKey());
 		}
 		
-		String chunkUnit = this.chunkUnit;
-		if (parameters.containsKey("chunkUnit")) {
-			chunkUnit = (String) parameters.get("chunkUnit");
+		String chunkUnit = this.defaultChunkUnit;
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.CHUNK_UNIT.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.CHUNK_UNIT.getKey());
+		}
+		
+		String extractionMethod = this.defaultExtractionMethod;
+		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.EXTRACTION_METHOD.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.EXTRACTION_METHOD.getKey());
 		}
 		
 		Insight insight = getInsight(parameters.get("insight"));
@@ -360,7 +367,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					classLogger.info("Extracting text from document " + documentName);
 					// determine which text extraction method to use
 					int rowsCreated;
-					if (this.smssProp.getProperty("EXTRACTION_METHOD", "None").equals("fitz") && destinationFile.getName().toLowerCase().endsWith(".pdf")) {
+					if (extractionMethod.equals("fitz") && destinationFile.getName().toLowerCase().endsWith(".pdf")) {
 						StringBuilder extractTextFromDocScript = new StringBuilder();
 						extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
 											 .append(destinationFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
