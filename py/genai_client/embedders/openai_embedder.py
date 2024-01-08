@@ -1,10 +1,26 @@
 from typing import Union, List, Dict, Any
 from openai import OpenAI
-from ..tokenizers import OpenAiTokenizer
+
+from ..tokenizers.openai_tokenizer import OpenAiTokenizer
 from ..constants import (
     MAX_TOKENS,
     ModelEngineResponse
 )
+
+# from logging_config import CfgLoggingHandler
+# import logging
+# class_logger = logging.getLogger(__name__)
+
+# # remove the handlers from the child logger and add a new one
+# for handler in class_logger.handlers:
+#     # check if the handler h is of class CfgLoggingHandler
+#     if isinstance(handler, CfgLoggingHandler):
+#         # Call set_stack on the handler
+#         handler.set_stack('BACKEND')
+
+# from logging_config import get_logger
+# class_logger = get_logger(__name__)
+
 class OpenAiEmbedder():
     
     def __init__(
@@ -54,7 +70,7 @@ class OpenAiEmbedder():
         list_to_embed:List[str], 
         prefix:str = ""
     ) -> Dict[str, Union[str, int]]:
-
+        
         # Make sure a list was passed in so we can proceed with the logic below
         assert isinstance(list_to_embed, list)
         
@@ -64,7 +80,8 @@ class OpenAiEmbedder():
         if (self.tokenizer.get_max_token_length() != None):
             if (total_num_of_tokens <= self.tokenizer.get_max_token_length()):
                 # The entire list can be sent as a single batch
-                print(prefix + "Waiting for OpenAI to process all chunks")
+                #class_logger.warning("Waiting for OpenAI to process all chunks", extra={'stack': 'BACKEND'})
+                
                 single_batch_results = self._make_openai_embedding_call(
                     list_to_embed
                 )
@@ -92,24 +109,24 @@ class OpenAiEmbedder():
                 if len(current_batch) > 0:
                     batches.append(current_batch)
 
-                print(prefix + "Multiple batches have to be sent to OpenAI")
+                #class_logger.warning("Multiple batches have to be sent to OpenAI", extra={'stack': 'BACKEND'})
                 number_of_batches = len(batches)
                 for i in range(number_of_batches):
                     batch_results = self._make_openai_embedding_call(
                         batches[i]
                     )
-                    print(prefix + "Completed Embedding " + str(i+1) + "/" + str(number_of_batches) + " Batches")
+                    #class_logger.warning("Completed Embedding " + str(i+1) + "/" + str(number_of_batches) + " Batches", extra={'stack': 'BACKEND'})
                     embedded_list.extend([vector.embedding for vector in batch_results.data])
         else:
             # We have no choice but to try send the entire thing
-            print(prefix + "Waiting for OpenAI to process all chunks")
+            #class_logger.warning("Waiting for OpenAI to process all chunks", extra={'stack': 'BACKEND'})
             single_batch_results = self._make_openai_embedding_call(
                 list_to_embed
             )
 
             embedded_list = [vector.embedding for vector in single_batch_results.data]
             
-        print(prefix + "Sending Embeddings back from Model Engine")
+        #class_logger.warning("Sending Embeddings back from Model Engine", extra={'stack': 'BACKEND'})
         
         model_engine_response = ModelEngineResponse(
             response=embedded_list,

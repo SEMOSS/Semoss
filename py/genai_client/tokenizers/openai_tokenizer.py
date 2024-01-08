@@ -28,7 +28,6 @@ class OpenAiTokenizer(AbstractTokenizer):
         elif (encoder_name == "gpt-3.5-turbo-0301"):
             self.tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
             self.tokens_per_name = -1  # if there's a name, the role is omitted
-
     def _get_tokenizer(self, encoder_name:str):
         """
         Returns the appropriate encoding based on the given encoding type (either an encoding string or a model name).
