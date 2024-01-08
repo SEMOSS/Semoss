@@ -37,6 +37,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
 	
+	protected String chunkUnit;
+	
 	protected String defaultIndexClass;
 	
 	// string substitute vars
@@ -69,6 +71,15 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (this.smssProp.containsKey("CONTENT_OVERLAP")) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty("CONTENT_OVERLAP"));
 		}
+		
+		this.chunkUnit = "tokens";
+		if (this.smssProp.containsKey("DEFAULT_CHUNK_UNIT")) {
+			this.chunkUnit = this.smssProp.getProperty("DEFAULT_CHUNK_UNIT").toLowerCase().trim();
+			if (!this.chunkUnit.equals("tokens") && !this.chunkUnit.equals("characters")){
+	            throw new IllegalArgumentException("DEFAULT_CHUNK_UNIT should be either 'tokens' or 'characters'");
+			}
+		}
+		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey("INDEX_CLASSES")) {
 			this.defaultIndexClass = this.smssProp.getProperty("INDEX_CLASSES");
