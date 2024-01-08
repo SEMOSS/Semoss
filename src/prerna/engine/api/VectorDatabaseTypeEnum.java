@@ -62,11 +62,13 @@ public enum VectorDatabaseTypeEnum {
 	
 	public enum ParamValueOptions {
 		ASCENDING("ascending", 						"Boolean flag to sort the responses by in ascending order"),
+		CHUNK_UNIT("chunkUnit", 					"The unit that detemines how to measures the length of given chunks. Options are \"tokens\" or \"characters\"."),
 		CONTENT_LENGTH("contentLength", 			"The content length represents the upper limit of tokens within a chunk, as determined by the embedder's tokenizer."),
 		CONTENT_OVERLAP("contentOverlap", 			"The number of tokens from prior chunks that are carried over into the current chunk when processing content."),
 		COLUMNS_TO_INDEX("columnsToIndex",			"A list of column names in the data you want to create the embeddings from"),
 		COLUMNS_TO_REMOVE("columnsToRemove",		"A list of column names in the data that you dont want to store in the database"),
 		COLUMNS_TO_RETURN("columnsToReturn",		"A list of column names in the data you want returned in the response"),
+		EXTRACTION_METHOD("extractionMethod",		"The name of the extraction method used to pull data from PDF(s). Options are \"fitz\" or \"default\"."),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
 		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under");
 
