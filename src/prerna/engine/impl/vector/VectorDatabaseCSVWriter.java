@@ -40,9 +40,9 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 	protected void writeHeader() {
 		StringBuffer row = new StringBuffer();
 		row.append("Source").append(",")
+		.append("Modality").append(",")
 		.append("Divider").append(",")
 		.append("Part").append(",")
-		.append("Tokens").append(",")
 		.append("Content")
 		.append("\r\n");
 		pw.print(row + "");
@@ -65,29 +65,43 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 		// uses spacy to break this
 		// gets the parts and then
 		// takes this row and writes it
-		List<String []> contentBlocks = breakSentences(content);
+//		List<String []> contentBlocks = breakSentences(content);
+//		
+//		for(int contentIndex = 0;contentIndex < contentBlocks.size();contentIndex++) {
+//			String thisBlock = contentBlocks.get(contentIndex)[0];
+//			String numTokensInBlock = contentBlocks.get(contentIndex)[1];
+//			
+//			if(thisBlock.length() >= minContentLength) {
+//				//System.err.println(contentIndex + " <> " + contentBlocks.get(contentIndex));
+//				StringBuilder row = new StringBuilder();
+//				row.append("\"").append(cleanString(source)).append("\"").append(",")
+//				.append("\"").append(cleanString(divider)).append("\"").append(",")
+//				.append("\"").append(contentIndex).append("\"").append(",")
+//				.append("\"").append(numTokensInBlock).append("\"").append(",")
+//				.append("\"").append(cleanString(thisBlock)).append("\"")
+//				.append("\r\n");
+//				//System.out.println(row);
+//				pw.print(row+"");
+//				//pw.print(separator);
+//				pw.flush();
+//				
+//				rowsCreated += 1;
+//			}
+//		}
 		
-		for(int contentIndex = 0;contentIndex < contentBlocks.size();contentIndex++) {
-			String thisBlock = contentBlocks.get(contentIndex)[0];
-			String numTokensInBlock = contentBlocks.get(contentIndex)[1];
-			
-			if(thisBlock.length() >= minContentLength) {
-				//System.err.println(contentIndex + " <> " + contentBlocks.get(contentIndex));
-				StringBuilder row = new StringBuilder();
-				row.append("\"").append(cleanString(source)).append("\"").append(",")
-				.append("\"").append(cleanString(divider)).append("\"").append(",")
-				.append("\"").append(contentIndex).append("\"").append(",")
-				.append("\"").append(numTokensInBlock).append("\"").append(",")
-				.append("\"").append(cleanString(thisBlock)).append("\"")
-				.append("\r\n");
-				//System.out.println(row);
-				pw.print(row+"");
-				//pw.print(separator);
-				pw.flush();
-				
-				rowsCreated += 1;
-			}
-		}
+		StringBuilder row = new StringBuilder();
+		row.append("\"").append(cleanString(source)).append("\"").append(",")
+		.append("\"").append("text").append("\"").append(",")
+		.append("\"").append(cleanString(divider)).append("\"").append(",")
+		.append("\"").append(0).append("\"").append(",")
+		.append("\"").append(cleanString(content)).append("\"")
+		.append("\r\n");
+		//System.out.println(row);
+		pw.print(row+"");
+		//pw.print(separator);
+		pw.flush();
+		
+		rowsCreated += 1;
 	}
 	
 	/**

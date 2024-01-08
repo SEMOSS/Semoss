@@ -411,7 +411,7 @@ public class PyUtils {
 			theSet.append("}");
 			return theSet.toString();
     	} else {
-    		return "'''"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "'''";
+    		return "r'''"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "'''";
     	}
     }
     

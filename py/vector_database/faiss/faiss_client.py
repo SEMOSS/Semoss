@@ -1,5 +1,5 @@
 from typing import List, Dict, Union, Optional, Any
-from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching
+from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching, Value
 import pandas as pd
 import faiss
 import numpy as np
@@ -7,7 +7,8 @@ from ..encoders import *
 import pickle
 import os
 import glob
-from genai_client.tokenizers import HuggingfaceTokenizer
+from genai_client.tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ..constants import ENCODING_OPTIONS
 
 class FAISSSearcher():
     '''
@@ -15,7 +16,6 @@ class FAISSSearcher():
     '''
 
     datasetType = 'datasets'
-    encodingOptions = ['iso-8859-1', 'latin1', 'cp1252']
 
     def __init__(
         self, 
@@ -276,27 +276,57 @@ class FAISSSearcher():
         '''
         if (dataset_location.endswith('.csv')):
             if (FAISSSearcher.datasetType == 'pandas'):
-                loaded_dataset = pd.read_csv(filepath_or_buffer=dataset_location, encoding='iso-8859-1')
-            else:
-                try:
+                for encoding in ENCODING_OPTIONS:
+                    try:
+                        temp_df = pd.read_csv(dataset_location, encoding = encoding)
+                        loaded_dataset = Dataset.from_pandas(
+                            temp_df
+                        )
+                        break
+                    except:
+                        continue
+                else:
+                    # The else clause is executed if the loop completes without encountering a break
+                    raise Exception("Unable to read the file with any of the specified encodings")
+            else:   
+                try:  
                     loaded_dataset = Dataset.from_csv(
-                        dataset_location, 
-                        encoding='iso-8859-1',
-                        keep_in_memory=True
+                        path_or_paths = dataset_location, 
+                        encoding ='iso-8859-1',
+                        keep_in_memory = True
                     )
                 except:
-                    loaded_dataset = load_dataset(
-                        'csv', 
-                        data_files = dataset_location,
-                        keep_in_memory=True
-                    )
+                    for encoding in ENCODING_OPTIONS:
+                        try:
+                            temp_df = pd.read_csv(dataset_location, encoding = encoding)
+                            loaded_dataset = Dataset.from_pandas(
+                                temp_df
+                            )
+                            break
+                        except:
+                            continue
+                    else:
+                        # The else clause is executed if the loop completes without encountering a break
+                        raise Exception("Unable to read the file with any of the specified encodings")  
+
         elif (dataset_location.endswith('.pkl')):
             with open(dataset_location, "rb") as file:
                 loaded_dataset = pickle.load(file)
         else:
             raise ValueError("Dataset creation for provided file type has not been defined")
     
-        assert isinstance(loaded_dataset, (Dataset, pd.DataFrame)) 
+        assert isinstance(loaded_dataset, (Dataset, pd.DataFrame))
+        
+        if isinstance(loaded_dataset, Dataset):
+            new_features = loaded_dataset.features.copy()
+            new_features["Divider"] = Value(dtype='string', id=None)
+            new_features["Part"] = Value(dtype='string', id=None)
+            new_features["Tokens"] = Value(dtype='int64', id=None)
+            loaded_dataset = loaded_dataset.cast(new_features)
+        
+        if 'Modality' not in list(loaded_dataset.features):
+            loaded_dataset = loaded_dataset.add_column("Modality", ['text' for i in range(loaded_dataset.num_rows)])
+        
         return loaded_dataset
 
     def save_dataset(
@@ -451,27 +481,7 @@ class FAISSSearcher():
             new_file_extension = ".pkl"
 
             # Create the Dataset for every file
-            # TODO change this to json so we dont have encoding issue
-            
-            try:  
-                dataset = Dataset.from_csv(
-                    path_or_paths = document, 
-                    encoding ='iso-8859-1',
-                    keep_in_memory = True
-                )
-            except:
-                for encoding in FAISSSearcher.encodingOptions:
-                    try:
-                        temp_df = pd.read_csv(document, encoding = encoding)
-                        dataset = Dataset.from_pandas(
-                            temp_df
-                        )
-                        break
-                    except:
-                        continue
-                else:
-                    # The else clause is executed if the loop completes without encountering a break
-                    raise Exception("Unable to read the file with any of the specified encodings")
+            dataset = self._load_dataset(dataset_location=document)
 
             if (columns_to_index == None or len(columns_to_index) == 0):
                 columns_to_index = list(dataset.features)
@@ -579,6 +589,7 @@ class FAISSSearcher():
 
         # Use glob.glob to find all matching files in the directory
         matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
+        matching_files.sort()
         for i, file in enumerate(matching_files):
             dataset = self._load_dataset(dataset_location=file)
             if i == 0:
@@ -591,6 +602,7 @@ class FAISSSearcher():
 
         # Use glob.glob to find all matching files in the directory
         matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
+        matching_files.sort()
         for i, file in enumerate(matching_files):
             vectors = self._load_encoded_vectors(encoded_vectors_location=file)
             if i == 0:
