@@ -42,6 +42,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.reactor.qs.SubQueryExpression;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.NativePySocketClient;
@@ -58,8 +59,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
-	private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', embedder_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, embedder_type = '${MODEL_TYPE}', keyword_engine_id = ${KEYWORD_ENGINE_ID}, distance_method = '${DISTANCE_METHOD}')";
-
+	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
+	private static final String faissInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = ${KEYWORD_ENGINE_ID}, distance_method = '${DISTANCE_METHOD}')";
+	
 	protected String vectorDatabaseSearcher = null;
 	
 	File vectorDbFolder;
@@ -160,7 +162,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// execute all the basic commands		
 		
 		// break the commands seperated by ;
-		String [] commands = initScript.split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
+		String [] commands = (tokenizerInitScript+faissInitScript).split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
@@ -275,6 +277,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			tokenOverlapBetweenChunks = (int) parameters.get("contentOverlap");
 		}
 		
+		String chunkUnit = this.chunkUnit;
+		if (parameters.containsKey("chunkUnit")) {
+			chunkUnit = (String) parameters.get("chunkUnit");
+		}
+		
 		Insight insight = getInsight(parameters.get("insight"));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
@@ -316,6 +323,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String columnsToIndex = "";
 		List <String> extractedFiles = new ArrayList<String>();
 		List <String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
+		String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 		for (String fileName : filePaths) {
 			// move the documents into documents folder
 			File fileInTempFolder = new File(fileName);
@@ -342,12 +350,31 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = destinationFile.getName().split("\\.")[0];
 			File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
+			String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 			try {
 				if (extractedFile.exists()) {
 					FileUtils.forceDelete(extractedFile);
 				}
 				if (!destinationFile.getName().toLowerCase().endsWith(".csv")) {
-					int rowsCreated = FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, destinationFile, this.vectorDatabaseSearcher, this.pyt);
+					
+					classLogger.info("Extracting text from document " + documentName);
+					// determine which text extraction method to use
+					int rowsCreated;
+					if (this.smssProp.getProperty("EXTRACTION_METHOD", "None").equals("fitz") && destinationFile.getName().toLowerCase().endsWith(".pdf")) {
+						StringBuilder extractTextFromDocScript = new StringBuilder();
+						extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+											 .append(destinationFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+											 .append("', target_folder = '")
+											 .append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
+											 .append("', output_file_name = '")
+											 .append(extractedFileName)
+											 .append("')");
+						Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
+						
+						rowsCreated = rows.intValue();
+					} else {
+						rowsCreated = FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, destinationFile, this.vectorDatabaseSearcher, this.pyt);
+					}
 					
 					// check to see if the file data was extracted
 					if (rowsCreated <= 1) {
@@ -356,6 +383,23 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						FileUtils.forceDelete(destinationFile); // delete the input file e.g pdf
 						continue;
 					}
+					
+					classLogger.info("Creating chunks from extracted text for " + documentName);
+					
+					// TODO ADD LOGIC to split text
+					StringBuilder splitTextCommand = new StringBuilder();
+					splitTextCommand.append("vector_database.split_text(csv_file_location = '")
+										 .append(extractedFileName)
+										 .append("', chunk_unit = '")
+										 .append(chunkUnit)
+										 .append("', chunk_size = ")
+										 .append(chunkMaxTokenLength)
+										 .append(", chunk_overlap = ")
+										 .append(tokenOverlapBetweenChunks)
+										 .append(", chunking_strategy = ")
+										 .append(chunkingStrategy)
+										 .append(", cfg_tokenizer = cfg_tokenizer)");
+					pyt.runScript(splitTextCommand.toString());
 					
 					// this needs to match the column created in the new CSV
 					columnsToIndex = "['Content']"; 
@@ -368,8 +412,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						columnsToIndex = "[]"; // this is so we pass an empty list
 					}
 				}
-				extractedFiles.add(extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR));
+				extractedFiles.add(extractedFileName);
 			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
+			} catch (SemossPixelException e) {
+				// this is a python error
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
 			}
