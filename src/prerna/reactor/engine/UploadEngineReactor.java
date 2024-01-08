@@ -47,7 +47,7 @@ public class UploadEngineReactor extends AbstractReactor {
 	private static final String CLASS_NAME = UploadEngineReactor.class.getName();
 
 	public UploadEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey() };
 	}
 
 	@Override
@@ -56,6 +56,8 @@ public class UploadEngineReactor extends AbstractReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		int step = 1;
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		// do we want this project to be accessible to everyone
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 		// check security
 		User user = this.insight.getUser();
 		if (user == null) {
@@ -205,7 +207,7 @@ public class UploadEngineReactor extends AbstractReactor {
 				step++;
 			}
 			logger.info(step + ") Synchronizing the engine metadata");
-			SecurityEngineUtils.addEngine(engineId, false, user);
+			SecurityEngineUtils.addEngine(engineId, global, user);
 			logger.info(step + ") Done");
 			step++;
 			
