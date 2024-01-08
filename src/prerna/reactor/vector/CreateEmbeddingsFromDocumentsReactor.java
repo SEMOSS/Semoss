@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,17 +50,33 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 		
-		// TODO need to decide what we call this -- sync with the team
-		//String tableName = this.keyValue.get(this.keysToGet[1]);
-		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
-			paramMap = new HashMap<String, Object>();
-		}
-				
 		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
 		if (eng == null) {
 			throw new SemossPixelException("Unable to find engine");
 		}
+		
+		Map<String, Object> paramMap = getMap();
+		if(paramMap == null) {
+			paramMap = new HashMap<String, Object>();
+		}
+		
+		// for FAISS, make sure the user has access to the embedder model as well
+		if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS) {
+			String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
+				throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
+			}
+			
+			Object keywordArgs = paramMap.getOrDefault(VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey(), null);
+			if (keywordArgs != null) {
+				// we also need to make sure they have access to the keyword engine id
+				String keywordEngineId = eng.getSmssProp().getProperty(FaissDatabaseEngine.KEYWORD_ENGINE_ID);
+				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), keywordEngineId)) {
+					throw new IllegalArgumentException("Keyword model " + keywordEngineId + " does not exist or user does not have access to this model");
+				}
+			}
+		}
+		
 		
 		insightFolder = this.insight.getInsightFolder();
 		
