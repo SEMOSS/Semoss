@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from openai import OpenAI
 from ..base_client import BaseClient
-from ...tokenizers import OpenAiTokenizer
+from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from abc import ABC, abstractmethod
 
 class AbstractOpenAiClient(BaseClient, ABC):
