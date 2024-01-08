@@ -4,7 +4,7 @@ from string import Template
 import logging
 
 from .base_client import BaseClient
-from ..tokenizers import HuggingfaceTokenizer
+from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     MAX_TOKENS,
     MAX_INPUT_TOKENS,
