@@ -89,18 +89,21 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Invalid model type " + vectorDbTypeStr);
 		}
 		
-		if (!vectorDbDetails.containsKey("INDEX_CLASSES")) {
-			vectorDbDetails.put("INDEX_CLASSES", "default");
-		}
-		if (!vectorDbDetails.containsKey("EMBEDDER_ENGINE_NAME") && vectorDbType == VectorDatabaseTypeEnum.FAISS) {
-			String embedderEngineId = vectorDbDetails.getOrDefault("EMBEDDER_ENGINE_ID", null);
-			if (embedderEngineId == null) {
-				throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for FAISS database");
+		if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
+			if (!vectorDbDetails.containsKey(Constants.INDEX_CLASSES)) {
+				vectorDbDetails.put(Constants.INDEX_CLASSES, "default");
 			}
 			
-			IModelEngine embeddingModel = Utility.getModel(embedderEngineId);
-			String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
-			vectorDbDetails.put("EMBEDDER_ENGINE_NAME", embeddingModelAlias);
+			if (!vectorDbDetails.containsKey(Constants.EMBEDDER_ENGINE_NAME)) {
+				String embedderEngineId = vectorDbDetails.getOrDefault(Constants.EMBEDDER_ENGINE_ID, null);
+				if (embedderEngineId == null) {
+					throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for FAISS database");
+				}
+				
+				IModelEngine embeddingModel = Utility.getModel(embedderEngineId);
+				String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
+				vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
+			}
 		}
 				
 		String vectorDbId = UUID.randomUUID().toString();

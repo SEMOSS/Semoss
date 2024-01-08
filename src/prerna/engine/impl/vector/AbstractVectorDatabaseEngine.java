@@ -37,7 +37,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
 	
-	protected String chunkUnit;
+	protected String defaultChunkUnit;
+	protected String defaultExtractionMethod;
 	
 	protected String defaultIndexClass;
 	
@@ -56,8 +57,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
-		if (!this.smssProp.containsKey("WORKING_DIR")) {
-			this.smssProp.put("WORKING_DIR", RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName));
+		if (!this.smssProp.containsKey(Constants.WORKING_DIR)) {
+			this.smssProp.put(Constants.WORKING_DIR, RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName));
 		}
 		
 		if(this.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS) {
@@ -65,24 +66,26 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 		}
 
-		if (this.smssProp.containsKey("CONTENT_LENGTH")) {
-			this.contentLength = Integer.parseInt(this.smssProp.getProperty("CONTENT_LENGTH"));
+		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
+			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
 		}
-		if (this.smssProp.containsKey("CONTENT_OVERLAP")) {
-			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty("CONTENT_OVERLAP"));
+		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
+			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
 		
-		this.chunkUnit = "tokens";
-		if (this.smssProp.containsKey("DEFAULT_CHUNK_UNIT")) {
-			this.chunkUnit = this.smssProp.getProperty("DEFAULT_CHUNK_UNIT").toLowerCase().trim();
-			if (!this.chunkUnit.equals("tokens") && !this.chunkUnit.equals("characters")){
+		this.defaultChunkUnit = "tokens";
+		if (this.smssProp.containsKey(Constants.DEFAULT_CHUNK_UNIT)) {
+			this.defaultChunkUnit = this.smssProp.getProperty(Constants.DEFAULT_CHUNK_UNIT).toLowerCase().trim();
+			if (!this.defaultChunkUnit.equals("tokens") && !this.defaultChunkUnit.equals("characters")){
 	            throw new IllegalArgumentException("DEFAULT_CHUNK_UNIT should be either 'tokens' or 'characters'");
 			}
 		}
 		
+		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
+		
 		this.defaultIndexClass = "default";
-		if (this.smssProp.containsKey("INDEX_CLASSES")) {
-			this.defaultIndexClass = this.smssProp.getProperty("INDEX_CLASSES");
+		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
+			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 	}
 	

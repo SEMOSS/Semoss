@@ -886,6 +886,16 @@ public class Constants {
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 	
+	//vector
+	public static final String INDEX_CLASSES = "INDEX_CLASSES";
+	public static final String CONTENT_LENGTH = "CONTENT_LENGTH";
+	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";
+	public static final String DEFAULT_CHUNK_UNIT = "DEFAULT_CHUNK_UNIT";
+	public static final String WORKING_DIR = "WORKING_DIR";
+	public static final String EMBEDDER_ENGINE_ID = "EMBEDDER_ENGINE_ID";
+	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
+	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
+	
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
 	
