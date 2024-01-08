@@ -18,6 +18,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class VectorDatabaseQueryReactor extends AbstractReactor {
@@ -39,8 +40,22 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		
 		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this model");
+			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to it.");
 		}
+		
+		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
+		if (eng == null) {
+			throw new SemossPixelException("Unable to find engine");
+		}
+		
+		// for FAISS, make sure the user has access to the embedder model as well
+		if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS) {
+			String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
+				throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
+			}
+		}
+		
 		
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		int limit = getLimit();
@@ -48,12 +63,6 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
-		}
-		
-		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
-
-		if (eng == null) {
-			throw new SemossPixelException("Unable to find engine");
 		}
 		
 		// add the insightId so Model Engine calls can be made for python
