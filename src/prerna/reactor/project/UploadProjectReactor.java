@@ -48,8 +48,7 @@ public class UploadProjectReactor extends AbstractReactor {
 	private static final String CLASS_NAME = UploadProjectReactor.class.getName();
 
 	public UploadProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
 	}
 
 	@Override
@@ -57,8 +56,9 @@ public class UploadProjectReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = this.getLogger(CLASS_NAME);
 		int step = 1;
-		String zipFilePath = UploadInputUtility.getFilePath(this.store,this.insight);
-
+		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		// do we want this project to be accessible to everyone
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 		// check security
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
@@ -256,7 +256,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		try {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
-			SecurityProjectUtils.addProject(projectId, false, user);
+			SecurityProjectUtils.addProject(projectId, global, user);
 			
 			// see if we have any dependencies or metadata to load
 			{
