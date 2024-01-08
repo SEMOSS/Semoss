@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer, util
 from huggingface_hub import try_to_load_from_cache, _CACHED_NO_EXIST, snapshot_download, hf_hub_download
 from transformers import AutoModel
 from pathlib import Path
-from ..tokenizers import HuggingfaceTokenizer
+from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     MAX_TOKENS,
     MAX_INPUT_TOKENS,
@@ -95,9 +95,10 @@ class LocalEmbedder():
         list_to_embed:List[str], 
         prefix=""
     ) -> List[float]:
+        
         # Determine what object was bassed in so we can pre-configure it before making the call
         assert isinstance(list_to_embed, list)
-        
+
 
         embedded_list = self.embedder.encode(
             sentences = list_to_embed, 
@@ -171,6 +172,7 @@ class LocalEmbedder():
     ):
         if self.key_bert_model == None:
             from keybert import KeyBERT
+            # from keyphrase_vectorizers impoirt KeyphraseCountVectorizer
             from transformers import PreTrainedModel
             
             # if (key_bert_model_name != None):
