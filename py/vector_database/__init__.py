@@ -1,21 +1,13 @@
-# utility to get the client
+from typing import Any
 
-# register all the clients in the init
-from .encoders.huggingface_encoder import (
-    HuggingFaceEncoder
-)
-from .encoders.openai_encoder import (
-    OpenaiEncoderClass
-)
-from .faiss.faiss_database import (
-    FAISSDatabase
-)
-
-# make it easy to get the encoder
-def get_encoder(encoder_type = '', **kwargs):
-    if (encoder_type == 'openai'):
-        return OpenaiEncoderClass(**kwargs)
-    elif (encoder_type == 'huggingface'):
-        return HuggingFaceEncoder(**kwargs)
-    else:
-        raise ValueError('Encoder type has not been defined.')
+# register classes and methods
+def __getattr__(name: str) -> Any:
+    if name == "FAISSDatabase":
+        from .faiss.faiss_database import FAISSDatabase
+        return FAISSDatabase
+    elif name == "extract_text":
+        from .utils.extraction.text_extractor import extract_text
+        return extract_text
+    elif name == "split_text":
+        from .utils.text_splitting import split_text
+        return split_text

@@ -11,22 +11,16 @@ class FAISSDatabase():
     def __init__(
         self, 
         embedder_engine_id:str,
-        embedder_name:str,
-        embedder_type:str,
+        tokenizer,
         keyword_engine_id:str,
         distance_method:str,
         searchers: list = [], 
-        max_tokens:int = None
     ) -> None:
         '''
         Create an instance of FAISSDatabase
         '''
         # first we have to determine what tokenizer we need
-        self.tokenizer = get_tokenizer(
-            tokenizer_name=embedder_name, 
-            tokenizer_type=embedder_type,
-            max_tokens=max_tokens
-        )
+        self.tokenizer = tokenizer
 
         # set the embedder class so it can be used when new searchers/indexClasses are added
         self.embeddings_engine = ModelEngine(engine_id = embedder_engine_id)
@@ -173,3 +167,5 @@ class FAISSDatabase():
         prompt_tokens = self.tokenizer.get_tokens_ids(chunk)
         overlap_string = self.tokenizer.decode_token_ids(prompt_tokens[len(prompt_tokens) - overlapLength:])
         return overlap_string
+    
+        
