@@ -423,10 +423,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
-			} catch (SemossPixelException e) {
-				// this is a python error
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
 			}
 		}
 		
