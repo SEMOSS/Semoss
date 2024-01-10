@@ -48,7 +48,7 @@ public class TimedEngineCleanup {
      * @param engine
      * @param timeoutMillis
      */
-    public void put(IEngine engine, long timeoutMillis) {
+    public synchronized void put(IEngine engine, long timeoutMillis) {
         String engineId = engine.getEngineId();
     	internalMap.put(engineId, engine);
 
