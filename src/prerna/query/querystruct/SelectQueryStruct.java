@@ -106,9 +106,11 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	// overriding methods for ordering with panels
 	@Override
 	public void addPanel(InsightPanel panel) {
-		super.addPanel(panel);
 		if(!this.panelList.contains(panel)) {
+			this.panelList.add(panel);
+			this.panelIdList.add(panel.getPanelId());
 			// also add in the current panel state
+			this.panelImplicitFilters.merge(panel.getPanelFilters());
 			this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
 		}
 	}
