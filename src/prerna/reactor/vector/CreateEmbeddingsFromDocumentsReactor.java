@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -18,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -67,7 +67,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
 			}
 			
-			Object keywordArgs = paramMap.getOrDefault(VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey(), null);
+			Object keywordArgs = paramMap.getOrDefault(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey(), null);
 			if (keywordArgs != null) {
 				// we also need to make sure they have access to the keyword engine id
 				String keywordEngineId = eng.getSmssProp().getProperty(FaissDatabaseEngine.KEYWORD_ENGINE_ID);
@@ -202,42 +202,23 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
-			
-			HashMap<String, List<String[]>> implementations = new HashMap<String, List<String []>>();
-			
-			// what are the key options for a given engine implementation and whether or not those keys are required or optional
-			implementations.put(
-				VectorDatabaseTypeEnum.FAISS.getVectorDatabaseName(), 
-				Arrays.asList(
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.CHUNK_UNIT.getKey(), "Optional"}, 
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey(), "Optional"}, 
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey(), "Optional"},
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_LENGTH.getKey(), "Optional"},
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_OVERLAP.getKey(), "Optional"},
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.EXTRACTION_METHOD.getKey(), "Optional"},
-					new String [] {VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey(), "Optional"}
-				)
-			);
-			
-			for (Entry<String, List<String[]>> entry : implementations.entrySet()) {
+									
+			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
 				finalDescription.append("\n")
 								.append("\t\t\t\t\t")
-								.append(entry.getKey())
+								.append(entry.getVectorDbType().getVectorDatabaseName())
 								.append(":");
 				
-				for (String[] option : entry.getValue()) {
-					
-					String paramKey = option[0];
-					
+				for (String paramKey : entry.getParamOptionsKeys()) {
 					finalDescription.append("\n")
 									.append("\t\t\t\t\t\t")
 									.append(paramKey)
 									.append("\t")
 									.append("-")
 									.append("\t")
-									.append("(").append(option[1]).append(")")
+									.append("(").append(entry.getRequirementStatus(paramKey)).append(")")
 									.append(" ")
-									.append(VectorDatabaseTypeEnum.ParamValueOptions.getDescriptionFromKey(paramKey));
+									.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 				}
 			}
 			return finalDescription.toString();
