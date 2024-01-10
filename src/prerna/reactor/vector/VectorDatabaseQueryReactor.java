@@ -1,14 +1,13 @@
 package prerna.reactor.vector;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.VectorQueryParamOptions;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
@@ -132,37 +131,22 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 			
-			HashMap<String, List<String[]>> implementations = new HashMap<String, List<String []>>();
-			
-			// what are the key options for a given engine implementation
-			implementations.put(
-					VectorDatabaseTypeEnum.FAISS.getVectorDatabaseName(), 
-					Arrays.asList(
-							new String [] {VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_RETURN.getKey(), "Optional"}, 
-							new String [] {VectorDatabaseTypeEnum.ParamValueOptions.RETURN_THRESHOLD.getKey(), "Optional"}, 
-							new String [] {VectorDatabaseTypeEnum.ParamValueOptions.ASCENDING.getKey(), "Optional"}
-					)
-			);
-			
-			for (Entry<String, List<String[]>> entry : implementations.entrySet()) {
+			for (VectorQueryParamOptions entry : VectorQueryParamOptions.values()) {
 				finalDescription.append("\n")
 								.append("\t\t\t\t\t")
-								.append(entry.getKey())
+								.append(entry.getVectorDbType().getVectorDatabaseName())
 								.append(":");
 				
-				for (String[] option : entry.getValue()) {
-					
-					String paramKey = option[0];
-					
+				for (String paramKey : entry.getParamOptionsKeys()) {				
 					finalDescription.append("\n")
 									.append("\t\t\t\t\t\t")
 									.append(paramKey)
 									.append("\t")
 									.append("-")
 									.append("\t")
-									.append("(").append(option[1]).append(")")
+									.append("(").append(entry.getRequirementStatus(paramKey)).append(")")
 									.append(" ")
-									.append(VectorDatabaseTypeEnum.ParamValueOptions.getDescriptionFromKey(paramKey));
+									.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 				}
 			}
 			return finalDescription.toString();
