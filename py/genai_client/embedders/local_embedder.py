@@ -217,6 +217,7 @@ class LocalEmbedder():
 
         import enchant
         import numpy as np
+        from keyphrase_vectorizers import KeyphraseCountVectorizer
 
         # define the english dictionary
         language_dictionary = enchant.Dict("en_US") 
