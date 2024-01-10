@@ -198,7 +198,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
-		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout, Boolean.parseBoolean(this.smssProp.getProperty("DEBUG", "false")));
+		
+		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout);
+		
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
