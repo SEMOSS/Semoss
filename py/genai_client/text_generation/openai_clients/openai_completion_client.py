@@ -77,7 +77,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
         prefix:str, 
         kwargs
     ) -> str:
-        final_query = prompt + " "
+        final_query = ""
         finish = False
 
         kwargs['stream'] = kwargs.get('stream', True)
