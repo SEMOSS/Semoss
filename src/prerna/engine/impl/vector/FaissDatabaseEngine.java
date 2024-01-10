@@ -28,6 +28,7 @@ import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.om.Insight;
@@ -42,7 +43,6 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.reactor.qs.SubQueryExpression;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.NativePySocketClient;
@@ -63,7 +63,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
-	private static final String faissInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = ${KEYWORD_ENGINE_ID}, distance_method = '${DISTANCE_METHOD}')";
+	private static final String faissInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
 	
 	protected String vectorDatabaseSearcher = null;
 	
@@ -146,10 +146,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (keywordGeneratorEngineId != null) {
 			// pull the model smss if needed
 			Utility.getModel(keywordGeneratorEngineId);
-			this.smssProp.put(KEYWORD_ENGINE_ID, "'" + keywordGeneratorEngineId + "'");
+			this.smssProp.put(KEYWORD_ENGINE_ID, keywordGeneratorEngineId);
 		} else {
 			// add it to the smss prop so the string substitution does not fail
-			this.smssProp.put(KEYWORD_ENGINE_ID, "None");
+			this.smssProp.put(KEYWORD_ENGINE_ID, "");
 		}
 		
 		// vars for string substitution
@@ -198,7 +198,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
-		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout);
+		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout, Boolean.parseBoolean(this.smssProp.getProperty("DEBUG", "false")));
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
@@ -270,23 +270,23 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		int chunkMaxTokenLength = this.contentLength;
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_LENGTH.getKey())) {
-			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_LENGTH.getKey());
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
+			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
 		}
 		
 		int tokenOverlapBetweenChunks = this.contentOverlap;
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_OVERLAP.getKey())) {
-			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.CONTENT_OVERLAP.getKey());
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
+			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
 		}
 		
 		String chunkUnit = this.defaultChunkUnit;
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.CHUNK_UNIT.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.CHUNK_UNIT.getKey());
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
 		}
 		
 		String extractionMethod = this.defaultExtractionMethod;
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.EXTRACTION_METHOD.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.EXTRACTION_METHOD.getKey());
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
 		
 		Insight insight = getInsight(parameters.get("insight"));
@@ -413,8 +413,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				} else {
 					// copy csv over but make sure its only csvs
 					FileUtils.copyFileToDirectory(destinationFile, tableIndexFolder);
-					if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey())) {
-						columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_INDEX.getKey()));
+					if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey())) {
+						columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey()));
 					} else {
 						columnsToIndex = "[]"; // this is so we pass an empty list
 					}
@@ -443,26 +443,26 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 								.append("', columns_to_index = ")
 								.append(columnsToIndex);
 			
-			if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey())) {
+			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_REMOVE.getKey())) {
 				// add the columns based in the vector db query
 				addDocumentPyCommand.append(", ")
 						 			.append("columns_to_remove")
 						 			.append(" = ")
 						 			.append(PyUtils.determineStringType(
 									 parameters.get(
-											 VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_REMOVE.getKey()
+											 VectorDatabaseParamOptionsEnum.COLUMNS_TO_REMOVE.getKey()
 											 )
 									 ));
 			}
 			
-			if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey())) {
+			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
 				// add the columns based in the vector db query
 				addDocumentPyCommand.append(", ")
 						 			.append("keyword_search_params")
 						 			.append(" = ")
 						 			.append(PyUtils.determineStringType(
 									 parameters.get(
-											 VectorDatabaseTypeEnum.ParamValueOptions.KEYWORD_SEARCH_PARAM.getKey()
+											 VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey()
 											 )
 									 ));
 			}
@@ -669,21 +669,21 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				 .append("results = ")
 				 .append(limit);
 		
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_RETURN.getKey())) {
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {
 			// add the columns based in the vector db query
 			callMaker.append(", ")
 					 .append("columns_to_return")
 					 .append(" = ")
 					 .append(PyUtils.determineStringType(
 							 parameters.get(
-									 VectorDatabaseTypeEnum.ParamValueOptions.COLUMNS_TO_RETURN.getKey()
+									 VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey()
 									 )
 							 ));
 		}
 		
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.RETURN_THRESHOLD.getKey())) {
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey())) {
 			// add the return_threshold, it should be a long or double value
-			Object thresholdValue =  parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.RETURN_THRESHOLD.getKey());
+			Object thresholdValue =  parameters.get(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey());
 			Double returnThreshold;
 			
 			if (thresholdValue instanceof Long) {
@@ -700,9 +700,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					 .append(returnThreshold);
 		}
 		
-		if (parameters.containsKey(VectorDatabaseTypeEnum.ParamValueOptions.ASCENDING.getKey())) {
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {
 			// This should be a True or False value
-			String trueFalseString = (String) parameters.get(VectorDatabaseTypeEnum.ParamValueOptions.ASCENDING.getKey());
+			String trueFalseString = (String) parameters.get(VectorDatabaseParamOptionsEnum.ASCENDING.getKey());
 			String pythonTrueFalse = Character.toUpperCase(trueFalseString.charAt(0)) + trueFalseString.substring(1);
 			
 			callMaker.append(",")
