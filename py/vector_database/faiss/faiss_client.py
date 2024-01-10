@@ -168,6 +168,7 @@ class FAISSSearcher():
             strings_to_embed = [question], 
             insight_id = insight_id
         )
+        
         query_vector = np.array(search_vector[0]['response'], dtype=np.float32)
         assert query_vector.shape[0] == 1
 

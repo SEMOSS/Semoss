@@ -25,7 +25,7 @@ class FAISSDatabase():
         # set the embedder class so it can be used when new searchers/indexClasses are added
         self.embeddings_engine = ModelEngine(engine_id = embedder_engine_id)
         
-        if (keyword_engine_id != None):
+        if (keyword_engine_id != None and keyword_engine_id != ''):
             self.keyword_engine = ModelEngine(engine_id = keyword_engine_id)
         else:
             self.keyword_engine = None
