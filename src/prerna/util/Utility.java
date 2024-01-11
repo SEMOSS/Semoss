@@ -5515,7 +5515,7 @@ public class Utility {
 		return thisProcess;
 	}
 
-	public static Object [] startTCPServerNativePy(String insightFolder, String port, String py, String ...otherProps ) {
+	public static Object [] startTCPServerNativePy(String insightFolder, String port, String py, String timeout, String loggerLevel) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
@@ -5565,12 +5565,8 @@ public class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String timeout = "15";
-			if(otherProps!= null && otherProps.length > 0)
-				timeout = otherProps[0];
-			
-			String[] commands = new String[] {py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
-	
+			String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+				
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);

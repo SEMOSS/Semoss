@@ -37,6 +37,6 @@ public class Settings {
 
 	// debugging
 	public static final String FORCE_PORT = "FORCE_PORT"; // the port to force the connection on
-
+	public static final String LOGGER_LEVEL = "LOGGER_LEVEL"; // the python logger level — DEBUG, INFO, WARNING, or CRITICAL
 }
 

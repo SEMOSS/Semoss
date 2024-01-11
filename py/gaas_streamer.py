@@ -5,6 +5,7 @@ class SemossStreamer(TextStreamer):
 
   def __init__(self, **kwargs):
     self.complete_output = ""
+    self.output_prefix = kwargs.get('prefix', '')
     super().__init__(**kwargs)
 
   def set_output_prefix(self, output_prefix):
