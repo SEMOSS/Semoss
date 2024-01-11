@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -49,6 +50,7 @@ import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -198,9 +200,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
-		
+//		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+//		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout, loggerLevel);
 		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout);
-		
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
@@ -296,7 +298,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 
-		File parentDirectory = (File) parameters.get("temporaryFileDirectory");
+		// File temporaryFileDirectory = (File) parameters.get("temporaryFileDirectory");
 		
 		
 		// first we need to extract the text from the document
@@ -308,15 +310,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if(!documentDir.exists()) {
 			documentDir.mkdirs();
 		}
+		
 		boolean filesAppoved = FaissDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
 		if (!filesAppoved) {
-			// delete them all
-			try {
-				FileUtils.forceDelete(parentDirectory);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to delete the temporary file directory");
-			}
 			throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 		}
 		
@@ -330,49 +326,58 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		String columnsToIndex = "";
-		List <String> extractedFiles = new ArrayList<String>();
-		List <String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
+		List<String> extractedFiles = new ArrayList<String>();
+		List<String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
 		String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
+		
+		// move the documents from insight into documents folder
+		HashSet<File> fileToExtractFrom = new HashSet<File>();
 		for (String fileName : filePaths) {
-			// move the documents into documents folder
-			File fileInTempFolder = new File(fileName);
+			File fileInInsightFolder = new File(fileName);
 			
-			// TODO probably need to handle zips
-			if (!fileInTempFolder.isFile()) {
+			// Double check that they are files and not directories
+			if (!fileInInsightFolder.isFile()) {
 				continue;
 			}
 			
-			File destinationFile = new File(documentDir, fileInTempFolder.getName());
+			File destinationFile = new File(documentDir, fileInInsightFolder.getName());
 			
 			// Check if the destination file exists, and if so, delete it
 			try {
 				if (destinationFile.exists()) {
 					FileUtils.forceDelete(destinationFile);
 	            }
-				FileUtils.moveFileToDirectory(fileInTempFolder, documentDir, true);
+				FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
 			}
 			
-			filesToCopyToCloud.add(destinationFile.getAbsolutePath());
+			// add it to the list of files we need to extract text from
+			fileToExtractFrom.add(destinationFile);
 			
-			String documentName = destinationFile.getName().split("\\.")[0];
+			// add it to the list of files that need to be pushed to the cloud in a new thread
+			filesToCopyToCloud.add(destinationFile.getAbsolutePath());
+		}
+		
+		// loop through each document and attempt to extract text
+		for (File document : fileToExtractFrom) {
+			String documentName = document.getName().split("\\.")[0];
 			File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 			String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 			try {
 				if (extractedFile.exists()) {
 					FileUtils.forceDelete(extractedFile);
 				}
-				if (!destinationFile.getName().toLowerCase().endsWith(".csv")) {
+				if (!document.getName().toLowerCase().endsWith(".csv")) {
 					
 					classLogger.info("Extracting text from document " + documentName);
 					// determine which text extraction method to use
 					int rowsCreated;
-					if (extractionMethod.equals("fitz") && destinationFile.getName().toLowerCase().endsWith(".pdf")) {
+					if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 						StringBuilder extractTextFromDocScript = new StringBuilder();
 						extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-											 .append(destinationFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+											 .append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
 											 .append("', target_folder = '")
 											 .append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
 											 .append("', output_file_name = '")
@@ -382,14 +387,14 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						
 						rowsCreated = rows.intValue();
 					} else {
-						rowsCreated = FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, destinationFile, this.vectorDatabaseSearcher, this.pyt);
+						rowsCreated = FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, document, this.vectorDatabaseSearcher, this.pyt);
 					}
 					
 					// check to see if the file data was extracted
 					if (rowsCreated <= 1) {
 						// no text was extracted so delete the file
 						FileUtils.forceDelete(extractedFile); // delete the csv
-						FileUtils.forceDelete(destinationFile); // delete the input file e.g pdf
+						FileUtils.forceDelete(document); // delete the input file e.g pdf
 						continue;
 					}
 					
@@ -413,8 +418,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					// this needs to match the column created in the new CSV
 					columnsToIndex = "['Content']"; 
 				} else {
-					// copy csv over but make sure its only csvs
-					FileUtils.copyFileToDirectory(destinationFile, tableIndexFolder);
+					// copy csv over
+					FileUtils.copyFileToDirectory(document, tableIndexFolder);
 					if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey())) {
 						columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey()));
 					} else {
@@ -428,6 +433,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 		
+		// if we were able to extract files, begin embeddings process
 		if (extractedFiles.size() > 0) {
 			// create dataset
 			StringBuilder addDocumentPyCommand = new StringBuilder();
@@ -475,14 +481,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			classLogger.info("Running >>>" + script);
 			Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
-
-			try {
-				FileUtils.forceDelete(parentDirectory);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to delete the temporary file directory");
-			}
-			
 
 			if (ClusterUtil.IS_CLUSTER) {
 				// and the newly created csvs
@@ -768,6 +766,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			return (Insight) insightObj;
 		}
 	}
+	
+//	private void removeTempFileDirectory(File tempDirectory) {
+//		if (tempDirectory != null) {
+//			try {
+//				FileUtils.forceDelete(tempDirectory);
+//			} catch (IOException e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//				throw new IllegalArgumentException("Unable to delete the temporary file directory");
+//			}
+//		}
+//	}
 
 	@Override
 	public void close() {
