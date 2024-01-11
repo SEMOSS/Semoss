@@ -91,6 +91,15 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Please provide input files using \"filePaths\"");
 			}
 			
+			for (String filePath: filePaths) {
+		    	File file = new File(filePath);
+		    	
+		    	// Check if the file exists
+		        if (!file.exists()) {
+		        	throw new IllegalArgumentException("File path for " + file.getName() + " does not exist within the insight.");
+		        }
+			}
+			
 			VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
 			if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
 				// send the insight so it can be used with IModelEngine call
