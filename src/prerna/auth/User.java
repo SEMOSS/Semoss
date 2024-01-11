@@ -711,6 +711,20 @@ public class User implements Serializable {
 	}
 	
 	/**
+	 * Append project id and project name to this.projectIdMap
+	 * @param projectId
+	 * @param projectName
+	 */
+	public void setProject(String projectId, String projectName) {
+		// only add it if the ID is not already in the map
+		if(!this.projectIdMap.containsKey(projectId)) {
+			this.projectIdMap.put(projectId, projectName);
+			int updatedCount = Integer.parseInt(this.projectIdMap.get("COUNT")) + 1;
+			this.projectIdMap.put("COUNT",  Integer.toString(updatedCount));
+		}
+	}
+	
+	/**
 	 * Add a var using the project id - var name will be cleaned project name
 	 * @param projectId
 	 * @return	String - the clean project name used as the var name
@@ -1032,6 +1046,11 @@ public class User implements Serializable {
 				}
 			}
 			
+			String loggerLevel =  DIHelper.getInstance().getProperty(Settings.LOGGER_LEVEL);
+			if (loggerLevel == null || (loggerLevel=loggerLevel.trim()).isEmpty()) {
+				loggerLevel = "INFO";
+			}
+			
 			String customClassPath = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
 			if(customClassPath == null) {
 				classLogger.info("No custom class path set");
@@ -1047,7 +1066,7 @@ public class User implements Serializable {
 				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
 				try {
 					// TODO update once venv with chroot is enabled
-					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug);
+					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug, loggerLevel);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
@@ -1070,7 +1089,7 @@ public class User implements Serializable {
 				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug);				
+					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, loggerLevel);				
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
