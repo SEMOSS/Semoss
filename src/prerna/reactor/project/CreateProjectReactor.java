@@ -61,6 +61,8 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, hasPortal, portalName, 
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
+		
+		this.insight.getUser().setProject(project.getProjectId(), projectName);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

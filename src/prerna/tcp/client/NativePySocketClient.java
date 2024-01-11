@@ -168,7 +168,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	    				String message = new String(msg);
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
-	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
+	    				PayloadStruct lock = (PayloadStruct) requestMap.get(ps.epoc);
 	    				classLogger.debug("incoming payload " + ps);
 
 	    				// std out no questions
@@ -176,10 +176,43 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	    				{
 	    					//classLogger.info(ps.payload[0]);
 	    					//classLogger.info("Standard output");
-
+	    					String logMessage = (String) ps.payload[0];
 	    					outputAssimilator.append(ps.payload[0]);
-	    					if(lock != null)
-	    						exposeLog((String)ps.payload[0], lock.insightId);
+	    					
+	    					String[] logParts;
+	    					if (logMessage.startsWith("CFG_PYTHON_LOGGER") && (logParts = logMessage.split("-") ).length == 5 ) {
+	    						String level = logParts[1].trim();
+	    						String stack = logParts[2].trim();
+	    						String py_log_msg = logParts[3];
+	    						String py_file_info = logParts[4].trim();
+	    						String py_log = py_file_info + py_log_msg;
+	    						
+	    						switch(stack) {
+		    						case "FRONTEND":
+		    							exposeLog(logMessage, lock.insightId);
+		    					        break;
+		    					    case "BACKEND":
+			    					    switch(level) {
+			    					    	case "DEBUG":
+			    					    		// if python enabled debug level, then just add the debug flag to info
+			    					    		classLogger.info("DEBUG " + py_log);
+			    					    		break;
+			    					    	case "INFO":
+				    					    	classLogger.info(py_log);
+				    					        break;
+				    					    case "WARNING":
+				    					    	classLogger.warn(py_log);
+				    					        break;
+				    					    case "ERROR":
+				    					    case "CRITICAL":
+				    					    	classLogger.error(py_log);
+				    					        break;
+			    						}
+		    					        break;
+	    						}	    						
+	    					} else if (lock != null) {
+	    						exposeLog(logMessage, lock.insightId);
+	    					} 
 	    				}
 	    				
 	       				// need some way to say this is the output from the actual python vs. something that is a classLogger
@@ -302,15 +335,15 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     private void processRequest(PayloadStruct ps)
     {
 		String insightId = ps.insightId;
-		if(insightId == null)
-		{
+		if(insightId == null || (insightId=insightId.trim()).isEmpty() || insightId.equals("${i}")) {
 			ps.response = true;
-			ps.ex = "Insight Id cannot be null";
+			ps.ex = "Insight Id is undefined or null";
 			// return the error
 			executeCommand(ps);
 			return;
 		}
 		Insight insight = insightMap.get(insightId);
+		
 		user = insight.getUser();
 		if(user == null)
 		{

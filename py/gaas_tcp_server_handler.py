@@ -198,7 +198,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       # need a way to handle stop message here
    
       # Need a way to push stdout as print here
-      
    
       # If this is a python payload 
       elif payload['operation'] == 'PYTHON':
@@ -371,28 +370,29 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     is_exception = False
     print(f"Executing command {command.encode('utf-8')}")
     # old smss calls
-    if command.endswith(".py") or command.startswith('smssutil'):
-      try:
-        output = eval(command, globals())
-      except Exception as e:
+    
+    import contextlib
+    import semoss_console as console
+    c = console.SemossConsole(socket_handler=self, payload=payload)
+    with contextlib.redirect_stdout(c), contextlib.redirect_stderr(c):
+      if command.endswith(".py") or command.startswith('smssutil'):
         try:
-          exec(command, globals())
-          output = f"executed command {command.encode('utf-8')}"
+          output = eval(command, globals())
         except Exception as e:
-          print(e)
-          output = str(e)
-          is_exception = True
-      print(f"executing file.. {command.encode('utf-8')}")
-      self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
+          try:
+            exec(command, globals())
+            output = f"executed command {command.encode('utf-8')}"
+          except Exception as e:
+            print(e)
+            output = str(e)
+            is_exception = True
+        print(f"executing file.. {command.encode('utf-8')}")
+        self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
 
-    # all new
-    else:
-      # same trick - try to eval if it fails run as exec
-      import contextlib
-      globals()['core_server'] = self
-      import semoss_console as console
-      c = console.SemossConsole(socket_handler=self, payload=payload)
-      with contextlib.redirect_stdout(c), contextlib.redirect_stderr(c):
+      # all new
+      else:
+        # same trick - try to eval if it fails run as exec
+        globals()['core_server'] = self
         try:
           output = eval(command, globals())
         except Exception as e:
@@ -405,8 +405,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             full_trace = full_trace + tb.format_tb(traceback)[1:] + tb.format_exception_only(type(last_exec_error), last_exec_error)
             output = ''.join(full_trace)
             is_exception = True
-            
-      self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
+              
+        self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
   
   def handle_response(self, payload):
     #print("In the response block")
