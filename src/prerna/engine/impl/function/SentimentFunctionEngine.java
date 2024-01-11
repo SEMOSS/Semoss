@@ -133,7 +133,8 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
-		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout);
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout, loggerLevel);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		

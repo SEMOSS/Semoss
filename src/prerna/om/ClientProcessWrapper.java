@@ -36,6 +36,7 @@ public class ClientProcessWrapper {
 	private MountHelper chrootMountHelper;
 	private String classPath;
 	private boolean debug;
+	private String loggerLevel;
 	
 	/**
 	 * 
@@ -54,7 +55,8 @@ public class ClientProcessWrapper {
 			String venvPath,
 			String serverDirectory, 
 			String classPath,
-			boolean debug) throws Exception 
+			boolean debug,
+			String loggerLevel) throws Exception 
 	{
 		this.nativePyServer = nativePyServer;
 		this.chrootMountHelper = chrootMountHelper;
@@ -63,6 +65,7 @@ public class ClientProcessWrapper {
 		this.venvPath = venvPath;
 		this.serverDirectory = serverDirectory;
 		this.debug = debug;
+		this.loggerLevel = loggerLevel;
 		
 		boolean serverRunning = debug && port > 0;
 		if(!serverRunning) {
@@ -94,7 +97,8 @@ public class ClientProcessWrapper {
 				} else {
 					// write the log4j file in the server directory
 					Utility.writeLogConfigurationFile(this.serverDirectory);
-					Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", this.venvPath, timeout);
+										
+					Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", this.venvPath, timeout, loggerLevel);
 					this.process = (Process) ret[0];
 					this.prefix = (String) ret[1];
 				}
@@ -210,7 +214,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void reconnect() throws Exception {
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug);
+		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, loggerLevel);
 	}
 	
 	/**
@@ -220,7 +224,7 @@ public class ClientProcessWrapper {
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug);
+		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, loggerLevel);
 	}
 	
 	/**
