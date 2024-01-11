@@ -222,29 +222,35 @@ class LocalEmbedder():
         # define the english dictionary
         language_dictionary = enchant.Dict("en_US") 
         
-        if len(list_of_chunks) == 0:
+        if len(list_of_chunks) == 1:
             master_keywords_list = [kw_model.extract_keywords(
                 list_of_chunks,
-                top_n=max_keywords
+                top_n=max_keywords,
+                vectorizer=KeyphraseCountVectorizer(),
+                use_mmr=True
             )]
         else:
             master_keywords_list = kw_model.extract_keywords(
                 list_of_chunks,
-                top_n=max_keywords
+                top_n=max_keywords,
+                vectorizer=KeyphraseCountVectorizer(),
+                use_mmr=True
             )
-        
+                
         # capitilize the outputs since the dictionary check doesnt seem valid with lower case
         # TODO check other option -- embeddings do seem to come back the same
-        master_keywords_list = [[(word.upper(), value) for word, value in inner_list] for inner_list in master_keywords_list]
+        # master_keywords_list = [[(word.upper(), value) for word, value in inner_list] for inner_list in master_keywords_list]
         
         for i, keywords in enumerate(master_keywords_list):
-            if len(keywords)>0:
-                temp_keywords = [item for item in keywords if language_dictionary.check(item[0])]
-                if len(temp_keywords) == 0:
-                    # we need to make sure that the list isnt empty after validating the words
-                    keywords = [('',1.0)]
-                else:
-                    keywords = temp_keywords
+            
+            if len(keywords) > 0:
+                # temp_keywords = [item for item in keywords if language_dictionary.check(item[0])]
+                # if len(temp_keywords) == 0:
+                #     # we need to make sure that the list isnt empty after validating the words
+                #     keywords = [('',1.0)]
+                # else:
+                #     keywords = temp_keywords
+                keywords = keywords
             else:
                 keywords=[('',1.0)]
 
