@@ -25,9 +25,8 @@ class ModelEngine(ServerProxy):
           # start the model and make it available
           import torch
           from transformers import pipeline 
-          device = "cpu"
-          if torch.cuda.is_available():
-            device = "cuda"
+          
+          device = 'cuda' if torch.cuda.is_available() else 'cpu'
           self.pipeline_type = pipeline_type
           self.pipe = pipeline(pipeline_type, model=engine_id, device=device)
     
