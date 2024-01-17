@@ -75,6 +75,7 @@ import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.insights.SetInsightConfigReactor;
+import prerna.reactor.job.JobReactor;
 import prerna.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -473,6 +474,9 @@ public class Insight implements Serializable {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
+				if(sessionId == null) {
+					sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
+				}
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 				this.insightFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 						DIR_SEPARATOR + sessionId + DIR_SEPARATOR + this.insightId;
