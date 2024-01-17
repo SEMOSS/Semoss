@@ -101,6 +101,9 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 				}
 				
 				IModelEngine embeddingModel = Utility.getModel(embedderEngineId);
+				if(embeddingModel == null) {
+					throw new IllegalArgumentException("EMBEDDER_ENGINE_ID " + embeddingModel + " could not be found");
+				}
 				String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
 				vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
 			}
