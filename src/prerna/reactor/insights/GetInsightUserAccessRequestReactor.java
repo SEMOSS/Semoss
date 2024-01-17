@@ -31,7 +31,7 @@ public class GetInsightUserAccessRequestReactor extends AbstractReactor {
 		}
 		// check user permission for the database
 		User user = this.insight.getUser();
-		if(SecurityAdminUtils.userIsAdmin(user) && 
+		if(!SecurityAdminUtils.userIsAdmin(user) && 
 				!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this insight");
 		}
