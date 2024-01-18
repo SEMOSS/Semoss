@@ -104,8 +104,7 @@ class Interrogator(gi.Interrogator):
     #print(self.model.device)
     console_streamer = SemossStreamer(tokenizer=self.tokenizer, skip_prompt=True)
     console_streamer.set_output_prefix(prefix)
-    super().ask(text, streamer=console_streamer, **kwargs)
-    output = console_streamer.complete_output
+    output = super().ask(text, streamer=console_streamer, **kwargs)
     return output
     # kwargs.update({"streamer":console_streamer})
     # #print(kwargs)
