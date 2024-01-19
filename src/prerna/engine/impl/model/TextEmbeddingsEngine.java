@@ -19,6 +19,7 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.security.AbstractHttpHelper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TextEmbeddingsEngine extends AbstractModelEngine {
@@ -35,21 +36,28 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		
-		if (!this.smssProp.containsKey(ENDPOINT)) {
-			throw new IllegalArgumentException("This model requires an endpoint.");
+		this.endpoint = this.smssProp.getProperty(ENDPOINT);
+		if(this.endpoint == null || (this.endpoint=this.endpoint.trim()).isEmpty()) {
+			throw new IllegalArgumentException("This model requires a valid value for " + ENDPOINT);
 		}
-		endpoint = this.smssProp.getProperty(ENDPOINT);
+		Utility.checkIfValidDomain(this.endpoint);
 		
-		batchSize = 32;
-		if (this.smssProp.containsKey(BATCH_SIZE)) {
-			batchSize = Integer.valueOf(this.smssProp.getProperty(ENDPOINT));
+		this.batchSize = 32;
+		String batchSizeStr = null;
+		try {
+			batchSizeStr = this.smssProp.getProperty(BATCH_SIZE);
+			if(batchSizeStr != null && !(batchSizeStr=batchSizeStr.trim()).isEmpty()) {
+				this.batchSize = Integer.valueOf(batchSizeStr);
+			}
+		} catch(NumberFormatException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("The SMSS has an invalid value for " + BATCH_SIZE +". Must be an integer but found " + batchSizeStr);
 		}
 	}
 
 	@Override
 	public Map<String, Object> askQuestion(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
 		HashMap<String, Object> response = new HashMap<String, Object>();
 		response.put(RESPONSE, "This model does not support text generation.");
 		response.put(NUMBER_OF_TOKENS_IN_PROMPT, 0.0);
