@@ -40,7 +40,7 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 		if(this.endpoint == null || (this.endpoint=this.endpoint.trim()).isEmpty()) {
 			throw new IllegalArgumentException("This model requires a valid value for " + ENDPOINT);
 		}
-		Utility.checkIfValidDomain(this.endpoint);
+//		Utility.checkIfValidDomain(this.endpoint);
 		
 		this.batchSize = 32;
 		String batchSizeStr = null;
