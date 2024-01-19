@@ -324,7 +324,7 @@ class FAISSSearcher():
             # Dataset
             dataset_columns = list(loaded_dataset.features)
         
-        extracted_with_cfg = all(col in dataset_columns for col in ['Divider', 'Part', 'Tokens',''])
+        extracted_with_cfg = all(col in dataset_columns for col in ['Source','Divider', 'Part', 'Tokens','Content'])
         if isinstance(loaded_dataset, Dataset) and extracted_with_cfg:
             
             if 'Modality' not in dataset_columns:
