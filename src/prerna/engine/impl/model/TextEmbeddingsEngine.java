@@ -9,6 +9,8 @@ import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.http.entity.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -20,6 +22,8 @@ import prerna.security.AbstractHttpHelper;
 import prerna.util.Utility;
 
 public class TextEmbeddingsEngine extends AbstractModelEngine {
+
+	private static final Logger classLogger = LogManager.getLogger(TextEmbeddingsEngine.class);
 
 	private static final String ENDPOINT = "ENDPOINT";
 	private static final String BATCH_SIZE = "BATCH_SIZE";
@@ -65,7 +69,9 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 		    List<String> sublist = stringsToEncode.subList(i, endIndex);
 		    sentenceSublists.add(sublist);
 		}
-
+		
+		classLogger.info("Making embeddings call on engine " + this.engineId);
+		
 		LocalDateTime inputTime = LocalDateTime.now();
 		for(List<String> sublist : sentenceSublists) {
 			Map<String, Object> bodyMap = new HashMap<>();
@@ -78,6 +84,8 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 			embeddings.addAll(outputParsed);
 		}
 		LocalDateTime outputTime = LocalDateTime.now();
+		
+		classLogger.info("Embeddings Received from engine " + this.engineId);
 		
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		output.put(RESPONSE, embeddings);
