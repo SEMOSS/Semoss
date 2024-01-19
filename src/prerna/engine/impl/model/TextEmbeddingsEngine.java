@@ -87,7 +87,6 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 			bodyMap.put("truncate", true);
 			String output = AbstractHttpHelper.postRequestStringBody(this.endpoint, null, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
 			
-			System.out.println(output);
 			List<List<Double>> outputParsed = new Gson().fromJson(output, new TypeToken<List<List<Double>>>() {}.getType());
 			embeddings.addAll(outputParsed);
 		}
