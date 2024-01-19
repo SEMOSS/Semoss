@@ -219,7 +219,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * 
 	 * @return
 	 */
-	public ZonedDateTime getLocalDateTime(TimeZone tz) {
+	public ZonedDateTime getZonedDateTime(TimeZone tz) {
 		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId());
 	}
 
@@ -227,7 +227,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * 
 	 * @return
 	 */
-	public ZonedDateTime getLocalDate(TimeZone tz) {
+	public ZonedDateTime getZonedDate(TimeZone tz) {
 		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId());
 	}
 	
