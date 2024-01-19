@@ -39,9 +39,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	private static final String DIR_SEPERATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	private static final String RESPONSE = "response";
-	private static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
-	private static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+	protected static final String RESPONSE = "response";
+	protected static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
+	protected static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -260,7 +260,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		Map<String, Object> output;
 		classLogger.info("Making embeddings call on engine " + this.engineId);
 		
-		if (Utility.isModelInferenceLogsEnabled()) {			
+		if (Utility.isModelInferenceLogsEnabled()) {
 			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
 			output = (Map<String, Object>) pyt.runScript(callMaker.toString(), insight);
