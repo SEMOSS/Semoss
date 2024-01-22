@@ -215,12 +215,12 @@ class LocalEmbedder():
                 concatendated keywords (`List[str]`) - dataframe with extracted keywords and their probabilities
         '''
 
-        import enchant
+        # import enchant
         import numpy as np
         from keyphrase_vectorizers import KeyphraseCountVectorizer
 
         # define the english dictionary
-        language_dictionary = enchant.Dict("en_US") 
+        # language_dictionary = enchant.Dict("en_US") 
         
         if len(list_of_chunks) == 1:
             master_keywords_list = [kw_model.extract_keywords(
