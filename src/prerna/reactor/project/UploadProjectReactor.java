@@ -264,6 +264,8 @@ public class UploadProjectReactor extends AbstractReactor {
 				if(metadataFile.exists() && metadataFile.isFile()) {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
 					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+					// delete this file since values can update and file is dynamically generated on export
+					metadataFile.delete();
 				}
 				
 				File dependenciesFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
@@ -277,6 +279,8 @@ public class UploadProjectReactor extends AbstractReactor {
 						}
 						SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
 					}
+					// delete this file since values can update and file is dynamically generated on export
+					dependenciesFile.delete();
 				}
 			}
 			
