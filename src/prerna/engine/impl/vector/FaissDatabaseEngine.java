@@ -29,7 +29,6 @@ import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.om.Insight;
@@ -44,6 +43,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.reactor.qs.SubQueryExpression;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.NativePySocketClient;
@@ -720,7 +720,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
+		if (parameters != null && parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 		

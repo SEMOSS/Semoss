@@ -217,6 +217,8 @@ public class UploadEngineReactor extends AbstractReactor {
 				if(metadataFile.exists() && metadataFile.isFile()) {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
 					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+					// delete this file since values can update and file is dynamically generated on export
+					metadataFile.delete();
 				}
 			}
 		} catch(Exception e) {
