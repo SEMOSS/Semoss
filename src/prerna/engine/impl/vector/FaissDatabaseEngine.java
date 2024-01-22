@@ -787,7 +787,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	public void close() {
-		this.cpw.shutdown(true);
+		if(this.cpw != null) {
+			this.cpw.shutdown(true);
+		}
 	}
 	
 	@Override
