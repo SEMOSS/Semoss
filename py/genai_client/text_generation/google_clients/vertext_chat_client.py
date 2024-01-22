@@ -62,7 +62,6 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
               
         # convert ask inputs to vertex ai params
         parameters = {
-            "message": question,
             "temperature": temperature,  # Temperature controls the degree of randomness in token selection.
             "max_output_tokens": max_new_tokens,  # Token limit determines the maximum amount of text output.
             "top_p": top_p,  # Tokens are selected from most probable to least until the sum of their probabilities equals the top_p value.
@@ -71,7 +70,8 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
         }
         
         responses = chat.send_message_streaming(
-            **parameters
+            message = question, 
+            **parameters,
         )
         
         final_response = ''
