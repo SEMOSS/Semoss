@@ -31,6 +31,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.ModelEngineConstants;
+import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -46,7 +47,6 @@ import prerna.reactor.qs.SubQueryExpression;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.CleanerThread;
-import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -69,20 +69,16 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	protected String vectorDatabaseSearcher = null;
 	
-	File vectorDbFolder;
-	File schemaFolder;
+	private File schemaFolder;
 	
-	List<String> indexClasses;
+	private List<String> indexClasses;
 	
 	// python server
-	TCPPyTranslator pyt = null;
-	NativePySocketClient socketClient = null;
-	Process p = null;
-	String port = null;
-	String prefix = null;
-	String pyDirectoryBasePath = null;
-	File cacheFolder;
+	private TCPPyTranslator pyt = null;
+	private String pyDirectoryBasePath = null;
+	private File cacheFolder;
 
+	private ClientProcessWrapper cpw = null;
 	
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
 	
@@ -92,7 +88,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// highest directory (first layer inside vector db base folder)
 		this.pyDirectoryBasePath = this.connectionURL + "py" + DIR_SEPARATOR;
-		this.vectorDbFolder = new File(this.connectionURL);
 		this.cacheFolder = new File(pyDirectoryBasePath.replace(FILE_SEPARATOR, DIR_SEPARATOR));
 
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
@@ -138,7 +133,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
 		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
 		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
-			this.smssProp.put(Constants.MAX_TOKENS, "None");	
+			this.smssProp.put(Constants.MAX_TOKENS, "None");
 		} else {
 			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
 		}
@@ -158,7 +153,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.vars = new HashMap<>(this.smssProp);
 	}
 	
-	public void startServer() {
+	public void startServer(int port) {
 		// spin the server
 		// start the client
 		// get the startup command and parameters - at some point we need a better way than the command
@@ -187,34 +182,59 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			commands[commandIndex] = fillVars(commands[commandIndex]);
 		}
 		
-		port = Utility.findOpenPort();
-		
-		String timeout = "30";
-		if(smssProp.containsKey(Constants.IDLE_TIMEOUT))
-			timeout = smssProp.getProperty(Constants.IDLE_TIMEOUT);
-
 		if(!this.cacheFolder.exists()) {
 			this.cacheFolder.mkdirs();
 		}
 		
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+		// check if we have already created a process wrapper
+		if(this.cpw == null) {
+			this.cpw = new ClientProcessWrapper();
+		}
 		
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
-		Object [] outputs = Utility.startTCPServerNativePy(this.cacheFolder.getAbsolutePath(), port, venvPath, timeout, loggerLevel);
-		
-		this.p = (Process) outputs[0];
-		this.prefix = (String) outputs[1];
-		
-		socketClient = new NativePySocketClient();
-		socketClient.connect("127.0.0.1", Integer.parseInt(port), false);
-		
-		// connect the client
-		connectClient();
+		if(this.cpw.getSocketClient() == null) {
+			boolean debug = false;
+			
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			
+			if(port < 0) {
+				// port has not been forced
+				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch(NumberFormatException e) {
+						// ignore
+						classLogger.warn("Faiss Database " + this.engineName + " has an invalid FORCE_PORT value");
+					}
+				}
+			}
+			
+			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+			try {
+				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			}
+		} else if (!this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown(false);
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
+			}
+		}
 		
 		// create the py translator
 		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(socketClient);
+		pyt.setSocketClient(this.cpw.getSocketClient());
 	
 		// TODO remove once bug is caught / fixed
 		StringBuilder intitPyCommands = new StringBuilder("\n");
@@ -247,24 +267,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return resolvedString;
 	}
 	
-	public boolean connectClient() {
-		Thread t = new Thread(socketClient);
-		t.start();
-		while(!socketClient.isReady())
-		{
-			synchronized(socketClient)
-			{
-				try 
-				{
-					socketClient.wait();
-					classLogger.info("Setting the socket client ");
-				} catch (InterruptedException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}								
-			}
-		}
-		return false;
-	}
 	
 	@Override
 	public void addDocument(List<String> filePaths, Map <String, Object> parameters) {
@@ -754,8 +756,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	private void checkSocketStatus() {
-		if(this.socketClient == null || !this.socketClient.isConnected()) {
-			this.startServer();
+		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1);
 		}
 	}
 	
@@ -780,14 +782,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	public void close() {
-		if (this.socketClient != null && this.socketClient.isConnected()) {
-			this.socketClient.stopPyServe(this.pyDirectoryBasePath);
-			this.socketClient.close();
-			this.pyDirectoryBasePath = null;
-		}
-		if(this.p != null && this.p.isAlive()) {
-			this.p.destroy();
-		}
+		this.cpw.shutdown(true);
 	}
 	
 	@Override
@@ -798,6 +793,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.engineId, this.engineName);
 		File engineFolder = new File(specificEngineLocation);
 		if(engineFolder.exists()) {
+			// this is ugly but not sure we have a choice since we have to wait for the
+			// py process to shutdown and that call in the close is also threaded
 			classLogger.info("Delete vector database engine folder " + engineFolder);
 			CleanerThread t = new CleanerThread(engineFolder.getAbsolutePath());
 			t.start();
