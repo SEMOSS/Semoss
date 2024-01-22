@@ -1066,7 +1066,7 @@ public class User implements Serializable {
 				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
 				try {
 					// TODO update once venv with chroot is enabled
-					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug, loggerLevel);
+					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
@@ -1089,7 +1089,7 @@ public class User implements Serializable {
 				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, loggerLevel);				
+					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
