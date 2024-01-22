@@ -7,8 +7,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 @Deprecated
 public class ExportDatabaseReactor extends ExportEngineReactor {
 
+	private String keepGit = "keepGit";
+
 	public ExportDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), keepGit };
 	}
 
 	@Override
