@@ -12,7 +12,10 @@ class VertexAiClientController():
             'text'
         )
         
-        if (chat_type == 'text'):
+        if (chat_type == 'generative'):
+            from .vertex_generative_model import VertexGenerativeModelClient
+            self.vertex_class = VertexGenerativeModelClient(**kwargs)
+        elif (chat_type == 'text'):
             from .vertex_text_client import VertexTextClient
             self.vertex_class = VertexTextClient(**kwargs)
         elif (chat_type == 'chat'):
