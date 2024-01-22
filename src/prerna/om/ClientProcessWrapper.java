@@ -203,8 +203,16 @@ public class ClientProcessWrapper {
 	            this.venvPath = null;
 	        }
 		}
-		// no socket but have a process? try to kill it
-		else if(this.process != null){
+//		// no socket but have a process? try to kill it
+//		else if(this.process != null){
+//			try {
+//    			this.process.destroy();
+//    		} catch(Exception e) {
+//            	classLogger.error(Constants.STACKTRACE, e);
+//    		}
+//		}
+		// you know what, always try this...
+		if(this.process != null){
 			try {
     			this.process.destroy();
     		} catch(Exception e) {
