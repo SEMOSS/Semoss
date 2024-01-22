@@ -191,6 +191,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.cpw = new ClientProcessWrapper();
 		}
 		
+		String timeout = "30";
+		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+		
 		if(this.cpw.getSocketClient() == null) {
 			boolean debug = false;
 			
@@ -217,7 +222,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, loggerLevel);
+				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");

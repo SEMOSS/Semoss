@@ -36,6 +36,7 @@ public class ClientProcessWrapper {
 	private MountHelper chrootMountHelper;
 	private String classPath;
 	private boolean debug;
+	private String timeout;
 	private String loggerLevel;
 	
 	/**
@@ -56,6 +57,7 @@ public class ClientProcessWrapper {
 			String serverDirectory, 
 			String classPath,
 			boolean debug,
+			String timeout,
 			String loggerLevel) throws Exception 
 	{
 		this.nativePyServer = nativePyServer;
@@ -66,11 +68,13 @@ public class ClientProcessWrapper {
 		this.serverDirectory = serverDirectory;
 		this.debug = debug;
 		this.loggerLevel = loggerLevel;
-		
+		this.timeout = timeout;
+		if(this.timeout == null) {
+			this.timeout = "-1";
+		}
 		boolean serverRunning = debug && port > 0;
 		if(!serverRunning) {
 			if(nativePyServer) {
-				String timeout = "-1";
 				if(chrootMountHelper != null) {
 					// for a user process - this will be something like /opt/user_id_randomid/
 					Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
@@ -214,7 +218,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void reconnect() throws Exception {
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, loggerLevel);
+		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
 	}
 	
 	/**
@@ -224,7 +228,7 @@ public class ClientProcessWrapper {
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, loggerLevel);
+		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
 	}
 	
 	/**

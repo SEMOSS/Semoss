@@ -176,40 +176,40 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
-        Connection conn = connectToInferenceLogs();
-        
-        UpdateQueryStruct qs = new UpdateQueryStruct();
-        qs.setEngine(modelInferenceLogsDb);
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
-        List<IQuerySelector> selectors = new Vector<>(
-        		Arrays.asList(
-        				new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"), 
-        				new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"), 
-        				new QueryColumnSelector("FEEDBACK__RATING")
-        		)
-        );
-        
-        List<Object> values = new Vector<>(Arrays.asList(feedbackText, new SemossDate(LocalDateTime.now()), rating));
+		Connection conn = connectToInferenceLogs();
+		try {
+			UpdateQueryStruct qs = new UpdateQueryStruct();
+			qs.setEngine(modelInferenceLogsDb);
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
+			List<IQuerySelector> selectors = new Vector<>(
+					Arrays.asList(
+							new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"), 
+							new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"), 
+							new QueryColumnSelector("FEEDBACK__RATING")
+							)
+					);
 
-        qs.setSelectors(selectors);
-        qs.setValues(values);
-        qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-        UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-        String updateQ = updateInterp.composeQuery();
-        try {
-            modelInferenceLogsDb.insertData(updateQ);
-        } catch (Exception e) {
-            classLogger.error(Constants.STACKTRACE, e);
-        } finally {
-            if(modelInferenceLogsDb.isConnectionPooling()) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    classLogger.error(Constants.STACKTRACE, e);
-                }
-            }
-        }
+			List<Object> values = new Vector<>(Arrays.asList(feedbackText, new SemossDate(LocalDateTime.now()), rating));
+
+			qs.setSelectors(selectors);
+			qs.setValues(values);
+			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+			String updateQ = updateInterp.composeQuery();
+
+			modelInferenceLogsDb.insertData(updateQ);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(modelInferenceLogsDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
 	public static void doCreateNewUser(User user) {
@@ -424,21 +424,21 @@ public class ModelInferenceLogsUtils {
 	
 	public static boolean doSetRoomToInactive(String userId, String roomId) {
         Connection conn = connectToInferenceLogs();
-        
-        UpdateQueryStruct qs = new UpdateQueryStruct();
-        qs.setEngine(modelInferenceLogsDb);
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-        List<IQuerySelector> selectors = new Vector<>();
-        List<Object> values = new Vector<>();
-        selectors.add(new QueryColumnSelector("ROOM__IS_ACTIVE"));
-        values.add(false);
-        qs.setSelectors(selectors);
-        qs.setValues(values);
-        qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-        UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-        String updateQ = updateInterp.composeQuery();
         try {
+			UpdateQueryStruct qs = new UpdateQueryStruct();
+			qs.setEngine(modelInferenceLogsDb);
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+			List<IQuerySelector> selectors = new Vector<>();
+			List<Object> values = new Vector<>();
+			selectors.add(new QueryColumnSelector("ROOM__IS_ACTIVE"));
+			values.add(false);
+			qs.setSelectors(selectors);
+			qs.setValues(values);
+			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+			String updateQ = updateInterp.composeQuery();
+
             modelInferenceLogsDb.insertData(updateQ);
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
@@ -457,21 +457,21 @@ public class ModelInferenceLogsUtils {
 	
 	public static boolean doSetNameForRoom(String userId, String roomId, String roomName) {
 		Connection conn = connectToInferenceLogs();
-        
-        UpdateQueryStruct qs = new UpdateQueryStruct();
-        qs.setEngine(modelInferenceLogsDb);
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-        List<IQuerySelector> selectors = new Vector<>();
-        List<Object> values = new Vector<>();
-        selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
-        values.add(roomName);
-        qs.setSelectors(selectors);
-        qs.setValues(values);
-        qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-        UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-        String updateQ = updateInterp.composeQuery();
         try {
+        	UpdateQueryStruct qs = new UpdateQueryStruct();
+            qs.setEngine(modelInferenceLogsDb);
+            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+            List<IQuerySelector> selectors = new Vector<>();
+            List<Object> values = new Vector<>();
+            selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
+            values.add(roomName);
+            qs.setSelectors(selectors);
+            qs.setValues(values);
+            qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+            UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+            String updateQ = updateInterp.composeQuery();
+            
             modelInferenceLogsDb.insertData(updateQ);
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
