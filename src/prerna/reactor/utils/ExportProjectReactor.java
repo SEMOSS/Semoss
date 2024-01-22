@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FilenameUtils;
@@ -31,7 +30,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.ProjectSyncUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -78,15 +76,31 @@ public class ExportProjectReactor extends AbstractReactor {
 		String outputDir = this.insight.getInsightFolder();
 		String zipFilePath = outputDir + "/" + projectNameAndId + "_project.zip";
 
-		Lock lock = ProjectSyncUtility.getProjectLock(projectId);
-		lock.lock();
+		// since we do not include the insights database and it is auto generated
+		// we dont need to lock anymore
+		
+//		ReentrantLock lock = null;
+//		if(project.holdsFileLocks()) {
+//			lock = ProjectSyncUtility.getProjectLock(projectId);
+//			lock.lock();
+//		}
+//		boolean closed = false;
 		try {
 			// zip project
 			ZipOutputStream zos = null;
 			try {
-				DIHelper.getInstance().removeProjectProperty(projectId);
-				logger.info("Stopping the project...");
-				project.close();
+//				if(lock != null) {
+//					logger.info("Stopping the engine... ");
+//					DIHelper.getInstance().removeProjectProperty(projectId);
+//					try {
+//						project.close();
+//						closed = true;
+//					} catch (IOException e) {
+//						classLogger.error(Constants.STACKTRACE, e);
+//					}
+//				} else {
+					logger.info("Can export this project w/o closing... ");
+//				}
 				
 				// determine if we keep or ignore the git
 				List<String> ignoreDirs = new ArrayList<>();
@@ -109,7 +123,12 @@ public class ExportProjectReactor extends AbstractReactor {
 					logger.info("Zipping project files...");
 					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, 
 							// ignore the current insights database
-							Arrays.asList(projectNameAndId+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath())));
+							// and the metadata files if they exist
+							Arrays.asList(
+									projectNameAndId+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath()),
+									projectNameAndId+"/"+projectName+IEngine.METADATA_FILE_SUFFIX,
+									projectNameAndId+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX
+								));
 					logger.info("Done zipping project files...");
 					
 					logger.info("Zipping insight database ...");
@@ -159,10 +178,23 @@ public class ExportProjectReactor extends AbstractReactor {
 				}
 			}
 		} finally {
-			// open it back up
-			logger.info("Opening the project again ... ");
-			Utility.getProject(projectId);
-			lock.unlock();
+			// since we do not include the insights database and it is auto generated
+			// we dont need to lock anymore
+			
+//			lock.unlock();
+//			// open it back up
+//			try {
+//				if(closed) {
+//					logger.info("Opening the project again ... ");
+//					Utility.getProject(projectId);
+//					logger.info("Opened the project");
+//				}
+//			} finally {
+//				if(lock != null) {
+//					// in case opening up causing an issue - we always want to unlock
+//					lock.unlock();
+//				}
+//			}
 		}
 
 		// Generate a new key for the name of the zip file.
@@ -174,5 +206,4 @@ public class ExportProjectReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
-	
 }
