@@ -73,6 +73,10 @@ public class Pixel {
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
 
+	private long timeToRun = -1;
+	private long startTime = -1;
+	private long endTime = -1;
+	
 	/**
 	 * Pixel component requires a id and the pixel string
 	 * @param id
@@ -621,6 +625,37 @@ public class Pixel {
 	}
 
 	/**
+	 * 
+	 * @return
+	 */
+	public long getTimeToRun() {
+		return timeToRun;
+	}
+
+	/**
+	 * 
+	 * @param timeToRun
+	 */
+	public void setTimeToRun(long timeToRun) {
+		this.timeToRun = timeToRun;
+	}
+
+	/**
+	 * 
+	 */
+	public void startTime() {
+		this.startTime = System.currentTimeMillis();
+	}
+	
+	/**
+	 * 
+	 */
+	public void endTime() {
+		this.endTime = System.currentTimeMillis();
+		this.timeToRun = this.endTime - this.startTime;
+	}
+	
+	/**
 	 * To help w/ debugging
 	 */
 	public String toString() {
@@ -665,6 +700,7 @@ public class Pixel {
 			pixelObj.setTaskOptions(mergePixel.getTaskOptions());
 			pixelObj.setRemoveLayerList(mergePixel.getRemoveLayerList());
 			pixelObj.setCloneMapList(mergePixel.getCloneMapList());
+			pixelObj.setTimeToRun(mergePixel.getTimeToRun());
 		}
 	}
 	

@@ -44,6 +44,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		boolean isSaveDataTransformation = false;
 		boolean isSaveDataExport = false;
 		boolean isSaveVisualization = false;
+		long timeToRun = -1;
 		boolean error = false;
 		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
@@ -100,6 +101,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				isSaveDataExport = in.nextBoolean();
 			} else if(key.equals("isSaveVisualization")) {
 				isSaveVisualization = in.nextBoolean();
+			} else if(key.equals("timeToRun")) {
+				timeToRun = in.nextLong();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -164,6 +167,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setSaveDataTransformation(isSaveDataTransformation);
 		pixel.setSaveDataExport(isSaveDataExport);
 		pixel.setSaveVisualization(isSaveVisualization);
+		// time to run
+		pixel.setTimeToRun(timeToRun);
 		// error messages
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
@@ -237,6 +242,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		out.value(value.isSaveDataExport());
 		out.name("isSaveVisualization");
 		out.value(value.isSaveVisualization());
+		out.name("timeToRun");
+		out.value(value.getTimeToRun());
 		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
