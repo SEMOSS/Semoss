@@ -41,7 +41,8 @@ import prerna.util.Utility;
 
 public class PipelineTranslation extends LazyTranslation {
 
-	private static final Logger logger = LogManager.getLogger(PipelineTranslation.class);
+	private static final Logger classLogger = LogManager.getLogger(PipelineTranslation.class);
+	
 	private static Map<String, String> reactorToId = null;
 	
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
@@ -104,7 +105,8 @@ public class PipelineTranslation extends LazyTranslation {
         	try {
         		this.resultKey = "$RESULT_" + e.hashCode();
         		this.pixelObj = new Pixel("tempStorage", e.toString());
-
+        		this.pixelObj.startTime();
+        		
             	this.curRoutine = new ArrayList<>();
         		// add the routine
             	this.allRoutines.add(this.curRoutine);
@@ -114,7 +116,7 @@ public class PipelineTranslation extends LazyTranslation {
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
         		trackError(e.toString(), this.pixelObj.isMeta(), ex);
-        		logger.error(Constants.STACKTRACE, ex);
+        		classLogger.error(Constants.STACKTRACE, ex);
         		// if we want to continue the thread of execution
         		// nothing special
         		// just add the error to the return
@@ -131,12 +133,12 @@ public class PipelineTranslation extends LazyTranslation {
         		}
         	} catch(Exception ex) {
         		trackError(e.toString(), this.pixelObj.isMeta(), ex);
-        		logger.error(Constants.STACKTRACE, ex);
+        		classLogger.error(Constants.STACKTRACE, ex);
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
         	long end = System.currentTimeMillis();
-            logger.debug("Time to process = " + (end-start) + " for " + e.toString());
+            classLogger.debug("Time to process = " + (end-start) + " for " + e.toString());
         }
 	}
 	
@@ -275,7 +277,7 @@ public class PipelineTranslation extends LazyTranslation {
     			curReactor.updatePlan();
     			addRoutine();
     		} catch(Exception e) {
-    			logger.error(Constants.STACKTRACE, e);
+    			classLogger.error(Constants.STACKTRACE, e);
     			throw new IllegalArgumentException(e.getMessage());
     		}
     		
@@ -419,7 +421,7 @@ public class PipelineTranslation extends LazyTranslation {
     	} catch(Exception e) {
     		// error finding reactor
     		// just return a generic reactor placeholder
-    		logger.error("Error finding reactor " + reactorId, e);
+    		classLogger.error("Error finding reactor " + reactorId, e);
     	}
     	
     	UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();

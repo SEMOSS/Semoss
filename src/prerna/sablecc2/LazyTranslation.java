@@ -111,7 +111,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class LazyTranslation extends DepthFirstAdapter {
 
-	private static final Logger logger = LogManager.getLogger(LazyTranslation.class);
+	private static final Logger classLogger = LogManager.getLogger(LazyTranslation.class);
 
 	// TODO:
 //	protected ReactorNode reactorRoot;
@@ -149,11 +149,17 @@ public class LazyTranslation extends DepthFirstAdapter {
 		}
 	}
 	
+	public Pixel getPixelObj() {
+		return this.pixelObj;
+	}
+	
 	/**
-	 * Do nothing - just to override in other translations
+	 * Set the end time of this pixel obj
+	 * Intended for other translations to also override
 	 * @param pixelExpression
 	 */
 	protected void postProcess(String pixelExpression) {
+		this.pixelObj.endTime();
 		// need to account for META variables
 		// that were defined
 //		if(this.isMeta) {
@@ -193,6 +199,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		// at the start of each pixel being processed
         		this.resultKey = "$RESULT_" + e.hashCode();
         		this.pixelObj = new Pixel("tempStorage", e.toString());
+        		this.pixelObj.startTime();
         		// if not META, store the starting frame headers
         		if(!(e instanceof AMetaRoutine)) {
             		this.pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
@@ -200,12 +207,11 @@ public class LazyTranslation extends DepthFirstAdapter {
         		
         		// actually run the operation
         		e.apply(this);
-        		
         		// reset the state of the frame
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
         		trackError(e.toString(), this.pixelObj.isMeta(), ex);
-        		logger.error(Constants.STACKTRACE, ex);
+        		classLogger.error(Constants.STACKTRACE, ex);
         		// if we want to continue the thread of execution
         		// nothing special
         		// just add the error to the return
@@ -222,7 +228,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		}
         	} catch(Exception ex) {
         		trackError(e.toString(), this.pixelObj.isMeta(), ex);
-        		logger.error(Constants.STACKTRACE, ex);
+        		classLogger.error(Constants.STACKTRACE, ex);
         		planner.addVariable(this.resultKey, new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
@@ -423,7 +429,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAOperation(AOperation node) {
 		defaultIn(node);
-        logger.debug("Starting an operation " + node.toString());
+        classLogger.debug("Starting an operation " + node.toString());
         
         String reactorId = node.getId().toString().trim();
         IReactor newReactor = getReactor(reactorId, node.toString().trim());
@@ -434,7 +440,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void outAOperation(AOperation node) {
 		defaultOut(node);
-		logger.debug("Ending operation " + node.toString());
+		classLogger.debug("Ending operation " + node.toString());
     	// if we have an if reactor
     	// we will not deInit and just add this as a lambda within
     	// the if statement and only deinit when necessary
@@ -506,7 +512,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} else {
     		opReactor = new prerna.reactor.AsReactor();
     	}
-    	logger.debug("In the AS Component of frame op");
+    	classLogger.debug("In the AS Component of frame op");
     	opReactor.setPixel("as", node.getAsOp() + "");
     	initReactor(opReactor);
     }
@@ -514,7 +520,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void outAAsop(AAsop node)
     {
     	defaultOut(node);
-    	logger.debug("OUT the AS Component of frame op");
+    	classLogger.debug("OUT the AS Component of frame op");
     	deInitReactor();
     }
     
@@ -769,7 +775,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				try {
 					iterator = frame.query(qs);
 				} catch (Exception e) {
-	        		logger.error(Constants.STACKTRACE, e);
+	        		classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
     			ITask task = new BasicIteratorTask(qs, iterator);
