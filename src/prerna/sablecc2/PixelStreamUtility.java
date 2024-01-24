@@ -35,9 +35,9 @@ import prerna.om.InsightSheet;
 import prerna.om.Pixel;
 import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.export.GraphFormatter;
 import prerna.reactor.frame.FrameFactory;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -56,7 +56,7 @@ import prerna.util.insight.InsightUtility;
 
 public class PixelStreamUtility {
 
-	private static final Logger logger = LogManager.getLogger(PixelStreamUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(PixelStreamUtility.class);
 
 	private static Gson getPanelGson() {
 		 return new GsonBuilder()
@@ -87,13 +87,13 @@ public class PixelStreamUtility {
 					try {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						// we want to ignore the first index since it will be a job
-						logger.debug("Starting to generate response");
+						classLogger.debug("Starting to generate response");
 						long start = System.currentTimeMillis();
 						processPixelRunner(ps, gson, runner, sessionTimeRemaining);
 						long end = System.currentTimeMillis();
-						logger.debug("Time to generate json response = " + (end-start) + "ms");
+						classLogger.debug("Time to generate json response = " + (end-start) + "ms");
 					} catch(Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -102,7 +102,7 @@ public class PixelStreamUtility {
 					}
 				}};
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -126,7 +126,7 @@ public class PixelStreamUtility {
 			}
 			processPixelRunner(ps, gson, runner, null);
 		} catch (Exception e) {
-			logger.error("Failed to write object to stream");
+			classLogger.error("Failed to write object to stream");
 		} finally {
 			if (ps != null) {
 				ps.flush();
@@ -152,7 +152,7 @@ public class PixelStreamUtility {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						processPixelRunnerForTest(ps,gson,runner);
 					} catch(Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -162,7 +162,7 @@ public class PixelStreamUtility {
 			fos = new FileOutputStream(fileToWrite);
 			output.write(fos);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (fos != null) {
@@ -170,7 +170,7 @@ public class PixelStreamUtility {
 					fos.close();
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -248,6 +248,7 @@ public class PixelStreamUtility {
 		pixelList = null;
 		runner = null;
 	}
+	
 	/** 
 	 * Made for testing generation purposes, uncomment if you'd like to generate test output
 	 */
@@ -310,6 +311,7 @@ public class PixelStreamUtility {
 			}
 			// add is meta 
 			ps.print("\"isMeta\":" + pixelObj.isMeta() + ",");
+			ps.print("\"timeToRun\":" + pixelObj.getTimeToRun() + ",");
 		}
 
 		if(nounT == PixelDataType.FRAME) {
@@ -430,7 +432,7 @@ public class PixelStreamUtility {
 				// if we have a task
 				// we gotta iterate through it to return the data
 				ITask task = (ITask) noun.getValue();
-				logger.debug("Start flushing task = " + task.getId());
+				classLogger.debug("Start flushing task = " + task.getId());
 				int numCollect = task.getNumCollect();
 				boolean collectAll = numCollect == -1;
 				String formatType = task.getFormatter().getFormatType();
@@ -577,7 +579,7 @@ public class PixelStreamUtility {
 						}
 					} catch(Exception e) {
 						// on no, this is not good
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 						// let us send back an error
 						ps.print("\"output\":");
 						ps.print(gson.toJson(e.getMessage()));
@@ -594,7 +596,7 @@ public class PixelStreamUtility {
 						try {
 							task.close();
 						} catch(IOException e2) {
-							logger.error(Constants.STACKTRACE, e2);
+							classLogger.error(Constants.STACKTRACE, e2);
 						}
 						return;
 					}
@@ -625,7 +627,7 @@ public class PixelStreamUtility {
 					ps.print("}" );
 					ps.flush();
 
-					logger.debug("Done flushing sending task = " + task.getId());
+					classLogger.debug("Done flushing sending task = " + task.getId());
 				} else if(formatType.equals("GRAPH")){
 //					// format type is probably graph
 //					ps.print("\"output\":{");
@@ -663,7 +665,7 @@ public class PixelStreamUtility {
 					try {
 						task.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -685,12 +687,12 @@ public class PixelStreamUtility {
 					}
 					ps.print("}");
 				} else {
-					logger.info("Starting time to convert data to json");
+					classLogger.info("Starting time to convert data to json");
 					long start = System.currentTimeMillis();
 					ps.print(gson.toJson(noun.getValue()));
 					ps.flush();
 					long end = System.currentTimeMillis();
-					logger.info("Total time to convert to json = " + (end-start) + "ms");
+					classLogger.info("Total time to convert to json = " + (end-start) + "ms");
 				}
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
