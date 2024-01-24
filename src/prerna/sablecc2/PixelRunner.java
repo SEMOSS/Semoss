@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import cern.colt.Arrays;
 import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
@@ -33,14 +32,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class PixelRunner {
 
-	private static final Logger logger = LogManager.getLogger(PixelRunner.class);
+	private static final Logger classLogger = LogManager.getLogger(PixelRunner.class);
 
 	private static List<PixelOperationType> errorOpTypes = new ArrayList<>();
 	static {
@@ -83,7 +81,7 @@ public class PixelRunner {
 			// apply the translation.
 			tree.apply(translation);
 		} catch(SemossPixelException e) {
-			logger.error(Constants.ERROR_MESSAGE, e);
+			classLogger.error(Constants.ERROR_MESSAGE, e);
 			if(!e.isContinueThreadOfExecution()) {
 				throw e;
 			}
@@ -91,7 +89,7 @@ public class PixelRunner {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
 			trackInvalidSyntaxError(expression, e);
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -150,7 +148,7 @@ public class PixelRunner {
 			// add if there is an error or warning
 			determineErrorOrWarning(pixel, result);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
-			Pixel.translationMerge(pixel, translation.pixelObj);
+			Pixel.translationMerge(pixel, this.translation.getPixelObj());
 			if(pixel.isReturnedError() && !this.maintainErrors) {
 				// we actually need to remove this from the pixel list
 				// there is also no sync required 
@@ -169,27 +167,14 @@ public class PixelRunner {
 			pixel = new Pixel("meta_unstored", origExpression);
 			// make sure the pixel is set to meta
 			pixel.setMeta(true);
+			// also set the time to run
+			if(this.translation.getPixelObj() != null) {
+				pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
+			}
 			this.returnPixelList.add(pixel);
 			// add if there is an error or warning
 			determineErrorOrWarning(pixel, result);
 		}
-	}
-	
-	/**
-	 * Store the terminal output of the pixel statement
-	 * This is used when trying to modify the pixel directly outside
-	 * of the normal pixel execution flow
-	 * THIS IS ALWAYS A META - DOESN'T ADD TO THE INSIGHT RECIPE
-	 * @param index
-	 * @param pixelExpression
-	 * @param result
-	 */
-	public void addResult(int index, String pixelExpression, NounMetadata result) {
-		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
-		Pixel pixel = new Pixel("meta_unstored", origExpression);
-		pixel.setMeta(true);
-		this.returnPixelList.add(index, pixel);
-		this.results.add(index, result);
 	}
 	
 	/**
@@ -203,6 +188,10 @@ public class PixelRunner {
 		Pixel pixel = new Pixel("meta_unstored", origExpression);
 		pixel.setReturnedError(true);
 		pixel.setMeta(true);
+		// also set the time to run
+		if(this.translation.getPixelObj() != null) {
+			pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
+		}
 		this.returnPixelList.add(pixel);
 		this.results.add(result);
 	}
