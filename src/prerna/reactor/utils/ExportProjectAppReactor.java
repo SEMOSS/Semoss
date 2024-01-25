@@ -2,22 +2,15 @@ package prerna.reactor.utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
@@ -27,20 +20,20 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
-public class ExportProjectReactor extends AbstractReactor {
+public class ExportProjectAppReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ExportProjectReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ExportProjectAppReactor.class);
 
-	private static final String CLASS_NAME = ExportProjectReactor.class.getName();
-	private String keepGit = "keepGit";
+	private static final String CLASS_NAME = ExportProjectAppReactor.class.getName();
 	
-	public ExportProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), keepGit };
+	public ExportProjectAppReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 
 	@Override
@@ -49,7 +42,6 @@ public class ExportProjectReactor extends AbstractReactor {
 		logger.info("Checking project information and user permissions.");
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		boolean keepGit = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
 		
 		User user = this.insight.getUser();
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
@@ -70,10 +62,10 @@ public class ExportProjectReactor extends AbstractReactor {
 		String projectName = project.getProjectName();
 		String projectNameAndId = SmssUtilities.getUniqueName(projectName, projectId);
 		String baseProjectDir = baseFolder + Constants.PROJECT_FOLDER;
-		String thisProjectDir = baseProjectDir + "/" + projectNameAndId;
+		String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId);
 
 		String outputDir = this.insight.getInsightFolder();
-		String zipFilePath = outputDir + "/" + projectNameAndId + "_project.zip";
+		String zipFilePath = outputDir + "/" + projectNameAndId + "_app.zip";
 
 		// since we do not include the insights database and it is auto generated
 		// we dont need to lock anymore
@@ -101,60 +93,10 @@ public class ExportProjectReactor extends AbstractReactor {
 					logger.info("Can export this project w/o closing... ");
 //				}
 				
-				// determine if we keep or ignore the git
-				List<String> ignoreDirs = new ArrayList<>();
-				if(!keepGit) {
-					ignoreDirs.add(projectNameAndId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/.git");
-				}
-				
-				if(ClusterUtil.IS_CLUSTER) {
-					logger.info("Creating insight database ...");
-					File insightsFile = null;
-					try {
-						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, outputDir);
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Error occurred attemping to generate the insights database for this project");
-					}
-					logger.info("Done creating insight database ...");
-
-					// zip project folder minus insights
-					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, 
-							// ignore the current insights database
-							// and the metadata files if they exist
-							Arrays.asList(
-									projectNameAndId+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath()),
-									projectNameAndId+"/"+projectName+IEngine.METADATA_FILE_SUFFIX,
-									projectNameAndId+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX
-								));
-					logger.info("Done zipping project files...");
-					
-					logger.info("Zipping insight database ...");
-					ZipUtils.addToZipFile(insightsFile, zos, projectNameAndId);
-					logger.info("Done zipping insight database...");
-				} else {
-					// zip project folder
-					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, null);
-					logger.info("Done zipping project files...");
-				}
-				
-				// zip up the project metadata
-				{
-					logger.info("Grabbing project metadata to write to temporary file to zip...");
-					Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
-					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+IEngine.METADATA_FILE_SUFFIX, projectMeta);
-					logger.info("Done zipping project metadata...");
-				}
-				
-				// zip up the project dependencies
-				{
-					logger.info("Grabbing project dependencies to write to temporary file to zip...");
-					List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId);
-					ZipUtils.zipObjectToFile(zos, projectNameAndId, outputDir+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
-					logger.info("Done zipping project dependencies...");
-				}
+				// zip project folder
+				logger.info("Zipping project app files...");
+				zos = ZipUtils.zipFolder(projectAssetFolder, zipFilePath, null, null);
+				logger.info("Done zipping project app files...");
 				
 				// add smss file
 				logger.info("Zipping project smss...");
