@@ -447,7 +447,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                         is_exception = True
 
             self.send_output(
-                output if output else "\"\"",
+                output if type(output) is not type(None) else "\"\"",
                 payload,
                 operation=payload["operation"],
                 response=True,
