@@ -1,9 +1,8 @@
 package prerna.engine.impl.vector;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URLConnection;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -11,17 +10,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
 
 import prerna.ds.py.TCPPyTranslator;
-import prerna.reactor.frame.gaas.processors.CSVWriter;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
 import prerna.reactor.frame.gaas.processors.TextFileProcessor;
+import prerna.util.Constants;
 
 public class FaissDatabaseUtils {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseUtils.class);
@@ -48,8 +47,12 @@ public class FaissDatabaseUtils {
 		//using tika for mime type check since it is more consistent across env + rhel OS and macOS
 		Tika tika = new Tika();
 
-		mimeType = tika.detect(filePath);
-
+		try (FileInputStream inputstream = new FileInputStream(file)) {
+			mimeType = tika.detect(inputstream, new Metadata());
+		} catch (IOException e) {
+			classLogger.error(Constants.ERROR_MESSAGE, e);
+        }
+		
 		if(mimeType != null) {
 			classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
 			if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
