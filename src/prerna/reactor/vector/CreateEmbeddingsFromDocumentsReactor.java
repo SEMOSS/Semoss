@@ -16,13 +16,15 @@ import java.util.zip.ZipInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -37,7 +39,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromDocumentsReactor.class);
 	private static final String pathToUnzipFiles = "zipFileExtractFolder";
 	private String insightFolder;
-	
+		
 	public CreateEmbeddingsFromDocumentsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), "filePaths", ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
 		this.keyRequired = new int[] {1, 1, 0};
@@ -88,7 +90,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			filePaths = getFiles();
 			
 			if (filePaths.isEmpty()) {
-				throw new IllegalArgumentException("Please provide input files using \"filePaths\"");
+				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". File types supported are pdf, word, ppt, or txt files");
 			}
 			
 			for (String filePath: filePaths) {
@@ -134,17 +136,17 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				String fileName = grs.get(i).toString();
-				if (isZipFile(fileName)) {
-					String zipFileLocation = (insightFolder + File.separator + fileName).replace('\\', '/');
+				String filePath = insightFolder + File.separator + grs.get(i).toString();
+				if (isZipFile(filePath)) {
+					String zipFileLocation = filePath.replace('\\', '/');
 					File zipFileExtractFolder = new File(insightFolder, pathToUnzipFiles);
 					List<String> validFilesInZip = unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath());
 					filePaths.addAll(validFilesInZip);
 					new File(zipFileLocation).delete();
 				} else {
 					 //String filePath = destDirectory + File.separator + entry.getName();
-					 if(isSupportedFileType(grs.get(i).toString())) {
-						filePaths.add(insightFolder + File.separator + grs.get(i).toString());
+					 if(isSupportedFileType(filePath)) {
+						filePaths.add(filePath);
 					 }
 				}
 			}
@@ -181,7 +183,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @return {@code List<String>}		sdfs
 	 * @throws IOException 
 	 */
-	private static List<String> unzipAndFilter(String zipFilePath, String destDirectory) throws IOException {
+	private List<String> unzipAndFilter(String zipFilePath, String destDirectory) throws IOException {
         List<String> validFilePaths = new ArrayList<>();
         File destDir = new File(destDirectory);
         if (!destDir.exists()) {
@@ -201,7 +203,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
                     dir.mkdirs();
                 } else if (isZipFile(filePath)) {
                     // Handle nested zip file
-                	extractFile(zipIn, filePath);
+                	this.extractFile(zipIn, filePath);
 					
 					// Check if the entry is not in the root directory
 					String parentPath = null;
@@ -231,7 +233,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
         return validFilePaths;
     }
 
-    private static void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
+    private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(filePath)) {
             byte[] buffer = new byte[1024];
             int bytesRead;
@@ -241,15 +243,69 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
         }
     }
 
-    private static boolean isSupportedFileType(String filePath) {
-        String extension = filePath.substring(filePath.lastIndexOf(".") + 1).toLowerCase();
-        return extension.equals("pdf") || extension.equals("pptx") || extension.equals("ppt")
-                || extension.equals("doc") || extension.equals("docx") || extension.equals("txt") || extension.equals("csv");
+    private boolean isSupportedFileType(String filePath) {
+
+    	// Find the last index of '.'
+        int dotIndex = filePath.lastIndexOf('.');
+        
+        if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
+            // Extract the extension and convert it to lower case
+        	String extension = filePath.substring(dotIndex + 1).toLowerCase();
+        	
+        	return extension.equals("pdf") || extension.equals("pptx") || extension.equals("ppt")
+                    || extension.equals("doc") || extension.equals("docx") || extension.equals("txt") || extension.equals("csv");
+        } else {
+        	// do a mime type check
+        	Tika tika = new Tika();
+        	File file = new File(filePath);
+        	try (FileInputStream inputstream = new FileInputStream(file)) {
+                String mimeType = tika.detect(inputstream, new Metadata());
+
+                switch (mimeType) {
+                    case "application/pdf":
+                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": // .docx
+                    case "application/vnd.ms-powerpoint": // .ppt
+                    case "application/vnd.openxmlformats-officedocument.presentationml.presentation": // .pptx
+                    case "text/plain":
+                        return true;
+                    default:
+                        return false;
+                }
+            } catch (IOException e) {
+                classLogger.error(Constants.ERROR_MESSAGE, e);
+                return false;
+            }
+        }
     }
 
-    private static boolean isZipFile(String filePath) {
-        String extension = filePath.substring(filePath.lastIndexOf(".") + 1).toLowerCase();
-        return extension.equals("zip");
+    private boolean isZipFile(String filePath) {        
+    	// Find the last index of '.'
+        int dotIndex = filePath.lastIndexOf('.');
+        
+        if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
+            // Extract the extension and convert it to lower case
+        	String extension = filePath.substring(dotIndex + 1).toLowerCase();
+        	
+        	return extension.equals("zip");
+        } else {
+        	// do a mime type check
+        	Tika tika = new Tika();
+        	File file = new File(filePath);
+        	try (FileInputStream inputstream = new FileInputStream(file)) {
+                String mimeType = tika.detect(inputstream, new Metadata());
+                
+                if (mimeType != null) {
+            		if (mimeType.equalsIgnoreCase("application/zip")) {
+            			return true;
+                    }
+            	} 
+                
+                return false;
+            } catch (IOException e) {
+                classLogger.error(Constants.ERROR_MESSAGE, e);
+                return false;
+            }
+        }
     }
 	
 	@Override
