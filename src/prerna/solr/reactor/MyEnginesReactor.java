@@ -20,6 +20,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class MyEnginesReactor extends AbstractReactor {
 	
@@ -112,7 +113,7 @@ public class MyEnginesReactor extends AbstractReactor {
 					}
 				}
 			} 
-			if(includeUserT) {
+			if(includeUserT && Utility.isUserTrackingEnabled()) {
 				IRawSelectWrapper wrapper = null;
 				try {
 					wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet());
