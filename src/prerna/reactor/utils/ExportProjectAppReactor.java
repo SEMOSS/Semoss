@@ -2,6 +2,8 @@ package prerna.reactor.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipOutputStream;
 
@@ -11,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
@@ -97,6 +100,22 @@ public class ExportProjectAppReactor extends AbstractReactor {
 				logger.info("Zipping project app files...");
 				zos = ZipUtils.zipFolder(projectAssetFolder, zipFilePath, null, null);
 				logger.info("Done zipping project app files...");
+				
+				// zip up the project metadata
+				{
+					logger.info("Grabbing project metadata to write to temporary file to zip...");
+					Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
+					ZipUtils.zipObjectToFile(zos, null, outputDir+"/"+projectName+IEngine.METADATA_FILE_SUFFIX, projectMeta);
+					logger.info("Done zipping project metadata...");
+				}
+				
+				// zip up the project dependencies
+				{
+					logger.info("Grabbing project dependencies to write to temporary file to zip...");
+					List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId);
+					ZipUtils.zipObjectToFile(zos, null, outputDir+"/"+projectName+IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
+					logger.info("Done zipping project dependencies...");
+				}
 				
 				// add smss file
 				logger.info("Zipping project smss...");
