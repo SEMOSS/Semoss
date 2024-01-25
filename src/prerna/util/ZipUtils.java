@@ -27,7 +27,6 @@ import java.util.zip.ZipOutputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.util.gson.GsonUtility;
@@ -129,7 +128,12 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	public static void addToZipFile(File file, ZipOutputStream zos, String prefix) throws FileNotFoundException, IOException {
-		ZipEntry zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
+		ZipEntry zipEntry = null;
+		if(prefix == null || prefix.isEmpty()) {
+			zipEntry = new ZipEntry(file.getName());
+		} else {
+			zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
+		}
 		zos.putNextEntry(zipEntry);
 
 		FileInputStream fis = null;
