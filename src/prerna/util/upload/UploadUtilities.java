@@ -140,7 +140,7 @@ public class UploadUtilities {
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		projectIds = projectIds.replace(";"+erroredProjectId+";", ";");
 		projectIds = projectIds.replace(";"+erroredProjectId, "");
-		DIHelper.getInstance().setEngineProperty(Constants.PROJECTS, projectIds);
+		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
 	}
 	
 	/**
