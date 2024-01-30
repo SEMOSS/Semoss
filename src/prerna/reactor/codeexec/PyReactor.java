@@ -1,7 +1,7 @@
 package prerna.reactor.codeexec;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -65,6 +65,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
 		}
 		
+		NounMetadata execNoun = null;
 		try
 		{
 			//if(tokens > 1) 
@@ -83,6 +84,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 //				}
 //				else
 					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
+					execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
 			} 
 			/*else {
 				//output = pyTranslator.runScript(code) + "";
@@ -91,9 +93,10 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		}catch(SemossPixelException ex)
 		{
 			output = ex.getMessage();
+			execNoun = new NounMetadata(output, PixelDataType.ERROR, PixelOperationType.ERROR);
 		}
-		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
-		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		List<NounMetadata> outputs = new ArrayList<>(2);
+		outputs.add(execNoun);
 		
 		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
 		//forcing smart sync to true
