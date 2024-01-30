@@ -66,8 +66,8 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		}
 		
 		NounMetadata execNoun = null;
-		try
-		{
+//		try
+//		{
 			//if(tokens > 1) 
 			{
 //				if(nativePyServer)
@@ -90,11 +90,11 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 				//output = pyTranslator.runScript(code) + "";
 				output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
 			}*/
-		}catch(SemossPixelException ex)
-		{
-			output = ex.getMessage();
-			execNoun = new NounMetadata(output, PixelDataType.ERROR, PixelOperationType.ERROR);
-		}
+//		}catch(SemossPixelException ex)
+//		{
+//			output = ex.getMessage();
+//			execNoun = new NounMetadata(output, PixelDataType.ERROR, PixelOperationType.ERROR);
+//		}
 		List<NounMetadata> outputs = new ArrayList<>(2);
 		outputs.add(execNoun);
 		
