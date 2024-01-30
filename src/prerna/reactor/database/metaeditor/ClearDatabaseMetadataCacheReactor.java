@@ -14,6 +14,7 @@ public class ClearDatabaseMetadataCacheReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		EngineSyncUtility.clearEngineCache(databaseId);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
