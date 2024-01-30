@@ -2601,7 +2601,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param engineTypes
-	 * @param databaseFilters
+	 * @param engineFilters
 	 * @param engineMetadataFilter
 	 * @param searchTerm
 	 * @param limit
@@ -2610,7 +2610,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserDiscoverableEngineList(User user,
 			List<String> engineTypes,
-			List<String> databaseFilters,
+			List<String> engineFilters,
 			Map<String, Object> engineMetadataFilter, 
 			String searchTerm, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -2626,6 +2626,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -2658,8 +2661,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		// filters
-		if(databaseFilters != null && !databaseFilters.isEmpty()) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
+		if(engineFilters != null && !engineFilters.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilters));
 		}
 		if(engineTypes != null && !engineTypes.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
