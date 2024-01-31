@@ -1553,6 +1553,27 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
+			
+			// SESSION SHARE
+			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", 
+					"DATE_ADDED", "DATE_USED", "USE_VALID", 
+					"USERID", "TYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					"VARCHAR(255)", "VARCHAR(255)"};
+			if(allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("SESSION_SHARE", colNames, types);
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "SESSION_SHARE", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("SESSION_SHARE", colNames, types);
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
 	
 			// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
 			List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
