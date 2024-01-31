@@ -90,12 +90,8 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		List<String> concepts = this.getPhysicalConcepts();
 		for (String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
-			String cKey = tableName;
-			if (isRdbms) {
-				cKey = Utility.getClassName(cUri) + cKey;
-			}
 			// add to concept hash
-			conceptHash.put(cKey, cUri);
+			conceptHash.put(tableName, cUri);
 
 			// add all the props as well
 			List<String> props = this.getPropertyUris4PhysicalUri(cUri);
@@ -145,6 +141,8 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		this.baseDataEngine.deleteFile();
 		UploadUtilities.generateOwlFile(this.baseDataEngine.getFilePath());
 		this.baseDataEngine.reloadFile();
+		// clear out the values in the maps
+		this.loadDatabaseValues();
 	}
 	
 	/**

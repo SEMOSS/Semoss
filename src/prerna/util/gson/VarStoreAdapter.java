@@ -37,7 +37,8 @@ public class VarStoreAdapter extends TypeAdapter<VarStore> {
 		if(collectFrames) {
 			for(String k : keys) {
 				// ignore these 3 variables
-				if(k.equals(JobReactor.JOB_KEY) || k.equals(JobReactor.SESSION_KEY) || k.equals(JobReactor.INSIGHT_KEY)) {
+				if(k.equals(JobReactor.JOB_KEY) || k.equals(JobReactor.SESSION_KEY) || k.equals(JobReactor.ROUTE_KEY) 
+						|| k.equals(JobReactor.INSIGHT_KEY)) {
 					continue;
 				}
 				NounMetadata noun = value.get(k);
