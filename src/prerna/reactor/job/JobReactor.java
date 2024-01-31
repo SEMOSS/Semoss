@@ -15,12 +15,17 @@ public class JobReactor extends AbstractReactor {
 	
 	public static final String JOB_KEY = "$JOB_ID";
 	public static final String SESSION_KEY = "$SESSION_ID";
+	public static final String ROUTE_KEY = "$ROUTE_ID";
 	public static final String INSIGHT_KEY = "$INSIGHT_ID";
 	
 	private static final String CLASS_NAME = JobReactor.class.getName();
 	
 	public JobReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.SESSION_ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.JOB_ID.getKey(), 
+				ReactorKeysEnum.ID.getKey(), 
+				ReactorKeysEnum.SESSION_ID.getKey(),
+				ReactorKeysEnum.ROUTE_ID.getKey()
+				};
 	}
 	
 	@Override
@@ -43,6 +48,12 @@ public class JobReactor extends AbstractReactor {
 			String sessionId = this.curRow.get(2).toString();
 			logger.debug("Session ID = " + sessionId);
 			planner.addVariable(SESSION_KEY, new NounMetadata(sessionId, PixelDataType.CONST_STRING));
+		}
+		
+		if(curRow.size() > 3) {
+			String routeId = this.curRow.get(3).toString();
+			logger.debug("Route ID = " + routeId);
+			planner.addVariable(ROUTE_KEY, new NounMetadata(routeId, PixelDataType.CONST_STRING));
 		}
 
 		return new NounMetadata(jobId, PixelDataType.CONST_STRING, PixelOperationType.JOB_ID);

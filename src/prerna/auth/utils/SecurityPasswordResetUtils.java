@@ -25,7 +25,7 @@ import prerna.util.ldap.ILdapAuthenticator;
 
 public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityPasswordResetUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityPasswordResetUtils.class);
 
 	private static final String SMSS_USER_TABLE_NAME = "SMSS_USER";
 	private static final String USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
@@ -61,13 +61,13 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -92,13 +92,13 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -147,7 +147,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred inserting the request to update the password");
 		} finally {
 			if(ps != null) {
@@ -192,13 +192,13 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				type = (String) row[2];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -245,14 +245,14 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(securityDb.isConnectionPooling()) {
@@ -260,7 +260,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
