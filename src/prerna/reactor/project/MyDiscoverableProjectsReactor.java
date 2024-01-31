@@ -27,7 +27,8 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.PROJECT_TYPE.getKey(), ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
+				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
+				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.ONLY_PORTALS.getKey(),
 			};
 	}
 
@@ -41,10 +42,11 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 		List<String> project = getProjectTypeFilters();
 		List<String> projectIdFilters = getProjectIdFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
+		Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())+"");
 
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserDiscoverableProjectList(this.insight.getUser(), 
-				project, projectIdFilters, engineMetadataFilter, searchTerm, limit, offset);
+				project, projectIdFilters, portalsOnly, engineMetadataFilter, searchTerm, limit, offset);
 
 		if(!projectInfo.isEmpty() && !noMeta) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
