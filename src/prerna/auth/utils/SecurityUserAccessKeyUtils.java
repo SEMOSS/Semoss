@@ -235,11 +235,11 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
 			ps.setString(parameterIndex++, accessKey); 
-			ps.execute();
+			int updatedRows = ps.executeUpdate();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			return true;
+			return updatedRows > 0;
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
