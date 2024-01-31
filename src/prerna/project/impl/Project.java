@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -1037,7 +1038,8 @@ public class Project implements IProject {
 		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
 		boolean outOfDate = false;
 		if(lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
-			outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPortalPublishDate.getLocalDateTime());
+			outOfDate = lastPublishedDateInSecurity.getZonedDate(TimeZone.getTimeZone("UTC"))
+					.isAfter(this.lastPortalPublishDate.getZonedDate(TimeZone.getTimeZone("UTC")));
 		}
 		if(outOfDate || this.lastPortalPublishDate == null) {
 			// just pull to make sure we have the latest in case project was loaded
@@ -1057,7 +1059,8 @@ public class Project implements IProject {
 	/**
 	 * Publish the portals folder to public_home
 	 */
-	public boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
+	// TODO: HAVE TO ADD SYNCHONIZED UNTIL DATES ARE RESOLVED
+	public synchronized boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
 		if(publicHomeFilePath == null) {
 			return false;
 		}
@@ -1105,7 +1108,7 @@ public class Project implements IProject {
 				targetPublicHomeProjectPortalsDir.deleteOnExit();
 				this.publishedPortal = true;
 				this.republishPortal = false;
-				this.lastPortalPublishDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
+				this.lastPortalPublishDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
 				classLogger.info("Project '" + SmssUtilities.getUniqueName(this.projectName, this.projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
 			}
 		} catch (Exception e) {
