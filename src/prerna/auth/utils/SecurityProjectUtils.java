@@ -2575,6 +2575,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param projectTypes
 	 * @param projectFilters
+	 * @param portalsOnly
 	 * @param projectMetadataFilter
 	 * @param searchTerm
 	 * @param limit
@@ -2584,6 +2585,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserDiscoverableProjectList(User user,
 			List<String> projectTypes,
 			List<String> projectFilters,
+			boolean portalsOnly,
 			Map<String, Object> projectMetadataFilter, 
 			String searchTerm, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -2640,7 +2642,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if(projectTypes != null && !projectTypes.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", projectTypes));
 		}
-		
+		if(portalsOnly) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
 			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "PROJECT__PROJECTNAME", searchTerm);
