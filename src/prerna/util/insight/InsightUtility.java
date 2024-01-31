@@ -96,7 +96,7 @@ public class InsightUtility {
 		if(origInsight == null) {
 			return;
 		}
-		String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY};
+		String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY, JobReactor.ROUTE_KEY};
 		for(String key : keys) {
 			if(origInsight.getVarStore().containsKey(key)) {
 				newInsight.getVarStore().put(key, origInsight.getVarStore().get(key));

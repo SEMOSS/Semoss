@@ -637,6 +637,18 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	/**
+	 * Get the session id set in the job
+	 * @return
+	 */
+	protected String getRouteId() {
+		NounMetadata route = planner.getVariable(JobReactor.ROUTE_KEY);
+		if(route != null) {
+			return route.getValue() +"";
+		}
+		return ThreadStore.getRouteId();
+	}
+	
+	/**
 	 * Test the app id and grab the correct value and check if the user needs edit access or just read access
 	 * @param databaseId	String the database id to test
 	 * @param edit			Boolean true means the user needs edit access
