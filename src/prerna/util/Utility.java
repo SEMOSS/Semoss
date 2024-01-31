@@ -6194,15 +6194,22 @@ public class Utility {
 		}
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
+	public static ZonedDateTime getCurrentZonedDateTimeUTC() {
+		ZonedDateTime zdt = ZonedDateTime.now();
+		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+		return gmt;
+	}
 	
 	/**
 	 * Get the current timestamp
 	 * @return currentTimestamp
 	 */
 	public static java.sql.Timestamp getCurrentSqlTimestampUTC() {
-		ZonedDateTime zdt = ZonedDateTime.now();
-		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
-		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+		return java.sql.Timestamp.valueOf(getCurrentZonedDateTimeUTC().toLocalDateTime());
 	}
 	
 	/**

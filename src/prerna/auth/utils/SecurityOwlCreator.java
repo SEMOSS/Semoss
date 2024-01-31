@@ -35,6 +35,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
+		conceptsRequired.add("SESSION_SHARE");
 		//conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
 		conceptsRequired.add("PROJECTACCESSREQUEST");
@@ -96,8 +97,8 @@ public class SecurityOwlCreator {
 		if(check1) {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/GROUPENGINEPERMISSION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBY/GROUPENGINEPERMISSION")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/USERID/SESSION_SHARE")) {
 				return true;
 			}
 		}
@@ -360,6 +361,17 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
 		
+		// SESSION_SHARE
+		owler.addConcept("SESSION_SHARE", null, null);
+		owler.addProp("SESSION_SHARE", "SHARE_VAL", "VARCHAR(255)");
+		owler.addProp("SESSION_SHARE", "SESSION_VAL", "VARCHAR(255)");
+		owler.addProp("SESSION_SHARE", "ROUTE_VAL", "VARCHAR(255)");
+		owler.addProp("SESSION_SHARE", "DATE_ADDED", "TIMESTAMP");
+		owler.addProp("SESSION_SHARE", "DATE_USED", "TIMESTAMP");
+		owler.addProp("SESSION_SHARE", "USE_VALID", "BOOLEAN");
+		owler.addProp("SESSION_SHARE", "USERID", "VARCHAR(255)");
+		owler.addProp("SESSION_SHARE", "TYPE", "VARCHAR(255)");
+
 		// ENGINEACCESSREQUEST
 		owler.addConcept("ENGINEACCESSREQUEST", null, null);
 		owler.addProp("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
@@ -413,8 +425,8 @@ public class SecurityOwlCreator {
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
 		owler.addRelation("ENGINE", "WORKSPACEENGINE", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
-		owler.addRelation("ENGINE", "ASSETENGINE", "ENGINE.ENGINEID.ASSETENGINE.ENGINEID");
 		
+		owler.addRelation("PROJECT", "ASSETENGINE", "PROJECT.PROJECTID.ASSETENGINE.PROJECTID");
 		owler.addRelation("PROJECT", "PROJECTMETA", "PROJECT.PROJECTID.PROJECTMETA.PROJECTID");
 		owler.addRelation("PROJECT", "INSIGHT", "PROJECT.PROJECTID.INSIGHT.PROJECTID");
 		owler.addRelation("PROJECT", "USERINSIGHTPERMISSION", "PROJECT.PROJECTID.USERINSIGHTPERMISSION.PROJECTID");
