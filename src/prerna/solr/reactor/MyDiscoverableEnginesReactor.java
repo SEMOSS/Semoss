@@ -27,7 +27,8 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.ENGINE_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
+				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
+				ReactorKeysEnum.NO_META.getKey()
 			};
 	}
 
