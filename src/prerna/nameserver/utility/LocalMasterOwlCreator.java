@@ -52,15 +52,20 @@ public class LocalMasterOwlCreator {
 			cleanConcepts.add(cTable);
 		}
 		
-		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
-		if(check1) {
+		if(!cleanConcepts.containsAll(conceptsRequired)) {
+			return true;
+		}
+
+		{
+			// dont need to keep adding a million things to this list
+			// just need the latest change ...
 			List<String> props = localMasterDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/CONCEPTMETADATA");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/METAKEY/CONCEPTMETADATA")) {
 				return true;
 			}
 		}
 		
-		return !check1;
+		return false;
 	}
 	
 	/**
