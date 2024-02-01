@@ -148,9 +148,7 @@ public class UserTrackingOwlCreator {
 			cleanConcepts.add(cTable);
 		}
 		
-		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
-		
-		if (!check1) {
+		if (!cleanConcepts.containsAll(conceptsRequired)) {
 			return true;
 		}
 		
