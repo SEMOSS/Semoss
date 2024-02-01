@@ -21,14 +21,14 @@ def extract_text(
     extacted_content = pdf_extractor.extract_items_from_pdf()
     
     df = extacted_content.to_pandas()
-    
-    df.to_csv(output_file_name, index = False)
-    
+        
     # Filter out rows with NaN or empty strings in the 'Content' column
     df = df[df['Content'] != '']
     
     # Replace empty strings with NaN in the 'Content' column
     df = df.dropna(subset=['Content'])
     df.reset_index(inplace=True, drop=True) # reset the index to make it a clean df
+    
+    df.to_csv(output_file_name, index = False)
     
     return df.shape[0]
