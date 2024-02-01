@@ -93,8 +93,11 @@ public class SecurityOwlCreator {
 			cleanConcepts.add(cTable);
 		}
 		
-		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
-		if(check1) {
+		if(!cleanConcepts.containsAll(conceptsRequired)) {
+			return true;
+		}
+		
+		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
 			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
@@ -123,7 +126,7 @@ public class SecurityOwlCreator {
 			return true;
 		}
 		
-		return !check1;
+		return false;
 	}
 	
 	/**
