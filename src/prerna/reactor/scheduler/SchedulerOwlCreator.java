@@ -161,26 +161,20 @@ public class SchedulerOwlCreator {
 			//ignore
 		}
 
-		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
-		if(check1) {
-			List<String> props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL")) {
-				return true;
-			}
-			
-			props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES")) {
-				return true;
-			}
+		if(!cleanConcepts.containsAll(conceptsRequired)) {
+			return true;
+		}
+		
+		{
+			// dont need to keep adding a million things to this list
+			// just need the latest change ...
+			List<String> props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES")) {
 				return true;
 			}
-			
 		}
-		return !check1;
+		
+		return false;
 	}
 
 	/**
