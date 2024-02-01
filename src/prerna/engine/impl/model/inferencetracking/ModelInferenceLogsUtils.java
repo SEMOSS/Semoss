@@ -7,12 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Vector;
@@ -27,7 +24,6 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -554,7 +550,7 @@ public class ModelInferenceLogsUtils {
 	
 	public static void initModelInferenceLogsDatabase() throws Exception {
 		modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
-		ModelInferenceLogsOwlCreatormodelInfCreator = new MModelInferenceLogsOwlCreatorodelInferenceLogsDb);
+		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
 		if(modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
 			// reset the local master metadata for model engine if we remade the OWL
