@@ -11,7 +11,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class ModelInferenceLogsOwlCreation {
+public class ModelInferenceLogsOwlCreator {
 	
 	// each column name paired to its type in a var
 	private List<Pair<String, String>> agentColumns = null;
@@ -40,7 +40,7 @@ public class ModelInferenceLogsOwlCreation {
 	private IRDBMSEngine modelInferenceDb;
 	
 	
-	public ModelInferenceLogsOwlCreation(IRDBMSEngine modelInferenceDb) {
+	public ModelInferenceLogsOwlCreator(IRDBMSEngine modelInferenceDb) {
 		this.modelInferenceDb = modelInferenceDb;
 		createColumnsAndTypes(this.modelInferenceDb.getQueryUtil());
 		definePrimaryKeys();
@@ -148,9 +148,7 @@ public class ModelInferenceLogsOwlCreation {
 			cleanConcepts.add(cTable);
 		}
 		
-		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
-		
-		if (!check1) {
+		if (!cleanConcepts.containsAll(conceptsRequired)) {
 			return true;
 		}
 		

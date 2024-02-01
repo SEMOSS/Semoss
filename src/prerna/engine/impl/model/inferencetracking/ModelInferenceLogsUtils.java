@@ -554,7 +554,7 @@ public class ModelInferenceLogsUtils {
 	
 	public static void initModelInferenceLogsDatabase() throws Exception {
 		modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
-		ModelInferenceLogsOwlCreation modelInfCreator = new ModelInferenceLogsOwlCreation(modelInferenceLogsDb);
+		ModelInferenceLogsOwlCreatormodelInfCreator = new MModelInferenceLogsOwlCreatorodelInferenceLogsDb);
 		if(modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
 			// reset the local master metadata for model engine if we remade the OWL
