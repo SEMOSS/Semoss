@@ -10,7 +10,7 @@ import json
 
 class PromptGuard:
 
-  def __init__(self, model_name="llamas-community/LlamaGuard-7b", schema_object=None, pipe=None):
+  def __init__(self, model_name="llamas-community/LlamaGuard-7b", schema_object=None, pipe=None, **kwargs):
     # start the llms and get ready ?
     if pipe is None:
       device = "cpu"
@@ -19,7 +19,7 @@ class PromptGuard:
         device="cuda"
       dtype = torch.bfloat16
       tokenizer = AutoTokenizer.from_pretrained(model_name)
-      model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype, device_map=device)
+      model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype, device_map={'':0}, **kwargs)
       self.pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
     else:
       self.pipe = pipe
@@ -103,9 +103,23 @@ class PromptGuard:
     if 'filter_list' in kwargs:
       filter_list = kwargs.pop('filter_list')
     max_new_tokens = 100
+    
+    response = ""
+    in_tokens = len(question)
+    out_tokens = 0
+    
     if 'max_new_tokens' in kwargs:
       max_new_tokens = kwargs.pop('max_new_tokens')
+      
     if question == "categories":
-      return self.categories
+      response = self.categories
+      in_tokens = 0
     else:
-      return self.get_output(prompt = question, filter_list=filter_list, max_new_tokens=max_new_tokens, **kwargs)
+      response = self.get_output(prompt = question, filter_list=filter_list, max_new_tokens=max_new_tokens, **kwargs)
+      out_tokens = len(response)
+      
+    return {
+        'response': response,
+        'numberOfTokensInPrompt': in_tokens,
+        'numberOfTokensInResponse': out_tokens
+    }
