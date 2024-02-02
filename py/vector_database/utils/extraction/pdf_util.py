@@ -59,7 +59,7 @@ class PDFUtil:
 
         self.pdf = source_file
         pdf_path = Path(self.pdf)
-        self.doc_name = pdf_path.stem
+        self.doc_name = pdf_path.name
         
         self.doc = fitz.open(self.pdf) # open a document
         
