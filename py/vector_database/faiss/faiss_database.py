@@ -10,11 +10,13 @@ class FAISSDatabase():
 
     def __init__(
         self, 
-        embedder_engine_id:str,
+        embedder_engine_id: str,
         tokenizer,
-        keyword_engine_id:str,
-        distance_method:str,
-        searchers: list = [], 
+        keyword_engine_id: str,
+        distance_method: str,
+        searchers: list = [],
+        embedder_engine: ModelEngine = None,
+        keyword_engine: ModelEngine = None,
     ) -> None:
         '''
         Create an instance of FAISSDatabase
@@ -23,12 +25,15 @@ class FAISSDatabase():
         self.tokenizer = tokenizer
 
         # set the embedder class so it can be used when new searchers/indexClasses are added
-        self.embeddings_engine = ModelEngine(engine_id = embedder_engine_id)
+        if embedder_engine is not None:
+            self.embeddings_engine = embedder_engine
+        else:
+            self.embeddings_engine = ModelEngine(engine_id = embedder_engine_id)
         
         if (keyword_engine_id != None and keyword_engine_id != ''):
             self.keyword_engine = ModelEngine(engine_id = keyword_engine_id)
         else:
-            self.keyword_engine = None
+            self.keyword_engine = keyword_engine
         
         # what type of similarity search are we performing
         self.metric_type_is_cosine_similarity = False
