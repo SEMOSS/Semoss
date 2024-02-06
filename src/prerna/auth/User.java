@@ -719,7 +719,7 @@ public class User implements Serializable {
 		// only add it if the ID is not already in the map
 		if(!this.projectIdMap.containsKey(projectId)) {
 			this.projectIdMap.put(projectId, projectName);
-			int updatedCount = Integer.parseInt(this.projectIdMap.get("COUNT")) + 1;
+			int updatedCount = Integer.parseInt(this.projectIdMap.getOrDefault("COUNT", "0")) + 1;
 			this.projectIdMap.put("COUNT",  Integer.toString(updatedCount));
 		}
 	}
