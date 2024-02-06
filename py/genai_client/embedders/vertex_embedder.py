@@ -58,13 +58,13 @@ class VertexAiEmbedder(AbstractEmbedder):
         
     def embeddings(
         self,
-        list_to_embed:List[str], 
+        strings_to_embed:List[str], 
         prefix:str = ""
     ) -> Dict[str, Union[str, int]]:
 
         # make the call
         is_successful, embedded_list = self._encode_text_to_embedding_batched(
-            sentences=list_to_embed
+            sentences=strings_to_embed
         )
         
         #if is_successful
@@ -72,12 +72,12 @@ class VertexAiEmbedder(AbstractEmbedder):
         if not isinstance(embedded_list, list):
             embedded_list = embedded_list.tolist()
             
-        if len(list_to_embed) == 1:
+        if len(strings_to_embed) == 1:
             embedded_list = [embedded_list]
         
         model_engine_response = ModelEngineResponse(
             response=embedded_list,
-            prompt_tokens=self.tokenizer.count_tokens(list_to_embed).total_tokens,
+            prompt_tokens=self.tokenizer.count_tokens(strings_to_embed).total_tokens,
             response_tokens=0
         )
         
