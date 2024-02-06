@@ -10,9 +10,6 @@ import glob
 from genai_client.tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import ENCODING_OPTIONS
 
-from logging_config import get_logger
-class_logger = get_logger(__name__)
-
 class FAISSSearcher():
     '''
     The primary class for a faiss database classes and searching document embeddings
@@ -159,11 +156,6 @@ class FAISSSearcher():
             [{Score=0.9867115616798401, doc_index=1420-deloitte-independence_11_text}, 
             {Score=0.9855965375900269, doc_index=1420-deloitte-independence_10_text}]
         '''
-        
-        print('nearestNeighbor is being called')
-        print('nearestNeighbor is being called')
-        print('nearestNeighbor is being called')
-        
         # if columns_to_return is None, then by default we return all columns
         if(columns_to_return is None):
             columns_to_return = list(self.ds.features)
@@ -239,11 +231,6 @@ class FAISSSearcher():
             output = {}
             output.update({'Score' : row['distances']})
             data_row = self.ds[int(row['ann'])]
-            x = type(data_row)
-            class_logger.info(
-                data_row,
-                extra={"stack": "BACKEND"},
-            )
             for col in columns_to_return:
                 output.update({col:data_row[col]})
             final_output.append(output)
@@ -499,10 +486,7 @@ class FAISSSearcher():
 
         Returns:
         `None`
-        '''
-        
-        print('THis is a sample doc')
-        
+        '''        
         # make sure they are all in indexed_files dir
         assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
 
