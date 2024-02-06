@@ -86,6 +86,7 @@ public class User implements Serializable {
 	// shared sessions
 	private List<String> sharedSessions = new Vector<>();
 	
+	// we use this in set context and need to review if best to store this
 	private Map<String, String> projectIdMap = new HashMap<>();
 	private Map<String, String> engineIdMap = new HashMap<>();
 	private Map<String, StringBuffer> varMap = new HashMap<>();
