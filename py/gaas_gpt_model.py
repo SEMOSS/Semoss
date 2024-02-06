@@ -4,10 +4,33 @@ from typing import (
     Dict,
     Any
 )
+from abc import (
+    ABC,
+    abstractmethod
+)
+import os
 
 from gaas_server_proxy import ServerProxy
 
-class ModelEngine(ServerProxy):
+class AbstractModelEngine(ABC):
+    '''This is an abstract class the defined what methods need to be implemeted for a ModelEngine'''
+    
+    @abstractmethod
+    def ask(self, *args: Any, **kwargs: Any) -> Dict:
+        '''This method is responsible for interacting with models that can perform text-generation'''
+        pass
+    
+    @abstractmethod
+    def embeddings(self, *args: Any, **kwargs: Any) -> Dict:
+        '''This method is responsible for interacting with models that can create embeddings from strings'''
+        pass
+    
+    @abstractmethod
+    def model(self, *args: Any, **kwargs: Any) -> Any:
+        '''This method is responsible for utilizing a specific model function that is unique to that model function'''
+        pass
+    
+class TomcatModelEngine(AbstractModelEngine, ServerProxy):
   
     def __init__(
         self, 
@@ -118,3 +141,156 @@ class ModelEngine(ServerProxy):
           )
         else:
           return self.pipeline_type
+      
+class LocalModelEngine(AbstractModelEngine):
+  
+    def __init__(
+        self,
+        model_engine: Any = None, 
+        engine_id: Optional[str] = None,
+        engine_smss_file_path: Optional[str] = None,
+        semoss_dev_path: Optional[str] = 'C:/workspace/Semoss_Dev' if os.name == 'nt' else '/opt/semosshome',
+    ):
+
+        # determine how to create the model engine locally
+        if engine_smss_file_path is not None or engine_id is not None:
+            
+            if engine_smss_file_path is not None:
+                # the direct path of the smss file was passed in
+                pass
+            elif engine_id is not None:
+                # the gave the engine id so try to find the smss file
+                engine_smss_file_path = LocalModelEngine.get_model_smss_file(
+                    semoss_dev_path, 
+                    engine_id
+                )
+            
+            # get the smss props from the smss file
+            smss_props = LocalModelEngine.read_smss_file(engine_smss_file_path)
+            
+            # use the smss props to initialize the model engine
+            model_engine_init_command = LocalModelEngine.get_init_model_commads(smss_props)
+            exec(model_engine_init_command)
+            
+            self.local_model_engine = locals().get(smss_props['VAR_NAME'], None)
+        else:
+            self.local_model_engine = model_engine
+            
+        assert self.local_model_engine != None, "Unable to define a Local Model Engine based on the parameters passed in"
+    
+    def ask(
+        self, 
+        **kwargs
+    ) -> Dict:
+        return self.local_model_engine.ask(**kwargs)
+  
+    def embeddings(
+        self, 
+        **kwargs
+    ) -> Dict:
+        return self.local_model_engine.embeddings(**kwargs)
+    
+    def model(
+        self,
+        **kwargs
+    ):
+        return self.local_model_engine.model(**kwargs)
+
+    def get_model_type(
+        self,
+        **kwargs
+    ):
+        #TODO add model type in python as well
+        return None
+    
+    @staticmethod
+    def get_model_smss_file(semoss_dev_file_path:str, engine_id:str) -> str:
+        '''This method returns a list of smss files in the semosshome model directory'''
+        import glob
+        
+        file_pattern = '*.smss'
+
+        # Use glob.glob to find all matching files in the directory
+        model_smss_files = glob.glob(
+            os.path.join(semoss_dev_file_path, 'model', file_pattern)
+        )
+        model_smss_files.sort()
+        
+        for smss_file_name in model_smss_files:
+            if smss_file_name.find(engine_id) > 0:
+                return smss_file_name
+            
+        raise ValueError(f'Unable to find smss file for the engine id: {engine_id}')
+
+        
+    @staticmethod
+    def read_smss_file(file_path:str) -> Dict:
+        smss_props = {}
+        with open(file_path.replace('\\','/'), 'r') as file:
+            for line in file:
+                line = line.strip()
+                if line.startswith('#') or len(line) == 0:
+                    continue
+                try:
+                    key, value = line.split(None, 1)  # Split by any whitespace
+                except:
+                    pass
+                smss_props[key] = True if value.lower() == 'true' else (False if value.lower() == 'false' else value.replace('\\','/'))
+        return smss_props
+
+    @staticmethod
+    def get_init_model_commads(smss_props:dict) -> str:
+        import re
+
+        init_model_engine_template = smss_props['INIT_MODEL_ENGINE']
+
+        # Find all placeholders in the template string
+        placeholders = re.findall(r'\${(.*?)}', init_model_engine_template)
+
+        # Create a dictionary with the actual values for the found placeholders
+        values = {placeholder: smss_props[placeholder] for placeholder in placeholders if placeholder in smss_props}
+
+        # Substitute the placeholders with the actual values from the dictionary
+        formatted_string_dynamic = init_model_engine_template
+        for placeholder, value in values.items():
+            formatted_string_dynamic = formatted_string_dynamic.replace('${' + placeholder + '}', value)
+
+        return formatted_string_dynamic
+    
+class ModelEngine(AbstractModelEngine):
+    
+    def __init__(
+        self,
+        local: Optional[bool] = False,
+        **kwargs
+    ):
+        if local:
+            self.model_engine = LocalModelEngine(**kwargs)
+        else:
+            self.model_engine = TomcatModelEngine(**kwargs)
+            
+        assert self.model_engine != None, "Unable to define a Model Engine"
+        
+    def ask(
+        self, 
+        **kwargs
+    ) -> Dict:
+        return self.model_engine.ask(**kwargs)
+  
+    def embeddings(
+        self, 
+        **kwargs
+    ) -> Dict:
+        return self.model_engine.embeddings(**kwargs)
+    
+    def model(
+        self,
+        **kwargs
+    ):
+        return self.model_engine.model(**kwargs)
+
+    def get_model_type(
+        self, 
+        **kwargs
+    ):
+        return self.model_engine.get_model_type(**kwargs)
