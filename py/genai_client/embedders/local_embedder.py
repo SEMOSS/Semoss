@@ -94,25 +94,25 @@ class LocalEmbedder:
 
         return embedder
 
-    def embeddings(self, list_to_embed: List[str], prefix="") -> List[float]:
+    def embeddings(self, strings_to_embed: List[str], prefix="") -> List[float]:
         # Determine what object was bassed in so we can pre-configure it before making the call
-        assert isinstance(list_to_embed, list)
+        assert isinstance(strings_to_embed, list)
 
         embedded_list = self.embedder.encode(
-            sentences=list_to_embed,
+            sentences=strings_to_embed,
         )
 
         total_tokens = sum(
-            [self.tokenizer.count_tokens(chunk) for chunk in list_to_embed]
+            [self.tokenizer.count_tokens(chunk) for chunk in strings_to_embed]
         )
 
         # TODO find a way to push back batches like OpenAI
         # THIS IS SLOW AS HECK
         # embedded_list = []
-        # number_of_items_to_encode = len(list_to_embed)
+        # number_of_items_to_encode = len(strings_to_embed)
         # for i in range(number_of_items_to_encode):
         #   embedded_list.append(
-        #     self.embedder.encode(list_to_embed[i])
+        #     self.embedder.encode(strings_to_embed[i])
         #   )
         #   print(prefix + "Completed Embedding " + str(i) + "/" + str(number_of_items_to_encode) + " Chunks")
 
