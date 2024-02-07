@@ -248,7 +248,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		StringBuilder callMaker = new StringBuilder();
 
 		callMaker.append(varName)
-				 .append(".embeddings(list_to_embed = ")
+				 .append(".embeddings(strings_to_embed = ")
 				 .append(pythonListAsString);
 				 
 		if(this.prefix != null) {
