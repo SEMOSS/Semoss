@@ -25,6 +25,7 @@ import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
+import prerna.tcp.TCPLogMessage;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -178,21 +179,20 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	    					//classLogger.info("Standard output");
 	    					String logMessage = (String) ps.payload[0];
 	    					outputAssimilator.append(ps.payload[0]);
-	    					
-	    					String[] logParts;
-	    					if (logMessage.startsWith("CFG_PYTHON_LOGGER") && (logParts = logMessage.split("-") ).length == 5 ) {
-	    						String level = logParts[1].trim();
-	    						String stack = logParts[2].trim();
-	    						String py_log_msg = logParts[3];
-	    						String py_file_info = logParts[4].trim();
-	    						String py_log = py_file_info + py_log_msg;
+
+	    					if (logMessage.startsWith("SMSS_PYTHON_LOGGER<==<>==>")) {
 	    						
-	    						switch(stack) {
+	    						String logMessagePayload = logMessage.split("<==<>==>")[1];
+	    						TCPLogMessage tcpLogMessage = gson.fromJson(logMessagePayload, TCPLogMessage.class);
+	    						
+	    						String py_log = tcpLogMessage.name + ":" + tcpLogMessage.lineNumber + " " + tcpLogMessage.message;
+	    						
+	    						switch(tcpLogMessage.stack) {
 		    						case "FRONTEND":
 		    							exposeLog(logMessage, lock.insightId);
 		    					        break;
 		    					    case "BACKEND":
-			    					    switch(level) {
+			    					    switch(tcpLogMessage.levelName) {
 			    					    	case "DEBUG":
 			    					    		// if python enabled debug level, then just add the debug flag to info
 			    					    		classLogger.info("DEBUG " + py_log);
