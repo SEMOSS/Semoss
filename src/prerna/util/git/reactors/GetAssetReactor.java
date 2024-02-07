@@ -1,5 +1,11 @@
 package prerna.util.git.reactors;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+
+import org.apache.commons.io.FileUtils;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -15,7 +21,8 @@ public class GetAssetReactor extends AbstractReactor {
 	// if the version is not provided - this gets the head
 
 	public GetAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.VERSION.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), 
+				ReactorKeysEnum.VERSION.getKey(),
 				ReactorKeysEnum.SPACE.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
@@ -24,39 +31,39 @@ public class GetAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		// check if user is logged in
-		String space = this.keyValue.get(this.keysToGet[2]);
-		
-		// we need to change this to asset base folder
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
-
-		// relative path is used for git if the insight is saved
-		String assetDir = "";
-		if(space == null || AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
-			if (this.insight.isSavedInsight()) {
-				assetDir = AssetUtility.getAssetRelativePath(this.insight, space);
-			} else {
-				// get temp insight folder
-				assetFolder = this.insight.getInsightFolder();
-			}
-		} else {
-			// user space + app holds assets in assets folder
-			// this should not be assets anymore
-			assetDir = "";
-		}
-
-		// specify a file
-		String asset =Utility.normalizePath( keyValue.get(keysToGet[0]));
 		// grab the version
 		String version = null;
-		if (keyValue.containsKey(keysToGet[1])) {
-			version = keyValue.get(keysToGet[1]);
+		if (this.keyValue.containsKey(ReactorKeysEnum.VERSION.getKey())) {
+			version = this.keyValue.get(ReactorKeysEnum.VERSION.getKey());
 		}
-
-		// I need a better way than output
-		// probably write the file and volley the file ?
-		// ideally this should be through the sym link
-		String output = GitRepoUtils.getFile(version, assetDir + "/" + asset, assetFolder);
+		
+		// specify a file
+		String asset =Utility.normalizePath(this.keyValue.get(keysToGet[0]));
+		if(!asset.startsWith("/") && !asset.startsWith("\\")) {
+			asset = "/"+asset;
+		}
+				
+		// check if user is logged in
+		String space = this.keyValue.get(this.keysToGet[2]);
+		// we need to change this to asset base folder
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
+		
+		String output = null;
+		if(version != null) {
+			// I need a better way than output
+			// probably write the file and volley the file ?
+			// ideally this should be through the sym link
+			output = GitRepoUtils.getFile(version, asset, assetFolder);
+		} else {
+			// just read the current file
+			String assetFilePath = assetFolder + asset;
+			try {
+				output = FileUtils.readFileToString(new File(assetFilePath), Charset.forName("UTF-8"));
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Unable to read file " + asset);
+			}
+		}
+		
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 }
