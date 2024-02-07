@@ -126,6 +126,7 @@ public class UploadUtilities {
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		engineIds = engineIds.replace(";"+erroredEngineId+";", ";");
 		engineIds = engineIds.replace(";"+erroredEngineId, "");
+		engineIds = engineIds.replace(erroredEngineId+";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 	}
 	
@@ -140,6 +141,7 @@ public class UploadUtilities {
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		projectIds = projectIds.replace(";"+erroredProjectId+";", ";");
 		projectIds = projectIds.replace(";"+erroredProjectId, "");
+		projectIds = projectIds.replace(erroredProjectId+";", "");
 		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
 	}
 	
