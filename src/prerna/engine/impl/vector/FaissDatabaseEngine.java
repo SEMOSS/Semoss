@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,12 +59,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
-	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
+	public static final String INSIGHT = "insight";
+	public static final String INDEX_CLASS = "indexClass";
 	
+	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	//private static final String initScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(encoder_class = vector_database.get_encoder(encoder_type='${ENCODER_TYPE}', embedding_model='${ENCODER_NAME}', api_key = '${ENCODER_API_KEY}'))";
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
 	private static final String faissInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
 	
@@ -81,6 +83,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private ClientProcessWrapper cpw = null;
 	
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
+	
+	private boolean modelPropsLoaded = false;
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -111,7 +115,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 		
 		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
-		
+	}
+	
+	private void verifyModelProps() {
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
 		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
@@ -125,6 +131,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
+		if (modelEngine == null) {
+			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+		}
+		
 		Properties modelProperties = modelEngine.getSmssProp();
 		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
 			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
@@ -151,9 +161,16 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// vars for string substitution
 		this.vars = new HashMap<>(this.smssProp);
+		
+		modelPropsLoaded = true;
 	}
 	
-	public void startServer(int port) {
+	private void startServer(int port) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		
 		// spin the server
 		// start the client
 		// get the startup command and parameters - at some point we need a better way than the command
@@ -276,8 +293,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public void addDocument(List<String> filePaths, Map <String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
 		}
 		
 		int chunkMaxTokenLength = this.contentLength;
@@ -300,7 +317,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
 		
-		Insight insight = getInsight(parameters.get("insight"));
+		Insight insight = getInsight(parameters.get(INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -369,7 +386,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// loop through each document and attempt to extract text
 		for (File document : fileToExtractFrom) {
-			String documentName = document.getName().split("\\.")[0];
+			String documentName = FilenameUtils.getBaseName(document.getName());
 			File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 			String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 			try {
@@ -517,8 +534,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
+		if (parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
 		}
 		
 		if (!this.indexClasses.contains(indexClass)) {
@@ -609,7 +626,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		checkSocketStatus();
 				
-		Insight insight = getInsight(parameters.get("insight"));
+		Insight insight = getInsight(parameters.get(INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -617,8 +634,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		StringBuilder callMaker = new StringBuilder();
 		
 		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			Object indexClassObj = parameters.get("indexClass");
+		if (parameters.containsKey(INDEX_CLASS)) {
+			Object indexClassObj = parameters.get(INDEX_CLASS);
 			if (indexClassObj instanceof String) {
 				indexClass = (String) indexClassObj;
 				// make the python method
@@ -727,8 +744,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
-		if (parameters != null && parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
+		if (parameters != null && parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
 		}
 		
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
@@ -754,6 +771,49 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		return fileList;
 	}
+	
+	public Map<String, String> removeCorruptedFiles(String indexClass){
+		if (indexClass == null || indexClass.isEmpty()) {
+			indexClass = this.defaultIndexClass;
+		}
+		
+		File indexClassDirectory = new File(this.schemaFolder, indexClass);
+		
+		if (!indexClassDirectory.exists()) {
+			throw new IllegalArgumentException("The FAISS Index Class called " + indexClass + " does not exist.");
+		}
+		
+		StringBuilder executionScript = new StringBuilder();
+		executionScript.append(vectorDatabaseSearcher)
+					   .append(".searchers['")
+					   .append(indexClass)
+					   .append("']");
+		
+		executionScript.append(".removeCorruptedFiles(")
+					   .append("path_to_files = '")
+					   .append(indexClassDirectory.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+					   .append("')");
+		
+		@SuppressWarnings("unchecked")
+		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyt.runScript(executionScript.toString());
+		
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), corruptedFilesToReason.keySet().stream().toArray(String[]::new)));
+			deleteFilesFromCloudThread.start();
+		}
+		
+		// verify the index class loaded the dataset
+		StringBuilder checkForEmptyDatabase = new StringBuilder();
+		checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
+							 .append(".searchers['")
+							 .append(indexClass)
+							 .append("']")
+							 .append(".datasetsLoaded()");
+		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
+		
+		return corruptedFilesToReason;
+	}
 
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
@@ -773,17 +833,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			return (Insight) insightObj;
 		}
 	}
-	
-//	private void removeTempFileDirectory(File tempDirectory) {
-//		if (tempDirectory != null) {
-//			try {
-//				FileUtils.forceDelete(tempDirectory);
-//			} catch (IOException e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//				throw new IllegalArgumentException("Unable to delete the temporary file directory");
-//			}
-//		}
-//	}
 
 	@Override
 	public void close() {
