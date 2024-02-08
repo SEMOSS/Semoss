@@ -1,4 +1,4 @@
-from typing import List, Dict, Union, Optional, Any
+from typing import List, Dict, Union, Optional, Any, Tuple
 from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching, Value
 import pandas as pd
 import faiss
@@ -585,7 +585,14 @@ class FAISSSearcher():
                     assert self.vector_dimensions[1] == vectors.shape[1]
                     self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
 
-        master_indexClass_files = self.createMasterFiles(path_to_files=os.path.dirname(documentFileLocation[0]))
+        master_indexClass_files, corrupted_file_sets = self.createMasterFiles(
+            path_to_files=os.path.dirname(os.path.dirname(documentFileLocation[0]))
+        )
+        
+        for corrupted_set in corrupted_file_sets:
+            for file_path in corrupted_set:
+                createDocumentsResponse['createdDocuments'].remove(file_path)
+        
         createDocumentsResponse['createdDocuments'].extend(master_indexClass_files)
 
         return createDocumentsResponse
@@ -593,7 +600,7 @@ class FAISSSearcher():
     def createMasterFiles(
         self, 
         path_to_files:str
-    ) -> List[str]:
+    ) -> Tuple[str]:
         '''
         Create a master dataset and embeddings file based on the current documents. The main purpose of this is to improve startup runtime. 
 
@@ -602,55 +609,140 @@ class FAISSSearcher():
             The folder location of the indexed documents/datasets/embeddings
 
         Returns:
-        `None`
+        `List[str]`
         '''
-        # create a list of the documents created so that we can push the files back to the cloud
+        created_documents, corrupted_docs, corrupted_file_sets = self._validateEmbeddingFiles(
+            path_to_files=path_to_files,
+        )
+        
+        return created_documents, corrupted_file_sets
+    
+    def _validateEmbeddingFiles(
+        self,
+        path_to_files: str,
+        delete: bool = True
+    ) -> Dict:
+        # Path to the directory containing the files
+        #'C:/Users/ttrankle/Documents/Semoss/Client Work/MDE/cases/6B04BF9F-904E-4B2A-A97B-16D54E3F89DF__5fc5b497-4ea9-4369-b293-59d774b15697/'
+
+        documents_files_path = os.path.join(path_to_files, 'documents')
+        indexed_files_path = os.path.join(path_to_files, 'indexed_files')
+
+        # List all pdfs files in the directory
+        source_documents = glob.glob(os.path.join(documents_files_path, "*"))
+
+        valid_datasets_and_vectors = []
+        corrupted_file_sets = []
+        corrupted_docs = {}
         created_documents = []
+        
+        for full_source_path in source_documents:
+            # get the basename of the file
+            # all csvs, datasets and vectors should contain this base name
+            pdf_file_name = os.path.basename(full_source_path)
+            base_filename = os.path.splitext(pdf_file_name)[0]
+            
+            # get the file names for the dataset and vectors
+            csv_file_name = base_filename + ".csv"
+            dataset_file_name = base_filename + "_dataset.pkl"
+            vector_file_name = base_filename + "_vectors.pkl"
+            
+            full_csv_path = os.path.join(indexed_files_path, csv_file_name)
+            full_dataset_path = os.path.join(indexed_files_path, dataset_file_name)
+            full_vector_path = os.path.join(indexed_files_path, vector_file_name)
 
-        # Define the pattern for the files you want to find
-        file_pattern = '*_dataset.pkl'
+            # if all the file paths exist, then create the tuple
+            if os.path.exists(full_dataset_path) and os.path.exists(full_vector_path):
+                # the next step is to validate non of these files are corrupted by attempting to load them all in
+                
+                try:
+                    # try load the dataset
+                    dataset = self._load_dataset(dataset_location=full_dataset_path)
+                except Exception as e:
+                    try:
+                        # we can try save the dataset again from the csv
+                        dataset = self._load_dataset(dataset_location=full_csv_path)
+                        with open(full_dataset_path, "wb") as file:
+                            pickle.dump(dataset, file)
+                    except:
+                        
+                        corrupted_file_sets.append(
+                            (full_csv_path, full_dataset_path, full_vector_path, full_source_path)
+                        )
+                        corrupted_docs[full_source_path] = "Couldn't load the csv file or save it as a dataset"
+                        continue
+                    
+                    try:
+                        # make sure we can load it in again
+                        dataset = self._load_dataset(dataset_location=full_dataset_path)
+                    except:
+                        # we failed so record failure and continue on
+                        corrupted_file_sets.append(
+                            (full_csv_path, full_dataset_path, full_vector_path, full_source_path)
+                        )
+                        corrupted_docs[full_source_path] = "Couldn't load the dataset from the pickle file"
+                        continue
+                    
+                try:
+                    # try load the vectors
+                    vectors = self._load_encoded_vectors(encoded_vectors_location=full_vector_path)
+                except:
+                    corrupted_file_sets.append(
+                        (full_csv_path, full_dataset_path, full_vector_path, full_source_path)
+                    )
+                    corrupted_docs[full_source_path] = "Couldn't load the embeddings from the pickle file"
+                    continue
+                    
+                # if we made it this far then all the files are not corrupted
+                valid_datasets_and_vectors.append(
+                    (dataset, vectors)
+                )
 
-        # Use glob.glob to find all matching files in the directory
-        matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
-        matching_files.sort()
-        for i, file in enumerate(matching_files):
-            dataset = self._load_dataset(dataset_location=file)
-            if i == 0:
-                self.ds = dataset
-            else:
+        # bind the valid datasets and vectors
+        if len(valid_datasets_and_vectors) > 0:
+            self.ds = valid_datasets_and_vectors[0][0]
+            self.encoded_vectors = valid_datasets_and_vectors[0][1]
+            self.vector_dimensions = self.encoded_vectors.shape
+            
+            # loop through and concatenate the others if any
+            for dataset, vectors in valid_datasets_and_vectors:
                 self.ds = self._concatenate_datasets([self.ds, dataset])
-
-        # Define the pattern for the files you want to find
-        file_pattern = '*_vectors.pkl'
-
-        # Use glob.glob to find all matching files in the directory
-        matching_files = glob.glob(os.path.join(path_to_files, file_pattern))
-        matching_files.sort()
-        for i, file in enumerate(matching_files):
-            vectors = self._load_encoded_vectors(encoded_vectors_location=file)
-            if i == 0:
-                self.encoded_vectors = vectors
-            else:
                 self.encoded_vectors = np.concatenate((self.encoded_vectors,vectors),axis=0)
+                
+            encoded_vectors_location = path_to_files + "/vectors.pkl"
+            dataset_location = path_to_files + "/dataset.pkl"
+            self.save_encoded_vectors(encoded_vectors_location = encoded_vectors_location)
+            self.save_dataset(dataset_location = dataset_location)
+            created_documents.append(encoded_vectors_location)
+            created_documents.append(dataset_location)
+            
+            if (self.metric_type_is_cosine_similarity) and (self.vector_dimensions != None):
+                self.index = faiss.index_factory(self.vector_dimensions[1], "Flat", faiss.METRIC_INNER_PRODUCT)
+            elif (self.vector_dimensions != None):
+                self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
 
-        # TODO create master files - maybe ? Need to do performance comparision
-        baseFolder = path_to_files=os.path.dirname(path_to_files)
-        encoded_vectors_location = baseFolder + "/vectors.pkl"
-        dataset_location = baseFolder + "/dataset.pkl"
-        self.save_encoded_vectors(encoded_vectors_location = encoded_vectors_location)
-        self.save_dataset(dataset_location = dataset_location)
-        created_documents.append(encoded_vectors_location)
-        created_documents.append(dataset_location)
-
-        if (self.metric_type_is_cosine_similarity) and (self.vector_dimensions != None):
-            self.index = faiss.index_factory(self.vector_dimensions[1], "Flat", faiss.METRIC_INNER_PRODUCT)
-        elif (self.vector_dimensions != None):
-            self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
-
-        if (self.encoded_vectors is not None):
-            self.index.add(self.encoded_vectors)
-
-        return created_documents
+            if (self.encoded_vectors is not None):
+                self.index.add(self.encoded_vectors)
+            
+        if delete:  
+            for corrupted in corrupted_file_sets:
+                for filename in corrupted:
+                    try:
+                        os.remove(filename)
+                    except FileNotFoundError:
+                        pass
+                
+        return created_documents, corrupted_docs, corrupted_file_sets
+    
+    def removeCorruptedFiles(
+        self,
+        path_to_files: str
+    ) -> Dict:
+        corrupted_files = self._validateEmbeddingFiles(
+            path_to_files=path_to_files,
+        )[1]
+        
+        return corrupted_files
 
     def _check_chunks_token_size(
         self, 
