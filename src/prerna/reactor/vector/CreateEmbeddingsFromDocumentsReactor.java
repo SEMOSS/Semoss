@@ -105,7 +105,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
 			if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
 				// send the insight so it can be used with IModelEngine call
-				paramMap.put("insight", this.insight);
+				paramMap.put(FaissDatabaseEngine.INSIGHT, this.insight);
 			}
 			
 
