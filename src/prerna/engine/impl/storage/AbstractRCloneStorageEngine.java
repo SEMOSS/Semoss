@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -28,7 +29,10 @@ import prerna.util.Utility;
 public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine implements IRCloneStorage {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractRCloneStorageEngine.class);
-
+	
+	// smss key for additional params
+	protected String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_PARAMETERS";
+	
 	// the path to rclone executable - default assumes in path
 	protected String RCLONE = "rclone";
 	
@@ -40,6 +44,19 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 
 	// optional bucket
 	protected String BUCKET = null;
+	
+	// optional additional keys
+	protected String ADDITIONAL_RCLONE_PARAMETERS = null;
+	
+	/**
+	 * Init the general storage values
+	 * @param builder
+	 * @throws Exception 
+	 */
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_PARAMETERS_KEY);
+	}
 	
 	@Override
 	public void close() {
@@ -515,6 +532,17 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		commandList.add("--config");
 		commandList.add(configPath);
 		commandList.add("--fast-list");
+		
+		if(this.ADDITIONAL_RCLONE_PARAMETERS != null && !this.ADDITIONAL_RCLONE_PARAMETERS.isEmpty()) {
+			String[] additionalParams = this.ADDITIONAL_RCLONE_PARAMETERS.split(" ");
+			for(String addP : additionalParams) {
+				if(addP == null || addP.isEmpty()) {
+					continue;
+				}
+				commandList.add(addP);
+			}
+		}
+		
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
 	}
