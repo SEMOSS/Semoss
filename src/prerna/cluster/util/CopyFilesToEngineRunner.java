@@ -8,7 +8,7 @@ import prerna.util.Constants;
 
 public class CopyFilesToEngineRunner implements Runnable {
 
-	private static final Logger classLogger = LogManager.getLogger(DeleteEngineRunner.class);
+	private static final Logger classLogger = LogManager.getLogger(CopyFilesToEngineRunner.class);
 
 	private final String ENGINE_ID;
 	private final IEngine.CATALOG_TYPE ENGINE_TYPE;
