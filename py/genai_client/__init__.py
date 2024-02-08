@@ -106,6 +106,10 @@ def get_tokenizer(tokenizer_type:str, tokenizer_name, max_tokens):
     elif (tokenizer_type == 'OPEN_AI'):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
         return OpenAiTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
+    #putting this for now, need to implement vertex tokenizer. this will fall back to cl100k_base
+    elif (tokenizer_type == 'VERTEX'):
+        from .tokenizers.openai_tokenizer import OpenAiTokenizer
+        return OpenAiTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
     else:
         raise ValueError('Tokenizer type has not been defined.')
 
