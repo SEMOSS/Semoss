@@ -7,10 +7,11 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.VectorQueryParamOptions;
+import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.VectorQueryParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -67,7 +68,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		// add the insightId so Model Engine calls can be made for python
 		VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
 		if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
-			paramMap.put("insight", this.insight);
+			paramMap.put(FaissDatabaseEngine.INSIGHT, this.insight);
 		}
 		
 		List<IQueryFilter> filters = getFilters();
