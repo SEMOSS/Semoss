@@ -29,6 +29,12 @@ class AbstractModelEngine(ABC):
     def model(self, *args: Any, **kwargs: Any) -> Any:
         '''This method is responsible for utilizing a specific model function that is unique to that model function'''
         pass
+
+    @abstractmethod
+    def do_call(self, method_name:str, input: Any, **kwargs: Any) -> Any:
+        '''This method is responsible for utilizing a specific tokenize function that is unique to that tokenize function'''
+        pass
+
     
 class TomcatModelEngine(AbstractModelEngine, ServerProxy):
   
@@ -37,18 +43,19 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         engine_id: str, 
         insight_id: Optional[str] = None,
         local: Optional[bool]=False,
-        pipeline_type: Optional[str]=None
+        pipeline_type: Optional[str]=None,
+        **kwargs
     ):
         super().__init__()
         self.engine_id = engine_id
         self.insight_id = insight_id
         self.local = local
+        self.pipe = None
         
         if local:
           # start the model and make it available
           import torch
           from transformers import pipeline 
-          
           device = 'cuda' if torch.cuda.is_available() else 'cpu'
           self.pipeline_type = pipeline_type
           self.pipe = pipeline(pipeline_type, model=engine_id, device=device)
@@ -81,22 +88,26 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         insight_id: Optional[str] = None, 
         param_dict: Optional[Dict] = None
     ) -> Dict:
-        if isinstance(strings_to_embed,str):
-            strings_to_embed = [strings_to_embed]
-        assert isinstance(strings_to_embed, list)
-        if insight_id is None:
-            insight_id = self.insight_id
-        assert insight_id is not None
-        epoc = super().get_next_epoc()
-        return super().call(
-            epoc=epoc, 
-            engine_type='Model', 
-            engine_id=self.engine_id, 
-            insight_id=insight_id, 
-            method_name='embeddings', 
-            method_args=[strings_to_embed, insight_id, param_dict],
-            method_arg_types=['java.util.List', 'prerna.om.Insight', 'java.util.Map']
-        )
+    
+        if not self.local:
+          if isinstance(strings_to_embed,str):
+              strings_to_embed = [strings_to_embed]
+          assert isinstance(strings_to_embed, list)
+          if insight_id is None:
+              insight_id = self.insight_id
+          assert insight_id is not None
+          epoc = super().get_next_epoc()
+          return super().call(
+              epoc=epoc, 
+              engine_type='Model', 
+              engine_id=self.engine_id, 
+              insight_id=insight_id, 
+              method_name='embeddings', 
+              method_args=[strings_to_embed, insight_id, param_dict],
+              method_arg_types=['java.util.List', 'prerna.om.Insight', 'java.util.Map']
+          )
+        else:
+          return self.pipe.model.encode(strings_to_embed)
     
     def model(
         self,
@@ -107,7 +118,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if not self.local:
           if insight_id is None:
               insight_id = self.insight_id
-          assert insight_id is not None
+          #assert insight_id is not None
           
           epoc = super().get_next_epoc()
           return super().call(
@@ -141,6 +152,19 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
           )
         else:
           return self.pipeline_type
+          
+    # this is a little bit of get out of jail free card
+    def do_call(
+        self,
+        method_name: str,
+        input: Any,
+        **kwargs) -> Any:
+      call_maker = getattr(self, method_name, None) 
+      if call_maker is not None:
+        return call_maker(input, **kwargs)
+      else:
+        return None
+        
       
 class LocalModelEngine(AbstractModelEngine):
   
@@ -149,7 +173,7 @@ class LocalModelEngine(AbstractModelEngine):
         model_engine: Any = None, 
         engine_id: Optional[str] = None,
         engine_smss_file_path: Optional[str] = None,
-        semoss_dev_path: Optional[str] = 'C:/workspace/Semoss_Dev' if os.name == 'nt' else '/opt/semosshome',
+        semoss_dev_path: Optional[str] = 'C:/users/pkapaleeswaran/workspacej3/SemossDev' if os.name == 'nt' else '/opt/semosshome',
     ):
 
         # determine how to create the model engine locally
@@ -202,6 +226,18 @@ class LocalModelEngine(AbstractModelEngine):
     ):
         #TODO add model type in python as well
         return None
+        
+    def do_call(
+        self,
+        method_name: str,
+        input: Any,
+        **kwargs) -> Any:
+      call_maker = getattr(self, method_name, None) 
+      if call_maker is not None:
+        return call_maker(input, **kwargs)
+      else:
+        return None
+
     
     @staticmethod
     def get_model_smss_file(semoss_dev_file_path:str, engine_id:str) -> str:
@@ -294,3 +330,10 @@ class ModelEngine(AbstractModelEngine):
         **kwargs
     ):
         return self.model_engine.get_model_type(**kwargs)
+     
+    def do_call(
+        self, 
+        method_name:str, 
+        input: Any, 
+        **kwargs: Any) -> Any:
+      return self.model_engine.embeddings(**kwargs)
