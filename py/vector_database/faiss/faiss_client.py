@@ -8,7 +8,10 @@ import pickle
 import os
 import glob
 from genai_client.tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+import gaas_gpt_model as ggm
 from ..constants import ENCODING_OPTIONS
+from logging_config import get_logger
+
 
 class FAISSSearcher():
     '''
@@ -24,6 +27,7 @@ class FAISSSearcher():
         tokenizer,
         metric_type_is_cosine_similarity:bool,
         base_path = None,
+        reranker="BAAI/bge-reranker-base"
     ):
         # if df is None and ds is None:
         #  return "Both dataframe and dataset cannot be none"
@@ -44,8 +48,18 @@ class FAISSSearcher():
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
         self.default_sort_direction = False if self.metric_type_is_cosine_similarity else True
         
+        # disable reranking by default
+        # do this while checking it in
+        self.rerank = False
+        self.reranker_model = None
+        self.reranker_gaas_model = None
+        self.reranker_tok = None
+        self.reranker = reranker
+        
         # disable caching within the shell so that engines can be exported
         disable_caching()
+        
+        self.class_logger = get_logger(__name__)
 
     def __getattr__(self, name: str):
         return self.__dict__[f"_{name}"]
@@ -107,7 +121,8 @@ class FAISSSearcher():
         results: Optional[int] = 5, 
         columns_to_return: Optional[List[str]] = None, 
         return_threshold: Optional[Union[int,float]] = 1000, 
-        ascending : Optional[bool] = None
+        ascending : Optional[bool] = None,
+        total_results: Optional[int] = 10 # this is used for reranking
     ) -> List[Dict]:
         '''
         Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
@@ -182,6 +197,9 @@ class FAISSSearcher():
 
         if not isinstance(results, int):
             results = int(results)
+            
+        if not self.rerank:
+          total_results = results
         
         # If a filter was passed in then we need to get the indexes
         if filter != None:
@@ -189,53 +207,69 @@ class FAISSSearcher():
             id_selector = faiss.IDSelectorArray(filter_ids)
             euclidean_distances, ann_index = self.index.search(
                 query_vector, 
-                k = results, 
+                k = total_results, 
                 params=faiss.SearchParametersIVF(sel=id_selector)
             )
         else:
             euclidean_distances, ann_index = self.index.search( 
                 query_vector, 
-                k = results
+                k = total_results
             )
 
         euclidean_distances = euclidean_distances[0]
         ann_index = ann_index[0]
 
-        # this is a safety check to make sure we are only returning good vectors if the limit was too high
-        if self.vector_dimensions[0] < results:
-            # Find the index of the first occurrence of -1
-            index_of_minus_one = np.where(ann_index == -1)[0]
-            # If -1 is not found, index_of_minus_one will be an empty array
-            # In that case, we keep the original array, otherwise, we slice it
-            if len(index_of_minus_one) > 0:
-                ann_index = ann_index[:index_of_minus_one[0]]
-                euclidean_distances = euclidean_distances[:index_of_minus_one[0]]
+        if self.rerank:
+          print("performing rerank")
+          final_output = self.do_rerank(question=question, 
+          euclidean_distances=euclidean_distances, 
+          ann_index=ann_index, 
+          result_count=results, 
+          columns_to_return=columns_to_return, 
+          ascending=ascending)
+          return final_output
 
-        # create the data
-        samples_df = pd.DataFrame(
-            {
-                'distances': euclidean_distances, 
-                'ann': ann_index
-            }
-        )
-        samples_df.sort_values(
-            "distances", 
-            ascending = (ascending if ascending is not None else self.default_sort_direction), 
-            inplace=True
-        )
-        samples_df = samples_df[samples_df['distances'] <= return_threshold]
-    
-        # create the response payload by adding the relevant columns from the dataset
-        final_output = []
-        for _, row in samples_df.iterrows():
-            output = {}
-            output.update({'Score' : row['distances']})
-            data_row = self.ds[int(row['ann'])]
-            for col in columns_to_return:
-                output.update({col:data_row[col]})
-            final_output.append(output)
+        else:
+          # this is a safety check to make sure we are only returning good vectors if the limit was too high
+          if self.vector_dimensions[0] < results:
+              # Find the index of the first occurrence of -1
+              index_of_minus_one = np.where(ann_index == -1)[0]
+              # If -1 is not found, index_of_minus_one will be an empty array
+              # In that case, we keep the original array, otherwise, we slice it
+              if len(index_of_minus_one) > 0:
+                  ann_index = ann_index[:index_of_minus_one[0]]
+                  euclidean_distances = euclidean_distances[:index_of_minus_one[0]]
+
+          # create the data
+          samples_df = pd.DataFrame(
+              {
+                  'distances': euclidean_distances, 
+                  'ann': ann_index
+              }
+          )
+          samples_df.sort_values(
+              "distances", 
+              ascending = (ascending if ascending is not None else self.default_sort_direction), 
+              inplace=True
+          )
+          samples_df = samples_df[samples_df['distances'] <= return_threshold]
+      
+          # create the response payload by adding the relevant columns from the dataset
+          final_output = []
+          
+          # see if rerank is enabled
+          # if so run through reranking this
+          # and then limit to the final result 
+          
+          for _, row in samples_df.iterrows():
+              output = {}
+              output.update({'Score' : row['distances']})
+              data_row = self.ds[int(row['ann'])]
+              for col in columns_to_return:
+                  output.update({col:data_row[col]})
+              final_output.append(output)
         
-        return final_output
+          return final_output
     
     def _filter_dataset(self, filter:str) -> List[int]:
         if isinstance(self.ds, Dataset):
@@ -770,3 +804,76 @@ class FAISSSearcher():
         else:
             return True
 
+
+    def do_rerank(self,
+        question: str,
+        euclidean_distances: list,
+        ann_index: list,
+        result_count: int,
+        columns_to_return: Optional[List[str]] = None,
+        ascending : Optional[bool] = None
+      ):
+      # reranks based on an algorithm and then finds 
+      
+      if self.reranker_gaas_model is None:
+        self.init_reranker()
+
+      
+      samples_df = pd.DataFrame(
+        {
+            'distances': euclidean_distances, 
+            'ann': ann_index
+        }
+      )
+      
+      #samples_df.sort_values(
+      #    "distances", 
+      #    ascending = (ascending if ascending is not None else self.default_sort_direction), 
+      #    inplace=True
+      #)
+      #samples_df = samples_df[samples_df['distances'] <= return_threshold]
+      self.class_logger.warning(f"Return length is set to {len(euclidean_distances)}", extra={"stack": "BACKEND"})
+  
+      # create the response payload by adding the relevant columns from the dataset
+      result_chunks = []
+      
+      # see if rerank is enabled
+      # if so run through reranking this
+      # and then limit to the final result 
+      final_output = []
+      
+      for _, row in samples_df.iterrows():
+        output = {}
+        output.update({'Score' : row['distances']})
+        data_row = self.ds[int(row['ann'])]
+        #self.class_logger.warning(f"Row to pick {int(row['ann'])}", extra={"stack": "BACKEND"})
+        #self.class_logger.warning(f"[{str(data_row['Content'])}]", extra={"stack": "BACKEND"})
+        for col in columns_to_return:
+            #self.class_logger.warning(f"{col} {data_row[col]}", extra={"stack": "BACKEND"})
+            output.update({col:data_row[col]})
+        # this is not pythonic but let us try this for now
+        #self.class_logger.warning(question, extra={"stack": "BACKEND"})
+        score = self.cross_encode([[question, data_row['Content']]])
+        output.update({'Sim': score})
+        final_output.append(output)
+
+      # sort this by sim score 
+      new_output = sorted(final_output, key=lambda x : x['Sim'], reverse=True)
+      
+      # filter to the top x
+      new_output = new_output[:result_count]
+
+      return new_output
+ 
+      # now comes the reranker 
+    
+    def cross_encode(self,
+          pair: List[str]
+          ):
+      return self.reranker_gaas_model.model(input=pair)
+    
+    def init_reranker(self):
+      # local model
+      #self.reranker_gaas_model = ggm.ModelEngine(model_engine=reranker, local=True)
+      self.reranker_gaas_model = ggm.ModelEngine(engine_id="EMB_30991037-1e73-49f5-99d3-f28210e6b95c12")
+      
