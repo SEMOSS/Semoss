@@ -13,7 +13,7 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
+import prerna.util.PortAllocator;
 
 public class FastChatProcessModel extends AbstractModelEngine {
 	
@@ -50,7 +50,7 @@ public class FastChatProcessModel extends AbstractModelEngine {
 	}
 
     public void startServer()  {
-    	this.port=Utility.findOpenPort();
+    	this.port=PortAllocator.getInstance().getNextAvailablePort()+"";
         List<String> command = new ArrayList<>();
         command.add("python3");
         command.add("-m");
