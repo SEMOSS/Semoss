@@ -18,6 +18,7 @@ import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -120,7 +121,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
 			commands[commandIndex] = fillVars(commands[commandIndex]);
 		}
-		port = Utility.findOpenPort();
+		port = PortAllocator.getInstance().getNextAvailablePort()+"";
 		
 		String timeout = "15";
 		if(smssProp.containsKey(Constants.IDLE_TIMEOUT))
