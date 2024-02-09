@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
 public class TextGenerationProcessInference extends TextGenerationEngine {
@@ -52,7 +53,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 	        } 
 	        
 	        if (!this.launchArguments.containsKey("PORT")) {
-	        	this.inferencePort=Utility.findOpenPort();
+	        	this.inferencePort=PortAllocator.getInstance().getNextAvailablePort()+"";
 	        	launchArguments.put("PORT", this.inferencePort);
 	        } else {
 	        	this.inferencePort=this.launchArguments.get("PORT");

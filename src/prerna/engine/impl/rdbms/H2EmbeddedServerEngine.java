@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.h2.tools.Server;
 
 import prerna.util.Constants;
+import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
 public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
@@ -56,7 +57,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 					}
 				}
 				
-				String port = Utility.findOpenPort();
+				String port = PortAllocator.getInstance().getNextAvailablePort()+"";
 				// create a random user and password
 				// get the connection object and start up the frame
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
