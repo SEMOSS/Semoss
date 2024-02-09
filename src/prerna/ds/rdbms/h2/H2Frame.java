@@ -46,6 +46,7 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PortAllocator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -255,7 +256,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	public String connectFrame(String pass) {
 		if (server == null) {
 			try {
-				String port = Utility.findOpenPort();
+				String port = PortAllocator.getInstance().getNextAvailablePort()+"";
 				// create a random user and password
 				// get the connection object and start up the frame
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");

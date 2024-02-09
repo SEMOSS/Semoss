@@ -19,6 +19,7 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MountHelper;
+import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
 public class ClientProcessWrapper {
@@ -246,7 +247,7 @@ public class ClientProcessWrapper {
 	 */
 	private int calculatePort(int port) {
 		if(port < 0) {
-			port = Integer.parseInt(Utility.findOpenPort());
+			port = PortAllocator.getInstance().getNextAvailablePort();
 		}
 		
 		return port;

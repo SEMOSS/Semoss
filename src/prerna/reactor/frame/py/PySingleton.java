@@ -11,8 +11,8 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PortAllocator;
 import prerna.util.Settings;
-import prerna.util.Utility;
 
 @Deprecated
 public class PySingleton {
@@ -108,7 +108,7 @@ public class PySingleton {
 																			// started it for debug
 			if (port == null) // port has not been forced
 			{
-				port = Utility.findOpenPort();
+				port = PortAllocator.getInstance().getNextAvailablePort()+"";
 				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
 				} else {
