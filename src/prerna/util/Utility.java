@@ -3343,46 +3343,49 @@ public class Utility {
 		return prop;
 	}
 
-	public static String findOpenPort() {
-		classLogger.info("Finding an open port.. ");
-		boolean found = false;
-
-		int lowPort = 5355;
-		int highPort = lowPort + 10_000;
-
-		if (DIHelper.getInstance().getProperty("LOW_PORT") != null) {
-			try {lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT")); } catch (Exception ignore) {};
-		}
-		
-		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null) {
-			try {highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT")); } catch (Exception ignore) {};
-		}
-		
-		for (; !found && lowPort < highPort; lowPort++) {
-			classLogger.info("Trying port = " + lowPort);
-			try(ServerSocket s = new ServerSocket(lowPort);) {
-				classLogger.info("Success with port = " + lowPort);
-				// no error, found an open port, we can stop
-				found = true;
-				s.close();
-				break;
-			} catch (Exception ex) {
-				// do nothing
-				classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
-				found = false;
-//				logger.error(Constants.STACKTRACE, ex);
-			}
-		}
-
-		// if we found a port, return that port
-		if (found) {
-			return lowPort + "";
-		}
-		
-		// no available ports in the range, either config is bad or something else is messed up
-		// just throw an exception
-		throw new IllegalArgumentException("Could not find available port to connect to");
-	}
+	/**
+	 * PLEASE USE PortAllocator.getInstance().getNextAvailablePort()
+	 */
+//	public static String findOpenPort() {
+//		classLogger.info("Finding an open port.. ");
+//		boolean found = false;
+//
+//		int lowPort = 5355;
+//		int highPort = lowPort + 10_000;
+//
+//		if (DIHelper.getInstance().getProperty("LOW_PORT") != null) {
+//			try {lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT")); } catch (Exception ignore) {};
+//		}
+//		
+//		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null) {
+//			try {highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT")); } catch (Exception ignore) {};
+//		}
+//		
+//		for (; !found && lowPort < highPort; lowPort++) {
+//			classLogger.info("Trying port = " + lowPort);
+//			try(ServerSocket s = new ServerSocket(lowPort);) {
+//				classLogger.info("Success with port = " + lowPort);
+//				// no error, found an open port, we can stop
+//				found = true;
+//				s.close();
+//				break;
+//			} catch (Exception ex) {
+//				// do nothing
+//				classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
+//				found = false;
+////				logger.error(Constants.STACKTRACE, ex);
+//			}
+//		}
+//
+//		// if we found a port, return that port
+//		if (found) {
+//			return lowPort + "";
+//		}
+//		
+//		// no available ports in the range, either config is bad or something else is messed up
+//		// just throw an exception
+//		throw new IllegalArgumentException("Could not find available port to connect to");
+//	}
 
 	/**
 	 * Write an iterator to a file location using "," as a separator
