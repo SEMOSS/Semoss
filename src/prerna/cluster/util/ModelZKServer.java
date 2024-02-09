@@ -41,6 +41,7 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -572,7 +573,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	
 	public NativePySocketClient connect2Py(String modelPath)
 	{
-		String port = Utility.findOpenPort();
+		String port = PortAllocator.getInstance().getNextAvailablePort()+"";
 		String timeout = "-1";
 		
 		createCacheFolder();
