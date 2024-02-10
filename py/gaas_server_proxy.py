@@ -1,7 +1,9 @@
 import threading
 
+from threading import current_thread
 # we may need to make this singleton
 # or create similar proxies.. but same issue no way to pass it
+
 class ServerProxy():
 
   def __init__(self, g={}, l={}):
@@ -33,6 +35,12 @@ class ServerProxy():
   # returns the response back
 
     # converts this into a payload
+    # I wonder if I should just make this to the insight id from the thread
+    orig_payload = getattr(current_thread(), 'payload', None)
+    
+    if orig_payload is not None:
+      insight_id = orig_payload['insightId']
+    
     payload = {
       "epoc": epoc,
       "response": False,

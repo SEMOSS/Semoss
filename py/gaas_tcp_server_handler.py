@@ -31,6 +31,7 @@ import pandas as pd
 
 import contextlib
 import semoss_console as console
+from threading import current_thread
 
 def custom_nan_handler(nan_value):
     if math.isnan(nan_value):
@@ -104,6 +105,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.console = console.SemossConsole(
             socket_handler=self, 
         )
+        
+        # set the thread local
+        TCPServerHandler.thread_local = threading.local()
         
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
@@ -182,8 +186,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # print(f"PAYLOAD.. {payload}")
             # do payload manipulation here
             # payload = json.loads(payload)
-            local = threading.local()
-            local.payload = payload
+            #local = threading.local()
+            current_thread().payload = payload
 
             command_list = payload["payload"]
             command = ""
