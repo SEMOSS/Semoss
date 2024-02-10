@@ -907,15 +907,15 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String getVarcharDataTypeName();
-	
-	/**
-	 * Get the RDBMS type equivalent for varchar(MAX) type
-	 * @return
-	 */
-	
-	public abstract String getVarcharMaxDataTypeName();
-
-	
+//	
+//	/**
+//	 * Get the RDBMS type equivalent for varchar(MAX) type
+//	 * @return
+//	 */
+//	
+//	public abstract String getVarcharMaxDataTypeName();
+//
+//	
 	/**
 	 * Get the RDBMS type equivalent for boolean type
 	 * @return
