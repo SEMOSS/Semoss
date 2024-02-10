@@ -1,13 +1,23 @@
 package prerna.reactor.vector.upload;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Path;
+import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.After;
+
+import com.pgvector.PGvector;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -20,6 +30,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.vector.PGVectorDatabaseEngine;
+import prerna.engine.impl.vector.PGVectorDatabaseUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -107,6 +119,21 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 				String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
 				vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
 			}
+		} else if (vectorDbType == VectorDatabaseTypeEnum.PGVECTOR) {
+			if (!vectorDbDetails.containsKey(Constants.INDEX_CLASSES)) {
+				vectorDbDetails.put(Constants.INDEX_CLASSES, "default");
+			}
+			
+			if (!vectorDbDetails.containsKey(Constants.EMBEDDER_ENGINE_NAME)) {
+				String embedderEngineId = vectorDbDetails.getOrDefault(Constants.EMBEDDER_ENGINE_ID, null);
+				if (embedderEngineId == null) {
+					throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for PGVECTOR database");
+				}
+				
+				IModelEngine embeddingModel = Utility.getModel(embedderEngineId);
+				String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
+				vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
+			}
 		}
 				
 		String vectorDbId = UUID.randomUUID().toString();
@@ -127,6 +154,13 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 			vectorDb.open(tempSmss.getAbsolutePath());
 			
+			if(vectorDbType == VectorDatabaseTypeEnum.PGVECTOR) {
+				Properties properties = new Properties();
+				properties.load(new FileReader(tempSmss));
+				Connection con = PGVectorDatabaseUtils.getDatabaseConnection(properties);
+				((PGVectorDatabaseEngine) vectorDb).initSQL(con, properties.getProperty(Constants.PGVECTOR_SCHEMA.toString()),properties.getProperty(Constants.PGVECTOR_TABLE_NAME.toString()));
+			}
+			
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
@@ -145,6 +179,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, specificEngineFolder);
+			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), vectorDbId);

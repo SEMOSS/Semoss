@@ -93,6 +93,7 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String USERNAME = Constants.USERNAME;
 	public static final String PASSWORD = Constants.PASSWORD;
 	public static final String ADDITIONAL = "additional";
+	public static final String TABLE = "table";
 	
 	// relatively specific inputs
 	// athena
@@ -906,6 +907,14 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String getVarcharDataTypeName();
+	
+	/**
+	 * Get the RDBMS type equivalent for varchar(MAX) type
+	 * @return
+	 */
+	
+	public abstract String getVarcharMaxDataTypeName();
+
 	
 	/**
 	 * Get the RDBMS type equivalent for boolean type
@@ -2046,6 +2055,7 @@ public abstract class AbstractSqlQueryUtil {
 	public String hashColumn(String tableName, String[] columns){
 		throw new UnsupportedOperationException();
 	}
+
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
