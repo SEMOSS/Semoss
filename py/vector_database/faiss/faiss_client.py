@@ -11,6 +11,7 @@ from genai_client.tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 import gaas_gpt_model as ggm
 from ..constants import ENCODING_OPTIONS
 from logging_config import get_logger
+from threading import current_thread
 
 
 class FAISSSearcher():
@@ -50,7 +51,7 @@ class FAISSSearcher():
         
         # disable reranking by default
         # do this while checking it in
-        self.rerank = False
+        self.rerank = True
         self.reranker_model = None
         self.reranker_gaas_model = None
         self.reranker_tok = None
@@ -220,7 +221,6 @@ class FAISSSearcher():
         ann_index = ann_index[0]
 
         if self.rerank:
-          print("performing rerank")
           final_output = self.do_rerank(question=question, 
           euclidean_distances=euclidean_distances, 
           ann_index=ann_index, 
@@ -814,6 +814,7 @@ class FAISSSearcher():
         ascending : Optional[bool] = None
       ):
       # reranks based on an algorithm and then finds 
+      
       
       if self.reranker_gaas_model is None:
         self.init_reranker()
