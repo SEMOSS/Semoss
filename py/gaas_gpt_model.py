@@ -11,6 +11,9 @@ from abc import (
 import os
 
 from gaas_server_proxy import ServerProxy
+from threading import current_thread
+from logging_config import get_logger
+
 
 class AbstractModelEngine(ABC):
     '''This is an abstract class the defined what methods need to be implemeted for a ModelEngine'''
@@ -51,6 +54,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         self.insight_id = insight_id
         self.local = local
         self.pipe = None
+        
         
         if local:
           # start the model and make it available
