@@ -65,6 +65,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 		}
+		
+		if(this.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR) {
+			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
+			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
+		}
 
 		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
 			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
