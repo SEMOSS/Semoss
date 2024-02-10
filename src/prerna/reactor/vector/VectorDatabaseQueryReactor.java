@@ -70,6 +70,9 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
 			paramMap.put(FaissDatabaseEngine.INSIGHT, this.insight);
 		}
+		if (vectorDbType == VectorDatabaseTypeEnum.PGVECTOR) {
+			paramMap.put("insight", this.insight);
+		}
 		
 		List<IQueryFilter> filters = getFilters();
 		if (filters != null) {
