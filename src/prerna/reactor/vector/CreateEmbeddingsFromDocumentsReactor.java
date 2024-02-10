@@ -79,8 +79,21 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Keyword model " + keywordEngineId + " does not exist or user does not have access to this model");
 				}
 			}
-		}
-		
+		} else if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR) {
+				String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
+				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
+					throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
+				}
+				
+				Object keywordArgs = paramMap.getOrDefault(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey(), null);
+				if (keywordArgs != null) {
+					// we also need to make sure they have access to the keyword engine id
+					String keywordEngineId = eng.getSmssProp().getProperty(FaissDatabaseEngine.KEYWORD_ENGINE_ID);
+					if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), keywordEngineId)) {
+						throw new IllegalArgumentException("Keyword model " + keywordEngineId + " does not exist or user does not have access to this model");
+					}
+				}
+			}
 		
 		insightFolder = this.insight.getInsightFolder();
 		
@@ -106,6 +119,9 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
 				// send the insight so it can be used with IModelEngine call
 				paramMap.put(FaissDatabaseEngine.INSIGHT, this.insight);
+			}else if (vectorDbType == VectorDatabaseTypeEnum.PGVECTOR) {
+				// send the insight so it can be used with IModelEngine call
+				paramMap.put("insight", this.insight);
 			}
 			
 
