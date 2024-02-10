@@ -54,6 +54,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
+import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -181,7 +182,7 @@ public class PGVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			commands[commandIndex] = fillVars(commands[commandIndex]);
 		}
 
-		port = Utility.findOpenPort();
+    	port=PortAllocator.getInstance().getNextAvailablePort()+"";
 
 		String timeout = "30";
 		if(smssProp.containsKey(Constants.IDLE_TIMEOUT))
