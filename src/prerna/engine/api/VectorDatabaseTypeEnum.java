@@ -1,10 +1,12 @@
 package prerna.engine.api;
 
 import prerna.engine.impl.vector.FaissDatabaseEngine;
+import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 
-	FAISS("FAISS", FaissDatabaseEngine.class.getName());
+	FAISS("FAISS", FaissDatabaseEngine.class.getName()),
+	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName());
 		
 	private String vectorDbName;
 	private String vectorDbClass;
