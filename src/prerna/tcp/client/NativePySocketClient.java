@@ -373,7 +373,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					input.payloadClasses[classIndex] = Class.forName(className);
 					if(input.payloadClasses[classIndex] == Insight.class)
 					{
-						String insightId = "" + input.payload[classIndex]; 
+						String insightId = input.insightId;
 						Insight insight = insightMap.get(insightId);
 						input.payload[classIndex] = insight;
 					}

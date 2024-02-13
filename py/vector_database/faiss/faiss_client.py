@@ -833,7 +833,7 @@ class FAISSSearcher():
       #    inplace=True
       #)
       #samples_df = samples_df[samples_df['distances'] <= return_threshold]
-      self.class_logger.warning(f"Return length is set to {len(euclidean_distances)}", extra={"stack": "BACKEND"})
+      # self.class_logger.warning(f"Return length is set to {len(euclidean_distances)}", extra={"stack": "BACKEND"})
   
       # create the response payload by adding the relevant columns from the dataset
       result_chunks = []
@@ -843,6 +843,7 @@ class FAISSSearcher():
       # and then limit to the final result 
       final_output = []
       
+      reranker_call_success = True
       for _, row in samples_df.iterrows():
         output = {}
         output.update({'Score' : row['distances']})
@@ -854,12 +855,21 @@ class FAISSSearcher():
             output.update({col:data_row[col]})
         # this is not pythonic but let us try this for now
         #self.class_logger.warning(question, extra={"stack": "BACKEND"})
-        score = self.cross_encode([[question, data_row['Content']]])
-        output.update({'Sim': score})
+        try:
+            score = self.cross_encode(
+                [[question, data_row['Content']]]
+            )
+            output.update({'Sim': score})
+        except:
+            reranker_call_success = False
+        
         final_output.append(output)
 
-      # sort this by sim score 
-      new_output = sorted(final_output, key=lambda x : x['Sim'], reverse=True)
+      # sort this by sim score
+      if reranker_call_success:
+        new_output = sorted(final_output, key=lambda x : x['Sim'], reverse=True)
+      else:
+        new_output = final_output
       
       # filter to the top x
       new_output = new_output[:result_count]
@@ -869,12 +879,12 @@ class FAISSSearcher():
       # now comes the reranker 
     
     def cross_encode(self,
-          pair: List[str]
-          ):
-      return self.reranker_gaas_model.model(input=pair)
+        pair: List[str]
+    ):
+        return self.reranker_gaas_model.model(input=pair)
     
     def init_reranker(self):
       # local model
       #self.reranker_gaas_model = ggm.ModelEngine(model_engine=reranker, local=True)
-      self.reranker_gaas_model = ggm.ModelEngine(engine_id="EMB_30991037-1e73-49f5-99d3-f28210e6b95c12")
+      self.reranker_gaas_model = ggm.ModelEngine(engine_id="30991037-1e73-49f5-99d3-f28210e6b95c12")
       
