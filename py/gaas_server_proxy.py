@@ -78,8 +78,8 @@ class ServerProxy():
 
   def call_async(self, epoc=None, engine_type='Storage', engine_id=None, method_name='None', method_args=None, method_arg_types=None, insight_id=None):
     #epoc = self.get_next_epoc()
-    if insight_id is None:
-      return "Insight Id cannot be none"
+    # if insight_id is None:
+    #   return "Insight Id cannot be none"
     thread = threading.Thread(target=self.comm, kwargs={
               'epoc':epoc, 
               'engine_type':engine_type, 
@@ -89,6 +89,8 @@ class ServerProxy():
               'method_arg_types': method_arg_types,
               'insight_id': insight_id
               })
+    orig_payload = getattr(current_thread(), 'payload', None)
+    thread.payload = orig_payload
     thread.start()
     thread.join()
     #else
