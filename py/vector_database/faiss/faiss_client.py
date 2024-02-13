@@ -856,8 +856,13 @@ class FAISSSearcher():
         # this is not pythonic but let us try this for now
         #self.class_logger.warning(question, extra={"stack": "BACKEND"})
         try:
+            if 'Content' in data_row.keys():
+                content = data_row['Content']
+            else:
+                content = " ".join([str(val) for val in data_row.values()])
+                
             score = self.cross_encode(
-                [[question, data_row['Content']]]
+                [[question, content]]
             )
             output.update({'Sim': score})
         except:
