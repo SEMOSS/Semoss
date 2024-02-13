@@ -399,7 +399,11 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, messageMethod);
-			ps.setInt(index++, tokenSize);
+			if (tokenSize != null) {
+				ps.setInt(index++, tokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
 			ps.setDouble(index++, reponseTime);
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreated));
 			ps.setString(index++, agentId);
