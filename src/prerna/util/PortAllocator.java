@@ -91,7 +91,7 @@ public class PortAllocator {
 	 * @param port
 	 * @return
 	 */
-	private boolean isPortAvailable(int port) {
+	public boolean isPortAvailable(int port) {
 		try (ServerSocket ignored = new ServerSocket(port)) {
 			classLogger.info("Port " + port + " is available");
 			return true;
