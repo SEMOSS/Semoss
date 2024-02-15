@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
-	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
-	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
-	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
-</rdf:Description>
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BITLY">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BITLY"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BITLY</Conceptual>
 </rdf:Description>
@@ -26,7 +19,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EMBED/BITLY">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(20000)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(20000)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EMBED/BITLY"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EMBED</Conceptual>
 </rdf:Description>
@@ -40,14 +33,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FANCY/BITLY">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(800)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(800)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FANCY/BITLY"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FANCY</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CONCEPT">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CONCEPT</Conceptual>
 </rdf:Description>
@@ -61,7 +54,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOCALCONCEPTID/CONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOCALCONCEPTID/CONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOCALCONCEPTID</Conceptual>
 </rdf:Description>
@@ -75,7 +68,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CONCEPTUALNAME/CONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CONCEPTUALNAME/CONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CONCEPTUALNAME</Conceptual>
 </rdf:Description>
@@ -89,7 +82,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGICALNAME/CONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGICALNAME/CONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOGICALNAME</Conceptual>
 </rdf:Description>
@@ -103,7 +96,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DOMAINNAME/CONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DOMAINNAME/CONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DOMAINNAME</Conceptual>
 </rdf:Description>
@@ -117,14 +110,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/GLOBALID/CONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/GLOBALID/CONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">GLOBALID</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CONCEPTMETADATA">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CONCEPTMETADATA"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CONCEPTMETADATA</Conceptual>
 </rdf:Description>
@@ -138,7 +131,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PHYSICALNAMEID/CONCEPTMETADATA">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PHYSICALNAMEID/CONCEPTMETADATA"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PHYSICALNAMEID</Conceptual>
 </rdf:Description>
@@ -152,7 +145,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAKEY/CONCEPTMETADATA">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(800)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(800)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAKEY/CONCEPTMETADATA"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAKEY</Conceptual>
 </rdf:Description>
@@ -166,14 +159,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAVALUE/CONCEPTMETADATA">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAVALUE/CONCEPTMETADATA"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAVALUE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ENGINE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE</Conceptual>
 </rdf:Description>
@@ -187,7 +180,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/ENGINE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/ENGINE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
 </rdf:Description>
@@ -201,7 +194,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINENAME/ENGINE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINENAME/ENGINE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINENAME</Conceptual>
 </rdf:Description>
@@ -215,7 +208,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODIFIEDDATE/ENGINE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODIFIEDDATE/ENGINE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MODIFIEDDATE</Conceptual>
 </rdf:Description>
@@ -229,14 +222,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/ENGINE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/ENGINE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINECONCEPT">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINECONCEPT</Conceptual>
 </rdf:Description>
@@ -250,7 +243,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE</Conceptual>
 </rdf:Description>
@@ -264,7 +257,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PARENTSEMOSSNAME/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PARENTSEMOSSNAME/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PARENTSEMOSSNAME</Conceptual>
 </rdf:Description>
@@ -278,7 +271,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SEMOSSNAME/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SEMOSSNAME/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SEMOSSNAME</Conceptual>
 </rdf:Description>
@@ -292,7 +285,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PARENTPHYSICALNAME/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PARENTPHYSICALNAME/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PARENTPHYSICALNAME</Conceptual>
 </rdf:Description>
@@ -306,7 +299,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PARENTPHYSICALNAMEID/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PARENTPHYSICALNAMEID/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PARENTPHYSICALNAMEID</Conceptual>
 </rdf:Description>
@@ -320,7 +313,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PHYSICALNAME/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PHYSICALNAME/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PHYSICALNAME</Conceptual>
 </rdf:Description>
@@ -334,7 +327,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PHYSICALNAMEID/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PHYSICALNAMEID/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PHYSICALNAMEID</Conceptual>
 </rdf:Description>
@@ -348,7 +341,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PARENTLOCALCONCEPTID/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PARENTLOCALCONCEPTID/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PARENTLOCALCONCEPTID</Conceptual>
 </rdf:Description>
@@ -362,7 +355,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOCALCONCEPTID/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOCALCONCEPTID/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOCALCONCEPTID</Conceptual>
 </rdf:Description>
@@ -376,7 +369,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PK/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PK/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PK</Conceptual>
 </rdf:Description>
@@ -390,7 +383,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IGNORE_DATA/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IGNORE_DATA/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IGNORE_DATA</Conceptual>
 </rdf:Description>
@@ -404,7 +397,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ORIGINAL_TYPE/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ORIGINAL_TYPE/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ORIGINAL_TYPE</Conceptual>
 </rdf:Description>
@@ -418,7 +411,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROPERTY_TYPE/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROPERTY_TYPE/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROPERTY_TYPE</Conceptual>
 </rdf:Description>
@@ -432,14 +425,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ADDITIONAL_TYPE/ENGINECONCEPT">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ADDITIONAL_TYPE/ENGINECONCEPT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ADDITIONAL_TYPE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINERELATION">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINERELATION</Conceptual>
 </rdf:Description>
@@ -453,7 +446,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RELATIONID/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RELATIONID/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RELATIONID</Conceptual>
 </rdf:Description>
@@ -467,7 +460,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE</Conceptual>
 </rdf:Description>
@@ -481,7 +474,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSTANCERELATIONID/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSTANCERELATIONID/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSTANCERELATIONID</Conceptual>
 </rdf:Description>
@@ -495,7 +488,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SOURCECONCEPTID/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SOURCECONCEPTID/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SOURCECONCEPTID</Conceptual>
 </rdf:Description>
@@ -509,7 +502,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TARGETCONCEPTID/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TARGETCONCEPTID/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TARGETCONCEPTID</Conceptual>
 </rdf:Description>
@@ -523,7 +516,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SOURCEPROPERTY/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SOURCEPROPERTY/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SOURCEPROPERTY</Conceptual>
 </rdf:Description>
@@ -537,7 +530,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TARGETPROPERTY/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TARGETPROPERTY/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TARGETPROPERTY</Conceptual>
 </rdf:Description>
@@ -551,14 +544,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RELATIONNAME/ENGINERELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RELATIONNAME/ENGINERELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RELATIONNAME</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/KVSTORE">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/KVSTORE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">KVSTORE</Conceptual>
 </rdf:Description>
@@ -572,7 +565,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/K/KVSTORE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(800)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(800)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/K/KVSTORE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">K</Conceptual>
 </rdf:Description>
@@ -586,14 +579,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/V/KVSTORE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(800)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(800)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/V/KVSTORE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">V</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RELATION">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/RELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RELATION</Conceptual>
 </rdf:Description>
@@ -607,7 +600,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/RELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/RELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
 </rdf:Description>
@@ -621,7 +614,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SOURCEID/RELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SOURCEID/RELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SOURCEID</Conceptual>
 </rdf:Description>
@@ -635,7 +628,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TARGETID/RELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TARGETID/RELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TARGETID</Conceptual>
 </rdf:Description>
@@ -649,13 +642,13 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/GLOBALID/RELATION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/GLOBALID/RELATION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">GLOBALID</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ENGINE.ID.ENGINECONCEPT.ENGINE">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE">
@@ -663,7 +656,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ENGINE.ID.ENGINERELATION.ENGINE">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE">
@@ -671,7 +664,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ENGINECONCEPT.LOCALCONCEPTID.CONCEPT.LOCALCONCEPTID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINECONCEPT">
@@ -679,7 +672,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ENGINECONCEPT.LOCALCONCEPTID.ENGINERELATION.SOURCECONCEPTID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINECONCEPT">
@@ -687,7 +680,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ENGINECONCEPT.LOCALCONCEPTID.ENGINERELATION.TARGETCONCEPTID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINECONCEPT">
@@ -695,7 +688,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ENGINERELATION.RELATIONID.RELATION.ID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINERELATION">
@@ -703,7 +696,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/CONCEPT.LOCALCONCEPTID.RELATION.SOURCEID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CONCEPT">
@@ -711,7 +704,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/CONCEPT.LOCALCONCEPTID.RELATION.TARGETID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CONCEPT">
@@ -719,8 +712,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/METAMODELPOSITION">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/METAMODELPOSITION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAMODELPOSITION</Conceptual>
 </rdf:Description>
@@ -734,7 +727,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/METAMODELPOSITION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/METAMODELPOSITION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
 </rdf:Description>
@@ -748,7 +741,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TABLENAME/METAMODELPOSITION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TABLENAME/METAMODELPOSITION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TABLENAME</Conceptual>
 </rdf:Description>
@@ -762,7 +755,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/XPOS/METAMODELPOSITION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:FLOAT"/>
+	<rdfs:Class rdf:resource="TYPE:FLOAT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/XPOS/METAMODELPOSITION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">XPOS</Conceptual>
 </rdf:Description>
@@ -776,13 +769,13 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/YPOS/METAMODELPOSITION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:FLOAT"/>
+	<rdfs:Class rdf:resource="TYPE:FLOAT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/YPOS/METAMODELPOSITION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">YPOS</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/METAMODELPOSITION.ENGINEID.ENGINE.ID">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/METAMODELPOSITION">
@@ -790,7 +783,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:07:25 14:14:28</TIME>
+	<TIME xmlns="ENGINE:">2023:11:12 15:12:59</TIME>
 </rdf:Description>
 
 </rdf:RDF>
