@@ -100,8 +100,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/USERID/SESSION_SHARE")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/IS_CUSTOM_GROUP/SMSS_GROUP")) {
 				return true;
 			}
 		}
@@ -458,6 +458,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
+		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN");
 
 		// GROUPENGINEPERMISSION
 		owler.addConcept("GROUPENGINEPERMISSION", null, null);

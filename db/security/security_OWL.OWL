@@ -3222,6 +3222,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DESCRIPTION</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_CUSTOM_GROUP/SMSS_GROUP">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_GROUP">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_CUSTOM_GROUP/SMSS_GROUP"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_CUSTOM_GROUP/SMSS_GROUP">
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_CUSTOM_GROUP/SMSS_GROUP"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_CUSTOM_GROUP</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GROUPENGINEPERMISSION">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:domain>noData</rdfs:domain>
@@ -3863,7 +3877,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:01:31 14:15:53</TIME>
+	<TIME xmlns="ENGINE:">2024:02:15 17:04:17</TIME>
 </rdf:Description>
 
 </rdf:RDF>
