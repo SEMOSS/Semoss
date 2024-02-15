@@ -1,12 +1,10 @@
 package prerna.auth.utils;
 
 import java.io.IOException;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +13,8 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
@@ -28,7 +28,8 @@ import prerna.util.Constants;
 public class SecurityGroupUtils extends AbstractSecurityUtils {
 	
 	private static SecurityGroupUtils instance = new SecurityGroupUtils();
-	private static final Logger logger = LogManager.getLogger(SecurityGroupUtils.class);
+	
+	private static final Logger classLogger = LogManager.getLogger(SecurityGroupUtils.class);
 
 	private SecurityGroupUtils() {
 		
@@ -46,6 +47,8 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Filter a collection of typed groups to those that are in the SMSS_GROUP table
+	 * @param groupIds
+	 * @param groupType
 	 * @return
 	 */
 	public static Set<String> getMatchingGroupsByType(Collection<String> groupIds, String groupType) {
@@ -66,14 +69,14 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Failed to retrieve matching security groups", e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -86,8 +89,9 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param groupId
 	 * @param type
 	 * @param description
+	 * @throws Exception 
 	 */
-	public void addGroup(String groupId, String type, String description) {
+	public void addGroup(String groupId, String type, String description, boolean isCustomGroup) throws Exception {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
@@ -110,40 +114,28 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			}
 			
 			if(foundGroup) {
-				return;
+				throw new IllegalArgumentException("Group already exists");
 			}
 			
-			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION) VALUES (?,?,?)";
+			Gson gson = new Gson();
+			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, IS_CUSTOM_GROUP) VALUES (?,?,?,?)";
 			try(PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				ps.setString(parameterIndex++, type);
-				if(securityDb.getQueryUtil().allowClobJavaObject()) {
-					if(description == null) {
-						ps.setNull(parameterIndex++, Types.CLOB);
-					} else {
-						Clob clob = securityDb.createClob(conn);
-						clob.setString(1, description);
-						ps.setClob(parameterIndex++, clob);
-					}
-				} else {
-					if(description == null) {
-						ps.setNull(parameterIndex++, Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, description);
-					}
-				}
+				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, gson);
+				ps.setBoolean(parameterIndex++, isCustomGroup);
 				ps.execute();
-				conn.commit();
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
 			}
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -165,9 +157,6 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
-			boolean curAutoCommit = conn.getAutoCommit();
-			conn.setAutoCommit(false);
-			
 			try {
 				for(String query : queries) {
 					try(PreparedStatement ps = conn.prepareStatement(query)) {
@@ -177,22 +166,23 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
-				
-				conn.commit();
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
 			} catch(SQLException e) {
-				conn.rollback();
+				if(!conn.getAutoCommit()) {
+					conn.rollback();
+				}
 				throw e;
-			} finally {
-				conn.setAutoCommit(curAutoCommit);
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -200,11 +190,16 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Edit an existing group across all the tables
-	 * @param groupId
-	 * @param type
+	 * @param curGroupId
+	 * @param curType
+	 * @param newGroupId
+	 * @param newType
+	 * @param newDescription
+	 * @param newIsCustomGroup
+	 * @throws Exception
 	 */
-	public void editGroupAndPropagate(String curGroupId, String curType, String newGroupId, String newType, String newDescription) throws Exception{
-		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
+	public void editGroupAndPropagate(String curGroupId, String curType, String newGroupId, String newType, String newDescription, boolean newIsCustomGroup) throws Exception{
+		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=? WHERE ID=? AND TYPE=?";
 		String[] propagateQueries = new String[] {
 			"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
 			"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
@@ -214,22 +209,16 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
-			boolean curAutoCommit = conn.getAutoCommit();
-			conn.setAutoCommit(false);
 			
+			Gson gson = new Gson();
 			try {
 				// group edit
 				try(PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					ps.setString(parameterIndex++, newType);
-					if(securityDb.getQueryUtil().allowClobJavaObject()) {
-						Clob clob = securityDb.createClob(conn);
-						clob.setString(1, newDescription);
-						ps.setClob(parameterIndex++, clob);
-					} else {
-						ps.setString(parameterIndex++, newDescription);
-					}
+					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
+					ps.setBoolean(parameterIndex++, newIsCustomGroup);
 					ps.setString(parameterIndex++, curGroupId);
 					ps.setString(parameterIndex++, curType);
 					ps.execute();
@@ -246,22 +235,23 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
-				
-				conn.commit();
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
 			} catch(SQLException e) {
-				conn.rollback();
+				if(!conn.getAutoCommit()) {
+					conn.rollback();
+				}
 				throw e;
-			} finally {
-				conn.setAutoCommit(curAutoCommit);
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
