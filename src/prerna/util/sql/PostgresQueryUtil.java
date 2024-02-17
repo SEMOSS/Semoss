@@ -41,7 +41,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.PostgresSqlInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -229,14 +229,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
+	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector(columnQs));
 		NounMetadata lComparison = new NounMetadata(fun, PixelDataType.COLUMN);
 		NounMetadata rComparison = new NounMetadata(searchTerm.toLowerCase(), PixelDataType.CONST_STRING);
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, "~", rComparison);
-		qs.addExplicitFilter(filter);
+		return filter;
 	}
 	
 	@Override

@@ -571,7 +571,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix+"INSIGHTNAME", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix+"INSIGHTID", searchTerm));
+			qs.addExplicitFilter(searchFilter);
 		}
 		qs.addOrderBy("low_name");;
 		if(limit > 0) {
@@ -1053,7 +1056,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 		}
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
+			qs.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
@@ -1130,7 +1136,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
 		}
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, projectPrefix+"PROJECTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
 		}
 		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
 		if (projectMetadataFilter!=null && !projectMetadataFilter.isEmpty()) {
