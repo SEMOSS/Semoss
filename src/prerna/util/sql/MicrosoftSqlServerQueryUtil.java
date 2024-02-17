@@ -11,7 +11,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -225,7 +225,7 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
+	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
 		// WHERE PATINDEX ('%pattern%',expression) != 0
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction("PATINDEX");
@@ -234,7 +234,7 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		NounMetadata lComparison = new NounMetadata(fun, PixelDataType.COLUMN);
 		NounMetadata rComparison = new NounMetadata(0, PixelDataType.CONST_INT);
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, "!=", rComparison);
-		qs.addExplicitFilter(filter);
+		return filter;
 	}
 	
 	@Override
