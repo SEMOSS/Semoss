@@ -2331,7 +2331,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		}
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, projectPrefix+"PROJECTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			qs1.addExplicitFilter(searchFilter);
 		}
 		
 		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
@@ -2647,7 +2650,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "PROJECT__PROJECTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("PROJECT__PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("PROJECT__PROJECTNAME", searchTerm));
+			qs1.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (projectMetadataFilter!=null && !projectMetadataFilter.isEmpty()) {
