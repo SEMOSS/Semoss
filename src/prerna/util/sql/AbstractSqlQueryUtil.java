@@ -68,7 +68,7 @@ import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
@@ -775,7 +775,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param columnQs
 	 * @param searchTerm
 	 */
-	public abstract void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm);
+	public abstract IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm);
 	
 	/**
 	 * Create the syntax to merge 2 tables together
