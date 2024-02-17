@@ -1986,7 +1986,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		// on the insight name
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, insightPrefix + "INSIGHTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix+"INSIGHTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix+"INSIGHTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
 		}
 		// filtering by insight meta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
 		if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
@@ -2288,7 +2291,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		// add the search term filter
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("INSIGHT__INSIGHTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("INSIGHT__INSIGHTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+			
 		}
 		// if we have tag filters
 		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -2672,7 +2679,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(orFilters);
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("INSIGHT__INSIGHTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("INSIGHT__INSIGHTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
 		}
 		// sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
@@ -2708,7 +2718,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		fun.setAlias("low_name");
 		qs.addSelector(fun);
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("INSIGHT__INSIGHTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("INSIGHT__INSIGHTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
 		}
 		// sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));

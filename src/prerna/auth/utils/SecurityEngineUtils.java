@@ -2169,7 +2169,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "ENGINE__ENGINENAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
+			qs1.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
@@ -2670,7 +2673,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "ENGINE__ENGINENAME", searchTerm);
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
+			qs1.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
