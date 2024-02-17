@@ -43,6 +43,7 @@ public class SecurityOwlCreator {
 		
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
+		conceptsRequired.add("CUSTOMGROUPASSIGNMENT");
 		conceptsRequired.add("GROUPENGINEPERMISSION");
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
 		conceptsRequired.add("GROUPINSIGHTPERMISSION");
@@ -460,6 +461,12 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
 		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN");
 
+		// CUSTOMGROUPASSIGNMENT
+		owler.addConcept("CUSTOMGROUPASSIGNMENT", null, null);
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "GROUPID", "VARCHAR(255)");
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "USERID", "VARCHAR(255)");
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "TYPE", "VARCHAR(255)");
+		
 		// GROUPENGINEPERMISSION
 		owler.addConcept("GROUPENGINEPERMISSION", null, null);
 		owler.addProp("GROUPENGINEPERMISSION", "ID", "VARCHAR(255)");
@@ -504,7 +511,10 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "DISPLAYORDER", "INT");
 			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
 		}
-					
+
+		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");
+		owler.addRelation("SMSS_GROUP", "CUSTOMGROUPASSIGNMENT", "SMSS_GROUP.ID.CUSTOMGROUPASSIGNMENT.GROUPID");
+
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.ID.GROUPENGINEPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.TYPE.GROUPENGINEPERMISSION.TYPE");
 		owler.addRelation("ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID");
