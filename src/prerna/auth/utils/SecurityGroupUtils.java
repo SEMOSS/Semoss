@@ -23,6 +23,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 
 public class SecurityGroupUtils extends AbstractSecurityUtils {
@@ -203,7 +204,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		String[] propagateQueries = new String[] {
 			"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
 			"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-			"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?"
+			"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
 		};
 
 		Connection conn = null;
@@ -257,19 +258,210 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param userId
+	 * @param userType
+	 */
+	public void addUserToGroup(String groupId, String userId, String userType) {
+		if(!isCustomGroup(groupId)) {
+			throw new IllegalArgumentException("Can only add/remove users for custom groups");
+		}
+		
+		if(userInCustomGroup(groupId, userId, userType)) {
+			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
+		}
+		
+		Connection conn = null;
+		try {
+			conn = securityDb.makeConnection();
+			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE) VALUES (?,?,?)";
+			try(PreparedStatement ps = conn.prepareStatement(query)) {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, groupId);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
+				ps.execute();
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(securityDb.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param userId
+	 * @param userType
+	 */
+	public void removeUserFromGroup(String groupId, String userId, String userType) {
+		if(!isCustomGroup(groupId)) {
+			throw new IllegalArgumentException("Can only add/remove users for custom groups");
+		}
+		
+		if(userInCustomGroup(groupId, userId, userType)) {
+			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
+		}
+		
+		Connection conn = null;
+		try {
+			conn = securityDb.makeConnection();
+			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?, USERID=?, TYPE=?";
+			try(PreparedStatement ps = conn.prepareStatement(query)) {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, groupId);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
+				ps.execute();
+				if(!conn.getAutoCommit()) {
+					conn.commit();
+				}
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(securityDb.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param userId
+	 * @param userType
+	 * @return
+	 */
+	public boolean userInCustomGroup(String groupId, String userId, String userType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", userType));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @return
+	 */
+	public boolean isCustomGroup(String groupId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * Get all groups
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllGroups() {
+	public List<Map<String, Object>> getAllGroups(long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__IS_CUSTOM_GROUP"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return getSimpleQuery(qs);
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
+	public List<Map<String, Object>> getUsersForGroup(String groupId, long limit, long offset) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__USERID"));
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
+		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
+		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
 	
 }
