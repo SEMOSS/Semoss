@@ -20,7 +20,6 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.impl.CaseInsensitiveProperties;
-import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -747,7 +746,8 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return sql.toString();
 	}
 	
-	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
+	@Override
+	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
 		FunctionQueryFilter filter = new FunctionQueryFilter();
 		QueryFunctionSelector regexFunction = new QueryFunctionSelector();
 		regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
@@ -755,7 +755,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		regexFunction.addInnerSelector(new QueryConstantSelector(escapeForSQLStatement(searchTerm)));
 		regexFunction.addInnerSelector(new QueryConstantSelector("i"));
 		filter.setFunctionSelector(regexFunction);
-		qs.addExplicitFilter(filter);
+		return filter;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
