@@ -183,10 +183,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllUsers(long limit, long offset) throws IllegalArgumentException{
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
