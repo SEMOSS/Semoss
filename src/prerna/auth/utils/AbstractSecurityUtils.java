@@ -1169,7 +1169,31 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 	
-			// GROUP DATABASE PERMISSION
+			// CUSTOM GROUP ASSIGNMENT TABLE
+			colNames = new String[] { "GROUPID", "USERID", "TYPE"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("CUSTOMGROUPASSIGNMENT", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "CUSTOMGROUPASSIGNMENT", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("CUSTOMGROUPASSIGNMENT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "CUSTOMGROUPASSIGNMENT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("CUSTOMGROUPASSIGNMENT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			
+			// GROUP ENGINE PERMISSION
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
 			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
