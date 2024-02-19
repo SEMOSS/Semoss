@@ -134,6 +134,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	protected ITableDataFrame currentFrame = null;
 	protected Pixel pixelObj = null;
+	protected boolean isTimeTracking = true;
 	
 	public static String envClassPath = null;
 	
@@ -159,7 +160,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 	 * @param pixelExpression
 	 */
 	protected void postProcess(String pixelExpression) {
-		this.pixelObj.endTime();
+		if(isTimeTracking) {
+			this.pixelObj.endTime();
+		}
 		// need to account for META variables
 		// that were defined
 //		if(this.isMeta) {
@@ -199,7 +202,9 @@ public class LazyTranslation extends DepthFirstAdapter {
         		// at the start of each pixel being processed
         		this.resultKey = "$RESULT_" + e.hashCode();
         		this.pixelObj = new Pixel("tempStorage", e.toString());
-        		this.pixelObj.startTime();
+        		if(isTimeTracking) {
+        			this.pixelObj.startTime();
+        		}
         		// if not META, store the starting frame headers
         		if(!(e instanceof AMetaRoutine)) {
             		this.pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
