@@ -17,7 +17,7 @@ public class ZKEngine implements IEngine {
 	public static final String ZOOKEEPER_ADDRESS_KEY = "ZOOKEEPER_ADDRESS";
 	public static final String SESSION_TIMEOUT_KEY = "SESSION_TIMEOUT";
 	public static final String CONNECTION_TIMEOUT_KEY = "SESSION_TIMEOUT";
-	public static final String NAMESPACE_KEY = "ELECTION_NAMESPACE";
+	public static final String NAMESPACE_KEY = "NAMESPACE";
 
 	protected String engineId = null;
 	protected String engineName = null;
