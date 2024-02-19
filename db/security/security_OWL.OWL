@@ -3236,6 +3236,48 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_CUSTOM_GROUP</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/SMSS_GROUP">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_GROUP">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/SMSS_GROUP"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/SMSS_GROUP">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/SMSS_GROUP"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATEADDED</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/SMSS_GROUP">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_GROUP">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/SMSS_GROUP"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/SMSS_GROUP">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/SMSS_GROUP"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERIDTYPE/SMSS_GROUP">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_GROUP">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERIDTYPE/SMSS_GROUP"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERIDTYPE/SMSS_GROUP">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERIDTYPE/SMSS_GROUP"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERIDTYPE</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CUSTOMGROUPASSIGNMENT">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:domain>noData</rdfs:domain>
@@ -3283,6 +3325,62 @@
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/CUSTOMGROUPASSIGNMENT"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/CUSTOMGROUPASSIGNMENT">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CUSTOMGROUPASSIGNMENT">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/CUSTOMGROUPASSIGNMENT"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/CUSTOMGROUPASSIGNMENT">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/CUSTOMGROUPASSIGNMENT"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATEADDED</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENDDATE/CUSTOMGROUPASSIGNMENT">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CUSTOMGROUPASSIGNMENT">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENDDATE/CUSTOMGROUPASSIGNMENT"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENDDATE/CUSTOMGROUPASSIGNMENT">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENDDATE/CUSTOMGROUPASSIGNMENT"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENDDATE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBY/CUSTOMGROUPASSIGNMENT">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CUSTOMGROUPASSIGNMENT">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBY/CUSTOMGROUPASSIGNMENT"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBY/CUSTOMGROUPASSIGNMENT">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBY/CUSTOMGROUPASSIGNMENT"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PERMISSIONGRANTEDBY</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBYTYPE/CUSTOMGROUPASSIGNMENT">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CUSTOMGROUPASSIGNMENT">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBYTYPE/CUSTOMGROUPASSIGNMENT"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBYTYPE/CUSTOMGROUPASSIGNMENT">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSIONGRANTEDBYTYPE/CUSTOMGROUPASSIGNMENT"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PERMISSIONGRANTEDBYTYPE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GROUPENGINEPERMISSION">
@@ -3942,7 +4040,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:02:17 12:53:44</TIME>
+	<TIME xmlns="ENGINE:">2024:02:19 12:48:28</TIME>
 </rdf:Description>
 
 </rdf:RDF>

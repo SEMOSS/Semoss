@@ -102,7 +102,7 @@ public class SecurityOwlCreator {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
 			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/IS_CUSTOM_GROUP/SMSS_GROUP")) {
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/USERID/SMSS_GROUP")) {
 				return true;
 			}
 		}
@@ -460,12 +460,19 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
 		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN");
-
+		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
+		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
+		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
+		
 		// CUSTOMGROUPASSIGNMENT
 		owler.addConcept("CUSTOMGROUPASSIGNMENT", null, null);
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "GROUPID", "VARCHAR(255)");
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "USERID", "VARCHAR(255)");
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "TYPE", "VARCHAR(255)");
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "DATEADDED", "TIMESTAMP");
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "ENDDATE", "TIMESTAMP");
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("CUSTOMGROUPASSIGNMENT", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
 		// GROUPENGINEPERMISSION
 		owler.addConcept("GROUPENGINEPERMISSION", null, null);

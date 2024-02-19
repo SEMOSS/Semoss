@@ -1146,8 +1146,10 @@ public abstract class AbstractSecurityUtils {
 			 */
 	
 			// GROUP TABLE
-			colNames = new String[] { "ID", "TYPE", "DESCRIPTION", "IS_CUSTOM_GROUP" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			colNames = new String[] { "ID", "TYPE", "DESCRIPTION", "IS_CUSTOM_GROUP", 
+					"DATEADDED", "USERID", "USERIDTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					 TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
 			} else {
@@ -1170,8 +1172,10 @@ public abstract class AbstractSecurityUtils {
 			}
 	
 			// CUSTOM GROUP ASSIGNMENT TABLE
-			colNames = new String[] { "GROUPID", "USERID", "TYPE"};
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
+			colNames = new String[] { "GROUPID", "USERID", "TYPE", 
+					"DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)"};
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("CUSTOMGROUPASSIGNMENT", colNames, types));
 			} else {
