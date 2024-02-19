@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import com.google.gson.Gson;
 
@@ -25,6 +27,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class SecurityGroupUtils extends AbstractSecurityUtils {
 	
@@ -92,7 +95,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param description
 	 * @throws Exception 
 	 */
-	public void addGroup(String groupId, String type, String description, boolean isCustomGroup) throws Exception {
+	public void addGroup(User user, String groupId, String type, String description, boolean isCustomGroup) throws Exception {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
@@ -118,14 +121,20 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("Group already exists");
 			}
 			
+			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 			Gson gson = new Gson();
-			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, IS_CUSTOM_GROUP) VALUES (?,?,?,?)";
+			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, IS_CUSTOM_GROUP, DATEADDED, USERID, USERIDTYPE) "
+					+ "VALUES (?,?,?,?,?,?,?)";
 			try(PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				ps.setString(parameterIndex++, type);
 				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, gson);
 				ps.setBoolean(parameterIndex++, isCustomGroup);
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.execute();
 				if(!conn.getAutoCommit()) {
 					conn.commit();
@@ -199,8 +208,8 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param newIsCustomGroup
 	 * @throws Exception
 	 */
-	public void editGroupAndPropagate(String curGroupId, String curType, String newGroupId, String newType, String newDescription, boolean newIsCustomGroup) throws Exception{
-		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=? WHERE ID=? AND TYPE=?";
+	public void editGroupAndPropagate(User user, String curGroupId, String curType, String newGroupId, String newType, String newDescription, boolean newIsCustomGroup) throws Exception{
+		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
 		String[] propagateQueries = new String[] {
 			"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
 			"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
@@ -211,6 +220,8 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		try {
 			conn = securityDb.makeConnection();
 			
+			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+			
 			Gson gson = new Gson();
 			try {
 				// group edit
@@ -220,6 +231,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, newType);
 					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
 					ps.setBoolean(parameterIndex++, newIsCustomGroup);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					// where
 					ps.setString(parameterIndex++, curGroupId);
 					ps.setString(parameterIndex++, curType);
 					ps.execute();
@@ -265,7 +280,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @param userType
 	 */
-	public void addUserToGroup(String groupId, String userId, String userType) {
+	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate) {
 		if(!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
@@ -274,15 +289,32 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
 		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
-			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE) VALUES (?,?,?)";
+			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
+					+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
+					+ "VALUES (?,?,?,?,?,?,?)";
 			try(PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				ps.setString(parameterIndex++, userId);
 				ps.setString(parameterIndex++, userType);
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				if(verifiedEndDate == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				}
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.execute();
 				if(!conn.getAutoCommit()) {
 					conn.commit();
@@ -415,12 +447,15 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * Get all groups
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllGroups(long limit, long offset) {
+	public List<Map<String, Object>> getGroups(long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__IS_CUSTOM_GROUP"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERIDTYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
 		if(limit > 0) {
@@ -436,11 +471,15 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
-	public List<Map<String, Object>> getUsersForGroup(String groupId, long limit, long offset) {
+	public List<Map<String, Object>> getGroupMembers(String groupId, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__USERID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__TYPE"));
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__DATEADDED"));
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__PERMISSIONGRANTEDBY"));
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__PERMISSIONGRANTEDBYTYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));

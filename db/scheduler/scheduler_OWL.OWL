@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
-	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
-	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
-	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
-</rdf:Description>
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_CALENDARS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_CALENDARS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_CALENDARS</Conceptual>
 </rdf:Description>
@@ -26,7 +19,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_CALENDARS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_CALENDARS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -40,7 +33,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CALENDAR_NAME/QRTZ_CALENDARS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CALENDAR_NAME/QRTZ_CALENDARS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CALENDAR_NAME</Conceptual>
 </rdf:Description>
@@ -54,14 +47,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CALENDAR/QRTZ_CALENDARS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:IMAGE"/>
+	<rdfs:Class rdf:resource="TYPE:IMAGE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CALENDAR/QRTZ_CALENDARS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CALENDAR</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_CRON_TRIGGERS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_CRON_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_CRON_TRIGGERS</Conceptual>
 </rdf:Description>
@@ -75,7 +68,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_CRON_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_CRON_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -89,7 +82,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_CRON_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_CRON_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_NAME</Conceptual>
 </rdf:Description>
@@ -103,7 +96,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_CRON_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_CRON_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
@@ -117,7 +110,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CRON_EXPRESSION/QRTZ_CRON_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CRON_EXPRESSION/QRTZ_CRON_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CRON_EXPRESSION</Conceptual>
 </rdf:Description>
@@ -131,14 +124,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TIME_ZONE_ID/QRTZ_CRON_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(80)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(80)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TIME_ZONE_ID/QRTZ_CRON_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TIME_ZONE_ID</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_FIRED_TRIGGERS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_FIRED_TRIGGERS</Conceptual>
 </rdf:Description>
@@ -152,7 +145,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -166,7 +159,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENTRY_ID/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(95)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(95)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENTRY_ID/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENTRY_ID</Conceptual>
 </rdf:Description>
@@ -180,7 +173,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_NAME</Conceptual>
 </rdf:Description>
@@ -194,7 +187,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
@@ -208,7 +201,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSTANCE_NAME/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSTANCE_NAME/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSTANCE_NAME</Conceptual>
 </rdf:Description>
@@ -222,7 +215,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FIRED_TIME/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FIRED_TIME/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FIRED_TIME</Conceptual>
 </rdf:Description>
@@ -236,7 +229,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_TIME/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_TIME/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_TIME</Conceptual>
 </rdf:Description>
@@ -250,7 +243,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PRIORITY/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INTEGER"/>
+	<rdfs:Class rdf:resource="TYPE:INTEGER"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PRIORITY/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PRIORITY</Conceptual>
 </rdf:Description>
@@ -264,7 +257,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/STATE/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(16)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(16)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/STATE/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">STATE</Conceptual>
 </rdf:Description>
@@ -278,7 +271,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_NAME</Conceptual>
 </rdf:Description>
@@ -292,7 +285,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_GROUP</Conceptual>
 </rdf:Description>
@@ -306,7 +299,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_NONCONCURRENT/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_NONCONCURRENT/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_NONCONCURRENT</Conceptual>
 </rdf:Description>
@@ -320,14 +313,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUESTS_RECOVERY/QRTZ_FIRED_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUESTS_RECOVERY/QRTZ_FIRED_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUESTS_RECOVERY</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_PAUSED_TRIGGER_GRPS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_PAUSED_TRIGGER_GRPS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_PAUSED_TRIGGER_GRPS</Conceptual>
 </rdf:Description>
@@ -341,7 +334,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_PAUSED_TRIGGER_GRPS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_PAUSED_TRIGGER_GRPS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -355,14 +348,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_PAUSED_TRIGGER_GRPS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_PAUSED_TRIGGER_GRPS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SCHEDULER_STATE">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_SCHEDULER_STATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_SCHEDULER_STATE</Conceptual>
 </rdf:Description>
@@ -376,7 +369,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_SCHEDULER_STATE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_SCHEDULER_STATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -390,7 +383,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSTANCE_NAME/QRTZ_SCHEDULER_STATE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSTANCE_NAME/QRTZ_SCHEDULER_STATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSTANCE_NAME</Conceptual>
 </rdf:Description>
@@ -404,7 +397,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LAST_CHECKIN_TIME/QRTZ_SCHEDULER_STATE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LAST_CHECKIN_TIME/QRTZ_SCHEDULER_STATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LAST_CHECKIN_TIME</Conceptual>
 </rdf:Description>
@@ -418,14 +411,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CHECKIN_INTERVAL/QRTZ_SCHEDULER_STATE">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CHECKIN_INTERVAL/QRTZ_SCHEDULER_STATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CHECKIN_INTERVAL</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_LOCKS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_LOCKS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_LOCKS</Conceptual>
 </rdf:Description>
@@ -439,7 +432,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_LOCKS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_LOCKS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -453,14 +446,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOCK_NAME/QRTZ_LOCKS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(40)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(40)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOCK_NAME/QRTZ_LOCKS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOCK_NAME</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_JOB_DETAILS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_JOB_DETAILS</Conceptual>
 </rdf:Description>
@@ -474,7 +467,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -488,7 +481,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_NAME</Conceptual>
 </rdf:Description>
@@ -502,7 +495,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_GROUP</Conceptual>
 </rdf:Description>
@@ -516,7 +509,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(250)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(250)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DESCRIPTION</Conceptual>
 </rdf:Description>
@@ -530,7 +523,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_CLASS_NAME/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(250)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(250)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_CLASS_NAME/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_CLASS_NAME</Conceptual>
 </rdf:Description>
@@ -544,7 +537,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_DURABLE/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_DURABLE/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_DURABLE</Conceptual>
 </rdf:Description>
@@ -558,7 +551,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_NONCONCURRENT/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_NONCONCURRENT/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_NONCONCURRENT</Conceptual>
 </rdf:Description>
@@ -572,7 +565,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_UPDATE_DATA/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_UPDATE_DATA/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_UPDATE_DATA</Conceptual>
 </rdf:Description>
@@ -586,7 +579,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUESTS_RECOVERY/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUESTS_RECOVERY/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUESTS_RECOVERY</Conceptual>
 </rdf:Description>
@@ -600,14 +593,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_DATA/QRTZ_JOB_DETAILS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:IMAGE"/>
+	<rdfs:Class rdf:resource="TYPE:IMAGE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_DATA/QRTZ_JOB_DETAILS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_DATA</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPLE_TRIGGERS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_SIMPLE_TRIGGERS</Conceptual>
 </rdf:Description>
@@ -621,7 +614,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_SIMPLE_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -635,7 +628,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_SIMPLE_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_NAME</Conceptual>
 </rdf:Description>
@@ -649,7 +642,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_SIMPLE_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
@@ -663,7 +656,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REPEAT_COUNT/QRTZ_SIMPLE_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REPEAT_COUNT/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REPEAT_COUNT</Conceptual>
 </rdf:Description>
@@ -677,7 +670,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REPEAT_INTERVAL/QRTZ_SIMPLE_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REPEAT_INTERVAL/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REPEAT_INTERVAL</Conceptual>
 </rdf:Description>
@@ -691,14 +684,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TIMES_TRIGGERED/QRTZ_SIMPLE_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TIMES_TRIGGERED/QRTZ_SIMPLE_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TIMES_TRIGGERED</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPROP_TRIGGERS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_SIMPROP_TRIGGERS</Conceptual>
 </rdf:Description>
@@ -712,7 +705,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -726,7 +719,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_NAME</Conceptual>
 </rdf:Description>
@@ -740,7 +733,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
@@ -754,7 +747,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/STR_PROP_1/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(512)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(512)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/STR_PROP_1/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">STR_PROP_1</Conceptual>
 </rdf:Description>
@@ -768,7 +761,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/STR_PROP_2/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(512)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(512)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/STR_PROP_2/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">STR_PROP_2</Conceptual>
 </rdf:Description>
@@ -782,7 +775,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/STR_PROP_3/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(512)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(512)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/STR_PROP_3/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">STR_PROP_3</Conceptual>
 </rdf:Description>
@@ -796,7 +789,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INT_PROP_1/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INTEGER"/>
+	<rdfs:Class rdf:resource="TYPE:INTEGER"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INT_PROP_1/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INT_PROP_1</Conceptual>
 </rdf:Description>
@@ -810,7 +803,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INT_PROP_2/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INTEGER"/>
+	<rdfs:Class rdf:resource="TYPE:INTEGER"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INT_PROP_2/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INT_PROP_2</Conceptual>
 </rdf:Description>
@@ -824,7 +817,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LONG_PROP_1/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LONG_PROP_1/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LONG_PROP_1</Conceptual>
 </rdf:Description>
@@ -838,7 +831,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LONG_PROP_2/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LONG_PROP_2/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LONG_PROP_2</Conceptual>
 </rdf:Description>
@@ -852,7 +845,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEC_PROP_1/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:NUMERIC(13,4)"/>
+	<rdfs:Class rdf:resource="TYPE:NUMERIC(13,4)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEC_PROP_1/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DEC_PROP_1</Conceptual>
 </rdf:Description>
@@ -866,7 +859,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEC_PROP_2/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:NUMERIC(13,4)"/>
+	<rdfs:Class rdf:resource="TYPE:NUMERIC(13,4)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEC_PROP_2/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DEC_PROP_2</Conceptual>
 </rdf:Description>
@@ -880,7 +873,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BOOL_PROP_1/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BOOL_PROP_1/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BOOL_PROP_1</Conceptual>
 </rdf:Description>
@@ -894,14 +887,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BOOL_PROP_2/QRTZ_SIMPROP_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BOOL_PROP_2/QRTZ_SIMPROP_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BOOL_PROP_2</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_BLOB_TRIGGERS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_BLOB_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_BLOB_TRIGGERS</Conceptual>
 </rdf:Description>
@@ -915,7 +908,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_BLOB_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_BLOB_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -929,7 +922,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_BLOB_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_BLOB_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_NAME</Conceptual>
 </rdf:Description>
@@ -943,7 +936,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_BLOB_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_BLOB_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
@@ -957,14 +950,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOB_DATA/QRTZ_BLOB_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:IMAGE"/>
+	<rdfs:Class rdf:resource="TYPE:IMAGE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOB_DATA/QRTZ_BLOB_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BLOB_DATA</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_TRIGGERS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QRTZ_TRIGGERS</Conceptual>
 </rdf:Description>
@@ -978,7 +971,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHED_NAME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHED_NAME</Conceptual>
 </rdf:Description>
@@ -992,7 +985,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_NAME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_NAME</Conceptual>
 </rdf:Description>
@@ -1006,7 +999,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_GROUP/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_GROUP</Conceptual>
 </rdf:Description>
@@ -1020,7 +1013,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_NAME</Conceptual>
 </rdf:Description>
@@ -1034,7 +1027,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_GROUP</Conceptual>
 </rdf:Description>
@@ -1048,7 +1041,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(250)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(250)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DESCRIPTION</Conceptual>
 </rdf:Description>
@@ -1062,7 +1055,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NEXT_FIRE_TIME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NEXT_FIRE_TIME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">NEXT_FIRE_TIME</Conceptual>
 </rdf:Description>
@@ -1076,7 +1069,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PREV_FIRE_TIME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PREV_FIRE_TIME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PREV_FIRE_TIME</Conceptual>
 </rdf:Description>
@@ -1090,7 +1083,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PRIORITY/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INTEGER"/>
+	<rdfs:Class rdf:resource="TYPE:INTEGER"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PRIORITY/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PRIORITY</Conceptual>
 </rdf:Description>
@@ -1104,7 +1097,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_STATE/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(16)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(16)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_STATE/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_STATE</Conceptual>
 </rdf:Description>
@@ -1118,7 +1111,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_TYPE/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(8)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(8)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_TYPE/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_TYPE</Conceptual>
 </rdf:Description>
@@ -1132,7 +1125,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/START_TIME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/START_TIME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">START_TIME</Conceptual>
 </rdf:Description>
@@ -1146,7 +1139,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/END_TIME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BIGINT"/>
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/END_TIME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">END_TIME</Conceptual>
 </rdf:Description>
@@ -1160,7 +1153,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CALENDAR_NAME/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CALENDAR_NAME/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CALENDAR_NAME</Conceptual>
 </rdf:Description>
@@ -1174,7 +1167,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MISFIRE_INSTR/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:SMALLINT"/>
+	<rdfs:Class rdf:resource="TYPE:SMALLINT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MISFIRE_INSTR/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MISFIRE_INSTR</Conceptual>
 </rdf:Description>
@@ -1188,14 +1181,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_DATA/QRTZ_TRIGGERS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:IMAGE"/>
+	<rdfs:Class rdf:resource="TYPE:IMAGE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_DATA/QRTZ_TRIGGERS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_DATA</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SMSS_JOB_RECIPES</Conceptual>
 </rdf:Description>
@@ -1209,7 +1202,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_ID</Conceptual>
 </rdf:Description>
@@ -1223,7 +1216,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_ID/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_ID/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_ID</Conceptual>
 </rdf:Description>
@@ -1237,7 +1230,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_NAME</Conceptual>
 </rdf:Description>
@@ -1251,7 +1244,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_GROUP</Conceptual>
 </rdf:Description>
@@ -1265,7 +1258,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CRON_EXPRESSION/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(250)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(250)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CRON_EXPRESSION/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CRON_EXPRESSION</Conceptual>
 </rdf:Description>
@@ -1279,7 +1272,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(120)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(120)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CRON_TIMEZONE</Conceptual>
 </rdf:Description>
@@ -1293,7 +1286,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PIXEL_RECIPE/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BLOB"/>
+	<rdfs:Class rdf:resource="TYPE:BLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PIXEL_RECIPE/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PIXEL_RECIPE</Conceptual>
 </rdf:Description>
@@ -1307,7 +1300,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PIXEL_RECIPE_PARAMETERS/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BLOB"/>
+	<rdfs:Class rdf:resource="TYPE:BLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PIXEL_RECIPE_PARAMETERS/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PIXEL_RECIPE_PARAMETERS</Conceptual>
 </rdf:Description>
@@ -1321,7 +1314,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_CATEGORY/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_CATEGORY/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_CATEGORY</Conceptual>
 </rdf:Description>
@@ -1335,7 +1328,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TRIGGER_ON_LOAD/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TRIGGER_ON_LOAD/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_ON_LOAD</Conceptual>
 </rdf:Description>
@@ -1349,14 +1342,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BLOB"/>
+	<rdfs:Class rdf:resource="TYPE:BLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">UI_STATE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SMSS_AUDIT_TRAIL</Conceptual>
 </rdf:Description>
@@ -1370,7 +1363,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_ID/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_ID/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_ID</Conceptual>
 </rdf:Description>
@@ -1384,7 +1377,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_NAME</Conceptual>
 </rdf:Description>
@@ -1398,7 +1391,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_GROUP</Conceptual>
 </rdf:Description>
@@ -1412,7 +1405,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EXECUTION_START/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EXECUTION_START/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EXECUTION_START</Conceptual>
 </rdf:Description>
@@ -1426,7 +1419,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EXECUTION_END/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EXECUTION_END/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EXECUTION_END</Conceptual>
 </rdf:Description>
@@ -1440,7 +1433,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EXECUTION_DELTA/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EXECUTION_DELTA/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EXECUTION_DELTA</Conceptual>
 </rdf:Description>
@@ -1454,7 +1447,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SUCCESS/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SUCCESS/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SUCCESS</Conceptual>
 </rdf:Description>
@@ -1468,7 +1461,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_LATEST</Conceptual>
 </rdf:Description>
@@ -1482,14 +1475,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHEDULER_OUTPUT</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_JOB_TAGS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SMSS_JOB_TAGS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SMSS_JOB_TAGS</Conceptual>
 </rdf:Description>
@@ -1503,7 +1496,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_ID/SMSS_JOB_TAGS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_ID/SMSS_JOB_TAGS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_ID</Conceptual>
 </rdf:Description>
@@ -1517,14 +1510,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_TAG/SMSS_JOB_TAGS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_TAG/SMSS_JOB_TAGS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_TAG</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_EXECUTION">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SMSS_EXECUTION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SMSS_EXECUTION</Conceptual>
 </rdf:Description>
@@ -1538,7 +1531,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EXEC_ID/SMSS_EXECUTION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EXEC_ID/SMSS_EXECUTION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EXEC_ID</Conceptual>
 </rdf:Description>
@@ -1552,7 +1545,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/SMSS_EXECUTION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_NAME/SMSS_EXECUTION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_NAME</Conceptual>
 </rdf:Description>
@@ -1566,13 +1559,13 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/SMSS_EXECUTION">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR_(200)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR_(200)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JOB_GROUP/SMSS_EXECUTION"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JOB_GROUP</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_CRON_TRIGGERS.SCHED_NAME.QRTZ_TRIGGERS.SCHED_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_CRON_TRIGGERS">
@@ -1580,7 +1573,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_CRON_TRIGGERS.TRIGGER_NAME.QRTZ_TRIGGERS.TRIGGER_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_CRON_TRIGGERS">
@@ -1588,7 +1581,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_CRON_TRIGGERS.TRIGGER_GROUP.QRTZ_TRIGGERS.TRIGGER_GROUP">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_CRON_TRIGGERS">
@@ -1596,7 +1589,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_SIMPLE_TRIGGERS.SCHED_NAME.QRTZ_TRIGGERS.SCHED_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPLE_TRIGGERS">
@@ -1604,7 +1597,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_SIMPLE_TRIGGERS.TRIGGER_NAME.QRTZ_TRIGGERS.TRIGGER_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPLE_TRIGGERS">
@@ -1612,7 +1605,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_SIMPLE_TRIGGERS.TRIGGER_GROUP.QRTZ_TRIGGERS.TRIGGER_GROUP">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPLE_TRIGGERS">
@@ -1620,7 +1613,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_SIMPROP_TRIGGERS.SCHED_NAME.QRTZ_TRIGGERS.SCHED_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPROP_TRIGGERS">
@@ -1628,7 +1621,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_SIMPROP_TRIGGERS.TRIGGER_NAME.QRTZ_TRIGGERS.TRIGGER_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPROP_TRIGGERS">
@@ -1636,7 +1629,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_SIMPROP_TRIGGERS.TRIGGER_GROUP.QRTZ_TRIGGERS.TRIGGER_GROUP">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_SIMPROP_TRIGGERS">
@@ -1644,7 +1637,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_TRIGGERS.SCHED_NAME.QRTZ_JOB_DETAILS.SCHED_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_TRIGGERS">
@@ -1652,7 +1645,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_TRIGGERS.TRIGGER_NAME.QRTZ_JOB_DETAILS.TRIGGER_NAME">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_TRIGGERS">
@@ -1660,7 +1653,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/QRTZ_TRIGGERS.TRIGGER_GROUP.QRTZ_JOB_DETAILS.TRIGGER_GROUP">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QRTZ_TRIGGERS">
@@ -1668,7 +1661,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:06:22 11:20:46</TIME>
+	<TIME xmlns="ENGINE:">2024:02:19 13:07:31</TIME>
 </rdf:Description>
 
 </rdf:RDF>
