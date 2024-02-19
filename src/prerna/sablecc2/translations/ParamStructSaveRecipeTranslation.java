@@ -65,6 +65,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 	
 	public ParamStructSaveRecipeTranslation(Insight insight) {
 		super(insight);
+		this.isTimeTracking = false;
 	}
 	
 	@Override
