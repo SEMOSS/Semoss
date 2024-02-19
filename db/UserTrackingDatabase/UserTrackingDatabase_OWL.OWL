@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
-	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
-	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
-	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
-</rdf:Description>
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/USER_TRACKING">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_TRACKING</Conceptual>
 </rdf:Description>
@@ -26,7 +19,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSIONID/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SESSIONID/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SESSIONID</Conceptual>
 </rdf:Description>
@@ -40,7 +33,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERID</Conceptual>
 </rdf:Description>
@@ -54,7 +47,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
 </rdf:Description>
@@ -68,7 +61,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CREATED_ON/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CREATED_ON/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CREATED_ON</Conceptual>
 </rdf:Description>
@@ -82,7 +75,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENDED_ON/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENDED_ON/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENDED_ON</Conceptual>
 </rdf:Description>
@@ -96,7 +89,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IP_ADDR/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IP_ADDR/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IP_ADDR</Conceptual>
 </rdf:Description>
@@ -110,7 +103,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IP_LAT/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IP_LAT/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IP_LAT</Conceptual>
 </rdf:Description>
@@ -124,7 +117,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IP_LONG/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IP_LONG/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IP_LONG</Conceptual>
 </rdf:Description>
@@ -138,7 +131,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IP_COUNTRY/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IP_COUNTRY/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IP_COUNTRY</Conceptual>
 </rdf:Description>
@@ -152,7 +145,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IP_STATE/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IP_STATE/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IP_STATE</Conceptual>
 </rdf:Description>
@@ -166,14 +159,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IP_CITY/USER_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IP_CITY/USER_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IP_CITY</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE_VIEWS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ENGINE_VIEWS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE_VIEWS</Conceptual>
 </rdf:Description>
@@ -187,7 +180,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINE_VIEWS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINE_VIEWS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
 </rdf:Description>
@@ -201,7 +194,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE/ENGINE_VIEWS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:DATE"/>
+	<rdfs:Class rdf:resource="TYPE:DATE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE/ENGINE_VIEWS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE</Conceptual>
 </rdf:Description>
@@ -215,14 +208,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VIEWS/ENGINE_VIEWS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INT"/>
+	<rdfs:Class rdf:resource="TYPE:INT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VIEWS/ENGINE_VIEWS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">VIEWS</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE_USES">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ENGINE_USES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE_USES</Conceptual>
 </rdf:Description>
@@ -236,7 +229,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINE_USES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINE_USES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
 </rdf:Description>
@@ -250,7 +243,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHTID/ENGINE_USES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSIGHTID/ENGINE_USES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSIGHTID</Conceptual>
 </rdf:Description>
@@ -264,7 +257,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECTID/ENGINE_USES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECTID/ENGINE_USES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECTID</Conceptual>
 </rdf:Description>
@@ -278,14 +271,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE/ENGINE_USES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:DATE"/>
+	<rdfs:Class rdf:resource="TYPE:DATE"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE/ENGINE_USES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/USER_CATALOG_VOTES">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/USER_CATALOG_VOTES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_CATALOG_VOTES</Conceptual>
 </rdf:Description>
@@ -299,7 +292,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/USER_CATALOG_VOTES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/USER_CATALOG_VOTES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERID</Conceptual>
 </rdf:Description>
@@ -313,7 +306,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/USER_CATALOG_VOTES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/USER_CATALOG_VOTES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
 </rdf:Description>
@@ -327,7 +320,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/USER_CATALOG_VOTES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/USER_CATALOG_VOTES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
 </rdf:Description>
@@ -341,7 +334,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VOTE/USER_CATALOG_VOTES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INT"/>
+	<rdfs:Class rdf:resource="TYPE:INT"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VOTE/USER_CATALOG_VOTES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">VOTE</Conceptual>
 </rdf:Description>
@@ -355,14 +348,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LAST_MODIFIED/USER_CATALOG_VOTES">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LAST_MODIFIED/USER_CATALOG_VOTES"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LAST_MODIFIED</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/EMAIL_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EMAIL_TRACKING</Conceptual>
 </rdf:Description>
@@ -376,23 +369,23 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/EMAIL_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SENT/EMAIL_TRACKING">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SENT_TIME/EMAIL_TRACKING">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SENT/EMAIL_TRACKING"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SENT_TIME/EMAIL_TRACKING"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SENT/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SENT/EMAIL_TRACKING"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SENT</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SENT_TIME/EMAIL_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SENT_TIME/EMAIL_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SENT_TIME</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SUCCESSFUL/EMAIL_TRACKING">
@@ -404,79 +397,79 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SUCCESSFUL/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SUCCESSFUL/EMAIL_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SUCCESSFUL</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FROM/EMAIL_TRACKING">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_FROM/EMAIL_TRACKING">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FROM/EMAIL_TRACKING"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_FROM/EMAIL_TRACKING"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FROM/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FROM/EMAIL_TRACKING"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FROM</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_FROM/EMAIL_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_FROM/EMAIL_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">E_FROM</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TO/EMAIL_TRACKING">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_TO/EMAIL_TRACKING">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TO/EMAIL_TRACKING"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_TO/EMAIL_TRACKING"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TO/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TO/EMAIL_TRACKING"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TO</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_TO/EMAIL_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_TO/EMAIL_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">E_TO</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CC/EMAIL_TRACKING">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_CC/EMAIL_TRACKING">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CC/EMAIL_TRACKING"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_CC/EMAIL_TRACKING"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CC/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CC/EMAIL_TRACKING"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CC</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_CC/EMAIL_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_CC/EMAIL_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">E_CC</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BCC/EMAIL_TRACKING">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_BCC/EMAIL_TRACKING">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BCC/EMAIL_TRACKING"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_BCC/EMAIL_TRACKING"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BCC/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BCC/EMAIL_TRACKING"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BCC</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_BCC/EMAIL_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_BCC/EMAIL_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">E_BCC</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SUBJECT/EMAIL_TRACKING">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_SUBJECT/EMAIL_TRACKING">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EMAIL_TRACKING">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SUBJECT/EMAIL_TRACKING"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_SUBJECT/EMAIL_TRACKING"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SUBJECT/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(1000)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SUBJECT/EMAIL_TRACKING"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SUBJECT</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/E_SUBJECT/EMAIL_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(1000)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/E_SUBJECT/EMAIL_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">E_SUBJECT</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BODY/EMAIL_TRACKING">
@@ -488,7 +481,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BODY/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BODY/EMAIL_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BODY</Conceptual>
 </rdf:Description>
@@ -502,7 +495,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ATTACHMENTS/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ATTACHMENTS/EMAIL_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ATTACHMENTS</Conceptual>
 </rdf:Description>
@@ -516,14 +509,14 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_HTML/EMAIL_TRACKING">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_HTML/EMAIL_TRACKING"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_HTML</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/INSIGHT_OPENS">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/INSIGHT_OPENS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSIGHT_OPENS</Conceptual>
 </rdf:Description>
@@ -537,7 +530,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHTID/INSIGHT_OPENS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSIGHTID/INSIGHT_OPENS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSIGHTID</Conceptual>
 </rdf:Description>
@@ -551,7 +544,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/INSIGHT_OPENS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/INSIGHT_OPENS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERID</Conceptual>
 </rdf:Description>
@@ -565,7 +558,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/OPENED_ON/INSIGHT_OPENS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/OPENED_ON/INSIGHT_OPENS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">OPENED_ON</Conceptual>
 </rdf:Description>
@@ -579,13 +572,146 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ORIGIN/INSIGHT_OPENS">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(2000)"/>
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(2000)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ORIGIN/INSIGHT_OPENS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ORIGIN</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QUERY_TRACKING</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERID/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERID/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERTYPE/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERTYPE/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USERTYPE/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USERTYPE/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USERTYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATABASEID/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATABASEID/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATABASEID/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATABASEID/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATABASEID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/QUERY_EXECUTED/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/QUERY_EXECUTED/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/QUERY_EXECUTED/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/QUERY_EXECUTED/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">QUERY_EXECUTED</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/START_TIME/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/START_TIME/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/START_TIME/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/START_TIME/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">START_TIME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/END_TIME/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/END_TIME/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/END_TIME/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/END_TIME/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">END_TIME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TOTAL_EXECUTION_TIME/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TOTAL_EXECUTION_TIME/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TOTAL_EXECUTION_TIME/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:BIGINT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TOTAL_EXECUTION_TIME/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TOTAL_EXECUTION_TIME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FAILED_EXECUTION/QUERY_TRACKING">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/QUERY_TRACKING">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FAILED_EXECUTION/QUERY_TRACKING"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/FAILED_EXECUTION/QUERY_TRACKING">
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/FAILED_EXECUTION/QUERY_TRACKING"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">FAILED_EXECUTION</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:07:17 17:54:44</TIME>
+	<TIME xmlns="ENGINE:">2024:02:19 13:07:32</TIME>
 </rdf:Description>
 
 </rdf:RDF>
