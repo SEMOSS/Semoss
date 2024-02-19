@@ -27,11 +27,11 @@ public class ImportQueryTranslation extends LazyTranslation {
 	
 	private static final Logger logger = LogManager.getLogger(ImportQueryTranslation.class);
 
-	private Pixel pixelObj = null;
 	private Map<Pixel, SelectQueryStruct> importQsMap = new HashMap<>();
 	
 	public ImportQueryTranslation(Insight insight) {
 		super(insight);
+		this.isTimeTracking = false;
 	}
 	
 	@Override
@@ -42,7 +42,6 @@ public class ImportQueryTranslation extends LazyTranslation {
 			String expression = e.toString();
 			if(expression.contains("Import")) {
         		this.resultKey = "$RESULT_" + e.hashCode();
-
 				logger.info("Processing " + Utility.cleanLogString(expression));
 				e.apply(this);
 			}

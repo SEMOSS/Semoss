@@ -50,7 +50,7 @@ import prerna.util.insight.InsightUtility;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
-	private static final Logger logger = LogManager.getLogger(SaveInsightReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SaveInsightReactor.class);
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
 	
 	public SaveInsightReactor() {
@@ -193,6 +193,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			try {
 				recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("An error occurred trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
@@ -228,7 +229,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
 				logger.info(stepCounter + ") Done...");
 			} catch (IOException e) {
-				SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
+				SaveInsightReactor.classLogger.error(Constants.STACKTRACE, e);
 				logger.info(stepCounter + ") Unable to move assets...");
 			}
 		} else {
@@ -247,7 +248,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 					description, tags, schemaName, true);
 		} catch (IOException e) {
-			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
+			SaveInsightReactor.classLogger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
 		}
 		logger.info(stepCounter + ") Done...");
@@ -289,7 +290,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			}
 			logger.info(stepCounter + ") Done...");
 		} catch (Exception e) {
-			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
+			SaveInsightReactor.classLogger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to add insight to git...");
 		} finally {
 			if(walk != null) {
