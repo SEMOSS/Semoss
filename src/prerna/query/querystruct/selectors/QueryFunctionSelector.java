@@ -193,6 +193,22 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	}
 	
 	/**
+	 * Make concat function
+	 * @param qsName1
+	 * @param qsName2
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeConcat2ColumnsFunction(String qsName1, String qsName2, String alias) {
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+        fun.setFunction(QueryFunctionHelper.CONCAT);
+        fun.addInnerSelector(new QueryColumnSelector(qsName1));
+        fun.addInnerSelector(new QueryConstantSelector(qsName2));
+        fun.setAlias(alias);
+        return fun;
+	}
+	
+	/**
 	 * Make coalesce selector
 	 * @param selector1
 	 * @param selector2
