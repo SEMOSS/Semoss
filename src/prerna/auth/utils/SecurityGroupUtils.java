@@ -345,7 +345,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
 		
-		if(userInCustomGroup(groupId, userId, userType)) {
+		if(!userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
 		}
 		
