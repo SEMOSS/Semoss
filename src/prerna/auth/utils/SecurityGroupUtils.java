@@ -31,20 +31,20 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SecurityGroupUtils extends AbstractSecurityUtils {
-	
+
 	private static SecurityGroupUtils instance = new SecurityGroupUtils();
-	
+
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupUtils.class);
 
 	private SecurityGroupUtils() {
-		
+
 	}
-	
+
 	public static SecurityGroupUtils getInstance(User user) {
-		if(user == null) {
+		if (user == null) {
 			return null;
 		}
-		if(SecurityAdminUtils.userIsAdmin(user)) {
+		if (SecurityAdminUtils.userIsAdmin(user)) {
 			return instance;
 		}
 		return null;
@@ -52,32 +52,34 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Filter a collection of typed groups to those that are in the SMSS_GROUP table
+	 * 
 	 * @param groupIds
 	 * @param groupType
 	 * @return
+	 * @throws Exception
 	 */
-	public static Set<String> getMatchingGroupsByType(Collection<String> groupIds, String groupType) {
+	public static Set<String> getMatchingGroupsByType(Collection<String> groupIds, String groupType) throws Exception {
 		Set<String> results = new HashSet<>();
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupIds));
-		
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if(val != null) {
+				if (val != null) {
 					results.add(val.toString());
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to retrieve matching security groups", e);
+			throw e;
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -85,24 +87,26 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return results;
 	}
-	
+
 	/**
 	 * Add a group with description
+	 * 
 	 * @param groupId
 	 * @param groupType
 	 * @param description
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public void addGroup(User user, String groupId, String groupType, String description, boolean isCustomGroup) throws Exception {
+	public void addGroup(User user, String groupId, String groupType, String description, boolean isCustomGroup)
+			throws Exception {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
-			
+
 			// need to ensure that the group is unique...
-			if(groupExists(groupId, groupType)) {
+			if (groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group already exists");
 			}
 
@@ -111,7 +115,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			Gson gson = new Gson();
 			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, IS_CUSTOM_GROUP, DATEADDED, USERID, USERIDTYPE) "
 					+ "VALUES (?,?,?,?,?,?,?)";
-			try(PreparedStatement ps = conn.prepareStatement(query)) {
+			try (PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				ps.setString(parameterIndex++, groupType);
@@ -121,12 +125,15 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.execute();
-				if(!conn.getAutoCommit()) {
+				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
-			if(securityDb.isConnectionPooling() && conn != null) {
+			if (securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -135,49 +142,50 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Delete a new group and its references across the tables
+	 * 
 	 * @param groupId
 	 * @param groupType
+	 * @throws Exception
 	 */
-	public void deleteGroupAndPropagate(String groupId, String groupType) {
-		if(!groupExists(groupId, groupType)) {
+	public void deleteGroupAndPropagate(String groupId, String groupType) throws Exception {
+		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
-		
-		String[] queries = new String[] {
-			"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
-			"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
-			"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
-			"DELETE FROM SMSS_GROUP WHERE ID= ? AND TYPE = ?",
-		};
-		
+
+		String[] queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
+				"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
+				"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
+				"DELETE FROM SMSS_GROUP WHERE ID= ? AND TYPE = ?", };
+
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
 			try {
-				for(String query : queries) {
-					try(PreparedStatement ps = conn.prepareStatement(query)) {
+				for (String query : queries) {
+					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, groupId);
 						ps.setString(parameterIndex++, groupType);
 						ps.execute();
 					}
 				}
-				if(!conn.getAutoCommit()) {
+				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
-			} catch(SQLException e) {
-				if(!conn.getAutoCommit()) {
+			} catch (SQLException e) {
+				if (!conn.getAutoCommit()) {
 					conn.rollback();
 				}
 				throw e;
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
-			if(securityDb.isConnectionPooling() && conn != null) {
+			if (securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -186,9 +194,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Edit an existing group across all the tables
+	 * 
 	 * @param curGroupId
 	 * @param curGroupType
 	 * @param newGroupId
@@ -197,28 +206,27 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param newIsCustomGroup
 	 * @throws Exception
 	 */
-	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, 
-			String newGroupId, String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception{
-		if(!groupExists(curGroupId, curGroupType)) {
+	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
+			String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
 		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
 		String[] propagateQueries = new String[] {
-			"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-			"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-			"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-		};
+				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", };
 
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
-			
+
 			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-			
+
 			Gson gson = new Gson();
 			try {
 				// group edit
-				try(PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					ps.setString(parameterIndex++, newGroupType);
@@ -232,10 +240,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, curGroupType);
 					ps.execute();
 				}
-				
+
 				// propagation
-				for(String query : propagateQueries) {
-					try(PreparedStatement ps = conn.prepareStatement(query)) {
+				for (String query : propagateQueries) {
+					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
 						ps.setString(parameterIndex++, newGroupType);
@@ -244,19 +252,20 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
-				if(!conn.getAutoCommit()) {
+				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
-			} catch(SQLException e) {
-				if(!conn.getAutoCommit()) {
+			} catch (SQLException e) {
+				if (!conn.getAutoCommit()) {
 					conn.rollback();
 				}
 				throw e;
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
-			if(securityDb.isConnectionPooling() && conn != null) {
+			if (securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -266,46 +275,45 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	
 	/**
 	 * 
 	 * @param groupId
 	 * @param userId
 	 * @param userType
+	 * @throws Exception 
 	 */
-	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate) {
-		if(!groupExists(groupId, null)) {
+	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate) throws Exception {
+		if (!groupExists(groupId, null)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
-		
-		if(!isCustomGroup(groupId)) {
+
+		if (!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
-		
-		if(userInCustomGroup(groupId, userId, userType)) {
+
+		if (userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
 			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
-					+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
-					+ "VALUES (?,?,?,?,?,?,?)";
-			try(PreparedStatement ps = conn.prepareStatement(query)) {
+					+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) " + "VALUES (?,?,?,?,?,?,?)";
+			try (PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				ps.setString(parameterIndex++, userId);
 				ps.setString(parameterIndex++, userType);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				if(verifiedEndDate == null) {
+				if (verifiedEndDate == null) {
 					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				} else {
 					ps.setTimestamp(parameterIndex++, verifiedEndDate);
@@ -313,14 +321,15 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.execute();
-				if(!conn.getAutoCommit()) {
+				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
-			if(securityDb.isConnectionPooling() && conn != null) {
+			if (securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -329,44 +338,46 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param groupId
 	 * @param userId
 	 * @param userType
+	 * @throws Exception 
 	 */
-	public void removeUserFromGroup(String groupId, String userId, String userType) {
-		if(!groupExists(groupId, null)) {
+	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
+		if (!groupExists(groupId, null)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
-		
-		if(!isCustomGroup(groupId)) {
+
+		if (!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
-		
-		if(!userInCustomGroup(groupId, userId, userType)) {
+
+		if (!userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
 		}
-		
+
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
 			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
-			try(PreparedStatement ps = conn.prepareStatement(query)) {
+			try (PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				ps.setString(parameterIndex++, userId);
 				ps.setString(parameterIndex++, userType);
 				ps.execute();
-				if(!conn.getAutoCommit()) {
+				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
-			if(securityDb.isConnectionPooling() && conn != null) {
+			if (securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -375,7 +386,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param groupId
@@ -393,13 +404,13 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -407,10 +418,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * 
 	 * @param groupId
@@ -421,21 +432,22 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		if(groupType == null || (groupType=groupType.trim()).isEmpty()) { 
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
+		if (groupType == null || (groupType = groupType.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true,
+					PixelDataType.BOOLEAN));
 		} else {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
 		}
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -443,31 +455,33 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * 
 	 * @param groupId
 	 * @return
+	 * @throws Exception 
 	 */
 	public boolean isCustomGroup(String groupId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
-		
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -475,12 +489,13 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Get all groups
+	 * 
 	 * @return
 	 */
 	public List<Map<String, Object>> getGroups(long limit, long offset, String searchTerm) {
@@ -494,20 +509,21 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
-		if( searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty() ) {
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", searchTerm));
 		}
-		if(limit > 0) {
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
 	}
-	
+
 	/**
 	 * This is only valid for members assigned to custom group assignments
+	 * 
 	 * @return
 	 */
 	public List<Map<String, Object>> getGroupMembers(String groupId, long limit, long offset, String searchTerm) {
@@ -533,7 +549,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
-		if( searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty() ) {
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", searchTerm));
@@ -541,15 +557,15 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", searchTerm));
 			qs.addExplicitFilter(or);
 		}
-		if(limit > 0) {
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -569,10 +585,13 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		{
 			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
-			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=", exisitngMembersQs));
+			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
+					"CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
+					exisitngMembersQs));
 		}
-		if( searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty() ) {
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", searchTerm));
@@ -580,13 +599,13 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", searchTerm));
 			qs.addExplicitFilter(or);
 		}
-		if(limit > 0) {
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
 	}
-	
+
 }
