@@ -24,6 +24,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -468,7 +469,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * 
+	 * This is only valid for members assigned to custom group assignments
 	 * @return
 	 */
 	public List<Map<String, Object>> getGroupMembers(String groupId, long limit, long offset) {
@@ -494,6 +495,37 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public List<Map<String, Object>> getNonGroupMembers(String groupId, long limit, long offset) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
+		{
+			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
+			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=", exisitngMembersQs));
+		}
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}
