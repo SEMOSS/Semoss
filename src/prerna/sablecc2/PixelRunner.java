@@ -168,7 +168,7 @@ public class PixelRunner {
 			// make sure the pixel is set to meta
 			pixel.setMeta(true);
 			// also set the time to run
-			if(this.translation.getPixelObj() != null) {
+			if(this.translation != null && this.translation.getPixelObj() != null) {
 				pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
 			}
 			this.returnPixelList.add(pixel);
