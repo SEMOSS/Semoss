@@ -3,7 +3,6 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
@@ -93,36 +92,20 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	/**
 	 * Add a group with description
 	 * @param groupId
-	 * @param type
+	 * @param groupType
 	 * @param description
 	 * @throws Exception 
 	 */
-	public void addGroup(User user, String groupId, String type, String description, boolean isCustomGroup) throws Exception {
+	public void addGroup(User user, String groupId, String groupType, String description, boolean isCustomGroup) throws Exception {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
 			
 			// need to ensure that the group is unique...
-			boolean foundGroup = false;
-			String getGroupCount = "SELECT COUNT(*) FROM SMSS_GROUP WHERE ID=? AND TYPE=?";
-			try(PreparedStatement ps = conn.prepareStatement(getGroupCount)) {
-				ps.setString(1, groupId);
-				ps.setString(2, type);
-				if(ps.execute()) {
-					ResultSet rs = ps.getResultSet();
-					if(rs.next()) {
-						int resultCount = rs.getInt(1);
-						if(resultCount > 0) {
-							foundGroup = true;
-						}
-					}
-				}
-			}
-			
-			if(foundGroup) {
+			if(groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group already exists");
 			}
-			
+
 			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 			Gson gson = new Gson();
@@ -131,7 +114,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			try(PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, type);
+				ps.setString(parameterIndex++, groupType);
 				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, gson);
 				ps.setBoolean(parameterIndex++, isCustomGroup);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
@@ -156,9 +139,13 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	/**
 	 * Delete a new group and its references across the tables
 	 * @param groupId
-	 * @param type
+	 * @param groupType
 	 */
-	public void deleteGroupAndPropagate(String groupId, String type) {
+	public void deleteGroupAndPropagate(String groupId, String groupType) {
+		if(!groupExists(groupId, groupType)) {
+			throw new IllegalArgumentException("Group " + groupId + " does not exist");
+		}
+		
 		String[] queries = new String[] {
 			"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 			"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
@@ -174,7 +161,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 					try(PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, type);
+						ps.setString(parameterIndex++, groupType);
 						ps.execute();
 					}
 				}
@@ -203,14 +190,18 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	/**
 	 * Edit an existing group across all the tables
 	 * @param curGroupId
-	 * @param curType
+	 * @param curGroupType
 	 * @param newGroupId
-	 * @param newType
+	 * @param newGroupType
 	 * @param newDescription
 	 * @param newIsCustomGroup
 	 * @throws Exception
 	 */
-	public void editGroupAndPropagate(User user, String curGroupId, String curType, String newGroupId, String newType, String newDescription, boolean newIsCustomGroup) throws Exception{
+	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, 
+			String newGroupId, String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception{
+		if(!groupExists(curGroupId, curGroupType)) {
+			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
+		}
 		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
 		String[] propagateQueries = new String[] {
 			"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
@@ -230,7 +221,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 				try(PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newType);
+					ps.setString(parameterIndex++, newGroupType);
 					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
 					ps.setBoolean(parameterIndex++, newIsCustomGroup);
 					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
@@ -238,7 +229,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, userDetails.getValue1());
 					// where
 					ps.setString(parameterIndex++, curGroupId);
-					ps.setString(parameterIndex++, curType);
+					ps.setString(parameterIndex++, curGroupType);
 					ps.execute();
 				}
 				
@@ -247,9 +238,9 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 					try(PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newType);
+						ps.setString(parameterIndex++, newGroupType);
 						ps.setString(parameterIndex++, curGroupId);
-						ps.setString(parameterIndex++, curType);
+						ps.setString(parameterIndex++, curGroupType);
 						ps.execute();
 					}
 				}
@@ -283,6 +274,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param userType
 	 */
 	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate) {
+		if(!groupExists(groupId, null)) {
+			throw new IllegalArgumentException("Group " + groupId + " does not exist");
+		}
+		
 		if(!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
@@ -342,6 +337,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param userType
 	 */
 	public void removeUserFromGroup(String groupId, String userId, String userType) {
+		if(!groupExists(groupId, null)) {
+			throw new IllegalArgumentException("Group " + groupId + " does not exist");
+		}
+		
 		if(!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
@@ -412,6 +411,41 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
+	/**
+	 * 
+	 * @param groupId
+	 * @param groupType
+	 * @return
+	 */
+	public boolean groupExists(String groupId, String groupType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		if(groupType == null || (groupType=groupType.trim()).isEmpty()) { 
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
+		} else {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
+		}
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return false;
+	}
 	
 	/**
 	 * 
