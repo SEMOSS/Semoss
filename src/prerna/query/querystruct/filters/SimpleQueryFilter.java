@@ -1400,4 +1400,18 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return filter;
 	}
 	
+	/**
+	 * Helper method to generate a column to subquery filter 
+	 * @param colQs
+	 * @param comparator
+	 * @param subQs
+	 * @return
+	 */
+	public static SimpleQueryFilter makeQuerySelectorToSubQuery(IQuerySelector selector, String comparator, SelectQueryStruct subQs) {
+		NounMetadata lComparison = new NounMetadata(selector, PixelDataType.COLUMN);
+		NounMetadata rComparison = new NounMetadata(subQs, PixelDataType.QUERY_STRUCT);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+		return filter;
+	}
+	
 }
