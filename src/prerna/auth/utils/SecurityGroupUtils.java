@@ -483,7 +483,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * Get all groups
 	 * @return
 	 */
-	public List<Map<String, Object>> getGroups(long limit, long offset) {
+	public List<Map<String, Object>> getGroups(long limit, long offset, String searchTerm) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
@@ -494,6 +494,9 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		if( searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty() ) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", searchTerm));
+		}
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}
