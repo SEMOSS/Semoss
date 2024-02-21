@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -472,7 +473,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * This is only valid for members assigned to custom group assignments
 	 * @return
 	 */
-	public List<Map<String, Object>> getGroupMembers(String groupId, long limit, long offset) {
+	public List<Map<String, Object>> getGroupMembers(String groupId, long limit, long offset, String searchTerm) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__USERID"));
@@ -495,6 +496,14 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
+		if( searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty() ) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", searchTerm));
+			qs.addExplicitFilter(or);
+		}
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -508,7 +517,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
-	public List<Map<String, Object>> getNonGroupMembers(String groupId, long limit, long offset) {
+	public List<Map<String, Object>> getNonGroupMembers(String groupId, long limit, long offset, String searchTerm) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
@@ -525,6 +534,14 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
 			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=", exisitngMembersQs));
+		}
+		if( searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty() ) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", searchTerm));
+			qs.addExplicitFilter(or);
 		}
 		if(limit > 0) {
 			qs.setLimit(limit);
