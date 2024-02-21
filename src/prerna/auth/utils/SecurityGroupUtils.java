@@ -352,7 +352,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
-			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?, USERID=?, TYPE=?";
+			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
 			try(PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
