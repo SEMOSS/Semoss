@@ -23,4 +23,8 @@ public class ModelEngineConstants {
 	public static final String AWS_ACCESS_KEY = "AWS_ACCESS_KEY";
 	public static final String GCP_SERVICE_ACCOUNT_KEY = "GCP_SERVICE_ACCOUNT_KEY";
 
+	
+	// param keys
+	public static final String JAVA_FULL_PROMPT = "fullPrompt";
+	public static final String FULL_PROMPT = "full_prompt";
 }

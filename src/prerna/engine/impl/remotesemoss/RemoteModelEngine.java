@@ -8,6 +8,8 @@ import java.util.Properties;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -131,13 +133,13 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public Map<String, Object> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Object embeddings(List<String> stringsToEncode, Insight insight, Map<String, Object> parameters) {
+	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
