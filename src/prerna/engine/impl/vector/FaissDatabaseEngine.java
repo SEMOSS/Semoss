@@ -19,7 +19,6 @@ import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -59,8 +58,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
-	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
-	public static final String INSIGHT = "insight";
 	public static final String INDEX_CLASS = "indexClass";
 	
 	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
@@ -109,9 +106,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
             }
         }
 		
-		//this.documentsFolder = new File(this.connectionURL + DIR_SEPARATOR + "documents");
-		//this.indexFolder = new File(this.connectionURL + DIR_SEPARATOR + "indexed_files");
-		
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 		
 		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
@@ -159,8 +153,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.smssProp.put(KEYWORD_ENGINE_ID, "");
 		}
 		
-		// vars for string substitution
-		this.vars = new HashMap<>(this.smssProp);
+		for (Object smssKey : this.smssProp.keySet()) {
+			String key = smssKey.toString();
+			this.vars.put(key, this.smssProp.getProperty(key));
+		}
 		
 		modelPropsLoaded = true;
 	}
@@ -263,6 +259,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		for (String command : commands) {
 			intitPyCommands.append(command).append("\n");
 		}
+		
 		classLogger.info("Initializing FAISS db with the following py commands >>>" + intitPyCommands.toString());
 		pyt.runEmptyPy(commands);
 		
@@ -281,15 +278,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 	}
-	
-	@SuppressWarnings("unchecked")
-	private String fillVars(String input) {
-		StringSubstitutor sub = new StringSubstitutor(vars);
-		String resolvedString = sub.replace(input);
-		return resolvedString;
-	}
-	
-	
+		
 	@Override
 	public void addDocument(List<String> filePaths, Map <String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
@@ -335,7 +324,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			documentDir.mkdirs();
 		}
 		
-		boolean filesAppoved = FaissDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
+		boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
 		if (!filesAppoved) {
 			throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 		}
@@ -411,7 +400,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						
 						rowsCreated = rows.intValue();
 					} else {
-						rowsCreated = FaissDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), chunkMaxTokenLength, tokenOverlapBetweenChunks, document, this.vectorDatabaseSearcher, this.pyt);
+						rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 					}
 					
 					// check to see if the file data was extracted
