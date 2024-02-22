@@ -30,17 +30,17 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class SecurityGroupUtils extends AbstractSecurityUtils {
+public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
-	private static SecurityGroupUtils instance = new SecurityGroupUtils();
+	private static AdminSecurityGroupUtils instance = new AdminSecurityGroupUtils();
 
-	private static final Logger classLogger = LogManager.getLogger(SecurityGroupUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminSecurityGroupUtils.class);
 
-	private SecurityGroupUtils() {
+	private AdminSecurityGroupUtils() {
 
 	}
 
-	public static SecurityGroupUtils getInstance(User user) {
+	public static AdminSecurityGroupUtils getInstance(User user) {
 		if (user == null) {
 			return null;
 		}
@@ -498,7 +498,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
-	public List<Map<String, Object>> getGroups(long limit, long offset, String searchTerm) {
+	public List<Map<String, Object>> getGroups(String searchTerm, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
@@ -510,7 +510,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", searchTerm));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
 		}
 		if (limit > 0) {
 			qs.setLimit(limit);
@@ -526,7 +526,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
-	public List<Map<String, Object>> getGroupMembers(String groupId, long limit, long offset, String searchTerm) {
+	public List<Map<String, Object>> getGroupMembers(String groupId, String searchTerm, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__USERID"));
@@ -551,10 +551,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like=", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like=", searchTerm));
 			qs.addExplicitFilter(or);
 		}
 		if (limit > 0) {
@@ -570,7 +570,7 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
-	public List<Map<String, Object>> getNonGroupMembers(String groupId, long limit, long offset, String searchTerm) {
+	public List<Map<String, Object>> getNonGroupMembers(String groupId, String searchTerm, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
@@ -593,10 +593,10 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like=", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like=", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
 		if (limit > 0) {
