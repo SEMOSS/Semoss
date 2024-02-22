@@ -146,8 +146,8 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 			Object output = null;
 			Map params = new HashMap();
 			params.put("temperature", "0.3");
-			Map<String, String> modelOutput = engine.ask(finalDbString2 + "", null, this.insight, params);
-			String response = modelOutput.get("response");
+			Map<String, Object> modelOutput = engine.ask(finalDbString2 + "", null, this.insight, params).toMap();
+			String response = modelOutput.get("response")+"";
 			classLogger.info("Response: "+response);
 
 			// if it comes in with finalDBString take it out

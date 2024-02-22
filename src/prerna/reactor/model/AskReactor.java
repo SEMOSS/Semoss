@@ -35,7 +35,7 @@ public class AskReactor extends AbstractReactor {
 
 		String context = qs.getContext();
 		Map<String, Object> hyperParameters = qs.getHyperParameters();
-		Map<String, Object> output = model.ask(question, context, this.insight, hyperParameters);
+		Map<String, Object> output = model.ask(question, context, this.insight, hyperParameters).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
