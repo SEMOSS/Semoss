@@ -17,7 +17,6 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 	
 	@SuppressWarnings("unchecked")
 	public static EmbeddingsModelEngineResponse fromMap(Map<String, Object> modelResponse) {
-        // Assuming RESPONSE, NUMBER_OF_TOKENS_IN_PROMPT, and NUMBER_OF_TOKENS_IN_RESPONSE are constants defined elsewhere
 		List<List<Double>> responseObject = (List<List<Double>>) modelResponse.get(RESPONSE);
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
