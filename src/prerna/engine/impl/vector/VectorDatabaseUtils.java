@@ -3,8 +3,6 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,25 +20,18 @@ import prerna.reactor.frame.gaas.processors.PPTProcessor;
 import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 import prerna.util.Constants;
 
-public class FaissDatabaseUtils {
-	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseUtils.class);
+public class VectorDatabaseUtils {
+	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseUtils.class);
 	
-	public static int convertFilesToCSV(String csvFileName, int contentLength, int contentOverlap, File file, String faissDbVarName, TCPPyTranslator vectorPyt) throws IOException {
+	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
-		writer.setTokenLength(contentLength);
-		writer.overlapLength(contentOverlap);
-		writer.setFaissDbVarName(faissDbVarName);
-		writer.setPyTranslator(vectorPyt);
 
 		classLogger.info("Starting file conversions ");
 		List <String> processedList = new ArrayList<String>();
 
 		// pick up the files and convert them to CSV
-		
-
 		classLogger.info("Processing file : " + file.getName());
 		
-		Path filePath = Paths.get(file.getAbsolutePath());
 		// process this file
 		String mimeType = null;
 		

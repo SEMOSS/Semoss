@@ -1,23 +1,13 @@
 package prerna.util.sql;
 
-import java.sql.Array;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.amazon.redshift.core.jdbc42.PGJDBC42PreparedStatement;
-import com.mysql.jdbc.Connection;
-import com.pgvector.PGvector;
-
-import edu.stanford.nlp.neural.Embedding;
-import javassist.expr.NewArray;
-import jnr.ffi.Struct.int16_t;
-
-import java.util.Set;
-
 import org.apache.commons.lang.StringEscapeUtils;
-import org.json.JSONArray;
+
+import com.mysql.jdbc.Connection;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
 
@@ -89,13 +79,5 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 	
 	public String removeEmbeddings(String tableName, String documentName) {
 		return "DELETE from \""+tableName+"\" where \"source\"='"+documentName+"'";
-	}
-
-	public String isExistsEmbedding(String tableName, String documentName) {
-		return "SELECT count(*) from \""+tableName+"\" where \"source\"='"+documentName+"'";
-	}
-	
-	public String searchNearestNeighbour(String tableName, Object embedding,Number limit) {
-		return "SELECT \"source\", \"modality\", \"divider\", \"part\", \"tokens\", \"content\",  1 - (\"embedding\" <=> '"+embedding+"') AS cosine_similarity FROM "+tableName+" ORDER BY cosine_similarity desc LIMIT "+limit;
 	}
 }
