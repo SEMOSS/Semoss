@@ -18,6 +18,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -32,7 +33,7 @@ import prerna.util.QueryExecutionUtility;
 
 class SecurityUserInsightUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityUserInsightUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityUserInsightUtils.class);
 	
 	/**
 	 * Get what permission the user has for a given insight
@@ -70,13 +71,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -105,7 +106,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 				
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -128,13 +129,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -161,7 +162,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// else query the database
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
@@ -188,13 +189,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -218,7 +219,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 				
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -247,13 +248,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -302,13 +303,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -382,33 +383,33 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					// commit the insertion
 					ps.getConnection().commit();
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				} finally {
 					if(ps != null) {
 						try {
 							ps.close();
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						if(securityDb.isConnectionPooling()) {
 							try {
 								ps.getConnection().close();
 							} catch (SQLException e) {
-								logger.error(Constants.STACKTRACE, e);
+								classLogger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -430,19 +431,24 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
+	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId, String searchTerm, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasSearchId = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
+		if (hasSearchId) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
@@ -522,13 +528,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(securityDb.isConnectionPooling()) {
@@ -537,7 +543,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 							ps.getConnection().close();
 						}
 						} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -557,14 +563,14 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -595,14 +601,14 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return false;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -479,27 +479,9 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			globalMap.put("permission", "READ_ONLY");
 			users.add(globalMap);
 		} else {
-			users = getFullEngineAndEditors(engineId);
+			users = getFullEngineOwnersAndEditors(engineId, null, null, -1, -1);
 		}
 		return users;
-	}
-	
-	/**
-	 * 
-	 * @param engineId
-	 * @return
-	 */
-	public static List<Map<String, Object>> getFullEngineAndEditors(String engineId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
-		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**

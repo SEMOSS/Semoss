@@ -2113,22 +2113,21 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Returns List of users that have no access credentials to a given App.
-	 * @param appID
-	 * @return 
+	 * @param user
+	 * @param projectId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getProjectUsersNoCredentials(User user, String projectId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getProjectUsersNoCredentials(User user, String projectId, String searchTerm, long limit, long offset) throws IllegalAccessException {
 		/*
 		 * Security check to make sure that the user can view the application provided. 
 		 */
 		if(!userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project");
 		}	
-		
-		/*
-		 * String Query = 
-		 * "SELECT SMSS_USER.ID, SMSS_USER.USERNAME, SMSS_USER.NAME, SMSS_USER.EMAIL FROM SMSS_USER WHERE ID NOT IN 
-		 * (SELECT e.USERID FROM ENGINEPERMISSION e WHERE e.ENGINEID = '"+ appID + "' e.PERMISSION IS NOT NULL);"
-		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
@@ -2144,6 +2143,20 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID","==",projectId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
