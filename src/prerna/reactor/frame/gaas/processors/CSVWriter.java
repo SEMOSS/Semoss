@@ -54,9 +54,9 @@ public class CSVWriter {
 		}
 	}
 
-	public void setTokenLength(int tokenLength)
+	public void setContentLength(int contentLength)
 	{
-		this.contentLength = tokenLength;
+		this.contentLength = contentLength;
 	}
 
 	public void overlapLength(int overlap) {
