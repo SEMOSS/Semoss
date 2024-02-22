@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,8 +25,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
 	
+	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
+	public static final String INSIGHT = "insight";
+	
 	protected String engineId = null;
 	protected String engineName = null;
+	protected String engineDirectoryPath = null;
 	
 	protected Properties smssProp = null;
 	protected String smssFilePath = null;
@@ -39,11 +44,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
-	
 	protected String defaultIndexClass;
 	
+	protected String distanceMethod;
+	
 	// string substitute vars
-	Map vars = new HashMap();
+	Map<String, String> vars = new HashMap<>();
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -57,16 +63,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
-		if (!this.smssProp.containsKey(Constants.WORKING_DIR)) {
-			this.smssProp.put(Constants.WORKING_DIR, RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName));
-		}
+		this.engineDirectoryPath = RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName);
 		
 		if(this.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS) {
-			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
-		}
-		
-		if(this.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR) {
 			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 		}
@@ -88,10 +87,19 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		
+		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	protected String fillVars(String input) {
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
 	}
 	
 	@Override
