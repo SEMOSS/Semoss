@@ -1304,17 +1304,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * DEPRECIATED DO NOT USE
-	 * Get all the users for a databases
-	 * @param databaseId
-	 * @return
-	 */
-	@Deprecated
-	public List<Map<String, Object>> getAppUsers(String databaseId) {
-		return SecurityEngineUtils.getFullDatabaseOwnersAndEditors(databaseId);
-	}
-
-	/**
 	 * Get all the users for a databases
 	 * @param engineId
 	 * @param userId
@@ -1990,7 +1979,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			// get users with no access to app
-			List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId);
+			List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId, null, -1, -1);
 			for (Map<String, Object> userMap : users) {
 				String userId = (String) userMap.get("id");
 				int parameterIndex = 1;
@@ -2038,7 +2027,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			// get users with no access to project
-			List<Map<String, Object>> users = getProjectUsersNoCredentials(projectId);
+			List<Map<String, Object>> users = getProjectUsersNoCredentials(projectId, null, -1, -1);
 			for (Map<String, Object> userMap : users) {
 				String userId = (String) userMap.get("id");
 				int parameterIndex = 1;
@@ -2783,7 +2772,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(inertQ);
 			if (projectId != null && permission != null) {
-				List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId);
+				List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId, null, -1, -1);
 				for (Map<String, Object> userMap : users) {
 					String userId = (String) userMap.get("id");
 					int parameterIndex = 1;
@@ -2931,15 +2920,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * Returns List of users that have no access credentials to a given engine
 	 * @param engineId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getEngineUsersNoCredentials(String engineId) {
-		/*
-		 * String Query = 
-		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL  FROM USER WHERE ID NOT IN 
-		 * (SELECT e.USERID FROM ENGINEPERMISSION e WHERE e.ENGINEID = '"+ databaseId + "' e.PERMISSION IS NOT NULL);"
-		 */
-		
+	public List<Map<String, Object>> getEngineUsersNoCredentials(String engineId, String searchTerm, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
@@ -2955,6 +2941,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",engineId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
 		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
@@ -2963,9 +2963,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * Returns List of users that have no access credentials to a given project
 	 * @param projectId
-	 * @return 
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
 	 */
-	public List<Map<String, Object>> getProjectUsersNoCredentials(String projectId) {
+	public List<Map<String, Object>> getProjectUsersNoCredentials(String projectId, String searchTerm, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
@@ -2981,6 +2984,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID","==",projectId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
 		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
@@ -2988,11 +3005,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Returns List of users that have no access credentials to a given insight 
-	 * @param insightID
 	 * @param projectId
-	 * @return 
+	 * @param insightId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
 	 */
-	public List<Map<String, Object>> getInsightUsersNoCredentials(String projectId, String insightId) {
+	public List<Map<String, Object>> getInsightUsersNoCredentials(String projectId, String insightId, String searchTerm, long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
@@ -3116,7 +3136,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			if (engineId != null && permission != null) {
-				List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId);
+				List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId, null, -1, -1);
 				for (Map<String, Object> userMap : users) {
 					String userId = (String) userMap.get("id");
 					int parameterIndex = 1;
@@ -3168,7 +3188,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			if (projectId != null && permission != null) {
-				List<Map<String, Object>> users = getProjectUsersNoCredentials(projectId);
+				List<Map<String, Object>> users = getProjectUsersNoCredentials(projectId, null, -1, -1);
 				for (Map<String, Object> userMap : users) {
 					String userId = (String) userMap.get("id");
 					int parameterIndex = 1;
@@ -3269,7 +3289,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-		List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId);
+		List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId, null, -1, -1);
 		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		PreparedStatement ps = null;

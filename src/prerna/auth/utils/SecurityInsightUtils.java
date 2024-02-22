@@ -60,7 +60,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityInsightUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityInsightUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityInsightUtils.class);
 	
 	/**
 	 * Get an insight
@@ -125,7 +125,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						breakdown = PixelUtility.parsePixel(pixelString);
 						pixelList.addAll(breakdown);
 					} catch (ParserException | LexerException | IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 					}
 				}
@@ -136,14 +136,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return in;
 			}
 		} catch (Exception e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			classLogger.error(Constants.STACKTRACE, e1);
 		} 
 		finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -173,13 +173,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -207,13 +207,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -260,13 +260,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					testSchemaName = schemaName + "_"+ (counter++);
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					try {
 						wrapper.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -296,13 +296,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -549,13 +549,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -581,13 +581,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -635,13 +635,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -750,7 +750,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -779,13 +779,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Retrieve the list of users for a given insight
 	 * @param user
-	 * @param appId
+	 * @param projectId
 	 * @param insightId
+	 * @param searchTerm
+	 * @param permission
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
-		return SecurityUserInsightUtils.getInsightUsers(user, projectId, insightId, userId, permission, limit, offset);
+	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId, String searchTerm, String permission, long limit, long offset) throws IllegalAccessException {
+		return SecurityUserInsightUtils.getInsightUsers(user, projectId, insightId, searchTerm, permission, limit, offset);
 	}
 	
 	/**
@@ -873,7 +877,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -911,7 +915,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -979,7 +983,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1008,7 +1012,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1051,7 +1055,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1083,7 +1087,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1114,7 +1118,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1153,7 +1157,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1189,7 +1193,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			updateCount = ps.getUpdateCount();
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1210,7 +1214,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch(SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1240,7 +1244,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1267,7 +1271,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1296,7 +1300,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1322,7 +1326,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1348,7 +1352,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1397,7 +1401,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1442,7 +1446,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1509,7 +1513,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1583,7 +1587,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1661,7 +1665,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -1712,7 +1716,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2386,7 +2390,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return wrapper;
 	}
@@ -2427,7 +2431,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return wrapper;
 	}
@@ -2482,13 +2486,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2539,13 +2543,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				retMap.put("cacheEncrypt", cacheEncrypt);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2778,14 +2782,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertTargetAppInsightPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2801,10 +2805,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Returns List of users that have no access credentials to a given insight 
-	 * @param insightID
-	 * @return 
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getInsightUsersNoCredentials(User user, String projectId, String insightId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getInsightUsersNoCredentials(User user, String projectId, String insightId, String searchTerm, long limit, long offset) throws IllegalAccessException {
 		/*
 		 * Security check to ensure the user can access the insight provided. 
 		 */
@@ -2832,6 +2842,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION","!=",null,PixelDataType.NULL_VALUE));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -2893,7 +2917,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
         } catch (SQLException e) {
-        	logger.error(Constants.STACKTRACE, e);
+        	classLogger.error(Constants.STACKTRACE, e);
         } finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
         }
@@ -2988,7 +3012,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3036,7 +3060,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -3122,7 +3146,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
@@ -3150,7 +3174,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3179,7 +3203,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
@@ -3229,7 +3253,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3347,7 +3371,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while marking old user access request with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
@@ -3379,7 +3403,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
