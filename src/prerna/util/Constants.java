@@ -891,19 +891,12 @@ public class Constants {
 	public static final String INDEX_CLASSES = "INDEX_CLASSES";
 	public static final String CONTENT_LENGTH = "CONTENT_LENGTH";
 	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";
+	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String DEFAULT_CHUNK_UNIT = "DEFAULT_CHUNK_UNIT";
 	public static final String WORKING_DIR = "WORKING_DIR";
 	public static final String EMBEDDER_ENGINE_ID = "EMBEDDER_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
 	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
-	public static final String PGVECTOR_HOSTNAME = "PGVECTOR_HOSTNAME";
-	public static final String PGVECTOR_DATABASE_NAME = "PGVECTOR_DATABASE_NAME";
-	public static final String PGVECTOR_SCHEMA = "PGVECTOR_SCHEMA";
-	public static final String PGVECTOR_PORT = "PGVECTOR_PORT";
-	public static final String PGVECTOR_USERNAME = "PGVECTOR_USERNAME";
-	public static final String PGVECTOR_PASSWORD = "PGVECTOR_PASSWORD";
-	public static final String PGVECTOR_CONNECTION_URL = "PGVECTOR_CONNECTION_URL";
-	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";

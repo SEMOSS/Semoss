@@ -112,7 +112,7 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 			contentOverlap = Integer.parseInt(this.store.getNoun(keysToGet[6]).get(0) + "");
 		
 		CSVWriter writer = new CSVWriter(csvFileName);
-		writer.setTokenLength(contentLength);
+		writer.setContentLength(contentLength);
 		writer.overlapLength(contentOverlap);
 
 		logger.info("Starting file conversions ");
