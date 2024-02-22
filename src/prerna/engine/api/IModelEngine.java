@@ -3,6 +3,8 @@ package prerna.engine.api;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {
@@ -47,7 +49,7 @@ public interface IModelEngine extends IEngine {
 	 *  			- messageId : The unique identifier of a message (the user's input and the model response)
 	 *  			- roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	Map<String, Object> ask(String question, String context, Insight insight, Map <String, Object> parameters);
+	AskModelEngineResponse ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
 
 	/**
@@ -58,7 +60,7 @@ public interface IModelEngine extends IEngine {
 	 * @param parameters	Additional parameters such as temperature, top_k, max_new_tokens etc
 	 * @return	an encoded object based on how the LLM encodes strings
 	 */
-	Object embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
+	EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
 
 	Object model(Object input, Insight insight, Map <String, Object> parameters);

@@ -16,6 +16,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.security.AbstractHttpHelper;
@@ -59,15 +61,15 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 	public Map<String, Object> askQuestion(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
 		HashMap<String, Object> response = new HashMap<String, Object>();
-		response.put(RESPONSE, "This model does not support text generation.");
-		response.put(NUMBER_OF_TOKENS_IN_PROMPT, 0.0);
-		response.put(NUMBER_OF_TOKENS_IN_RESPONSE, 0.0);
+		response.put(AbstractModelEngineResponse.RESPONSE, "This model does not support text generation.");
+		response.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, 0.0);
+		response.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, 0.0);
 		
 		return response;
 	}
 
 	@Override
-	public Object embeddings(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters) {
+	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters) {
 		List<List<Double>> embeddings = new ArrayList<>();
 		
 		List<List<String>> sentenceSublists = new ArrayList<>();
@@ -94,10 +96,8 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 		
 		classLogger.info("Embeddings Received from engine " + this.engineId);
 		
-		HashMap<String, Object> output = new HashMap<String, Object>();
-		output.put(RESPONSE, embeddings);
-		output.put(NUMBER_OF_TOKENS_IN_PROMPT, 0.0);
-		output.put(NUMBER_OF_TOKENS_IN_RESPONSE, 0.0);
+		
+		EmbeddingsModelEngineResponse embeddingsResponse = new EmbeddingsModelEngineResponse(embeddings, 0, 0);
 		
 		if (Utility.isModelInferenceLogsEnabled()) {
 			String messageId = UUID.randomUUID().toString();
@@ -108,16 +108,16 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 					insight, 
 					null,
 					"",
-					getTokens(output.get(NUMBER_OF_TOKENS_IN_PROMPT)),
+					embeddingsResponse.getNumberOfTokensInPrompt(),
 					inputTime, 
 					"",
-					getTokens(output.get(NUMBER_OF_TOKENS_IN_RESPONSE)),
+					embeddingsResponse.getNumberOfTokensInResponse(),
 					outputTime
 			));
 			inferenceRecorder.start();
 		}
 
-		return output;
+		return embeddingsResponse;
 	}
 	
 	

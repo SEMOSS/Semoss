@@ -41,7 +41,7 @@ public class EmbeddingsReactor extends AbstractReactor {
 		
 		IModelEngine engine = Utility.getModel(engineId);
 		Object output = engine.embeddings(stringsToEmbed, this.insight, paramMap);
-		return new NounMetadata(output, PixelDataType.VECTOR);
+		return new NounMetadata(output, PixelDataType.MAP);
 	}
 	
 	/**
