@@ -644,15 +644,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param databaseId
-	 * @return
-	 */
-	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId) {
-		return SecurityUserEngineUtils.getFullEngineAndEditors(databaseId);
-	}
-	
-	/**
-	 * 
-	 * @param databaseId
 	 * @param userId
 	 * @param permission
 	 * @param limit
