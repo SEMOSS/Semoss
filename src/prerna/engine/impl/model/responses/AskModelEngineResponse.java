@@ -46,7 +46,6 @@ public class AskModelEngineResponse extends AbstractModelEngineResponse<String> 
     }
 	
 	public static AskModelEngineResponse fromMap(Map<String, Object> modelResponse) {
-        // Assuming RESPONSE, NUMBER_OF_TOKENS_IN_PROMPT, and NUMBER_OF_TOKENS_IN_RESPONSE are constants defined elsewhere
         String responseObject = modelResponse.get(RESPONSE) + "";
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
