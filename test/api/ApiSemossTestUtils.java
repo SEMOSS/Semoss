@@ -16,9 +16,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.gson.GsonUtility;
 
-public class ApiTestUtils {
+public class ApiSemossTestUtils {
 	
-	private static final Logger LOGGER = LogManager.getLogger(ApiTestUtils.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(ApiSemossTestUtils.class.getName());
 	
 	public static String convertMapToPixelInput(Object data) {
 		  Gson gson = GsonUtility.getDefaultGson();
@@ -34,7 +34,7 @@ public class ApiTestUtils {
 		NounMetadata ret = processRawPixel(pixel);
 		PixelDataType nounType = ret.getNounType();
 		if (nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX) {
-			LOGGER.error(Constants.ERROR_MESSAGE, ret.getValue().toString());
+			classLogger.error(Constants.ERROR_MESSAGE, ret.getValue().toString());
 			throw new SemossPixelException(ret.getValue().toString());
 		}
 		assertNotEquals(PixelDataType.ERROR, ret.getNounType());
@@ -46,12 +46,12 @@ public class ApiTestUtils {
 		PixelRunner pr = new PixelRunner();
 		
 		try {
-			pr.runPixel(pixel, ApiTests.insight);
+			pr.runPixel(pixel, BaseSemossApiTests.insight);
 		} catch(SemossPixelException e) {
-			LOGGER.error(Constants.ERROR_MESSAGE, e);
+			classLogger.error(Constants.ERROR_MESSAGE, e);
 			throw e;
 		} catch(Exception e) {
-			LOGGER.error(Constants.ERROR_MESSAGE, e);
+			classLogger.error(Constants.ERROR_MESSAGE, e);
 			throw e;
 		}
 		

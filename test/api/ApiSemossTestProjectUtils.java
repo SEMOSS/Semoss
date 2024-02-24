@@ -18,9 +18,9 @@ import org.codehaus.plexus.util.FileUtils;
 import prerna.reactor.project.CreateProjectReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class ApiTestProjectUtils {
+public class ApiSemossTestProjectUtils {
 	
-	private static Path PROJECT_CONFIG_FILE = Paths.get(ApiTests.TEST_CONFIG_DIRECTORY.toString(), "projects.txt");
+	private static Path PROJECT_CONFIG_FILE = Paths.get(BaseSemossApiTests.TEST_CONFIG_DIRECTORY.toString(), "projects.txt");
 	private static List<String> CURRENT_PROJECTS = new ArrayList<>();
 	private static List<String> CORE_PROJECTS = null;
 	
@@ -28,8 +28,8 @@ public class ApiTestProjectUtils {
 	public static String createProject(String projectName) {
 		assertFalse(CURRENT_PROJECTS.contains(projectName));
 		assertNotNull(projectName);
-		String pixel = ApiTestUtils.buildPixelCall(CreateProjectReactor.class, "project", projectName);
-		NounMetadata nm = ApiTestUtils.processPixel(pixel);
+		String pixel = ApiSemossTestUtils.buildPixelCall(CreateProjectReactor.class, "project", projectName);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		CURRENT_PROJECTS.add(projectName);
 		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
 		String projectId = ret.get("project_id").toString();
@@ -38,7 +38,7 @@ public class ApiTestProjectUtils {
 
 	public static void clearNonCoreProjects() throws IOException {
 		List<String> projectsToAvoid = getProjectsToAvoid();
-		File f = Paths.get(ApiTests.TEST_PROJECT_DIRECTORY).toFile();
+		File f = Paths.get(BaseSemossApiTests.TEST_PROJECT_DIRECTORY).toFile();
 		List<String> toDelete = new ArrayList<>();
 		for (String s : f.list()) {
 			boolean found = false;
@@ -54,7 +54,7 @@ public class ApiTestProjectUtils {
 		}
 		
 		for (String delete : toDelete) {
-			Path p = Paths.get(ApiTests.TEST_PROJECT_DIRECTORY.toString(), delete);
+			Path p = Paths.get(BaseSemossApiTests.TEST_PROJECT_DIRECTORY.toString(), delete);
 			if (Files.isDirectory(p)) {
 				FileUtils.cleanDirectory(p.toFile());
 				Files.delete(p);

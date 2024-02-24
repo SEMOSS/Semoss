@@ -20,9 +20,9 @@ import org.testcontainers.containers.GenericContainer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class ApiTestEmailUtils {
+public class ApiSemossTestEmailUtils {
 	
-	private static String MAILPIT_FOLDER = Paths.get(ApiTests.TEST_BASE_DIRECTORY, "mailpit").toString();
+	private static String MAILPIT_FOLDER = Paths.get(BaseSemossApiTests.TEST_BASE_DIRECTORY, "mailpit").toString();
 	private static String MAILPIT_EXE = Paths.get(MAILPIT_FOLDER, "mailpit.exe").toString();
 	private static String MAILPIT_LOG = Paths.get(MAILPIT_FOLDER, "mailpit.log").toString();
 	
