@@ -20,7 +20,6 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
-import org.openrdf.sail.memory.model.BooleanMemLiteral;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
@@ -70,7 +69,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 
 			BindingSet bindSet = tqr.next();
 			for(int colIndex = 0;colIndex < numColumns; colIndex++) {
-				Object val = bindSet.getValue(rawHeaders[colIndex]);
+				Value val = bindSet.getValue(rawHeaders[colIndex]);
 				// raw value is the straight return from the binding set
 				rawRow[colIndex] = val;
 				// get the real value in the clean row
@@ -125,59 +124,70 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 
 	private Object getRealValue(Object val){
-		try
-		{
-			if(val != null && val instanceof Literal) {
+		if(val == null) {
+			return null;
+		}
+		try {
+			if(val instanceof Literal) {
 				// use datatype if present to determine the type
 				Literal lVal = (Literal) val;
 				URI lValDataType = lVal.getDatatype();
-				if(lValDataType != null) {
-					// if string, return string
-					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
-						return ((Literal)val).getLabel();
-					}
-					// if boolean
-					else if(lValDataType.getLocalName().equalsIgnoreCase("boolean")) {
-						return ((BooleanMemLiteral) val).booleanValue();
-					}
-					// if datetime
-					else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
-						try {
-							Date d = formatter.parse(lVal.calendarValue().toString());
-							SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss");
-							return date;
-						} catch (ParseException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-						return null;
-					} 
-					// if date
-					else if(lValDataType.getLocalName().equalsIgnoreCase("date")) {
-						XMLGregorianCalendar gCalendar = lVal.calendarValue();
-						SemossDate date = new SemossDate(gCalendar.toGregorianCalendar().getTime(), "yyyy-MM-dd");
-						return date;
-					} 
-					// else double
-					else{
-						classLogger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
-						return new Double(((Literal)val).doubleValue());
-					}
-				} else {
-					// just return the label
-					return ((Literal)val).getLabel();
+				if(lValDataType == null) {
+					return lVal.getLabel();
 				}
-			} else if(val != null && val instanceof org.apache.jena.rdf.model.Literal) {
+				
+				// if string, return string
+				if(QueryEvaluationUtil.isStringLiteral(lVal)){
+					return lVal.getLabel();
+				}
+				// if double
+				else if(lValDataType.getLocalName().equalsIgnoreCase("double")) {
+					return new Double(lVal.doubleValue());
+				}
+				// if boolean
+				else if(lValDataType.getLocalName().equalsIgnoreCase("boolean")) {
+					return lVal.booleanValue();
+				}
+				// if datetime
+				else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
+					try {
+						Date d = formatter.parse(lVal.calendarValue().toString());
+						SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss");
+						return date;
+					} catch (ParseException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+					return null;
+				} 
+				// if date
+				else if(lValDataType.getLocalName().equalsIgnoreCase("date")) {
+					XMLGregorianCalendar gCalendar = lVal.calendarValue();
+					SemossDate date = new SemossDate(gCalendar.toGregorianCalendar().getTime(), "yyyy-MM-dd");
+					return date;
+				} 
+				// if float
+				else if(lValDataType.getLocalName().equalsIgnoreCase("float")) {
+					return new Double(lVal.floatValue());
+				}
+				else  {
+					classLogger.warn("Unknown data type returned from query = " + lValDataType);
+					classLogger.warn("Unknown data type returned from query = " + lValDataType);
+					classLogger.warn("Unknown data type returned from query = " + lValDataType);
+					classLogger.warn("Unknown data type returned from query = " + lValDataType);
+				}
+			} 
+			// why would i get a jena here?? we are sesame wrapper..
+			else if( val instanceof org.apache.jena.rdf.model.Literal) {
 				classLogger.debug("Class is " + val.getClass());
-				return new Double(((Literal)val).doubleValue());
+				return new Double( ((org.apache.jena.rdf.model.Literal)val).getDouble() );
 			}
 
-			if(val != null){
-				String value = val + "";
-				return Utility.getInstanceName(value);
-			}
+			String value = val + "";
+			return Utility.getInstanceName(value);
 		} catch(RuntimeException ex) {
 			classLogger.debug(ex);
 		}
+		
 		return val;
 	}
 
