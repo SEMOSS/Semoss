@@ -16,11 +16,11 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import api.ApiTestEmailUtils;
-import api.ApiTestEngineUtils;
-import api.ApiTestUserUtils;
-import api.ApiTestUtils;
-import api.ApiTests;
+import api.ApiSemossTestEmailUtils;
+import api.ApiSemossTestEngineUtils;
+import api.ApiSemossTestUserUtils;
+import api.ApiSemossTestUtils;
+import api.BaseSemossApiTests;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.utils.SecurityEngineUtils;
 //import prerna.reactor.engine.EnginePermissionHistoryReactor;
@@ -28,7 +28,7 @@ import prerna.reactor.engine.GetEngineUserAccessRequestReactor;
 import prerna.reactor.engine.RequestEngineReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class RequestEngineAccessTests extends ApiTests {
+public class RequestEngineAccessTests extends BaseSemossApiTests {
 	
 	@SuppressWarnings("unchecked")
 	@Test
@@ -37,7 +37,7 @@ public class RequestEngineAccessTests extends ApiTests {
 		Map<String, String> additionalDataTypes = new HashMap<>();
 		additionalDataTypes.put("datesubmitted", "yyyy-MM-d H:mm:ss");
 
-		String engineId = ApiTestEngineUtils.addTestRdbmsDatabase(
+		String engineId = ApiSemossTestEngineUtils.addTestRdbmsDatabase(
 				"testEngineRequestDB",
 				Arrays.asList("yes", "no", "maybeso", "datesubmitted"),
 				Arrays.asList("INT", "INT", "INT", "TIMESTAMP"),
@@ -48,7 +48,7 @@ public class RequestEngineAccessTests extends ApiTests {
 		// No reactor, so just use Utility class in src code.
 		// Other option is to make a Http Request, which is kind of hard
 		try {
-			SecurityEngineUtils.setEngineDiscoverable(ApiTests.insight.getUser(), engineId, true);
+			SecurityEngineUtils.setEngineDiscoverable(BaseSemossApiTests.insight.getUser(), engineId, true);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -56,20 +56,20 @@ public class RequestEngineAccessTests extends ApiTests {
 		}
 
 		// make another user
-		ApiTestUserUtils.addAndSetNewNativeUser("user2", false);
+		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", false);
 		
 		// request access from second user to engine
-		String pc2 = ApiTestUtils.buildPixelCall(RequestEngineReactor.class, "engine", engineId, "permission", "2", "comment", "this is a test request");
-		ApiTestUtils.processPixel(pc2);
+		String pc2 = ApiSemossTestUtils.buildPixelCall(RequestEngineReactor.class, "engine", engineId, "permission", "2", "comment", "this is a test request");
+		ApiSemossTestUtils.processPixel(pc2);
 		
 		// verify email sent
-		List<Map<String, Object>> emails = ApiTestEmailUtils.getAllEmails();
+		List<Map<String, Object>> emails = ApiSemossTestEmailUtils.getAllEmails();
 		assertEquals(1, emails.size());
 		Map<String, Object> email = emails.get(0);
 		assertEquals("ater@ater.com", ((List<Map<String, Object>>) email.get("To")).get(0).get("Address"));
 		assertEquals("***REMOVED***", ((Map<String, Object>) email.get("From")).get("Address"));
 		
-		Map<String, Object> emailDetails = ApiTestEmailUtils.getEmail(email.get("ID").toString());
+		Map<String, Object> emailDetails = ApiSemossTestEmailUtils.getEmail(email.get("ID").toString());
 		assertEquals("<!doctype html>\r\n"
 				+ "<html lang=\"en-US\">\r\n"
 				+ "\r\n"
@@ -138,11 +138,11 @@ public class RequestEngineAccessTests extends ApiTests {
 		assertEquals("SEMOSS - Database Access Request", emailDetails.get("Subject").toString());
 
 		// Go back to the default user
-		ApiTestUserUtils.setDefaultTestUser();
+		ApiSemossTestUserUtils.setDefaultTestUser();
 		
 		// Get Requests
-		String pc3 = ApiTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
-		NounMetadata engineRequestNM = ApiTestUtils.processPixel(pc3);
+		String pc3 = ApiSemossTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
+		NounMetadata engineRequestNM = ApiSemossTestUtils.processPixel(pc3);
 		List<Map<String, Object>> requestOutput = (List<Map<String, Object>>) engineRequestNM.getValue();
 		assertEquals(1, requestOutput.size());
 		Map<String, Object> requestDetails = requestOutput.get(0);
@@ -170,7 +170,7 @@ public class RequestEngineAccessTests extends ApiTests {
 		Map<String, String> additionalDataTypes = new HashMap<>();
 		additionalDataTypes.put("datesubmitted", "yyyy-MM-d H:mm:ss");
 
-		String engineId = ApiTestEngineUtils.addTestRdbmsDatabase(
+		String engineId = ApiSemossTestEngineUtils.addTestRdbmsDatabase(
 				"testApproveEngineRequestDB",
 				Arrays.asList("yes", "no", "maybeso", "datesubmitted"),
 				Arrays.asList("INT", "INT", "INT", "TIMESTAMP"),
@@ -181,7 +181,7 @@ public class RequestEngineAccessTests extends ApiTests {
 		// No reactor, so just use Utility class in src code.
 		// Other option is to make a Http Request, which is kind of hard
 		try {
-			SecurityEngineUtils.setEngineDiscoverable(ApiTests.insight.getUser(), engineId, true);
+			SecurityEngineUtils.setEngineDiscoverable(BaseSemossApiTests.insight.getUser(), engineId, true);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -189,20 +189,20 @@ public class RequestEngineAccessTests extends ApiTests {
 		}
 
 		// make another user
-		ApiTestUserUtils.addAndSetNewNativeUser("user2", false);
+		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", false);
 		
 		// request access from second user to engine
-		String pc2 = ApiTestUtils.buildPixelCall(RequestEngineReactor.class, "engine", engineId, "permission", "2", "comment", "this is a test request");
-		ApiTestUtils.processPixel(pc2);
+		String pc2 = ApiSemossTestUtils.buildPixelCall(RequestEngineReactor.class, "engine", engineId, "permission", "2", "comment", "this is a test request");
+		ApiSemossTestUtils.processPixel(pc2);
 		
 		// verify email sent
-		List<Map<String, Object>> emails = ApiTestEmailUtils.getAllEmails();
+		List<Map<String, Object>> emails = ApiSemossTestEmailUtils.getAllEmails();
 		assertEquals(1, emails.size());
 		Map<String, Object> email = emails.get(0);
 		assertEquals("ater@ater.com", ((List<Map<String, Object>>) email.get("To")).get(0).get("Address"));
 		assertEquals("***REMOVED***", ((Map<String, Object>) email.get("From")).get("Address"));
 		
-		Map<String, Object> emailDetails = ApiTestEmailUtils.getEmail(email.get("ID").toString());
+		Map<String, Object> emailDetails = ApiSemossTestEmailUtils.getEmail(email.get("ID").toString());
 		assertEquals("<!doctype html>\r\n"
 				+ "<html lang=\"en-US\">\r\n"
 				+ "\r\n"
@@ -271,11 +271,11 @@ public class RequestEngineAccessTests extends ApiTests {
 		assertEquals("SEMOSS - Database Access Request", emailDetails.get("Subject").toString());
 
 		// Go back to the default user
-		ApiTestUserUtils.setDefaultTestUser();
+		ApiSemossTestUserUtils.setDefaultTestUser();
 		
 		// Get Requests
-		String pc3 = ApiTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
-		NounMetadata engineRequestNM = ApiTestUtils.processPixel(pc3);
+		String pc3 = ApiSemossTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
+		NounMetadata engineRequestNM = ApiSemossTestUtils.processPixel(pc3);
 		List<Map<String, Object>> requestOutput = (List<Map<String, Object>>) engineRequestNM.getValue();
 		List<Map<String, String>> requests = new ArrayList<>();
 		// have to tweak the map a little to send back to src code to mock front end behavior
@@ -300,19 +300,19 @@ public class RequestEngineAccessTests extends ApiTests {
 		
 		try {
 			// this is done through monolith, adding here for the check
-			SecurityEngineUtils.approveEngineUserAccessRequests(ApiTests.user, engineId, requests, endDate);
+			SecurityEngineUtils.approveEngineUserAccessRequests(BaseSemossApiTests.user, engineId, requests, endDate);
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
 			fail("Could not approve engine access");
 		}
 
 		// verify email approved
-		emails = ApiTestEmailUtils.getAllEmails();
+		emails = ApiSemossTestEmailUtils.getAllEmails();
 		assertEquals(2, emails.size());
 		email = emails.get(0);
 		assertEquals("user2@user2.com", ((List<Map<String, Object>>) email.get("To")).get(0).get("Address"));
 		assertEquals("***REMOVED***", ((Map<String, Object>) email.get("From")).get("Address"));
-		emailDetails = ApiTestEmailUtils.getEmail(email.get("ID").toString());
+		emailDetails = ApiSemossTestEmailUtils.getEmail(email.get("ID").toString());
 		assertEquals("<!doctype html>\r\n"
 				+ "<html lang=\"en-US\">\r\n"
 				+ "\r\n"
@@ -377,9 +377,9 @@ public class RequestEngineAccessTests extends ApiTests {
 		assertEquals("SEMOSS - Engine Access Request Decision", emailDetails.get("Subject").toString());
 		
 		// verify permission (User has edit only permission so switch back to two and check to see if you can access requests)
-		ApiTestUserUtils.setUser("user2");
-		String pc4 = ApiTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
-		ApiTestUtils.processPixel(pc4);
+		ApiSemossTestUserUtils.setUser("user2");
+		String pc4 = ApiSemossTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
+		ApiSemossTestUtils.processPixel(pc4);
 		
 //		// verify audit history
 //		String pc5 = ApiTestUtils.buildPixelCall(EnginePermissionHistoryReactor.class, "engine", engineId);
@@ -427,7 +427,7 @@ public class RequestEngineAccessTests extends ApiTests {
 		Map<String, String> additionalDataTypes = new HashMap<>();
 		additionalDataTypes.put("datesubmitted", "yyyy-MM-d H:mm:ss");
 
-		String engineId = ApiTestEngineUtils.addTestRdbmsDatabase(
+		String engineId = ApiSemossTestEngineUtils.addTestRdbmsDatabase(
 				"testDenyEngineRequestDB",
 				Arrays.asList("yes", "no", "maybeso", "datesubmitted"),
 				Arrays.asList("INT", "INT", "INT", "TIMESTAMP"),
@@ -438,7 +438,7 @@ public class RequestEngineAccessTests extends ApiTests {
 		// No reactor, so just use Utility class in src code.
 		// Other option is to make a Http Request, which is kind of hard
 		try {
-			SecurityEngineUtils.setEngineDiscoverable(ApiTests.insight.getUser(), engineId, true);
+			SecurityEngineUtils.setEngineDiscoverable(BaseSemossApiTests.insight.getUser(), engineId, true);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -446,20 +446,20 @@ public class RequestEngineAccessTests extends ApiTests {
 		}
 
 		// make another user
-		ApiTestUserUtils.addAndSetNewNativeUser("user2", false);
+		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", false);
 		
 		// request access from second user to engine
-		String pc2 = ApiTestUtils.buildPixelCall(RequestEngineReactor.class, "engine", engineId, "permission", "2", "comment", "this is a test request");
-		ApiTestUtils.processPixel(pc2);
+		String pc2 = ApiSemossTestUtils.buildPixelCall(RequestEngineReactor.class, "engine", engineId, "permission", "2", "comment", "this is a test request");
+		ApiSemossTestUtils.processPixel(pc2);
 		
 		// verify email sent
-		List<Map<String, Object>> emails = ApiTestEmailUtils.getAllEmails();
+		List<Map<String, Object>> emails = ApiSemossTestEmailUtils.getAllEmails();
 		assertEquals(1, emails.size());
 		Map<String, Object> email = emails.get(0);
 		assertEquals("ater@ater.com", ((List<Map<String, Object>>) email.get("To")).get(0).get("Address"));
 		assertEquals("***REMOVED***", ((Map<String, Object>) email.get("From")).get("Address"));
 		
-		Map<String, Object> emailDetails = ApiTestEmailUtils.getEmail(email.get("ID").toString());
+		Map<String, Object> emailDetails = ApiSemossTestEmailUtils.getEmail(email.get("ID").toString());
 		assertEquals("<!doctype html>\r\n"
 				+ "<html lang=\"en-US\">\r\n"
 				+ "\r\n"
@@ -528,29 +528,29 @@ public class RequestEngineAccessTests extends ApiTests {
 		assertEquals("SEMOSS - Database Access Request", emailDetails.get("Subject").toString());
 
 		// Go back to the default user
-		ApiTestUserUtils.setDefaultTestUser();
+		ApiSemossTestUserUtils.setDefaultTestUser();
 		
 		// Get Requests
-		String pc3 = ApiTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
-		NounMetadata engineRequestNM = ApiTestUtils.processPixel(pc3);
+		String pc3 = ApiSemossTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
+		NounMetadata engineRequestNM = ApiSemossTestUtils.processPixel(pc3);
 		List<Map<String, Object>> requestOutput = (List<Map<String, Object>>) engineRequestNM.getValue();
 		List<String> requestStrings = requestOutput.stream().map(s -> s.get("ID").toString()).collect(Collectors.toList());
 		
 		try {
 			// this is done through monolith, adding here for the check
-			SecurityEngineUtils.denyEngineUserAccessRequests(ApiTests.user, engineId, requestStrings);
+			SecurityEngineUtils.denyEngineUserAccessRequests(BaseSemossApiTests.user, engineId, requestStrings);
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
 			fail("Could not approve engine access");
 		}
 
 		// verify email approved
-		emails = ApiTestEmailUtils.getAllEmails();
+		emails = ApiSemossTestEmailUtils.getAllEmails();
 		assertEquals(2, emails.size());
 		email = emails.get(0);
 		assertEquals("user2@user2.com", ((List<Map<String, Object>>) email.get("To")).get(0).get("Address"));
 		assertEquals("***REMOVED***", ((Map<String, Object>) email.get("From")).get("Address"));
-		emailDetails = ApiTestEmailUtils.getEmail(email.get("ID").toString());
+		emailDetails = ApiSemossTestEmailUtils.getEmail(email.get("ID").toString());
 		assertEquals("<!doctype html>\r\n"
 				+ "<html lang=\"en-US\">\r\n"
 				+ "\r\n"
@@ -615,10 +615,10 @@ public class RequestEngineAccessTests extends ApiTests {
 		assertEquals("SEMOSS - Engine Access Request Decision", emailDetails.get("Subject").toString());
 		
 		// verify permission (User has edit only permission so switch back to two and check to see if you can access requests)
-		ApiTestUserUtils.setUser("user2");
-		String pc4 = ApiTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
-		NounMetadata erroredNM = ApiTestUtils.processRawPixel(pc4);
-		ApiTestUtils.checkNounMetadataError(erroredNM, "User does not have permission to view access requests for this engine");
+		ApiSemossTestUserUtils.setUser("user2");
+		String pc4 = ApiSemossTestUtils.buildPixelCall(GetEngineUserAccessRequestReactor.class, "engine", engineId);
+		NounMetadata erroredNM = ApiSemossTestUtils.processRawPixel(pc4);
+		ApiSemossTestUtils.checkNounMetadataError(erroredNM, "User does not have permission to view access requests for this engine");
 		
 		// verify audit history
 //		ApiTestUserUtils.setDefaultTestUser();
