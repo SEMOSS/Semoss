@@ -40,11 +40,9 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -55,9 +53,11 @@ import prerna.util.Utility;
 public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	
 	public transient TupleQueryResult tqr = null;
-	transient ResultSet rs = null;	
+	
+	transient org.apache.jena.query.ResultSet rs = null;	
+	transient org.apache.jena.query.QuerySolution curSt = null;	
+	
 	transient DATABASE_TYPE engineType = IDatabaseEngine.DATABASE_TYPE.SESAME;	
-	transient QuerySolution curSt = null;	
 	//IDatabase engine = null;
 	transient BindingSet bs;
 	transient String query = null;	
@@ -68,8 +68,6 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	transient int triples;
 	String queryVar[];
 	transient SesameJenaSelectCheater proxy = null;
-	private static final String STACKTRACE = "StackTrace: ";
-
 	
 	/**
 	 * Method setEngine. Sets the engine.
@@ -111,7 +109,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		}
 		else if(engineType == IDatabaseEngine.DATABASE_TYPE.JENA)
 		{
-			rs = (ResultSet)engine.execQuery(query);
+			rs = (org.apache.jena.query.ResultSet)engine.execQuery(query);
 			getVariables();
 			
 			processSelectVar();
@@ -160,7 +158,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return var;
 	}
@@ -237,7 +235,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 									ris.close();
 								}
 							} catch(IOException e) {
-								logger.error(STACKTRACE, e);
+								logger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
@@ -260,13 +258,13 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			ex.printStackTrace();
 			retBool = false;
 		} catch (ClassNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			retBool = false;
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 			retBool = false;
 		} catch (QueryEvaluationException ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 			retBool = false;
 		}
 		logger.debug(" Next " + retBool);
@@ -327,7 +325,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			{
 				thisSt = new SesameJenaConstructStatement();
 			    logger.debug("Adding a JENA statement ");
-			    QuerySolution row = rs.nextSolution();
+			    org.apache.jena.query.QuerySolution row = rs.nextSolution();
 			    thisSt.setSubject(row.get(var[0])+"");
 			    thisSt.setPredicate(row.get(var[1])+"");
 			    thisSt.setObject(row.get(var[2]));
@@ -339,7 +337,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			}
 
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 		return thisSt;
 	}
