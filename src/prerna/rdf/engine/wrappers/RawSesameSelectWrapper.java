@@ -166,7 +166,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					// just return the label
 					return ((Literal)val).getLabel();
 				}
-			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {
+			} else if(val != null && val instanceof org.apache.jena.rdf.model.Literal) {
 				classLogger.debug("Class is " + val.getClass());
 				return new Double(((Literal)val).doubleValue());
 			}

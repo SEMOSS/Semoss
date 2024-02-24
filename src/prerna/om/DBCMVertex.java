@@ -290,13 +290,13 @@ public class DBCMVertex{
 		}
 		try
 		{
-			if(propValue instanceof com.hp.hpl.jena.rdf.model.Literal)
+			if(propValue instanceof org.apache.jena.rdf.model.Literal)
 			{
 				logger.info("Class is " + propValue.getClass());
 				// try double
 				try
 				{
-					Double value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getDouble();
+					Double value = ((org.apache.jena.rdf.model.Literal)propValue).getDouble();
 					converted = true;
 					propHash.put(instanceName, value);
 				}catch (RuntimeException ignored) {
@@ -309,7 +309,7 @@ public class DBCMVertex{
 				{
 					try
 					{
-						Integer value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getInt();
+						Integer value = ((org.apache.jena.rdf.model.Literal)propValue).getInt();
 						converted = true;
 						propHash.put(instanceName, value);
 					}catch (RuntimeException ignored) {
@@ -323,7 +323,7 @@ public class DBCMVertex{
 				{
 					try
 					{
-						Boolean value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getBoolean();
+						Boolean value = ((org.apache.jena.rdf.model.Literal)propValue).getBoolean();
 						converted = true;
 						propHash.put(instanceName, value);
 					}catch (RuntimeException ignored) {
@@ -335,7 +335,7 @@ public class DBCMVertex{
 				{
 					try
 					{
-						String value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getString();
+						String value = ((org.apache.jena.rdf.model.Literal)propValue).getString();
 						converted = true;
 						propHash.put(instanceName, value);
 
@@ -345,7 +345,7 @@ public class DBCMVertex{
 					}
 				}
 				
-				//propHash.put(instanceName, ((com.hp.hpl.jena.rdf.model.Literal)propValue).getDouble());
+				//propHash.put(instanceName, ((org.apache.jena.rdf.model.Literal)propValue).getDouble());
 				//converted = true;
 			}
 		}catch(RuntimeException ex)

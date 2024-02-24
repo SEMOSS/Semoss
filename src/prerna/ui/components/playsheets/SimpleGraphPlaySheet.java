@@ -103,7 +103,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 						predicates.append( "<" + st.getPredicate() +">");
 				}
 				// need to find a way to do this for jena too
-				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
+				if(obj instanceof URI && !(obj instanceof org.apache.jena.rdf.model.Literal))
 				{			
 					if(objects.indexOf(obj+"") < 0)
 					{

@@ -29,14 +29,14 @@ package prerna.rdf.engine.wrappers;
 
 import java.io.IOException;
 
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.RDFNode;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
+import  org.apache.jena.rdf.model.*;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
@@ -53,7 +53,7 @@ public class JenaConstructWrapper extends AbstractWrapper implements IConstructW
 	public IConstructStatement next() {
 		IConstructStatement thisSt = new ConstructStatement();
 
-		com.hp.hpl.jena.rdf.model.Statement stmt = si.next();
+		org.apache.jena.rdf.model.Statement stmt = si.next();
 		LOGGER.debug("Adding a JENA statement ");
 		Resource sub = stmt.getSubject();
 		Property pred = stmt.getPredicate();

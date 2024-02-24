@@ -27,18 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.main;
 
-import java.io.InputStream;
-
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
-import com.hp.hpl.jena.util.FileManager;
-
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-
 /**
  */
 public class RDFFileReader {
@@ -58,8 +46,8 @@ public class RDFFileReader {
 //		Model jenaModel = ModelFactory.createDefaultModel();//  .read(in, null); //, rdfFileType);
 //		jenaModel.read(in, null, "RDF/XML");
 //		
-//		//com.hp.hpl.jena.query.Query q2 = QueryFactory.create(" ?s ?p ?o WHERE {?s ?p ?o}"); 
-//		//com.hp.hpl.jena.query.ResultSet rs = QueryExecutionFactory.create(q2, jenaModel).execSelect();
+//		//org.apache.jena.query.Query q2 = QueryFactory.create(" ?s ?p ?o WHERE {?s ?p ?o}"); 
+//		//org.apache.jena.query.ResultSet rs = QueryExecutionFactory.create(q2, jenaModel).execSelect();
 //		
 //		StmtIterator sti = jenaModel.listStatements();
 //		System.out.println("Iterating " + jenaModel.isEmpty());
@@ -71,8 +59,8 @@ public class RDFFileReader {
 //				"BIND <http://sandbox-api.smartplatforms.org/records/2169591> AS ?subject." +
 //				"}";
 //		
-//		//com.hp.hpl.jena.query.Query queryVar = QueryFactory.create(query) ;
-//		com.hp.hpl.jena.query.ResultSet rs = QueryExecutionFactory.create(query, jenaModel).execSelect();
+//		//org.apache.jena.query.Query queryVar = QueryFactory.create(query) ;
+//		org.apache.jena.query.ResultSet rs = QueryExecutionFactory.create(query, jenaModel).execSelect();
 //
 //		/*QueryExecution qexec = QueryExecutionFactory.create(queryVar, jenaModel) ;
 //		Model resultModel = qexec.execConstruct() ;

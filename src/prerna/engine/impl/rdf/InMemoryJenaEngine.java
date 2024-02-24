@@ -30,12 +30,13 @@ package prerna.engine.impl.rdf;
 import java.util.Properties;
 import java.util.Vector;
 
-import com.hp.hpl.jena.query.QueryExecution;
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.update.UpdateAction;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.update.UpdateAction;
 
 import prerna.engine.impl.AbstractDatabaseEngine;
 
@@ -76,7 +77,7 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 		ResultSet rs = null;
 		try{
 			//QueryExecutionFactory.
-			com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
+			Query q2 = QueryFactory.create(query); 
 			QueryExecution qex = QueryExecutionFactory.create(q2, jenaModel);
 			rs = qex.execSelect();
 		}catch (RuntimeException e){
