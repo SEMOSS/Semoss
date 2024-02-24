@@ -39,9 +39,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class ApiTestEngineUtils {
+public class ApiSemossTestEngineUtils {
 	
-	private static Path ENGINES_CONFIG_FILE = Paths.get(ApiTests.TEST_CONFIG_DIRECTORY.toString(), "engines.txt");
+	private static Path ENGINES_CONFIG_FILE = Paths.get(BaseSemossApiTests.TEST_CONFIG_DIRECTORY.toString(), "engines.txt");
 	private static List<String> CORE_DBS = null;
 	
 	private static List<String> CURRENT_NAMES = new ArrayList<>();
@@ -58,11 +58,11 @@ public class ApiTestEngineUtils {
 
 	
 	static void checkDatabasePropMapping() {
-		assertEquals(ApiTests.LMD_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTests.SECURITY_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTests.SCHEDULER_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTests.THEMES_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTests.UTDB_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
+		assertEquals(BaseSemossApiTests.LMD_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
+    	assertEquals(BaseSemossApiTests.SECURITY_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
+    	assertEquals(BaseSemossApiTests.SCHEDULER_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
+    	assertEquals(BaseSemossApiTests.THEMES_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
+    	assertEquals(BaseSemossApiTests.UTDB_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
 	}
 	
 	static void unloadDatabases() {
@@ -132,8 +132,8 @@ public class ApiTestEngineUtils {
 	}
 
 	private static void doInitializeSemossDB(String name, String dbName) throws IOException {
-		String smssPath = ApiTests.TEST_DB_DIRECTORY + File.separator + name + ".smss";
-		String db = ApiTests.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
+		String smssPath = BaseSemossApiTests.TEST_DB_DIRECTORY + File.separator + name + ".smss";
+		String db = BaseSemossApiTests.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
 		
 		if (Files.exists(Paths.get(db))) {
 			Files.delete(Paths.get(db));
@@ -204,10 +204,10 @@ public class ApiTestEngineUtils {
 	}
 
 	private static Triple<String, String, String> getTestDatabaseConnection(String db) {
-		String dbPath = Paths.get(ApiTests.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
+		String dbPath = Paths.get(BaseSemossApiTests.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
 		Properties props = Utility.loadProperties(dbPath);
 		String connection = props.getProperty(Constants.CONNECTION_URL);
-		connection = connection.replaceAll("@BaseFolder@", ApiTests.TEST_BASE_DIRECTORY.replace('\\', '/'));
+		connection = connection.replaceAll("@BaseFolder@", BaseSemossApiTests.TEST_BASE_DIRECTORY.replace('\\', '/'));
 		connection = connection.replaceAll("@ENGINE@", db);
 
 		String username = props.getProperty(Constants.USERNAME);
@@ -217,7 +217,7 @@ public class ApiTestEngineUtils {
 	
 	public static void clearNonCoreDBs() throws IOException {
 		List<String> dbsToAvoid = getDBsToAvoid();
-		File f = Paths.get(ApiTests.TEST_DB_DIRECTORY).toFile();
+		File f = Paths.get(BaseSemossApiTests.TEST_DB_DIRECTORY).toFile();
 		List<String> toDelete = new ArrayList<>();
 		for (String s : f.list()) {
 			boolean found = false;
@@ -233,7 +233,7 @@ public class ApiTestEngineUtils {
 		}
 		
 		for (String delete : toDelete) {
-			Path p = Paths.get(ApiTests.TEST_DB_DIRECTORY.toString(), delete);
+			Path p = Paths.get(BaseSemossApiTests.TEST_DB_DIRECTORY.toString(), delete);
 			if (Files.isDirectory(p)) {
 				Files.walk(p).sorted().map(Path::toFile).forEach(File::delete);
 				if (Files.exists(p)) {
@@ -270,7 +270,7 @@ public class ApiTestEngineUtils {
 		
 		CURRENT_NAMES.add(name);
 		
-		Path path = Paths.get(ApiTests.TEST_INSIGHT_CACHE.toString(), name + ".csv");
+		Path path = Paths.get(BaseSemossApiTests.TEST_INSIGHT_CACHE.toString(), name + ".csv");
 		try {
 			path = Files.createFile(path);
 			List<String> lines = new ArrayList<>();
@@ -291,7 +291,7 @@ public class ApiTestEngineUtils {
 		
 		Map<String, String> descriptionMap = new HashMap<>();
 		Map<String, String> logicalMap = new HashMap<>();
-		String pixelCall = ApiTestUtils.buildPixelCall(RdbmsUploadTableDataReactor.class, 
+		String pixelCall = ApiSemossTestUtils.buildPixelCall(RdbmsUploadTableDataReactor.class, 
 				"database", Arrays.asList(name), 
 				"filePath", Arrays.asList("\\" + name + ".csv"), 
 				"delimiter", Arrays.asList(","), 
@@ -302,7 +302,7 @@ public class ApiTestEngineUtils {
 				"logicalNamesMap", Arrays.asList(logicalMap), 
 				"existing", Arrays.asList(Boolean.FALSE));
 
-		NounMetadata nm = ApiTestUtils.processPixel(pixelCall);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixelCall);
 		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
 		String engineId = (String) ret.get("database_id");
 		return engineId;

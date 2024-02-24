@@ -13,21 +13,21 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SocialPropertiesUtil;
 
-public class ApiTestPropsUtils {
+public class ApiSemossTestPropsUtils {
 
-protected static final Logger LOGGER = LogManager.getLogger(ApiTestPropsUtils.class.getName());
+protected static final Logger classLogger = LogManager.getLogger(ApiSemossTestPropsUtils.class);
 
 	static void loadDIHelper() throws IOException {
-		Files.copy(ApiTests.BASE_RDF_MAP, ApiTests.TEST_RDF_MAP, StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(BaseSemossApiTests.BASE_RDF_MAP, BaseSemossApiTests.TEST_RDF_MAP, StandardCopyOption.REPLACE_EXISTING);
 		Me configurationManager = new Me();
-		configurationManager.changeRDFMap(ApiTests.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
-				ApiTests.TEST_RDF_MAP.toAbsolutePath().toString());
-		DIHelper.getInstance().loadCoreProp(ApiTests.TEST_RDF_MAP.toAbsolutePath().toString());
+		configurationManager.changeRDFMap(BaseSemossApiTests.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
+				BaseSemossApiTests.TEST_RDF_MAP.toAbsolutePath().toString());
+		DIHelper.getInstance().loadCoreProp(BaseSemossApiTests.TEST_RDF_MAP.toAbsolutePath().toString());
 
 		// Just in case, manually override USE_PYTHON to be true for testing purposes
 		// Warn if this was not the case to begin with
 		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USE_PYTHON))) {
-			LOGGER.warn("Python must be functional for local testing.");
+			classLogger.warn("Python must be functional for local testing.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.USE_PYTHON, "true");
 			DIHelper.getInstance().setCoreProp(coreProps);
@@ -47,7 +47,7 @@ protected static final Logger LOGGER = LogManager.getLogger(ApiTestPropsUtils.cl
 
 		// Turn tracking off while testing
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.T_ON))) {
-			LOGGER.info("Setting tracking off during unit tests.");
+			classLogger.info("Setting tracking off during unit tests.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.T_ON, "false");
 			DIHelper.getInstance().setCoreProp(coreProps);
@@ -58,11 +58,11 @@ protected static final Logger LOGGER = LogManager.getLogger(ApiTestPropsUtils.cl
 	
 
 	private static void unloadDIHelper() {
-		DIHelper.getInstance().loadCoreProp(ApiTests.BASE_RDF_MAP.toAbsolutePath().toString());
+		DIHelper.getInstance().loadCoreProp(BaseSemossApiTests.BASE_RDF_MAP.toAbsolutePath().toString());
 		try {
-			Files.delete(ApiTests.TEST_RDF_MAP);
+			Files.delete(BaseSemossApiTests.TEST_RDF_MAP);
 		} catch (IOException e) {
-			LOGGER.warn("Unable to delete " + ApiTests.TEST_RDF_MAP, e);
+			classLogger.warn("Unable to delete " + BaseSemossApiTests.TEST_RDF_MAP, e);
 		}
 	}
 	
