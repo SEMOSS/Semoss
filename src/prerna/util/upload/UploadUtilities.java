@@ -168,7 +168,7 @@ public class UploadUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
 		// need to make sure the database is unique
-		boolean containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, engineName);
+		boolean containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
 		if(containsDatabase) {
 			throw new IOException("Engine name already exists.  Please provide a unique engine name");
 		}
