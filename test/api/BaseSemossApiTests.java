@@ -23,9 +23,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 
-public class ApiTests {
+public class BaseSemossApiTests {
 	
-	protected static final Logger LOGGER = LogManager.getLogger(ApiTests.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(BaseSemossApiTests.class);
 
 	protected static final String BASE_DIRECTORY = new File("").getAbsolutePath();
 	protected static final String TEST_BASE_DIRECTORY = new File("testfolder").getAbsolutePath();
@@ -68,30 +68,30 @@ public class ApiTests {
     	if (FIRST_CLASS_RUN) {
     		FIRST_CLASS_RUN = false;
 
-			ApiTestPropsUtils.loadDIHelper();
+			ApiSemossTestPropsUtils.loadDIHelper();
 			if (runningOnServer()) {
-				ApiTestEmailUtils.startEmailDockerContainer();
+				ApiSemossTestEmailUtils.startEmailDockerContainer();
 			} else {
-				ApiTestEmailUtils.startEmailLocalServer();
+				ApiSemossTestEmailUtils.startEmailLocalServer();
 			}
 			
 			// moved this to the before because its hard to delete databases before each test due to database being in use
 			try {
-				ApiTestEngineUtils.clearNonCoreDBs();
+				ApiSemossTestEngineUtils.clearNonCoreDBs();
 			} catch (Exception e) {
 				System.out.println("Could not clear DBS that are not semoss/project specific. ");
 				fail(e.toString());
 			}
 			
 			try {
-				ApiTestProjectUtils.clearNonCoreProjects();
+				ApiSemossTestProjectUtils.clearNonCoreProjects();
 			} catch (Exception e) {
 				System.out.println("Could not clear DBS that are not semoss/project specific. ");
 				fail(e.toString());
 			}
 
-			ApiTestInsightUtils.initializeInsight();
-			ApiTestEngineUtils.initalizeDatabases();
+			ApiSemossTestInsightUtils.initializeInsight();
+			ApiSemossTestEngineUtils.initalizeDatabases();
     	}
     }
     
@@ -107,19 +107,19 @@ public class ApiTests {
     // in case the DIHelper decides to reload with a different rdf map properties. 
     @Before
     public void apiTestsBefore() {
-    	ApiTestEngineUtils.checkDatabasePropMapping();
+    	ApiSemossTestEngineUtils.checkDatabasePropMapping();
     	
     	try {
-    		ApiTestEngineUtils.deleteAllDataAndAddUser();
+    		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
     	} catch (Exception e) {
     		System.out.println("Could not rebuild core semoss dbs");
     		fail(e.toString());
     	}
     	
-    	ApiTestUserUtils.setDefaultTestUser();
+    	ApiSemossTestUserUtils.setDefaultTestUser();
     	
-    	ApiTestEmailUtils.deleteAllEmails();
-    	ApiTestInsightUtils.clearInsightCacheDifferently();
+    	ApiSemossTestEmailUtils.deleteAllEmails();
+    	ApiSemossTestInsightUtils.clearInsightCacheDifferently();
     }
     
 	
