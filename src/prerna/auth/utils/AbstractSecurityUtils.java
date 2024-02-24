@@ -36,7 +36,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -1887,60 +1886,15 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Does this engine name already exist
-	 * @param user
+	 * 
 	 * @param engineName
 	 * @return
 	 */
-	public static boolean userContainsEngineName(User user, String engineName) {
-		if(ignoreDatabase(engineName)) {
-			// dont add local master or security db to security db
-			return true;
-		}
-		//		String userFilters = getUserFilters(user);
-		//		String query = "SELECT * "
-		//				+ "FROM ENGINE "
-		//				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-		//				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2) AND ENGINEPERMISSION.USERID IN " + userFilters;
-		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", engineName));
-		List<Integer> permissionValues = new ArrayList<Integer>(2);
-		permissionValues.add(new Integer(1));
-		permissionValues.add(new Integer(2));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", permissionValues, PixelDataType.CONST_INT));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				return true;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return false;
-	}
-
 	public static boolean containsEngineName(String engineName) {
 		if(ignoreDatabase(engineName)) {
 			// dont add local master or security db to security db
 			return true;
 		}
-		//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINENAME='" + appName + "'";
-		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -1966,37 +1920,11 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 
-	public static boolean userContainsProjectName(User user, String projectName) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
-		qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "==", projectName));
-		List<Integer> permissionValues = new ArrayList<Integer>(2);
-		permissionValues.add(new Integer(1));
-		permissionValues.add(new Integer(2));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", permissionValues, PixelDataType.CONST_INT));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				return true;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return false;
-	}
-
+	/**
+	 * 
+	 * @param projectName
+	 * @return
+	 */
 	public static boolean containsProjectName(String projectName) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
