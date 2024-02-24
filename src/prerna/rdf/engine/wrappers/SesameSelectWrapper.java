@@ -142,9 +142,9 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 					
 					return ((Literal)val).getLabel();
 				}
-			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {
+			} else if(val != null && val instanceof org.apache.jena.rdf.model.Literal) {
 				LOGGER.debug("Class is " + val.getClass());
-				return new Double(((Literal)val).doubleValue());
+				return new Double(((org.apache.jena.rdf.model.Literal)val).getDouble());
 			}
 			
 			if(val!=null){

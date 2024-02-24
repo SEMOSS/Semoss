@@ -33,15 +33,8 @@ import java.util.Hashtable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.QueryEvaluationException;
-
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.RDFNode;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
@@ -55,12 +48,14 @@ import prerna.util.Utility;
 public class SesameJenaConstructWrapper extends AbstractWrapper {
 	
 	public transient GraphQueryResult gqr = null;	
-	transient Model model = null;
-	transient StmtIterator si = null;	
+	
+	transient org.apache.jena.rdf.model.Model model = null;
+	transient org.apache.jena.rdf.model.StmtIterator si = null;	
+	transient org.apache.jena.rdf.model.Statement curSt = null;
+
 	public transient IDatabaseEngine engine = null;
 	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
 	transient String query = null;
-	transient com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	transient SesameJenaConstructStatement retSt = null;
 	public transient boolean queryBoolean = true;
 	static final Logger logger = LogManager.getLogger(SesameJenaConstructWrapper.class.getName());
@@ -114,7 +109,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 			}
 			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
-				model = (Model)engine.execQuery(query);
+				model = (org.apache.jena.rdf.model.Model)engine.execQuery(query);
 				setModel(model);
 			}
 			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
@@ -134,7 +129,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	 * Method setModel. Sets the type of model being used.
 	 * @param model Model - The model type.
 	 */
-	public void setModel(Model model)
+	public void setModel(org.apache.jena.rdf.model.Model model)
 	{
 		this.model = model;
 		si = model.listStatements();
@@ -182,7 +177,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 					
 					if(!myObject.toString().equalsIgnoreCase("null"))
 					{
-						Statement stmt = (Statement)myObject;
+						org.apache.jena.rdf.model.Statement stmt = (org.apache.jena.rdf.model.Statement) myObject;
 						retSt.setSubject(stmt.getSubject()+"");
 						retSt.setObject(stmt.getObject());
 						retSt.setPredicate(stmt.getPredicate() + "");
@@ -252,7 +247,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 			{
 				thisSt = new SesameJenaConstructStatement();
 				logger.debug("Adding a sesame statement ");
-				Statement stmt = gqr.next();
+				org.openrdf.model.Statement stmt = gqr.next();
 				thisSt.setSubject(stmt.getSubject()+"");
 				thisSt.setObject(stmt.getObject());
 				thisSt.setPredicate(stmt.getPredicate() + "");
@@ -261,12 +256,12 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				thisSt = new SesameJenaConstructStatement();
-				com.hp.hpl.jena.rdf.model.Statement stmt = si.next();
+				org.apache.jena.rdf.model.Statement stmt = si.next();
 				logger.debug("Adding a JENA statement ");
 				curSt = stmt;
-				Resource sub = stmt.getSubject();
-				Property pred = stmt.getPredicate();
-				RDFNode node = stmt.getObject();
+				org.apache.jena.rdf.model.Resource sub = stmt.getSubject();
+				org.apache.jena.rdf.model.Property pred = stmt.getPredicate();
+				org.apache.jena.rdf.model.RDFNode node = stmt.getObject();
 				if(node.isAnon())
 					thisSt.setPredicate(Utility.getNextID());
 				else 	
@@ -302,7 +297,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	 * Method getJenaStatement.  Gets the query solution for a JENA model.
 	
 	 * @return com.hp.hpl.jena.rdf.model.Statement */
-	public com.hp.hpl.jena.rdf.model.Statement getJenaStatement()
+	public org.apache.jena.rdf.model.Statement getJenaStatement()
 	{
 		return curSt;
 	}

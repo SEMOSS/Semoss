@@ -36,15 +36,15 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Model;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
@@ -85,19 +85,24 @@ public class RemoteJenaEngine extends AbstractDatabaseEngine {
 	@Override
 	public Object execQuery(String query) {
 		
-		com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
-		com.hp.hpl.jena.query.Query queryVar = QueryFactory.create(query) ;
+		Query q2 = QueryFactory.create(query); 
 		
-		QueryEngineHTTP qexec = QueryExecutionFactory.createServiceRequest(this.serviceURI, queryVar);
+		String finalUrl = this.serviceURI;
 		String params = smssProp.getProperty(Constants.URL_PARAM);
 		StringTokenizer paramTokens = new StringTokenizer(params, ";");
+		if(paramTokens.hasMoreTokens()) {
+			String token = paramTokens.nextToken();
+			finalUrl += "?" + token + "=" + smssProp.getProperty(token);
+		}
 		while(paramTokens.hasMoreTokens())
 		{
 			String token = paramTokens.nextToken();
-			qexec.addParam(token, smssProp.getProperty(token));			
+			finalUrl += "&" + token + "=" + smssProp.getProperty(token);			
 		}
+		
+		QueryExecution qexec = QueryExecutionFactory.sparqlService(finalUrl, query);
 		if(q2.isSelectType()){
-			com.hp.hpl.jena.query.ResultSet rs = qexec.execSelect();
+			ResultSet rs = qexec.execSelect();
 			return rs;
 		}
 		else if(q2.isConstructType()){
