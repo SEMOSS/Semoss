@@ -1333,11 +1333,6 @@
 			<version>1.9.2</version>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.12</version>
-		</dependency>
-		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
 			<version>2.3.2</version>
@@ -2024,6 +2019,22 @@
 		    <groupId>com.pgvector</groupId>
 		    <artifactId>pgvector</artifactId>
 		    <version>0.1.4</version>
+		</dependency>
+
+		<!--  testing jars  -->
+		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+		<dependency>
+		    <groupId>org.junit.jupiter</groupId>
+		    <artifactId>junit-jupiter-api</artifactId>
+		    <version>5.10.2</version>
+		    <scope>test</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.testcontainers/testcontainers -->
+		<dependency>
+		    <groupId>org.testcontainers</groupId>
+		    <artifactId>testcontainers</artifactId>
+		    <version>1.19.6</version>
+		    <scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>
