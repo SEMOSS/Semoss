@@ -9,13 +9,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.jena.vocabulary.XSD;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
-
-import com.hp.hpl.jena.vocabulary.XSD;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -35,12 +34,12 @@ import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
-import prerna.reactor.IReactor;
-import prerna.reactor.qs.SubQueryExpression;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.reactor.IReactor;
+import prerna.reactor.qs.SubQueryExpression;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;

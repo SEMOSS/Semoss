@@ -43,9 +43,6 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
 import com.google.gson.Gson;
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.RDFNode;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
@@ -59,9 +56,11 @@ import prerna.util.Utility;
 public class SesameJenaSelectWrapper extends AbstractWrapper {
 	
 	public transient TupleQueryResult tqr = null;
-	transient ResultSet rs = null;
+
+	transient org.apache.jena.query.ResultSet rs = null;
+	transient org.apache.jena.query.QuerySolution curSt = null;	
+
 	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
-	transient QuerySolution curSt = null;	
 	transient public IDatabaseEngine engine = null;
 	transient String query = null;
 	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
@@ -106,7 +105,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 		if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			tqr = (TupleQueryResult) engine.execQuery(query);
 		else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			rs = (ResultSet) engine.execQuery(query);
+			rs = (org.apache.jena.query.ResultSet) engine.execQuery(query);
 		else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			// get the actual SesameJenaConstructWrapper from the engine
@@ -236,13 +235,13 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				thisSt = new SesameJenaSelectStatement();
-			    QuerySolution row = rs.nextSolution();
+				org.apache.jena.query.QuerySolution row = rs.nextSolution();
 			    curSt = row; 
 				String [] values = new String[var.length];
 				for(int colIndex = 0;colIndex < var.length;colIndex++)
 				{
 					String value = row.get(var[colIndex])+"";
-					RDFNode node = row.get(var[colIndex]);
+					org.apache.jena.rdf.model.RDFNode node = row.get(var[colIndex]);
 					if(node.isAnon())
 					{
 						logger.debug("Ok.. an anon node");
@@ -301,7 +300,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
 						weightVal = new Double(((Literal)val).doubleValue());
 					}
-				}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
+				}else if(val != null && val instanceof org.apache.jena.rdf.model.Literal)
 				{
 					logger.debug("Class is " + val.getClass());
 					weightVal = new Double(((Literal)val).doubleValue());
@@ -358,7 +357,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 						{
 							logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
 							weightVal = new Double(((Literal)val).doubleValue());
-						}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
+						}else if(val != null && val instanceof org.apache.jena.rdf.model.Literal)
 						{
 							logger.info("Class is " + val.getClass());
 							weightVal = new Double(((Literal)val).doubleValue());
@@ -380,7 +379,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			}
 			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
-			    QuerySolution row = rs.nextSolution();
+				org.apache.jena.query.QuerySolution row = rs.nextSolution();
 			    curSt = row;
 				String [] values = new String[var.length];
 				for(int colIndex = 0;colIndex < var.length;colIndex++)
@@ -418,7 +417,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 	 * Method getJenaStatement.  Gets the query solution for a JENA model.
 	
 	 * @return QuerySolution */
-	public QuerySolution getJenaStatement()
+	public org.apache.jena.query.QuerySolution getJenaStatement()
 	{
 		return curSt;
 	}
@@ -427,7 +426,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 	 * Method setResultSet.  Sets the result set.
 	 * @param rs ResultSet - The result set.
 	 */
-	public void setResultSet(ResultSet rs)
+	public void setResultSet(org.apache.jena.query.ResultSet rs)
 	{
 		this.rs = rs;
 	}

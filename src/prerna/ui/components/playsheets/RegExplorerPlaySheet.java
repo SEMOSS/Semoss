@@ -47,10 +47,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import org.apache.jena.query.ResultSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.hp.hpl.jena.query.ResultSet;
 
 import prerna.ui.components.WrapLayout;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;

@@ -27,13 +27,24 @@
  *******************************************************************************/
 package prerna.rdf.main;
 
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
 
+import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.ResultSetFormatter;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.reasoner.ReasonerRegistry;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.GraphQuery;
@@ -51,20 +62,6 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
-
-import com.hp.hpl.jena.ontology.OntModelSpec;
-import com.hp.hpl.jena.query.QueryExecution;
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.query.ResultSetFormatter;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.Statement;
-import com.hp.hpl.jena.reasoner.ReasonerRegistry;
-import com.hp.hpl.jena.vocabulary.RDF;
-import com.hp.hpl.jena.vocabulary.RDFS;
 
 /**
  */
@@ -166,13 +163,13 @@ public class Printer {
 			//ReasonerRegistry.
 			Model jenaModel = ModelFactory.createInfModel(ReasonerRegistry.getTransitiveReasoner(),baseModel);
 			
-			com.hp.hpl.jena.rdf.model.Resource beijing = baseModel.createResource("http://example.org/things/Beijing");
-			com.hp.hpl.jena.rdf.model.Resource city = baseModel.createResource("http://example.org/terms/city");
-			com.hp.hpl.jena.rdf.model.Resource place = baseModel.createResource("http://example.org/terms/place");
+			org.apache.jena.rdf.model.Resource beijing = baseModel.createResource("http://example.org/things/Beijing");
+			org.apache.jena.rdf.model.Resource city = baseModel.createResource("http://example.org/terms/city");
+			org.apache.jena.rdf.model.Resource place = baseModel.createResource("http://example.org/terms/place");
 			
-			com.hp.hpl.jena.rdf.model.Resource doctor123 = baseModel.createResource("http://example.org/Doctor/123");
-			com.hp.hpl.jena.rdf.model.Resource doctor = baseModel.createResource("http://example.org/terms/Doctor");
-			com.hp.hpl.jena.rdf.model.Resource concept = baseModel.createResource("http://example.org/terms/Concept");
+			org.apache.jena.rdf.model.Resource doctor123 = baseModel.createResource("http://example.org/Doctor/123");
+			org.apache.jena.rdf.model.Resource doctor = baseModel.createResource("http://example.org/terms/Doctor");
+			org.apache.jena.rdf.model.Resource concept = baseModel.createResource("http://example.org/terms/Concept");
 
 			
 			Resource beijing2 = baseModel.createResource("http://example.org/things/Beijing");
@@ -221,7 +218,7 @@ public class Printer {
 
 					System.out.println("Query is " + query);
 					
-					com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
+					org.apache.jena.query.Query q2 = QueryFactory.create(query); 
 					QueryExecution qex = QueryExecutionFactory.create(q2, jenaModel);
 					ResultSet rs = qex.execSelect();
 					

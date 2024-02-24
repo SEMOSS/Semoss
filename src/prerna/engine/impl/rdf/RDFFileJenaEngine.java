@@ -27,10 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -39,17 +36,18 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.hp.hpl.jena.query.QueryExecution;
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.util.FileManager;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
@@ -88,10 +86,10 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	 * @return triple query results that can be displayed as a grid */
 	@Override
 	public Object execQuery(String query) {
-		com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
+		Query q2 = QueryFactory.create(query); 
 		QueryExecution qexec = QueryExecutionFactory.create(q2, jenaModel) ;
 		if(q2.isSelectType()){
-			com.hp.hpl.jena.query.ResultSet rs = qexec.execSelect();
+			ResultSet rs = qexec.execSelect();
 			return rs;
 		}
 		else if(q2.isConstructType()){
@@ -195,38 +193,36 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	 */
 	@Override
 	public void open(String propFile) {
-		FileInputStream fileIn = null;
 		try {
-			Properties prop = new Properties();
-			jenaModel = ModelFactory.createDefaultModel();
-			fileIn = new FileInputStream(Utility.normalizePath(propFile));
-			prop.load(fileIn);
+			Properties prop = Utility.loadProperties(propFile);
 			String fileName = prop.getProperty(Constants.RDF_FILE_NAME);
-			String rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
 			String baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
-
-			InputStream in = FileManager.get().open(fileName); 			
-			jenaModel.read(in, baseURI, rdfFileType);
+			String rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
+			Lang type = determineLang(rdfFileType);
+			jenaModel = ModelFactory.createDefaultModel();
+			RDFDataMgr.read(jenaModel, fileName, baseURI, type);
 			this.connected = true;
 		} catch (RuntimeException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try{
-				if(fileIn!=null) {
-					fileIn.close();
-				}
-			} catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 	}
 
+	/**
+	 * 
+	 * @param rdfFileType
+	 * @return
+	 */
+	private Lang determineLang(String rdfFileType) {
+		if(rdfFileType.equalsIgnoreCase("RDF/XML")) return Lang.RDFXML;
+		else if(rdfFileType.equalsIgnoreCase("TURTLE")) return Lang.TURTLE;
+		else if(rdfFileType.equalsIgnoreCase("N3")) return Lang.N3;
+		else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) return Lang.NTRIPLES;
+		else if(rdfFileType.equalsIgnoreCase("TRIG")) return Lang.TRIG;
+		else if(rdfFileType.equalsIgnoreCase("TRIX")) return Lang.TRIX;
+		
+		return null;
+	}
+	
 	@Override
 	public void removeData(String query) {
 		// TODO Auto-generated method stub

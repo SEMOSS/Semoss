@@ -31,9 +31,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
 
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 
@@ -43,12 +40,14 @@ import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 public class SesameJenaBooleanWrapper {
 	
 	GraphQueryResult gqr = null;
-	Model model = null;	
-	StmtIterator si = null;	
+	
+	org.apache.jena.rdf.model.Model model = null;	
+	org.apache.jena.rdf.model.StmtIterator si = null;	
+	org.apache.jena.rdf.model.Statement curSt = null;
+
 	IDatabaseEngine engine = null;	
 	DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
 	String query = null;
-	com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	
 	static final Logger logger = LogManager.getLogger(SesameJenaBooleanWrapper.class.getName());
 	
