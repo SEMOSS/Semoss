@@ -38,15 +38,15 @@ import org.openrdf.model.impl.GraphImpl;
 import org.openrdf.model.impl.StatementImpl;
 import org.openrdf.model.impl.ValueFactoryImpl;
 
-import com.hp.hpl.jena.rdf.model.AnonId;
-import com.hp.hpl.jena.rdf.model.Literal;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.RDFNode;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.Statement;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
+import org.apache.jena.rdf.model.AnonId;
+import org.apache.jena.rdf.model.Literal;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 
 /**
  * <p>Utility functions for converting between the Jena and Sesame API's</p>
@@ -141,7 +141,7 @@ public class JenaSesameUtils {
 	 * @param theRes the sesame resource to convert
 	
 	 * @return the sesame resource as a jena resource */
-	public static com.hp.hpl.jena.rdf.model.Resource asJenaResource(org.openrdf.model.Resource theRes) {
+	public static org.apache.jena.rdf.model.Resource asJenaResource(org.openrdf.model.Resource theRes) {
 		if (theRes == null) {
 			return null;
 		}
@@ -186,7 +186,7 @@ public class JenaSesameUtils {
 	 * @param theLiteral the Sesame literal
 	
 	 * @return the sesame literal converted to Jena */
-	public static com.hp.hpl.jena.rdf.model.Literal asJenaLiteral(org.openrdf.model.Literal theLiteral) {
+	public static org.apache.jena.rdf.model.Literal asJenaLiteral(org.openrdf.model.Literal theLiteral) {
 		if (theLiteral == null) {
 			return null;
 		}

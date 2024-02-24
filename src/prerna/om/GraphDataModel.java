@@ -35,6 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Literal;
@@ -51,11 +55,6 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
-
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.Resource;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
@@ -399,7 +398,7 @@ public class GraphDataModel implements IDataMaker {
 				}
 
 				//TODO: need to find a way to do this for jena too
-				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
+				if(obj instanceof URI && !(obj instanceof org.apache.jena.rdf.model.Literal)) {			
 					if(objects.indexOf("(<" + obj +">)") < 0) {
 						if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS)
 							objects.append("(<" + obj +">)");
@@ -538,7 +537,7 @@ public class GraphDataModel implements IDataMaker {
 			// figure out if this is an object later
 			//TODO: Need a way to figure out if obj from RDBMS is URI or Literal
 			Object obj = st.getObject();
-			if((overrideURI || obj instanceof URI || obj.toString().startsWith("http://")) && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
+			if((overrideURI || obj instanceof URI || obj.toString().startsWith("http://")) && !(obj instanceof org.apache.jena.rdf.model.Literal))
 			{
 				org.openrdf.model.Resource object = null;
 
@@ -588,10 +587,10 @@ public class GraphDataModel implements IDataMaker {
 				}
 				rc.add(subject, predicate, (Literal)obj);
 			}
-			else if(obj instanceof com.hp.hpl.jena.rdf.model.Literal || !obj.toString().startsWith("http://"))
+			else if(obj instanceof org.apache.jena.rdf.model.Literal || !obj.toString().startsWith("http://"))
 			{
 				// I need to figure out a way to convert this into sesame literal
-				Literal newObj = JenaSesameUtils.asSesameLiteral((com.hp.hpl.jena.rdf.model.Literal)obj);
+				Literal newObj = JenaSesameUtils.asSesameLiteral((org.apache.jena.rdf.model.Literal)obj);
 				System.err.println("Adding to sesame " + subject + predicate + rc.getValueFactory().createLiteral(obj+""));
 
 				if(method == CREATION_METHOD.OVERLAY) {
@@ -630,7 +629,7 @@ public class GraphDataModel implements IDataMaker {
 		Resource subject = jenaModel.createResource(getDisplayName(st.getSubject()));
 		Property prop = jenaModel.createProperty(getDisplayName(st.getPredicate()));
 		Resource object = jenaModel.createResource(getDisplayName(st.getObject()+""));
-		com.hp.hpl.jena.rdf.model.Statement jenaSt = null;
+		org.apache.jena.rdf.model.Statement jenaSt = null;
 		//logger.warn("Adding Statement " + subject + "<>" + prop + "<>" + object);
 
 		jenaSt = jenaModel.createStatement(subject, prop, object);
@@ -638,7 +637,7 @@ public class GraphDataModel implements IDataMaker {
 		if ((st.getObject()+"").contains("double"))
 		{
 			Double val = new Double(((Literal)st.getObject()).doubleValue());
-			com.hp.hpl.jena.rdf.model.Literal l = ModelFactory.createDefaultModel().createTypedLiteral(val);
+			org.apache.jena.rdf.model.Literal l = ModelFactory.createDefaultModel().createTypedLiteral(val);
 			jenaSt = jenaModel.createLiteralStatement(subject, prop, l);
 			jenaModel.add(jenaSt);
 		}
@@ -853,7 +852,7 @@ public class GraphDataModel implements IDataMaker {
 		Resource subject = jenaModel.createResource(st.getSubject());
 		Property prop = jenaModel.createProperty(st.getPredicate());
 		Resource object = jenaModel.createResource(st.getObject()+"");
-		com.hp.hpl.jena.rdf.model.Statement jenaSt = null;
+		org.apache.jena.rdf.model.Statement jenaSt = null;
 
 		logger.warn("Removing Statement " + subject + "<>" + prop + "<>" + object);
 		jenaSt = jenaModel.createStatement(subject, prop, object);
@@ -1190,7 +1189,7 @@ public class GraphDataModel implements IDataMaker {
 			Object obj = st.getObject();
 			delQuery=delQuery+"<"+subject+"><"+predicate+">";
 
-			if((obj instanceof com.hp.hpl.jena.rdf.model.Literal) || (obj instanceof Literal))
+			if((obj instanceof org.apache.jena.rdf.model.Literal) || (obj instanceof Literal))
 			{
 
 				delQuery=delQuery+obj+".";
