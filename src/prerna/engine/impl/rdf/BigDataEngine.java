@@ -149,11 +149,11 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -214,7 +214,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 						}
 						retVec.add(next);
 					} catch (RuntimeException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}	
 				}
 
@@ -222,11 +222,11 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 				return retVec;
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -323,7 +323,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 			}
 
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -385,7 +385,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 				sc.removeStatements(newSub, newPred, vf.createURI(object+""));
 			}
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -399,7 +399,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 			ie.computeClosure(null);
 			sc.commit();
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -413,9 +413,9 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 			sc.commit();
 			((BigdataSailRepositoryConnection)rc).flush();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
