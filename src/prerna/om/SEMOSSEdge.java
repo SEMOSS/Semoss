@@ -172,10 +172,10 @@ public class SEMOSSEdge {
 		}
 		try
 		{
-			if(propValue instanceof com.hp.hpl.jena.rdf.model.Literal)
+			if(propValue instanceof org.apache.jena.rdf.model.Literal)
 			{
 				logger.info("Class is " + propValue.getClass());
-				String prop = (String) ((com.hp.hpl.jena.rdf.model.Literal)propValue).getValue();
+				String prop = (String) ((org.apache.jena.rdf.model.Literal)propValue).getValue();
 
 				if(prop.contains("XMLSchema#double"))
 				{

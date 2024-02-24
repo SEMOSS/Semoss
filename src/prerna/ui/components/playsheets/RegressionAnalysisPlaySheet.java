@@ -54,10 +54,9 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.LineBorder;
 
+import org.apache.jena.query.ResultSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.hp.hpl.jena.query.ResultSet;
 
 import aurelienribon.ui.css.Style;
 import prerna.engine.api.ISelectStatement;

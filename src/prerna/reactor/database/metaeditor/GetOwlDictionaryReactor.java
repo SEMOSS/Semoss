@@ -8,17 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.jena.vocabulary.OWL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
 import org.semarglproject.vocab.RDF;
 
-import com.hp.hpl.jena.vocabulary.OWL;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;

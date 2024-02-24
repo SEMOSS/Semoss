@@ -35,11 +35,10 @@ import javax.swing.JComponent;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 
+import org.apache.jena.vocabulary.RDFS;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
-
-import com.hp.hpl.jena.vocabulary.RDFS;
 
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.om.InsightStore;

@@ -34,10 +34,9 @@ import java.util.regex.Pattern;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
+import org.apache.jena.rdf.model.Model;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.hp.hpl.jena.rdf.model.Model;
 
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.om.GraphDataModel;
