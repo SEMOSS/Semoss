@@ -1027,16 +1027,11 @@
 			</exclusions>
 		</dependency>
 		-->
+		<!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
 		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.44</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
+		    <groupId>com.mysql</groupId>
+		    <artifactId>mysql-connector-j</artifactId>
+		    <version>8.3.0</version>
 		</dependency>
 		<!-- 
 		<dependency>
