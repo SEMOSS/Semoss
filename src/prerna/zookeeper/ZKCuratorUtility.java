@@ -52,7 +52,20 @@ public final class ZKCuratorUtility {
 	 * @param data
 	 * @throws Exception
 	 */
-	public void createEphemerialNode(String path, byte[] data) throws Exception {
+	public void createEphemeralNode(String path, byte[] data) throws Exception {
+		this.curator.create()
+			.creatingParentsIfNeeded()
+			.withMode(CreateMode.EPHEMERAL)
+			.forPath(path, data);
+	}
+	
+	/**
+	 * 
+	 * @param path
+	 * @param data
+	 * @throws Exception
+	 */
+	public void createEphemeralSequentialNode(String path, byte[] data) throws Exception {
 		this.curator.create()
 			.creatingParentsIfNeeded()
 			.withMode(CreateMode.EPHEMERAL_SEQUENTIAL)

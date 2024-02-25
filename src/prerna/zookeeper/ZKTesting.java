@@ -57,7 +57,7 @@ public class ZKTesting {
 					dataMap.put("user", "maher.khalil@va.gov");
 					Gson gson = new Gson();
 					byte[] data = gson.toJson(dataMap).getBytes();
-					utility.createEphemerialNode("/userWithLock", data);
+					utility.createEphemeralNode("/userWithLock", data);
 				} catch(Exception e) {
 					e.printStackTrace();
 				} finally {
