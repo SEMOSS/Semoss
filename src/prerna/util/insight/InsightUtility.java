@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.google.gson.stream.JsonWriter;
 
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
@@ -613,7 +614,7 @@ public class InsightUtility {
 		String serialization = null;
 		try {
 			serialization = adapter.toJson(sheet);
-		} catch (IOException e) {
+		} catch (JsonIOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Exeption occurred generate the sheet state with error: " + e.getMessage());
 		}
@@ -638,7 +639,7 @@ public class InsightUtility {
 		String serialization = null;
 		try {
 			serialization = adapter.toJson(panel);
-		} catch (IOException e) {
+		} catch (JsonIOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Exeption occurred generate the panel state with error: " + e.getMessage());
 		}

@@ -8,6 +8,8 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.internal.LinkedTreeMap;
+
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.sablecc2.om.GenRowStruct;
@@ -26,8 +28,6 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 
 	private static final Logger classLogger = LogManager.getLogger(SentimentFunctionEngine.class);
 
-	
-	
 	TCPPyTranslator pyt = null;
 	NativePySocketClient socketClient = null;
 	Process p = null;
@@ -84,7 +84,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		
 		for(int outputIndex = 0;outputIndex < output.size();outputIndex++)
 		{
-			com.google.gson.internal.StringMap  item = (com.google.gson.internal.StringMap) output.get(outputIndex);
+			LinkedTreeMap<String, Object> item = (LinkedTreeMap<String, Object>) output.get(outputIndex);
 			float compound = ((Double)item.get("compound")).floatValue();
 			boolean approved = compound >= minValue && compound <= maxValue;
 			item.put("approved", approved);
@@ -94,8 +94,6 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 	
-
-
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
