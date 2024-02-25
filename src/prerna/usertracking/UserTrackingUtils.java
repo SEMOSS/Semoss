@@ -12,7 +12,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.parquet.Strings;
 import org.javatuples.Pair;
 
 import com.google.gson.Gson;
@@ -185,7 +184,7 @@ public class UserTrackingUtils {
 			ps.setString(index++, from);
 			
 			if (toRecipients != null) {
-				String toStr = Strings.join(toRecipients, ", ");
+				String toStr = String.join(", ", toRecipients);
 				if(allowClob) {
 					Clob toclob = userTrackingDb.getConnection().createClob();
 					toclob.setString(1, toStr);
@@ -198,7 +197,7 @@ public class UserTrackingUtils {
 			}
 			
 			if (ccRecipients != null) {
-				String ccStr = Strings.join(ccRecipients, ", ");
+				String ccStr = String.join(", ", ccRecipients);
 				if(allowClob) {
 					Clob ccclob = userTrackingDb.getConnection().createClob();
 					ccclob.setString(1, ccStr);
@@ -211,7 +210,7 @@ public class UserTrackingUtils {
 			}
 			
 			if (bccRecipients != null) {
-				String bccStr = Strings.join(bccRecipients, ", ");
+				String bccStr = String.join(", ", bccRecipients);
 				if(allowClob) {
 					Clob bccclob = userTrackingDb.getConnection().createClob();
 					bccclob.setString(1, bccStr);
@@ -242,7 +241,7 @@ public class UserTrackingUtils {
 			}
 			
 			if (attachments != null) {
-				String attachmentStr = Strings.join(attachments, ", ");
+				String attachmentStr = String.join(", ", attachments);
 				if(allowClob) {
 					Clob attachmentClob = userTrackingDb.getConnection().createClob();
 					attachmentClob.setString(1, attachmentStr);
