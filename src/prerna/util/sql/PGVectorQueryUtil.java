@@ -1,5 +1,6 @@
 package prerna.util.sql;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
@@ -7,7 +8,6 @@ import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
-import com.mysql.jdbc.Connection;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
 

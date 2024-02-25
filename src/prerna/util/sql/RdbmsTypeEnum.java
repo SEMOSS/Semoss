@@ -16,7 +16,7 @@ public enum RdbmsTypeEnum {
 	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver", "jdbc:impala"),
 	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver", "jdbc:redshift"),
 	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver", "jdbc:mariadb"),
-	MYSQL("MYSQL", "com.mysql.jdbc.Driver", "jdbc:mysql"),
+	MYSQL("MYSQL", "com.mysql.cj.jdbc.Driver", "jdbc:mysql"),
 	OPEN_SEARCH("OPEN_SEARCH", "org.opensearch.jdbc.Driver", "jdbc:opensearch"),
 	ORACLE("ORACLE", "oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin"),
 	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver", "jdbc:phoenix"),
