@@ -412,11 +412,12 @@
 			<artifactId>commons-beanutils</artifactId>
 			<version>1.9.4</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
 		<dependency>
-	        <groupId>com.zaxxer</groupId>
-	        <artifactId>HikariCP</artifactId>
-	        <version>3.4.5</version>
-	    </dependency>
+		    <groupId>com.zaxxer</groupId>
+		    <artifactId>HikariCP</artifactId>
+		    <version>4.0.3</version>
+		</dependency>
 		<!-- 
 		<dependency>
 			<groupId>org.apache.commons</groupId>
