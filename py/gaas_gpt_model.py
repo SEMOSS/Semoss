@@ -2,6 +2,8 @@ from typing import (
     List, 
     Optional, 
     Dict,
+    Union,
+    Type,
     Any
 )
 from abc import (
@@ -37,6 +39,11 @@ class AbstractModelEngine(ABC):
     def do_call(self, method_name:str, input: Any, **kwargs: Any) -> Any:
         '''This method is responsible for utilizing a specific tokenize function that is unique to that tokenize function'''
         pass
+    
+    @abstractmethod
+    def get_model_engine_id(self) -> str:
+        '''This method returns the model engine id of the `AbstractModelEngine` class. If the engine has not been set then it returns `None`.'''
+        pass
 
     
 class TomcatModelEngine(AbstractModelEngine, ServerProxy):
@@ -71,10 +78,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         insight_id: Optional[str] = None, 
         param_dict: Optional[Dict] = None
     ) -> Dict:
+
         if insight_id is None:
             insight_id = self.insight_id
-        # should I assert for insight_id as well I think I should
         assert insight_id is not None    
+        
         epoc = super().get_next_epoc()
         return super().call(
             epoc=epoc, 
@@ -122,6 +130,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if not self.local:
           if insight_id is None:
               insight_id = self.insight_id
+              
           #assert insight_id is not None
           
           epoc = super().get_next_epoc()
@@ -162,12 +171,16 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         self,
         method_name: str,
         input: Any,
-        **kwargs) -> Any:
-      call_maker = getattr(self, method_name, None) 
-      if call_maker is not None:
-        return call_maker(input, **kwargs)
-      else:
-        return None
+        **kwargs
+    ) -> Any:
+        call_maker = getattr(self, method_name, None) 
+        if call_maker is not None:
+            return call_maker(input, **kwargs)
+        else:
+            return None
+        
+    def get_model_engine_id(self) -> str:
+        return self.engine_id
         
       
 class LocalModelEngine(AbstractModelEngine):
@@ -177,7 +190,7 @@ class LocalModelEngine(AbstractModelEngine):
         model_engine: Any = None, 
         engine_id: Optional[str] = None,
         engine_smss_file_path: Optional[str] = None,
-        semoss_dev_path: Optional[str] = 'C:/users/pkapaleeswaran/workspacej3/SemossDev' if os.name == 'nt' else '/opt/semosshome',
+        semoss_dev_path: Optional[str] = 'C:/workspace/Semoss_Dev' if os.name == 'nt' else '/opt/semosshome',
     ):
 
         # determine how to create the model engine locally
@@ -201,8 +214,10 @@ class LocalModelEngine(AbstractModelEngine):
             exec(model_engine_init_command)
             
             self.local_model_engine = locals().get(smss_props['VAR_NAME'], None)
+            self.engine_id = smss_props.get('ENGINE', None)
         else:
             self.local_model_engine = model_engine
+            self.engine_id = None
             
         assert self.local_model_engine != None, "Unable to define a Local Model Engine based on the parameters passed in"
     
@@ -210,38 +225,42 @@ class LocalModelEngine(AbstractModelEngine):
         self, 
         **kwargs
     ) -> Dict:
-        return self.local_model_engine.ask(**kwargs)
+        return [self.local_model_engine.ask(**kwargs)]
   
     def embeddings(
         self, 
         **kwargs
     ) -> Dict:
-        return self.local_model_engine.embeddings(**kwargs)
+        return [self.local_model_engine.embeddings(**kwargs)]
     
     def model(
         self,
         **kwargs
     ):
-        return self.local_model_engine.model(**kwargs)
+        return [self.local_model_engine.model(**kwargs)]
 
     def get_model_type(
         self,
         **kwargs
     ):
         #TODO add model type in python as well
-        return None
+        return ['TEXT_GENERATION']
         
     def do_call(
         self,
         method_name: str,
         input: Any,
-        **kwargs) -> Any:
-      call_maker = getattr(self, method_name, None) 
-      if call_maker is not None:
-        return call_maker(input, **kwargs)
-      else:
-        return None
-
+        **kwargs
+    ) -> Any:
+        call_maker = getattr(self, method_name, None) 
+        if call_maker is not None:
+            return call_maker(input, **kwargs)
+        else:
+            return None
+        
+    def get_model_engine_id(self) -> str:
+        return self.engine_id
+        
     
     @staticmethod
     def get_model_smss_file(semoss_dev_file_path:str, engine_id:str) -> str:
@@ -339,5 +358,120 @@ class ModelEngine(AbstractModelEngine):
         self, 
         method_name:str, 
         input: Any, 
-        **kwargs: Any) -> Any:
-      return self.model_engine.embeddings(**kwargs)
+        **kwargs: Any
+    ) -> Any:
+        return self.model_engine.embeddings(**kwargs)
+    
+    def get_model_engine_id(self) -> str:
+        return self.model_engine.get_model_engine_id()
+    
+    def to_langchain_embedder(self):
+        '''Transform the model engine into a langchain `Embeddings`object so that it can be used with langchain code'''
+       
+        from langchain_core.embeddings import Embeddings
+        class CfgEmbeddingsEngine(Embeddings):
+            def __init__(self, modelEngine):
+                self.modelEngine = modelEngine
+
+            def embed_documents(self, texts: List[str]) -> List[List[float]]:
+                """Embed search docs."""
+                return self.modelEngine.embeddings(strings_to_embed=texts)[0]["response"]
+
+            def embed_query(self, text: str) -> List[float]:
+                return self.modelEngine.embeddings(strings_to_embed=[text])[0]["response"][0]
+            
+        return CfgEmbeddingsEngine(modelEngine=self)
+    
+    def to_langchain_chat_model(self):
+        '''Transform the model engine into a langchain `BaseChatModel` object so that it can be used with langchain code'''
+        from langchain_core.language_models.chat_models import BaseChatModel
+        from langchain_core.outputs import (
+            ChatGeneration,
+            ChatResult,
+        )
+        from langchain_core.messages import (
+            AIMessage,
+            BaseMessage,
+        )
+
+        class ChatCfgAI(BaseChatModel):
+            engine_id: str
+            model_engine: ModelEngine
+            model_type: str
+
+            def __init__(self, model_engine):
+                data = {
+                    "engine_id": model_engine.get_model_engine_id(),
+                    "model_engine": model_engine,
+                    "model_type": model_engine.get_model_type()[0],
+                }
+
+                super().__init__(**data)
+
+            class Config:
+                """Configuration for this pydantic object."""
+
+                allow_population_by_field_name = True
+
+            def _generate(
+                self,
+                messages: List[BaseMessage],
+                stop: Optional[List[str]] = None,
+                **kwargs: Any,
+            ) -> ChatResult:
+                """Top Level call"""
+                full_prompt = self.convert_messages_to_full_prompt(messages)
+                response = self.model_engine.ask(
+                    question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
+                )
+
+                return self._create_chat_result(response=response[0])
+
+            def _create_chat_result(self, response: Dict[str, Any]) -> ChatResult:
+                generations = []
+
+                message = response.pop("response", "")
+                generation_info = dict()
+                if "logprobs" in response.keys():
+                    generation_info["logprobs"] = response.pop("logprobs", {})
+                gen = ChatGeneration(
+                    message=AIMessage(content=message),
+                    generation_info=generation_info,
+                )
+
+                generations.append(gen)
+
+                return ChatResult(generations=generations, llm_output=response)
+
+            def convert_messages_to_full_prompt(
+                self,
+                messages: List[BaseMessage],
+            ) -> Union[Dict[str, Any], str]:
+                """Convert a LangChain message to a the correct response for a model.
+
+                Args:
+                    message: The LangChain message.
+
+                Returns:
+                    The `Dict` or `str` containing the message payload.
+                """
+
+                if self.model_type in ["OPEN_AI", "VERTEX"]:
+                    # assume this is a chat based openai model, otherwise why would you call this
+                    # class
+                    full_prompt: List[Dict[str, Any]]
+                    from langchain_community.adapters.openai import convert_message_to_dict
+
+                    full_prompt = [convert_message_to_dict(m) for m in messages]
+                    return full_prompt
+                else:
+                    full_prompt: str
+                    full_prompt = "\n".join([m.content for m in messages])
+                    return full_prompt
+
+            @property
+            def _llm_type(self) -> str:
+                """Return type of chat model."""
+                return "CFG AI"
+            
+        return ChatCfgAI(model_engine=self)
