@@ -16,18 +16,28 @@ from paddleocr.ppstructure.recovery.recovery_to_doc import sorted_layout_boxes, 
 import torch
 import numpy
 import json
+from transformers import pipeline 
 
 
 class TableUtil:
 
   def __init__(self, target_folder=None):
-    import gaas_gpt_model as ggm
-    self.structure_recognizer = ggm.ModelEngine(local=True, engine_id="microsoft/table-transformer-structure-recognition", pipeline_type="object-detection")
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    self.structure_recognizer = pipeline(
+        pipeline_type="object-detection", 
+        model="microsoft/table-transformer-structure-recognition", 
+        device=device
+    )
+    
     self.target_folder = target_folder
     self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
     
-    #self.detector = pipeline("object-detection", model="microsoft/table-transformer-detection", device=device)
-    self.detector = ggm.ModelEngine(pipeline_type="object-detection", engine_id="microsoft/table-transformer-detection", local=True)
+    self.detector = pipeline(
+        pipeline_type="object-detection", 
+        model="microsoft/table-transformer-detection", 
+        device=device
+    )
+    
     self.top = 50
     self.bottom = 90
     self.left = 40
@@ -62,7 +72,8 @@ class TableUtil:
     pil_image = result
     assert target_folder is not None
     
-    raw_output = self.structure_recognizer.model(pil_image)
+    raw_output = self.structure_recognizer(pil_image)
+    
     #print(raw_output)
     rows = [entry for entry in raw_output if entry['label'] == 'table row']
     columns = [entry for entry in raw_output if entry['label'] == 'table column']
@@ -252,7 +263,7 @@ class TableUtil:
   def is_table(self, table_image_file):
     # finds if this is a table
     # if so will also crop it
-    table_def = self.detector.model(table_image_file)
+    table_def = self.detector(table_image_file)
     #print(table_def)
     if table_def is not None and isinstance(table_def, list) and len(table_def) > 0:
       #print(f"{png_file} is a table")
