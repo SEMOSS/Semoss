@@ -13,6 +13,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -564,7 +566,17 @@ public class PyTranslator {
 			try {
 				// Start the error sender thread
 				if(this instanceof TCPPyTranslator && ((TCPPyTranslator)this).getSocketClient() instanceof NativePySocketClient) {
-					output = "" + runScript(script, insight);
+					Object pythonReturnObject = runScript(script, insight);
+					
+					if (pythonReturnObject instanceof String) {
+						output = (String) pythonReturnObject;
+					} else {
+						try {
+							output = new Gson().toJson(pythonReturnObject);
+						} catch (Exception e) {
+							output = pythonReturnObject + "";
+						}
+					}		
 				}
 				else
 				{
