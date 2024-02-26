@@ -10,7 +10,7 @@ import os
 import pandas as pd
 from dataclasses import dataclass, asdict
 
-import table_util
+from .table_util import TableUtil
 
 @dataclass
 class ExtractedItem:
@@ -69,7 +69,7 @@ class PDFUtil:
             self.target_folder = target_folder
         
         # load the microsoft object detection to check if it is a table
-        self.detector = table_util.TableUtil()
+        self.detector = TableUtil()
         # we do need a way to load gaas_gpt_model locally so that way we dont need to switch to remote later
 
         
