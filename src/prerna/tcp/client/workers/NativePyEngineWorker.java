@@ -160,47 +160,36 @@ public class NativePyEngineWorker implements Runnable {
 		output = ps;
 	}
 
-    public Method findEngineMethod(IEngine engine, String methodName, Class [] arguments)
-    {
+    public Method findEngineMethod(IEngine engine, String methodName, Class<?> [] arguments) throws NoSuchMethodException {
     	Method retMethod = null;
-    	
-    	// look for it in the child class if not parent class
-    	// we can even cache this later
-    	try {
-			if(arguments != null)
-			{
-				try
-				{
-					retMethod = engine.getClass().getDeclaredMethod(methodName, arguments);
-				}catch(Exception ex)
-				{
-					
-				}
-				if(retMethod == null)
-					retMethod = engine.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
-				
-			}
-			else
-			{
-				try
-				{
-					retMethod = engine.getClass().getDeclaredMethod(methodName);				
-				}catch(Exception ex)
-				{
-					
-				}
-				if(retMethod == null)
-					retMethod = engine.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
-			}
-			//LOGGER.info("Found the method " + retMethod);
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	return retMethod;
+        Class<?> currentClass = engine.getClass();
+
+        while (currentClass != null) {
+            try {
+                // Try to find the method in the current class
+                if (arguments != null) {
+                    retMethod = currentClass.getDeclaredMethod(methodName, arguments);
+                } else {
+                    retMethod = currentClass.getDeclaredMethod(methodName);
+                }
+                if (retMethod != null) {
+                    // If the method is found, break out of the loop
+                    break;
+                }
+            } catch (NoSuchMethodException e) {
+                // If the method is not found in the current class, continue with the superclass
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
+            // Move to the superclass for the next iteration
+            currentClass = currentClass.getSuperclass();
+        }
+        
+        if (retMethod == null) {
+        	throw new NoSuchMethodException("Unable to find method called " + methodName + " for engine type " + engine.getCatalogType().toString());
+        }
+
+        return retMethod;
     }
     
     private Map <String, Object> normalizeMap(Map <String, Object> input)
