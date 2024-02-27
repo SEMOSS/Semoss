@@ -69,7 +69,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(newProject.getProjectId());
 		File blocksJsonFile = new File(portalsFolder+"/"+IProject.BLOCK_FILE_NAME);
 		try {
-			GsonUtility.writeObjectToJsonFile(blocksJsonFile, new GsonBuilder().setPrettyPrinting().create(), json);
+			GsonUtility.writeObjectToJsonFile(blocksJsonFile, new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), json);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("New project was created but could not write the blocks json to the project folder. Errror = " + e.getMessage());
