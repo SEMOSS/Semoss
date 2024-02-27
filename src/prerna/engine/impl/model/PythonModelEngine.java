@@ -30,9 +30,9 @@ import prerna.util.Utility;
 
 
 /**
- * This class is responsible for creating a {@code ModelEngine} class that is directly linked to 
- * a python process. The corresponding python class should handle all of the method implementations. The class itself is 
- * simply a call forward mecahninsm so we can control everything in Java.
+ * This class is responsible for creating a {@code IModelEngine} class that is directly linked to 
+ * a python process. The corresponding python class should handle all method implementations. This java class is 
+ * simply mechanism to forward calls to the python process.
  */
 public class PythonModelEngine extends AbstractModelEngine {
 	

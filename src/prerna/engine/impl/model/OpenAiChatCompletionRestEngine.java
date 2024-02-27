@@ -1,5 +1,6 @@
 package prerna.engine.impl.model;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -80,16 +81,25 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		Map<String, Object> bodyMap = new HashMap<>();
 		bodyMap.put("model", this.modelName);
 		
-		boolean stream = Boolean.parseBoolean(parameters.get("stream") + "");
+		Object streamResponse = parameters.remove("stream");
+		boolean stream;
+		if (streamResponse == null) {
+			stream = true;
+		} else {
+			stream = Boolean.parseBoolean(streamResponse + "");
+		}
+		
 		bodyMap.put("stream", stream);
 		
 		bodyMap.putAll(this.adjustHyperParameters(parameters));
-				
+		
+		resetTimer();
 		if (parameters.containsKey("full_prompt")) {
 			// if you are using full_promot then the user is responsible for keeping history
 			bodyMap.put("messages", parameters.remove("full_prompt"));
 			IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, gson.toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null, stream, ChatCompletion.class, insightId);
 			Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
+			
 			
 			return AskModelEngineResponse.fromMap(modelEngineResponseMap);
 		} else {
@@ -585,5 +595,17 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		public String getContent() {
 			return this.content;
 		}
+	}
+	
+	@Override
+	public void close() throws IOException {
+		this.conversationHisotry.clear();
+		
+		super.close();
+	}
+
+	@Override
+	protected void resetAfterTimeout() {
+		this.conversationHisotry.clear();
 	}
 }
