@@ -127,12 +127,6 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public void startServer() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
