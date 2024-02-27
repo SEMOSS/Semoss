@@ -29,14 +29,7 @@ public interface IModelEngine extends IEngine {
 	 * @return the type of the database 
 	*/
 	ModelTypeEnum getModelType();
-	
-	/**
-	 * This initializes the model engine client based on the defined INIT SCRIPT. The process will remain alive for 15 minutes before
-	 * automatically shutting down. The client itself will be used as the gateway for all users inferencing with the model engine
-	 * @return
-	*/
-	void startServer();
-	
+		
 	/**
 	 * Passes the string question along with other parameters such as context and temperature to the python client and 
 	 * 
@@ -53,16 +46,23 @@ public interface IModelEngine extends IEngine {
 	
 
 	/**
-	 * Passes a string question to the model client to be encoded as a vector
+	 * Passes a list of strings to the model client to be embedded. Each string in the {@code stringsToEmbed} will be returned as its own vector.
 	 * 
-	 * @param question		The string that needs to be encoded
-	 * @param insight		The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
-	 * @param parameters	Additional parameters such as temperature, top_k, max_new_tokens etc
-	 * @return	an encoded object based on how the LLM encodes strings
+	 * @param stringsToEmbed	The string that needs to be encoded
+	 * @param insight			The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
+	 * @param parameters		Additional parameters such as temperature, top_k, max_new_tokens etc
+	 * @return					A list of embeddings
 	 */
 	EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
 
+	/**
+	 * Passes a list of strings to the model client to be embedded. Each string in the {@code stringsToEmbed} will be returned as its own vector.
+	 * 
+	 * @param input				An input object to be sent to the ModelEngine. The input object should be serializable.
+	 * @param insight			The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
+	 * @param parameters		Additional parameters
+	 * @return					The output from the Model Engines model method
+	 */
 	Object model(Object input, Insight insight, Map <String, Object> parameters);
-
 }

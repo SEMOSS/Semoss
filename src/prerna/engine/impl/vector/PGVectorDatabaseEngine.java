@@ -57,9 +57,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
 
+	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
+
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');import vector_database;";
 
@@ -78,7 +79,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	// python server
 	private String pyDirectoryBasePath;
-	TCPPyTranslator pyt = null;
+	private TCPPyTranslator pyt = null;
 	private File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
