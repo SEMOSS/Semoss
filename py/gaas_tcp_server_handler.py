@@ -2,7 +2,8 @@ from typing import (
     Dict,
     List,
     Any,
-    Optional
+    Optional,
+    Tuple
 )
 
 import socket
@@ -411,7 +412,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     def handle_python(self, payload, command):
         is_exception = False
         print(f"Executing command {command.encode('utf-8')}")
-        # old smss calls
 
         # set the payload coming in
         self.console.set_payload(payload=payload)
@@ -432,23 +432,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             else:
                 # same trick - try to eval if it fails run as exec
                 globals()["core_server"] = self
-                try:
-                    output = eval(command, globals())
-                except Exception as e:
-                    try:
-                        output = exec(command, globals())
-                    except Exception as last_exec_error:
-                        traceback = sys.exc_info()[2]
-                        full_trace = ["Traceback (most recent call last):\n"]
-                        full_trace = (
-                            full_trace
-                            + tb.format_tb(traceback)[1:]
-                            + tb.format_exception_only(
-                                type(last_exec_error), last_exec_error
-                            )
-                        )
-                        output = "".join(full_trace)
-                        is_exception = True
+                
+                output, is_exception = self.execute_and_capture(command)
 
             self.send_output(
                 output if type(output) is not type(None) else "\"\"",
@@ -457,6 +442,61 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 response=True,
                 exception=is_exception,
             )
+            
+    def execute_and_capture(self, code) -> Tuple[str, bool]:
+        """
+        Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
+        
+        If an exception occures then it will return and exception flag and the traceback string.
+
+        Args:
+            code (`str`): The Python code to be executed.
+
+        Returns:
+            `Tuple[str, Any]`: A tuple containing the captured print statements and the result of the last expression. The first element is a string capturing any output from print statements, and the second element can be of any type, representing the result of the last expression executed. If the last line is not an expression or doesn't produce a result, the second element will be None.
+        """
+        
+        try:
+            try:
+                # Split the code into lines
+                lines = code.strip().split('\n')
+                last_line = lines[-1] if lines else ""
+                preceding_lines = lines[:-1]
+                
+                # Create a string to hold preceding lines of code
+                preceding_code = '\n'.join(preceding_lines)
+                
+                # Execute preceding lines
+                if preceding_code:
+                    exec(preceding_code, globals())
+                        
+                # Evaluate last line (if not empty) and capture the output
+                last_line_output = "\"\""
+                if last_line:
+                    try:
+                        last_line_output = eval(last_line, globals())
+                    except:
+                        # Fallback to exec if eval fails, indicating it's not an expression
+                        exec(last_line, globals())
+                
+                return last_line_output, False
+            except Exception:
+                # we failed so try run all the code as is 
+                exec(code)
+                return "\"\"", False
+        except Exception as e:
+            # if we fail all attempts then send back the traceback
+            traceback = sys.exc_info()[2]
+            full_trace = ["Traceback (most recent call last):\n"]
+            full_trace = (
+                full_trace
+                + tb.format_tb(traceback)[1:]
+                + tb.format_exception_only(
+                    type(e), e
+                )
+            )
+            
+            return "".join(full_trace), True
 
     def handle_response(self, payload):
         # print("In the response block")
