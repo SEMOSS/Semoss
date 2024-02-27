@@ -37,12 +37,13 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 	private static final Logger classLogger = LogManager.getLogger(OpenAiChatCompletionRestEngine.class);
 
 	private static final String ENDPOINT = "ENDPOINT";
-	private static final String OPENAI_API_KEY = "OPENAI_API_KEY";
-	
+	private static final String PROVIDER = "PROVIDER";
+
 	private String endpoint;
 	private String openAiApiKey;
 	private String modelName;
 	private Map<String, String> headersMap;
+	private String provider="openai";
 	
 	private Map<String, ConversationChain> conversationHisotry = new Hashtable<>();
 	
@@ -59,9 +60,9 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			throw new IllegalArgumentException("This model requires a valid value for " + ENDPOINT);
 		}
 		
-		this.openAiApiKey = this.smssProp.getProperty(OPENAI_API_KEY);
+		this.openAiApiKey = this.smssProp.getProperty(ModelEngineConstants.OPEN_AI_KEY);
 		if(this.openAiApiKey == null || (this.openAiApiKey=this.openAiApiKey.trim()).isEmpty()) {
-			throw new IllegalArgumentException("This model requires a valid value for " + OPENAI_API_KEY);
+			throw new IllegalArgumentException("This model requires a valid value for " + ModelEngineConstants.OPEN_AI_KEY);
 		}
 		
 		this.modelName = this.smssProp.getProperty(Constants.MODEL);
@@ -69,8 +70,20 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			throw new IllegalArgumentException("This model requires a valid value for " + Constants.MODEL);
 		}
 		
-		this.headersMap = new HashMap<>();
-		this.headersMap.put("Authorization", "Bearer " + this.openAiApiKey);
+		if(this.smssProp.getProperty(PROVIDER) != null && !(this.smssProp.getProperty(PROVIDER).trim().isEmpty())) {
+			this.provider=this.smssProp.getProperty(PROVIDER);
+		}
+		
+		if(this.endpoint.contains("azure.com")||this.provider.equalsIgnoreCase("AZURE")) {
+			this.headersMap = new HashMap<>();
+			this.headersMap.put("api-key", this.openAiApiKey);
+			this.headersMap.put("Content-Type","application/json");
+
+		} else {
+			this.headersMap = new HashMap<>();
+			this.headersMap.put("Authorization", "Bearer " + this.openAiApiKey);
+		}
+
 	}
 	
 	@Override
