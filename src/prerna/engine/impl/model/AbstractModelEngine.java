@@ -40,6 +40,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	private boolean keepConversationHistory = false;
 	private boolean keepInputOutput = false;
 	
+	private boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+	
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
@@ -77,7 +79,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		askModelResponse.setMessageId(UUID.randomUUID().toString());
 		askModelResponse.setRoomId(insight.getInsightId());
 		
-		if (Utility.isModelInferenceLogsEnabled()) {
+		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					askModelResponse.getMessageId(), 
 					"ask", 
@@ -120,7 +122,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 
 		classLogger.info("Embeddings Received from engine " + this.engineId);
 	
-		if (Utility.isModelInferenceLogsEnabled()) {
+		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					messageId, 
@@ -157,7 +159,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		Object modelCallResponse = modelCall(input, insight, parameters);
 		LocalDateTime outputTime = LocalDateTime.now();
 	
-		if (Utility.isModelInferenceLogsEnabled()) {
+		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					messageId,
