@@ -4,6 +4,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -27,9 +32,39 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RESTModelEngine.class);
 	
+	protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private ScheduledFuture<?> scheduledFuture = null; 											// Holds the future of the scheduled task
+	protected Runnable timeoutAction = this::resetAfterTimeout;
+	private long timeoutDelay;																	// Delay after which the timeoutMethod is called
+
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		
+		String timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT, "30");
+		timeoutDelay = Long.parseLong(timeout);
+	}
+	
+	/**
+	 * This method is responsible for resetting the timeout window between REST calls.
+	 */
+	protected synchronized void resetTimer() {
+		if (scheduledFuture != null && !scheduledFuture.isDone()) {
+            scheduledFuture.cancel(false);
+        }
+		
+		scheduledFuture = scheduler.schedule(timeoutAction, timeoutDelay, TimeUnit.MINUTES);
+    }
+	
+	/**
+	 * This method defined what should happen when the timeout is reached. 
+	 * Currently this is an abstract method until conversation history / chains are standardized.
+	 */
+	protected abstract void resetAfterTimeout();
+	    
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
+		scheduler.shutdownNow();
 	}
 	
 	protected IModelEngineResponseHandler postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass, boolean isStream, Class<? extends IModelEngineResponseHandler> responseType, String insightId) {
