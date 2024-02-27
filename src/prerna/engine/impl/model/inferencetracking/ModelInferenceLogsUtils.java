@@ -495,6 +495,12 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
+
+		qs.addRelation("MESSAGE__MESSAGE_ID", "FEEDBACK__MESSAGE_ID", "left.join");
+		qs.addRelation("MESSAGE__MESSAGE_TYPE", "FEEDBACK__MESSAGE_TYPE", "left.join");
+		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
