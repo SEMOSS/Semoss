@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -21,7 +22,7 @@ import prerna.util.Constants;
 
 public interface ICache {
 	
-	static final Logger logger = LogManager.getLogger(ICache.class);
+	static final Logger classLogger = LogManager.getLogger(ICache.class);
 
 	String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();;
 	
@@ -48,13 +49,13 @@ public interface ICache {
 			String data = gson.toJson(vec);
 			os = new FileOutputStream(new File(filePath));
 			// write the JSON string into the file
-			IOUtils.write(data, os);
+			IOUtils.write(data, os, Charset.forName("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			// close the streams
 			try {
@@ -62,7 +63,7 @@ public interface ICache {
 					os.close();
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -85,9 +86,9 @@ public interface ICache {
 	            return retData;
         	}
         } catch (FileNotFoundException e) {
-            logger.error(Constants.STACKTRACE, e);
+        	classLogger.error(Constants.STACKTRACE, e);
         } catch (IOException e) {
-            logger.error(Constants.STACKTRACE, e);
+        	classLogger.error(Constants.STACKTRACE, e);
         } finally {
         	// close the readers
         	try {
@@ -98,7 +99,7 @@ public interface ICache {
 					is.close();
 	        	}
         	} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+        		classLogger.error(Constants.STACKTRACE, e);
 			}
         }
 
@@ -110,14 +111,8 @@ public interface ICache {
 	 * @param folderLocation	The location of the folder
 	 */
 	static void deleteFolder(String folderLocation) {
-		File basefolder = new File(folderLocation);
-		if(basefolder.isDirectory()) {
-			try {
-				FileUtils.forceDelete(basefolder);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
+		File folder = new File(folderLocation);
+		deleteFolder(folder);
 	}
 	
 	/**
@@ -125,11 +120,11 @@ public interface ICache {
 	 * @param folderLocation	The location of the folder
 	 */
 	static void deleteFolder(File folder) {
-		if(folder.isDirectory()) {
+		if(folder.exists() && folder.isDirectory()) {
 			try {
 				FileUtils.forceDelete(folder);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -139,11 +134,11 @@ public interface ICache {
 	 * @param file				The File object to delete
 	 */
 	static void deleteFile(File file) {
-		if(file.isFile()) {
+		if(file.exists() && file.isFile()) {
 			try {
 				FileUtils.forceDelete(file);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
