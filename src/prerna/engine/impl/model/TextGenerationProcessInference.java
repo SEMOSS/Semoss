@@ -82,7 +82,10 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 				cacheFolder.mkdir();
 			
 			// vars for string substitution
-			vars = new HashMap<>(smssProp);
+			for (Object smssKey : this.smssProp.keySet()) {
+				String key = smssKey.toString();
+				this.vars.put(key, this.smssProp.getProperty(key));
+			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Unable to load model details from the SMSS file");
@@ -91,7 +94,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 	
 
 	@Override
-	public void startServer() {
+	public void startServer(int port) {
 		List<String> command = new ArrayList<>();
 		if (this.launchArguments.containsKey(Constants.GPU_ID)) {
     		command.add(possibleInputs.get(Constants.GPU_ID) + "=" + this.launchArguments.get(Constants.GPU_ID));
@@ -138,7 +141,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
         	classLogger.error(Constants.STACKTRACE, e);
 		}
         
-        super.startServer();
+        super.startServer(-1);
 	}
 	
 	@Override
