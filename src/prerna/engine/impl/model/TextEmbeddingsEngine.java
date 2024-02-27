@@ -95,4 +95,9 @@ public class TextEmbeddingsEngine extends RESTModelEngine {
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.TEXT_EMBEDDINGS;
 	}
+
+	@Override
+	protected void resetAfterTimeout() {
+		// nothing to reset currently
+	}
 }
