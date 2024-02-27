@@ -95,7 +95,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	protected String fillVars(String input) {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);

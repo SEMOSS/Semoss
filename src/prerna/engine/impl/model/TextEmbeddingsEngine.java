@@ -1,12 +1,10 @@
 package prerna.engine.impl.model;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -16,15 +14,13 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
-public class TextEmbeddingsEngine extends AbstractModelEngine {
+public class TextEmbeddingsEngine extends RESTModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(TextEmbeddingsEngine.class);
 
@@ -58,18 +54,7 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	public Map<String, Object> askQuestion(String question, String context, Insight insight,
-			Map<String, Object> parameters) {
-		HashMap<String, Object> response = new HashMap<String, Object>();
-		response.put(AbstractModelEngineResponse.RESPONSE, "This model does not support text generation.");
-		response.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, 0.0);
-		response.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, 0.0);
-		
-		return response;
-	}
-
-	@Override
-	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters) {
+	public EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEncode, Insight insight, Map <String, Object> parameters) {
 		List<List<Double>> embeddings = new ArrayList<>();
 		
 		List<List<String>> sentenceSublists = new ArrayList<>();
@@ -79,10 +64,7 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 		    List<String> sublist = stringsToEncode.subList(i, endIndex);
 		    sentenceSublists.add(sublist);
 		}
-		
-		classLogger.info("Making embeddings call on engine " + this.engineId);
-		
-		LocalDateTime inputTime = LocalDateTime.now();
+				
 		for(List<String> sublist : sentenceSublists) {
 			Map<String, Object> bodyMap = new HashMap<>();
 			bodyMap.put("inputs", sublist);
@@ -92,34 +74,22 @@ public class TextEmbeddingsEngine extends AbstractModelEngine {
 			List<List<Double>> outputParsed = new Gson().fromJson(output, new TypeToken<List<List<Double>>>() {}.getType());
 			embeddings.addAll(outputParsed);
 		}
-		LocalDateTime outputTime = LocalDateTime.now();
-		
-		classLogger.info("Embeddings Received from engine " + this.engineId);
 		
 		
 		EmbeddingsModelEngineResponse embeddingsResponse = new EmbeddingsModelEngineResponse(embeddings, 0, 0);
-		
-		if (Utility.isModelInferenceLogsEnabled()) {
-			String messageId = UUID.randomUUID().toString();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					messageId, 
-					"embeddings", 
-					this, 
-					insight, 
-					null,
-					"",
-					embeddingsResponse.getNumberOfTokensInPrompt(),
-					inputTime, 
-					"",
-					embeddingsResponse.getNumberOfTokensInResponse(),
-					outputTime
-			));
-			inferenceRecorder.start();
-		}
 
 		return embeddingsResponse;
 	}
 	
+	@Override
+	protected AskModelEngineResponse askCall(String question, String context, Insight insight, Map<String, Object> parameters) {
+		return new AskModelEngineResponse("This model does not support text generation.", 0, 0);
+	}
+
+	@Override
+	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
+		return "This model does have an model method defined.";
+	}
 	
 	@Override
 	public ModelTypeEnum getModelType() {
