@@ -20,7 +20,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.annotations.Expose;
 
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
@@ -30,24 +33,30 @@ import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 	
 	//TODO decide what we want logged
 	private static final Logger classLogger = LogManager.getLogger(OpenAiChatCompletionRestEngine.class);
 
-	private static final String ENDPOINT = "ENDPOINT";
 	private static final String PROVIDER = "PROVIDER";
 
+	private static final String tokenizerImportScript = "from genai_client import OpenAiTokenizer";
+	private static final Integer TOKENS_PER_MESSAGE = 3;
+	
 	private String endpoint;
 	private String openAiApiKey;
 	private String modelName;
+	private Integer maxTokens = null;
 	private Map<String, String> headersMap;
 	private String provider="openai";
+	
 	
 	private Map<String, ConversationChain> conversationHisotry = new Hashtable<>();
 	
 	Gson gson = new GsonBuilder()
+			.excludeFieldsWithoutExposeAnnotation()
 		    .registerTypeAdapter(ConversationChain.class, new ConversationChainSerializer())
 		    .create();
 	
@@ -70,20 +79,23 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			throw new IllegalArgumentException("This model requires a valid value for " + Constants.MODEL);
 		}
 		
+		String maxTokens = this.smssProp.getProperty(Constants.MAX_TOKENS);
+		if (maxTokens == null) {
+			throw new IllegalArgumentException("Please define the models max tokens with " + Constants.MAX_TOKENS);
+		}
+		
 		if(this.smssProp.getProperty(PROVIDER) != null && !(this.smssProp.getProperty(PROVIDER).trim().isEmpty())) {
 			this.provider=this.smssProp.getProperty(PROVIDER);
 		}
 		
-		if(this.endpoint.contains("azure.com")||this.provider.equalsIgnoreCase("AZURE")) {
+		if(this.endpoint.contains("azure.com") || this.provider.equalsIgnoreCase("AZURE")) {
 			this.headersMap = new HashMap<>();
 			this.headersMap.put("api-key", this.openAiApiKey);
 			this.headersMap.put("Content-Type","application/json");
-
 		} else {
 			this.headersMap = new HashMap<>();
 			this.headersMap.put("Authorization", "Bearer " + this.openAiApiKey);
 		}
-
 	}
 	
 	@Override
@@ -104,7 +116,8 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		
 		bodyMap.put("stream", stream);
 		
-		bodyMap.putAll(this.adjustHyperParameters(parameters));
+		parameters = this.adjustHyperParameters(parameters);
+		bodyMap.putAll(parameters);
 		
 		resetTimer();
 		if (parameters.containsKey("full_prompt")) {
@@ -113,24 +126,66 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, gson.toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null, stream, ChatCompletion.class, insightId);
 			Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
 			
-			
 			return AskModelEngineResponse.fromMap(modelEngineResponseMap);
 		} else {
-			ConversationChain messages = createMessageList(question, context, insight.getUserId(), insightId);
+			ConversationChain messages = createMessageList(question, context, insight);
 			bodyMap.put("messages", messages);
+			
+			if (messages.getTotalTokenCount() >= this.maxTokens) {
+				// need to shift the message window
+				
+				Integer tokenCounter = this.maxTokens;
+				
+				// substract the context tokens
+				tokenCounter -= messages.contentTokenCount;
+
+				if (parameters.containsKey("max_tokens")) {
+					tokenCounter -= (Integer) parameters.get("max_tokens");
+				}
+								
+				List<ChatCompletionMessage> messageChain = messages.getMessages();
+				for (int i = messageChain.size() - 1; i >= 0; i--) {
+					
+					ChatCompletionMessage message = messageChain.get(i);
+					
+					if (tokenCounter - message.getTokenCount() >= 0) {
+				        tokenCounter -= message.getTokenCount(); // Decrement tokenCounter by the message's token count
+				    } else {
+				        // Truncate the list from i + 1 to the end of the list
+				        if (i + 1 < messageChain.size()) { 
+				        	
+				        	// remove the past tokens from the token count
+				        	Integer tokensToRemoveFromCount = 0;
+				        	for (int j = 0; j <= i; j++) {
+				        		tokensToRemoveFromCount += messageChain.get(j).getTokenCount();
+				        	}
+				        	
+				        	messages.setMessagesTokenCount(messages.getMessagesTokenCount() - tokensToRemoveFromCount);
+				        	
+				        	// clear the previous messages
+				        	messageChain.subList(0, i + 1).clear();
+				        }
+				        break;
+				    }				
+				}
+			}
 			
 			IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, gson.toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null, stream, ChatCompletion.class, insightId);
 			Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
 			
 			AskModelEngineResponse askResponse = AskModelEngineResponse.fromMap(modelEngineResponseMap);
 			
-			messages.addModelResponse(askResponse.getResponse());
+			Integer tokens = getCountTokenScript(insight.getPyTranslator(), messages.getTokenizerVarName(), askResponse.getResponse());
+			messages.addModelResponse(askResponse.getResponse(), tokens);
 			
 			return askResponse;
 		}
 	}
 	
-	private ConversationChain createMessageList(String question, String context, String userId, String insightId) {
+	private ConversationChain createMessageList(String question, String context, Insight insight) {
+		
+		String insightId = insight.getInsightId();
+		
 		ConversationChain conversationChain;
 		if (this.keepsConversationHistory()){
 			// are we keeping track of converation history
@@ -141,16 +196,35 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 				// otherwise, create a new chain
 				conversationChain = new ConversationChain();
 				
+				String tokenizerVarName = Utility.getRandomString(6);
+				conversationChain.setTokenizerVarName(tokenizerVarName);
+				
+				// add the model tokenizer to users py process
+				insight.getPyTranslator().runScript(tokenizerImportScript);
+				
+				StringBuilder createVarScript = new StringBuilder(tokenizerVarName);
+				createVarScript.append(" = ")
+							   .append("OpenAiTokenizer('")
+							   .append(this.modelName)
+							   .append("', ")
+							   .append(this.maxTokens)
+							   .append(")");
+				
+				insight.getPyTranslator().runScript(createVarScript.toString());
+				
 				// look in the logs to determine if this is a past session we need to persist
 				if (this.keepInputOutput()) {
-					List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, insightId, "ASC");
+					List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(insight.getUserId(), insightId, "ASC");
 					for (Map<String, Object> record : convoHistoryFromDb) {
 						
 						Object messageData = record.get("MESSAGE_DATA");
+						String message = messageData+"";
 						if (record.get("MESSAGE_TYPE").equals("RESPONSE")) {
-							conversationChain.addModelResponse(messageData+"");    
+							Integer tokens = getCountTokenScript(insight.getPyTranslator(), conversationChain.getTokenizerVarName(), message);
+							conversationChain.addModelResponse(message, tokens);    
 						} else {
-							conversationChain.addUserInput(messageData+"");
+							Integer tokens = getCountTokenScript(insight.getPyTranslator(), conversationChain.getTokenizerVarName(), message);
+							conversationChain.addUserInput(message, tokens);
 						}
 					}
 				}
@@ -162,12 +236,35 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		}
 				
 		if (context != null) {
-			conversationChain.setContext(context);
+			Integer tokens = getCountTokenScript(insight.getPyTranslator(), conversationChain.getTokenizerVarName(), context);
+			conversationChain.setContext(context, tokens);
 		}
 		
-		conversationChain.addUserInput(question);
+		Integer tokens = getCountTokenScript(insight.getPyTranslator(), conversationChain.getTokenizerVarName(), question);
+		conversationChain.addUserInput(question, tokens);
 		
 		return conversationChain;
+	}
+	
+	private Integer getCountTokenScript(PyTranslator pyt, String tokenizerVarName, String message) {
+		StringBuilder countTokenScript = new StringBuilder(tokenizerVarName);
+		countTokenScript.append(".count_tokens(")
+					    .append(PyUtils.determineStringType(message))
+					    .append(")");
+		
+		Object numTokens = pyt.runScript(countTokenScript.toString());
+		
+		if (numTokens instanceof Integer) {
+			return (Integer) numTokens;
+		} else if (numTokens instanceof Long) {
+			return ((Long) numTokens).intValue();
+		} else if (numTokens instanceof Double) {
+			return ((Double) numTokens).intValue();
+		} else if (numTokens instanceof String){
+			return Integer.valueOf((String) numTokens);
+		} else {
+			return null;
+		}
 	}
 	
 	private Map<String, Object> adjustHyperParameters(Map<String, Object> hyperParameters) {
@@ -522,32 +619,54 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 	}
 	
 	private class ConversationChain {
-		private Integer tokenCount = 0;
-		private ChatCompletionMessage context = new ChatCompletionMessage("system", "You are a helpful assistant.");;
+		
+		private String tokenizerVarName;
+		private Integer contentTokenCount = 6 + TOKENS_PER_MESSAGE;
+		private Integer messagesTokenCount = 0;
+		
+		@Expose
+		private ChatCompletionMessage context = new ChatCompletionMessage("system", "You are a helpful assistant.", 6 + TOKENS_PER_MESSAGE);;
+		
+		@Expose
 		private List<ChatCompletionMessage> messages = new ArrayList<>();
 		
 		public ConversationChain() {
 			
 		}
 		
-		public void setContext(String context) {
-			this.context = new ChatCompletionMessage("system", context);
+		public void setTokenizerVarName(String tokenizerVarName) {
+			this.tokenizerVarName = tokenizerVarName;
 		}
 		
-		public ChatCompletionMessage getContext() {
-			return this.context;
+		public String getTokenizerVarName() {
+			return this.tokenizerVarName;
 		}
 		
-		public void addTokens(Integer numberOfTokens) {
-			this.tokenCount += numberOfTokens;
+		public void setContext(String context, Integer contentTokenCount) {
+			this.context = new ChatCompletionMessage("system", context, contentTokenCount + TOKENS_PER_MESSAGE);
+			this.contentTokenCount = contentTokenCount + TOKENS_PER_MESSAGE;
 		}
 		
-		public void addUserInput(String content) {
-			this.messages.add(new ChatCompletionMessage("user", content));
+		public Integer getTotalTokenCount() {
+			return this.contentTokenCount + this.messagesTokenCount + TOKENS_PER_MESSAGE;
 		}
 		
-		public void addModelResponse(String content) {
-			this.messages.add(new ChatCompletionMessage("assistant", content));
+		public Integer getMessagesTokenCount() {
+			return this.messagesTokenCount;
+		}
+		
+		public void setMessagesTokenCount(Integer messagesTokenCount) {
+			this.messagesTokenCount = messagesTokenCount;
+		}
+		
+		public void addUserInput(String content, Integer tokens) {
+			this.messages.add(new ChatCompletionMessage("user", content, tokens + TOKENS_PER_MESSAGE));
+			this.messagesTokenCount += tokens + TOKENS_PER_MESSAGE;
+		}
+		
+		public void addModelResponse(String content, Integer tokens) {
+			this.messages.add(new ChatCompletionMessage("assistant", content, tokens + TOKENS_PER_MESSAGE));
+			this.messagesTokenCount += tokens + TOKENS_PER_MESSAGE;
 		}
 		
 		public List<ChatCompletionMessage> getMessages(){
@@ -581,16 +700,21 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 	
 	private class ChatCompletionMessage implements Serializable {
 		
+		@Expose
 		private String role;
+		@Expose
 		private String content;
+		
+		private Integer tokensCount;
 		
 		public ChatCompletionMessage() {
 			
 		}
 		
-		public ChatCompletionMessage(String role, String content) {
+		public ChatCompletionMessage(String role, String content, Integer tokensCount) {
 			this.role = role;
 			this.content = content;
+			this.tokensCount = tokensCount;
 		}
 	
 		public void setRole(String role) {
@@ -607,6 +731,14 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		
 		public String getContent() {
 			return this.content;
+		}
+		
+		public Integer getTokenCount() {
+			return this.tokensCount;
+		}
+		
+		public void setTokenCount(Integer tokensCount) {
+			this.tokensCount = tokensCount;
 		}
 	}
 	
