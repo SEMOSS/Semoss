@@ -80,8 +80,14 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		}
 		
 		String maxTokens = this.smssProp.getProperty(Constants.MAX_TOKENS);
-		if (maxTokens == null) {
+		if (maxTokens == null || (maxTokens=maxTokens.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Please define the models max tokens with " + Constants.MAX_TOKENS);
+		}
+		
+		try {
+		    this.maxTokens = Integer.parseInt(maxTokens);
+		} catch (NumberFormatException e) {
+		    throw new IllegalArgumentException("Invalid format for " + Constants.MAX_TOKENS + ". It should be an integer.");
 		}
 		
 		if(this.smssProp.getProperty(PROVIDER) != null && !(this.smssProp.getProperty(PROVIDER).trim().isEmpty())) {
