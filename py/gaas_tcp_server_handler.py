@@ -482,8 +482,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 return last_line_output, False
             except Exception:
                 # we failed so try run all the code as is 
-                exec(code)
-                return "\"\"", False
+                try:
+                    return eval(code), False
+                except:
+                    exec(code)
+                    return "\"\"", False
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
