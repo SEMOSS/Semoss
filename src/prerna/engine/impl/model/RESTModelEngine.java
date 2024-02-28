@@ -32,17 +32,18 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RESTModelEngine.class);
 	
-	protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private ScheduledFuture<?> scheduledFuture = null; 											// Holds the future of the scheduled task
+	protected ScheduledExecutorService scheduler;
+    private ScheduledFuture<?> scheduledFuture = null; 				// Holds the future of the scheduled task
 	protected Runnable timeoutAction = this::resetAfterTimeout;
-	private long timeoutDelay;																	// Delay after which the timeoutMethod is called
+	private long timeoutDelay;										// Delay after which the timeoutMethod is called
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		
 		String timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT, "30");
-		timeoutDelay = Long.parseLong(timeout);
+		this.timeoutDelay = Long.parseLong(timeout);
+		this.scheduler = Executors.newScheduledThreadPool(1);
 	}
 	
 	/**
@@ -64,7 +65,7 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 	    
 	@Override
 	public void close() throws IOException {
-		scheduler.shutdownNow();
+		this.scheduler.shutdown();
 	}
 	
 	protected IModelEngineResponseHandler postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass, boolean isStream, Class<? extends IModelEngineResponseHandler> responseType, String insightId) {
