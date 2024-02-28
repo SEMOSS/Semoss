@@ -187,37 +187,74 @@ public class PythonModelEngine extends AbstractModelEngine {
 	@Override
 	public AskModelEngineResponse askCall(String question, String context, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
-				
-		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question=\"\"\"").append(question.replace("\"", "\\\"")).append("\"\"\"");
+		
+		boolean keepConvoHisotry = this.keepsConversationHistory();
+		
+		StringBuilder callMaker = new StringBuilder(varName);
+						
+		callMaker.append(".ask(");
+		callMaker.append("question=\"\"\"")
+				 .append(question.replace("\"", "\\\""))
+				 .append("\"\"\"");
+		
 		if(context != null) {
-			callMaker.append(",").append("context=\"\"\"").append(context.replace("\"", "\\\"")).append("\"\"\"");	
+			callMaker.append(",")
+					 .append("context=\"\"\"")
+					 .append(context.replace("\"", "\\\""))
+					 .append("\"\"\"");	
 		}
 		
-		if (Utility.isModelInferenceLogsEnabled() && !parameters.containsKey("full_prompt")) { // have to check that inference logs are enabled so that query works
-			String history = getConversationHistory(insight.getUserId(), insight.getInsightId());
-			if(history != null) //could still be null if its the first question in the convo
-				callMaker.append(",").append("history=").append(history);
+		if (!parameters.containsKey("full_prompt")) {
+			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
+			if(history != null) {
+				//could still be null if its the first question in the convo
+				callMaker.append(",")
+						 .append("history=")
+						 .append(history);
+			}
 		}
 		
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();
 			while(paramKeys.hasNext()) {
 				String key = paramKeys.next();
-				callMaker.append(",").append(key).append("=");
 				Object value = parameters.get(key);
-				callMaker.append(PyUtils.determineStringType(value));
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
 			}
 		}
 		
 		if(this.prefix != null) {
-			callMaker.append(", prefix='").append(prefix).append("'");
+			callMaker.append(", prefix='")
+			 		 .append(prefix)
+			 		 .append("'");
 		}
+		
 		callMaker.append(")");
+		
 		classLogger.info("Running >>>" + callMaker.toString());
+		
 		Object output = pyt.runScript(callMaker.toString(), insight);
+		
+		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
+		
+		if (keepConvoHisotry) {
+			Map<String, Object> inputMap = new HashMap<String, Object>();
+			Map<String, Object> outputMap = new HashMap<String, Object>();
+			inputMap.put(ModelEngineConstants.ROLE, "user");
+			inputMap.put(ModelEngineConstants.MESSAGE_CONTENT, question);
+			outputMap.put(ModelEngineConstants.ROLE, "assistant");
+			outputMap.put(ModelEngineConstants.MESSAGE_CONTENT, response.getResponse());
+	        
+			if (chatHistory.containsKey(insight.getInsightId())) {
+		        chatHistory.get(insight.getInsightId()).add(inputMap);
+		        chatHistory.get(insight.getInsightId()).add(outputMap);
+			}
+		}
 
-		return AskModelEngineResponse.fromObject(output);
+		return response;
 	}
 	
 
@@ -330,8 +367,8 @@ public class PythonModelEngine extends AbstractModelEngine {
 		return null;
 	}
 	
-	protected String getConversationHistory(String userId, String insightId){
-		if (this.keepsConversationHistory()){
+	protected String getConversationHistory(String userId, String insightId, boolean keepConvoHisotry){
+		if (keepConvoHisotry){
 			if (chatHistory.containsKey(insightId)) {
 				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
 				StringBuilder convoList = new StringBuilder("[");
@@ -352,7 +389,12 @@ public class PythonModelEngine extends AbstractModelEngine {
 				// we want to start a conversation
 				ArrayList<Map<String, Object>> userNewChat = new ArrayList<Map<String, Object>>();
 				chatHistory.put(insightId, userNewChat);
-				String dbConversation = getConversationHistoryFromInferenceLogs(insightId, userId);
+				
+				String dbConversation = null;
+				if (Utility.isModelInferenceLogsEnabled()) {
+					dbConversation = getConversationHistoryFromInferenceLogs(insightId, userId);
+				}
+
 				return dbConversation;
 			}
 		}
