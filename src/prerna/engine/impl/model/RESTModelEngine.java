@@ -32,6 +32,8 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RESTModelEngine.class);
 	
+	protected static final String ENDPOINT = "ENDPOINT";
+	
 	protected ScheduledExecutorService scheduler;
     private ScheduledFuture<?> scheduledFuture = null; 				// Holds the future of the scheduled task
 	protected Runnable timeoutAction = this::resetAfterTimeout;
