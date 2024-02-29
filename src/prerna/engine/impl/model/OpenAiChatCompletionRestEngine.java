@@ -122,13 +122,14 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		
 		bodyMap.put("stream", stream);
 		
+		Object fullPrompt = parameters.remove("full_prompt");
 		parameters = this.adjustHyperParameters(parameters);
 		bodyMap.putAll(parameters);
 		
 		resetTimer();
-		if (parameters.containsKey("full_prompt")) {
+		if (fullPrompt != null) {
 			// if you are using full_promot then the user is responsible for keeping history
-			bodyMap.put("messages", parameters.remove("full_prompt"));
+			bodyMap.put("messages", fullPrompt);
 			IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, gson.toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null, stream, ChatCompletion.class, insightId);
 			Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
 			
@@ -137,16 +138,18 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			ConversationChain messages = createMessageList(question, context, insight);
 			bodyMap.put("messages", messages);
 			
+			Object maxTokens = parameters.get("max_tokens");
+			
 			if (messages.getTotalTokenCount() >= this.maxTokens) {
 				// need to shift the message window
 				
 				Integer tokenCounter = this.maxTokens;
 				
-				// substract the context tokens
+				// subtract the context tokens
 				tokenCounter -= messages.contentTokenCount;
 
-				if (parameters.containsKey("max_tokens")) {
-					tokenCounter -= (Integer) parameters.get("max_tokens");
+				if (maxTokens != null) {
+					tokenCounter -= (Integer) maxTokens;
 				}
 								
 				List<ChatCompletionMessage> messageChain = messages.getMessages();
@@ -173,6 +176,14 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 				        }
 				        break;
 				    }				
+				}
+			}
+			
+			if (maxTokens != null) {
+				Integer newMaxTokens = (Integer) maxTokens;
+				if (newMaxTokens + messages.getMessagesTokenCount() > this.maxTokens) {
+					newMaxTokens -= messages.getMessagesTokenCount();
+					bodyMap.put("max_tokens", newMaxTokens);
 				}
 			}
 			
