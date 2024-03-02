@@ -1,13 +1,17 @@
 package prerna.reactor.project;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.project.api.IProject.PROJECT_TYPE;
 import prerna.reactor.AbstractReactor;
@@ -55,8 +59,19 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find the blocks json");
 		}
 		
-		String downloadKey = UUID.randomUUID().toString();
+		try(InputStream is = new FileInputStream(blockJF)) {
+			JSONObject json = new JSONObject(IOUtils.toString(is, "UTF-8"));
+			
+			
+			
+			
+			
+			
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		
+		String downloadKey = UUID.randomUUID().toString();
 		
 //		InsightFile insightFile = new InsightFile();
 //		insightFile.setFileKey(downloadKey);
