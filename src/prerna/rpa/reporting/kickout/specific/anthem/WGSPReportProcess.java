@@ -1,7 +1,6 @@
 package prerna.rpa.reporting.kickout.specific.anthem;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.SequenceInputStream;
@@ -84,7 +83,7 @@ public class WGSPReportProcess extends AbstractKickoutReportProcess {
 			
 			// Combine all applicable input streams into one and return
 			return new BufferedReader(new InputStreamReader(new SequenceInputStream(streams.elements())));
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new ReportProcessingException("Failed to unzip " + reportName + ".", e);
 		}
 	}
