@@ -48,7 +48,7 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		// No reactor, so just use Utility class in src code.
 		// Other option is to make a Http Request, which is kind of hard
 		try {
-			SecurityEngineUtils.setEngineDiscoverable(BaseSemossApiTests.insight.getUser(), engineId, true);
+			SecurityEngineUtils.setEngineDiscoverable(ApiSemossTestUserUtils.getUser(), engineId, true);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -181,7 +181,7 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		// No reactor, so just use Utility class in src code.
 		// Other option is to make a Http Request, which is kind of hard
 		try {
-			SecurityEngineUtils.setEngineDiscoverable(BaseSemossApiTests.insight.getUser(), engineId, true);
+			SecurityEngineUtils.setEngineDiscoverable(ApiSemossTestUserUtils.getUser(), engineId, true);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -300,7 +300,7 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		
 		try {
 			// this is done through monolith, adding here for the check
-			SecurityEngineUtils.approveEngineUserAccessRequests(BaseSemossApiTests.user, engineId, requests, endDate);
+			SecurityEngineUtils.approveEngineUserAccessRequests(ApiSemossTestUserUtils.getUser(), engineId, requests, endDate);
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
 			fail("Could not approve engine access");
@@ -382,8 +382,8 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		ApiSemossTestUtils.processPixel(pc4);
 		
 //		// verify audit history
-//		String pc5 = ApiTestUtils.buildPixelCall(EnginePermissionHistoryReactor.class, "engine", engineId);
-//		NounMetadata engineHistoryNM = ApiTestUtils.processPixel(pc5);
+//		String pc5 = ApiSemossTestUtils.buildPixelCall(EnginePermissionHistoryReactor.class, "engine", engineId);
+//		NounMetadata engineHistoryNM = ApiSemossTestUtils.processPixel(pc5);
 //		List<Map<String, Object>> engineHistory = (List<Map<String, Object>>) engineHistoryNM.getValue();
 //		assertEquals(2, engineHistory.size());
 //		
@@ -438,7 +438,7 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		// No reactor, so just use Utility class in src code.
 		// Other option is to make a Http Request, which is kind of hard
 		try {
-			SecurityEngineUtils.setEngineDiscoverable(BaseSemossApiTests.insight.getUser(), engineId, true);
+			SecurityEngineUtils.setEngineDiscoverable(ApiSemossTestUserUtils.getUser(), engineId, true);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -538,7 +538,7 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		
 		try {
 			// this is done through monolith, adding here for the check
-			SecurityEngineUtils.denyEngineUserAccessRequests(BaseSemossApiTests.user, engineId, requestStrings);
+			SecurityEngineUtils.denyEngineUserAccessRequests(ApiSemossTestUserUtils.getUser(), engineId, requestStrings);
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
 			fail("Could not approve engine access");
@@ -621,9 +621,9 @@ public class RequestEngineAccessTests extends BaseSemossApiTests {
 		ApiSemossTestUtils.checkNounMetadataError(erroredNM, "User does not have permission to view access requests for this engine");
 		
 		// verify audit history
-//		ApiTestUserUtils.setDefaultTestUser();
-//		String pc5 = ApiTestUtils.buildPixelCall(EnginePermissionHistoryReactor.class, "engine", engineId);
-//		NounMetadata engineHistoryNM = ApiTestUtils.processPixel(pc5);
+//		ApiSemossTestUserUtils.setDefaultTestUser();
+//		String pc5 = ApiSemossTestUtils.buildPixelCall(EnginePermissionHistoryReactor.class, "engine", engineId);
+//		NounMetadata engineHistoryNM = ApiSemossTestUtils.processPixel(pc5);
 //		List<Map<String, Object>> engineHistory = (List<Map<String, Object>>) engineHistoryNM.getValue();
 //		assertEquals(2, engineHistory.size());
 //		

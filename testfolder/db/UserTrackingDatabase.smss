@@ -1,0 +1,13 @@
+#Base Properties
+ENGINE	UserTrackingDatabase
+ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
+OWL	testfolder/db/UserTrackingDatabase/UserTrackingDatabase_OWL.OWL
+
+RDBMS_TYPE	H2_DB
+DATABASE	
+SCHEMA	PUBLIC
+DRIVER org.h2.Driver
+USERNAME        sa
+PASSWORD        abcd
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewUserTracking;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+# USE_CONNECTION_POOLING                true

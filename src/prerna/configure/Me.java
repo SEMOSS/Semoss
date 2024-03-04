@@ -324,7 +324,12 @@ public class Me {
 		String [] stringToReplace = {"BaseFolder", 
 									"LOG4J", 
 									"SMSSWebWatcher_DIR",
-									"SMSSWatcher_DIR", 
+									"SMSSWatcher_DIR",
+									"SMSSStorageWatcher_DIR",
+									"SMSSModelWatcher_DIR",
+									"SMSSVectorWatcher_DIR",
+									"SMSSFunctionWatcher_DIR",
+									"SMSSVenvWatcher_DIR",
 									"ProjectWatcher_DIR",
 									"CSVInsightsWebWatcher_DIR", 
 									"INSIGHT_CACHE_DIR",
@@ -332,11 +337,17 @@ public class Me {
 									"ADDITIONAL_REACTORS",
 									"SOCIAL",
 									"JobSchedulerWatcher_DIR",
-									"rpa.config.directory"};
+									"rpa.config.directory",
+									"EMAIL_TEMPLATES"};
 		String [] stringToReplaceWith = {homePath, 
 										 homePath + "/log4j.prop", 
 										 homePath + "/db", 
 										 homePath + "/db",
+										 homePath + "/storage",
+										 homePath + "/model",
+										 homePath + "/vector",
+										 homePath + "/function",
+										 homePath + "/venv",
 										 homePath + "/project",
 										 homePath + "/InsightCache/CSV_Insights",
 										 homePath + "/InsightCache",
@@ -344,7 +355,8 @@ public class Me {
 										 homePath + "/reactors.json",
 										 homePath + "/social.properties",
 										 homePath + "/rpa/json",
-										 homePath + "/rpa"}; 
+										 homePath + "/rpa",
+										 homePath + "/emailTemplates/"}; 
 		
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
 	}
