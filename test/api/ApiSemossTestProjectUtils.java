@@ -20,7 +20,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ApiSemossTestProjectUtils {
 	
-	private static Path PROJECT_CONFIG_FILE = Paths.get(BaseSemossApiTests.TEST_CONFIG_DIRECTORY.toString(), "projects.txt");
+	private static Path PROJECT_CONFIG_FILE = Paths.get(ApiTestsSemossConstants.TEST_CONFIG_DIRECTORY.toString(), "projects.txt");
 	private static List<String> CURRENT_PROJECTS = new ArrayList<>();
 	private static List<String> CORE_PROJECTS = null;
 	
@@ -38,7 +38,7 @@ public class ApiSemossTestProjectUtils {
 
 	public static void clearNonCoreProjects() throws IOException {
 		List<String> projectsToAvoid = getProjectsToAvoid();
-		File f = Paths.get(BaseSemossApiTests.TEST_PROJECT_DIRECTORY).toFile();
+		File f = Paths.get(ApiTestsSemossConstants.TEST_PROJECT_DIRECTORY).toFile();
 		List<String> toDelete = new ArrayList<>();
 		for (String s : f.list()) {
 			boolean found = false;
@@ -54,7 +54,7 @@ public class ApiSemossTestProjectUtils {
 		}
 		
 		for (String delete : toDelete) {
-			Path p = Paths.get(BaseSemossApiTests.TEST_PROJECT_DIRECTORY.toString(), delete);
+			Path p = Paths.get(ApiTestsSemossConstants.TEST_PROJECT_DIRECTORY.toString(), delete);
 			if (Files.isDirectory(p)) {
 				FileUtils.cleanDirectory(p.toFile());
 				Files.delete(p);

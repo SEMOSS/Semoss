@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,7 +42,7 @@ import prerna.util.Utility;
 
 public class ApiSemossTestEngineUtils {
 	
-	private static Path ENGINES_CONFIG_FILE = Paths.get(BaseSemossApiTests.TEST_CONFIG_DIRECTORY.toString(), "engines.txt");
+	private static Path ENGINES_CONFIG_FILE = Paths.get(ApiTestsSemossConstants.TEST_CONFIG_DIRECTORY.toString(), "engines.txt");
 	private static List<String> CORE_DBS = null;
 	
 	private static List<String> CURRENT_NAMES = new ArrayList<>();
@@ -55,14 +56,12 @@ public class ApiSemossTestEngineUtils {
 			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {}))
 			);
 	
-
-	
 	static void checkDatabasePropMapping() {
-		assertEquals(BaseSemossApiTests.LMD_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
-    	assertEquals(BaseSemossApiTests.SECURITY_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
-    	assertEquals(BaseSemossApiTests.SCHEDULER_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
-    	assertEquals(BaseSemossApiTests.THEMES_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
-    	assertEquals(BaseSemossApiTests.UTDB_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
+		assertEquals(ApiTestsSemossConstants.LMD_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
+    	assertEquals(ApiTestsSemossConstants.SECURITY_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
+    	assertEquals(ApiTestsSemossConstants.SCHEDULER_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
+    	assertEquals(ApiTestsSemossConstants.THEMES_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
+    	assertEquals(ApiTestsSemossConstants.UTDB_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
 	}
 	
 	static void unloadDatabases() {
@@ -73,8 +72,44 @@ public class ApiSemossTestEngineUtils {
 		DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE);
 	}
 	
-	static void initalizeDatabases() throws Exception {
-		initializeSemossDatabases();
+	public static void addDBStartupTasks(List<Callable<Void>> tasks) {
+		tasks.add(() -> initializeLocalMaster());
+		tasks.add(() -> initializeSecurity());
+		tasks.add(() -> initializeScheduler());
+		tasks.add(() -> initializeThemes());
+		tasks.add(() -> initializeUserTracking());
+	}
+	
+	private static Void initializeLocalMaster() throws IOException, Exception {
+		doInitializeSemossDB(Constants.LOCAL_MASTER_DB, "databaseNewMaster.mv.db");
+		MasterDatabaseUtility.initLocalMaster();
+		return null;
+	}
+	
+	private static Void initializeSecurity() throws IOException, Exception {
+		doInitializeSemossDB(Constants.SECURITY_DB, "database.mv.db");
+		AbstractSecurityUtils.loadSecurityDatabase();
+		return null;
+	}
+	
+	private static Void initializeUserTracking() throws IOException, Exception {
+		doInitializeSemossDB(Constants.USER_TRACKING_DB, "databaseNewUserTracking.mv.db");
+		UserTrackingUtils.initUserTrackerDatabase();
+		return null;
+	}
+
+	private static Void initializeThemes() throws IOException, SQLException {
+		doInitializeSemossDB(Constants.THEMING_DB, "database.mv.db");
+		AbstractThemeUtils.loadThemingDatabase();
+		return null;
+	}
+
+	private static Void initializeScheduler() throws IOException {
+		doInitializeSemossDB(Constants.SCHEDULER_DB, "database.mv.db");
+		// error when initializing
+		// TODO: fix this later
+		//SchedulerDatabaseUtility.startServer();
+		return null;
 	}
 
 	private static void initializeSemossDatabases() throws Exception {
@@ -132,8 +167,11 @@ public class ApiSemossTestEngineUtils {
 	}
 
 	private static void doInitializeSemossDB(String name, String dbName) throws IOException {
-		String smssPath = BaseSemossApiTests.TEST_DB_DIRECTORY + File.separator + name + ".smss";
-		String db = BaseSemossApiTests.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
+		String smssPath = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + ".smss";
+		String db = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
+		
+		assertTrue(smssPath.contains("testfolder"));
+		assertTrue(db.contains("testfolder"));
 		
 		if (Files.exists(Paths.get(db))) {
 			Files.delete(Paths.get(db));
@@ -204,11 +242,12 @@ public class ApiSemossTestEngineUtils {
 	}
 
 	private static Triple<String, String, String> getTestDatabaseConnection(String db) {
-		String dbPath = Paths.get(BaseSemossApiTests.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
+		String dbPath = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
 		Properties props = Utility.loadProperties(dbPath);
 		String connection = props.getProperty(Constants.CONNECTION_URL);
-		connection = connection.replaceAll("@BaseFolder@", BaseSemossApiTests.TEST_BASE_DIRECTORY.replace('\\', '/'));
+		connection = connection.replaceAll("@BaseFolder@", ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'));
 		connection = connection.replaceAll("@ENGINE@", db);
+		assertTrue(connection.contains("testfolder"));
 
 		String username = props.getProperty(Constants.USERNAME);
 		String password = props.getProperty(Constants.PASSWORD);
@@ -217,7 +256,7 @@ public class ApiSemossTestEngineUtils {
 	
 	public static void clearNonCoreDBs() throws IOException {
 		List<String> dbsToAvoid = getDBsToAvoid();
-		File f = Paths.get(BaseSemossApiTests.TEST_DB_DIRECTORY).toFile();
+		File f = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY).toFile();
 		List<String> toDelete = new ArrayList<>();
 		for (String s : f.list()) {
 			boolean found = false;
@@ -233,7 +272,7 @@ public class ApiSemossTestEngineUtils {
 		}
 		
 		for (String delete : toDelete) {
-			Path p = Paths.get(BaseSemossApiTests.TEST_DB_DIRECTORY.toString(), delete);
+			Path p = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY.toString(), delete);
 			if (Files.isDirectory(p)) {
 				Files.walk(p).sorted().map(Path::toFile).forEach(File::delete);
 				if (Files.exists(p)) {
@@ -270,7 +309,7 @@ public class ApiSemossTestEngineUtils {
 		
 		CURRENT_NAMES.add(name);
 		
-		Path path = Paths.get(BaseSemossApiTests.TEST_INSIGHT_CACHE.toString(), name + ".csv");
+		Path path = Paths.get(ApiSemossTestInsightUtils.getInsightCache().toString(), name + ".csv");
 		try {
 			path = Files.createFile(path);
 			List<String> lines = new ArrayList<>();
@@ -307,5 +346,7 @@ public class ApiSemossTestEngineUtils {
 		String engineId = (String) ret.get("database_id");
 		return engineId;
 	}
+
+
 	
 }

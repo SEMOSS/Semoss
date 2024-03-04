@@ -12,31 +12,45 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.insights.save.SaveInsightReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ApiSemossTestInsightUtils {
+	
+	private static Path TEST_INSIGHT_CACHE = null;
+	private static Insight INSIGHT = null;
+	
+	public static Path getInsightCache() {
+		return TEST_INSIGHT_CACHE;
+	}
+	
+	public static Insight getInsight() {
+		return INSIGHT;
+	}
 
 	static void initializeInsight() throws IOException {
 		clearInsightCache();
-		BaseSemossApiTests.insight = new Insight();
+		INSIGHT = new Insight();
 		
 		ApiSemossTestUserUtils.setDefaultTestUser();
 		
-		String insightId = BaseSemossApiTests.insight.getInsightId();
-		BaseSemossApiTests.TEST_INSIGHT_CACHE = Paths.get(BaseSemossApiTests.TEST_BASE_DIRECTORY, "InsightCache", "null", insightId);
-		Files.createDirectories(BaseSemossApiTests.TEST_INSIGHT_CACHE);
+		String insightId = INSIGHT.getInsightId();
+		String session = "test";
+		ThreadStore.setSessionId(session);
+		TEST_INSIGHT_CACHE = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache", session, insightId);
+		Files.createDirectories(TEST_INSIGHT_CACHE);
 	}
 
 	static void clearInsightCache() throws IOException {
-		Path p = Paths.get(BaseSemossApiTests.TEST_BASE_DIRECTORY, "InsightCache", "null");
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache", "test");
 		if (Files.exists(p)) {
 			FileUtils.cleanDirectory(p.toFile());
 		}
 	}
 	
 	static void clearInsightCacheDifferently() {
-		File dir = BaseSemossApiTests.TEST_INSIGHT_CACHE.toFile();
+		File dir = ApiSemossTestInsightUtils.getInsightCache().toFile();
     	assertTrue(dir.isDirectory());
     	File[] files = dir.listFiles();
     	for (File f : files) {
