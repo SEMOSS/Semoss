@@ -1498,6 +1498,12 @@
 		    <artifactId>json</artifactId>
 		    <version>20240205</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.json -->
+		<dependency>
+		    <groupId>org.glassfish</groupId>
+		    <artifactId>jakarta.json</artifactId>
+		    <version>2.0.1</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
 		<dependency>
 		    <groupId>com.fasterxml.jackson.core</groupId>
@@ -1779,25 +1785,13 @@
 		<dependency>
 		    <groupId>org.janusgraph</groupId>
 		    <artifactId>janusgraph-core</artifactId>
-		    <version>0.6.1</version>
-		    <exclusions>
-	    		<exclusion>
-					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-text</artifactId>
-				</exclusion>
-			</exclusions>
+		    <version>1.1.0-20240301-215803.ce17428</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-es -->
 		<dependency>
 		    <groupId>org.janusgraph</groupId>
 		    <artifactId>janusgraph-es</artifactId>
-		    <version>0.6.1</version>
-		    <exclusions>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
+		    <version>1.1.0-20240301-215803.ce17428</version>
 		</dependency>
 		<!-- html to pdf -->
 		<dependency>
