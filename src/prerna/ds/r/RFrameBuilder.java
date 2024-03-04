@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jgit.util.FileUtils;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
@@ -208,7 +208,7 @@ public class RFrameBuilder {
 				String insightFolder = this.getRJavaTranslator().getInsight().getInsightFolder();
 			
 				try {
-					FileUtils.mkdirs(new File(insightFolder), true);
+					FileUtils.forceMkdir(new File(insightFolder));
 					if(in.getUser() != null) {
 						in.getUser().getUserMountHelper().mountFolder(this.getRJavaTranslator().getInsight().getInsightFolder(),this.getRJavaTranslator().getInsight().getInsightFolder(), false);
 					}
