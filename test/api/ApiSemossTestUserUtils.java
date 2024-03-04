@@ -7,16 +7,15 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 
 public class ApiSemossTestUserUtils {
+	
+	private static User USER = null; 
+	
+	public static User getUser() {
+		return USER;
+	}
 
 	public static void setDefaultTestUser() {
-		BaseSemossApiTests.user = new User();
-		AccessToken at = new AccessToken();
-		at.setProvider(AuthProvider.NATIVE);
-		at.setId("ater");
-		at.setEmail("ater@ater.com");
-		BaseSemossApiTests.user.setAccessToken(at);
-		BaseSemossApiTests.user.setPrimaryLogin(AuthProvider.NATIVE);
-		BaseSemossApiTests.insight.setUser(BaseSemossApiTests.user);
+		setUser("ater");
 	}
 	
 	public static void addAndSetNewNativeUser(String userName, boolean isAdmin) {
@@ -34,14 +33,14 @@ public class ApiSemossTestUserUtils {
 	}
 	
 	public static void setUser(String userName) {
-		BaseSemossApiTests.user = new User();
+		USER = new User();
 		AccessToken at = new AccessToken();
 		at.setProvider(AuthProvider.NATIVE);
 		at.setId(userName);
 		at.setEmail(userName + "@" + userName + ".com");
-		BaseSemossApiTests.user.setAccessToken(at);
-		BaseSemossApiTests.user.setPrimaryLogin(AuthProvider.NATIVE);
-		BaseSemossApiTests.insight.setUser(BaseSemossApiTests.user);
+		USER.setAccessToken(at);
+		USER.setPrimaryLogin(AuthProvider.NATIVE);
+		ApiSemossTestInsightUtils.getInsight().setUser(USER);
 	}
 	
 }

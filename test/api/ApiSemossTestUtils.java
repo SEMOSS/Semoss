@@ -14,11 +14,40 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 
 public class ApiSemossTestUtils {
 	
 	private static final Logger classLogger = LogManager.getLogger(ApiSemossTestUtils.class.getName());
+	
+	private static Boolean USING_DOCKER = null;
+	
+	private static boolean FIRST_CLASS_RUN = true;
+	
+	public static boolean isFirstClass() {
+		if (FIRST_CLASS_RUN) {
+			FIRST_CLASS_RUN = false;
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean usingDocker() {
+		if (USING_DOCKER != null) {
+			return USING_DOCKER;
+		}
+		
+		Boolean docker = Boolean.valueOf(DIHelper.getInstance().getProperty("USE_DOCKER"));
+		
+		if (docker == null) {
+			docker = false;
+		}
+		
+		USING_DOCKER = docker;
+		
+		return docker;
+	}
 	
 	public static String convertMapToPixelInput(Object data) {
 		  Gson gson = GsonUtility.getDefaultGson();
@@ -34,8 +63,12 @@ public class ApiSemossTestUtils {
 		NounMetadata ret = processRawPixel(pixel);
 		PixelDataType nounType = ret.getNounType();
 		if (nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX) {
-			classLogger.error(Constants.ERROR_MESSAGE, ret.getValue().toString());
-			throw new SemossPixelException(ret.getValue().toString());
+			if (ret.getValue() != null) {
+				classLogger.error(Constants.ERROR_MESSAGE, ret.getValue().toString());
+				throw new SemossPixelException(ret.getValue().toString());
+			} else {
+				throw new SemossPixelException("error during pixel call");
+			}
 		}
 		assertNotEquals(PixelDataType.ERROR, ret.getNounType());
 		return ret;
@@ -46,7 +79,7 @@ public class ApiSemossTestUtils {
 		PixelRunner pr = new PixelRunner();
 		
 		try {
-			pr.runPixel(pixel, BaseSemossApiTests.insight);
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
 			throw e;
