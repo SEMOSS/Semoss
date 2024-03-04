@@ -1,14 +1,16 @@
 #This section is for properties
 
+REQUIRE_DYNAMIC_API_TOKEN false
+
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSVenvWatcher
 PROJECT_WATCHER	ProjectWatcher
 
-INSIGHT_CACHE_DIR C:\\workspace\\Semoss_Dev\\InsightCache
+INSIGHT_CACHE_DIR /Users/mahkhalil/development/workspace/Semoss_Dev/InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
+SMSSWebWatcher_DIR	/Users/mahkhalil/development/workspace/Semoss_Dev/db
 SMSSWebWatcher_EXT	.smss
 SMSSWebWatcher_ETYPE	DATABASE
 
@@ -38,18 +40,18 @@ SMSSVenvWatcher_EXT	.smss
 SMSSVenvWatcher_ETYPE	VENV
 
 ProjectWatcher	prerna.util.ProjectWatcher
-ProjectWatcher_DIR		C:\\workspace\\Semoss_Dev\\project
+ProjectWatcher_DIR		/Users/mahkhalil/development/workspace/Semoss_Dev/project
 ProjectWatcher_EXT	.smss
 
 #JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
-#JobSchedulerWatcher_DIR C:\\workspace\\Semoss_Dev\\rpa\\json
+#JobSchedulerWatcher_DIR /Users/mahkhalil/development/workspace/Semoss_Dev/rpa/json
 #JobSchedulerWatcher_EXT	.json
-#rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
+#rpa.config.directory /Users/mahkhalil/development/workspace/Semoss_Dev/rpa
 
-BaseFolder	C:\\workspace\\Semoss_Dev
-ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
-ADDITIONAL_REACTOR_PACKAGES
-SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
+BaseFolder	/Users/mahkhalil/development/workspace/Semoss_Dev
+ADDITIONAL_REACTORS /Users/mahkhalil/development/workspace/Semoss_Dev/reactors.json
+SOCIAL	/Users/mahkhalil/development/workspace/Semoss_Dev/social.properties
+EMAIL_TEMPLATES	/Users/mahkhalil/development/workspace/Semoss_Dev/emailTemplates
 EMAIL_TEMPLATES	C:\\workspace\\Semoss_Dev\\emailTemplates\\
 
 #Caching for tasks
@@ -71,7 +73,7 @@ LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
 USE_PY_FILE	TRUE 
 
 USE_R true
-R_CONNECTION_JRI	true
+R_CONNECTION_JRI	false
 #JRI must be false in order to use user rserve
 IS_USER_RSERVE false
 #Options are pooled or dedicated
@@ -124,17 +126,13 @@ LOG_ENCODING false
 #Use a custom chrome binary
 #GOOGLE_CHROME_BINARY C:\\Users\\mahkhalil\\Desktop\\GoogleChromePortable\\GoogleChromePortable.exe
 #SEMOSS logo used for exporting files
-EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss_Dev\\images\\embed\\semoss_logo.png
+EXPORT_SEMOSS_LOGO /Users/mahkhalil/development/workspace/Semoss_Dev/images/embed/semoss_logo.png
 
 #SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith_Dev
 SCHEDULER_ENDPOINT	http://localhost:8080/Monolith_Dev
 SCHEDULER_KEYSTORE
 SCHEDULER_KEYSTORE_PASSWORD
 SCHEDULER_CERTIFICATE_PASSWORD
-
-#SAML CONFIG
-SAML_PROP_LOC	C:\\workspace\\Semoss_Dev\\saml\\mesoc\\conf	
-SAML_FEDERATION_LOG_PATH	C:\\workspace\\Semoss_Dev\\saml\\mesoc\\conf\\debug\\Federation
 
 #SET THIS TO TRUE IF RUNNING LOCALLY ON LAPTOP
 #OTHERWISE, KEEP THIS FALSE FOR SERVER DEPLOYMENT
@@ -154,12 +152,12 @@ DEFAULT_INSIGHT_CACHEABLE	true
 PIVOT_ROW_MAX	1000
 PIVOT_COL_MAX	100
 
-#Secrets
-SECRET_STORE_ENABLED	false
+SECRET_STORE_ENABLED 	false
 SECRET_STORE_TYPE		VAULT
+VAULT_ADDR				http://127.0.0.1:8200
+VAULT_TOKEN				hvs.Sht971YWzMr1mJ1EK9T6HKDp
 VAULT_DB_PATH			semoss_db
 VAULT_PROJECT_PATH		semoss_project
-VAULT_TOKEN				
 
 #Virus Scanning
 VIRUS_SCANNING_ENABLED 	false
@@ -191,7 +189,7 @@ MODEL_INFERENCE_LOGS_ENABLED false
 # BELOW ARE LEGACY PARAMS
 # DO NOT UPDATE OR MODIFY
 
-T_ON true
+T_ON false
 T_ENDPOINT https://play.semoss.org/track/
 
 BROWSER_TYPE	Mozilla15
@@ -199,7 +197,7 @@ URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
 SOLR_BASE_URL	https://localhost:443/solr
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
+SMSSWatcher_DIR	/Users/mahkhalil/development/workspace/Semoss_Dev/db
 SMSSWatcher_EXT	.smss
 
 SHOW_GOV_WARNING	false
@@ -737,6 +735,10 @@ H2_DB_KEYWORDS ALL,AND,ARRAY,AS,BETWEEN,BOTH,CASE,CHECK,CONSTRAINT,CROSS,CURRENT
 SQLITE_KEYWORDS ABORT,ACTION,ADD,AFTER,ALL,ALTER,ANALYZE,AND,AS,ASC,ATTACH,AUTOINCREMENT,BEFORE,BEGIN,BETWEEN,BY,CASCADE,CASE,CAST,CHECK,COLLATE,COLUMN,COMMIT,CONFLICT,CONSTRAINT,CREATE,CROSS,CURRENT,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,DATABASE,DEFAULT,DEFERRABLE,DEFERRED,DELETE,DESC,DETACH,DISTINCT,DO,DROP,EACH,ELSE,END,ESCAPE,EXCEPT,EXCLUDE,EXCLUSIVE,EXISTS,EXPLAIN,FAIL,FILTER,FOLLOWING,FOR,FOREIGN,FROM,FULL,GLOB,GROUP,GROUPS,HAVING,IF,IGNORE,IMMEDIATE,IN,INDEX,INDEXED,INITIALLY,INNER,INSERT,INSTEAD,INTERSECT,INTO,IS,ISNULL,JOIN,KEY,LEFT,LIKE,LIMIT,MATCH,NATURAL,NO,NOT,NOTHING,NOTNULL,NULL,OF,OFFSET,ON,OR,ORDER,OTHERS,OUTER,OVER,PARTITION,PLAN,PRAGMA,PRECEDING,PRIMARY,QUERY,RAISE,RANGE,RECURSIVE,REFERENCES,REGEXP,REINDEX,RELEASE,RENAME,REPLACE,RESTRICT,RIGHT,ROLLBACK,ROW,ROWS,SAVEPOINT,SELECT,SET,TABLE,TEMP,TEMPORARY,THEN,TIES,TO,TRANSACTION,TRIGGER,UNBOUNDED,UNION,UNIQUE,UPDATE,USING,VACUUM,VALUES,VIEW,VIRTUAL,WHEN,WHERE,WINDOW,WITH,WITHOUT
 
 #https://dev.mysql.com/doc/refman/8.0/en/keywords.html
+<<<<<<< .mine
+MYSQL_KEYWORDS KEY,VALUES
+||||||| .r43386
+MYSQL_KEYWORDS KEY,VALUES=======
 MYSQL_KEYWORDS KEY,VALUES
 
-SQL_SERVER_KEYWORDS GROUP
+SQL_SERVER_KEYWORDS GROUP>>>>>>> .r44026
