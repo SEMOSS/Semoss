@@ -1,0 +1,13 @@
+#Base Properties 
+ENGINE	themes
+ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
+OWL	testfolder/db/themes/themes_OWL.OWL
+
+RDBMS_TYPE	H2_DB
+DATABASE	
+SCHEMA	PUBLIC
+DRIVER org.h2.Driver
+USERNAME	sa
+PASSWORD	
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
+# USE_CONNECTION_POOLING	true

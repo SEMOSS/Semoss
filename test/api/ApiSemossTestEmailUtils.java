@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ApiSemossTestEmailUtils {
 	
-	private static String MAILPIT_FOLDER = Paths.get(BaseSemossApiTests.TEST_BASE_DIRECTORY, "mailpit").toString();
+	private static String MAILPIT_FOLDER = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "mailpit").toString();
 	private static String MAILPIT_EXE = Paths.get(MAILPIT_FOLDER, "mailpit.exe").toString();
 	private static String MAILPIT_LOG = Paths.get(MAILPIT_FOLDER, "mailpit.log").toString();
 	
@@ -92,7 +92,7 @@ public class ApiSemossTestEmailUtils {
 	}
 
 
-	public static void startEmailDockerContainer() {
+	public static Void startEmailDockerContainer() {
 		GenericContainer<?> mailpit = new GenericContainer<>("axllent/mailpit")
 				.withExposedPorts(1025, 8025);
 		List<String> portBindings = new ArrayList<>();
@@ -100,10 +100,11 @@ public class ApiSemossTestEmailUtils {
 		portBindings.add("8025:8025");
 		mailpit.setPortBindings(portBindings);
 		mailpit.start();
+		return null;
 	}
 
 
-	public static void startEmailLocalServer() throws IOException, InterruptedException {
+	public static Void startEmailLocalServer() throws IOException, InterruptedException {
 		if (!serverRunning()) {
 			ProcessBuilder pb = new ProcessBuilder(MAILPIT_EXE);
 			pb.directory(new File(MAILPIT_FOLDER));
@@ -130,5 +131,7 @@ public class ApiSemossTestEmailUtils {
 			
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> p.destroy()));
 		}
+		return null;
 	}
+	
 }
