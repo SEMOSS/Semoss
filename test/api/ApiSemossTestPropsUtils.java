@@ -18,11 +18,11 @@ public class ApiSemossTestPropsUtils {
 protected static final Logger classLogger = LogManager.getLogger(ApiSemossTestPropsUtils.class);
 
 	static void loadDIHelper() throws IOException {
-		Files.copy(BaseSemossApiTests.BASE_RDF_MAP, BaseSemossApiTests.TEST_RDF_MAP, StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(ApiTestsSemossConstants.BASE_RDF_MAP, ApiTestsSemossConstants.TEST_RDF_MAP, StandardCopyOption.REPLACE_EXISTING);
 		Me configurationManager = new Me();
-		configurationManager.changeRDFMap(BaseSemossApiTests.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
-				BaseSemossApiTests.TEST_RDF_MAP.toAbsolutePath().toString());
-		DIHelper.getInstance().loadCoreProp(BaseSemossApiTests.TEST_RDF_MAP.toAbsolutePath().toString());
+		configurationManager.changeRDFMap(ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
+				ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
+		DIHelper.getInstance().loadCoreProp(ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
 
 		// Just in case, manually override USE_PYTHON to be true for testing purposes
 		// Warn if this was not the case to begin with
@@ -58,11 +58,11 @@ protected static final Logger classLogger = LogManager.getLogger(ApiSemossTestPr
 	
 
 	private static void unloadDIHelper() {
-		DIHelper.getInstance().loadCoreProp(BaseSemossApiTests.BASE_RDF_MAP.toAbsolutePath().toString());
+		DIHelper.getInstance().loadCoreProp(ApiTestsSemossConstants.BASE_RDF_MAP.toAbsolutePath().toString());
 		try {
-			Files.delete(BaseSemossApiTests.TEST_RDF_MAP);
+			Files.delete(ApiTestsSemossConstants.TEST_RDF_MAP);
 		} catch (IOException e) {
-			classLogger.warn("Unable to delete " + BaseSemossApiTests.TEST_RDF_MAP, e);
+			classLogger.warn("Unable to delete " + ApiTestsSemossConstants.TEST_RDF_MAP, e);
 		}
 	}
 	
