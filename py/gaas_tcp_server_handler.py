@@ -483,9 +483,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except Exception:
                 # we failed so try run all the code as is 
                 try:
-                    return eval(code), False
+                    return eval(code, globals()), False
                 except:
-                    exec(code)
+                    exec(code, globals())
                     return "\"\"", False
         except Exception as e:
             # if we fail all attempts then send back the traceback
