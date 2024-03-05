@@ -133,20 +133,18 @@ public class ApiSemossTestEngineUtils {
 		UserTrackingUtils.initUserTrackerDatabase();
 		
 		
-		createUser("ater", "Native", true);
+		createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,"Native", true);
 	}
 
-	public static void createUser(String userUserName, String type, boolean isAdmin) throws SQLException {
+	public static void createUser(String userUserName, String email, String type, boolean isAdmin) throws SQLException {
 		Triple<String, String, String> cds = getTestDatabaseConnection(Constants.SECURITY_DB);
 		
 		try (Connection conn = DriverManager.getConnection(cds.getLeft(), cds.getMiddle(), cds.getRight())) {
-			// TODO: change my email to something else
 			String userPassword = "TestTest8*";
 			String salt = SecurityQueryUtils.generateSalt();
 			String hashed = SecurityQueryUtils.hash(userPassword, salt);
 			
 			String name = userUserName.substring(0, 1);
-			String email = userUserName + "@" + userUserName + ".com";
 			PreparedStatement ps = conn.prepareStatement("INSERT INTO SMSS_USER "
 					+ "(NAME, EMAIL, \"TYPE\", ID, PASSWORD, SALT, USERNAME, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, LASTPASSWORDRESET, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE)\r\n"
 					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, true, true, null, null, null, false, '', '', '')");
@@ -188,7 +186,7 @@ public class ApiSemossTestEngineUtils {
 		}
 		
 		try {
-			createUser("ater", "Native", true);
+			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Could not add Default Native Admin user");
