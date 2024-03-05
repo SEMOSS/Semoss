@@ -32,5 +32,9 @@ public class ApiTestsSemossConstants {
 			.toAbsolutePath().toString();
 	public static final String UTDB_SMSS = Paths.get(TEST_DB_DIRECTORY, Constants.USER_TRACKING_DB + ".smss")
 			.toAbsolutePath().toString();
+	
+	// default user info
+	public static final String USER_NAME = "user1";	
+	public static final String USER_EMAIL = "user1@example.com";	
 
 }
