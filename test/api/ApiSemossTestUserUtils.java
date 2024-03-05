@@ -15,29 +15,29 @@ public class ApiSemossTestUserUtils {
 	}
 
 	public static void setDefaultTestUser() {
-		setUser("ater");
+		setUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL);
 	}
 	
-	public static void addAndSetNewNativeUser(String userName, boolean isAdmin) {
-		createUser(userName, isAdmin);
-		setUser(userName);
+	public static void addAndSetNewNativeUser(String userName, String email, boolean isAdmin) {
+		createUser(userName, email, isAdmin);
+		setUser(userName, email);
 	}
 	
-	private static void createUser(String userName, boolean isAdmin) {
+	private static void createUser(String userName, String email, boolean isAdmin) {
 		try {
-			ApiSemossTestEngineUtils.createUser(userName, "Native", isAdmin);
+			ApiSemossTestEngineUtils.createUser(userName, email, "Native", isAdmin);
 		} catch (Exception e) {
 			System.out.println("Could not create User");
 			fail(e.toString());
 		}
 	}
 	
-	public static void setUser(String userName) {
+	public static void setUser(String userName, String email) {
 		USER = new User();
 		AccessToken at = new AccessToken();
 		at.setProvider(AuthProvider.NATIVE);
 		at.setId(userName);
-		at.setEmail(userName + "@" + userName + ".com");
+		at.setEmail(email);
 		USER.setAccessToken(at);
 		USER.setPrimaryLogin(AuthProvider.NATIVE);
 		ApiSemossTestInsightUtils.getInsight().setUser(USER);

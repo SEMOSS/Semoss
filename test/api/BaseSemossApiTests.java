@@ -57,7 +57,7 @@ public class BaseSemossApiTests {
 				es.shutdown();
 			}
 			
-			ApiSemossTestEngineUtils.createUser("ater", "Native", true);
+			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
     	}
     	System.out.println("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
     }
