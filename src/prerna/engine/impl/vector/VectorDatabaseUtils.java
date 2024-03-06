@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -14,6 +16,8 @@ import org.apache.tika.Tika;
 import org.apache.tika.metadata.Metadata;
 
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IModelEngine;
+import prerna.om.Insight;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
@@ -21,7 +25,11 @@ import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 import prerna.util.Constants;
 
 public class VectorDatabaseUtils {
+	
 	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseUtils.class);
+	
+	private static final String DIR_SEPARATOR = "/";
+	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
@@ -148,18 +156,75 @@ public class VectorDatabaseUtils {
         return fileTypes;
     }
 	
-	public static Set<String> createKeywordsFromChunks(List<String> filePaths, TCPPyTranslator vectorPyt) {
-        Set<String> fileTypes = new HashSet<>();
-        for (String filePath : filePaths) {
-            // Find the last dot (.) in the file path
-            int lastDotIndex = filePath.lastIndexOf(".");
-            
-            if (lastDotIndex >= 0) {
-                // Extract the file extension
-                String fileType = filePath.substring(lastDotIndex + 1).toLowerCase();
-                fileTypes.add(fileType);
-            }
-        }
-        return fileTypes;
-    }
+	/**
+	 * @param pyTranslator
+	 * @param document
+	 * @param extractioFilesPath
+	 * @param outputFileName
+	 * @param extractionMethod
+	 * @return
+	 */
+	public static int extractTextUsingPython(TCPPyTranslator pyTranslator, File document, String extractioFilesPath, String outputFileName) {
+		boolean imported = Boolean.parseBoolean(pyTranslator.runScript("'vector_database' in globals().keys()")+"");
+		if (!imported) {
+			throw new IllegalArgumentException("This vector database does not the vector_database python package.");
+		}
+		
+		StringBuilder extractTextFromDocScript = new StringBuilder();
+		extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+							 .append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+							 .append("', target_folder = '")
+							 .append(extractioFilesPath)
+							 .append("', output_file_name = '")
+							 .append(outputFileName)
+							 .append("')");
+	
+		Number rows = (Number) pyTranslator.runScript(extractTextFromDocScript.toString());
+		
+		return rows.intValue();
+	}
+	
+	/**
+	 * @param pyTranslator
+	 * @param csvFileName
+	 * @param chunkUnitOfMeasurement
+	 * @param chunkMaxLength
+	 * @param chunkOverlap
+	 * @param chunkingStrategy
+	 */
+	public static void createChunksFromTextInPages(TCPPyTranslator pyTranslator, String csvFileName, String chunkUnitOfMeasurement, int chunkMaxLength, int chunkOverlap, String chunkingStrategy) {
+		
+		StringBuilder splitTextCommand = new StringBuilder();
+		splitTextCommand.append("vector_database.split_text(csv_file_location = '")
+						.append(csvFileName)
+						.append("', chunk_unit = '")
+						.append(chunkUnitOfMeasurement)
+						.append("', chunk_size = ")
+						.append(chunkMaxLength)
+						.append(", chunk_overlap = ")
+						.append(chunkOverlap)
+						.append(", chunking_strategy = ")
+						.append(chunkingStrategy)
+						.append(", cfg_tokenizer = cfg_tokenizer)");
+		
+		pyTranslator.runScript(splitTextCommand.toString());
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static List<String> generateKeywordsFromChunks(IModelEngine modelEngine, Insight insight, List<String> chunks, Integer maxKeywords, Integer percentile) {
+		
+		Map<String, Object> keywordArgs = new HashMap<>();
+		
+		if (maxKeywords != null) {
+			keywordArgs.put("max_keywords", maxKeywords);
+		}
+		
+		if (percentile != null) {
+			keywordArgs.put("percentile", maxKeywords);
+		}
+		
+		Object generatedKeywordsObject = modelEngine.model(chunks, insight, keywordArgs);
+		
+		return (List<String>) generatedKeywordsObject;
+	}
 }
