@@ -303,7 +303,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		String extractionMethod = this.defaultExtractionMethod;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
+			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
 		
 		Insight insight = getInsight(parameters.get(INSIGHT));
@@ -388,17 +388,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					// determine which text extraction method to use
 					int rowsCreated;
 					if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
-						StringBuilder extractTextFromDocScript = new StringBuilder();
-						extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-											 .append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-											 .append("', target_folder = '")
-											 .append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
-											 .append("', output_file_name = '")
-											 .append(extractedFileName)
-											 .append("')");
-						Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
-						
-						rowsCreated = rows.intValue();
+						rowsCreated = VectorDatabaseUtils.extractTextUsingPython(pyt, document, this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files", extractedFileName);
 					} else {
 						rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 					}
@@ -413,20 +403,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					
 					classLogger.info("Creating chunks from extracted text for " + documentName);
 					
-					// TODO ADD LOGIC to split text
-					StringBuilder splitTextCommand = new StringBuilder();
-					splitTextCommand.append("vector_database.split_text(csv_file_location = '")
-										 .append(extractedFileName)
-										 .append("', chunk_unit = '")
-										 .append(chunkUnit)
-										 .append("', chunk_size = ")
-										 .append(chunkMaxTokenLength)
-										 .append(", chunk_overlap = ")
-										 .append(tokenOverlapBetweenChunks)
-										 .append(", chunking_strategy = ")
-										 .append(chunkingStrategy)
-										 .append(", cfg_tokenizer = cfg_tokenizer)");
-					pyt.runScript(splitTextCommand.toString());
+					VectorDatabaseUtils.createChunksFromTextInPages(pyt, extractedFileName, chunkUnit, chunkMaxTokenLength, tokenOverlapBetweenChunks, chunkingStrategy);
 					
 					// this needs to match the column created in the new CSV
 					columnsToIndex = "['Content']"; 

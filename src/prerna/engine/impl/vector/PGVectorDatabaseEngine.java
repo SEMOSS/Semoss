@@ -59,8 +59,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	protected static final String DIR_SEPARATOR = "/";
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');import vector_database;";
 
@@ -71,7 +71,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	protected String defaultExtractionMethod;
 	protected String defaultIndexClass;
 	
-	private String embedderEngineId = null;
+	protected String embedderEngineId = null;
+	protected String keywordGeneratorEngineId = null;
 	
 	File schemaFolder;
 
@@ -79,7 +80,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	// python server
 	private String pyDirectoryBasePath;
-	private TCPPyTranslator pyt = null;
+	protected TCPPyTranslator pyt = null;
 	private File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -138,7 +139,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 	
-	private void verifyModelProps() {
+	protected void verifyModelProps() {
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
 		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
@@ -170,16 +171,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// model engine responsible for creating keywords
-		String keywordGeneratorEngineId = this.smssProp.getProperty(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID);
-		if (keywordGeneratorEngineId != null) {
-			// pull the model smss if needed
-			Utility.getModel(keywordGeneratorEngineId);
-			this.smssProp.put(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID, keywordGeneratorEngineId);
-		} else {
-			// add it to the smss prop so the string substitution does not fail
-			this.smssProp.put(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID, "");
-		}
-		
+		this.keywordGeneratorEngineId = this.smssProp.getProperty(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID);
+				
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
@@ -246,7 +239,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						debug = true;
 					} catch(NumberFormatException e) {
 						// ignore
-						classLogger.warn("Faiss Database " + this.engineName + " has an invalid FORCE_PORT value");
+						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
 					}
 				}
 			}
@@ -286,9 +279,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) {
+	public void addDocument(List<String> filePaths, Map<String, Object> parameters) {		
 		this.removeDocument(filePaths, parameters);
-		
+
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -374,7 +367,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				// add it to the list of files we need to extract text from
 				fileToExtractFrom.add(destinationFile);
 			}
-
+			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = document.getName().split("\\.")[0];
@@ -451,12 +444,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
 				}
 			}
-
+			
+			// ( embedding, source, modality, divider, part, tokens, content, engineid, keywords, taggigng)
+			// TODO s3 holds documents
+			
 			if (extractedFiles.size() > 0) {
 				
 				// if we were able to extract files, begin embeddings process
 				IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-				String psString = "INSERT INTO " + vectorTableName +" ( embedding, source, modality, divider, part, tokens, content, engineid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+				String psString = "INSERT INTO " + vectorTableName +" ( embedding, source, modality, divider, part, tokens, content, engineid, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 				
 				Connection conn = null;
 				try {
@@ -464,10 +460,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					PreparedStatement ps = conn.prepareStatement(psString);
 					for(int i = 0; i < extractedFiles.size(); i++) {
 						File extractedFile = extractedFiles.get(i);
-						PgVectorTable data = readCsv(extractedFile);
-						data.generateAndAssignEmbeddings(embeddingsEngine, insight);
+						PgVectorTable dataForTable = readCsv(extractedFile);
 						
-						for (PgVectorRow row: data.getRows()) {
+						if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
+							IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
+							dataForTable.setKeywordEngine(keywordEngine);
+						}
+						
+						dataForTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+						
+						for (PgVectorRow row: dataForTable.getRows()) {
 							int index = 1;
 							ps.setObject(index++, row.getEmbeddings());
 							ps.setString(index++, row.getSource());
@@ -477,6 +479,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							ps.setInt(index++, row.getTokens());
 							ps.setString(index++, row.getContent());
 							ps.setString(index++, this.engineId);
+							ps.setString(index++, row.getKeywords());
 							ps.addBatch();
 						}
 						
@@ -509,7 +512,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 
-	public PgVectorTable readCsv(File file) throws IOException {
+	protected PgVectorTable readCsv(File file) throws IOException {
 		PgVectorTable pgVectorTable = new PgVectorTable();
 		try (Reader reader = Files.newBufferedReader(Paths.get(file.getAbsolutePath()))) {
 			try (CSVReader csvReader = new CSVReader(reader)) {
@@ -548,8 +551,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			conn = this.getConnection();
 			PreparedStatement ps = conn.prepareStatement(deleteQuery);
 			for (String document : filePaths) {
+				
+				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
-				File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
+				File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
@@ -557,7 +562,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				
 				// remove the results from the db
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, document);
+				ps.setString(parameterIndex++, documentName);
 				ps.setString(parameterIndex++, this.engineId);
 				ps.addBatch();
 				
@@ -691,13 +696,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		super.close();
 	}
 
-	private void checkSocketStatus() {
+	protected void checkSocketStatus() {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.startServer(-1);
 		}
 	}
 
-	private Insight getInsight(Object insightObj) {
+	protected Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
 			return InsightStore.getInstance().get((String) insightObj);
 		} else {
@@ -709,13 +714,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		
 		public class PgVectorRow {
 			
-			PGvector embeddings = null; // This could be a placeholder or identifier for actual embeddings
-	        String source;
-	        String modality;
-	        String divider;
-	        String part;
-	        Integer tokens;
-	        String content;
+			private PGvector embeddings = null; // This could be a placeholder or identifier for actual embeddings
+			private String source;
+			private String modality;
+			private String divider;
+			private String part;
+			private Integer tokens;
+			private String content;
+			private String keywords = "";
 
 	        public PgVectorRow(String source, String modality, String divider, String part, int tokens, String content) {
 	            // Initially, embeddings might not be set
@@ -759,10 +765,21 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        public String getContent() {
 	        	return this.content;
 	        }
+	        
+	        public void setKeywords(String keywords) {
+	            this.keywords = keywords;
+	        }
+	        
+	        public String getKeywords() {
+	            return this.keywords;
+	        }
 	    }
 
-	    private List<PgVectorRow> rows;
-
+	    protected List<PgVectorRow> rows;
+	    private IModelEngine keywordEngine = null;
+		private int maxKeywords = 12;
+		private int percentile = 0;
+		
 	    public PgVectorTable() {
 	        this.rows = new ArrayList<>();
 	    }
@@ -776,7 +793,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    	PgVectorRow newRow = new PgVectorRow(source, modality, divider, part, Double.valueOf(tokens).intValue(), content);
 	        this.rows.add(newRow);
 	    }
-
+	            
 	    public List<String> getAllContent() {
 	        List<String> contents = new ArrayList<>();
 	        for (PgVectorRow row : rows) {
@@ -789,8 +806,35 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    	return this.rows;
 	    }
 	    
+	    public void setKeywordEngine(IModelEngine keywordEngine) {
+            this.keywordEngine = keywordEngine;
+        }
+        
+        public IModelEngine getKeywordEngine() {
+            return this.keywordEngine;
+        }
+	    
 	    public void generateAndAssignEmbeddings(IModelEngine modelEngine, Insight insight) {
 	    	List<String> stringsToEmbed = this.getAllContent();
+	    	
+	    	if (this.keywordEngine != null) {
+	    		
+	    		Map<String, Object> keywordEngineParams = new HashMap<>();
+	    		keywordEngineParams.put("max_keywords", maxKeywords);
+	    		keywordEngineParams.put("percentile", percentile);
+	    		
+	    		@SuppressWarnings({"unchecked" })
+				List<String> keywordsFromChunks = (List<String>) this.keywordEngine.model(stringsToEmbed, insight, keywordEngineParams); 		
+	    		
+	    		for (int i = 0; i < this.rows.size(); i++) {
+	    			String keywordChunk = keywordsFromChunks.get(i);
+	    			
+	    			if (keywordChunk != null && !(keywordChunk=keywordChunk.trim()).isEmpty()) {
+	    				this.rows.get(i).setKeywords(keywordChunk);
+	    				stringsToEmbed.add(i, keywordChunk);
+	    			}
+	    		}
+	    	}
 	    	
 			EmbeddingsModelEngineResponse output = modelEngine.embeddings(stringsToEmbed, insight, null);
 	    	
