@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.om.Insight;
+import prerna.reactor.job.JobReactor;
 import prerna.sablecc2.comm.JobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
@@ -343,7 +344,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			return;
 		}
 		Insight insight = insightMap.get(insightId);
-		
+				
 		user = insight.getUser();
 		if(user == null)
 		{
@@ -389,10 +390,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     
     // this is the method that pushes to the front end
     // when output happens
-    private void exposeLog(String data, String insightId)
-    {
-    	if(insightId != null && data != null)
-    		JobManager.getManager().addStdOut(insightId, data);
+    private void exposeLog(String data, String insightId) {
+    	if(insightId != null && data != null) {
+    		Insight insight = insightMap.get(insightId);
+    		String jobId =  insight.getVarStore().get(JobReactor.JOB_KEY).getValue().toString();
+    		JobManager.getManager().addStdOut(jobId, data);
+    	}
     }
     
     public Object executeCommand(PayloadStruct ps)
