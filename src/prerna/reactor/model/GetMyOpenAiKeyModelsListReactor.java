@@ -1,4 +1,4 @@
-package prerna.engine.impl.model.reactors;
+package prerna.reactor.model;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,10 +54,10 @@ public class GetMyOpenAiKeyModelsListReactor extends AbstractReactor {
 		HashSet<String> modelList = new HashSet<>();
 		for (int i = 0 ; i < modelDetails.length(); i++) {
 			JSONObject modleInfo = modelDetails.getJSONObject(i);
-			modelList.add(modleInfo.getString("root"));
+			modelList.add(modleInfo.getString("id"));
 		}
 		
-		return new NounMetadata(new TreeSet<>(modelList), PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(new TreeSet<>(modelList).toArray(), PixelDataType.VECTOR);
 	}
 	
 	@Override
