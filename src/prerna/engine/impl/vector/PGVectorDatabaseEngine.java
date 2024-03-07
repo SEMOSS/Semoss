@@ -421,7 +421,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						.append(chunkingStrategy)
 						.append(", cfg_tokenizer = cfg_tokenizer)");
 						
-						
 						pyt.runScript(splitTextCommand.toString());
 
 						// this needs to match the column created in the new CSV
@@ -452,7 +451,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				
 				// if we were able to extract files, begin embeddings process
 				IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-				String psString = "INSERT INTO " + vectorTableName +" ( embedding, source, modality, divider, part, tokens, content, engineid, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+				String psString = "INSERT INTO " + vectorTableName +" ( embedding, source, modality, divider, part, tokens, content, engineid, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 				
 				Connection conn = null;
 				try {
