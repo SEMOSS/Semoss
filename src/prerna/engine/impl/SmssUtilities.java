@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.engine.impl.model.ModelEngineConstants;
+import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.MinioStorageEngine;
@@ -799,11 +799,10 @@ public class SmssUtilities {
 				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 				
 				// model
-				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
-				ModelEngineConstants.AWS_SECRET_KEY.toUpperCase(),
-				ModelEngineConstants.AWS_ACCESS_KEY.toUpperCase(),
-				ModelEngineConstants.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
-
+				AbstractModelEngine.OPEN_AI_KEY.toUpperCase(),
+				AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
+				AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
+				AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
 
 				// storage
 				S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
@@ -855,10 +854,10 @@ public class SmssUtilities {
 				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 				
 				// model
-				ModelEngineConstants.OPEN_AI_KEY.toUpperCase(),
-				ModelEngineConstants.AWS_SECRET_KEY.toUpperCase(),
-				ModelEngineConstants.AWS_ACCESS_KEY.toUpperCase(),
-				ModelEngineConstants.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
+				AbstractModelEngine.OPEN_AI_KEY.toUpperCase(),
+				AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
+				AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
+				AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
 
 				// storage
 				S3StorageEngine.S3_SECRET_KEY.toUpperCase(),

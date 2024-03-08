@@ -58,14 +58,6 @@ public class ModelInferenceLogsUtils {
         return str_arr.countTokens();
     }
 	
-//	public static String generateRoomTitle(AbstractModelEngine engine, String originalQuestion) {
-//		StringBuilder summarizeStatement = new StringBuilder("summarize \\\"");
-//		summarizeStatement.append(originalQuestion);
-//		summarizeStatement.append("\\\" in less than 8 words. Please exclude all punctuation from the response.");
-//		String roomTitle = engine.askQuestion(summarizeStatement.toString(), null, null, null);
-//		return roomTitle;
-//	}
-	
 	public static boolean userIsMessageAuthor(String userId, String messageId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
@@ -394,7 +386,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, messageId);
 			ps.setString(index++, messageType);
 			if (messageData != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, messageData, index++, new Gson());
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfBlob(ps.getConnection(), ps, messageData, index++);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}

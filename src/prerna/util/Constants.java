@@ -887,6 +887,12 @@ public class Constants {
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 	
+	//model
+	@Deprecated
+	public static final String KEEP_CONTEXT = "KEEP_CONTEXT";
+	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
+	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
+	
 	//vector
 	public static final String INDEX_CLASSES = "INDEX_CLASSES";
 	public static final String CONTENT_LENGTH = "CONTENT_LENGTH";

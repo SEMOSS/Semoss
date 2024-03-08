@@ -30,6 +30,18 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractModelEngine.class);
 	
+	public static final String OPEN_AI_KEY = "OPEN_AI_KEY";
+	public static final String AWS_SECRET_KEY = "AWS_SECRET_KEY";
+	public static final String AWS_ACCESS_KEY = "AWS_ACCESS_KEY";
+	public static final String GCP_SERVICE_ACCOUNT_KEY = "GCP_SERVICE_ACCOUNT_KEY";
+	
+	public static final String MESSAGE_CONTENT = "content";
+	public static final String ROLE = "role";
+	
+	// param keys
+	public static final String JAVA_FULL_PROMPT = "fullPrompt";
+	public static final String FULL_PROMPT = "full_prompt";
+	
 	private String engineId = null;
 	private String engineName = null;
 	private String engineDirectoryPath = null;
@@ -56,11 +68,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				
 		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 
-		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_CONVERSATION_HISTORY));
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_INPUT_OUTPUT));
+		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
+		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 				
-		if (this.smssProp.containsKey(ModelEngineConstants.KEEP_CONTEXT)) {
-			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(ModelEngineConstants.KEEP_CONTEXT));
+		if (this.smssProp.containsKey(Constants.KEEP_CONTEXT)) {
+			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONTEXT));
 			this.keepConversationHistory = keepContext;
 			this.keepInputOutput = keepContext;
 		}
