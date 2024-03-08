@@ -30,7 +30,6 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -174,7 +173,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// execute all the basic commands		
 		
 		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript+faissInitScript).split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
+		String [] commands = (tokenizerInitScript+faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
