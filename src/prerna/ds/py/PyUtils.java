@@ -33,6 +33,8 @@ public class PyUtils {
 	
 	private static final Logger classLogger = LogManager.getLogger(PyUtils.class.getName());
 	
+	public static final String PY_COMMAND_SEPARATOR = ";";
+	
 	private static Boolean pyEnabled = null;
 	private static PyUtils instance;
 	public Map<User, String> userTupleMap = new Hashtable<>();
