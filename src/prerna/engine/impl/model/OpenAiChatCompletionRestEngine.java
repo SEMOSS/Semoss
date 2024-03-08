@@ -69,9 +69,9 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			throw new IllegalArgumentException("This model requires a valid value for " + ENDPOINT);
 		}
 		
-		this.openAiApiKey = this.smssProp.getProperty(ModelEngineConstants.OPEN_AI_KEY);
+		this.openAiApiKey = this.smssProp.getProperty(AbstractModelEngine.OPEN_AI_KEY);
 		if(this.openAiApiKey == null || (this.openAiApiKey=this.openAiApiKey.trim()).isEmpty()) {
-			throw new IllegalArgumentException("This model requires a valid value for " + ModelEngineConstants.OPEN_AI_KEY);
+			throw new IllegalArgumentException("This model requires a valid value for " + AbstractModelEngine.OPEN_AI_KEY);
 		}
 		
 		this.modelName = this.smssProp.getProperty(Constants.MODEL);
@@ -122,7 +122,7 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		
 		bodyMap.put("stream", stream);
 		
-		Object fullPrompt = parameters.remove("full_prompt");
+		Object fullPrompt = parameters.remove(FULL_PROMPT);
 		parameters = this.adjustHyperParameters(parameters);
 		bodyMap.putAll(parameters);
 		

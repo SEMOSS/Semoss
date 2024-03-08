@@ -48,6 +48,7 @@ public class ModelInferenceLogsOwlCreator {
 	}
 	
 	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
+		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
@@ -80,7 +81,7 @@ public class ModelInferenceLogsOwlCreator {
 		this.messageColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
 				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
-				Pair.with("MESSAGE_DATA", CLOB_DATATYPE_NAME),
+				Pair.with("MESSAGE_DATA", BLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.with("MESSAGE_METHOD", "VARCHAR(50)"),
 				//Pair.with("MESSAGE_SEPARATOR", "VARCHAR(50)"), 

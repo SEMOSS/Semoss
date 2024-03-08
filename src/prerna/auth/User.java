@@ -1049,7 +1049,7 @@ public class User implements Serializable {
 			
 			String loggerLevel =  DIHelper.getInstance().getProperty(Settings.LOGGER_LEVEL);
 			if (loggerLevel == null || (loggerLevel=loggerLevel.trim()).isEmpty()) {
-				loggerLevel = "INFO";
+				loggerLevel = "WARNING";
 			}
 			
 			String customClassPath = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
