@@ -299,7 +299,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE_DATA/MESSAGE">
-	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<rdfs:Class rdf:resource="TYPE:BLOB"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE_DATA/MESSAGE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE_DATA</Conceptual>
 </rdf:Description>
@@ -508,39 +508,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:11:14 12:39:07</TIME>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/AGENT.AGENT_ID.MESSAGE.AGENT_ID">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AGENT">
-	<AGENT.AGENT_ID.MESSAGE.AGENT_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MESSAGE"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MESSAGE.MESSAGE_ID.FEEDBACK.MESSAGE_ID">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MESSAGE">
-	<MESSAGE.MESSAGE_ID.FEEDBACK.MESSAGE_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FEEDBACK"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MESSAGE.MESSAGE_TYPE.FEEDBACK.MESSAGE_TYPE">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MESSAGE">
-	<MESSAGE.MESSAGE_TYPE.FEEDBACK.MESSAGE_TYPE xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FEEDBACK"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ROOM.INSIGHT_ID.MESSAGE.INSIGHT_ID">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ROOM">
-	<ROOM.INSIGHT_ID.MESSAGE.INSIGHT_ID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MESSAGE"/>
+	<TIME xmlns="ENGINE:">2024:03:07 19:24:41</TIME>
 </rdf:Description>
 
 </rdf:RDF>
