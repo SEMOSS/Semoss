@@ -35,7 +35,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine.PgVectorTable.PgVectorRow;
@@ -192,7 +191,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		// execute all the basic commands		
 
 		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript).split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
+		String [] commands = (tokenizerInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
@@ -443,9 +442,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
 				}
 			}
-			
-			// ( embedding, source, modality, divider, part, tokens, content, engineid, keywords, taggigng)
-			// TODO s3 holds documents
 			
 			if (extractedFiles.size() > 0) {
 				

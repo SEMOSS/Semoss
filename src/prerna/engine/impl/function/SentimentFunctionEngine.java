@@ -10,8 +10,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.internal.LinkedTreeMap;
 
+import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.impl.model.ModelEngineConstants;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -113,7 +113,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		String initCommands = (String) smssProp.get(Constants.INIT_MODEL_ENGINE);
 		
 		// break the commands seperated by ;
-		String [] commands = initCommands.split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
+		String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// replace the Vars
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
@@ -132,7 +132,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
 		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout, loggerLevel);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
