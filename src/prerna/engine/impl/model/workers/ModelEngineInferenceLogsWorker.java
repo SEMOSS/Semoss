@@ -1,21 +1,20 @@
 package prerna.engine.impl.model.workers;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+
+import prerna.auth.User;
+import prerna.engine.impl.model.AbstractModelEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.job.JobReactor;
 import prerna.util.Utility;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
-import prerna.auth.User;
-import prerna.engine.impl.model.AbstractModelEngine;
-import prerna.engine.impl.model.ModelEngineConstants;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-
 public class ModelEngineInferenceLogsWorker implements Runnable {
+	
+	public static final String INPUT = "INPUT";
+	public static final String RESPONSE = "RESPONSE";
 	
 	private String messageId;
 	private String messageMethod;
@@ -77,12 +76,10 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		User user = insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
 		String userName = user.getPrimaryLoginToken().getName();
-		// TODO this could be insight id
 		
         Duration duration = Duration.between(inputTime, responseTime);
         long millisecondsDifference = duration.toMillis();
         Double millisecondsDouble = (double) millisecondsDifference;
-
         
 		// TODO this needs to be moved to wherever we "publish" a new LLM/agent
 		if (!ModelInferenceLogsUtils.doModelIsRegistered(engine.getEngineId())) {
@@ -91,81 +88,80 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 		
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
-			String roomName = null;
-			if (Boolean.parseBoolean((String) engine.getSmssProp().get(ModelEngineConstants.GENERATE_ROOM_NAME)) == true) {
-				// roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
-				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-			} else {
-				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-			}
+			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+		
 			ModelInferenceLogsUtils.doCreateNewConversation(
-					insightId, 
-					roomName, 
-					this.context, 
-					userId,
-					userName,
-					engine.getModelType().toString(), 
-					true, 
-					projectId, 
-					projectName, 
-					engine.getEngineId()
-				);
+				insightId, 
+				roomName, 
+				this.context, 
+				userId,
+				userName,
+				engine.getModelType().toString(), 
+				true, 
+				projectId, 
+				projectName, 
+				engine.getEngineId()
+			);
 		}
 				
 		if(engine.keepInputOutput()) {
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					ModelEngineConstants.INPUT,
-					prompt.replace("'", "\'").replace("\n", "\n"),
-					this.messageMethod,
-					promptTokens,
-					millisecondsDouble,
-					inputTime,
-					engine.getEngineId(),
-					insightId,
-					sessionId,
-					userId,
-					userName
-					);
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					ModelEngineConstants.RESPONSE,
-					response.replace("'", "\'").replace("\n", "\n"),
-					this.messageMethod,
-					responseTokens,
-					millisecondsDouble,
-					responseTime,
-					engine.getEngineId(),
-					insightId,
-					sessionId,
-					userId,
-					userName
-					);
+			ModelInferenceLogsUtils.doRecordMessage(
+				messageId, 
+				INPUT,
+				prompt.replace("'", "\'"),
+				this.messageMethod,
+				promptTokens,
+				millisecondsDouble,
+				inputTime,
+				engine.getEngineId(),
+				insightId,
+				sessionId,
+				userId,
+				userName
+			);
+			ModelInferenceLogsUtils.doRecordMessage(
+				messageId, 
+				RESPONSE,
+				response.replace("'", "\'"),
+				this.messageMethod,
+				responseTokens,
+				millisecondsDouble,
+				responseTime,
+				engine.getEngineId(),
+				insightId,
+				sessionId,
+				userId,
+				userName
+			);
 		} else {
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					ModelEngineConstants.INPUT,
-					null,
-					this.messageMethod,
-					promptTokens,
-					millisecondsDouble,
-					inputTime,
-					engine.getEngineId(),
-					insightId,
-					sessionId,
-					userId,
-					userName
-					);
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-					ModelEngineConstants.RESPONSE,
-					null,
-					this.messageMethod,
-					responseTokens,
-					millisecondsDouble,
-					responseTime,
-					engine.getEngineId(),
-					insightId,
-					sessionId,
-					userId,
-					userName
-					);
+			ModelInferenceLogsUtils.doRecordMessage(
+				messageId, 
+				INPUT,
+				null,
+				this.messageMethod,
+				promptTokens,
+				millisecondsDouble,
+				inputTime,
+				engine.getEngineId(),
+				insightId,
+				sessionId,
+				userId,
+				userName
+			);
+			ModelInferenceLogsUtils.doRecordMessage(
+				messageId, 
+				RESPONSE,
+				null,
+				this.messageMethod,
+				responseTokens,
+				millisecondsDouble,
+				responseTime,
+				engine.getEngineId(),
+				insightId,
+				sessionId,
+				userId,
+				userName
+			);
 		}
     }
 }

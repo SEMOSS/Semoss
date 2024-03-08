@@ -20,6 +20,7 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.tcp.PayloadStruct;
@@ -94,7 +95,7 @@ public class PythonModelEngine extends AbstractModelEngine {
 		String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
 		
 		// break the commands seperated by ;
-		String [] commands = initCommands.split(ModelEngineConstants.PY_COMMAND_SEPARATOR);
+		String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// replace the Vars
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
@@ -204,7 +205,7 @@ public class PythonModelEngine extends AbstractModelEngine {
 					 .append("\"\"\"");	
 		}
 		
-		if (!parameters.containsKey("full_prompt")) {
+		if (!parameters.containsKey(FULL_PROMPT)) {
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {
 				//could still be null if its the first question in the convo
@@ -243,10 +244,10 @@ public class PythonModelEngine extends AbstractModelEngine {
 		if (keepConvoHisotry) {
 			Map<String, Object> inputMap = new HashMap<String, Object>();
 			Map<String, Object> outputMap = new HashMap<String, Object>();
-			inputMap.put(ModelEngineConstants.ROLE, "user");
-			inputMap.put(ModelEngineConstants.MESSAGE_CONTENT, question);
-			outputMap.put(ModelEngineConstants.ROLE, "assistant");
-			outputMap.put(ModelEngineConstants.MESSAGE_CONTENT, response.getResponse());
+			inputMap.put(ROLE, "user");
+			inputMap.put(MESSAGE_CONTENT, question);
+			outputMap.put(ROLE, "assistant");
+			outputMap.put(MESSAGE_CONTENT, response.getResponse());
 	        
 			if (chatHistory.containsKey(insight.getInsightId())) {
 		        chatHistory.get(insight.getInsightId()).add(inputMap);
@@ -337,15 +338,12 @@ public class PythonModelEngine extends AbstractModelEngine {
 			for (Map<String, Object> record : convoHistoryFromDb) {
 				Object messageData = record.get("MESSAGE_DATA");
 				Map<String, Object> mapHistory = new HashMap<String, Object>();
-				if (record.get("MESSAGE_TYPE").equals("RESPONSE")) {
-
-					mapHistory.put(ModelEngineConstants.ROLE, "assistant");
-					mapHistory.put(ModelEngineConstants.MESSAGE_CONTENT, messageData);
-			            
-
+				if (record.get("MESSAGE_TYPE").equals(ModelEngineInferenceLogsWorker.RESPONSE)) {
+					mapHistory.put(ROLE, "assistant");
+					mapHistory.put(MESSAGE_CONTENT, messageData);
 				} else {
-					mapHistory.put(ModelEngineConstants.ROLE, "user");
-					mapHistory.put(ModelEngineConstants.MESSAGE_CONTENT, messageData);
+					mapHistory.put(ROLE, "user");
+					mapHistory.put(MESSAGE_CONTENT, messageData);
 				}
 		        chatHistory.get(insightId).add(mapHistory);
 			}
