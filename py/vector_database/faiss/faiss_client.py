@@ -739,7 +739,7 @@ class FAISSSearcher():
             self.vector_dimensions = self.encoded_vectors.shape
             
             # loop through and concatenate the others if any
-            for dataset, vectors in valid_datasets_and_vectors:
+            for dataset, vectors in valid_datasets_and_vectors[1:]:
                 self.ds = self._concatenate_datasets([self.ds, dataset])
                 self.encoded_vectors = np.concatenate((self.encoded_vectors,vectors),axis=0)
                 
