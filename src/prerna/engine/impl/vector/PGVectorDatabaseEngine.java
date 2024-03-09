@@ -624,12 +624,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						  .append("\"part\" AS \"Part\",")
 						  .append("\"tokens\" AS \"Tokens\",")
 						  .append("\"content\" AS \"Content\",")
-						  .append("1-(\"embedding\" <=> '"+embeddingsResponse.getResponse().get(0)+"') AS Score")
+						  .append("power((\"embedding\" <-> '"+embeddingsResponse.getResponse().get(0)+"'),2) AS \"Score\"")
 						  .append(" FROM ")
 						  .append(this.vectorTableName)
 						  .append(" WHERE ENGINEID = '")
 						  .append(this.engineId)
-						  .append("' ORDER BY Score desc LIMIT ")
+						  .append("' ORDER BY \"Score\" ASC LIMIT ")
 						  .append(limit);
 		
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
