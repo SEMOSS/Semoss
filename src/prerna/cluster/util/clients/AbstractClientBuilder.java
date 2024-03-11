@@ -20,6 +20,7 @@ public abstract class AbstractClientBuilder implements ICloudClientBuilder {
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
 	public static final String AZ_NAME = "AZ_NAME";
 	public static final String AZ_KEY = "AZ_KEY";
+	public static final String AZ_GENERATE_DYNAMIC_SAS = "AZ_GENERATE_DYNAMIC_SAS";
 	public static final String SAS_URL = "SAS_URL";
 	public static final String AZ_URI = "AZ_URI";
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
