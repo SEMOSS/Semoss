@@ -35,6 +35,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine.PgVectorTable.PgVectorRow;
@@ -46,11 +47,13 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.PGVectorQueryUtil;
 import prerna.util.sql.RDBMSUtility;
+import prerna.util.upload.UploadUtilities;
 
 public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVectorDatabaseEngine {
 
@@ -689,6 +692,56 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 		
 		super.close();
+	}
+	
+	@Override
+	public void delete() throws IOException {
+		classLogger.debug("Delete vector engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		try {
+			this.close();
+		} catch(IOException e) {
+			classLogger.warn("Error occurred trying to close the connection");
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		File engineFolder = new File(
+				EngineUtility.getSpecificEngineBaseFolder
+					(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName)
+				);
+		
+		String folderName = engineFolder.getName();
+		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
+
+		if(owlFile != null && owlFile.exists()) {
+			classLogger.info("Deleting owl file " + owlFile.getAbsolutePath());
+			try {
+				FileUtils.forceDelete(owlFile);
+			} catch(IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		//this check is to ensure we are deleting the right folder.
+		classLogger.info("Checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
+			classLogger.info("folder getting deleted is " + engineFolder.getAbsolutePath());
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		classLogger.debug("Deleting smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch(IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// remove from DIHelper
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 
 	protected void checkSocketStatus() {
