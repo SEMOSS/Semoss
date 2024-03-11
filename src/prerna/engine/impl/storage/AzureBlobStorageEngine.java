@@ -277,14 +277,14 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			}
 			rClonePath += storagePath;
 			
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localPath.startsWith("\"")) {
-				localPath = "\""+localPath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localPath.startsWith("\"")) {
+//				localPath = "\""+localPath+"\"";
+//			}
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", localPath, rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -318,14 +318,14 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			}
 			rClonePath += storagePath;
 			
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localPath.startsWith("\"")) {
-				localPath = "\""+localPath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localPath.startsWith("\"")) {
+//				localPath = "\""+localPath+"\"";
+//			}
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rClonePath, localPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -358,14 +358,14 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			}
 			rClonePath += storageFolderPath;
 			
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localFilePath.startsWith("\"")) {
-				localFilePath = "\""+localFilePath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localFilePath.startsWith("\"")) {
+//				localFilePath = "\""+localFilePath+"\"";
+//			}
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", localFilePath, rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -398,14 +398,14 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			}
 			rClonePath += storageFilePath;
 	
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localFolderPath.startsWith("\"")) {
-				localFolderPath = "\""+localFolderPath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localFolderPath.startsWith("\"")) {
+//				localFolderPath = "\""+localFolderPath+"\"";
+//			}
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
