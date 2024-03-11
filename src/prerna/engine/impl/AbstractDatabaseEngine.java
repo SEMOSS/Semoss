@@ -585,8 +585,9 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		
 		File engineFolder = new File(
 				EngineUtility.getSpecificEngineBaseFolder
-					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
+					(IEngine.CATALOG_TYPE.DATABASE, this.engineId, this.engineName)
 				);
+		
 		String folderName = engineFolder.getName();
 		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
 
