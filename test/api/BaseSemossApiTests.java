@@ -1,6 +1,7 @@
 package api;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,15 +11,16 @@ import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class BaseSemossApiTests {
 	
 	protected static final Logger classLogger = LogManager.getLogger(BaseSemossApiTests.class);
 
-    @BeforeClass
+    @BeforeAll
     public static void BaseSemossApiTestsSetup() throws Exception {
     	long start = System.nanoTime();
     	if (ApiSemossTestUtils.isFirstClass()) {
@@ -53,16 +55,20 @@ public class BaseSemossApiTests {
 			ExecutorService es = Executors.newCachedThreadPool();
 			try {
 				es.invokeAll(tasks);
+			} catch (Exception e) {
+				e.printStackTrace();
+				fail("setup failed");
 			} finally {
 				es.shutdown();
 			}
 			
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
+
     	}
     	System.out.println("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
     }
     
-    @AfterClass
+    @AfterAll
 	public static void destroyContext() {
 //		ApiInsightAndPropsInitUtils.unloadDIHelper();
 //		ApiDatabaseInitUtils.unloadDatabases();
@@ -72,7 +78,7 @@ public class BaseSemossApiTests {
 
 	// Ensure that everything is pointing in the correct direction before each test to limit damage
     // in case the DIHelper decides to reload with a different rdf map properties. 
-    @Before
+    @BeforeEach
     public void BaseSemossApiTestsBefore() {
     	ApiSemossTestEngineUtils.checkDatabasePropMapping();
     	
@@ -89,7 +95,4 @@ public class BaseSemossApiTests {
     	ApiSemossTestInsightUtils.clearInsightCacheDifferently();
     }
     
-	
-	
-	
 }
