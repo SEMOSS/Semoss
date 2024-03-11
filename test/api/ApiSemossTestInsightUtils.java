@@ -1,6 +1,6 @@
 package api;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class ApiSemossTestInsightUtils {
     	assertTrue(dir.isDirectory());
     	File[] files = dir.listFiles();
     	for (File f : files) {
-    		assertTrue("Could not delete: " + f.getName(), f.delete());
+    		assertTrue(f.delete(), "Could not delete: " + f.getName());
     	}
 	}
 
