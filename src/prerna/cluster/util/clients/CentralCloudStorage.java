@@ -125,6 +125,8 @@ public class CentralCloudStorage implements ICloudClient {
 			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_ACCOUNT_NAME, clientProps, AbstractClientBuilder.AZ_NAME);
 			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_PRIMARY_KEY, clientProps, AbstractClientBuilder.AZ_KEY);
 			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_CONN_STRING, clientProps, AbstractClientBuilder.AZ_CONN_STRING);
+			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_GENERATE_DYNAMIC_SAS, clientProps, AbstractClientBuilder.AZ_GENERATE_DYNAMIC_SAS);
+
 			
 			// we have a different structure for AZ storage since it doesn't represent the blobs as folders
 			CentralCloudStorage.DB_CONTAINER_PREFIX = "db-";
