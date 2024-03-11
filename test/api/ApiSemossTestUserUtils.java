@@ -1,6 +1,6 @@
 package api;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;

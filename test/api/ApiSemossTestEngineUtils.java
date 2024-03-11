@@ -1,10 +1,10 @@
 package api;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -299,11 +299,11 @@ public class ApiSemossTestEngineUtils {
 		assertNotNull(columns);
 		assertNotNull(dataTypes);
 		assertNotNull(rowValues);
-		assertFalse("Database with named <" + name + "> already exists", CURRENT_NAMES.contains(name));
-		assertEquals("Column name count and dataType count have to match up", columns.size(), dataTypes.size());
-		assertTrue("Input must contain table data", rowValues.size() > 0);
-		assertEquals("All row value lengths must match", 1, rowValues.stream().map(s -> s.size()).distinct().count());
-		assertEquals("Data columns must have same size as column names and data types", rowValues.get(0).size(), columns.size());
+		assertFalse(CURRENT_NAMES.contains(name), "Database with named <" + name + "> already exists");
+		assertEquals(columns.size(), dataTypes.size(), "Column name count and dataType count have to match up");
+		assertTrue(rowValues.size() > 0, "Input must contain table data");
+		assertEquals(1, rowValues.stream().map(s -> s.size()).distinct().count(), "All row value lengths must match");
+		assertEquals(rowValues.get(0).size(), columns.size(), "Data columns must have same size as column names and data types");
 		
 		CURRENT_NAMES.add(name);
 		

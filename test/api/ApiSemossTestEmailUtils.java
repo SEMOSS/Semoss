@@ -1,7 +1,7 @@
 package api;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -106,6 +106,9 @@ public class ApiSemossTestEmailUtils {
 
 	public static Void startEmailLocalServer() throws IOException, InterruptedException {
 		if (!serverRunning()) {
+			if (Files.notExists(Paths.get(MAILPIT_EXE))) {
+				fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
+			}
 			ProcessBuilder pb = new ProcessBuilder(MAILPIT_EXE);
 			pb.directory(new File(MAILPIT_FOLDER));
 			
