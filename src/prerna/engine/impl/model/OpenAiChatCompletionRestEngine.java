@@ -139,8 +139,8 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			bodyMap.put("messages", messages);
 			
 			Object maxTokens = parameters.get("max_tokens");
-			
-			if (messages.getTotalTokenCount() >= this.maxTokens) {
+			Integer promptTokens = messages.getTotalTokenCount();
+			if (promptTokens >= this.maxTokens) {
 				// need to shift the message window
 				
 				Integer tokenCounter = this.maxTokens;
@@ -195,6 +195,7 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			Integer tokens = getCountTokenScript(insight.getPyTranslator(), messages.getTokenizerVarName(), askResponse.getResponse());
 			messages.addModelResponse(askResponse.getResponse(), tokens);
 			
+			askResponse.setNumberOfTokensInPrompt(promptTokens);
 			return askResponse;
 		}
 	}
