@@ -40,7 +40,7 @@ def __getattr__(name: str) -> Any:
     elif name == "OpenAiTokenizer":
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
         return OpenAiTokenizer
-    elif name == "VertexAiEmbedder":
+    elif name == "HuggingfaceTokenizer":
         from .tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
         return HuggingfaceTokenizer
 
