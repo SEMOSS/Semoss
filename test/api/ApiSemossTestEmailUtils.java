@@ -23,8 +23,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class ApiSemossTestEmailUtils {
 	
 	private static String MAILPIT_FOLDER = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "mailpit").toString();
-	private static String MAILPIT_EXE = Paths.get(MAILPIT_FOLDER, "mailpit.exe").toString();
+	private static String MAILPIT_WINDOWS_EXE = Paths.get(MAILPIT_FOLDER, "mailpit.exe").toString();
+	private static String MAILPIT_MAC_EXE = Paths.get(MAILPIT_FOLDER, "mailpit").toString();
 	private static String MAILPIT_LOG = Paths.get(MAILPIT_FOLDER, "mailpit.log").toString();
+	
+	private static String OS = System.getProperty("os.name").toLowerCase();
+	private static boolean isWin = false;
+	static {
+		isWin = (OS.indexOf("win") >= 0);
+	}
 	
 	public static boolean serverRunning() {
 		try {
@@ -106,10 +113,20 @@ public class ApiSemossTestEmailUtils {
 
 	public static Void startEmailLocalServer() throws IOException, InterruptedException {
 		if (!serverRunning()) {
-			if (Files.notExists(Paths.get(MAILPIT_EXE))) {
-				fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
+			String processStr = null;
+			if(isWin) {
+				processStr = MAILPIT_WINDOWS_EXE;
+				if (Files.notExists(Paths.get(MAILPIT_WINDOWS_EXE))) {
+					fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
+				}	
+			} else {
+				processStr = MAILPIT_MAC_EXE;
+				if (Files.notExists(Paths.get(MAILPIT_MAC_EXE))) {
+					fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
+				}
 			}
-			ProcessBuilder pb = new ProcessBuilder(MAILPIT_EXE);
+			
+			ProcessBuilder pb = new ProcessBuilder(processStr);
 			pb.directory(new File(MAILPIT_FOLDER));
 			
 			if (Files.exists(Paths.get(MAILPIT_LOG))) {
