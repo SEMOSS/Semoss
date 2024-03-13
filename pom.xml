@@ -90,7 +90,7 @@
 						<!-- this fixes a bug for open jdk, see https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
 						<configuration>
 							<useSystemClassLoader>false</useSystemClassLoader>
-							<test>prerna.junit.AllTests</test>
+							<test>prerna.testing.AllTests</test>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -2030,6 +2030,13 @@
 		    <groupId>org.junit.jupiter</groupId>
 		    <artifactId>junit-jupiter</artifactId>
 		    <version>5.10.2</version>
+		    <scope>test</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite -->
+		<dependency>
+		    <groupId>org.junit.platform</groupId>
+		    <artifactId>junit-platform-suite</artifactId>
+		    <version>1.10.2</version>
 		    <scope>test</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.testcontainers/testcontainers -->
