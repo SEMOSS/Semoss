@@ -1,4 +1,4 @@
-package api;
+package prerna.testing;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -14,9 +14,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
-public class BaseSemossApiTests {
+public abstract class AbstractBaseSemossApiTests {
 	
-	private static final Logger classLogger = LogManager.getLogger(BaseSemossApiTests.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractBaseSemossApiTests.class);
 	
 	protected boolean clearAllDatabasesBetweenTests = true;
 	protected boolean clearAllEmailsBetweenTests = true;
