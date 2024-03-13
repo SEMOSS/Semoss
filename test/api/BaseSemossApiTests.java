@@ -17,9 +17,11 @@ import org.junit.jupiter.api.BeforeEach;
 public class BaseSemossApiTests {
 	
 	protected static final Logger classLogger = LogManager.getLogger(BaseSemossApiTests.class);
+	protected boolean clearAllDatabasesBetweenTests = true;
+	protected boolean clearAllEmailsBetweenTests = true;
 
     @BeforeAll
-    public static void BaseSemossApiTestsSetup() throws Exception {
+    public static void initialSetup() throws Exception {
     	long start = System.nanoTime();
     	if (ApiSemossTestUtils.isFirstClass()) {
 			ApiSemossTestPropsUtils.loadDIHelper();
@@ -77,19 +79,25 @@ public class BaseSemossApiTests {
 	// Ensure that everything is pointing in the correct direction before each test to limit damage
     // in case the DIHelper decides to reload with a different rdf map properties. 
     @BeforeEach
-    public void BaseSemossApiTestsBefore() {
+    public void beforeEachTest() {
     	ApiSemossTestEngineUtils.checkDatabasePropMapping();
     	
-    	try {
-    		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
-    	} catch (Exception e) {
-    		System.out.println("Could not rebuild core semoss dbs");
-    		fail(e.toString());
+    	// do we want a clean database
+    	if(clearAllDatabasesBetweenTests) {
+	    	try {
+	    		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
+	    	} catch (Exception e) {
+	    		System.out.println("Could not rebuild core semoss dbs");
+	    		fail(e.toString());
+	    	}
+	    	ApiSemossTestUserUtils.setDefaultTestUser();
     	}
     	
-    	ApiSemossTestUserUtils.setDefaultTestUser();
+    	// do we want a clean email server
+    	if(clearAllEmailsBetweenTests) {
+    		ApiSemossTestEmailUtils.deleteAllEmails();
+    	}
     	
-    	ApiSemossTestEmailUtils.deleteAllEmails();
     	ApiSemossTestInsightUtils.clearInsightCacheDifferently();
     }
     
