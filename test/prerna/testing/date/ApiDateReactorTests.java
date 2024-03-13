@@ -1,15 +1,15 @@
-package api.prerna.date;
+package prerna.testing.date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import api.ApiSemossTestUtils;
-import api.BaseSemossApiTests;
 import prerna.date.reactor.DateReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.testing.ApiSemossTestUtils;
+import prerna.testing.AbstractBaseSemossApiTests;
 
-public class ApiDateReactorTests extends BaseSemossApiTests {
+public class ApiDateReactorTests extends AbstractBaseSemossApiTests {
 	
 	@Test
 	public void getDate() {
