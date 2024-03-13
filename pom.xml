@@ -84,6 +84,18 @@
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
 					</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-jar-plugin</artifactId>
+							<version>3.3.0</version>
+							<executions>
+								<execution>
+									<goals>
+										<goal>test-jar</goal>
+									</goals>
+								</execution>
+							</executions>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
@@ -126,7 +138,7 @@
 						<!-- this fixes a bug for open jdk, see https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
 						<configuration>
 							<useSystemClassLoader>false</useSystemClassLoader>
-							<test>prerna.junit.AllTests</test>
+							<test>prerna.testing.AllTests</test>
 						</configuration>
 					</plugin>
 					<plugin>
