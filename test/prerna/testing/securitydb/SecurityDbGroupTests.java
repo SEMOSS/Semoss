@@ -1,4 +1,4 @@
-package api.prerna.securitydb;
+package prerna.testing.securitydb;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -17,13 +17,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import api.ApiSemossTestUserUtils;
-import api.BaseSemossApiTests;
 import prerna.auth.User;
 import prerna.auth.utils.AdminSecurityGroupUtils;
+import prerna.testing.AbstractBaseSemossApiTests;
+import prerna.testing.ApiSemossTestUserUtils;
 
 @TestMethodOrder(OrderAnnotation.class)
-public class SecurityDbGroupTests extends BaseSemossApiTests {
+public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 
 	private final String NEW_GROUP_ID = "myNewGroup";
 	private final String NEW_GROUP_TYPE = null; // custom groups dont have a type
