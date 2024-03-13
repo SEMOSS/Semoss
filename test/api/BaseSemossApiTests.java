@@ -16,7 +16,8 @@ import org.junit.jupiter.api.BeforeEach;
 
 public class BaseSemossApiTests {
 	
-	protected static final Logger classLogger = LogManager.getLogger(BaseSemossApiTests.class);
+	private static final Logger classLogger = LogManager.getLogger(BaseSemossApiTests.class);
+	
 	protected boolean clearAllDatabasesBetweenTests = true;
 	protected boolean clearAllEmailsBetweenTests = true;
 
