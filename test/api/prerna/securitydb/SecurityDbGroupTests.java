@@ -2,6 +2,7 @@ package api.prerna.securitydb;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -99,6 +100,19 @@ public class SecurityDbGroupTests extends BaseSemossApiTests {
 					.getGroups(null, -1, 10);
 			assertTrue(groupReturns.isEmpty());
 		}
+	}
+	
+	@Test
+	@Order(3)
+	public void createGroupWithExistingName() {
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+		assertThrows(IllegalArgumentException.class, 
+				() -> {
+					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).addGroup(defaultTestAdminUser, NEW_GROUP_ID,
+							NEW_GROUP_TYPE, NEW_GROUP_DESCRIPTION, NEW_GROUP_IS_CUSTOM);
+					},
+				"Group already exists"
+				);
 	}
 
 	@AfterAll
