@@ -1,0 +1,15 @@
+{
+    "isMeta": false,
+    "operationType": [
+        "CODE_EXECUTION"
+    ],
+    "output": [
+        {
+            "operationType": [
+                "OPERATION"
+            ],
+            "output": ""
+        }
+    ],
+    "pixelExpression": "Py ( \"<encode>1+1</encode>\" ) ;"
+}
