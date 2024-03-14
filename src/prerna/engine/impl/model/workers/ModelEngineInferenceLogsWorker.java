@@ -3,6 +3,9 @@ package prerna.engine.impl.model.workers;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
+import com.google.gson.Gson;
+
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -21,6 +24,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     private AbstractModelEngine engine;
     private Insight insight;
     private String prompt;
+    private Object fullPrompt;
     private String context;
     private LocalDateTime inputTime;
     private String response;
@@ -35,6 +39,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		Insight insight, 
 	   	String context,
 	   	String prompt,
+	   	Object fullPrompt,
 	   	Integer promptTokens,
 	   	LocalDateTime inputTime,
 	   	String response,
@@ -47,6 +52,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.insight = insight;
     	this.context = context;
         this.prompt = prompt;
+        this.fullPrompt = fullPrompt;
         this.promptTokens = promptTokens;
         this.inputTime = inputTime;
         this.response = response;
@@ -73,9 +79,28 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 		
 		String insightId = insight.getInsightId();
+		
 		User user = insight.getUser();
-		String userId = user.getPrimaryLoginToken().getId();
-		String userName = user.getPrimaryLoginToken().getName();
+		AccessToken userToken = user.getPrimaryLoginToken();
+		String userId = userToken.getId();
+		String userName = userToken.getName();
+		String userUsername = userToken.getUsername();
+		String userEmail = userToken.getEmail();
+		
+		// try to get the user's actual name otherwise try for username or email address
+		if (userName == null) {
+			if (userUsername != null) {
+				userName = userUsername;
+			} else {
+				userName = userEmail;
+			}
+		}
+				
+		if (prompt == null) {
+			prompt = new Gson().toJson(fullPrompt);
+		} else {
+			prompt = prompt.replace("'", "\'");
+		}
 		
         Duration duration = Duration.between(inputTime, responseTime);
         long millisecondsDifference = duration.toMillis();
@@ -87,13 +112,13 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getModelType().toString(), user.getPrimaryLoginToken().getId());
 		}
 		
-		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
+		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId) && this.messageMethod.equals("ask")) {
 			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 		
 			ModelInferenceLogsUtils.doCreateNewConversation(
 				insightId, 
 				roomName, 
-				this.context, 
+				null, 
 				userId,
 				userName,
 				engine.getModelType().toString(), 
@@ -103,12 +128,17 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				engine.getEngineId()
 			);
 		}
+		
+		if (this.context != null) {
+			// set the context for the room / insight
+			ModelInferenceLogsUtils.setRoomContext(insightId, userId, userName);
+		}
 				
 		if(engine.keepInputOutput()) {
 			ModelInferenceLogsUtils.doRecordMessage(
 				messageId, 
 				INPUT,
-				prompt.replace("'", "\'"),
+				prompt,
 				this.messageMethod,
 				promptTokens,
 				millisecondsDouble,
