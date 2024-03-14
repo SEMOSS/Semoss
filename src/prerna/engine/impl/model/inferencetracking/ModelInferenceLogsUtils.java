@@ -270,6 +270,39 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
+	public static void setRoomContext(String insightId, String userId, String context) {
+		Connection conn = connectToInferenceLogs();
+        try {
+			UpdateQueryStruct qs = new UpdateQueryStruct();
+			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			qs.setEngine(modelInferenceLogsDb);
+			
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
+			List<IQuerySelector> selectors = new Vector<>();
+			List<Object> values = new Vector<>();
+			selectors.add(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
+			values.add(context);
+			qs.setSelectors(selectors);
+			qs.setValues(values);
+			
+			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+			String updateQ = updateInterp.composeQuery();
+
+            modelInferenceLogsDb.insertData(updateQ);
+        } catch (Exception e) {
+            classLogger.error(Constants.STACKTRACE, e);
+        } finally {
+            if(modelInferenceLogsDb.isConnectionPooling()) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    classLogger.error(Constants.STACKTRACE, e);
+                }
+            }
+        }
+	}
+	
 	public static boolean doCheckConversationExists (String roomId) {
 		String query = "SELECT COUNT(*) FROM ROOM WHERE INSIGHT_ID = ?";
 		PreparedStatement ps = null;
