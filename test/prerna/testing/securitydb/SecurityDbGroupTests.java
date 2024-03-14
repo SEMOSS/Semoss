@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.javatuples.Pair;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -25,10 +24,10 @@ import prerna.testing.ApiSemossTestUserUtils;
 @TestMethodOrder(OrderAnnotation.class)
 public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 
-	private final String NEW_GROUP_ID = "myNewGroup";
-	private final String NEW_GROUP_TYPE = null; // custom groups dont have a type
-	private final String NEW_GROUP_DESCRIPTION = "my description";
-	private final boolean NEW_GROUP_IS_CUSTOM = true;
+	private static final String NEW_GROUP_ID = "myNewGroup";
+	private static final String NEW_GROUP_TYPE = null; // custom groups dont have a type
+	private static final String NEW_GROUP_DESCRIPTION = "my description";
+	private static final boolean NEW_GROUP_IS_CUSTOM = true;
 
 	@Override
 	@BeforeEach
@@ -116,10 +115,23 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	}
 	
 	
-
-	
-	@AfterAll
-	public static void deleteAllGroups() {
-
+	// perform at the end
+	@Test
+	@Order(1000)
+	public void deleteGroup() {
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+		try {
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).deleteGroupAndPropagate(NEW_GROUP_ID, NEW_GROUP_TYPE);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		// should have no groups left
+		{
+			List<Map<String, Object>> groupReturns = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getGroups(null, -1, -1);
+			assertTrue(groupReturns.isEmpty());
+		}
 	}
 }
