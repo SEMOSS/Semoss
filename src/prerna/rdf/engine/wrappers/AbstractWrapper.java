@@ -93,7 +93,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 
 	@Override
 	public void setQuery(String query) {
-		logger.debug("Setting the query " + Utility.cleanLogString(query));
+		//logger.debug("Setting the query " + Utility.cleanLogString(query));
 		this.query = query;
 	}
 	
@@ -104,7 +104,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	
 	@Override
 	public void setEngine(IDatabaseEngine engine) {
-		logger.debug("Set the engine to " + engine.getEngineId());
+		//logger.debug("Set the engine to " + engine.getEngineId());
 		this.engine = engine;
 	}
 	
