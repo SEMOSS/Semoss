@@ -262,7 +262,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	public String getProperty(String key) {
 		String retProp = null;
 
-		classLogger.debug("Property is " + Utility.cleanLogString(key) + "]");
+//		classLogger.debug("Property is " + Utility.cleanLogString(key) + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
