@@ -44,6 +44,12 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	private static final String TOKEN_NAME_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__TOKENNAME";
 	private static final String TOKEN_DESCRIPTION_COL = SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__TOKENDESCRIPTION";
 
+	private static final String SMSS_USER_TABLE_NAME = "SMSS_USER";
+	private static final String SMSS_USER_USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
+	private static final String NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
+	private static final String USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
+	private static final String EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";
+	
 	private SecurityUserAccessKeyUtils() {
 
 	}
@@ -61,12 +67,21 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		String userId = null;
 		String oldUserId = null;
 		String loginType = null;
+		String name = null;
+		String username = null;
+		String email = null;
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_SALT_COL));
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addSelector(new QueryColumnSelector(TYPE_COL));
+		qs.addSelector(new QueryColumnSelector(NAME_COL));
+		qs.addSelector(new QueryColumnSelector(USERNAME_COL));
+		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
+		
+		qs.addRelation(USERID_COL, SMSS_USER_USERID_COL, "inner.join");
+
 		// since we had a bad name
 		// will check for the old column if it exists and use that
 		boolean hasOldColumnName = hasOldColumnName();
@@ -81,18 +96,24 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
-				if(values.length == 4) {
+				if(values.length == 7) {
 					int index = 0;
 					saltedSecretKey = (String) values[index++];
 					salt = (String) values[index++];
 					userId = (String) values[index++];
 					loginType = (String) values[index++];
+					name = (String) values[index++];
+					username = (String) values[index++];
+					email = (String) values[index++];
 				} else {
 					int index = 0;
 					saltedSecretKey = (String) values[index++];
 					salt = (String) values[index++];
 					userId = (String) values[index++];
 					loginType = (String) values[index++];
+					name = (String) values[index++];
+					username = (String) values[index++];
+					email = (String) values[index++];
 					oldUserId = (String) values[index++];
 				}
 			}
@@ -118,7 +139,6 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("Invalid credentials");
 		}
 		
-		// TODO: should load in all the user details from the User table
 		User user = new User();
 		AccessToken token = new AccessToken();
 		AuthProvider provider = AuthProvider.getProviderFromString(loginType);
@@ -128,7 +148,11 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		} else {
 			token.setId(userId);
 		}
+		token.setName(name);
+		token.setUsername(username);
+		token.setEmail(email);
 		user.setAccessToken(token);
+		
 		return user;
 	}
 

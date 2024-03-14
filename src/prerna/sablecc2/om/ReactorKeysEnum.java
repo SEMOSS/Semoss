@@ -78,6 +78,7 @@ public enum ReactorKeysEnum {
 	FRAME("frame", 												"The frame"),
 	FRAME_CACHE("frameCache", 									"Enable or disable the frame cache. Boolean (True / False)"),
 	FRAME_TYPE("frameType", 									"Type of frame to generate - grid (sql based frame), graph (frame based on tinkerpop), r (data sits within r, must have r installed to use), native (leverages the database to execute queries)"),
+	FULL_PROMPT("fullPrompt",									"The exact input that will be sent directly to a model engine. This requires a user to know the prompt structure of the large language model and keep track of conversation history themselves."),	
 	FUNCTION("function", 										"The id/name of the function engine to use"),
 	FUNCTION_DETAILS("functionDetails", 						"Map containing the necessary details to establish a connection to function engine"),
 	GITLAB_BRANCH_NAME("gitlabBranchName",						"The name of the gitlab branch"),
