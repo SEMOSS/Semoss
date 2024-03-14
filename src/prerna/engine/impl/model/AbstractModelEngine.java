@@ -39,7 +39,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public static final String ROLE = "role";
 	
 	// param keys
-	public static final String JAVA_FULL_PROMPT = "fullPrompt";
 	public static final String FULL_PROMPT = "full_prompt";
 	
 	private String engineId = null;
@@ -84,8 +83,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			parameters = new HashMap<String, Object>();
 		}
 		
+		Object fullPrompt = parameters.remove(FULL_PROMPT);
 		LocalDateTime inputTime = LocalDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, context, insight, parameters);
+		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, insight, parameters);
 		LocalDateTime outputTime = LocalDateTime.now();
 				
 		askModelResponse.setMessageId(UUID.randomUUID().toString());
@@ -99,6 +99,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					insight,
 					context, 
 					question,
+					fullPrompt,
 					askModelResponse.getNumberOfTokensInPrompt(),
 					inputTime, 
 					askModelResponse.getResponse(),
@@ -116,12 +117,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 * the model engine.
 	 * 
 	 * @param question
+	 * @param fullPrompt
 	 * @param context
 	 * @param insight
 	 * @param parameters
 	 * @return
 	 */
-	protected abstract AskModelEngineResponse askCall(String question, String context, Insight insight, Map<String, Object> parameters);
+	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
 	
 
 	@Override
@@ -142,7 +144,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					this, 
 					insight, 
 					null,
-					"",
+					null,
+					stringsToEmbed,
 					embeddingsResponse.getNumberOfTokensInPrompt(),
 					inputTime, 
 					"",
@@ -180,6 +183,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					insight,
 					null,
 					input + "",
+					null,
 					null,
 					inputTime, 
 					PyUtils.determineStringType(modelCallResponse),

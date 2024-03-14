@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -35,7 +34,7 @@ import prerna.util.Utility;
  * a python process. The corresponding python class should handle all method implementations. This java class is 
  * simply mechanism to forward calls to the python process.
  */
-public class PythonModelEngine extends AbstractModelEngine {
+public abstract class PythonModelEngine extends AbstractModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(PythonModelEngine.class);
 
@@ -176,9 +175,10 @@ public class PythonModelEngine extends AbstractModelEngine {
 		}
 	}
 	
-	private void setPrefix() {		
+	private void setPrefix() {
+		this.prefix = this.cpw.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
-		prefixPayload.payload = new String[] {"prefix", this.cpw.getPrefix()};
+		prefixPayload.payload = new String[] {"prefix", this.prefix};
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
 		
 		this.cpw.getSocketClient().executeCommand(prefixPayload);
@@ -186,26 +186,29 @@ public class PythonModelEngine extends AbstractModelEngine {
 	
 
 	@Override
-	public AskModelEngineResponse askCall(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
 		
 		boolean keepConvoHisotry = this.keepsConversationHistory();
 		
-		StringBuilder callMaker = new StringBuilder(varName);
-						
-		callMaker.append(".ask(");
-		callMaker.append("question=\"\"\"")
-				 .append(question.replace("\"", "\\\""))
-				 .append("\"\"\"");
+		StringBuilder callMaker = new StringBuilder(varName + ".ask(");		
 		
-		if(context != null) {
-			callMaker.append(",")
-					 .append("context=\"\"\"")
-					 .append(context.replace("\"", "\\\""))
-					 .append("\"\"\"");	
-		}
-		
-		if (!parameters.containsKey(FULL_PROMPT)) {
+		if (fullPrompt != null) {
+			callMaker.append(FULL_PROMPT)
+					 .append("=")
+					 .append(PyUtils.determineStringType(fullPrompt));
+		} else {
+			callMaker.append("question=\"\"\"")
+					 .append(question.replace("\"", "\\\""))
+					 .append("\"\"\"");
+	
+			if(context != null) {
+				callMaker.append(",")
+						 .append("context=\"\"\"")
+						 .append(context.replace("\"", "\\\""))
+						 .append("\"\"\"");	
+			}
+			
 			String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
 			if(history != null) {
 				//could still be null if its the first question in the convo
@@ -235,7 +238,7 @@ public class PythonModelEngine extends AbstractModelEngine {
 		
 		callMaker.append(")");
 		
-		classLogger.info("Running >>>" + callMaker.toString());
+		classLogger.debug("Running >>>" + callMaker.toString());
 		
 		Object output = pyt.runScript(callMaker.toString(), insight);
 		
@@ -405,11 +408,5 @@ public class PythonModelEngine extends AbstractModelEngine {
 	
 	public String getWorkingDirectoryBasePath() {
 		return this.workingDirectoryBasePath;
-	}
-
-	@Override
-	public ModelTypeEnum getModelType() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }
