@@ -149,9 +149,9 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 					for (String container : allContainers) {
 						String cleanedContainerName = container.replaceAll("-smss", "").replaceAll("/", "");
 						//we now have configuration blobs like the image blob we dont want to delete
-						if(ClusterUtil.CONFIGURATION_BLOBS.contains(cleanedContainerName)){
-							continue;
-						}
+//						if(ClusterUtil.CONFIGURATION_BLOBS.contains(cleanedContainerName)){
+//							continue;
+//						}
 						if (!databaseIds.contains(cleanedContainerName)) {
 							// Cleanup the container
 							if (!dryRun) {
