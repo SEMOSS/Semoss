@@ -21,9 +21,10 @@ import prerna.util.Utility;
 public class AskReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AskReactor.class);
-
+	private static final String FULL_PROMPT = "fullPrompt";
+	
 	public AskReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.FULL_PROMPT.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.COMMAND.getKey(), FULL_PROMPT};
 		this.keyRequired = new int[] {0 , 0};
 	}
 	
@@ -57,7 +58,7 @@ public class AskReactor extends AbstractReactor {
 	}
 	
 	private Object getFullPrompt() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FULL_PROMPT.getKey());
+		GenRowStruct grs = this.store.getNoun(FULL_PROMPT);
 		if (grs != null) {
 			
 			NounMetadata firstInput = grs.getNoun(0);
@@ -93,5 +94,14 @@ public class AskReactor extends AbstractReactor {
 		}
 		
 		return qs;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(FULL_PROMPT)) {
+			return "The exact input that will be sent directly to a model engine. This requires a user to know the prompt structure of the large language model and keep track of conversation history themselves.";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
