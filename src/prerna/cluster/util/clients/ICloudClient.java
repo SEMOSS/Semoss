@@ -114,7 +114,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullEngineImageFolder(CATALOG_TYPE engineType) throws IOException, InterruptedException;
+	void pullEngineAndProjectImageFolder(CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -123,7 +123,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushEngineImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
+	void pushEngineAndProjectImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -132,7 +132,16 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteEngineImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
+	void deleteEngineAndProjectImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void deleteEngineAndProjectImageById(CATALOG_TYPE engineType, String engineId) throws IOException, InterruptedException;
 	
 	/**
 	 * Copy the engine local file to the corresponding storage location
@@ -274,21 +283,6 @@ public interface ICloudClient {
 	 * @throws Exception
 	 */
 	void pullProjectSmss(String projectId) throws IOException, InterruptedException; 
-
-	
-	/**
-	 * 
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullProjectImageFolder() throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushProjectImageFolder() throws IOException, InterruptedException;
 	
 	/**
 	 * 

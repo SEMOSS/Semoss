@@ -59,8 +59,6 @@ public class ClusterUtil {
 					(System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)) 
 					? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY)) : false);
 
-	public static final List<String> CONFIGURATION_BLOBS = new ArrayList<String>(Arrays.asList(CentralCloudStorage.DB_IMAGES_BLOB));
-	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "images";
@@ -339,10 +337,10 @@ public class ClusterUtil {
 	 * 
 	 * @param engineType
 	 */
-	public static void pullEngineImageFolder(IEngine.CATALOG_TYPE engineType) {
+	public static void pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE engineType) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullEngineImageFolder(engineType);
+				getCentralStorageClient().pullEngineAndProjectImageFolder(engineType);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull database image folder to cloud storage");
@@ -357,10 +355,10 @@ public class ClusterUtil {
 	 * @param engineType
 	 * @param fileName
 	 */
-	public static void pushEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) {
+	public static void pushEngineAndProjectImage(IEngine.CATALOG_TYPE engineType, String fileName) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pushEngineImage(engineType, fileName);
+				getCentralStorageClient().pushEngineAndProjectImage(engineType, fileName);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push database image to cloud storage");
@@ -375,13 +373,31 @@ public class ClusterUtil {
 	 * @param engineType
 	 * @param fileName
 	 */
-	public static void deleteEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) {
+	public static void deleteEngineAndProjectImage(IEngine.CATALOG_TYPE engineType, String fileName) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().deleteEngineImage(engineType, fileName);
+				getCentralStorageClient().deleteEngineAndProjectImage(engineType, fileName);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to delete database image from the cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param engineType
+	 * @param fileName
+	 */
+	public static void deleteEngineAndProjectImageById(IEngine.CATALOG_TYPE engineType, String engineId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().deleteEngineAndProjectImageById(engineType, engineId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to delete engine/project image from the cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -712,38 +728,6 @@ public class ClusterUtil {
 		}		
 	}
 	
-	/**
-	 * 
-	 */
-	public static void pushProjectImageFolder() {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pushProjectImageFolder();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to push project image folder to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
-	/**
-	 * 
-	 */
-	public static void pullProjectImageFolder() {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				getCentralStorageClient().pullProjectImageFolder();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull project image folder to cloud storage");
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-	
 	public static void pushInsightImage(String projectId, String insightId, String oldImageName, String imageFileName) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -823,13 +807,13 @@ public class ClusterUtil {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static File getEngineImage(String engineId, IEngine.CATALOG_TYPE engineType) throws Exception {
+	public static File getEngineAndProjectImage(String engineId, IEngine.CATALOG_TYPE engineType) throws Exception {
 		File localEngineImageFolder = new File(EngineUtility.getLocalEngineImageDirectory(engineType));
 		// if it doesn't exist locally
 		// pull from cloud storage
 		boolean pulled = false;
 		if(!localEngineImageFolder.exists() || !localEngineImageFolder.isDirectory()){
-			getCentralStorageClient().pullEngineImageFolder(engineType);
+			getCentralStorageClient().pullEngineAndProjectImageFolder(engineType);
 			pulled = true;
 		}
 		
@@ -854,7 +838,7 @@ public class ClusterUtil {
 				// we haven't pulled the image
 				// maybe this was created in another container
 				// lets pull again just in case
-				getCentralStorageClient().pullEngineImageFolder(engineType);
+				getCentralStorageClient().pullEngineAndProjectImageFolder(engineType);
 			}
 			
 			images = localEngineImageFolder.listFiles(new FilenameFilter() {
@@ -875,7 +859,7 @@ public class ClusterUtil {
 			imageFile = new File(imageFilePath);
 			
 			DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
-			getCentralStorageClient().pushEngineImage(engineType, imageFile.getName());
+			getCentralStorageClient().pushEngineAndProjectImage(engineType, imageFile.getName());
 			
 			// TODO:
 			// need to also push to engine version folder?
@@ -911,7 +895,7 @@ public class ClusterUtil {
 		else {
 			try {
 				// first try to pull the images folder, Return it after the pull, or else we make the file
-				getCentralStorageClient().pullProjectImageFolder();
+				getCentralStorageClient().pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
 				// so i dont always know the extension, but every image should be named by the 
 				// projectId which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
@@ -934,7 +918,7 @@ public class ClusterUtil {
 //					}
 					
 					DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
-					getCentralStorageClient().pushProjectImageFolder();
+					getCentralStorageClient().pushEngineAndProjectImage(IEngine.CATALOG_TYPE.PROJECT, imageFilePath);
 					
 					// TODO:
 					// need to also push to engine version folder?
