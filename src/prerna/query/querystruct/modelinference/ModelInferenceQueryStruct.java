@@ -8,7 +8,10 @@ public class ModelInferenceQueryStruct extends AbstractQueryStruct{
 	
 	protected String context = null;
 	protected Map<String, Object> hyperParameters;
-	public QUERY_STRUCT_TYPE qsType = QUERY_STRUCT_TYPE.ENGINE;
+	
+	public ModelInferenceQueryStruct() {
+		this.qsType = QUERY_STRUCT_TYPE.ENGINE;
+	}
 	
 	public void setHyperParameters(Map<String, Object> hyperParameters) {
 		this.hyperParameters = hyperParameters;
