@@ -4115,7 +4115,7 @@ public class Utility {
 		String normalizedString = FilenameUtils.normalize(stringToNormalize);
 
 		if (normalizedString == null) {
-			classLogger.error("File path: " + Utility.cleanLogString(stringToNormalize) + " could not be normalized");
+			classLogger.error("File path is null");
 			throw new IllegalArgumentException("The filepath passed in is invalid");
 		}
 		normalizedString = normalizedString.replace("\\", "/");
