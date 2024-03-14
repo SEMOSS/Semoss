@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.javatuples.Pair;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -22,6 +23,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AdminSecurityGroupUtils;
 import prerna.auth.utils.SecurityNativeUserUtils;
 import prerna.testing.AbstractBaseSemossApiTests;
+import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestUserUtils;
 
 @TestMethodOrder(OrderAnnotation.class)
@@ -38,6 +40,12 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	private static final String NATIVE_DUMMY_EMAIL = "example@mail.com";
 	private static final String NATIVE_DUMMY_PASSWORD = "SEMoss@123123!@#";
 
+	@BeforeAll
+    public static void initialSetup() throws Exception {
+		AbstractBaseSemossApiTests.initialSetup();
+		// unnecessary if running by itself, but necessary if running {@link prerna.testing.AllTests}
+		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
+	}
 	
 	@Override
 	@BeforeEach

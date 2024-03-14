@@ -3,6 +3,7 @@ package prerna.testing.securitydb;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -13,6 +14,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.utils.SecurityNativeUserUtils;
 import prerna.testing.AbstractBaseSemossApiTests;
+import prerna.testing.ApiSemossTestEngineUtils;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class SecurityDbUserTests extends AbstractBaseSemossApiTests {
@@ -22,6 +24,13 @@ public class SecurityDbUserTests extends AbstractBaseSemossApiTests {
 	private static final String NATIVE_DUMMY_USERNAME = "DUMMYUSERNAME";
 	private static final String NATIVE_DUMMY_EMAIL = "example@mail.com";
 	private static final String NATIVE_DUMMY_PASSWORD = "SEMoss@123123!@#";
+	
+	@BeforeAll
+    public static void initialSetup() throws Exception {
+		AbstractBaseSemossApiTests.initialSetup();
+		// unnecessary if running by itself, but necessary if running {@link prerna.testing.AllTests}
+		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
+	}
 	
 	@Override
 	@BeforeEach
