@@ -349,6 +349,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
 		}
+		
+		if(!userExists(userId, userType)) {
+			throw new IllegalArgumentException("User " + userId + " doesn't exist");
+		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -527,6 +531,33 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
 
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return false;
+	}
+	
+	public boolean userExists(String userId, String userType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userType));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
