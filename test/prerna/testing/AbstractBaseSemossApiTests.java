@@ -27,7 +27,6 @@ public abstract class AbstractBaseSemossApiTests {
     	if (ApiSemossTestUtils.isFirstClass()) {
 			ApiSemossTestPropsUtils.loadDIHelper();
 			
-			
 			// moved this to the before because its hard to delete databases before each test due to database being in use
 			try {
 				ApiSemossTestEngineUtils.clearNonCoreDBs();
@@ -64,7 +63,6 @@ public abstract class AbstractBaseSemossApiTests {
 			}
 			
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
-
     	}
     	System.out.println("Semoss Before All Time: " + (System.nanoTime() - start) / 1000000000);
     }
