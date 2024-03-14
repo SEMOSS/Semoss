@@ -101,8 +101,8 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		}
 		if (repull) {
 			try {
-				ClusterUtil.pullEngineImageFolder(IEngine.CATALOG_TYPE.DATABASE);
-				ClusterUtil.pullProjectImageFolder();
+				ClusterUtil.pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.DATABASE);
+				ClusterUtil.pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
 			} catch (Exception e) {
 				LOGGER.warn("Error pulling cloud image folders: " + e.getMessage(), e);
 				SemossPixelException err = new SemossPixelException(

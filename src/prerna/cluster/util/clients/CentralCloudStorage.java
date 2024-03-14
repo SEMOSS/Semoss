@@ -1,6 +1,7 @@
 package prerna.cluster.util.clients;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +26,6 @@ import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
@@ -34,7 +34,6 @@ import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
-import prerna.test.TestUtilityMethods;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -562,10 +561,12 @@ public class CentralCloudStorage implements ICloudClient {
 
 		centralStorageEngine.deleteFolderFromStorage(cloudEngineFolder, sharedRCloneConfig);
 		centralStorageEngine.deleteFolderFromStorage(cloudSmssFolder, sharedRCloneConfig);
+		
+		deleteEngineAndProjectImageById(engineType, engineId);
 	}
 	
 	@Override
-	public void pullEngineImageFolder(IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException {
+	public void pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException {
 		String cloudImageFolder = getCloudEngineImageBucket(engineType);
 		String localImagesFolderPath = EngineUtility.getLocalEngineImageDirectory(engineType);
 		File localImageF = new File(localImagesFolderPath);
@@ -576,7 +577,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
+	public void pushEngineAndProjectImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
 		String cloudImageFolder = getCloudEngineImageBucket(engineType);
 		String localImagesFolderPath = EngineUtility.getLocalEngineImageDirectory(engineType);
 		String fileToPush = localImagesFolderPath + "/" + fileName;
@@ -584,10 +585,38 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	@Override
-	public void deleteEngineImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
+	public void deleteEngineAndProjectImage(IEngine.CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException {
 		String cloudImageFolder = getCloudEngineImageBucket(engineType);
 		String fileToDelete = cloudImageFolder + "/" + fileName;
 		centralStorageEngine.deleteFromStorage(fileToDelete);
+	}
+	
+	@Override
+	public void deleteEngineAndProjectImageById(CATALOG_TYPE engineType, String engineId) throws IOException, InterruptedException {
+		String localImageDirectory = EngineUtility.getLocalEngineImageDirectory(engineType);
+		File localCloudImageF = new File(localImageDirectory);
+		// find all the image file that have this engineId
+		File[] oldImageFiles = localCloudImageF.listFiles(new FilenameFilter() {
+			
+			String engineId = null;
+			
+			private FilenameFilter init(String engineId) {
+				this.engineId = engineId;
+				return this;
+			}
+			
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.startsWith(engineId);
+			}
+		}.init(engineId));
+		
+		for(File f : oldImageFiles) {
+			// delete from the cloud
+			deleteEngineAndProjectImage(engineType, f.getName());
+			// delete locally
+			f.delete();
+		}
 	}
 	
 	@Override
@@ -1111,28 +1140,6 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	@Override
-	public void pullProjectImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/projects";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.copyToLocal(CentralCloudStorage.PROJECT_IMAGES_BLOB, localImagesFolderPath);
-	}
-
-	@Override
-	public void pushProjectImageFolder() throws IOException, InterruptedException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String localImagesFolderPath = baseFolder + "/images/projects";
-		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists() || !localImageF.isDirectory()) {
-			localImageF.mkdirs();
-		}
-		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.PROJECT_IMAGES_BLOB);
-	}
-	
-	@Override
 	public void deleteProject(String projectId) throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
 		if(centralStorageEngine.canReuseRcloneConfig()) {
@@ -1143,6 +1150,8 @@ public class CentralCloudStorage implements ICloudClient {
 
 		centralStorageEngine.deleteFolderFromStorage(storageProjectFolder, sharedRCloneConfig);
 		centralStorageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		
+		deleteEngineAndProjectImageById(CATALOG_TYPE.PROJECT, projectId);
 	}
 
 	@Override
