@@ -120,7 +120,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			try (PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, groupType);
+				// handle null type for custom groups
+				if(groupType == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(parameterIndex++, groupType);
+				}
 				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, gson);
 				ps.setBoolean(parameterIndex++, isCustomGroup);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
@@ -157,23 +162,42 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
-		String[] queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
-				"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
-				"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
-				"DELETE FROM SMSS_GROUP WHERE ID= ? AND TYPE = ?", };
+		String[] queries = null;
+		if(groupType == null) {
+			queries = new String[] { 
+					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE IS NULL",
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE IS NULL",
+					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE IS NULL",
+					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE IS NULL",
+					"DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?"
+				};
+		} else {
+			queries = new String[] { 
+					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
+					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
+					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?"
+				};
+		}
 
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
+			
 			try {
 				for (String query : queries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
+						// if group type is not null
+						if(groupType != null) {
+							ps.setString(parameterIndex++, groupType);
+						}
 						ps.execute();
 					}
 				}
+				
+				// commit
 				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
@@ -213,12 +237,25 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
-		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
-		String[] propagateQueries = new String[] {
-				"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", };
-
+		String groupQuery = null;
+		String[] propagateQueries = null;
+		
+		if(curGroupType == null) {
+			groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE IS NULL";
+			propagateQueries = new String[] {
+					"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL",
+					"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL",
+					"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL", 
+				};	
+		} else {
+			groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
+			propagateQueries = new String[] {
+					"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
+					"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
+					"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", 
+				};	
+		}
+		
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
@@ -231,7 +268,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newGroupType);
+					// handle null type for custom groups
+					if(newGroupType == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newGroupType);
+					}
 					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, gson);
 					ps.setBoolean(parameterIndex++, newIsCustomGroup);
 					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
@@ -239,7 +281,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, userDetails.getValue1());
 					// where
 					ps.setString(parameterIndex++, curGroupId);
-					ps.setString(parameterIndex++, curGroupType);
+					// do we have a current group type that is not null
+					if(curGroupType != null) {
+						ps.setString(parameterIndex++, curGroupType);
+					}
 					ps.execute();
 				}
 
@@ -248,9 +293,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newGroupType);
+						// handle null type for custom groups
+						if(newGroupType == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newGroupType);
+						}
 						ps.setString(parameterIndex++, curGroupId);
-						ps.setString(parameterIndex++, curGroupType);
+						// do we have a current group type that is not null
+						if(curGroupType != null) {
+							ps.setString(parameterIndex++, curGroupType);
+						}
 						ps.execute();
 					}
 				}
