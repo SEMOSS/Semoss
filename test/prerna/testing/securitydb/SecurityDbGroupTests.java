@@ -34,8 +34,10 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	private static final String TEST_GROUP_DESCRIPTION = "my description";
 	private static final boolean TEST_GROUP_IS_CUSTOM = true;
 
+	private static final String NATIVE_DUMMY_SEARCH = "dummy";
 	private static final String NATIVE_DUMMY_USER_ID = "DUMMY_USER_123";
 	private static final AuthProvider NATIVE_DUMMY_USER_PROVIDER = AuthProvider.NATIVE;
+	private static final String NATIVE_DUMMY_NAME = "DUMMY NAME";
 	private static final String NATIVE_DUMMY_USERNAME = "DUMMYUSERNAME";
 	private static final String NATIVE_DUMMY_EMAIL = "example@mail.com";
 	private static final String NATIVE_DUMMY_PASSWORD = "SEMoss@123123!@#";
@@ -199,15 +201,26 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			AccessToken newUser = new AccessToken();
 			newUser.setId(NATIVE_DUMMY_USER_ID);
 			newUser.setProvider(NATIVE_DUMMY_USER_PROVIDER);
+			newUser.setName(NATIVE_DUMMY_NAME);
 			newUser.setUsername(NATIVE_DUMMY_USERNAME);
 			newUser.setEmail(NATIVE_DUMMY_EMAIL);
 			
 			assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, NATIVE_DUMMY_PASSWORD));
 
+			// add user successfully
 			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 				.addUserToGroup(defaultTestAdminUser, TEST_GROUP, NATIVE_DUMMY_USER_ID, NATIVE_DUMMY_USER_PROVIDER.toString(), null);
 			
+			// add user again to get error
+			assertThrows(IllegalArgumentException.class, 
+					() -> {
+						AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+							.addUserToGroup(defaultTestAdminUser, TEST_GROUP, NATIVE_DUMMY_USER_ID, NATIVE_DUMMY_USER_PROVIDER.toString(), null);
+						},
+					"User " + NATIVE_DUMMY_USER_ID + " already has access to group " + TEST_GROUP
+					);
 			
+			// add user to group that doesn't exist to get error
 			assertThrows(IllegalArgumentException.class, 
 					() -> {
 						AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
@@ -240,13 +253,90 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			assertNull(member.get("enddate"));
 			assertTrue(member.get("permissiongrantedby").equals(userDetails.getValue0()));
 			assertTrue(member.get("permissiongrantedbytype").equals(userDetails.getValue1()));
+			
+			assertTrue(member.get("name").equals(NATIVE_DUMMY_NAME));
+			assertTrue(member.get("username").equals(NATIVE_DUMMY_USERNAME));
+			assertTrue(member.get("email").equals(NATIVE_DUMMY_EMAIL));
+		}
+		// with a search term
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, NATIVE_DUMMY_SEARCH, -1, -1);
+			assertTrue(members.size() == 1);
+			
+			Map<String, Object> member = members.get(0);
+			assertTrue(member.get("groupid").equals(TEST_GROUP));
+			assertTrue(member.get("userid").equals(NATIVE_DUMMY_USER_ID));
+			assertTrue(member.get("type").equals(NATIVE_DUMMY_USER_PROVIDER.toString()));
+			assertNull(member.get("datadded"));
+			assertNull(member.get("enddate"));
+			assertTrue(member.get("permissiongrantedby").equals(userDetails.getValue0()));
+			assertTrue(member.get("permissiongrantedbytype").equals(userDetails.getValue1()));
+			
+			assertTrue(member.get("name").equals(NATIVE_DUMMY_NAME));
+			assertTrue(member.get("username").equals(NATIVE_DUMMY_USERNAME));
+			assertTrue(member.get("email").equals(NATIVE_DUMMY_EMAIL));
+		}
+		// with bad search term
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, "z", -1, -1);
+			assertTrue(members.isEmpty());
+		}
+		// with large offset
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, null, -1, 10);
+			assertTrue(members.isEmpty());
 		}
 	}
 	
 	@Test
-	@Order(999)
+	@Order(7)
 	public void deleteGroupMember() {
-		
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.removeUserFromGroup(TEST_GROUP, NATIVE_DUMMY_USER_ID, NATIVE_DUMMY_USER_PROVIDER.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+
+		// should have no users in group now
+		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, null, -1, -1);
+		assertTrue(members.isEmpty());
+	}
+	
+	@Test
+	@Order(8)
+	public void searchForNonMembers() {
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, null, -1, -1);
+			assertTrue(members.size() == 2);
+		}
+		// with a search term
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, NATIVE_DUMMY_SEARCH, -1, -1);
+			assertTrue(members.size() == 1);
+			
+			Map<String, Object> member = members.get(0);
+			assertTrue(member.get("id").equals(NATIVE_DUMMY_USER_ID));
+			assertTrue(member.get("type").equals(NATIVE_DUMMY_USER_PROVIDER.toString()));
+			assertTrue(member.get("name").equals(NATIVE_DUMMY_NAME));
+			assertTrue(member.get("username").equals(NATIVE_DUMMY_USERNAME));
+			assertTrue(member.get("email").equals(NATIVE_DUMMY_EMAIL));
+		}
+		// with bad search term
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, "z", -1, -1);
+			assertTrue(members.isEmpty());
+		}
+		// with large offset
+		{
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, null, -1, 10);
+			assertTrue(members.isEmpty());
+		}
 	}
 	
 	// perform at the end
