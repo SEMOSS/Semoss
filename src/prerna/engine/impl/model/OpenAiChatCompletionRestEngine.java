@@ -21,6 +21,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.Expose;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonSyntaxException;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -105,7 +107,7 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 	}
 	
 	@Override
-	protected AskModelEngineResponse askCall(String question, String context, Insight insight, Map<String, Object> parameters) {
+	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
 		
 		String insightId = insight.getInsightId();
 		
@@ -122,14 +124,26 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 		
 		bodyMap.put("stream", stream);
 		
-		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		
 		parameters = this.adjustHyperParameters(parameters);
 		bodyMap.putAll(parameters);
 		
 		resetTimer();
 		if (fullPrompt != null) {
 			// if you are using full_promot then the user is responsible for keeping history
-			bodyMap.put("messages", fullPrompt);
+			
+			// Make sure its a List of Maps
+	        Gson gson = new Gson();
+	        String jsonString = gson.toJson(fullPrompt);
+
+	        List<Map<String, String>> messages;
+	        try {
+	        	messages = gson.fromJson(jsonString, new TypeToken<List<Map<String, String>>>() {}.getType());
+	        } catch (IllegalStateException | JsonSyntaxException e) {
+	        	throw new IllegalArgumentException("Please make sure that the fullPrompt passed in for this model is a list of maps/dictionaries.");
+	        }
+	        
+			bodyMap.put("messages", messages);
 			IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, gson.toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null, stream, ChatCompletion.class, insightId);
 			Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
 			
