@@ -23,7 +23,7 @@ public class GenericProfile implements IConnectorIOp{
 		return null;
 	}
 	
-	public static String fillAccessToken(AccessToken acToken, String userInfoURL, String beanProps, String jsonPattern, Hashtable params) {
+	public static String fillAccessToken(AccessToken acToken, String userInfoURL, String beanProps, String jsonPattern, Hashtable params, Boolean sanitizeResponse) {
 		if(params == null) {
 			params = new Hashtable();
 		}
@@ -39,9 +39,14 @@ public class GenericProfile implements IConnectorIOp{
 		// make the API call
 		String output = AbstractHttpHelper.makeGetCall(userInfoURL, accessToken, null, true);
 
+		if(sanitizeResponse) {
+			output = output.replace("\\", "\\\\");
+			// add more replacements as need be in the future
+		}
+
 		//String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
 		
-		// fill the bean with the return
+		
 		acToken = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanPropsArr, acToken);
 		
 		return output;
