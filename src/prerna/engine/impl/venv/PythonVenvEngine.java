@@ -43,6 +43,8 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.git.GitRepoUtils;
+import prerna.util.Utility;
+
 
 public class PythonVenvEngine extends AbstractVenvEngine {
 
@@ -83,7 +85,7 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 		this.repoUsername = this.smssProp.getProperty(Constants.USERNAME, null);
 		this.repoPassword = this.smssProp.getProperty(Constants.PASSWORD, null);
 						
-		this.venvFolderPath = EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName);
+		this.venvFolderPath = Utility.normalizePath(EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName));
 		
 		this.localVenvVersionFolder = this.venvFolderPath +
 									  DIR_SEPERATOR + 

@@ -228,7 +228,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 		// set the output so it can give it
 		cdt.setOutputData(outputMap);
-		new File(retFile).delete();
+		new File(Utility.normalizePath(retFile)).delete();
 
 		// delete the pivot later
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);

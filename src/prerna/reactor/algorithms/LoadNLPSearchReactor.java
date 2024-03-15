@@ -46,12 +46,12 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 			ClusterUtil.pullUserWorkspace(assetId, true);
 			savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
 
-			File assetDir = new File(savePath);
+			File assetDir = new File(Utility.normalizePath(savePath));
 			if (!assetDir.isDirectory() || !assetDir.exists()) {
 				assetDir.mkdirs();
 			} 
 		}
-		savePath = savePath.replace("\\", "/"); 
+		savePath = Utility.normalizePath(savePath.replace("\\", "/")); 
 
 		// source the proper script
 		StringBuilder sb = new StringBuilder();
