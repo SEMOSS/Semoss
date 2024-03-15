@@ -64,12 +64,12 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 		}
 
 		// specify the folder from the base
-		String folderName = keyValue.get(keysToGet[0]);
+		String folderName = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		if(folderName == null || folderName.isEmpty()) {
 			folderName = "xray_corpus";
 		}
 		this.folderPath = (baseFolder + "/" + folderName).replace('\\', '/');
-		File xrayFolder = new File(this.folderPath);
+		File xrayFolder = new File(Utility.normalizePath(this.folderPath));
 		if(!xrayFolder.exists() || !xrayFolder.isDirectory()) {
 			xrayFolder.mkdirs();
 		}

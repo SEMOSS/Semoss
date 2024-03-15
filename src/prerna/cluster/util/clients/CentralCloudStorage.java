@@ -321,7 +321,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 		
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
-		String localEngineFolder = localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId;
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
 		{
 			// lets make sure this exists
 			File localEngineF = new File(localEngineFolder);
@@ -1260,7 +1260,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
 		
-		File absoluteFolder = new File(localAbsoluteFilePath);
+		File absoluteFolder = new File(Utility.normalizePath(localAbsoluteFilePath));
 		if(absoluteFolder.isDirectory()) {
 			//this is adding a hidden file into every sub folder to make sure there is no empty directory
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());

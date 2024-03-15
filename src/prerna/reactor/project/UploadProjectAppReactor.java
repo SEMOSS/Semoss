@@ -149,7 +149,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			logger.info(step + ") Reading smss");
 			Properties prop = Utility.loadProperties(smssFileLoc);
 			projectId = prop.getProperty(Constants.PROJECT);
-			projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+			projectName = Utility.normalizePath(prop.getProperty(Constants.PROJECT_ALIAS));
 			
 			logger.info(step + ") Done");
 			step++;
