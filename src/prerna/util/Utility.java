@@ -344,7 +344,7 @@ public class Utility {
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			String value = paramHash.get(key);
-			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+//			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
 			if (!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
