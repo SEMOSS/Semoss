@@ -86,7 +86,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 		
 		// move file
-		File dataFile = SmssUtilities.getDataFile(Utility.loadProperties(this.tempSmss.getAbsolutePath()));
+		File dataFile = SmssUtilities.getDataFile(Utility.loadProperties(Utility.normalizePath(this.tempSmss.getAbsolutePath())));
 		FileUtils.copyFile(uploadFile, dataFile);
 		
 		logger.info(stepCounter + ". Create database store...");

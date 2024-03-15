@@ -201,125 +201,125 @@ public class EmailUtility {
 	 * @throws MessagingException 
 	 * 
 	 */
-	public static void readEmailPOP3() throws MessagingException {
-		try {
-			Properties pop3EmailProps = new Properties();
-			pop3EmailProps.put("mail.pop3.host", "pop.gmail.com");
-			pop3EmailProps.put("mail.pop3.port", "995");
-			pop3EmailProps.put("mail.pop3.starttls.enable", "true");
-			pop3EmailProps.put("mail.store.protocol", "pop3");
-
-			String username = "***REMOVED***";
-			String password = "";
-			
-			Session emailSession = null;
-			try {
-				if (username != null && password != null) {
-					logger.info("Making secured connection to the email server");
-					emailSession = Session.getInstance(pop3EmailProps, new jakarta.mail.Authenticator() {
-						protected PasswordAuthentication getPasswordAuthentication() {
-							return new PasswordAuthentication(username, password);
-						}
-					});
-				} else {
-					logger.info("Making connection to the email server");
-					emailSession = Session.getInstance(pop3EmailProps);
-				}
-			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
-			}
-
-			Store store = null;
-			try {
-				//create the POP3 store object and connect with the pop server
-				store = emailSession.getStore("pop3s");
-				store.connect();
-			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
-			}
-			
-			//create the folder object and open it
-			Folder emailFolder = store.getFolder("INBOX");
-			emailFolder.open(Folder.READ_ONLY);
-
-			// retrieve the messages from the folder in an array and print it
-			Message[] messages = emailFolder.getMessages();
-			System.out.println("messages.length---" + messages.length);
-
-			for (int i = 0, n = messages.length; i < n; i++) {
-				Message message = messages[i];
-				System.out.println("---------------------------------");
-				System.out.println("Email Number " + (i + 1));
-				System.out.println("Subject: " + message.getSubject());
-				System.out.println("From: " + message.getFrom()[0]);
-				System.out.println("Text: " + message.getContent().toString());
-
-			}
-
-			//close the store and folder objects
-			emailFolder.close(false);
-			store.close();
-
-		} catch (NoSuchProviderException e) {
-			e.printStackTrace();
-		} catch (MessagingException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-
-
-	}
-	
-	/**
-	 * @throws MessagingException 
-	 * 
-	 */
-	public static void readEmailIMAP() throws MessagingException {
-		Properties props = System.getProperties();
-		props.setProperty("mail.store.protocol", "imaps");
-		try {
-			Session session = Session.getDefaultInstance(props, null);
-			Store store = session.getStore("imaps");
-			store.connect("imap.gmail.com", "***REMOVED***", "");
-
-			Folder inbox = store.getFolder("Inbox");
-			// setting it seen is considered a write operation
-			inbox.open(Folder.READ_WRITE);
-			//Message messages[] = inbox.getMessages();
-			FlagTerm ft = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
-			Message messages[] = inbox.search(ft);
-
-			for (int i = 0, n = messages.length; i < n; i++) {
-				Message message = messages[i];
-				System.out.println("---------------------------------");
-				System.out.println("Email Number " + (i + 1));
-				System.out.println("Subject: " + message.getSubject());
-				System.out.println("From: " + message.getFrom()[0]);
-				System.out.println("Text: " + message.getContent().toString());
-				
-				// this will mark as seen
-				message.setFlag(Flags.Flag.SEEN, true);
-			}
-			
-			//close the store and folder objects
-			inbox.close(false);
-			store.close();
-		} catch (NoSuchProviderException e) {
-			e.printStackTrace();
-			System.exit(1);
-		} catch (MessagingException e) {
-			e.printStackTrace();
-			System.exit(2);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
+//	public static void readEmailPOP3() throws MessagingException {
+//		try {
+//			Properties pop3EmailProps = new Properties();
+//			pop3EmailProps.put("mail.pop3.host", "pop.gmail.com");
+//			pop3EmailProps.put("mail.pop3.port", "995");
+//			pop3EmailProps.put("mail.pop3.starttls.enable", "true");
+//			pop3EmailProps.put("mail.store.protocol", "pop3");
+//
+//			String username = "***REMOVED***";
+//			String password = "";
+//			
+//			Session emailSession = null;
+//			try {
+//				if (username != null && password != null) {
+//					logger.info("Making secured connection to the email server");
+//					emailSession = Session.getInstance(pop3EmailProps, new jakarta.mail.Authenticator() {
+//						protected PasswordAuthentication getPasswordAuthentication() {
+//							return new PasswordAuthentication(username, password);
+//						}
+//					});
+//				} else {
+//					logger.info("Making connection to the email server");
+//					emailSession = Session.getInstance(pop3EmailProps);
+//				}
+//			} catch(Exception e) {
+//				logger.error(Constants.STACKTRACE, e);
+//				throw new IllegalArgumentException("Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+//			}
+//
+//			Store store = null;
+//			try {
+//				//create the POP3 store object and connect with the pop server
+//				store = emailSession.getStore("pop3s");
+//				store.connect();
+//			} catch(Exception e) {
+//				logger.error(Constants.STACKTRACE, e);
+//				throw new IllegalArgumentException("Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+//			}
+//			
+//			//create the folder object and open it
+//			Folder emailFolder = store.getFolder("INBOX");
+//			emailFolder.open(Folder.READ_ONLY);
+//
+//			// retrieve the messages from the folder in an array and print it
+//			Message[] messages = emailFolder.getMessages();
+//			System.out.println("messages.length---" + messages.length);
+//
+//			for (int i = 0, n = messages.length; i < n; i++) {
+//				Message message = messages[i];
+//				System.out.println("---------------------------------");
+//				System.out.println("Email Number " + (i + 1));
+//				System.out.println("Subject: " + message.getSubject());
+//				System.out.println("From: " + message.getFrom()[0]);
+//				System.out.println("Text: " + message.getContent().toString());
+//
+//			}
+//
+//			//close the store and folder objects
+//			emailFolder.close(false);
+//			store.close();
+//
+//		} catch (NoSuchProviderException e) {
+//			e.printStackTrace();
+//		} catch (MessagingException e) {
+//			e.printStackTrace();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//
+//
+//
+//	}
+//	
+//	/**
+//	 * @throws MessagingException 
+//	 * 
+//	 */
+//	public static void readEmailIMAP() throws MessagingException {
+//		Properties props = System.getProperties();
+//		props.setProperty("mail.store.protocol", "imaps");
+//		try {
+//			Session session = Session.getDefaultInstance(props, null);
+//			Store store = session.getStore("imaps");
+//			store.connect("imap.gmail.com", "***REMOVED***", "");
+//
+//			Folder inbox = store.getFolder("Inbox");
+//			// setting it seen is considered a write operation
+//			inbox.open(Folder.READ_WRITE);
+//			//Message messages[] = inbox.getMessages();
+//			FlagTerm ft = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
+//			Message messages[] = inbox.search(ft);
+//
+//			for (int i = 0, n = messages.length; i < n; i++) {
+//				Message message = messages[i];
+//				System.out.println("---------------------------------");
+//				System.out.println("Email Number " + (i + 1));
+//				System.out.println("Subject: " + message.getSubject());
+//				System.out.println("From: " + message.getFrom()[0]);
+//				System.out.println("Text: " + message.getContent().toString());
+//				
+//				// this will mark as seen
+//				message.setFlag(Flags.Flag.SEEN, true);
+//			}
+//			
+//			//close the store and folder objects
+//			inbox.close(false);
+//			store.close();
+//		} catch (NoSuchProviderException e) {
+//			e.printStackTrace();
+//			System.exit(1);
+//		} catch (MessagingException e) {
+//			e.printStackTrace();
+//			System.exit(2);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
 
 	
 
