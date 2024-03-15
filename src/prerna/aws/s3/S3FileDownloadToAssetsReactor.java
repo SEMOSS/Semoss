@@ -22,6 +22,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 
@@ -67,7 +68,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 		organizeKeys();
 
 		String bucketName = this.keyValue.get(BUCKET);
-		String path = this.keyValue.get(PATH);
+		String path = Utility.normalizePath(this.keyValue.get(PATH));
 		if (bucketName == null || bucketName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify bucket name");
 		}
@@ -91,7 +92,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 			GetObjectRequest request = new GetObjectRequest(bucketName, bucketKey);
 
 			// add custom decryption, if needed
-			String sseKeyPath = this.keyValue.get(SSE_KEY_PATH);
+			String sseKeyPath = Utility.normalizePath(this.keyValue.get(SSE_KEY_PATH));
 			String sseKey64 = this.keyValue.get(SSE_KEY_64);
 			if(sseKeyPath != null && !sseKeyPath.isEmpty()) {
 				try {

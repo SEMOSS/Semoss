@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class S3UploaderReactor extends TaskBuilderReactor {
 	
@@ -78,7 +79,7 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 		buildTask();
 		
 		AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
-		File fileToPush = new File(this.fileLocation);
+		File fileToPush = new File(Utility.normalizePath(this.fileLocation));
 		TransferManager xferMgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
 		boolean transferFailure = false;
 		try {

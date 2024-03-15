@@ -345,7 +345,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// move the documents from insight into documents folder
 		HashSet<File> fileToExtractFrom = new HashSet<File>();
 		for (String fileName : filePaths) {
-			File fileInInsightFolder = new File(fileName);
+			File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 			
 			// Double check that they are files and not directories
 			if (!fileInInsightFolder.isFile()) {
