@@ -213,7 +213,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			
 			// see if we have any dependencies or metadata to load
 			{
-				File metadataFile = new File(finalEngineFolder.getAbsolutePath() + "/" + engineName + IEngine.METADATA_FILE_SUFFIX);
+				File metadataFile = new File(Utility.normalizePath(finalEngineFolder.getAbsolutePath() + "/" + engineName + IEngine.METADATA_FILE_SUFFIX));
 				if(metadataFile.exists() && metadataFile.isFile()) {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
 					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);

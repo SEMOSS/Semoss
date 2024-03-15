@@ -81,12 +81,14 @@ public class AssetUtility {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
-		assetFolder = assetFolder.replace('\\', '/');
+		assetFolder = Utility.normalizePath(assetFolder.replace('\\', '/'));
 		return assetFolder;
 	}
 	
 	/**
 	 * Grab the git version base path
+	 * 
+	 * PROJECT-ID: project/project_folder/app_root/version/
 	 * 
 	 * @param in
 	 * @param space
@@ -160,7 +162,7 @@ public class AssetUtility {
 		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
 		// if this folder does not exist create it
-		File file = new File(projectFolder);
+		File file = new File(Utility.normalizePath(projectFolder));
 		if (!file.exists()) {
 			file.mkdir();
 		}
@@ -302,7 +304,7 @@ public class AssetUtility {
 		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
 		// if this folder does not exist create it
-		File file = new File(projectFolder);
+		File file = new File(Utility.normalizePath(projectFolder));
 		if (!file.exists()) {
 			file.mkdir();
 		}

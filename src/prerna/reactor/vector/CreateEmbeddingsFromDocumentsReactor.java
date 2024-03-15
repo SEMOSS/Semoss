@@ -107,7 +107,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			}
 			
 			for (String filePath: filePaths) {
-		    	File file = new File(filePath);
+		    	File file = new File(Utility.normalizePath(filePath));
 		    	
 		    	// Check if the file exists
 		        if (!file.exists()) {
@@ -201,12 +201,12 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 */
 	private List<String> unzipAndFilter(String zipFilePath, String destDirectory) throws IOException {
         List<String> validFilePaths = new ArrayList<>();
-        File destDir = new File(destDirectory);
+        File destDir = new File(Utility.normalizePath(destDirectory));
         if (!destDir.exists()) {
             destDir.mkdir();
         }
 
-        try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath))) {
+        try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(Utility.normalizePath(zipFilePath)))) {
             ZipEntry entry = zipIn.getNextEntry();
 
             while (entry != null) {
@@ -215,7 +215,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
                     extractFile(zipIn, filePath);
                     validFilePaths.add(filePath);
                 } else if (entry.isDirectory()) {
-                    File dir = new File(filePath);
+                    File dir = new File(Utility.normalizePath(filePath));
                     dir.mkdirs();
                 } else if (isZipFile(filePath)) {
                     // Handle nested zip file
@@ -250,7 +250,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
     }
 
     private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
-        try (FileOutputStream fos = new FileOutputStream(filePath)) {
+        try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = zipIn.read(buffer)) != -1) {
@@ -273,7 +273,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
         } else {
         	// do a mime type check
         	Tika tika = new Tika();
-        	File file = new File(filePath);
+        	File file = new File(Utility.normalizePath(filePath));
         	try (FileInputStream inputstream = new FileInputStream(file)) {
                 String mimeType = tika.detect(inputstream, new Metadata());
 
@@ -306,7 +306,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
         } else {
         	// do a mime type check
         	Tika tika = new Tika();
-        	File file = new File(filePath);
+        	File file = new File(Utility.normalizePath(filePath));
         	try (FileInputStream inputstream = new FileInputStream(file)) {
                 String mimeType = tika.detect(inputstream, new Metadata());
                 
