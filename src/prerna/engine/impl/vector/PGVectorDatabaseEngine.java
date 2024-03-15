@@ -99,10 +99,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		this.vectorTableName = smssProp.getProperty(PGVECTOR_TABLE_NAME);
 
-		this.engineDirectoryPath = RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName);
+		this.engineDirectoryPath = Utility.normalizePath(RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName));
 
 		
-		this.pyDirectoryBasePath = this.engineDirectoryPath + "py" + DIR_SEPARATOR;
+		this.pyDirectoryBasePath = Utility.normalizePath(this.engineDirectoryPath + "py" + DIR_SEPARATOR);
 		this.cacheFolder = new File(this.pyDirectoryBasePath);
 
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
@@ -346,7 +346,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			// move the documents from insight into documents folder
 			HashSet<File> fileToExtractFrom = new HashSet<File>();
 			for (String fileName : filePaths) {
-				File fileInInsightFolder = new File(fileName);
+				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
 				// Double check that they are files and not directories
 				if (!fileInInsightFolder.isFile()) {
@@ -372,7 +372,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
-				String documentName = document.getName().split("\\.")[0];
+				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
 				File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
