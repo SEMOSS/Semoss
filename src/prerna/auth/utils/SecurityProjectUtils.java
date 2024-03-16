@@ -439,7 +439,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
-	 * @param projectID
+	 * @param projectId
 	 * @param projectName
 	 * @param projectType
 	 * @param projectCost
@@ -448,7 +448,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param global
 	 * @param user
 	 */
-	public static void addProject(String projectID, String projectName, 
+	public static void addProject(String projectId, String projectName, 
 			String projectType, String projectCost, 
 			boolean hasPortal, String portalName,
 			boolean global, User user) {
@@ -459,7 +459,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, projectID);
+			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, projectName);
 			ps.setString(parameterIndex++, projectType);
 			ps.setString(parameterIndex++, projectCost);

@@ -28,6 +28,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -716,4 +717,118 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		return getSimpleQuery(qs);
 	}
 
+	/**
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param projectId
+	 * @param permission
+	 * @param endDate
+	 */
+	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.setInt(parameterIndex++, permission);
+			ps.setTimestamp(parameterIndex++, startDate);
+			if(verifiedEndDate == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			}
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred adding the group permission");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param onlyApps
+	 * @return
+	 */
+	public List<Map<String, Object>> getProjectsForGroup(String groupId, String groupType, String searchTerm, long limit, long offset, boolean onlyApps) {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
+		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
+		String projectPrefix = "PROJECT__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(groupProjectPermission+"ID")); // this is the group id
+		qs.addSelector(new QueryColumnSelector(groupProjectPermission+"TYPE")); // this is the group type
+		qs.addSelector(new QueryColumnSelector(groupProjectPermission+"PROJECTID"));
+		qs.addSelector(new QueryColumnSelector(groupProjectPermission+"PERMISSION"));
+		qs.addSelector(new QueryColumnSelector(groupProjectPermission+"ENDDATE"));
+		// filter for the group being specified
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"TYPE", "==", groupType));
+		// project selectors
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTID", "project_id"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		// dont forget reactors/portal information
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHED", "project_portal_published_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDUSER", "project_published_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDTYPE", "project_published_user_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILED", "project_reactors_compiled_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		// back to the others
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
+		
+		if(hasSearchTerm) {
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		
+		// join
+		qs.addRelation(groupProjectPermission+"PROJECTID", projectPrefix+"PROJECTID", "inner.join");
+		
+		// add the sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
 }
