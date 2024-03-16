@@ -22,6 +22,8 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AdminSecurityGroupUtils;
 import prerna.auth.utils.SecurityNativeUserUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.project.api.IProject;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestUserUtils;
@@ -42,6 +44,11 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	private static final String NATIVE_DUMMY_EMAIL = "example@mail.com";
 	private static final String NATIVE_DUMMY_PASSWORD = "SEMoss@123123!@#";
 
+	private static final String PERMISSION_TEST_PROJECTID = "testing-projectid";
+	private static final String PERMISSION_TEST_APP_PROJECTID = "testing-projectid-app";
+	private static final String PERMISSION_TEST_ENGINEID = "testing-engineid";
+
+	
 	@BeforeAll
     public static void initialSetup() throws Exception {
 		AbstractBaseSemossApiTests.initialSetup();
@@ -60,6 +67,8 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	@Order(1)
 	public void createGroup() {
 		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(defaultTestAdminUser);
+
 		try {
 			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).addGroup(defaultTestAdminUser, TEST_GROUP,
 					TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION, TEST_GROUP_IS_CUSTOM);
@@ -68,14 +77,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			e.printStackTrace();
 			fail();
 		}
-	}
-
-	@Test
-	@Order(2)
-	public void listAvailableGroups() {
-		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(defaultTestAdminUser);
-
+		
 		{
 			List<Map<String, Object>> groupReturns = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getGroups(null, -1, -1);
@@ -120,9 +122,9 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			assertTrue(groupReturns.isEmpty());
 		}
 	}
-	
+
 	@Test
-	@Order(3)
+	@Order(2)
 	public void createGroupWithExistingName() {
 		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
 		assertThrows(IllegalArgumentException.class, 
@@ -135,7 +137,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	}
 	
 	@Test
-	@Order(4)
+	@Order(3)
 	public void editGroup() {
 		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(defaultTestAdminUser);
@@ -185,10 +187,11 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	}
 	
 	@Test
-	@Order(5)
+	@Order(4)
 	public void addGroupMember() {
 		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
-		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(defaultTestAdminUser);
+
 		try {
 			assertThrows(IllegalArgumentException.class, 
 					() -> {
@@ -233,16 +236,10 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			e.printStackTrace();
 			fail();
 		}
-	}
-	
-	@Test
-	@Order(6)
-	public void listGroupMembers() {
-		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(defaultTestAdminUser);
-
+		
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, null, -1, -1);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getGroupMembers(TEST_GROUP, null, -1, -1);
 			assertTrue(members.size() == 1);
 			
 			Map<String, Object> member = members.get(0);
@@ -260,7 +257,8 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 		// with a search term
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, NATIVE_DUMMY_SEARCH, -1, -1);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getGroupMembers(TEST_GROUP, NATIVE_DUMMY_SEARCH, -1, -1);
 			assertTrue(members.size() == 1);
 			
 			Map<String, Object> member = members.get(0);
@@ -278,18 +276,20 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 		// with bad search term
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, "z", -1, -1);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getGroupMembers(TEST_GROUP, "z", -1, -1);
 			assertTrue(members.isEmpty());
 		}
 		// with large offset
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, null, -1, 10);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getGroupMembers(TEST_GROUP, null, -1, 10);
 			assertTrue(members.isEmpty());
 		}
 	}
 	
 	@Test
-	@Order(7)
+	@Order(5)
 	public void deleteGroupMember() {
 		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
 
@@ -302,22 +302,25 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 
 		// should have no users in group now
-		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getGroupMembers(TEST_GROUP, null, -1, -1);
+		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.getGroupMembers(TEST_GROUP, null, -1, -1);
 		assertTrue(members.isEmpty());
 	}
 	
 	@Test
-	@Order(8)
+	@Order(6)
 	public void searchForNonMembers() {
 		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
 
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, null, -1, -1);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNonGroupMembers(TEST_GROUP, null, -1, -1);
 			assertTrue(members.size() == 2);
 		}
 		// with a search term
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, NATIVE_DUMMY_SEARCH, -1, -1);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNonGroupMembers(TEST_GROUP, NATIVE_DUMMY_SEARCH, -1, -1);
 			assertTrue(members.size() == 1);
 			
 			Map<String, Object> member = members.get(0);
@@ -329,13 +332,75 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 		// with bad search term
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, "z", -1, -1);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNonGroupMembers(TEST_GROUP, "z", -1, -1);
 			assertTrue(members.isEmpty());
 		}
 		// with large offset
 		{
-			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNonGroupMembers(TEST_GROUP, null, -1, 10);
+			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNonGroupMembers(TEST_GROUP, null, -1, 10);
 			assertTrue(members.isEmpty());
+		}
+	}
+	
+	@Test
+	@Order(7)
+	public void addGroupProjectPermission() {
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			SecurityProjectUtils.addProject(
+					PERMISSION_TEST_PROJECTID, 
+					PERMISSION_TEST_PROJECTID,
+					IProject.PROJECT_TYPE.INSIGHTS.name(),
+					"",
+					false, 
+					null,
+					false,
+					defaultTestAdminUser);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		int testPermission = 1;
+		try {
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.addGroupProjectPermission(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, PERMISSION_TEST_PROJECTID, testPermission, null);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+			assertTrue(projects.size() == 1);
+		}
+		// with a search term
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+			assertTrue(projects.size() == 1);
+			
+			Map<String, Object> thisProject = projects.get(0);
+			assertTrue(thisProject.get("project_id").equals(PERMISSION_TEST_PROJECTID));
+			assertTrue(thisProject.get("project_name").equals(PERMISSION_TEST_PROJECTID));
+			assertTrue(thisProject.get("permission").equals(testPermission));
+			//TODO: can add more keys
+		}
+		// with bad search term
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, "z", -1, -1, false);
+			assertTrue(projects.isEmpty());
+		}
+		// with large offset
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, 10, false);
+			assertTrue(projects.isEmpty());
 		}
 	}
 	
