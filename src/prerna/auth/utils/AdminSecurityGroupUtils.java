@@ -915,7 +915,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param onlyApps
 	 * @return
 	 */
-	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit, long offset, boolean onlyApps) {
+	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit, long offset) {
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
