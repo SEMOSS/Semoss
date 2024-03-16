@@ -416,7 +416,20 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	@Test
 	@Order(9)
 	public void deleteGroupProjectPermission() {
-		//TODO:
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.removeGroupProjectPermission(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, PERMISSION_TEST_PROJECTID);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+
+		// should have no users in group now
+		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+		assertTrue(members.isEmpty());
 	}
 	
 	@Test
@@ -487,7 +500,20 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	@Test
 	@Order(12)
 	public void deleteGroupEnginePermission() {
-		//TODO:
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.removeGroupEnginePermission(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, PERMISSION_TEST_ENGINEID);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+
+		// should have no users in group now
+		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
+		assertTrue(members.isEmpty());
 	}
 	
 	
