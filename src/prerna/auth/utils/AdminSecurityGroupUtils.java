@@ -17,6 +17,7 @@ import org.javatuples.Pair;
 
 import com.google.gson.Gson;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -448,139 +449,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param userId
-	 * @param userType
-	 * @return
-	 */
-	public boolean userInCustomGroup(String groupId, String userId, String userType) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", userType));
-
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
-				return true;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * 
-	 * @param groupId
-	 * @param groupType
-	 * @return
-	 */
-	public boolean groupExists(String groupId, String groupType) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		if (groupType == null || (groupType = groupType.trim()).isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true,
-					PixelDataType.BOOLEAN));
-		} else {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
-		}
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
-				return true;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * 
-	 * @param groupId
-	 * @return
-	 * @throws Exception 
-	 */
-	public boolean isCustomGroup(String groupId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
-
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
-				return true;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return false;
-	}
-	
-	public boolean userExists(String userId, String userType) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userType));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
-				return true;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Get all groups
 	 * 
 	 * @return
@@ -763,12 +631,82 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param projectId
+	 * @param permission
+	 * @param endDate
+	 */
 	public void editGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
-		//TODO:
+		int curPermission = groupProjectPermission(groupId, groupType, projectId);
+		if(curPermission == -1) {
+			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to project " + projectId + " to edit");
+		}
+		if(curPermission == permission) {
+			throw new IllegalArgumentException("Group " + groupId + " already has permission level " 
+					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to project " + projectId);
+		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
+		String updateQuery = null;
+		if(groupType == null) {
+			updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
+		} else {
+			updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
+		}
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(updateQuery);
+			int parameterIndex = 1;
+			ps.setInt(parameterIndex++, permission);
+			ps.setTimestamp(parameterIndex++, startDate);
+			if(verifiedEndDate == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			}
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, projectId);
+			if(groupType != null) {
+				ps.setString(parameterIndex++, groupType);
+			}
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred editing the group permission");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param projectId
+	 */
 	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
+		int curPermission = groupProjectPermission(groupId, groupType, projectId);
+		if(curPermission == -1) {
+			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to project " + projectId + " to remove");
+		}
+		
 		String deleteQuery = null;
 		if(groupType == null) {
 			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
@@ -925,12 +863,82 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public void editGroupEnginePermission() {
-		//TODO:
+	/**
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param projectId
+	 * @param permission
+	 * @param endDate
+	 */
+	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		int curPermission = groupEnginePermission(groupId, groupType, engineId);
+		if(curPermission == -1) {
+			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to edit");
+		}
+		if(curPermission == permission) {
+			throw new IllegalArgumentException("Group " + groupId + " already has permission level " 
+					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to engine " + engineId);
+		}
 		
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
+		String updateQuery = null;
+		if(groupType == null) {
+			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
+		} else {
+			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
+		}
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(updateQuery);
+			int parameterIndex = 1;
+			ps.setInt(parameterIndex++, permission);
+			ps.setTimestamp(parameterIndex++, startDate);
+			if(verifiedEndDate == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			}
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, engineId);
+			if(groupType != null) {
+				ps.setString(parameterIndex++, groupType);
+			}
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred editing the group permission");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param engineId
+	 */
 	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
+		int curPermission = groupEnginePermission(groupId, groupType, engineId);
+		if(curPermission == -1) {
+			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to remove");
+		}
+		
 		String deleteQuery = null;
 		if(groupType == null) {
 			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
@@ -1018,5 +1026,221 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		return getSimpleQuery(qs);
 	}
 	
+	
+	
+	
+	/////////////////////////////////////////////////////
+	
+	/*
+	 * Useful methods as utility
+	 */
+	
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param userId
+	 * @param userType
+	 * @return
+	 */
+	public boolean userInCustomGroup(String groupId, String userId, String userType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", userType));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * 
+	 * @param groupId
+	 * @param groupType
+	 * @return
+	 */
+	public boolean groupExists(String groupId, String groupType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		if (groupType == null || (groupType = groupType.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true,
+					PixelDataType.BOOLEAN));
+		} else {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
+		}
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * 
+	 * @param groupId
+	 * @return
+	 * @throws Exception 
+	 */
+	public boolean isCustomGroup(String groupId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true, PixelDataType.BOOLEAN));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return false;
+	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param userType
+	 * @return
+	 */
+	public boolean userExists(String userId, String userType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userType));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return false;
+	}
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param groupType
+	 * @param projectId
+	 * @return
+	 */
+	public int groupProjectPermission(String groupId, String groupType, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", groupType));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return ((Number)wrapper.next().getValues()[0]).intValue();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return -1;
+	}
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param groupType
+	 * @param engineId
+	 * @return
+	 */
+	public int groupEnginePermission(String groupId, String groupType, String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return ((Number)wrapper.next().getValues()[0]).intValue();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return -1;
+	}
 	
 }
