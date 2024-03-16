@@ -21,12 +21,15 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AdminSecurityGroupUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityNativeUserUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestUserUtils;
+import prerna.util.sql.RdbmsTypeEnum;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
@@ -403,6 +406,91 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			assertTrue(projects.isEmpty());
 		}
 	}
+	
+	@Test
+	@Order(8)
+	public void editGroupProjectPermission() {
+		//TODO:
+	}
+	
+	@Test
+	@Order(9)
+	public void deleteGroupProjectPermission() {
+		//TODO:
+	}
+	
+	@Test
+	@Order(10)
+	public void addGroupEnginePermission() {
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			SecurityEngineUtils.addEngine(
+					PERMISSION_TEST_ENGINEID, 
+					PERMISSION_TEST_ENGINEID, 
+					IEngine.CATALOG_TYPE.DATABASE, 
+					RdbmsTypeEnum.H2_DB.getLabel(), 
+					"", 
+					false, 
+					defaultTestAdminUser);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		int testPermission = 1;
+		try {
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.addGroupEnginePermission(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, PERMISSION_TEST_ENGINEID, testPermission, null);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+			assertTrue(projects.size() == 1);
+		}
+		// with a search term
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+			assertTrue(projects.size() == 1);
+			
+			Map<String, Object> thisProject = projects.get(0);
+			assertTrue(thisProject.get("engine_id").equals(PERMISSION_TEST_ENGINEID));
+			assertTrue(thisProject.get("engine_name").equals(PERMISSION_TEST_ENGINEID));
+			assertTrue(thisProject.get("permission").equals(testPermission));
+			//TODO: can add more keys
+		}
+		// with bad search term
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, "z", -1, -1, false);
+			assertTrue(projects.isEmpty());
+		}
+		// with large offset
+		{
+			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, 10, false);
+			assertTrue(projects.isEmpty());
+		}
+	}
+	
+	@Test
+	@Order(11)
+	public void editGroupEnginePermission() {
+		//TODO:
+	}
+	
+	@Test
+	@Order(12)
+	public void deleteGroupEnginePermission() {
+		//TODO:
+	}
+	
+	
 	
 	// perform at the end
 	@Test
