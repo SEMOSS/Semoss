@@ -763,13 +763,37 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public void editGroupProjectPermission() {
+	public void editGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
 		//TODO:
 		
 	}
 	
-	public void removeGroupProjectPermission() {
-		//TODO:
+	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
+		String deleteQuery = null;
+		if(groupType == null) {
+			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
+		} else {
+			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
+		}
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(deleteQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, projectId);
+			if(groupType != null) {
+				ps.setString(parameterIndex++, groupType);
+			}
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred deleting the group permission");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 	}
 	
 	/**
@@ -824,6 +848,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
+		}
+		
+		if(onlyApps) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		}
 		
 		// join
@@ -902,8 +930,32 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		
 	}
 	
-	public void removeGroupEnginePermission() {
-		//TODO:
+	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
+		String deleteQuery = null;
+		if(groupType == null) {
+			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
+		} else {
+			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
+		}
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(deleteQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, engineId);
+			if(groupType != null) {
+				ps.setString(parameterIndex++, groupType);
+			}
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred deleting the group permission");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 	}
 	
 	/**
