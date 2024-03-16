@@ -123,7 +123,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, groupId);
 				// handle null type for custom groups
-				if(groupType == null) {
+				if(groupType == null || groupType.isEmpty()) {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				} else {
 					ps.setString(parameterIndex++, groupType);
@@ -165,7 +165,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		String[] queries = null;
-		if(groupType == null) {
+		if(groupType == null || groupType.isEmpty()) {
 			queries = new String[] { 
 					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE IS NULL",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE IS NULL",
@@ -242,7 +242,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		String groupQuery = null;
 		String[] propagateQueries = null;
 		
-		if(curGroupType == null) {
+		if(curGroupType == null ) {
 			groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE IS NULL";
 			propagateQueries = new String[] {
 					"UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE IS NULL",
@@ -271,7 +271,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					// handle null type for custom groups
-					if(newGroupType == null) {
+					if(newGroupType == null || newGroupType.isEmpty()) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newGroupType);
@@ -296,7 +296,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
 						// handle null type for custom groups
-						if(newGroupType == null) {
+						if(newGroupType == null || newGroupType.isEmpty()) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newGroupType);
@@ -659,7 +659,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQuery = null;
-		if(groupType == null) {
+		if(groupType == null || groupType.isEmpty()) {
 			updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
 		} else {
 			updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
@@ -708,7 +708,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String deleteQuery = null;
-		if(groupType == null) {
+		if(groupType == null || groupType.isEmpty()) {
 			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE IS NULL";
 		} else {
 			deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
@@ -891,7 +891,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQuery = null;
-		if(groupType == null) {
+		if(groupType == null || groupType.isEmpty()) {
 			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
 		} else {
 			updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
@@ -940,7 +940,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		
 		String deleteQuery = null;
-		if(groupType == null) {
+		if(groupType == null || groupType.isEmpty()) {
 			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE IS NULL";
 		} else {
 			deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
