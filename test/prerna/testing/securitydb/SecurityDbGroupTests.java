@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -410,7 +411,71 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	@Test
 	@Order(8)
 	public void editGroupProjectPermission() {
-		//TODO:
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			final int testPermission = 2;
+
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.editGroupProjectPermission(defaultTestAdminUser, 
+						TEST_GROUP, TEST_GROUP_TYPE, 
+						PERMISSION_TEST_PROJECTID, testPermission, null);
+			
+			{
+				List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+				assertTrue(projects.size() == 1);
+
+				Map<String, Object> thisProject = projects.get(0);
+				assertTrue(thisProject.get("project_id").equals(PERMISSION_TEST_PROJECTID));
+				assertTrue(thisProject.get("project_name").equals(PERMISSION_TEST_PROJECTID));
+				assertTrue(thisProject.get("permission").equals(testPermission));
+			}
+			
+			// change it to existing value
+			assertThrows(IllegalArgumentException.class, 
+					() -> {
+						AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+							.editGroupEnginePermission(defaultTestAdminUser, 
+								TEST_GROUP, TEST_GROUP_TYPE, 
+								PERMISSION_TEST_ENGINEID, testPermission, null);
+					},
+					"Group " + TEST_GROUP + " already has permission level " 
+							+ AccessPermissionEnum.getPermissionValueById(testPermission) + " to project " + PERMISSION_TEST_ENGINEID
+					);
+			
+			// try bad engine id
+			assertThrows(IllegalArgumentException.class, 
+					() -> {
+						AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+							.editGroupEnginePermission(defaultTestAdminUser, 
+								TEST_GROUP, TEST_GROUP_TYPE, 
+								"projectIdNotExists", testPermission, null);
+					},
+					"Group " + TEST_GROUP + " does not currently have access to project projectIdNotExists to edit"
+					);
+			
+			// reset it back 
+			int origTestPermission = 1;
+
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.editGroupProjectPermission(defaultTestAdminUser, 
+						TEST_GROUP, TEST_GROUP_TYPE, 
+						PERMISSION_TEST_PROJECTID, origTestPermission, null);
+			{
+				List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+				assertTrue(projects.size() == 1);
+				
+				Map<String, Object> thisProject = projects.get(0);
+				assertTrue(thisProject.get("project_id").equals(PERMISSION_TEST_PROJECTID));
+				assertTrue(thisProject.get("project_name").equals(PERMISSION_TEST_PROJECTID));
+				assertTrue(thisProject.get("permission").equals(origTestPermission));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
 	}
 	
 	@Test
@@ -427,9 +492,19 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 
 		// should have no users in group now
-		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+		List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 				.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
-		assertTrue(members.isEmpty());
+		assertTrue(projects.isEmpty());
+		
+		// try bad engine id
+		assertThrows(IllegalArgumentException.class, 
+				() -> {
+					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.removeGroupEnginePermission(defaultTestAdminUser, 
+							TEST_GROUP, TEST_GROUP_TYPE, "projectIdNotExists");
+				},
+				"Group " + TEST_GROUP + " does not currently have access to project projectIdNotExists to remove"
+				);
 	}
 	
 	@Test
@@ -461,40 +536,104 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 		
 		{
-			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
-			assertTrue(projects.size() == 1);
+			assertTrue(engines.size() == 1);
 		}
 		// with a search term
 		{
-			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
-			assertTrue(projects.size() == 1);
+			assertTrue(engines.size() == 1);
 			
-			Map<String, Object> thisProject = projects.get(0);
-			assertTrue(thisProject.get("engine_id").equals(PERMISSION_TEST_ENGINEID));
-			assertTrue(thisProject.get("engine_name").equals(PERMISSION_TEST_ENGINEID));
-			assertTrue(thisProject.get("permission").equals(testPermission));
+			Map<String, Object> thisEngine = engines.get(0);
+			assertTrue(thisEngine.get("engine_id").equals(PERMISSION_TEST_ENGINEID));
+			assertTrue(thisEngine.get("engine_name").equals(PERMISSION_TEST_ENGINEID));
+			assertTrue(thisEngine.get("permission").equals(testPermission));
 			//TODO: can add more keys
 		}
 		// with bad search term
 		{
-			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, "z", -1, -1);
-			assertTrue(projects.isEmpty());
+			assertTrue(engines.isEmpty());
 		}
 		// with large offset
 		{
-			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, 10);
-			assertTrue(projects.isEmpty());
+			assertTrue(engines.isEmpty());
 		}
 	}
 	
 	@Test
 	@Order(11)
 	public void editGroupEnginePermission() {
-		//TODO:
+		User defaultTestAdminUser = ApiSemossTestUserUtils.getUser();
+
+		try {
+			final int testPermission = 2;
+
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.editGroupEnginePermission(defaultTestAdminUser, 
+						TEST_GROUP, TEST_GROUP_TYPE, 
+						PERMISSION_TEST_ENGINEID, testPermission, null);
+			
+			{
+				List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
+				assertTrue(engines.size() == 1);
+
+				Map<String, Object> thisEngine = engines.get(0);
+				assertTrue(thisEngine.get("engine_id").equals(PERMISSION_TEST_ENGINEID));
+				assertTrue(thisEngine.get("engine_name").equals(PERMISSION_TEST_ENGINEID));
+				assertTrue(thisEngine.get("permission").equals(testPermission));
+			}
+			
+			// change it to existing value
+			assertThrows(IllegalArgumentException.class, 
+					() -> {
+						AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+							.editGroupEnginePermission(defaultTestAdminUser, 
+								TEST_GROUP, TEST_GROUP_TYPE, 
+								PERMISSION_TEST_ENGINEID, testPermission, null);
+					},
+					"Group " + TEST_GROUP + " already has permission level " 
+							+ AccessPermissionEnum.getPermissionValueById(testPermission) + " to engine " + PERMISSION_TEST_ENGINEID
+					);
+			
+			// try bad engine id
+			assertThrows(IllegalArgumentException.class, 
+					() -> {
+						AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+							.editGroupEnginePermission(defaultTestAdminUser, 
+								TEST_GROUP, TEST_GROUP_TYPE, 
+								"engineIdNotExists", testPermission, null);
+					},
+					"Group " + TEST_GROUP + " does not currently have access to engine engineIdNotExists to edit"
+					);
+			
+			// reset it back 
+			int origTestPermission = 1;
+
+			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+				.editGroupEnginePermission(defaultTestAdminUser, 
+						TEST_GROUP, TEST_GROUP_TYPE, 
+						PERMISSION_TEST_ENGINEID, origTestPermission, null);
+			{
+				List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
+				assertTrue(engines.size() == 1);
+				
+				Map<String, Object> thisEngine = engines.get(0);
+				assertTrue(thisEngine.get("engine_id").equals(PERMISSION_TEST_ENGINEID));
+				assertTrue(thisEngine.get("engine_name").equals(PERMISSION_TEST_ENGINEID));
+				assertTrue(thisEngine.get("permission").equals(origTestPermission));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
 	}
 	
 	@Test
@@ -511,9 +650,19 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		}
 
 		// should have no users in group now
-		List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+		List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 				.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
-		assertTrue(members.isEmpty());
+		assertTrue(engines.isEmpty());
+		
+		// try bad engine id
+		assertThrows(IllegalArgumentException.class, 
+				() -> {
+					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.removeGroupEnginePermission(defaultTestAdminUser, 
+							TEST_GROUP, TEST_GROUP_TYPE, "engineIdNotExists");
+				},
+				"Group " + TEST_GROUP + " does not currently have access to engine engineIdNotExists to remove"
+				);
 	}
 	
 	
