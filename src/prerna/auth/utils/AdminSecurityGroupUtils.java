@@ -763,6 +763,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	public void editGroupProjectPermission() {
+		//TODO:
+		
+	}
+	
+	public void removeGroupProjectPermission() {
+		//TODO:
+	}
+	
 	/**
 	 * 
 	 * @param groupId
@@ -808,7 +817,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		// back to the others
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, projectPrefix+"PROJECTNAME", "low_project_name"));
 		
 		if(hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -831,4 +840,131 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		return getSimpleQuery(qs);
 	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/**
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param engineId
+	 * @param permission
+	 * @param endDate
+	 */
+	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
+		Timestamp verifiedEndDate = null;
+		if (endDate != null) {
+			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		}
+		
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, engineId);
+			ps.setInt(parameterIndex++, permission);
+			ps.setTimestamp(parameterIndex++, startDate);
+			if(verifiedEndDate == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			}
+			ps.setString(parameterIndex++, userDetails.getValue0());
+			ps.setString(parameterIndex++, userDetails.getValue1());
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred adding the group permission");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
+	public void editGroupEnginePermission() {
+		//TODO:
+		
+	}
+	
+	public void removeGroupEnginePermission() {
+		//TODO:
+	}
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param onlyApps
+	 * @return
+	 */
+	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit, long offset, boolean onlyApps) {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String enginePrefix = "ENGINE__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(groupEnginePermission+"ID")); // this is the group id
+		qs.addSelector(new QueryColumnSelector(groupEnginePermission+"TYPE")); // this is the group type
+		qs.addSelector(new QueryColumnSelector(groupEnginePermission+"ENGINEID"));
+		qs.addSelector(new QueryColumnSelector(groupEnginePermission+"PERMISSION"));
+		qs.addSelector(new QueryColumnSelector(groupEnginePermission+"ENDDATE"));
+		// filter for the group being specified
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"TYPE", "==", groupType));
+		// engine selectors
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"COST", "engine_cost"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"DISCOVERABLE", "engine_discoverable"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"GLOBAL", "engine_global"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"CREATEDBY", "engine_created_by"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"CREATEDBYTYPE", "engine_created_by_type"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"DATECREATED", "engine_date_created"));
+		// back to the others
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, enginePrefix+"ENGINENAME", "low_engine_name"));
+		
+		if(hasSearchTerm) {
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINEID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINENAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		
+		// join
+		qs.addRelation(groupEnginePermission+"ENGINEID", enginePrefix+"ENGINEID", "inner.join");
+		
+		// add the sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
+		
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
+	
+	
 }
