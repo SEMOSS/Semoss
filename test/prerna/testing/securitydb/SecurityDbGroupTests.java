@@ -377,6 +377,15 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			fail();
 		}
 		
+		// try again
+		assertThrows(IllegalArgumentException.class, 
+				() -> {
+					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.addGroupProjectPermission(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, PERMISSION_TEST_PROJECTID, testPermission, null);
+				},
+				"Group " + TEST_GROUP + " already has access to project " + PERMISSION_TEST_PROJECTID + " with permission = " + AccessPermissionEnum.getPermissionValueById(testPermission)
+				);
+		
 		{
 			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
@@ -534,6 +543,15 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			e.printStackTrace();
 			fail();
 		}
+		
+		// try again
+		assertThrows(IllegalArgumentException.class, 
+				() -> {
+					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+						.addGroupEnginePermission(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, PERMISSION_TEST_ENGINEID, testPermission, null);
+				},
+				"Group " + TEST_GROUP + " already has access to engine " + PERMISSION_TEST_ENGINEID + " with permission = " + AccessPermissionEnum.getPermissionValueById(testPermission)
+				);
 		
 		{
 			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
