@@ -35,6 +35,7 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -42,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -131,7 +131,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 */
 	private boolean isBasic = false;
 
-	protected TimeZone databaseTimeZone;
+	protected ZoneId databaseZoneId;
 	
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -163,17 +163,17 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		// grab the main properties
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-		String dbTimeZoneStr = this.smssProp.getProperty(Constants.DATABASE_TIMEZONE);
-		if(dbTimeZoneStr != null && !(dbTimeZoneStr=dbTimeZoneStr.trim()).isEmpty()) {
+		String dbZoneIdStr = this.smssProp.getProperty(Constants.DATABASE_ZONEID);
+		if(dbZoneIdStr != null && !(dbZoneIdStr=dbZoneIdStr.trim()).isEmpty()) {
 			try {
-				this.databaseTimeZone = TimeZone.getTimeZone(dbTimeZoneStr);
+				this.databaseZoneId = ZoneId.of(dbZoneIdStr);
 			} catch(Exception e) {
-				classLogger.warn("Could not determine the database timezone from string input = " + dbTimeZoneStr + " for engine " 
+				classLogger.warn("Could not determine the database zone id from string input = " + dbZoneIdStr + " for engine " 
 						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			classLogger.warn("Please consider adding a default database timezone for engine " + 
+			classLogger.warn("Please consider adding a default database zome id for engine " + 
 					SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 		if(this.isBasic) {
@@ -1102,8 +1102,8 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 	
 	@Override
-	public TimeZone getDatabaseTimezone() {
-		return this.databaseTimeZone;
+	public ZoneId getDatabaseZoneId() {
+		return this.databaseZoneId;
 	}
 	
 	@Override
