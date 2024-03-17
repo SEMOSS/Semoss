@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.TimeZone;
+import java.time.ZoneId;
 import java.util.Vector;
 
 import prerna.engine.impl.owl.OWLEngineFactory;
@@ -149,7 +149,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * 
 	 * @return
 	 */
-	TimeZone getDatabaseTimezone();
+	ZoneId getDatabaseZoneId();
 }
 
 
