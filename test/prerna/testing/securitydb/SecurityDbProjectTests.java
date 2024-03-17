@@ -3,6 +3,7 @@ package prerna.testing.securitydb;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,13 @@ public class SecurityDbProjectTests extends AbstractBaseSemossApiTests {
 		AbstractBaseSemossApiTests.initialSetup();
 		// unnecessary if running by itself, but necessary if running {@link prerna.testing.AllTests}
 		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
+	}
+	
+	@Override
+	@BeforeEach
+	public void beforeEachTest() {
+		this.clearAllDatabasesBetweenTests = false;
+		super.beforeEachTest();
 	}
 	
 	@Test
