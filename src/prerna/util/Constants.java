@@ -377,7 +377,7 @@ public class Constants {
 
 	public static final String OWL = "OWL";
 	public static final String OWL_ENGINE_SUFFIX = "?OWL";
-	public static final String DATABASE_TIMEZONE = "DATABASE_TIMEZONE";
+	public static final String DATABASE_ZONEID = "DATABASE_ZONEID";
 	
 	// folder names on engines / projects
 	public static final String DATABASE_FOLDER = "db";
