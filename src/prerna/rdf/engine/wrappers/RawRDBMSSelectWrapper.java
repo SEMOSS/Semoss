@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +48,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	protected Statement stmt = null;
 	protected ResultSet rs = null;
 	protected boolean closedConnection = false;
+	protected TimeZone databaseTimeZone = null;
 
 	protected int numColumns = 0;
 	protected int[] colTypes = null;
@@ -75,6 +77,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			this.dataSource = (HikariDataSource) map.get(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT);
 			// go through and collect the metadata around the query
 			setVariables();
+			this.databaseTimeZone = engine.getDatabaseTimezone();
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			if(this.useEngineConnection) {

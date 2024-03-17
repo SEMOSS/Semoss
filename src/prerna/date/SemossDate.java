@@ -466,57 +466,6 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		return semossdate;
 	}
 
-//	public static void main(String[] args) throws Exception {
-//		Object d2 = null;
-//		if(d2 instanceof SemossDate) {
-//			System.out.println("no way");
-//		} else {
-//			System.out.println("didn't break");
-//		}
-//
-//		String d = "11/5/1991";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "1/5/1991";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "01/22/1991";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "13/12/1991";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "5/15/91";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "Jan-12";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		//		d = "January 12th, 2015";
-//		//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "Jan 15, 2019";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "1/1/2018";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "2018/1/1";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "2018/1/1 10:20:11";
-//		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-//
-//		d = "2018-03-12";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//		d = "2018-03-12 10:20:11";
-//		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-//
-//		d = "2019-23-12 02:12:21";
-//		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-//	}
-
 	@Override
 	public int compareTo(SemossDate o) {
 		if(getDate() == null) {
@@ -550,5 +499,67 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	public int hashCode() {
 		return getDate().hashCode();
 	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+//	public static void main(String[] args) throws Exception {
+//	Object d2 = null;
+//	if(d2 instanceof SemossDate) {
+//		System.out.println("no way");
+//	} else {
+//		System.out.println("didn't break");
+//	}
+//
+//	String d = "11/5/1991";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "1/5/1991";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "01/22/1991";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "13/12/1991";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "5/15/91";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "Jan-12";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	//		d = "January 12th, 2015";
+//	//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "Jan 15, 2019";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "1/1/2018";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "2018/1/1";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "2018/1/1 10:20:11";
+//	System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+//
+//	d = "2018-03-12";
+//	System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//	d = "2018-03-12 10:20:11";
+//	System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+//
+//	d = "2019-23-12 02:12:21";
+//	System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+//}
 
 }

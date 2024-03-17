@@ -160,6 +160,7 @@ public class Constants {
 	public static final String SHOW_PLAYSHEETS_LIST = "btnShowPlaySheets";
 	public static final String ENGINE = "ENGINE";
 	public static final String ENGINE_ALIAS = "ENGINE_ALIAS";
+	@Deprecated
 	public static final String HIDDEN_DATABASE = "HIDDEN_DATABASE";
 	public static final String ENGINES = "ENGINES";
 	public static final String ENGINE_PROPERTIES_FILE = "ENGINE_PROP";
@@ -376,7 +377,8 @@ public class Constants {
 
 	public static final String OWL = "OWL";
 	public static final String OWL_ENGINE_SUFFIX = "?OWL";
-
+	public static final String DATABASE_TIMEZONE = "DATABASE_TIMEZONE";
+	
 	// folder names on engines / projects
 	public static final String DATABASE_FOLDER = "db";
 	public static final String STORAGE_FOLDER = "storage";
