@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -130,6 +131,8 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	 */
 	private boolean isBasic = false;
 
+	protected TimeZone databaseTimeZone;
+	
 	/**
 	 * Opens a database as defined by its properties file. What is included in
 	 * the properties file is dependent on the type of engine that is being
@@ -160,7 +163,19 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		// grab the main properties
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-		
+		String dbTimeZoneStr = this.smssProp.getProperty(Constants.DATABASE_TIMEZONE);
+		if(dbTimeZoneStr != null && !(dbTimeZoneStr=dbTimeZoneStr.trim()).isEmpty()) {
+			try {
+				this.databaseTimeZone = TimeZone.getTimeZone(dbTimeZoneStr);
+			} catch(Exception e) {
+				classLogger.warn("Could not determine the database timezone from string input = " + dbTimeZoneStr + " for engine " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.warn("Please consider adding a default database timezone for engine " + 
+					SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		}
 		if(this.isBasic) {
 			// if this is a basic database, we dont care about the OWL or any other SMSS values
 			return;
@@ -1084,6 +1099,11 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			return smssProp.get("UDF").toString().split(";");
 		}
 		return null;
+	}
+	
+	@Override
+	public TimeZone getDatabaseTimezone() {
+		return this.databaseTimeZone;
 	}
 	
 	@Override
