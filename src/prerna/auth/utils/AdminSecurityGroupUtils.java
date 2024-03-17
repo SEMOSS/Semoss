@@ -625,6 +625,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
+		int curPermission = groupProjectPermission(groupId, groupType, projectId);
+		if(curPermission!= -1) {
+			throw new IllegalArgumentException("Group " + groupId + " already has access to project " + projectId + " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
+		}
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
@@ -857,6 +861,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		int curPermission = groupEnginePermission(groupId, groupType, engineId);
+		if(curPermission!= -1) {
+			throw new IllegalArgumentException("Group " + groupId + " already has access to engine " + engineId + " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
+		}
+		
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
