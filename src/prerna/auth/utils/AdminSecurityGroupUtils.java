@@ -565,10 +565,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
 			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
 					"CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
+			exisitngMembersQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
+
+			// add the subqs to the main qs
 			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
 					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
 					exisitngMembersQs));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
@@ -599,10 +601,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
 			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
 					"CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
+			exisitngMembersQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
+
+			// add the subqs to the main qs
 			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
 					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
 					exisitngMembersQs));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
