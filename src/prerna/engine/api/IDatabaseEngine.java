@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.TimeZone;
 import java.util.Vector;
 
 import prerna.engine.impl.owl.OWLEngineFactory;
@@ -143,6 +144,12 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * Generate an audit database
 	 */
 	AuditDatabase generateAudit();
+	
+	/**
+	 * 
+	 * @return
+	 */
+	TimeZone getDatabaseTimezone();
 }
 
 
