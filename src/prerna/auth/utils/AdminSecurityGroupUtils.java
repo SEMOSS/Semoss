@@ -544,6 +544,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * This is only valid for members assigned to custom group assignments
 	 * 
 	 * @return
 	 */
@@ -567,6 +568,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
 					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
 					exisitngMembersQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
@@ -583,6 +585,34 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
+	}
+	
+	/**
+	 * This is only valid for members assigned to custom group assignments
+	 * 
+	 * @return
+	 */
+	public Long getNumNonMembersInGroup(String groupId, String searchTerm) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "SMSS_USER__ID", "numUsers"));
+		{
+			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
+			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
+					"CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
+					exisitngMembersQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
 	/**
