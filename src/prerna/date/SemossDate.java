@@ -325,7 +325,6 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 				return null;
 			}
 			try {
-				// Step 1: Parse the string date
 				DateTimeFormatter formatter = new DateTimeFormatterBuilder()
 						.appendPattern(this.pattern)
 						.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)

@@ -52,6 +52,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	private static final String PERMISSION_TEST_APP_PROJECTID = "testing-projectid-app";
 	private static final String PERMISSION_TEST_ENGINEID = "testing-engineid";
 
+	private static final String BAD_SEARCH = "z";
 	
 	@BeforeAll
     public static void initialSetup() throws Exception {
@@ -116,7 +117,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		// search not found
 		{
 			List<Map<String, Object>> groupReturns = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getGroups("z", -1, -1);
+					.getGroups(BAD_SEARCH, -1, -1);
 			assertTrue(groupReturns.isEmpty());
 		}
 		// offset is large
@@ -281,7 +282,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		// with bad search term
 		{
 			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getGroupMembers(TEST_GROUP, "z", -1, -1);
+					.getGroupMembers(TEST_GROUP, BAD_SEARCH, -1, -1);
 			assertTrue(members.isEmpty());
 		}
 		// with large offset
@@ -289,6 +290,12 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getGroupMembers(TEST_GROUP, null, -1, 10);
 			assertTrue(members.isEmpty());
+		}
+		
+		// test count query
+		{
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNumMembersInGroup(TEST_GROUP, null) == 1);
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNumMembersInGroup(TEST_GROUP, BAD_SEARCH) == 0);
 		}
 	}
 	
@@ -337,7 +344,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		// with bad search term
 		{
 			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getNonGroupMembers(TEST_GROUP, "z", -1, -1);
+					.getNonGroupMembers(TEST_GROUP, BAD_SEARCH, -1, -1);
 			assertTrue(members.isEmpty());
 		}
 		// with large offset
@@ -345,6 +352,12 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			List<Map<String, Object>> members = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getNonGroupMembers(TEST_GROUP, null, -1, 10);
 			assertTrue(members.isEmpty());
+		}
+		
+		// test count query
+		{
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNumNonMembersInGroup(TEST_GROUP, null) == 2);
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).getNumNonMembersInGroup(TEST_GROUP, NATIVE_DUMMY_SEARCH) == 1);
 		}
 	}
 	
@@ -406,7 +419,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		// with bad search term
 		{
 			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, "z", -1, -1, false);
+					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH, -1, -1, false);
 			assertTrue(projects.isEmpty());
 		}
 		// with large offset
@@ -414,6 +427,14 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, 10, false);
 			assertTrue(projects.isEmpty());
+		}
+		
+		// test count query
+		{
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNumProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null) == 1);
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNumProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH) == 0);
 		}
 	}
 	
@@ -500,7 +521,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			fail();
 		}
 
-		// should have no users in group now
+		// should have no projects in group now
 		List<Map<String, Object>> projects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 				.getProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
 		assertTrue(projects.isEmpty());
@@ -514,6 +535,23 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 				},
 				"Group " + TEST_GROUP + " does not currently have access to project projectIdNotExists to remove"
 				);
+		
+		// when we search we should see 1 available group
+		{
+			List<Map<String, Object>> availableProjects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getAvailableProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1, false);
+			assertTrue(availableProjects.size() == 1);
+			
+			Map<String, Object> thisProject = availableProjects.get(0);
+			assertTrue(thisProject.get("project_id").equals(PERMISSION_TEST_PROJECTID));
+			assertTrue(thisProject.get("project_name").equals(PERMISSION_TEST_PROJECTID));
+		}
+		// with bad search we should see nothing
+		{
+			List<Map<String, Object>> availableProjects = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getAvailableProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH, -1, -1, false);
+			assertTrue(availableProjects.size() == 0);
+		}
 	}
 	
 	@Test
@@ -573,7 +611,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		// with bad search term
 		{
 			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, "z", -1, -1);
+					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH, -1, -1);
 			assertTrue(engines.isEmpty());
 		}
 		// with large offset
@@ -581,6 +619,14 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 					.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, 10);
 			assertTrue(engines.isEmpty());
+		}
+		
+		// test count query
+		{
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNumEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null) == 1);
+			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getNumEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH) == 0);
 		}
 	}
 	
@@ -667,7 +713,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			fail();
 		}
 
-		// should have no users in group now
+		// should have no engines in group now
 		List<Map<String, Object>> engines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 				.getEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
 		assertTrue(engines.isEmpty());
@@ -681,6 +727,23 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 				},
 				"Group " + TEST_GROUP + " does not currently have access to engine engineIdNotExists to remove"
 				);
+		
+		// when we search we should see 1 available group
+		{
+			List<Map<String, Object>> availableEngines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getAvailableEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, -1, -1);
+			assertTrue(availableEngines.size() == 1);
+			
+			Map<String, Object> thisEngine = availableEngines.get(0);
+			assertTrue(thisEngine.get("engine_id").equals(PERMISSION_TEST_ENGINEID));
+			assertTrue(thisEngine.get("engine_name").equals(PERMISSION_TEST_ENGINEID));
+		}
+		// with bad search we should see nothing
+		{
+			List<Map<String, Object>> availableEngines = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
+					.getAvailableEnginesForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH, -1, -1);
+			assertTrue(availableEngines.size() == 0);
+		}
 	}
 	
 	
