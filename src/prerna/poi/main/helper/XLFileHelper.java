@@ -349,7 +349,7 @@ public class XLFileHelper {
 		} else if(value instanceof SemossDate) {
 			// not a perfect check by any means
 			// but quick and easy to do
-			if(hasTime( ((SemossDate) value).getDate() )) {
+			if( ((SemossDate) value).dateHasTimeNotZero() ) {
 				return SemossDataType.TIMESTAMP;
 			} else {
 				return SemossDataType.DATE;
@@ -361,33 +361,6 @@ public class XLFileHelper {
 		return SemossDataType.STRING;
 	}
 	
-    /**
-     * Determines whether or not a date has any time values.
-     * @param date The date.
-     * @return true iff the date is not null and any of the date's hour, minute,
-     * seconds or millisecond values are greater than zero.
-     */
-    private static boolean hasTime(Date date) {
-        if (date == null) {
-            return false;
-        }
-        Calendar c = Calendar.getInstance();
-        c.setTime(date);
-        if (c.get(Calendar.HOUR_OF_DAY) > 0) {
-            return true;
-        }
-        if (c.get(Calendar.MINUTE) > 0) {
-            return true;
-        }
-        if (c.get(Calendar.SECOND) > 0) {
-            return true;
-        }
-        if (c.get(Calendar.MILLISECOND) > 0) {
-            return true;
-        }
-        return false;
-    } 
-
 	public Object[][] predictTypes(String sheetName) {
 		Sheet lSheet = sheetNames.get(sheetName);
 		int numRows = lSheet.getLastRowNum() + 1;
