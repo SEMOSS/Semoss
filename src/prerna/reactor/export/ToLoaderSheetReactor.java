@@ -278,7 +278,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 						SemossDate d = (SemossDate) data[i];
 						Cell cell = row.createCell(i+1);
 						cell.setCellValue(d.getDate());
-						if(d.hasTime() && d.hasTimeNotZero()) {
+						if(d.patternHasTime() && d.dateHasTimeNotZero()) {
 							cell.setCellStyle(timeStampCellStyle);
 						} else {
 							cell.setCellStyle(dateCellStyle);
@@ -306,7 +306,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					SemossDate d = (SemossDate) data[i];
 					Cell cell = row.createCell(i+1);
 					cell.setCellValue(d.getDate());
-					if(d.hasTime() && d.hasTimeNotZero()) {
+					if(d.patternHasTime() && d.dateHasTimeNotZero()) {
 						cell.setCellStyle(timeStampCellStyle);
 					} else {
 						cell.setCellStyle(dateCellStyle);
@@ -366,7 +366,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 						SemossDate d = (SemossDate) data[i];
 						Cell cell = row.createCell(i+1);
 						cell.setCellValue(d.getDate());
-						if(d.hasTime() && d.hasTimeNotZero()) {
+						if(d.patternHasTime() && d.dateHasTimeNotZero()) {
 							cell.setCellStyle(timeStampCellStyle);
 						} else {
 							cell.setCellStyle(dateCellStyle);
@@ -393,7 +393,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					SemossDate d = (SemossDate) data[i];
 					Cell cell = row.createCell(i+1);
 					cell.setCellValue(d.getDate());
-					if(d.hasTime() && d.hasTimeNotZero()) {
+					if(d.patternHasTime() && d.dateHasTimeNotZero()) {
 						cell.setCellStyle(timeStampCellStyle);
 					} else {
 						cell.setCellStyle(dateCellStyle);

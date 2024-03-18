@@ -159,7 +159,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						if(dVal == null) {
 							val = null;
 						} else {
-							val = new SemossDate(dVal, "yyyy-MM-dd");
+							val = new SemossDate(dVal.toInstant(), this.databaseZoneId, "yyyy-MM-dd");
 						}
 					} catch(Exception e) {
 						// some rdbms do not actually support dates
@@ -167,7 +167,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						// ex: SQLite
 						try {
 							String dateValStr = rs.getString(colNum);
-							val = new SemossDate(dateValStr, "yyyy-MM-dd");
+							val = new SemossDate(dateValStr, "yyyy-MM-dd", this.databaseZoneId);
 						} catch(Exception e2) {
 							// out of luck...
 							logger.error(Constants.STACKTRACE, e);
@@ -181,7 +181,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						if(dVal == null) {
 							val = null;
 						} else {
-							val = new SemossDate(dVal.getTime(), true);
+							val = new SemossDate(dVal.toInstant(), this.databaseZoneId, "yyyy-MM-dd HH:mm:ss");
 						}
 					} catch(Exception e) {
 						// some rdbms do not actually support dates
@@ -189,7 +189,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						// ex: SQLite
 						try {
 							String dateValStr = rs.getString(colNum);
-							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss");
+							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss", this.databaseZoneId);
 						} catch(Exception e2) {
 							// out of luck...
 							logger.error(Constants.STACKTRACE, e);

@@ -769,7 +769,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			if(value == null) {
 				cols[colIndex] = null;
 			} else if(value instanceof SemossDate) {
-				if( ((SemossDate) value).hasTime()) {
+				if( ((SemossDate) value).dateHasTimeNotZero() ) {
 					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd HH:mm:ss");
 				} else {
 					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd");
