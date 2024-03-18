@@ -57,7 +57,7 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 		if(constant instanceof Number) {
 			return "NUMBER";
 		} else if(constant instanceof SemossDate) {
-			if(((SemossDate) constant).hasTime()) {
+			if( ((SemossDate) constant).dateHasTimeNotZero() ) {
 				return "TIMESTAMP";
 			} else {
 				return "DATE";

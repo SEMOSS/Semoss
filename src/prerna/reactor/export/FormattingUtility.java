@@ -552,9 +552,7 @@ public class FormattingUtility {
 					? Double.parseDouble(cellData.toString()) : ((SemossDate) cellData).getDate().getTime();
 			double formattedSelectedValue = NumberUtils.isCreatable(selectedValue.toString())
 					? Double.parseDouble(selectedValue.toString())
-					: new SemossDate(selectedValue.toString(), ((SemossDate) cellData).getPattern()).getDate()
-							.getTime();
-
+					: new SemossDate(selectedValue.toString(), ((SemossDate) cellData).getPattern()).getDate().getTime();
 			if (comparator.equals(">")) {
 				isValid = formattedCellData > formattedSelectedValue;
 			} else if (comparator.equals("<")) {

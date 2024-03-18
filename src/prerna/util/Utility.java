@@ -45,7 +45,6 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
-import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -4594,9 +4593,27 @@ public class Utility {
 	
 	/**
 	 * Get the application time zone
+	 * 
+	 * Switch to using Utility.getApplicationZoneId()
+	 * 
 	 * @return
 	 */
+	@Deprecated
 	public static String getApplicationTimeZoneId() {
+		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
+		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
+			// default to ET
+			return "America/New_York";
+		}
+		
+		return timeZone.trim();
+	}
+	
+	/**
+	 * Get the application zone id
+	 * @return
+	 */
+	public static String getApplicationZoneId() {
 		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
 		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
 			// default to ET
@@ -6259,9 +6276,9 @@ public class Utility {
 	public static ZonedDateTime getCurrentZonedDateTimeForUser(User user) {
 		ZoneId zoneId = ZoneId.of("UTC");
 		if(user != null) {
-			TimeZone userTimeZone = user.getTimeZone();
-			if(userTimeZone != null) {
-				zoneId = ZoneId.of(userTimeZone.getID());
+			ZoneId userZoneId = user.getZoneId();
+			if(userZoneId != null) {
+				zoneId = userZoneId;
 			}
 		}
 		

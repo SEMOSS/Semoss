@@ -22,11 +22,11 @@ public class SQLiteSqlInterpreter extends H2SqlInterpreter {
 	@Override
 	protected String formatDate(Object o, SemossDataType dateType) {
 		if(o instanceof SemossDate) {
-			return String.valueOf( ((SemossDate) o).getDate().getTime());
+			return String.valueOf( ((SemossDate) o).getZonedDateTime().toInstant().toEpochMilli());
 		} else {
 			SemossDate value = SemossDate.genDateObj(o + "");
 			if(value != null) {
-				return String.valueOf(value.getDate().getTime());
+				return String.valueOf(value.getZonedDateTime().toInstant().toEpochMilli());
 			}
 			
 //			if(dateType == SemossDataType.DATE) {
