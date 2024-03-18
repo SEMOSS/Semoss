@@ -2,10 +2,9 @@
 package prerna.reactor.database.metaeditor.relationships;
 
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -184,8 +183,8 @@ public class DownloadOwlRelationshipsReactor extends AbstractReactor {
 		cell.setCellStyle(centerCellStyleBold);
 		
 		User user = ThreadStore.getUser();
-		TimeZone tz = user.getTimeZone();
-		SemossDate sDate = new SemossDate(ZonedDateTime.now(tz.toZoneId()).toLocalDateTime());
+		ZoneId zoneId = user.getZoneId();
+		SemossDate sDate = new SemossDate(ZonedDateTime.now(zoneId).toLocalDateTime());
 		cell = contractDetails.createCell(1);
 		cell.setCellValue(sDate.getFormatted("yyyy-MM-dd HH-mm-ss"));
 		cell.setCellStyle(centerCellStyle);
@@ -216,8 +215,8 @@ public class DownloadOwlRelationshipsReactor extends AbstractReactor {
 	protected String getExportFileName(String fileNamePrefix, String extension) {
 		// get a random file name
 		User user = ThreadStore.getUser();
-		TimeZone tz = user.getTimeZone();
-		SemossDate sDate = new SemossDate(ZonedDateTime.now(tz.toZoneId()).toLocalDateTime());
+		ZoneId zoneId = user.getZoneId();
+		SemossDate sDate = new SemossDate(ZonedDateTime.now(zoneId).toLocalDateTime());
 		String dateFormatted = sDate.getFormatted("yyyy-MM-dd HH-mm-ss");
 		String exportName = fileNamePrefix + "__" + dateFormatted + "." + extension;
 		return exportName;

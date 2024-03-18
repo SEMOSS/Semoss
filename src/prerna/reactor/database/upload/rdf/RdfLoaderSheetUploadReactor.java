@@ -388,7 +388,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				if(propValue == null || propValue.toString().trim().isEmpty()) {
 					continue;
 				} else if (propValue instanceof SemossDate) {
-					propValue = ((SemossDate) propValue).getDate();
+					propValue = ((SemossDate) propValue).getZonedDateTime();
 				}
 				propHash.put(propName, propValue);
 			}

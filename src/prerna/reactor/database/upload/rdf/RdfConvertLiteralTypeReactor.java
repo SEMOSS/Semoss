@@ -115,7 +115,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			// remove
 			if(object instanceof SemossDate) {
 				engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
-						new Object[] {subject, propertyUri, ((SemossDate) object).getDate(), false});
+						new Object[] {subject, propertyUri, ((SemossDate) object).getZonedDateTime(), false});
 			} else {
 				engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
 						new Object[] {subject, propertyUri, object, false});
@@ -133,7 +133,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 						|| newDataType == SemossDataType.TIMESTAMP) {
 					
 					if(object instanceof SemossDate) {
-						newObject = ((SemossDate) object).getDate();
+						newObject = ((SemossDate) object).getZonedDateTime();
 					} else if(object instanceof String){
 						SemossDate dateObject = SemossDate.genDateObj(object + "");
 						if(dateObject == null) {
@@ -141,7 +141,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 							continue;
 						}
 						
-						newObject = dateObject.getDate();
+						newObject = dateObject.getZonedDateTime();
 					} else {
 						warning = "Some values did not properly parse";
 						continue;
