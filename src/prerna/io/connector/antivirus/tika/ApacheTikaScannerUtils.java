@@ -40,6 +40,14 @@ public class ApacheTikaScannerUtils implements IVirusScanner {
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return retMap;

@@ -6,13 +6,13 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -55,7 +55,7 @@ public class User implements Serializable {
 	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	private List<AuthProvider> loggedInProfiles = new Vector<>();
 	// storing the timezone the user is in
-	private TimeZone timeZone;
+	private ZoneId zoneId;
 	
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -452,16 +452,16 @@ public class User implements Serializable {
 	 * 
 	 * @param timeZone
 	 */
-	public void setTimeZone(TimeZone timeZone) {
-		this.timeZone = timeZone;
+	public void setZoneId(ZoneId zoneId) {
+		this.zoneId = zoneId;
 	}
 	
 	/**
 	 * 
 	 * @return
 	 */
-	public TimeZone getTimeZone() {
-		return timeZone;
+	public ZoneId getZoneId() {
+		return zoneId;
 	}
 	
 	/////////////////////////////////////////////////////

@@ -37,7 +37,7 @@ public class TimestampReactor extends AbstractReactor {
 			String strDate = this.keyValue.get(this.keysToGet[0]);
 			
 			date = new SemossDate(strDate, pattern);
-			date.getDate();
+			date.getZonedDateTime();
 		} else {
 			// the user hasn't specified a date
 			date = new SemossDate(Calendar.getInstance().getTime(), pattern);
