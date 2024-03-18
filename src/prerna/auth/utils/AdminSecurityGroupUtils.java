@@ -45,10 +45,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	public static AdminSecurityGroupUtils getInstance(User user) {
-		if (user == null) {
+		if(user == null) {
 			return null;
 		}
-		if (SecurityAdminUtils.userIsAdmin(user)) {
+		if(SecurityAdminUtils.userIsAdmin(user)) {
 			return instance;
 		}
 		return null;
@@ -75,7 +75,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if (val != null) {
+				if(val != null) {
 					results.add(val.toString());
 				}
 			}
@@ -83,7 +83,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -110,7 +110,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			conn = securityDb.makeConnection();
 
 			// need to ensure that the group is unique...
-			if (groupExists(groupId, groupType)) {
+			if(groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group already exists");
 			}
 
@@ -134,7 +134,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.execute();
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			}
@@ -142,7 +142,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
+			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -160,7 +160,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public void deleteGroupAndPropagate(String groupId, String groupType) throws Exception {
-		if (!groupExists(groupId, groupType)) {
+		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
@@ -200,11 +200,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				
 				// commit
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.rollback();
 				}
 				throw e;
@@ -213,7 +213,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
+			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -236,7 +236,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
 			String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
-		if (!groupExists(curGroupId, curGroupType)) {
+		if(!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
 		String groupQuery = null;
@@ -309,11 +309,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.rollback();
 				}
 				throw e;
@@ -322,7 +322,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
+			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -340,15 +340,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate) throws Exception {
-		if (!groupExists(groupId, null)) {
+		if(!groupExists(groupId, null)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
-		if (!isCustomGroup(groupId)) {
+		if(!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
 
-		if (userInCustomGroup(groupId, userId, userType)) {
+		if(userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
 		}
 		
@@ -359,7 +359,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
+		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 
@@ -374,7 +374,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userId);
 				ps.setString(parameterIndex++, userType);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				if (verifiedEndDate == null) {
+				if(verifiedEndDate == null) {
 					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				} else {
 					ps.setTimestamp(parameterIndex++, verifiedEndDate);
@@ -382,7 +382,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.execute();
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			}
@@ -390,7 +390,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
+			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -408,15 +408,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
-		if (!groupExists(groupId, null)) {
+		if(!groupExists(groupId, null)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
-		if (!isCustomGroup(groupId)) {
+		if(!isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
 
-		if (!userInCustomGroup(groupId, userId, userType)) {
+		if(!userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
 		}
 
@@ -430,7 +430,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userId);
 				ps.setString(parameterIndex++, userType);
 				ps.execute();
-				if (!conn.getAutoCommit()) {
+				if(!conn.getAutoCommit()) {
 					conn.commit();
 				}
 			}
@@ -438,7 +438,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
+			if(securityDb.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -464,13 +464,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
 		}
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -504,7 +504,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
@@ -512,10 +512,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -530,7 +530,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "CUSTOMGROUPASSIGNMENT__USERID", "numUsers"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
 			qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
 			OrQueryFilter or = new OrQueryFilter();
@@ -572,7 +572,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
 					exisitngMembersQs));
 		}
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
@@ -580,10 +580,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -608,7 +608,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
 					exisitngMembersQs));
 		}
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
@@ -637,7 +637,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
+		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 		
@@ -692,7 +692,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
+		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 		
@@ -836,10 +836,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 		
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -851,7 +851,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @return
 	 */
-	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm) {
+	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
 		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
 		String projectPrefix = "PROJECT__";
 		
@@ -860,7 +860,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"TYPE", "==", groupType));
 
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			qs.addRelation(groupProjectPermission+"PROJECTID", projectPrefix+"PROJECTID", "inner.join");
 
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -868,6 +868,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
+		
+		if(onlyApps) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+		}
+		
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 	
@@ -936,10 +941,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 		
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -951,18 +956,22 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @return
 	 */
-	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm) {
+	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
 		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
 		String projectPrefix = "PROJECT__";
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, projectPrefix+"PROJECTID", "numProjects"));
 
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
+		}
+		
+		if(onlyApps) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		}
 		
 		// filter out projects that are already added
@@ -1003,7 +1012,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
+		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 		
@@ -1058,7 +1067,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
+		if(endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 		
@@ -1189,10 +1198,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 		
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -1214,7 +1223,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"TYPE", "==", groupType));
 
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			qs.addRelation(groupEnginePermission+"ENGINEID", enginePrefix+"ENGINEID", "inner.join");
 
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -1278,10 +1287,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 		
-		if (limit > 0) {
+		if(limit > 0) {
 			qs.setLimit(limit);
 		}
-		if (offset > 0) {
+		if(offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
@@ -1300,7 +1309,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, enginePrefix+"ENGINEID", "numEngines"));
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+		if(searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINEID", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINENAME", searchTerm));
@@ -1347,13 +1356,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1375,7 +1384,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
-		if (groupType == null || (groupType = groupType.trim()).isEmpty()) {
+		if(groupType == null || (groupType = groupType.trim()).isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__IS_CUSTOM_GROUP", "==", true,
 					PixelDataType.BOOLEAN));
 		} else {
@@ -1384,13 +1393,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1418,13 +1427,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1451,13 +1460,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1485,13 +1494,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return ((Number)wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1519,13 +1528,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return ((Number)wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
+			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
