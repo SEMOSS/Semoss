@@ -1,16 +1,17 @@
 package prerna.date;
 
 import java.io.Serializable;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Calendar;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,7 +22,7 @@ import prerna.util.Utility;
 
 public class SemossDate implements Comparable<SemossDate>, Serializable {
 
-	private static final Logger LOGGER = LogManager.getLogger(SemossDate.class);
+	private static final Logger classLogger = LogManager.getLogger(SemossDate.class);
 
 	/*
 	 * So we do not recalculate all these combinations every time
@@ -42,114 +43,236 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 
 	private String strDate;
 	private String pattern;
+	private ZoneId zoneId;
 
-	private transient Date date;
+	private transient ZonedDateTime zdt;
 
 	/*
 	 * This is just a basic wrapper around a date
 	 * so we can store the pattern with the date
 	 */
-
+	
 	/**
-	 * Default date with enforced format
-	 * @param date
+	 * 
+	 * @param d
 	 */
-	public SemossDate(Date date) {
-		this(date, "yyyy-MM-dd");
+	@Deprecated
+	public SemossDate(Date d) {
+		this(Instant.ofEpochMilli(d.getTime()), ZoneId.of(Utility.getApplicationZoneId()));
 	}
 
 	/**
-	 * Default date with format
-	 * @param date
+	 * 
+	 * @param dateVal
+	 * @param pattern
 	 */
-	public SemossDate(Date date, String pattern) {
-		this.date = date;
-		this.pattern = pattern;
-		getFormattedDate();
-	}
-
-	/**
-	 * String date + format to parse
-	 * @param date
-	 */
+	@Deprecated
 	public SemossDate(String dateVal, String pattern) {
-		this.strDate = dateVal;
-		this.pattern = pattern;
-		getDate();
+		this(dateVal, pattern, ZoneId.of(Utility.getApplicationZoneId()));
 	}
-
+	
 	/**
-	 * Date from time in ms
+	 * 
+	 * @param d
+	 * @param pattern
+	 */
+	@Deprecated
+	public SemossDate(Date d, String pattern) {
+		this(Instant.ofEpochMilli(d.getTime()), ZoneId.of(Utility.getApplicationZoneId()), pattern);
+	}
+	
+	/**
+	 * 
+	 * @param instant
+	 */
+	@Deprecated
+	public SemossDate(Instant instant) {
+		this(instant, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+	
+	/**
+	 * 
 	 * @param time
 	 */
+	@Deprecated
 	public SemossDate(Long time) {
-		this.date = new Date(time);
-		Calendar c = Calendar.getInstance();
-		c.setTime(this.date);
-		if(c.get(Calendar.HOUR) > 0
-				|| c.get(Calendar.MINUTE) > 0
-				|| c.get(Calendar.SECOND) > 0 ) {
-			// we have a time stamp... do we have milliseconds?
-			if(c.get(Calendar.MILLISECOND) > 0) {
-				this.pattern = "yyyy-MM-dd HH:mm:ss";
-			} else {
-				this.pattern = "yyyy-MM-dd HH:mm:ss.S";
-			}
-		} else {
-			this.pattern = "yyyy-MM-dd";
-		}
-		getFormattedDate();
+		this(Instant.ofEpochMilli(time), ZoneId.of(Utility.getApplicationZoneId()));
 	}
-
+	
 	/**
-	 * Date from time in ms with enforcement on timestamp
+	 * 
 	 * @param time
 	 * @param timestamp
 	 */
+	@Deprecated
 	public SemossDate(Long time, boolean timestamp) {
-		this.date = new Date(time);
-		Calendar c = Calendar.getInstance();
-		c.setTime(this.date);
-		if(timestamp || (c.get(Calendar.HOUR) > 0
-				|| c.get(Calendar.MINUTE) > 0
-				|| c.get(Calendar.SECOND) > 0 )) {
-			// we have a time stamp... do we have milliseconds?
-			if(c.get(Calendar.MILLISECOND) > 0) {
-				this.pattern = "yyyy-MM-dd HH:mm:ss.S";
-			} else {
-				this.pattern = "yyyy-MM-dd HH:mm:ss";
-			}
-		} else {
-			this.pattern = "yyyy-MM-dd";
-		}
-		getFormattedDate();
+		this(time, timestamp, ZoneId.of(Utility.getApplicationZoneId()));
 	}
-
+	
 	/**
-	 * Date from time in ms with format
+	 * 
 	 * @param time
-	 * @param timestamp
+	 * @param pattern
 	 */
+	@Deprecated
 	public SemossDate(Long time, String pattern) {
-		this.date = new Date(time);
-		this.pattern = pattern;
-		getFormattedDate();
+		this(time, pattern, ZoneId.of(Utility.getApplicationZoneId()));
 	}
 	
 	/**
 	 * Date from localDate
 	 * @param localDate
 	 */
+	@Deprecated
 	public SemossDate(LocalDate localDate) {
-		this(Date.from( localDate.atStartOfDay( TimeZone.getDefault().toZoneId() ).toInstant() ), "yyyy-MM-dd");
+		this(localDate, ZoneId.of(Utility.getApplicationZoneId()));
 	}
 	
 	/**
 	 * Date from localDateTime
 	 * @param localDateTime
 	 */
+	@Deprecated
 	public SemossDate(LocalDateTime localDateTime) {
-		this(Date.from( localDateTime.atZone( TimeZone.getDefault().toZoneId() ).toInstant() ), "yyyy-MM-dd HH:mm:ss");
+		this(localDateTime, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+	
+	/**
+	 * 
+	 * @param d
+	 * @param pattern
+	 * @param zoneId
+	 */
+	public SemossDate(Date d, String pattern, ZoneId zoneId) {
+		this(Instant.ofEpochMilli(d.getTime()), zoneId, pattern);
+	}
+	
+	/**
+	 * String date + format to parse
+	 * @param date
+	 */
+	public SemossDate(String dateVal, String pattern, ZoneId zoneId) {
+		this.strDate = dateVal;
+		this.pattern = pattern;
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		getZonedDateTime();
+	}
+	
+	/**
+	 * 
+	 * @param instant
+	 * @param zoneId
+	 */
+	public SemossDate(Instant instant, ZoneId zoneId) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		this.zdt = ZonedDateTime.ofInstant(instant, zoneId);
+		if(this.zdt.getHour() == 0
+				&& this.zdt.getMinute() == 0
+				&& this.zdt.getSecond() == 0) {
+			this.pattern = "yyyy-MM-dd";
+		} else {
+			this.pattern = "yyyy-MM-dd HH:mm:ss";
+		}
+	}
+	
+	/**
+	 * 
+	 * @param instant
+	 * @param zoneId
+	 * @param pattern
+	 */
+	public SemossDate(Instant instant, ZoneId zoneId, String pattern) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		this.zdt = ZonedDateTime.ofInstant(instant, zoneId);
+		this.pattern = pattern;
+	}
+	
+	/**
+	 * 
+	 * @param time
+	 * @param zoneId
+	 */
+	public SemossDate(Long time, ZoneId zoneId) {
+		this(Instant.ofEpochMilli(time), zoneId);
+	}
+
+	/**
+	 * 
+	 * @param time
+	 * @param timestamp
+	 * @param zoneId
+	 */
+	public SemossDate(Long time, boolean timestamp, ZoneId zoneId) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		this.zdt = Instant.ofEpochMilli(time).atZone(zoneId);
+		if(timestamp) {
+			this.pattern = "yyyy-MM-dd HH:mm:ss";
+		} else {
+			this.pattern = "yyyy-MM-dd";
+		}
+	}
+	
+	/**
+	 * 
+	 * @param time
+	 * @param pattern
+	 * @param zoneId
+	 */
+	public SemossDate(Long time, String pattern, ZoneId zoneId) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		this.zdt = Instant.ofEpochMilli(time).atZone(zoneId);
+		this.pattern = pattern;
+		getFormattedDate();
+	}
+
+	/**
+	 * 
+	 * @param localDate
+	 * @param zoneId
+	 */
+	public SemossDate(LocalDate localDate, ZoneId zoneId) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		this.zdt = localDate.atStartOfDay(zoneId);
+		this.pattern = "yyyy-MM-dd";
+	}
+
+	/**
+	 * 
+	 * @param localDateTime
+	 * @param zoneId
+	 */
+	public SemossDate(LocalDateTime localDateTime, ZoneId zoneId) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		this.zoneId = zoneId;
+		this.zdt = localDateTime.atZone(zoneId);
+		this.pattern = "yyyy-MM-dd HH:mm:ss";
 	}
 
 	/**
@@ -157,9 +280,23 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param localDateTime
 	 */
 	public SemossDate(ZonedDateTime zonedDateTime) {
-		this(Date.from( zonedDateTime.toInstant() ), "yyyy-MM-dd HH:mm:ss");
+		this(zonedDateTime, "yyyy-MM-dd HH:mm:ss");
 	}
 	
+	/**
+	 * Date from localDateTime
+	 * @param localDateTime
+	 */
+	public SemossDate(ZonedDateTime zonedDateTime, String pattern) {
+		this.zdt = zonedDateTime;
+		this.zoneId = this.zdt.getZone();
+		this.pattern = pattern;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
 	public String getPattern() {
 		return this.pattern;
 	}
@@ -170,9 +307,9 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 */
 	public String getFormattedDate() {
 		if(this.strDate == null) {
-			SimpleDateFormat formatter = new SimpleDateFormat(this.pattern);
-//			formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-			this.strDate = formatter.format(this.date);
+			getZonedDateTime();
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern(this.pattern, Locale.ENGLISH);
+			this.strDate = zdt.format(formatter);
 		}
 		return this.strDate;
 	}
@@ -181,20 +318,40 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * Get the formal date object
 	 * @return
 	 */
-	public Date getDate() {
-		if(this.date == null) {
+	public ZonedDateTime getZonedDateTime() {
+		if(this.zdt == null) {
 			if(this.strDate == null || this.strDate.isEmpty()) {
 				// do not even attempt if empty or null
 				return null;
 			}
-			SimpleDateFormat formatter = new SimpleDateFormat(this.pattern);
 			try {
-				this.date = formatter.parse(this.strDate);
-			} catch (ParseException e) {
-				LOGGER.warn("Could not parse the date " + Utility.cleanLogString(this.strDate) + " with the format " + formatter.toPattern());
+				// Step 1: Parse the string date
+				DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+						.appendPattern(this.pattern)
+						.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+		                .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+		                .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+						.toFormatter(Locale.ENGLISH);
+				LocalDateTime localDateTime = LocalDateTime.parse(this.strDate, formatter);
+
+				this.zdt = localDateTime.atZone(this.zoneId);
+			} catch (Exception e) {
+				classLogger.warn("Could not parse the date " + Utility.cleanLogString(this.strDate) + " with the format " + this.pattern);
 			}
 		}
-		return this.date;
+		return this.zdt;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	@Deprecated
+	public Date getDate() {
+		if(getZonedDateTime() == null) {
+			return null;
+		}
+		return Date.from(zdt.toInstant());
 	}
 
 	/**
@@ -202,8 +359,10 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @return
 	 */
 	public LocalDateTime getLocalDateTime() {
-		TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
+		if(getZonedDateTime() == null) {
+			return null;
+		}
+		return zdt.toLocalDateTime();
 	}
 
 	/**
@@ -211,43 +370,36 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @return
 	 */
 	public LocalDate getLocalDate() {
-		TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId()).toLocalDate();
+		if(getZonedDateTime() == null) {
+			return null;
+		}
+		return zdt.toLocalDate();
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
-	public ZonedDateTime getZonedDateTime(TimeZone tz) {
-		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId());
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public ZonedDateTime getZonedDate(TimeZone tz) {
-		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId());
-	}
-	
 	/**
 	 * Get the date in a requested format
 	 * @param requestedPattern
 	 * @return
 	 */
 	public String getFormatted(String requestedPattern) {
-		Date date = getDate();
-		SimpleDateFormat formatter = new SimpleDateFormat(requestedPattern);
-		formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		return formatter.format(date);
+		if(getZonedDateTime() == null) {
+			return null;
+		}
+		
+		DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+				.appendPattern(requestedPattern)
+				.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+                .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+                .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+				.toFormatter(Locale.ENGLISH);
+        return getZonedDateTime().format(formatter);
 	}
 
 	/**
 	 * Determine if this has a time portion
 	 * @return
 	 */
-	public boolean hasTime() {
+	public boolean patternHasTime() {
 		if(this.pattern.contains("H") ||
 				this.pattern.contains("m") ||
 				this.pattern.contains("s")) {
@@ -255,17 +407,27 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		}
 		return false;
 	}
+	
+	/**
+	 * Use patternHasTime() instead of this method
+	 * @return
+	 */
+	@Deprecated
+	public boolean hasTime() {
+		return patternHasTime();
+	}
 
-	public boolean hasTimeNotZero() {
-		Date date = getDate();
-		Calendar c = Calendar.getInstance();
-		c.setTime(date);
-		if( c.get(Calendar.HOUR_OF_DAY) != 0 &&
-				c.get(Calendar.MINUTE) != 0 &&
-				c.get(Calendar.SECOND) != 0) {
-			return true;
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean dateHasTimeNotZero() {
+		if(getZonedDateTime() == null) {
+			return false;
 		}
-		return false;
+		return this.zdt.getHour() != 0
+				&& this.zdt.getMinute() != 0
+				&& this.zdt.getSecond() != 0;
 	}
 
 	@Override
@@ -298,6 +460,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param format
 	 * @return
 	 */
+	@Deprecated
 	public static Long getTimeForDate(String strInput, String format) {
 		SemossDate dateValue = null;
 		if(format != null && !format.isEmpty()) {
@@ -314,11 +477,12 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param strInput
 	 * @return
 	 */
+	@Deprecated
 	public static Long getTimeForDate(String strInput) {
 		SemossDate d = genDateObj(strInput);
 		if(d != null) {
-			if(d.getDate() != null) {
-				return d.getDate().getTime();
+			if(d.getZonedDateTime() != null) {
+				return d.getZonedDateTime().toInstant().toEpochMilli();
 			}
 		}
 
@@ -330,10 +494,11 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param d
 	 * @return
 	 */
+	@Deprecated
 	public static Long getTimeForDate(SemossDate d) {
 		if(d != null) {
-			if(d.getDate() != null) {
-				return d.getDate().getTime();
+			if(d.getZonedDateTime() != null) {
+				return d.getZonedDateTime().toInstant().toEpochMilli();
 			}
 		}
 
@@ -346,6 +511,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param format
 	 * @return
 	 */
+	@Deprecated
 	public static Long getTimeForTimestamp(String strInput, String format) {
 		SemossDate dateValue = null;
 		if(format != null && !format.isEmpty()) {
@@ -362,11 +528,12 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param strInput
 	 * @return
 	 */
+	@Deprecated
 	public static Long getTimeForTimestamp(String strInput) {
 		SemossDate d = genDateObj(strInput);
 		if(d != null) {
-			if(d.getDate() != null) {
-				return d.getDate().getTime();
+			if(d.getZonedDateTime() != null) {
+				return d.getZonedDateTime().toInstant().toEpochMilli();
 			}
 		}
 
@@ -378,10 +545,11 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param d
 	 * @return
 	 */
+	@Deprecated
 	public static Long getTimeForTimestamp(SemossDate d) {
 		if(d != null) {
-			if(d.getDate() != null) {
-				return d.getDate().getTime();
+			if(d.getZonedDateTime() != null) {
+				return d.getZonedDateTime().toInstant().toEpochMilli();
 			}
 		}
 
@@ -456,7 +624,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 			if(m.matches()) {
 				// yay! we found a match
 				semossdate = new SemossDate(input, match[1]);
-				if(semossdate.getDate() != null) {
+				if(semossdate.getZonedDateTime() != null) {
 					break FIND_DATE;
 				}
 				semossdate = null;
@@ -466,15 +634,16 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		return semossdate;
 	}
 
+
 	@Override
 	public int compareTo(SemossDate o) {
-		if(getDate() == null) {
+		if(getZonedDateTime() == null) {
 			return -1;
 		}
-		if(o.getDate() == null) {
+		if(o.getZonedDateTime() == null) {
 			return 1;
 		}
-		return getDate().compareTo(o.getDate());
+		return getZonedDateTime().compareTo(o.getZonedDateTime());
 	}
 	
 	@Override
@@ -484,82 +653,76 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		}
 		
 		SemossDate o = (SemossDate) obj;
-		Date d = o.getDate();
+		ZonedDateTime d = o.getZonedDateTime();
 		
-		if(getDate() == null && d == null) {
+		if(getZonedDateTime() == null && d == null) {
 			return true;
-		} else if(getDate() == null || d == null) {
+		} else if(getZonedDateTime() == null || d == null) {
 			return false;
 		}
 		
-		return getDate().equals(d);
+		return getZonedDateTime().equals(d);
 	}
 	
 	@Override
 	public int hashCode() {
-		return getDate().hashCode();
+		return getZonedDateTime().hashCode();
 	}
 	
-	
-	
-	
-	
-	
-	
-	
+
 	
 	
 	
 	
 //	public static void main(String[] args) throws Exception {
-//	Object d2 = null;
-//	if(d2 instanceof SemossDate) {
-//		System.out.println("no way");
-//	} else {
-//		System.out.println("didn't break");
+//		Object d2 = null;
+//		if (d2 instanceof SemossDate) {
+//			System.out.println("no way");
+//		} else {
+//			System.out.println("didn't break");
+//		}
+//
+//		String d = "11/5/1991";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "1/5/1991";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "01/22/1991";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "13/12/1991";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "5/15/91";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "Jan-12";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		// d = "January 12th, 2015";
+//		// System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "Jan 15, 2019";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "1/1/2018";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "2018/1/1";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "2018/1/1 10:20:11";
+//		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+//
+//		d = "2018-03-12";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+//
+//		d = "2018-03-12 10:20:11";
+//		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+//
+//		d = "2019-23-12 02:12:21";
+//		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
 //	}
-//
-//	String d = "11/5/1991";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "1/5/1991";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "01/22/1991";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "13/12/1991";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "5/15/91";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "Jan-12";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	//		d = "January 12th, 2015";
-//	//		System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "Jan 15, 2019";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "1/1/2018";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "2018/1/1";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "2018/1/1 10:20:11";
-//	System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-//
-//	d = "2018-03-12";
-//	System.out.println(SemossDate.genDateObj(d).testToString());
-//
-//	d = "2018-03-12 10:20:11";
-//	System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-//
-//	d = "2019-23-12 02:12:21";
-//	System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-//}
 
 }

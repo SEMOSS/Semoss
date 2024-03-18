@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -108,12 +107,12 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("share key has already been used");
 		}
 		
-		ZonedDateTime zdtAddedUTC = dateAddedVal.getZonedDateTime(TimeZone.getTimeZone("UTC"));
+		ZonedDateTime zdtAdded = dateAddedVal.getZonedDateTime();
 		// if when it was added + 5 min is BEFORE the current time
 		// then it means this session has been shared for over 5 min
 		// without anyone picking it up
 		// we shouldn't allow it
-		if(zdtAddedUTC.plusMinutes(5).isBefore(zdtCurrentUTC)) {
+		if(zdtAdded.plusMinutes(5).isBefore(zdtCurrentUTC)) {
 			logSessionUsed(shareToken, zdtCurrentUTC, false);
 			throw new IllegalArgumentException("The share key has already expired");
 		}

@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -1038,8 +1037,7 @@ public class Project implements IProject {
 		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
 		boolean outOfDate = false;
 		if(lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
-			outOfDate = lastPublishedDateInSecurity.getZonedDate(TimeZone.getTimeZone("UTC"))
-					.isAfter(this.lastPortalPublishDate.getZonedDate(TimeZone.getTimeZone("UTC")));
+			outOfDate = lastPublishedDateInSecurity.getZonedDateTime().isAfter(this.lastPortalPublishDate.getZonedDateTime());
 		}
 		if(outOfDate || this.lastPortalPublishDate == null) {
 			// just pull to make sure we have the latest in case project was loaded

@@ -179,7 +179,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			} else if(type == SemossDataType.DATE) {
 				if(val instanceof SemossDate) {
 					if(additionalFormatting != null) {
-						cleanRow[i] = new SemossDate(((SemossDate) val).getDate(), additionalFormatting);
+						cleanRow[i] = new SemossDate(((SemossDate) val).getZonedDateTime(), additionalFormatting);
 					} else {
 						cleanRow[i] = val;
 					}
@@ -194,7 +194,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			} else if(type == SemossDataType.TIMESTAMP) {
 				if(val instanceof SemossDate) {
 					if(additionalFormatting != null) {
-						cleanRow[i] = new SemossDate(((SemossDate) val).getDate(), additionalFormatting);
+						cleanRow[i] = new SemossDate(((SemossDate) val).getZonedDateTime(), additionalFormatting);
 					} else {
 						cleanRow[i] = val;
 					}
