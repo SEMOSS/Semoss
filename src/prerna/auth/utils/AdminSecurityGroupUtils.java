@@ -845,10 +845,139 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		return getSimpleQuery(qs);
 	}
 	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @return
+	 */
+	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm) {
+		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
+		String projectPrefix = "PROJECT__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, groupProjectPermission+"PROJECTID", "numProjects"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"TYPE", "==", groupType));
+
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addRelation(groupProjectPermission+"PROJECTID", projectPrefix+"PROJECTID", "inner.join");
+
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
 	
 	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param onlyApps
+	 * @return
+	 */
+	public List<Map<String, Object>> getAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, long limit, long offset, boolean onlyApps) {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
+		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
+		String projectPrefix = "PROJECT__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// project selectors
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTID", "project_id"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		// dont forget reactors/portal information
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHED", "project_portal_published_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDUSER", "project_published_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDTYPE", "project_published_user_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILED", "project_reactors_compiled_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		// back to the others
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, projectPrefix+"PROJECTNAME", "low_project_name"));
+		
+		if(hasSearchTerm) {
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		
+		// filter out projects that are already added
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			subQs.addSelector(new QueryColumnSelector(groupProjectPermission+"PROJECTID")); // this is the group id
+			// filter for the group being specified
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"ID", "==", groupId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"TYPE", "==", groupType));
+			// filter out from engine list
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix+"PROJECTID", "!=", subQs));
+		}
+		
+		if(onlyApps) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+		}
+		
+		// add the sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
 	
-	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @return
+	 */
+	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm) {
+		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
+		String projectPrefix = "PROJECT__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, projectPrefix+"PROJECTID", "numProjects"));
+
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		
+		// filter out projects that are already added
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			subQs.addSelector(new QueryColumnSelector(groupProjectPermission+"PROJECTID")); // this is the group id
+			// filter for the group being specified
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"ID", "==", groupId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission+"TYPE", "==", groupType));
+			// filter out from engine list
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix+"PROJECTID", "!=", subQs));
+		}
+		
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
 	
 	
 	
@@ -1069,6 +1198,128 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		return getSimpleQuery(qs);
 	}
 	
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @return
+	 */
+	public Long getNumEnginesForGroup(String groupId, String groupType, String searchTerm) {
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String enginePrefix = "ENGINE__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, groupEnginePermission+"ENGINEID", "numEngines"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"TYPE", "==", groupType));
+
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addRelation(groupEnginePermission+"ENGINEID", enginePrefix+"ENGINEID", "inner.join");
+
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINEID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINENAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+	
+	
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param onlyApps
+	 * @return
+	 */
+	public List<Map<String, Object>> getAvailableEnginesForGroup(String groupId, String groupType, String searchTerm, long limit, long offset) {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String enginePrefix = "ENGINE__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// engine selectors
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"COST", "engine_cost"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"DISCOVERABLE", "engine_discoverable"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"GLOBAL", "engine_global"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"CREATEDBY", "engine_created_by"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"CREATEDBYTYPE", "engine_created_by_type"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix+"DATECREATED", "engine_date_created"));
+		// back to the others
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, enginePrefix+"ENGINENAME", "low_engine_name"));
+		
+		if(hasSearchTerm) {
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINEID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINENAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		
+		// filter out engines that are already added
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			subQs.addSelector(new QueryColumnSelector(groupEnginePermission+"ENGINEID")); // this is the group id
+			// filter for the group being specified
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"ID", "==", groupId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"TYPE", "==", groupType));
+			// filter out from engine list
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix+"ENGINEID", "!=", subQs));
+		}
+		
+		// add the sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
+		
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
+	
+	
+	/**
+	 * 
+	 * @param groupId
+	 * @param searchTerm
+	 * @return
+	 */
+	public Long getNumAvailableEnginesForGroup(String groupId, String groupType, String searchTerm) {
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String enginePrefix = "ENGINE__";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, enginePrefix+"ENGINEID", "numEngines"));
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINEID", searchTerm));
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix+"ENGINENAME", searchTerm));
+			qs.addExplicitFilter(searchFilter);
+		}
+		
+		// filter out engines that are already added
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			subQs.addSelector(new QueryColumnSelector(groupEnginePermission+"ENGINEID")); // this is the group id
+			// filter for the group being specified
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"ID", "==", groupId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission+"TYPE", "==", groupType));
+			// filter out from engine list
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix+"ENGINEID", "!=", subQs));
+		}
+		
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
 	
 	
 	
