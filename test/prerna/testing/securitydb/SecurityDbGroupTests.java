@@ -432,9 +432,9 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		// test count query
 		{
 			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getNumProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null) == 1);
+					.getNumProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, null, false) == 1);
 			assertTrue(AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-					.getNumProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH) == 0);
+					.getNumProjectsForGroup(TEST_GROUP, TEST_GROUP_TYPE, BAD_SEARCH, false) == 0);
 		}
 	}
 	
