@@ -44,6 +44,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.reactor.qs.SubQueryExpression;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.CleanerThread;
 import prerna.util.Constants;
@@ -587,7 +588,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Object nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
 		
 		checkSocketStatus();
 				
@@ -595,6 +596,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
+		
+		insight.getVarStore().put(LATEST_VECTOR_SEARCH_STATEMENT, new NounMetadata(question, PixelDataType.CONST_STRING));
 		
 		StringBuilder callMaker = new StringBuilder();
 		
@@ -703,7 +706,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
  		callMaker.append(")");
  		classLogger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString(), insight);
-		return output;
+		
+		return (List<Map<String, Object>>) output;
 	}
 	
 	@Override
