@@ -119,7 +119,7 @@ public class PySingleton {
 
 			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
 			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
-				pyClient = "prerna.tcp.client.Client";
+				pyClient = prerna.tcp.client.SocketClient.class.getName(); // "prerna.tcp.client.Client";
 			}
 			try {
 					SocketClient nc = (SocketClient)Class.forName(pyClient).newInstance();
