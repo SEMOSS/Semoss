@@ -25,6 +25,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
 	
+	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String INSIGHT = "insight";
 	

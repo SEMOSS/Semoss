@@ -593,7 +593,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public Object nearestNeighbor(String question, Number limit, Map<String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighbor(String question, Number limit, Map<String, Object> parameters) {
 		if (!this.modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -641,7 +641,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);		
 		qs.setQuery(searchQueryBuilder.toString());
 		
-		return QueryExecutionUtility.flushRsToMap(this, qs);
+		List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
+		
+		return vectorSearchResults;
 	}
 
 	@Override
@@ -696,6 +698,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	@Override
 	public void delete() throws IOException {
+		//TODO remove embeddings when deleted
+		
 		classLogger.debug("Delete vector engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		try {
 			this.close();
