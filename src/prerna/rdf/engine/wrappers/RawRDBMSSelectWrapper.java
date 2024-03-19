@@ -181,7 +181,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						if(dVal == null) {
 							val = null;
 						} else {
-							val = new SemossDate(dVal.toInstant(), this.databaseZoneId, "yyyy-MM-dd HH:mm:ss");
+							val = new SemossDate(dVal, this.databaseZoneId, "yyyy-MM-dd HH:mm:ss");
 						}
 					} catch(Exception e) {
 						// some rdbms do not actually support dates
