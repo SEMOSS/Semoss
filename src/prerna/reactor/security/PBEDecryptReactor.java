@@ -87,7 +87,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 	 */
 	private static String getPassword() {
 		if(PBEDecryptReactor.password != null) {
-			logger.debug("Decrypting with password >> " + Utility.cleanLogString(PBEDecryptReactor.password));
+//			logger.debug("Decrypting with password >> " + Utility.cleanLogString(PBEDecryptReactor.password));
 			return PBEDecryptReactor.password;
 		}
 		
@@ -99,7 +99,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 			PBEDecryptReactor.password = DIHelper.getInstance().getProperty(Constants.PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD);
 		}
 		
-		logger.debug("Decrypting with password >> " + Utility.cleanLogString(PBEDecryptReactor.password));
+//		logger.debug("Decrypting with password >> " + Utility.cleanLogString(PBEDecryptReactor.password));
 		return PBEDecryptReactor.password;
 	}
 	
