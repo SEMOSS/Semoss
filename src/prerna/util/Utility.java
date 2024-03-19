@@ -5291,7 +5291,7 @@ public class Utility {
 
 			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
 			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
-				pyWorker = "prerna.tcp.SocketServer";
+				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
 			}
 			String[] commands = null;
 			if (port == null) {
@@ -5434,7 +5434,7 @@ public class Utility {
 
 			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
 			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
-				pyWorker = "prerna.tcp.SocketServer";
+				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
 			}
 			String[] commands = null;
 			if (port == null) {
