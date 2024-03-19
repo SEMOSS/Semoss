@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -196,6 +197,24 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		}
 		this.zoneId = zoneId;
 		this.zdt = ZonedDateTime.ofInstant(instant, zoneId);
+		this.pattern = pattern;
+	}
+	
+	/**
+	 * 
+	 * @param dbTimestamp
+	 * @param zoneId
+	 * @param pattern
+	 */
+	public SemossDate(java.sql.Timestamp dbTimestamp, ZoneId zoneId, String pattern) {
+		if(zoneId == null) {
+			classLogger.debug("Semoss Date being created without having a valid zone id");
+			zoneId = ZoneId.of(Utility.getApplicationZoneId());
+		}
+		// assume the timestamp is at the offset of this zoneId
+		ZoneOffset zoneOffset = ZonedDateTime.now(zoneId).getOffset();
+        Instant instant = dbTimestamp.toLocalDateTime().toInstant(zoneOffset);
+        this.zdt = ZonedDateTime.ofInstant(instant, zoneId);
 		this.pattern = pattern;
 	}
 	
