@@ -245,7 +245,7 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public Object nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
 		StringBuilder callMaker = new StringBuilder();
 		
 		checkSocketStatus();
@@ -275,7 +275,7 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
  		callMaker.append(")");
  		classLogger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString(), insight);
-		return output;
+		return (List<Map<String, Object>>) output;
 	}
 	
 	private void checkSocketStatus() {

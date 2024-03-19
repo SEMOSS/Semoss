@@ -16,14 +16,41 @@ public interface IVectorDatabaseEngine extends IEngine {
 	*/
 	VectorDatabaseTypeEnum getVectorDatabaseType();
 	
-	// i vector db
-	// open close nearest neighbor, add document - remove document. question
 	
+	/**
+	 * This method is used to add documents to a vector database. The engine itself will determine how the the documents are
+	 * processed and the embeddings are created.
+	 * 
+	 * @param filePaths		- List of absolute file paths
+	 * @param parameters	- Additional parameters the engine might need to process the documents e.g. an insight object
+	 */
 	void addDocument(List<String> filePaths, Map <String, Object> parameters);
 	
+	/**
+	 * Remove document(s) from a vector store.
+	 * 
+	 * @param fileNames		- List of file names to be removed from the vector database
+	 * @param parameters	- Additional parameters that might be needed e.g. if the vector database has more than one collection or index class.
+	 */
 	void removeDocument(List<String> fileNames, Map <String, Object> parameters);
 	
-	Object nearestNeighbor(String searchStatement, Number limit, Map <String, Object> parameters);
+	/**
+	 * Perform a nearest neighbor or semantic search against a vector database. The searchStatement will be 
+	 * converted to a vector using the same embedding model utilized to create the document(s) embeddings.
+	 * 
+	 * @param searchStatement
+	 * @param limit
+	 * @param parameters
+	 * @return
+	 */
+	List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map <String, Object> parameters);
 	
+	/**
+	 * List the set of documents a vector database is made from. At a minimum the file names should be returned but 
+	 * the file size and last modified date are also options.
+	 * 
+	 * @param parameters
+	 * @return
+	 */
 	List<Map<String, Object>> listDocuments(Map<String, Object> parameters);
 }
