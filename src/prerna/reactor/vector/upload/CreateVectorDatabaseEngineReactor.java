@@ -122,6 +122,29 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 				String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
 				vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
 			}
+		} else if(vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH) {
+			if (!vectorDbDetails.containsKey(Constants.INDEX_CLASSES)) {
+				vectorDbDetails.put(Constants.INDEX_CLASSES, "default");
+			}
+			
+			if (!vectorDbDetails.containsKey(Constants.EMBEDDER_ENGINE_NAME)) {
+				String embedderEngineId = vectorDbDetails.getOrDefault(Constants.EMBEDDER_ENGINE_ID, null);
+				if (embedderEngineId == null) {
+					throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for Opensearch database");
+				}
+				
+				IModelEngine embeddingModel = Utility.getModel(embedderEngineId);
+				if(embeddingModel == null) {
+					throw new IllegalArgumentException("EMBEDDER_ENGINE_ID " + embeddingModel + " could not be found");
+				}
+				String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
+				vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
+			}
+			if(vectorDbDetails.get(Constants.USERNAME) == null) { throw new IllegalArgumentException("Username is not provided."); }
+			if(vectorDbDetails.get(Constants.PASSWORD) == null) { throw new IllegalArgumentException("Password is not provided."); }
+			if(vectorDbDetails.get(Constants.HOSTS) == null) { throw new IllegalArgumentException("HOSTS is not provided."); }
+			if(vectorDbDetails.get(Constants.INDEX_NAME) == null) { throw new IllegalArgumentException("INDEX_NAME is not provided."); }
+			
 		}
 				
 		String vectorDbId = UUID.randomUUID().toString();

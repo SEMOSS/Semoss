@@ -11,3 +11,6 @@ def __getattr__(name: str) -> Any:
     elif name == "split_text":
         from .utils.text_splitting import split_text
         return split_text
+    elif name == "OpenSearchConnector":
+        from .openSearch.openSearchConnector import OpenSearchConnection
+        return OpenSearchConnection
