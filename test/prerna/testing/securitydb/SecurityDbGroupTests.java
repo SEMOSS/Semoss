@@ -137,7 +137,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).addGroup(defaultTestAdminUser, TEST_GROUP,
 							TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION, TEST_GROUP_IS_CUSTOM);
 					},
-				"Group already exists"
+				"Group " + TEST_GROUP + " with type " + TEST_GROUP_TYPE + " already exists"
 				);
 	}
 	
