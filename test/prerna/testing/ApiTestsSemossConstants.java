@@ -29,5 +29,21 @@ public class ApiTestsSemossConstants {
 	// default user info
 	public static final String USER_NAME = "user1";	
 	public static final String USER_EMAIL = "user1@example.com";	
+	
+	
+	// constants for email api
+	public static final String EMAIL_BCC = "Bcc";	
+	public static final String EMAIL_TO = "To";	
+	public static final String EMAIL_FROM = "From";	
+	public static final String EMAIL_ADDRESS = "Address";	
+	public static final String EMAIL_SUBJECT = "Subject";	
+	public static final String EMAIL_ATTACHMENTS = "Subject";	
+	public static final String EMAIL_MESSAGE_ID = "MessageID";	
+	public static final String EMAIL_ID = "ID";	
+	public static final String EMAIL_HTML = "HTML";	
+	public static final String EMAIL_TEXT = "Text";	
+	public static final String EMAIL_DATE = "Date";	
+	public static final String EMAIL_READ = "Read";	//boolean
+
 
 }
