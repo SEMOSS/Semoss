@@ -60,7 +60,7 @@ class EmbeddingsModelTests(unittest.TestCase):
         embedder = OpenAiEmbedder(
             model_name='text-embedding-ada-002',
             #api_key = openai_key
-            api_key = '***REMOVED***'
+            api_key = openai_key
         )
 
         # make sure the ask expected
@@ -80,7 +80,7 @@ class EmbeddingsModelTests(unittest.TestCase):
         # declare the model
         embedder =AzureOpenAiEmbedder(
             model_name='embedding-model',
-            api_key = "***REMOVED***",
+            api_key = api_key,
             endpoint = "***REMOVED***",
             api_version = "2023-05-15"
         )
@@ -101,7 +101,7 @@ class EmbeddingsModelTests(unittest.TestCase):
         # declare the model
         embedder = VertexAiEmbedder(
             model_name = 'textembedding-gecko@001',
-            service_account_key_file = 'C:\\Users\\ttrankle\\Documents\\Semoss\\CFG.AI\\us-gcp-ame-adv-a66-npd-1-sa 2.json',
+            service_account_key_file = vertex_sercive_key_path,
             region='us-central1'
         ) 
 

@@ -71,10 +71,14 @@ class AskModelTests(unittest.TestCase):
         
         
     def test_openai_chat_completions(self):
+        
+        import os
+        openai_key = os.environ.get("OPENAI_API_KEY")
+        
         # declare the model
         model = OpenAiClient(
             model_name="gpt-3.5-turbo",
-            api_key="***REMOVED***",
+            api_key=openai_key,
             max_tokens=4097,
             chat_type='chat-completion'
         )
@@ -89,10 +93,14 @@ class AskModelTests(unittest.TestCase):
         self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
         
     def test_openai_completions(self):
+        
+        import os
+        openai_key = os.environ.get("OPENAI_API_KEY")
+        
         # declare the model
         model = OpenAiClient(
             model_name="gpt-3.5-turbo-instruct",
-            api_key="***REMOVED***",
+            api_key=openai_key,
             max_tokens=4097,
             chat_type='completions'
         )
@@ -107,10 +115,13 @@ class AskModelTests(unittest.TestCase):
         self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
         
     def test_azure_chat_completions(self):
+        import os
+        api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+        
         # declare the model
         model = AzureOpenAiClient(
             model_name="-gpt-35-turbo",
-            api_key="***REMOVED***",
+            api_key=api_key,
             endpoint="***REMOVED***",
             max_tokens=4097,
         )
@@ -144,11 +155,15 @@ class AskModelTests(unittest.TestCase):
     #     self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
     
     def test_aws_bedrock_claude(self):
+        import os
+        secret_key = os.environ.get("AWS_SECRET_KEY")
+        access_key = os.environ.get("AWS_ACESS_KEY")
+        
         # declare the model
         model = BedrockClient(
             modelId="anthropic.claude-instant-v1",
-            secret_key="***REMOVED***",
-            access_key="***REMOVED***",
+            secret_key=secret_key,
+            access_key=access_key,
             region="us-east-1",
         )
         
@@ -162,11 +177,14 @@ class AskModelTests(unittest.TestCase):
         self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
 
     def test_vertex_text_bison(self):
+        import os
+        vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
+        
         # declare the model
         model = VertexClient(
             model_name="text-bison",
             chat_type="text",
-            service_account_key_file="C:\\Users\\ttrankle\\Documents\\Semoss\\CFG.AI\\us-gcp-ame-adv-a66-npd-1-sa 2.json",
+            service_account_key_file=vertex_sercive_key_path,
             region="us-central1",
         )
         
@@ -181,11 +199,14 @@ class AskModelTests(unittest.TestCase):
         
           
     def test_vertex_chat_bison(self):
+        import os
+        vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
+        
         # declare the model
         model = VertexClient(
             model_name="chat-bison",
             chat_type="chat",
-            service_account_key_file="C:\\Users\\ttrankle\\Documents\\Semoss\\CFG.AI\\us-gcp-ame-adv-a66-npd-1-sa 2.json",
+            service_account_key_file=vertex_sercive_key_path,
             region="us-central1",
         )
         
@@ -199,11 +220,14 @@ class AskModelTests(unittest.TestCase):
         self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
         
     def test_vertex_gemini(self):
+        import os
+        vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
+        
         # declare the model
         model = VertexClient(
             model_name="gemini-pro",
             chat_type="generative",
-            service_account_key_file="C:\\Users\\ttrankle\\Documents\\Semoss\\CFG.AI\\us-gcp-ame-adv-a66-npd-1-sa 2.json",
+            service_account_key_file=vertex_sercive_key_path,
             region="us-central1",
         )
         
@@ -217,11 +241,14 @@ class AskModelTests(unittest.TestCase):
         self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
         
     def test_vertex_code_bison(self):
+        import os
+        vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
+        
         # declare the model
         model = VertexClient(
             model_name="code-bison",
             chat_type="code",
-            service_account_key_file="C:\\Users\\ttrankle\\Documents\\Semoss\\CFG.AI\\us-gcp-ame-adv-a66-npd-1-sa 2.json",
+            service_account_key_file=vertex_sercive_key_path,
             region="us-central1",
         )
         
@@ -235,11 +262,14 @@ class AskModelTests(unittest.TestCase):
         self.assertCountEqual(embeddings_response, ['response', 'numberOfTokensInPrompt', 'numberOfTokensInResponse'])
         
     def test_vertex_codechat_bison(self):
+        import os
+        vertex_sercive_key_path = os.environ.get("GOOGLE_SERVIVE_ACCOUNT_FILE_PATH")
+        
         # declare the model
         model = VertexClient(
             model_name="codechat-bison",
             chat_type="codechat",
-            service_account_key_file="C:\\Users\\ttrankle\\Documents\\Semoss\\CFG.AI\\us-gcp-ame-adv-a66-npd-1-sa 2.json",
+            service_account_key_file=vertex_sercive_key_path,
             region="us-central1",
         )
         
