@@ -1,6 +1,7 @@
 package prerna.reactor.function.upload;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,12 +31,13 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.upload.UploadUtilities;
 
-public class CreateRestFunctionEngineReactor extends AbstractReactor {
+public class CreateFunctionEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateRestFunctionEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateFunctionEngineReactor.class);
 
-	public CreateRestFunctionEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey()};
+	public CreateFunctionEngineReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(), ReactorKeysEnum.FILE_NAME.getKey()};
+		this.keyRequired = new int [] {1, 1, 0};
 	}
 	
 	@Override
@@ -72,7 +74,7 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 		Map<String, String> functionDetails = getFunctionDetails();
 		String functionTypeStr = functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		if(functionTypeStr == null || (functionTypeStr=functionTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the storage type");
+			throw new IllegalArgumentException("Must define the function type");
 		}
 		FunctionTypeEnum functionType = null;
 		try {
@@ -90,6 +92,10 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
 			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
+			
+			if (functionType == FunctionTypeEnum.LOCAL_PYTHON) {
+				moveFilesToEngineFolder(specificEngineFolder);
+			}
 			
 			String functionClass = functionType.getFunctionClass();
 			function = (IFunctionEngine) Class.forName(functionClass).newInstance();
@@ -193,5 +199,20 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 		
 		throw new NullPointerException("Must define the properties for the new function engine");
 	}
-
+	
+	private void moveFilesToEngineFolder(File specificEngineFolder) throws IOException {
+		String insightFolder = this.insight.getInsightFolder();
+	
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FILE_NAME.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				File file = new File(insightFolder + File.separator + grs.get(i).toString());
+				if (file.exists()) {
+					FileUtils.moveFileToDirectory(file, specificEngineFolder, false);
+				}
+			}
+		}
+	}
 }
