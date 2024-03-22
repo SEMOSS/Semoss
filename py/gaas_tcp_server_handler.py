@@ -3,26 +3,33 @@ from typing import (
     List,
     Any,
     Optional,
+    Union,
     Tuple
 )
 
-import socket
 import sys
 import socketserver
-import logging
-import smssutil
+
 import traceback as tb
 import threading
-from clean import PyFrame
-import gaas_server_proxy as gsp
+
 
 import gc as gc
 import sys
 import re
 
+# IMPORTANT
+# Your python support extention might tell you that these packages arent being used
+# That is incorrect. They get by some of the base code that exists.
+# An example is importing a py frame where it needs PyFrame
+import socket
 import string
 import random
 import datetime
+from clean import PyFrame
+import gaas_server_proxy as gsp
+import logging
+import smssutil
 
 import jsonpickle as jp
 import json as json
@@ -34,17 +41,21 @@ import contextlib
 import semoss_console as console
 from threading import current_thread
 
-def custom_nan_handler(nan_value):
+def custom_nan_handler(nan_value: Any) -> Union[Any, str]:
+    '''Custom handler for NaN values'''
     if math.isnan(nan_value):
         return "NaN"
+    
     return nan_value
 
 
-def custom_tostr_handler(value):
+def custom_tostr_handler(value:Any) -> str:
+    '''Custom handler to convert any value to string'''
     return str(value)
 
 
-def custom_pandas_handler(dataframe):
+def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
+    '''Custom handler to stringify values in pandas DataFrame'''
     if isinstance(dataframe, pd.DataFrame):
         data_dict = dataframe.to_dict(orient="split")
         for col_name, col_data in data_dict["data"].items():
@@ -52,34 +63,63 @@ def custom_pandas_handler(dataframe):
                 str(value) if pd.notna(value) else "NaN" for value in col_data
             ]
         return data_dict
+    
     return dataframe
 
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
+    '''
+    This class is the request handler for the Native Python Server.
+    
+    This class is instantiated for each request to be handled.  The
+    constructor sets the instance variables request, client_address
+    and server, and then calls the handle() method.  To implement a
+    specific service, all you need to do is to derive a class which
+    defines a handle() method.
+
+    The handle() method can find the request as self.request, the
+    client address as self.client_address, and the server (in case it
+    needs access to per-server information) as self.server.  Since a
+    separate instance is created for each request, the handle() method
+    can define other arbitrary instance variables.
+    '''
+    
+    # Class attribute to hold a singleton instance
     da_server = None
 
     def setup(self):
-        self.message = None
-        self.residue = None
-        self.msg_index = 0
+        '''
+        This method is responsible for initializing the server before it starts to serve client requests.
+        
+        The method is called automatically when the Server is instantiated, 
+        typically during the creation of the socketserver.ThreadingTCPServer instance, before the server starts listening for client connections.
+        '''
         self.stop = False
+        
+        # TODO: These are currently not in use. Check with PK whether or not the are needed
+        self.message = None
         self.size = 0
+        self.msg_index = 0
+        self.residue = None
+        
         self.monitor = threading.Condition()
-        TCPServerHandler.da_server = self
-        # TCPServerHandler.myvar = self
 
-        # cache where the link between payload id and monitor is kept
-        self.monitors = {}
+        TCPServerHandler.da_server = self
+
+        self.monitors = {}                      # cache where the link between payload id and monitor is kept
+        
         # add the storage
         # LLM
         # DB Proxy here
         self.prefix = self.server.prefix
         self.insight_folder = self.server.insight_folder
         self.log_file = None
+        
         # need to set timeout here also
         if self.server.timeout_val > 0:
             self.request.settimeout(self.server.timeout_val)
-        else:  # this may not be needed but
+        else:
+            # this may not be needed but
             self.request.settimeout(None)
 
         if self.insight_folder is not None:
@@ -87,6 +127,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.log_file = open(
                 f"{self.insight_folder}/log.txt", "a", encoding="utf-8"
             )
+            
         print("Ready to start server")
         print(f"Server is {self.server}")
         self.orig_mount_points = {}
@@ -94,6 +135,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.cmd_monitor = threading.Condition()
 
         self.try_jp = False
+        
         # experimental
         if self.try_jp:
             jp.handlers.register(float, custom_nan_handler)
@@ -127,6 +169,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
                 epoc_size = 20
                 epoc = b""
+                
                 # Loop until we receive the expected epoc_size bytes
                 while len(epoc) < epoc_size:
                     chunk = self.request.recv(epoc_size - len(epoc))
@@ -347,7 +390,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # send it out
         self.request.sendall(ret_array)
 
-    # TODO: is this method actually used?
     def send_request(self, payload):
         # Do not write any prints here
         # since the console is captured it will go into recursion
@@ -376,6 +418,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.log_file.write(f"REQUEST === {payload}")
             self.log_file.flush()
             self.log_file.write("\n")
+            
         # send it out
         self.request.sendall(ret_array)
 
@@ -425,7 +468,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     try:
                         output = exec(command, globals())
                     except Exception as e:
-                        print(e)
+                        is_exception = True
                         output = str(e)
                 print(f"executing file.. {command.encode('utf-8')}")
             # all new
