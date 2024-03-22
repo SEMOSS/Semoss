@@ -183,7 +183,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		modelPropsLoaded = true;
 	}
 
-	public void startServer(int port) {
+	public synchronized void startServer(int port) {
+		
+		// already created by another thread
+		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
+		
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
