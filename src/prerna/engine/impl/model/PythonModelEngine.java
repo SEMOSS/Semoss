@@ -85,7 +85,11 @@ public abstract class PythonModelEngine extends AbstractModelEngine {
 	 * 
 	 * @param port		The port number to use when creating the server/client connection.
 	 */
-	protected void startServer(int port) {
+	protected synchronized void startServer(int port) {
+		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
+		
 		// spin the server
 		// start the client
 		// get the startup command and parameters - at some point we need a better way than the command
@@ -161,7 +165,7 @@ public abstract class PythonModelEngine extends AbstractModelEngine {
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		pyt.runEmptyPy(commands);
-		
+
 		// run a prefix command
 		setPrefix();
 	}

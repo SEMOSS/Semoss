@@ -146,7 +146,12 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		modelPropsLoaded = true;
 	}
 
-	private void startServer(int port) {
+	private synchronized void startServer(int port) {
+		// already created by another thread
+		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
+				
 		if(!modelPropsLoaded) {
 			verifyModelProps();
 		}
