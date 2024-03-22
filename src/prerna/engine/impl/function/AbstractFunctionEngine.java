@@ -30,7 +30,7 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	private String engineName;
 	
 	private String smssFilePath;
-	private Properties smssProp;
+	protected Properties smssProp;
 	
 	protected String functionName;
 	protected String functionDescription;
@@ -46,6 +46,8 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
+		
+		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 
 		if(!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
 			throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
