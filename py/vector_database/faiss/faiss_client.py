@@ -51,7 +51,7 @@ class FAISSSearcher():
         
         # disable reranking by default
         # do this while checking it in
-        self.rerank = True
+        self.rerank = False
         self.reranker_model = None
         self.reranker_gaas_model = None
         self.reranker_tok = None
