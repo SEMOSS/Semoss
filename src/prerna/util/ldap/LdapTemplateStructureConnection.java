@@ -466,6 +466,37 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			throw new IllegalArgumentException(message);
 		}
 	}
+	
+	@Override
+	public List<AccessToken> findUsers(String searchContextName, String searchFilter, int searchContextScope) throws Exception {
+		if(this.customPwdChangeLdapContext == null) {
+			throw new IllegalArgumentException("Invalid configuration for finding users - please contact your administrator");
+		}
+		List<AccessToken> foundUsers = new ArrayList<>();
+		
+		if(searchContextScope < 0) {
+			searchContextScope = this.searchContextScope;
+		}
+
+		SearchControls controls = new SearchControls();
+		controls.setSearchScope(searchContextScope);
+		controls.setReturningAttributes(requestAttributes);
+
+		NamingEnumeration<SearchResult> findUser = this.customPwdChangeLdapContext.search(searchContextName, searchFilter, controls);
+
+		SearchResult result = null;
+		while(findUser.hasMoreElements()) {
+			result = findUser.next();
+			String userDN = result.getNameInNamespace();
+
+			Attributes attr = result.getAttributes();
+			AccessToken accessToken = this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, 
+					this.attributeUserNameKey, this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays, true);
+			foundUsers.add(accessToken);
+		}
+		
+		return foundUsers;
+	}
 
 	@Override
 	public void close() {

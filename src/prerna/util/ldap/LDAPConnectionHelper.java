@@ -107,7 +107,8 @@ public class LDAPConnectionHelper {
 			String attributeEmailKey, 
 			String attributeUserNameKey,
 			String attributeLastPwdChangeKey,
-			int requirePwdChangeAfterDays
+			int requirePwdChangeAfterDays,
+			boolean ignoreLastPwdChange
 			) throws Exception {
 		// for debugging
 //		printAllAttributes(attributes);
@@ -121,7 +122,10 @@ public class LDAPConnectionHelper {
 			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
 		}
 
-		ZonedDateTime lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
+		ZonedDateTime lastPwdChange = null;
+		if(!ignoreLastPwdChange) {
+			lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
+		}
 		
 		AccessToken token = new AccessToken();
 		token.setProvider(AuthProvider.ACTIVE_DIRECTORY);

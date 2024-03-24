@@ -3,6 +3,7 @@ package prerna.util.ldap;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
@@ -104,6 +105,30 @@ public interface ILdapAuthenticator extends Closeable {
 			String attributeUserNameKey,
 			String attributeLastPwdChangeKey,
 			int requirePwdChangeAfterDays) throws Exception;
+	
+	/**
+	 * Produce the access token from the user attributes
+	 * @param attributes
+	 * @param userDN
+	 * @param attributeIdKey
+	 * @param attributeNameKey
+	 * @param attributeEmailKey
+	 * @param attributeUserNameKey
+	 * @param attributeLastPwdChangeKey
+	 * @param requirePwdChangeAfterDays
+	 * @param ignoreLastPwdChange
+	 * @return
+	 * @throws Exception
+	 */
+	AccessToken generateAccessToken(Attributes attributes, 
+			String userDN,
+			String attributeIdKey, 
+			String attributeNameKey, 
+			String attributeEmailKey, 
+			String attributeUserNameKey,
+			String attributeLastPwdChangeKey,
+			int requirePwdChangeAfterDays,
+			boolean ignoreLastPwdChange) throws Exception;
 
 	/**
 	 * 
@@ -131,4 +156,14 @@ public interface ILdapAuthenticator extends Closeable {
 	 * @throws NamingException
 	 */
 	ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException;
+	
+	/**
+	 * 
+	 * @param searchContextName
+	 * @param searchFilter
+	 * @param searchContextScope
+	 * @return
+	 * @throws NamingException 
+	 */
+	List<AccessToken> findUsers(String searchContextName, String searchFilter, int searchContextScope) throws Exception;
 }
