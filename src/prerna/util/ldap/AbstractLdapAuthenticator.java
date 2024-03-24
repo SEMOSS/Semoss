@@ -32,7 +32,23 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 			) throws Exception {
 		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey, 
 				attributeEmailKey, attributeUserNameKey, 
-				attributeLastPwdChangeKey, requirePwdChangeAfterDays);
+				attributeLastPwdChangeKey, requirePwdChangeAfterDays, false);
+	}
+	
+	@Override
+	public AccessToken generateAccessToken(Attributes attributes, 
+			String userDN,
+			String attributeIdKey,
+			String attributeNameKey,
+			String attributeEmailKey, 
+			String attributeUserNameKey,
+			String attributeLastPwdChangeKey,
+			int requirePwdChangeAfterDays,
+			boolean ignoreLastPwdChange
+			) throws Exception {
+		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey, 
+				attributeEmailKey, attributeUserNameKey, 
+				attributeLastPwdChangeKey, requirePwdChangeAfterDays, ignoreLastPwdChange);
 	}
 	
 	@Override 
