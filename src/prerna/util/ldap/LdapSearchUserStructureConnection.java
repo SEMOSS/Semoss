@@ -378,4 +378,32 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		}
 	}
 
+	@Override
+	public List<AccessToken> findUsers(String searchContextName, String searchFilter, int searchContextScope) throws Exception {
+		List<AccessToken> foundUsers = new ArrayList<>();
+		
+		if(searchContextScope < 0) {
+			searchContextScope = this.searchContextScope;
+		}
+
+		SearchControls controls = new SearchControls();
+		controls.setSearchScope(searchContextScope);
+		controls.setReturningAttributes(requestAttributes);
+
+		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter, controls);
+
+		SearchResult result = null;
+		while(findUser.hasMoreElements()) {
+			result = findUser.next();
+			String userDN = result.getNameInNamespace();
+
+			Attributes attr = result.getAttributes();
+			AccessToken accessToken = this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, 
+					this.attributeUserNameKey, this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays, true);
+			foundUsers.add(accessToken);
+		}
+		
+		return foundUsers;
+	}
+
 }
