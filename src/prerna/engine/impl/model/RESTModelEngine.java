@@ -70,7 +70,23 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 		this.scheduler.shutdown();
 	}
 	
-	protected IModelEngineResponseHandler postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass, boolean isStream, Class<? extends IModelEngineResponseHandler> responseType, String insightId) {
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param body
+	 * @param contentType
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @param isStream
+	 * @param responseType
+	 * @param insightId
+	 * @return
+	 */
+	protected IModelEngineResponseHandler postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, 
+			String keyStore, String keyStorePass, String keyPass, 
+			boolean isStream, Class<? extends IModelEngineResponseHandler> responseType, String insightId) {
 		CloseableHttpClient httpClient = null;
 	    CloseableHttpResponse response = null;
 	    try {
@@ -92,8 +108,7 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 	            if (!isStream) {
 	                // Handle regular response
 	                String responseData = entity != null ? EntityUtils.toString(entity) : null;
-	                IModelEngineResponseHandler responseObject = new Gson().fromJson(responseData, responseType);
-	                return responseObject;
+	                return handleDeserialization(responseData, responseType);
 	            } else {
 	                // Handle streaming response
 	                if (entity != null) {
@@ -149,5 +164,18 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 	        }
 	    }
 	    return null; // In case of unexpected flow
+	}
+	
+	/**
+	 * This method is intended to be overridden in an implementing class
+	 * if the responseData requires more unique deserialization than gson.fromJson() can provide
+	 * 
+	 * @param responseData
+	 * @param responseType
+	 * @return
+	 */
+	protected IModelEngineResponseHandler handleDeserialization(String responseData, Class<? extends IModelEngineResponseHandler> responseType) {
+		IModelEngineResponseHandler responseObject = new Gson().fromJson(responseData, responseType);
+        return responseObject;
 	}
 }
