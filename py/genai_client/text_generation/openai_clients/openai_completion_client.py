@@ -3,12 +3,12 @@ import numpy as np
 
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
-    ModelEngineResponse
+    AskModelEngineResponse
 )
 
 class OpenAiCompletion(AbstractOpenAiClient):
             
-    def ask(
+    def ask_call(
         self,
         question:str = None, 
         context:str = None, 
@@ -18,7 +18,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
         max_new_tokens = 1000,
         prefix="", 
         **kwargs
-    ) -> Dict:
+    ) -> AskModelEngineResponse:
         
         if ('repetition_penalty' in kwargs.keys()):
             kwargs['frequency_penalty'] = float(kwargs.pop('repetition_penalty'))
@@ -69,7 +69,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
             model_engine_response.response
         )
 
-        return model_engine_response.to_dict()
+        return model_engine_response
         
     def _inference_call(
         self,
@@ -125,12 +125,12 @@ class OpenAiCompletion(AbstractOpenAiClient):
         self, 
         prompt_payload:str, 
         max_new_tokens:int
-        ) -> Tuple[str, int, ModelEngineResponse]:
+        ) -> Tuple[str, int, AskModelEngineResponse]:
         '''
         The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
         Instead we rather will send back a flag indicating adjustments have
         '''
-        model_engine_response = ModelEngineResponse()
+        model_engine_response = AskModelEngineResponse()
         warnings = []
         # use the models tokenizer to get the number of tokens in the prompt
         prompt_tokens = self.tokenizer.get_tokens_ids(prompt_payload)

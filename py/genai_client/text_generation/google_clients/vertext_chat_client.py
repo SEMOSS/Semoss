@@ -3,7 +3,7 @@ from vertexai.language_models import ChatModel, ChatMessage
 
 from .abstract_vertex_textgen_client import AbstractVertextAiTextGeneration
 from ...constants import (
-    ModelEngineResponse,
+    AskModelEngineResponse,
     FULL_PROMPT
 )
 
@@ -14,7 +14,7 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
     ):
         return ChatModel.from_pretrained(self.model_name)
     
-    def ask(
+    def ask_call(
         self,
         question: str = None,
         context: Optional[str] = None,
@@ -26,7 +26,7 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
         stop_sequences: Optional[List[str]] = None,
         prefix="",
         **kwargs
-    ):
+    ) -> AskModelEngineResponse:
         assert self.client != None
         
         chat = None
@@ -79,6 +79,6 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
             final_response += response.text
             print(prefix + response.text, end ='')
             
-        model_engine_response = ModelEngineResponse(response=final_response)
+        model_engine_response = AskModelEngineResponse(response=final_response)
         
-        return model_engine_response.to_dict()
+        return model_engine_response

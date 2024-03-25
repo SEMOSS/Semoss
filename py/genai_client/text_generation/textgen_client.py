@@ -3,16 +3,16 @@ from typing import Optional, Union, List, Dict, Any, Tuple
 from text_generation import Client
 import inspect
 
-from .base_client import BaseClient
+from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
-    ModelEngineResponse,
+    AskModelEngineResponse,
     MAX_TOKENS,
     MAX_INPUT_TOKENS,
     FULL_PROMPT
 )
 
-class TextGenClient(BaseClient):
+class TextGenClient(AbstractTextGenerationClient):
     params = list(inspect.signature(Client.generate).parameters.keys())[1:]
 
     def __init__(
@@ -52,7 +52,7 @@ class TextGenClient(BaseClient):
         default_stop_sequence = [self.tokenizer.tokenizer.eos_token] if self.tokenizer.tokenizer.eos_token is not None else []
         self.stop_sequences = stop_sequences or default_stop_sequence
     
-    def ask(
+    def ask_call(
         self, 
         question:str = None, 
         context: Optional[str] = None,
@@ -202,7 +202,7 @@ class TextGenClient(BaseClient):
             model_engine_response.response = ''.join(response_tokens) 
             model_engine_response.response_tokens = len(response_tokens)
 
-        return model_engine_response.to_dict()
+        return model_engine_response
 
     def _process_history(
         self, 
@@ -315,12 +315,12 @@ class TextGenClient(BaseClient):
         self, 
         prompt_payload:str, 
         max_new_tokens:int
-    ) -> Tuple[str, int, ModelEngineResponse]:
+    ) -> Tuple[str, int, AskModelEngineResponse]:
         '''
         The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
         Instead we rather will send back a flag indicating adjustments have
         '''
-        model_engine_response = ModelEngineResponse()
+        model_engine_response = AskModelEngineResponse()
         warnings = []
         # use the models tokenizer to get the number of tokens in the prompt
         prompt_tokens = self.tokenizer.get_tokens_ids(prompt_payload)

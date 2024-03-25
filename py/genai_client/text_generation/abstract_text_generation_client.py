@@ -7,10 +7,12 @@ from abc import (
     abstractmethod
 )
 from ..constants import (
-    ModelEngineResponse
+    AskModelEngineResponse,
+    EmbeddingsModelEngineResponse
 )
 
-class BaseClient(ABC):
+
+class AbstractTextGenerationClient(ABC):
   # loads all the templates
   # fills the templates and gives information back
     def __init__(
@@ -86,8 +88,11 @@ class BaseClient(ABC):
 
         return output, substitutions_made
   
-    @abstractmethod
     def ask(self, *args: Any, **kwargs: Any) -> Dict:
+        return self.ask_call(*args, **kwargs).to_dict()
+    
+    @abstractmethod
+    def ask_call(self, *args: Any, **kwargs: Any) -> AskModelEngineResponse:
         pass
 
     def embeddings(self, *args: Any, **kwargs: Any) -> Dict:
@@ -99,10 +104,14 @@ class BaseClient(ABC):
         except:
             pass
         
-        model_engine_response = ModelEngineResponse(
+        model_engine_response = EmbeddingsModelEngineResponse(
             response=response,
             prompt_tokens=0,
             response_tokens=numberOfTokensInResponse
         )
         
         return model_engine_response.to_dict()
+
+# TODO remove once no errors are happening
+class BaseClient(AbstractTextGenerationClient):
+    pass
