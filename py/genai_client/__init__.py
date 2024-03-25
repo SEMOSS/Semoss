@@ -125,7 +125,7 @@ __all__ = [
     'TextEmbeddingsInference',
     'VertexAiEmbedder',
     'OpenAiTokenizer',
-    'VertexAiEmbedder',
+    'HuggingfaceTokenizer',
     'get_text_gen_client',
     'get_embedder',
     'get_tokenizer'

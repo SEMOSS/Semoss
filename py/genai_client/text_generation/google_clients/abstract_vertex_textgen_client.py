@@ -2,16 +2,16 @@ from typing import Dict, Optional, List, Union
 from abc import abstractclassmethod
 from vertexai.language_models import ChatMessage
 
-from ..base_client import BaseClient
+from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...clients.client_initializer import google_initializer
 from ...constants import (
-    ModelEngineResponse,
+    AskModelEngineResponse,
     TEMPLATE,
     TEMPLATE_NAME,
     FULL_PROMPT
 )
 
-class AbstractVertextAiTextGeneration(BaseClient):
+class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
     """
     Abstract class for Vertex AI inference.
     """
@@ -49,10 +49,10 @@ class AbstractVertextAiTextGeneration(BaseClient):
         self.client = self._get_client()
     
     @abstractclassmethod
-    def ask(
+    def ask_call(
         self,
         **kwargs
-    ):
+    ) -> AskModelEngineResponse:
         pass
     
     @abstractclassmethod

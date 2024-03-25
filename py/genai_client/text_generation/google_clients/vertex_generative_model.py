@@ -3,7 +3,7 @@ from vertexai.preview.generative_models import GenerativeModel, Content, Part
 
 from .abstract_vertex_textgen_client import AbstractVertextAiTextGeneration
 from ...constants import (
-    ModelEngineResponse,
+    AskModelEngineResponse,
     FULL_PROMPT
 )
 
@@ -17,7 +17,7 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
     ):
         return GenerativeModel(self.model_name)
     
-    def ask(
+    def ask_call(
         self,
         question: str = None,
         context: Optional[str] = None,
@@ -87,7 +87,7 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
                 stream=stream,
             )
             
-            model_engine_response = ModelEngineResponse(response='')
+            model_engine_response = AskModelEngineResponse(response='')
             for response in responses:
                 model_engine_response.response += response.text
                 print(prefix + response.text, end ='')
@@ -97,7 +97,7 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
                     model_engine_response.prompt_tokens = usage_metadata.prompt_token_count
                     model_engine_response.response_tokens = usage_metadata.candidates_token_count               
             
-            return model_engine_response.to_dict()
+            return model_engine_response
         else:
             response = chat.send_message(
                 content = question,
@@ -105,10 +105,10 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
                 stream=stream,
             )
             
-            model_engine_response = ModelEngineResponse(
+            model_engine_response = AskModelEngineResponse(
                 response=response.text,
                 prompt_tokens=response._raw_response.usage_metadata.prompt_token_count,
                 response_tokens=response._raw_response.usage_metadata.candidates_token_count,
             )
             
-            return model_engine_response.to_dict()
+            return model_engine_response

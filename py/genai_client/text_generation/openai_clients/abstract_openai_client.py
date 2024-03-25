@@ -1,10 +1,11 @@
 from typing import Dict, Any
 from openai import OpenAI
-from ..base_client import BaseClient
+from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from abc import ABC, abstractmethod
+from ...constants import AskModelEngineResponse
 
-class AbstractOpenAiClient(BaseClient, ABC):
+class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
     
     def __init__(
         self, 
@@ -35,7 +36,7 @@ class AbstractOpenAiClient(BaseClient, ABC):
         )
         
     @abstractmethod
-    def ask(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def ask_call(self, *args: Any, **kwargs: Any) -> AskModelEngineResponse:
         pass
     
     def _get_tokenizer(self, init_args):
