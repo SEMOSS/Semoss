@@ -62,7 +62,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IModelEngine;\r\n" + 
 				"IModelEngine eng = Utility.getModel(\""+engineId+"\");");
-		usageMap.put(PIXEL,"LLM(engine = \""+engineId+"\", command = \"Sample Question\", paramValues = [ {} ] );");
+		usageMap.put(PIXEL,"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues = [ {} ] );");
 		
 		return usageMap;
 	}
