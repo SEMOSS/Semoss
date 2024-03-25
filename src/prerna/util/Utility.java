@@ -4616,8 +4616,8 @@ public class Utility {
 	public static String getApplicationZoneId() {
 		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
 		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
-			// default to ET
-			return "America/New_York";
+			// default to system location
+			return ZoneId.systemDefault().getId();
 		}
 		
 		return timeZone.trim();
