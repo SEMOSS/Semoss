@@ -11,3 +11,5 @@ USERNAME	admin
 PASSWORD	admin
 CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
 USE_CONNECTION_POOLING	false
+
+DATABASE_ZONEID UTC
