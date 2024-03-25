@@ -480,11 +480,24 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 */
 	@Deprecated
 	public static Long getTimeForDate(String strInput, String format) {
+		classLogger.debug("Semoss Date being created without having a valid zone id");
+		return getTimeForDate(strInput, format, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+	
+	/**
+	 * 
+	 * @param strInput
+	 * @param format
+	 * @param zoneId
+	 * @return
+	 */
+	@Deprecated
+	public static Long getTimeForDate(String strInput, String format, ZoneId zoneId) {
 		SemossDate dateValue = null;
 		if(format != null && !format.isEmpty()) {
-			dateValue = new SemossDate(strInput, format);
+			dateValue = new SemossDate(strInput, format, zoneId);
 		} else {
-			dateValue = SemossDate.genDateObj(strInput);
+			dateValue = SemossDate.genDateObj(strInput, zoneId);
 		}
 
 		return getTimeForDate(dateValue);
@@ -497,7 +510,19 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 */
 	@Deprecated
 	public static Long getTimeForDate(String strInput) {
-		SemossDate d = genDateObj(strInput);
+		classLogger.debug("Semoss Date being created without having a valid zone id");
+		return getTimeForDate(strInput, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+	
+	/**
+	 * 
+	 * @param strInput
+	 * @param zoneId
+	 * @return
+	 */
+	@Deprecated
+	public static Long getTimeForDate(String strInput, ZoneId zoneId) {
+		SemossDate d = genDateObj(strInput, zoneId);
 		if(d != null) {
 			if(d.getZonedDateTime() != null) {
 				return d.getZonedDateTime().toInstant().toEpochMilli();
@@ -531,16 +556,29 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 */
 	@Deprecated
 	public static Long getTimeForTimestamp(String strInput, String format) {
+		classLogger.debug("Semoss Date being created without having a valid zone id");
+		return getTimeForTimestamp(strInput, format, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+
+	/**
+	 * 
+	 * @param strInput
+	 * @param format
+	 * @param zoneId
+	 * @return
+	 */
+	@Deprecated
+	public static Long getTimeForTimestamp(String strInput, String format, ZoneId zoneId) {
 		SemossDate dateValue = null;
 		if(format != null && !format.isEmpty()) {
 			dateValue = new SemossDate(strInput, format);
 		} else {
-			dateValue = SemossDate.genTimeStampDateObj(strInput);
+			dateValue = SemossDate.genTimeStampDateObj(strInput, zoneId);
 		}
 
 		return getTimeForTimestamp(dateValue);
 	}
-
+	
 	/**
 	 * Try to parse the date and get the time for it
 	 * @param strInput
@@ -548,7 +586,19 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 */
 	@Deprecated
 	public static Long getTimeForTimestamp(String strInput) {
-		SemossDate d = genDateObj(strInput);
+		classLogger.debug("Semoss Date being created without having a valid zone id");
+		return getTimeForTimestamp(strInput, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+	
+	/**
+	 * Try to parse the date and get the time for it
+	 * @param strInput
+	 * @param zoneId
+	 * @return
+	 */
+	@Deprecated
+	public static Long getTimeForTimestamp(String strInput, ZoneId zoneId) {
+		SemossDate d = genDateObj(strInput, zoneId);
 		if(d != null) {
 			if(d.getZonedDateTime() != null) {
 				return d.getZonedDateTime().toInstant().toEpochMilli();
@@ -574,13 +624,23 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		return null;
 	}
 
+	/**
+	 * Method to get a semoss date from string input
+	 * @param input
+	 * @return
+	 */
+	@Deprecated
+	public static SemossDate genDateObj(String input) {
+		classLogger.debug("Semoss Date being created without having a valid zone id");
+		return genDateObj(input, ZoneId.of(Utility.getApplicationZoneId()));
+	}
 
 	/**
 	 * Method to get a semoss date from string input
 	 * @param input
 	 * @return
 	 */
-	public static SemossDate genDateObj(String input) {
+	public static SemossDate genDateObj(String input, ZoneId zoneId) {
 		if(input == null) {
 			return null;
 		}
@@ -592,12 +652,12 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		boolean containsAlpha = !input.matches("[0-9/\\-]+");
 
 		if(!containsAlpha && (input.contains("/") && !input.startsWith("/")) ) {
-			return testCombinations(input, datesWithSlash);
+			return testCombinations(input, datesWithSlash, zoneId);
 		} else if(!containsAlpha && (input.contains("-") && !input.startsWith("-")) ) {
-			return testCombinations(input, datesWithDash);
+			return testCombinations(input, datesWithDash, zoneId);
 		} else {
 			// this is checking that it doesn't only contain numbers and / and -
-			return testCombinations(input, datesWithLetters);
+			return testCombinations(input, datesWithLetters, zoneId);
 		}
 	}
 
@@ -606,7 +666,18 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param input
 	 * @return
 	 */
+	@Deprecated
 	public static SemossDate genTimeStampDateObj(String input) {
+		classLogger.debug("Semoss Date being created without having a valid zone id");
+		return genTimeStampDateObj(input, ZoneId.of(Utility.getApplicationZoneId()));
+	}
+	
+	/**
+	 * Method to get a semoss date from string input
+	 * @param input
+	 * @return
+	 */
+	public static SemossDate genTimeStampDateObj(String input, ZoneId zoneId) {
 		if(input == null) {
 			return null;
 		}
@@ -618,9 +689,9 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 		boolean containsAlpha = !input.matches("[0-9/\\-:.\\s]+");
 
 		if(!containsAlpha && (input.contains("/") && !input.startsWith("/")) ) {
-			return testCombinations(input, timeStampsWithSlash);
+			return testCombinations(input, timeStampsWithSlash, zoneId);
 		} else if(!containsAlpha && (input.contains("-") && !input.startsWith("-")) ) {
-			return testCombinations(input, timeStampsWithDash);
+			return testCombinations(input, timeStampsWithDash, zoneId);
 		}
 
 		return null;
@@ -632,7 +703,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	 * @param input
 	 * @return
 	 */
-	private static SemossDate testCombinations(String input, List<String[]> dateMatches) {
+	private static SemossDate testCombinations(String input, List<String[]> dateMatches, ZoneId zoneId) {
 		SemossDate semossdate = null;
 		int numFormats = dateMatches.size();;
 		FIND_DATE : for(int i = 0; i < numFormats; i++) {
@@ -641,7 +712,7 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 			Matcher m = p.matcher(input);
 			if(m.matches()) {
 				// yay! we found a match
-				semossdate = new SemossDate(input, match[1]);
+				semossdate = new SemossDate(input, match[1], zoneId);
 				if(semossdate.getZonedDateTime() != null) {
 					break FIND_DATE;
 				}
