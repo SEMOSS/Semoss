@@ -1,52 +1,49 @@
 from typing import Union, List, Dict, Any
 from openai import OpenAI
 
+from genai_client.tokenizers.abstract_tokenizer import AbstractTokenizer
+
 from ..tokenizers.openai_tokenizer import OpenAiTokenizer
-from ..constants import MAX_TOKENS, ModelEngineResponse
 
-# from logging_config import CfgLoggingHandler
-# import logging
-# class_logger = logging.getLogger(__name__)
+from ..constants import (
+    MAX_TOKENS, 
+    EmbeddingsModelEngineResponse
+)
 
-# # remove the handlers from the child logger and add a new one
-# for handler in class_logger.handlers:
-#     # check if the handler h is of class CfgLoggingHandler
-#     if isinstance(handler, CfgLoggingHandler):
-#         # Call set_stack on the handler
-#         handler.set_stack('BACKEND')
+from .abstract_embedder import AbstractEmbedder
 
 from logging_config import get_logger
 class_logger = get_logger(__name__)
 
 
-class OpenAiEmbedder:
+class OpenAiEmbedder(AbstractEmbedder):
+    
     def __init__(self, model_name: str, api_key: str, **kwargs):
-        self.model_name = model_name
-
-        self.tokenizer = OpenAiTokenizer(
-            encoder_name=model_name, max_tokens=kwargs.pop(MAX_TOKENS, None)
+        
+        # register the some of the model details with the abstract embedder class
+        super().__init__(
+            model_name=model_name,
+            max_tokens=kwargs.pop(MAX_TOKENS, None),
+            **kwargs,
         )
 
         self.client = self._get_client(api_key=api_key, **kwargs)
+        
+    def _get_tokenizer(self, init_args: Dict) -> AbstractTokenizer:
+        tokenizer = OpenAiTokenizer(
+            encoder_name=self.model_name, max_tokens=init_args.pop(MAX_TOKENS, None)
+        )
+        
+        return tokenizer
 
     def _get_client(self, api_key, **kwargs):
         from openai import OpenAI
 
         return OpenAI(api_key=api_key, **kwargs)
 
-    def ask(self, *args: Any, **kwargs) -> str:
-        response = "This model does not support text generation."
-        model_engine_response = ModelEngineResponse(
-            response=response,
-            prompt_tokens=0,
-            response_tokens=self.tokenizer.count_tokens(response),
-        )
-
-        return model_engine_response.to_dict()
-
-    def embeddings(
+    def embeddings_call(
         self, strings_to_embed: List[str], prefix: str = ""
-    ) -> Dict[str, Union[str, int]]:
+    ) -> EmbeddingsModelEngineResponse:
         # Make sure a list was passed in so we can proceed with the logic below
         assert isinstance(strings_to_embed, list)
 
@@ -122,11 +119,11 @@ class OpenAiEmbedder:
             "Sending Embeddings back from Model Engine", extra={"stack": "BACKEND"}
         )
 
-        model_engine_response = ModelEngineResponse(
+        model_engine_response = EmbeddingsModelEngineResponse(
             response=embedded_list, prompt_tokens=total_num_of_tokens, response_tokens=0
         )
 
-        return model_engine_response.to_dict()
+        return model_engine_response
 
     def _make_openai_embedding_call(self, list_of_text: List[str]):
         """this method is responsible for making the openai embeddings call. it takes in a single"""

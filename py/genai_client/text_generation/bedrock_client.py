@@ -3,20 +3,20 @@ import json
 from string import Template
 import logging
 
-from .base_client import BaseClient
+from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import (
     MAX_TOKENS,
     MAX_INPUT_TOKENS,
     FULL_PROMPT,
-    ModelEngineResponse
+    AskModelEngineResponse
 )
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class BedrockClient(BaseClient):
+class BedrockClient(AbstractTextGenerationClient):
     def __init__(
         self,
         template=None,
@@ -85,7 +85,7 @@ class BedrockClient(BaseClient):
 
         return body_json
     
-    def ask(
+    def ask_call(
         self,
         question=None,
         context=None,
@@ -96,10 +96,10 @@ class BedrockClient(BaseClient):
         top_p=None,
         prefix="",
         **kwargs,
-    ):
+    ) -> AskModelEngineResponse:
         client = self._get_client()
         final_response = ""
-        model_engine_response = ModelEngineResponse()
+        model_engine_response = AskModelEngineResponse()
         
         # TODO remove once
         # check whether to include logprobs in the response
@@ -177,7 +177,7 @@ class BedrockClient(BaseClient):
                 
                 model_engine_response.response_tokens = self.tokenizer.count_tokens(final_response)
                 model_engine_response.response = final_response
-                return model_engine_response.to_dict()
+                return model_engine_response
 
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
