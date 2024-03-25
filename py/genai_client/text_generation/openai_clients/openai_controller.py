@@ -7,7 +7,6 @@ from .openai_api_inference_server import (
     OpenAiChatCompletionServer,
     OpenAiCompletionServer
 )
-import openai
 
 class OpenAiClientController():
     
@@ -37,7 +36,7 @@ class OpenAiClientController():
         
     def ask(self, **kwargs) -> Dict:
         return self.openai_class.ask(**kwargs)
-
+    
     def embeddings(self, **kwargs) -> List[float]:
         return self.openai_class.embeddings(**kwargs)
 

@@ -8,12 +8,15 @@ from huggingface_hub import (
 )
 from transformers import AutoModel
 from pathlib import Path
+
+from.abstract_embedder import AbstractEmbedder
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-from ..constants import MAX_TOKENS, MAX_INPUT_TOKENS, ModelEngineResponse
+from ..constants import MAX_TOKENS, MAX_INPUT_TOKENS, EmbeddingsModelEngineResponse
+
 import torch
 
-
-class LocalEmbedder:
+class LocalEmbedder(AbstractEmbedder):
+    
     def __init__(
         self,
         model_name: str,
@@ -51,6 +54,15 @@ class LocalEmbedder:
         )
 
         self.key_bert_model = None
+        
+    def _get_tokenizer(self, init_args: Dict) -> HuggingfaceTokenizer:
+        tokenizer = HuggingfaceTokenizer(
+            encoder_name=self.model_name,
+            max_tokens=init_args.pop(MAX_TOKENS, None),
+            max_input_tokens=init_args.pop(MAX_INPUT_TOKENS, None),
+        )
+        
+        return tokenizer
 
     def get_physical_folder(self, repo_id: str) -> str:
         filepath = try_to_load_from_cache(
@@ -94,9 +106,9 @@ class LocalEmbedder:
 
         return embedder
 
-    def embeddings(self, strings_to_embed: List[str], prefix="") -> List[float]:
+    def embeddings_call(self, strings_to_embed: List[str], prefix="") -> EmbeddingsModelEngineResponse:
         # Determine what object was bassed in so we can pre-configure it before making the call
-        assert isinstance(strings_to_embed, list)
+        assert isinstance(strings_to_embed, List)
 
         embedded_list = self.embedder.encode(
             sentences=strings_to_embed,
@@ -106,34 +118,14 @@ class LocalEmbedder:
             [self.tokenizer.count_tokens(chunk) for chunk in strings_to_embed]
         )
 
-        # TODO find a way to push back batches like OpenAI
-        # THIS IS SLOW AS HECK
-        # embedded_list = []
-        # number_of_items_to_encode = len(strings_to_embed)
-        # for i in range(number_of_items_to_encode):
-        #   embedded_list.append(
-        #     self.embedder.encode(strings_to_embed[i])
-        #   )
-        #   print(prefix + "Completed Embedding " + str(i) + "/" + str(number_of_items_to_encode) + " Chunks")
-
-        if not isinstance(embedded_list, list):
+        if not isinstance(embedded_list, List):
             embedded_list = embedded_list.tolist()
 
-        model_engine_response = ModelEngineResponse(
+        model_engine_response = EmbeddingsModelEngineResponse(
             response=embedded_list, prompt_tokens=total_tokens, response_tokens=0
         )
 
-        return model_engine_response.to_dict()
-
-    def ask(self, *args: Any, **kwargs) -> str:
-        response = "This model does not support text generation."
-        model_engine_response = ModelEngineResponse(
-            response=response,
-            prompt_tokens=0,
-            response_tokens=self.tokenizer.count_tokens(response),
-        )
-
-        return model_engine_response.to_dict()
+        return model_engine_response
 
     def model(
         self, input: List[str], percentile: int = 0, max_keywords: int = 12
