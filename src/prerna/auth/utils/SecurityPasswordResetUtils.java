@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -126,7 +128,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		}
 		
 		if(!SecurityPasswordResetUtils.userEmailExists(email, provider.toString())) {
-			throw new IllegalArgumentException("The email '" + email + "' does not exist");
+			throw new IllegalArgumentException("The email '" + email + "' does not exist for provider " + provider);
 		}
 		
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
@@ -207,7 +209,10 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		if(dateTokenAdded == null) {
 			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
-		if(Utility.getLocalDateTimeUTC(LocalDateTime.now()).minusMinutes(15).isBefore(dateTokenAdded.getLocalDateTime())) {
+		ZonedDateTime curTimeUtc = ZonedDateTime.now(ZoneId.of("UTC"));
+		// if i added the token more than 15 minutes ago
+		// then the link has expired
+		if(dateTokenAdded.getZonedDateTime().isBefore(curTimeUtc.minusMinutes(15))) {
 			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
 		}
 		
