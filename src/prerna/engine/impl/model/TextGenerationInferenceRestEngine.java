@@ -1,6 +1,6 @@
 package prerna.engine.impl.model;
 
-import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,9 +11,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.TextGenerationInferenceRestEngine.TextGenPayload.GeneratedTextItem;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
@@ -26,8 +29,6 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 	//TODO decide what we want logged
 	private static final Logger classLogger = LogManager.getLogger(TextGenerationInferenceRestEngine.class);
 
-	private static final String ENDPOINT = "ENDPOINT";
-	
 	private String endpoint;
 	private String modelName;
 	private Integer maxTokens;
@@ -79,14 +80,15 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		
 		bodyMap.put("parameters", this.adjustHyperParameters(hyperParameters));
 
-		IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null, stream, TextGenPayload.class, insightId);
+		IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, 
+				null, null, null, 
+				stream, TextGenPayload.class, insightId);
 		Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
 		
 		return AskModelEngineResponse.fromMap(modelEngineResponseMap);
 	}
 	
 	private Map<String, Object> adjustHyperParameters(Map<String, Object> hyperParameters) {
-
 		// Check the types of each parameter
 		if (hyperParameters.get("best_of") != null && !(hyperParameters.get("best_of") instanceof Integer)) {
 		    throw new IllegalArgumentException("The hyperparameter best_of is set but is not a integer.");
@@ -181,9 +183,30 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.TEXT_GENERATION;
 	}
+	
+	/**
+	 * 
+	 * @param responseData
+	 * @param responseType
+	 * @return
+	 */
+	protected IModelEngineResponseHandler handleDeserialization(String responseData, Class<? extends IModelEngineResponseHandler> responseType) {
+        Gson gson = new Gson();
+		JsonArray jsonArray = gson.fromJson(responseData, JsonArray.class);
+        
+        List<GeneratedTextItem> generatedItems = new ArrayList<>();
+        for(JsonElement value : jsonArray) {
+        	generatedItems.add(gson.fromJson(value, GeneratedTextItem.class));
+        }
+        
+        TextGenPayload payload = new TextGenPayload();
+        payload.setGeneratedItems(generatedItems);
+        return payload;
+	}
 
 	public static class TextGenPayload implements IModelEngineResponseHandler {
 		
+		private String response;
 		private List<GeneratedTextItem> generatedItems;
 		
 		public TextGenPayload () {
@@ -194,11 +217,11 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		public void setGeneratedItems(List<GeneratedTextItem> generatedItems) { this.generatedItems =  generatedItems; }
 		
 		public class GeneratedTextItem {
-		    private String generatedText;
+		    private String generated_text;
 		    private GeneratedTextDetails details;
 		    
-            public String getGeneratedText() { return this.generatedText; }
-            public void setGeneratedText(String generatedText) { this.generatedText = generatedText; }
+		    public String getGenerated_text() { return generated_text; }
+		    public void setGenerated_text(String generated_text) { this.generated_text = generated_text; }
 
             public GeneratedTextDetails getDetails() { return this.details; }
             public void setDetails(GeneratedTextDetails details) { this.details = details; }
@@ -206,7 +229,7 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		    @Override
 		    public String toString() {
 		        return "GeneratedTextItem{" +
-		                "generatedText='" + generatedText + '\'' +
+		                "generatedText='" + generated_text + '\'' +
 		                ", details=" + details +
 		                '}';
 		    }
@@ -301,14 +324,34 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 
 		@Override
 		public Map<String, Object> getModelEngineResponse() {
-			// TODO Auto-generated method stub
-			return null;
+
+			Map<String, Object> modelEngineResponse = new HashMap<String, Object>();
+			modelEngineResponse.put(AbstractModelEngineResponse.RESPONSE, this.getResponse());
+	        
+			List<IModelEngineResponseStreamHandler> partialResponses = this.getPartialResponses();
+			if (partialResponses != null && !partialResponses.isEmpty()) {
+				// need to build the responses here
+				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, null);
+				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, partialResponses.size());
+		        
+			} else {
+				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, this.getPromptTokens());
+		        modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, this.getResponseTokens());
+			}
+
+			// copied from open ai chat completion rest engine
+			// need to do the travelsal and add null checks
+//			if (this.getChoices() != null && this.getChoices().get(0).getLogprobs() != null) {
+//				modelEngineResponse.put("logprobs", this.getChoices().get(0).getLogprobs());
+//			}
+			
+			return modelEngineResponse;
+			
 		}
 
 		@Override
 		public Object getResponse() {
-			// TODO Auto-generated method stub
-			return null;
+			return this.response != null ? this.response : this.getGeneratedItems().get(0).getGenerated_text();
 		}
 
 		@Override
@@ -335,20 +378,29 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		return "This model does have an model method defined.";
 	}
 	
-	public static void main(String [] args) {
-		String responseData = "[{\"generated_text\":\"?\\n\\nA potato is a starchy, tuberous crop from the nightshade\",\"details\":{\"finish_reason\":\"length\",\"generated_tokens\":20,\"seed\":null,\"prefill\":[],\"tokens\":[{\"id\":28804,\"text\":\"?\",\"logprob\":-1.109375,\"special\":false},{\"id\":13,\"text\":\"\\n\",\"logprob\":-0.18688965,\"special\":false},{\"id\":13,\"text\":\"\\n\",\"logprob\":-0.20361328,\"special\":false},{\"id\":28741,\"text\":\"A\",\"logprob\":-0.66845703,\"special\":false},{\"id\":2513,\"text\":\" pot\",\"logprob\":-0.06793213,\"special\":false},{\"id\":1827,\"text\":\"ato\",\"logprob\":-0.0016536713,\"special\":false},{\"id\":349,\"text\":\" is\",\"logprob\":-0.5620117,\"special\":false},{\"id\":264,\"text\":\" a\",\"logprob\":-0.06652832,\"special\":false},{\"id\":341,\"text\":\" st\",\"logprob\":-0.049713135,\"special\":false},{\"id\":12940,\"text\":\"archy\",\"logprob\":-0.0025253296,\"special\":false},{\"id\":28725,\"text\":\",\",\"logprob\":-0.004283905,\"special\":false},{\"id\":11988,\"text\":\" tub\",\"logprob\":-0.01637268,\"special\":false},{\"id\":263,\"text\":\"er\",\"logprob\":-0.002298355,\"special\":false},{\"id\":607,\"text\":\"ous\",\"logprob\":-0.0007982254,\"special\":false},{\"id\":21948,\"text\":\" crop\",\"logprob\":-0.11639404,\"special\":false},{\"id\":477,\"text\":\" from\",\"logprob\":-0.006752014,\"special\":false},{\"id\":272,\"text\":\" the\",\"logprob\":-0.00016498566,\"special\":false},{\"id\":2125,\"text\":\" night\",\"logprob\":-0.6015625,\"special\":false},{\"id\":811,\"text\":\"sh\",\"logprob\":-0.00072956085,\"special\":false},{\"id\":770,\"text\":\"ade\",\"logprob\":-0.000056505203,\"special\":false}]}}]";
-		
-		
-		TextGenPayload responseObject = new Gson().fromJson(responseData, TextGenPayload.class);
-		
-		Type responseType = new TypeToken<List<TextGenPayload>>(){}.getType();
-
-		System.out.println("MADE IT");
-	}
-
 	@Override
 	protected void resetAfterTimeout() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
+	
+	
+	public static void main(String [] args) {
+		String responseData = "[{\"generated_text\":\"?\\n\\nA potato is a starchy, tuberous crop from the nightshade\",\"details\":{\"finish_reason\":\"length\",\"generated_tokens\":20,\"seed\":null,\"prefill\":[],\"tokens\":[{\"id\":28804,\"text\":\"?\",\"logprob\":-1.109375,\"special\":false},{\"id\":13,\"text\":\"\\n\",\"logprob\":-0.18688965,\"special\":false},{\"id\":13,\"text\":\"\\n\",\"logprob\":-0.20361328,\"special\":false},{\"id\":28741,\"text\":\"A\",\"logprob\":-0.66845703,\"special\":false},{\"id\":2513,\"text\":\" pot\",\"logprob\":-0.06793213,\"special\":false},{\"id\":1827,\"text\":\"ato\",\"logprob\":-0.0016536713,\"special\":false},{\"id\":349,\"text\":\" is\",\"logprob\":-0.5620117,\"special\":false},{\"id\":264,\"text\":\" a\",\"logprob\":-0.06652832,\"special\":false},{\"id\":341,\"text\":\" st\",\"logprob\":-0.049713135,\"special\":false},{\"id\":12940,\"text\":\"archy\",\"logprob\":-0.0025253296,\"special\":false},{\"id\":28725,\"text\":\",\",\"logprob\":-0.004283905,\"special\":false},{\"id\":11988,\"text\":\" tub\",\"logprob\":-0.01637268,\"special\":false},{\"id\":263,\"text\":\"er\",\"logprob\":-0.002298355,\"special\":false},{\"id\":607,\"text\":\"ous\",\"logprob\":-0.0007982254,\"special\":false},{\"id\":21948,\"text\":\" crop\",\"logprob\":-0.11639404,\"special\":false},{\"id\":477,\"text\":\" from\",\"logprob\":-0.006752014,\"special\":false},{\"id\":272,\"text\":\" the\",\"logprob\":-0.00016498566,\"special\":false},{\"id\":2125,\"text\":\" night\",\"logprob\":-0.6015625,\"special\":false},{\"id\":811,\"text\":\"sh\",\"logprob\":-0.00072956085,\"special\":false},{\"id\":770,\"text\":\"ade\",\"logprob\":-0.000056505203,\"special\":false}]}}]";
+		
+		TextGenerationInferenceRestEngine engine = new TextGenerationInferenceRestEngine();
+		engine.handleDeserialization(responseData, null);
+		
+		Gson gson = new Gson();
+		String value = "{\"generated_text\":\"tell me a joke that will make me laugh\\nWhy did the tomato turn red? Because it saw the salad dressing!\"}";
+		GeneratedTextItem test = gson.fromJson(value, GeneratedTextItem.class);
+		
+		System.out.println("MADE IT");
 	}
 }

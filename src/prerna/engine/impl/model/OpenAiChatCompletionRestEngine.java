@@ -54,7 +54,6 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 	private Map<String, String> headersMap;
 	private String provider="openai";
 	
-	
 	private Map<String, ConversationChain> conversationHisotry = new Hashtable<>();
 	
 	Gson gson = new GsonBuilder()
