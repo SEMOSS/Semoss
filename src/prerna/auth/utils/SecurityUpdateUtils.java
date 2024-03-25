@@ -289,7 +289,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(potentialDateValue instanceof SemossDate) {
 					lastLogin = (SemossDate) potentialDateValue;
 				} else if(potentialDateValue instanceof String) {
-					lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+					lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "", securityDb.getDatabaseZoneId());
 				}
 			}
 			if(lastLoginDetails[2] != null) {
@@ -297,7 +297,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(potentialDateValue instanceof SemossDate) {
 					lastPassReset = (SemossDate) potentialDateValue;
 				} else if(potentialDateValue instanceof String) {
-					lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+					lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "", securityDb.getDatabaseZoneId());
 				}
 			}
 			
@@ -316,7 +316,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(daysToLock > 0 && lastLogin != null) {
 				// check to make sure user is not locked
 				ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("UTC"));
-				if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToLock).atZone(ZoneId.of("UTC")))) {
+				if(currentTime.isAfter(lastLogin.getZonedDateTime().plusDays(daysToLock))) {
 					classLogger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
