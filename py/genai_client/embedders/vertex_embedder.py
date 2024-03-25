@@ -21,12 +21,8 @@ from vertexai.preview.language_models import TextEmbeddingModel
 from ..clients.client_initializer import google_initializer
 from .abstract_embedder import AbstractEmbedder
 from ..constants import (
-    ModelEngineResponse
+    EmbeddingsModelEngineResponse
 )
-
-
-
-
 
 class VertexAiEmbedder(AbstractEmbedder):
     
@@ -56,11 +52,11 @@ class VertexAiEmbedder(AbstractEmbedder):
         self.client = TextEmbeddingModel.from_pretrained(self.model_name)
         self.tokenizer = self.client
         
-    def embeddings(
+    def embeddings_call(
         self,
         strings_to_embed:List[str], 
         prefix:str = ""
-    ) -> Dict[str, Union[str, int]]:
+    ) -> EmbeddingsModelEngineResponse:
 
         # make the call
         is_successful, embedded_list = self._encode_text_to_embedding_batched(
@@ -75,13 +71,13 @@ class VertexAiEmbedder(AbstractEmbedder):
         if len(strings_to_embed) == 1:
             embedded_list = [embedded_list]
         
-        model_engine_response = ModelEngineResponse(
+        model_engine_response = EmbeddingsModelEngineResponse(
             response=embedded_list,
             prompt_tokens=self.tokenizer.count_tokens(strings_to_embed).total_tokens,
             response_tokens=0
         )
         
-        return model_engine_response.to_dict()
+        return model_engine_response
         
     def _encode_texts_to_embeddings(self, sentences: List[str]) -> List[Optional[List[float]]]:
         # https://colab.research.google.com/github/GoogleCloudPlatform/vertex-ai-samples/blob/main/notebooks/official/matching_engine/sdk_matching_engine_create_stack_overflow_embeddings_vertex.ipynb#scrollTo=a0370bd840d2
@@ -142,18 +138,5 @@ class VertexAiEmbedder(AbstractEmbedder):
         
     def _get_tokenizer(self, init_args):
         return None
-    
-    def ask(
-        self, 
-        *args, 
-        **kwargs
-    ) -> Dict:
-        response = 'This model does not support text generation.'
-        model_engine_response = ModelEngineResponse(
-            response=response,
-            prompt_tokens=0,
-            response_tokens=self.tokenizer.count_tokens([response]).total_tokens
-        )
-        
-        return model_engine_response.to_dict()
+
     

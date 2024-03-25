@@ -3,7 +3,7 @@ from vertexai.language_models import CodeGenerationModel
 
 from .abstract_vertex_textgen_client import AbstractVertextAiTextGeneration
 from ...constants import (
-    ModelEngineResponse,
+    AskModelEngineResponse,
     FULL_PROMPT
 )
 
@@ -14,7 +14,7 @@ class VertexCodeCompletionClient(AbstractVertextAiTextGeneration):
     ):
         return CodeGenerationModel.from_pretrained(self.model_name)
     
-    def ask(
+    def ask_call(
         self,
         question: str = None,
         context: Optional[str] = None,
@@ -23,7 +23,7 @@ class VertexCodeCompletionClient(AbstractVertextAiTextGeneration):
         temperature: Optional[float] = None,
         prefix="",
         **kwargs
-    ):
+    ) -> AskModelEngineResponse:
         assert self.client != None
         
         chat = None
@@ -70,9 +70,7 @@ class VertexCodeCompletionClient(AbstractVertextAiTextGeneration):
             "temperature": temperature,  # Temperature controls the degree of randomness in token selection.
             "max_output_tokens": max_new_tokens,  # Token limit determines the maximum amount of text output.
         }
-        
-        print(parameters)
-        
+                
         responses = self.client.predict_streaming(
             **parameters
         )
@@ -82,8 +80,8 @@ class VertexCodeCompletionClient(AbstractVertextAiTextGeneration):
             final_response += response.text
             print(prefix + response.text, end ='')
             
-        model_engine_response = ModelEngineResponse(
+        model_engine_response = AskModelEngineResponse(
             response=final_response
         )
         
-        return model_engine_response.to_dict()
+        return model_engine_response
