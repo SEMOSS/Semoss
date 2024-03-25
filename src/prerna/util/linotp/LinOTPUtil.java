@@ -1,7 +1,6 @@
 package prerna.util.linotp;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -40,9 +39,9 @@ import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -173,11 +172,13 @@ public class LinOTPUtil {
 				try {
 					entity = postResponse.getEntity();
 					String s_response = EntityUtils.toString(entity);
-					JsonReader reader = Json.createReader(new StringReader(s_response));
-					JsonObject j_response = reader.readObject();
+					JsonObject j_response = JsonParser.parseString(s_response).getAsJsonObject();
 					//parse json response for result value
-					JsonObject j_result = j_response.getJsonObject("result");
-					Boolean authenticated = j_result.getBoolean("value", false);
+					JsonObject j_result = j_response.getAsJsonObject("result");
+					boolean authenticated = false;
+					if(j_result.has("value")) {
+						authenticated = j_result.get("value").getAsBoolean();
+					}
 					if (authenticated) {
 						// this means we have authenticated
 						// and there is no policy requiring an otp
@@ -213,9 +214,9 @@ public class LinOTPUtil {
 						return linotpResponse;
 					} else {
 						// challenge request flow
-						if (j_response.containsKey("detail")) {
-							JsonObject j_detail = j_response.getJsonObject("detail");
-							String transactionId = j_detail.getString("transactionid");
+						if (j_response.has("detail")) {
+							JsonObject j_detail = j_response.getAsJsonObject("detail");
+							String transactionId = j_detail.get("transactionid").getAsString();
 							HttpSession session = request.getSession();
 							session.setAttribute(LINOTP_USERNAME, username);
 							session.setAttribute(LINOTP_TRANSACTION, transactionId);
@@ -273,12 +274,13 @@ public class LinOTPUtil {
 				try {
 					entity = postResponse.getEntity();
 					String s_response = EntityUtils.toString(entity);
-					JsonReader reader = Json.createReader(new StringReader(s_response));
-					JsonObject j_response = reader.readObject();
+					JsonObject j_response = JsonParser.parseString(s_response).getAsJsonObject();
 					//parse json response for result value
-					JsonObject j_result = j_response.getJsonObject("result");
-					Boolean authenticated = j_result.getBoolean("value", false);
-
+					JsonObject j_result = j_response.getAsJsonObject("result");
+					boolean authenticated = false;
+					if(j_result.has("value")) {
+						authenticated = j_result.get("value").getAsBoolean();
+					}
 					if (authenticated) {
 						AccessToken token = new AccessToken();
 						token.setProvider(AuthProvider.LINOTP);
@@ -462,21 +464,22 @@ public class LinOTPUtil {
 			try {
 				entity = postResponse.getEntity();
 				String s_response = EntityUtils.toString(entity);
-				JsonReader reader = Json.createReader(new StringReader(s_response));
-				JsonObject j_response = reader.readObject();
+				JsonObject j_response = JsonParser.parseString(s_response).getAsJsonObject();
 				//parse json response for result value
-				JsonObject j_result = j_response.getJsonObject("result");
-				Integer validReset = j_result.getInt("value", 0);
-
+				JsonObject j_result = j_response.getAsJsonObject("result");
+				int validReset = 0;
+				if(j_result.has("value")) {
+					validReset = j_result.get("value").getAsInt();
+				}
 				if (validReset == 1) {
 					returnMap.put("success", "true");
 					returnMap.put("message", "Successful reset");
 					linotpResponse.setResponseCode(200);
 					return linotpResponse;
 				} else {
-					JsonObject detailJson = j_response.getJsonObject("detail");
+					JsonObject detailJson = j_response.getAsJsonObject("detail");
 					if(detailJson != null) {
-						String errorMessage = detailJson.getString("message");
+						String errorMessage = detailJson.get("message").getAsString();
 						if(errorMessage != null) {
 							returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - " + errorMessage);
 							linotpResponse.setResponseCode(500);
@@ -484,11 +487,11 @@ public class LinOTPUtil {
 						}
 					}
 					
-					JsonObject resultJson = j_response.getJsonObject("result");
+					JsonObject resultJson = j_response.getAsJsonObject("result");
 					if(resultJson != null) {
-						JsonObject errorJson = resultJson.getJsonObject("error");
+						JsonObject errorJson = resultJson.getAsJsonObject("error");
 						if(errorJson != null) {
-							String errorMessage = errorJson.getString("message");
+							String errorMessage = errorJson.get("message").getAsString();
 							if(errorMessage != null) {
 								returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - " + errorMessage);
 								linotpResponse.setResponseCode(500);
