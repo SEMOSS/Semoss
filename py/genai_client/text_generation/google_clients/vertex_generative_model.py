@@ -1,3 +1,5 @@
+# https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/send-chat-prompts-gemini
+
 from typing import Dict, Optional, List
 from vertexai.preview.generative_models import GenerativeModel, Content, Part
 
