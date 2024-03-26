@@ -1,3 +1,5 @@
+# https://cloud.google.com/vertex-ai/generative-ai/docs/chat/test-chat-prompts
+
 from typing import Dict, Optional, List
 from vertexai.language_models import ChatModel, ChatMessage
 
