@@ -1,3 +1,5 @@
+# https://cloud.google.com/vertex-ai/generative-ai/docs/text/test-text-prompts#generative-ai-test-text-prompt-python_vertex_ai_sdk
+
 from typing import Dict, Optional, List
 from vertexai.language_models import TextGenerationModel
 
