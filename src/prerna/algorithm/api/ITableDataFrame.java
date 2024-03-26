@@ -154,10 +154,26 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	long size(String tableName);
 	
+	/**
+	 * 
+	 * @param query
+	 * @return
+	 * @throws Exception
+	 */
 	IRawSelectWrapper query(String query) throws Exception;
 	
+	/**
+	 * 
+	 * @param qs
+	 * @return
+	 * @throws Exception
+	 */
 	IRawSelectWrapper query(SelectQueryStruct qs) throws Exception;
 	
+	/**
+	 * 
+	 * @return
+	 */
 	IQueryInterpreter getQueryInterpreter();
 	
 	/**
