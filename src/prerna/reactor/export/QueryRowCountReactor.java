@@ -6,8 +6,10 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.AbstractReactor;
@@ -30,9 +32,69 @@ public class QueryRowCountReactor  extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		SelectQueryStruct qs = getQs();
+		QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		
+		if(qsType == QUERY_STRUCT_TYPE.ENGINE
+				|| qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
+				|| qsType == QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
+			return rowsForEngine(qs, logger);
+		} else if(qsType == QUERY_STRUCT_TYPE.FRAME
+				|| qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			return rowsForFrame(qs, logger);
+		}
+		
+		throw new IllegalArgumentException("Can not determine row count for Query Struct of type " + qsType);
+	}
+	
+	/**
+	 * 
+	 * @param qs
+	 * @param logger
+	 * @return
+	 */
+	private NounMetadata rowsForFrame(SelectQueryStruct qs, Logger logger) {
+		ITableDataFrame frame = qs.getFrame();
+		if(frame == null) {
+			throw new IllegalArgumentException("Query Struct is of type " + qs.getQsType() + " but no frame is set");
+		}
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = frame.query(qs);
+			long start = System.currentTimeMillis();
+			logger.info("Query Row Count : Executing query on frame " + frame.getName());
+			long numRows = iterator.getNumRows();
+			long end = System.currentTimeMillis();
+			logger.info("Query Row Count : Frame " + frame.getName() + " execution time = " + (end-start) + "ms");
+			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if(iterator == null) {
+				throw new IllegalArgumentException("Error occurred retrieving the query with message " + e.getMessage());
+			} else {
+				throw new IllegalArgumentException("Error occurred retrieving the count of the query with message " + e.getMessage());
+			}
+		} finally {
+			if(iterator != null) {
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param qs
+	 * @param logger
+	 * @return
+	 */
+	private NounMetadata rowsForEngine(SelectQueryStruct qs, Logger logger) {
 		IDatabaseEngine engine = qs.retrieveQueryStructEngine();
 		if(engine == null) {
-			throw new IllegalArgumentException("Can only predict the row count for Basic Iterators - currently do not handle map operations");
+			throw new IllegalArgumentException("Query Struct is of type " + qs.getQsType() + " but no engine is set");
 		}
 		IRawSelectWrapper iterator = null;
 		try {
@@ -41,7 +103,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 			logger.info("Query Row Count : Executing query on engine " + engine.getEngineId());
 			long numRows = iterator.getNumRows();
 			long end = System.currentTimeMillis();
-			logger.info("Query Row Count : Engine execution time = " + (end-start) + "ms");
+			logger.info("Query Row Count : Engine " + engine.getEngineId() + " execution time = " + (end-start) + "ms");
 			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
