@@ -22,7 +22,7 @@ import org.apache.tika.metadata.Metadata;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.engine.impl.vector.FaissDatabaseEngine;
+import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
@@ -54,8 +54,8 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 		
-		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
-		if (eng == null) {
+		IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(engineId);
+		if (vectorDatabase == null) {
 			throw new SemossPixelException("Unable to find engine");
 		}
 		
@@ -65,8 +65,8 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		}
 		
 		// for FAISS, make sure the user has access to the embedder model as well
-		if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS) {
-			String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
+		if (vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS || vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR) {
+			String embeddingsEngineId = vectorDatabase.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
 			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
 				throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
 			}
@@ -74,26 +74,15 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			Object keywordArgs = paramMap.getOrDefault(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey(), null);
 			if (keywordArgs != null) {
 				// we also need to make sure they have access to the keyword engine id
-				String keywordEngineId = eng.getSmssProp().getProperty(FaissDatabaseEngine.KEYWORD_ENGINE_ID);
+				String keywordEngineId = vectorDatabase.getSmssProp().getProperty(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID);
 				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), keywordEngineId)) {
 					throw new IllegalArgumentException("Keyword model " + keywordEngineId + " does not exist or user does not have access to this model");
 				}
 			}
-		} else if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR) {
-				String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
-				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
-					throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
-				}
-				
-				Object keywordArgs = paramMap.getOrDefault(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey(), null);
-				if (keywordArgs != null) {
-					// we also need to make sure they have access to the keyword engine id
-					String keywordEngineId = eng.getSmssProp().getProperty(FaissDatabaseEngine.KEYWORD_ENGINE_ID);
-					if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), keywordEngineId)) {
-						throw new IllegalArgumentException("Keyword model " + keywordEngineId + " does not exist or user does not have access to this model");
-					}
-				}
-			}
+			
+			// send the insight so it can be used with IModelEngine call
+			paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
+		}
 		
 		insightFolder = this.insight.getInsightFolder();
 		
@@ -113,19 +102,9 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		        if (!file.exists()) {
 		        	throw new IllegalArgumentException("File path for " + file.getName() + " does not exist within the insight.");
 		        }
-			}
-			
-			VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
-			if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
-				// send the insight so it can be used with IModelEngine call
-				paramMap.put(FaissDatabaseEngine.INSIGHT, this.insight);
-			}else if (vectorDbType == VectorDatabaseTypeEnum.PGVECTOR) {
-				// send the insight so it can be used with IModelEngine call
-				paramMap.put("insight", this.insight);
-			}
-			
+			}			
 
-			eng.addDocument(filePaths, paramMap);
+			vectorDatabase.addDocument(filePaths, paramMap);
 			
 			File zipFileExtractionDir = new File(insightFolder + File.separator + pathToUnzipFiles);
 			if (zipFileExtractionDir.exists()) {
