@@ -154,14 +154,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			logger.info(step + ") Done");
 			step++;
 
-			// zip file has the smss and project folder on the same level
-			// need to move these files around
-			String tempUnzippedProjectAssetFolderPath = randomTempUnzipFolderPath + DIR_SEPARATOR + Constants.ASSETS_FOLDER; 
-			File tempUnzippedProjectAssetF = new File(Utility.normalizePath(tempUnzippedProjectAssetFolderPath));
-			finalProjectFolderF = new File(Utility.normalizePath(projectFolderPath 
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
-			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath 
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
+			finalProjectFolderF = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
+			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
 			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
@@ -177,21 +171,37 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			
 			// create the project folder
 			// since this assumes we have only the assets
-			// make the project name / app root / version folder path
-			File finalProjectVersionF = new File(finalProjectFolderF.getAbsolutePath() + DIR_SEPARATOR + Constants.APP_ROOT_FOLDER
+			// make the project name / app root / version / asset folder path
+			File finalProjectVersionF = new File(finalProjectFolderF.getAbsolutePath() 
+					+ DIR_SEPARATOR + Constants.APP_ROOT_FOLDER 
 					+ DIR_SEPARATOR + Constants.VERSION_FOLDER);
-			finalProjectVersionF.mkdirs();
-			
+			File finalProjectAssetF = new File(finalProjectVersionF.getAbsolutePath()
+					+ DIR_SEPARATOR + Constants.ASSETS_FOLDER);
+			finalProjectAssetF.mkdirs();
+
 			// move project folder
 			logger.info(step + ") Moving project folder");
-			FileUtils.copyDirectory(tempUnzippedProjectAssetF, finalProjectVersionF);
+			File[] allFiles = randomTempUnzipF.listFiles();
+			for(File f : allFiles) {
+				if(f.getName().equals("assets") && f.isDirectory()) {
+					// we move the assets folder into the version folder
+					FileUtils.copyDirectory(f, finalProjectAssetF);
+				} else if(f.isDirectory()) {
+					FileUtils.copyDirectory(f, finalProjectVersionF);
+				} else if(f.isFile()) {
+					// this way the metadata files are in the same location
+					// if it is UploadProject or UploadProjectApp
+					FileUtils.copyFileToDirectory(f, finalProjectFolderF, true);
+				}
+			}
 			logger.info(step + ") Done");
+
 			step++;
-			// move smss file
+			// move smss file which would have been already copied into the project folder 
 			logger.info(step + ") Moving smss file");
-			File tempUnzippedSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
-					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
-			FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
+			File tempUnzippedSmssF = new File(Utility.normalizePath(
+					finalProjectFolderF + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
+			FileUtils.moveFile(tempUnzippedSmssF, finalProjectSmssF);
 			logger.info(step + ") Done");
 			step++;
 
