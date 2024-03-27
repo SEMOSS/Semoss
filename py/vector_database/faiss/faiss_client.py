@@ -1,26 +1,37 @@
-from typing import List, Dict, Union, Optional, Any, Tuple
-from datasets import Dataset, concatenate_datasets, load_dataset, disable_caching, Value
+from typing import (
+    List, 
+    Dict, 
+    Union, 
+    Optional, 
+    Any, 
+    Tuple
+)
+from datasets import (
+    Dataset, 
+    concatenate_datasets, 
+    load_dataset, 
+    disable_caching, 
+    Value
+)
+
 import pandas as pd
 import faiss
 import numpy as np
-from ..encoders import *
 import pickle
 import os
 import glob
-from genai_client.tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+
+# CFG/SEMOSS packages
+from genai_client import HuggingfaceTokenizer
 import gaas_gpt_model as ggm
 from ..constants import ENCODING_OPTIONS
 from logging_config import get_logger
-from threading import current_thread
-
 
 class FAISSSearcher():
     '''
     The primary class for a faiss database classes and searching document embeddings
     '''
-
-    datasetType = 'datasets'
-
+    
     def __init__(
         self, 
         embeddings_engine,
@@ -30,9 +41,6 @@ class FAISSSearcher():
         base_path = None,
         reranker="BAAI/bge-reranker-base"
     ):
-        # if df is None and ds is None:
-        #  return "Both dataframe and dataset cannot be none"
-
         self.init_device()
         self.ds = None
 
@@ -48,26 +56,25 @@ class FAISSSearcher():
 
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
         self.default_sort_direction = False if self.metric_type_is_cosine_similarity else True
-        
-        # disable reranking by default
-        # do this while checking it in
-        self.rerank = False
+               
+        self.rerank = False                      # disable reranking by default
         self.reranker_model = None
         self.reranker_gaas_model = None
         self.reranker_tok = None
         self.reranker = reranker
         
-        # disable caching within the shell so that engines can be exported
-        disable_caching()
+       
+        disable_caching()                        # disable caching within the shell so that engines can be exported
         
         self.class_logger = get_logger(__name__)
 
     def __getattr__(self, name: str):
+        '''Retrieve attribute from object's dictionary.'''
         return self.__dict__[f"_{name}"]
   
     def __setattr__(self, name:str, value:Any):
         '''
-        Enfore types for specific attributes
+        Assign a value to a named attribute and enforce correct data type before assignment.
         '''
         if name == 'encoded_vectors' or value != None:
             if name in ['ds']:
@@ -91,15 +98,28 @@ class FAISSSearcher():
    
     def _concatenate_columns(
         self, 
-        row, 
-        columns_to_index=None, 
-        target_column=None, 
-        separator="\n"
-    ) -> Dict:
+        row:Dict[str, Any], 
+        target_column:str, 
+        columns_to_index:List[str] = None,
+        separator:str = "\n"
+    ) -> Dict[str, str]:
         text = ""
+        '''
+        Given a set of Index Classes, find the closest match(es) using FAISSearcher.nearestNeighbor across all index classes.
+
+        Args:
+            row (`Dict[str, Any]`): A row dictionary in a dataset
+            results (`Optional[Union[int, None]]`): The column name or key for the concatenated column values
+            columns_to_index (`List[str]`): A list containing the column names to be concatenated
+            separator (`str`): The value to separate the concatenated values by
+        
+        Return:
+            `Dict[str, str]` A dictionary containing the new column name as the key and the concatenated columns as a the value.
+        '''
         for col in columns_to_index:
             text += str(row[col])
             text += separator
+            
         return {target_column : text}
     
     def init_device(self):
@@ -107,12 +127,7 @@ class FAISSSearcher():
         Utility method to determine whether or not the devie running the interpreter has a gpu
         '''
         import torch
-        if torch.cuda.is_available():       
-            self.device = torch.device("cuda")
-            #print("Using GPU.")
-        else:
-            #print("No GPU available, using the CPU instead.")
-            self.device = torch.device("cpu")
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     
     def nearestNeighbor(
         self, 
@@ -123,7 +138,7 @@ class FAISSSearcher():
         columns_to_return: Optional[List[str]] = None, 
         return_threshold: Optional[Union[int,float]] = 1000, 
         ascending : Optional[bool] = None,
-        total_results: Optional[int] = 10 # this is used for reranking
+        total_results: Optional[int] = 10                       # this is used for reranking
     ) -> List[Dict]:
         '''
         Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
@@ -131,6 +146,10 @@ class FAISSSearcher():
         Args:
         question(`str`):
             The string you are trying to match against the embedded documents
+        insight_id(`str`):
+            The unique identifier of the insight from which the call is being made
+        filter(`str`):
+            A SQL filter to find the appropriate indexes before executing the semantic search
         results(`Optional[int]`, *optional*):
             The number of matches under the threshold that will be returned
         columns_to_return(`List[str]`):
@@ -176,10 +195,6 @@ class FAISSSearcher():
         if(columns_to_return is None):
             columns_to_return = list(self.ds.features)
 
-        # make sure the encoder class is loaded and get the embeddings (vector) for the tokens
-        # search_vector = self.embeddings_engine.get_embeddings([question])
-        # query_vector = np.array([search_vector])
-
         search_vector = self.embeddings_engine.embeddings(
             strings_to_embed = [question], 
             insight_id = insight_id
@@ -189,11 +204,11 @@ class FAISSSearcher():
         assert query_vector.shape[0] == 1
 
         # check to see if need to normalize the vector
-        if isinstance(self.tokenizer, HuggingfaceTokenizer) or self.metric_type_is_cosine_similarity:
+        if isinstance(self.tokenizer, HuggingfaceTokenizer):
             faiss.normalize_L2(query_vector)
 
         # perform the faiss search. Scores returned are Euclidean distances
-        # euclidean_distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
+        # distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
         # ann_index - the index location of the Approximate Nearest Neighbor (ANN)
 
         if not isinstance(results, int):
@@ -206,77 +221,78 @@ class FAISSSearcher():
         if filter != None:
             filter_ids = self._filter_dataset(filter)
             id_selector = faiss.IDSelectorArray(filter_ids)
-            euclidean_distances, ann_index = self.index.search(
+            distances, ann_index = self.index.search(
                 query_vector, 
                 k = total_results, 
                 params=faiss.SearchParametersIVF(sel=id_selector)
             )
         else:
-            euclidean_distances, ann_index = self.index.search( 
+            distances, ann_index = self.index.search( 
                 query_vector, 
                 k = total_results
             )
 
-        euclidean_distances = euclidean_distances[0]
+        distances = distances[0]
         ann_index = ann_index[0]
 
         if self.rerank:
-          final_output = self.do_rerank(question=question, 
-          euclidean_distances=euclidean_distances, 
-          ann_index=ann_index, 
-          result_count=results, 
-          columns_to_return=columns_to_return, 
-          ascending=ascending)
-          return final_output
+            final_output = self.do_rerank(
+                question=question, 
+                distances=distances, 
+                ann_index=ann_index, 
+                result_count=results, 
+                columns_to_return=columns_to_return, 
+                ascending=ascending
+            )
+            
+            return final_output
 
-        else:
-          # this is a safety check to make sure we are only returning good vectors if the limit was too high
-          if self.vector_dimensions[0] < results:
-              # Find the index of the first occurrence of -1
-              index_of_minus_one = np.where(ann_index == -1)[0]
-              # If -1 is not found, index_of_minus_one will be an empty array
-              # In that case, we keep the original array, otherwise, we slice it
-              if len(index_of_minus_one) > 0:
-                  ann_index = ann_index[:index_of_minus_one[0]]
-                  euclidean_distances = euclidean_distances[:index_of_minus_one[0]]
+    
+        # this is a safety check to make sure we are only returning good vectors if the limit was too high
+        if self.vector_dimensions[0] < results:
+            # Find the index of the first occurrence of -1
+            index_of_minus_one = np.where(ann_index == -1)[0]
+            # If -1 is not found, index_of_minus_one will be an empty array
+            # In that case, we keep the original array, otherwise, we slice it
+            if len(index_of_minus_one) > 0:
+                ann_index = ann_index[:index_of_minus_one[0]]
+                distances = distances[:index_of_minus_one[0]]
 
-          # create the data
-          samples_df = pd.DataFrame(
-              {
-                  'distances': euclidean_distances, 
-                  'ann': ann_index
-              }
-          )
-          samples_df.sort_values(
-              "distances", 
-              ascending = (ascending if ascending is not None else self.default_sort_direction), 
-              inplace=True
-          )
-          samples_df = samples_df[samples_df['distances'] <= return_threshold]
+        # create the return data
+        samples_df = pd.DataFrame(
+            {
+                'distances': distances, 
+                'ann': ann_index
+            }
+        )
+           
+        samples_df.sort_values(
+            "distances", 
+            ascending = (ascending if ascending is not None else self.default_sort_direction), 
+            inplace=True
+        )
+        samples_df = samples_df[samples_df['distances'] <= return_threshold]
       
-          # create the response payload by adding the relevant columns from the dataset
-          final_output = []
-          
-          # see if rerank is enabled
-          # if so run through reranking this
-          # and then limit to the final result 
-          
-          for _, row in samples_df.iterrows():
-              output = {}
-              output.update({'Score' : row['distances']})
-              data_row = self.ds[int(row['ann'])]
-              for col in columns_to_return:
-                  output.update({col:data_row[col]})
-              final_output.append(output)
+        # create the response payload by adding the relevant columns from the dataset
+        final_output = []
         
-          return final_output
+        # see if rerank is enabled
+        # if so run through reranking this
+        # and then limit to the final result 
+        
+        for _, row in samples_df.iterrows():
+            output = {}
+            output.update({'Score' : row['distances']})
+            data_row = self.ds[int(row['ann'])]
+            for col in columns_to_return:
+                output.update({col:data_row[col]})
+            final_output.append(output)
+    
+        return final_output
     
     def _filter_dataset(self, filter:str) -> List[int]:
-        if isinstance(self.ds, Dataset):
-            filterDf = self.ds.to_pandas()
-        else:
-            filterDf = self.ds
-
+        filterDf = self.ds.to_pandas()
+        
         return filterDf.query(filter).index.to_list()
 
     def load_dataset(
@@ -300,7 +316,7 @@ class FAISSSearcher():
         dataset_location:str
     ) -> Union[Dataset, pd.DataFrame]:
         '''
-        Internal method to load the dataset based on its file type
+        Internal method to load the dataset based on its file type.
 
         Args:
         dataset_location(`str`):
@@ -309,8 +325,14 @@ class FAISSSearcher():
         Returns:
         `None`
         '''
-        if (dataset_location.endswith('.csv')):
-            if (FAISSSearcher.datasetType == 'pandas'):
+        if (dataset_location.endswith('.csv')):  
+            try:  
+                loaded_dataset = Dataset.from_csv(
+                    path_or_paths = dataset_location, 
+                    encoding ='iso-8859-1',
+                    keep_in_memory = True
+                )
+            except:
                 for encoding in ENCODING_OPTIONS:
                     try:
                         temp_df = pd.read_csv(dataset_location, encoding = encoding)
@@ -322,27 +344,7 @@ class FAISSSearcher():
                         continue
                 else:
                     # The else clause is executed if the loop completes without encountering a break
-                    raise Exception("Unable to read the file with any of the specified encodings")
-            else:   
-                try:  
-                    loaded_dataset = Dataset.from_csv(
-                        path_or_paths = dataset_location, 
-                        encoding ='iso-8859-1',
-                        keep_in_memory = True
-                    )
-                except:
-                    for encoding in ENCODING_OPTIONS:
-                        try:
-                            temp_df = pd.read_csv(dataset_location, encoding = encoding)
-                            loaded_dataset = Dataset.from_pandas(
-                                temp_df
-                            )
-                            break
-                        except:
-                            continue
-                    else:
-                        # The else clause is executed if the loop completes without encountering a break
-                        raise Exception("Unable to read the file with any of the specified encodings")  
+                    raise Exception("Unable to read the file with any of the specified encodings")  
 
         elif (dataset_location.endswith('.pkl')):
             with open(dataset_location, "rb") as file:
@@ -350,13 +352,9 @@ class FAISSSearcher():
         else:
             raise ValueError("Dataset creation for provided file type has not been defined")
     
-        assert isinstance(loaded_dataset, (Dataset, pd.DataFrame))
+        assert isinstance(loaded_dataset, Dataset)
         
-        if (FAISSSearcher.datasetType == 'pandas'):
-            dataset_columns = loaded_dataset.columns
-        else:
-            # Dataset
-            dataset_columns = list(loaded_dataset.features)
+        dataset_columns = list(loaded_dataset.features)
         
         extracted_with_cfg = all(col in dataset_columns for col in ['Source','Divider', 'Part', 'Tokens','Content'])
         if isinstance(loaded_dataset, Dataset) and extracted_with_cfg:
@@ -371,7 +369,15 @@ class FAISSSearcher():
             new_features["Part"] = Value(dtype='string', id=None)
             new_features["Tokens"] = Value(dtype='int64', id=None)
             new_features["Content"] = Value(dtype='string', id=None)
-            loaded_dataset = loaded_dataset.cast(new_features)
+            
+            try:
+                loaded_dataset = loaded_dataset.cast(new_features, keep_in_memory=True)
+            except AttributeError:
+                # This catch is required due to a version change in the datasets package
+                # Previously, there was no attribute called _batches which is required with the new `cast` method. This is missing from the pickle file
+                # The solution is to reconstruct the dataset from a pandas frame
+                loaded_dataset = Dataset.from_pandas(loaded_dataset.to_pandas())
+                loaded_dataset = loaded_dataset.cast(new_features, keep_in_memory=True)
                 
         elif isinstance(loaded_dataset, pd.DataFrame) and extracted_with_cfg:
             if 'Modality' not in dataset_columns:
@@ -424,8 +430,7 @@ class FAISSSearcher():
             self.index = faiss.index_factory(self.vector_dimensions[1], "Flat", faiss.METRIC_INNER_PRODUCT)
         else:
             self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
-        # if isinstance(self.embeddings_engine, HuggingfaceTokenizer):
-        #   faiss.normalize_L2(self.encoded_vectors)
+
         self.index.add(self.encoded_vectors)
 
     def _load_encoded_vectors(
@@ -449,6 +454,7 @@ class FAISSSearcher():
                 encoded_vectors = pickle.load(file)
 
         assert isinstance(encoded_vectors, np.ndarray)
+        
         return encoded_vectors
 
     def save_encoded_vectors(
@@ -482,10 +488,7 @@ class FAISSSearcher():
         Returns:
         `Union[Dataset, pd.DataFrame]`
         '''
-        if (FAISSSearcher.datasetType == 'pandas'):
-            return pd.concat(datasets, axis=1, verify_integrity=True)
-        else:
-            return concatenate_datasets(datasets)
+        return concatenate_datasets(datasets)
 
     def addDocumet(
         self, 
@@ -507,6 +510,8 @@ class FAISSSearcher():
         Args:
         documentFileLocation(`List[str]`):
             A list of document file location to create embeddings from
+        insight_id(`str`):
+            The unique identifier of the insight from which the call is being made
         columns_to_index(`List[str]`):
             A list of column names to create the index from. These columns will be concatenated.
         columns_to_remove(`List[str]`):
@@ -519,7 +524,7 @@ class FAISSSearcher():
             A dictionary containing the keyword search parameters
 
         Returns:
-        `None`
+            `Dict` A dictionary listing which documents have been successfully created
         '''        
         # make sure they are all in indexed_files dir
         assert {os.path.basename(os.path.dirname(path)) for path in documentFileLocation} == {'indexed_files'}
@@ -527,7 +532,6 @@ class FAISSSearcher():
         # create a list of the documents created so that we can push the files back to the cloud
         createDocumentsResponse = {
             'createdDocuments':[],
-            'documentsWithLargerChunks': {}
         }
     
         # loop through and embed new docs
@@ -571,10 +575,6 @@ class FAISSSearcher():
                     dataset = dataset.remove_columns(column_names= target_column)
                     dataset = dataset.add_column(target_column, keywords_for_target_col)
 
-                # need to check that the chunks are not greater than what the tokenizer can handle
-                chunks_with_larger_tokens = self._check_chunks_token_size(dataset[target_column])
-                createDocumentsResponse['documentsWithLargerChunks'][document] = chunks_with_larger_tokens
-
                 # get the embeddings for the document
                 #vectors = self.embeddings_engine.get_embeddings(dataset[target_column])
                 vectors = self.embeddings_engine.embeddings(
@@ -595,7 +595,7 @@ class FAISSSearcher():
                 createDocumentsResponse['createdDocuments'].append(new_file_path)
                 
                 # normalize the vectors if using huggingface
-                if isinstance(self.tokenizer, HuggingfaceTokenizer) or self.metric_type_is_cosine_similarity:
+                if isinstance(self.tokenizer, HuggingfaceTokenizer):
                     faiss.normalize_L2(vectors)
 
                 # write out the vectors with the same file name
@@ -655,10 +655,27 @@ class FAISSSearcher():
         self,
         path_to_files: str,
         delete: bool = True
-    ) -> Dict:
-        # Path to the directory containing the files
-        #'C:/Users/ttrankle/Documents/Semoss/Client Work/MDE/cases/6B04BF9F-904E-4B2A-A97B-16D54E3F89DF__5fc5b497-4ea9-4369-b293-59d774b15697/'
+    ) -> Tuple:
+        '''
+        This method aims to validate the existing dataset and vector files and create new ones if necessary. It takes the path to the files and a boolean to determine if corrupted files should be deleted.
 
+        The function operates by locating and loading all PDF files within a specified directory. After which it checks for corresponding CSV, dataset and vector files.
+
+        In case dataset or vector files are found to be missing or corrupted, the method attempts to recreate them from the available CSV file, else it records the files under corrupted sets.
+
+        Only documents with valid and verified dataset and vector files are stored for analysis or further usage.
+
+        The function will additionally delete all identified corrupted files if delete is set to True. The final result is the list of created file paths, corrupted documents and the file data sets that were identified as corrupted.
+        
+        Args:
+        path_to_files(`str`):
+            The folder location of the index class/collection e.g. schema/default
+
+        Returns `Tuple`: A tuple containing created_documents, corrupted_docs, corrupted_file_sets
+            - created_documents is a `List[str]` containing the names master files names for files created during the validation process
+            - corrupted_docs is a `Dict[str, str]` with the source document as the key and the read error of the dataset or vectors as the value
+            - corrupted_file_sets is a `List[Tuple]` with the csv, dataset, vector and source files paths for corrupted sets
+        '''
         documents_files_path = os.path.join(path_to_files, 'documents')
         indexed_files_path = os.path.join(path_to_files, 'indexed_files')
 
@@ -666,9 +683,9 @@ class FAISSSearcher():
         source_documents = glob.glob(os.path.join(documents_files_path, "*"))
 
         valid_datasets_and_vectors = []
-        corrupted_file_sets = []
-        corrupted_docs = {}
-        created_documents = []
+        corrupted_file_sets:List[Tuple] = []
+        corrupted_docs:Dict[str, str] = {}
+        created_documents:List[str] = []
         
         for full_source_path in source_documents:
             # get the basename of the file
@@ -771,33 +788,29 @@ class FAISSSearcher():
     def removeCorruptedFiles(
         self,
         path_to_files: str
-    ) -> Dict:
+    ) -> List[Tuple]:
+        '''
+        Check the vector index class/ collection for corrupted files and recreate the master files.
+        
+        Args:
+        path_to_files(`str`):
+            The folder location of the index class/collection e.g. schema/default
+            
+        Returns `List[Tuple]`: A list of tuples containing the csv, dataset, vector and source files paths for corrupted sets
+        '''
         corrupted_files = self._validateEmbeddingFiles(
             path_to_files=path_to_files,
         )[1]
         
         return corrupted_files
-
-    def _check_chunks_token_size(
-        self, 
-        strings_to_embed:List[str]
-    ):
-        max_token_length = self.tokenizer.get_max_token_length()
-        number_of_chunks = len(strings_to_embed)
-        chunks_with_higher_tokens = []
-        for i in range(number_of_chunks):
-            chunk =  strings_to_embed[i]
-            tokens_in_chunk = self.tokenizer.count_tokens(chunk)
-            if (tokens_in_chunk > max_token_length):
-                chunks_with_higher_tokens.append(i)
-    
-        return chunks_with_higher_tokens
     
     def datasetsLoaded(
         self
     ) -> bool:
         '''
         Check if data was loaded in from the csv
+        
+        Returns `bool`
         '''
         if (self.ds == None) or (list(self.ds.features) == []) or (len(list(self.ds.features)) == 0) or (self.ds.num_rows == 0):
             return False
@@ -807,81 +820,85 @@ class FAISSSearcher():
 
     def do_rerank(self,
         question: str,
-        euclidean_distances: list,
-        ann_index: list,
+        distances: List,
+        ann_index: List[int],
         result_count: int,
         columns_to_return: Optional[List[str]] = None,
         ascending : Optional[bool] = None
-      ):
-      # reranks based on an algorithm and then finds 
+    ):
+    # reranks based on an algorithm and then finds 
       
       
-      if self.reranker_gaas_model is None:
-        self.init_reranker()
+        if self.reranker_gaas_model is None:
+            self.init_reranker()
 
       
-      samples_df = pd.DataFrame(
-        {
-            'distances': euclidean_distances, 
-            'ann': ann_index
-        }
-      )
+        samples_df = pd.DataFrame(
+            {
+                'distances': distances, 
+                'ann': ann_index
+            }
+        )
       
-      #samples_df.sort_values(
-      #    "distances", 
-      #    ascending = (ascending if ascending is not None else self.default_sort_direction), 
-      #    inplace=True
-      #)
-      #samples_df = samples_df[samples_df['distances'] <= return_threshold]
-      # self.class_logger.warning(f"Return length is set to {len(euclidean_distances)}", extra={"stack": "BACKEND"})
-  
-      # create the response payload by adding the relevant columns from the dataset
-      result_chunks = []
-      
-      # see if rerank is enabled
-      # if so run through reranking this
-      # and then limit to the final result 
-      final_output = []
-      
-      reranker_call_success = True
-      for _, row in samples_df.iterrows():
-        output = {}
-        output.update({'Score' : row['distances']})
-        data_row = self.ds[int(row['ann'])]
-        #self.class_logger.warning(f"Row to pick {int(row['ann'])}", extra={"stack": "BACKEND"})
-        #self.class_logger.warning(f"[{str(data_row['Content'])}]", extra={"stack": "BACKEND"})
-        for col in columns_to_return:
-            #self.class_logger.warning(f"{col} {data_row[col]}", extra={"stack": "BACKEND"})
-            output.update({col:data_row[col]})
-        # this is not pythonic but let us try this for now
-        #self.class_logger.warning(question, extra={"stack": "BACKEND"})
-        try:
-            if 'Content' in data_row.keys():
-                content = data_row['Content']
-            else:
-                content = " ".join([str(val) for val in data_row.values()])
-                
-            score = self.cross_encode(
-                [[question, content]]
-            )
-            output.update({'Sim': score})
-        except:
-            reranker_call_success = False
+        #samples_df.sort_values(
+        #    "distances", 
+        #    ascending = (ascending if ascending is not None else self.default_sort_direction), 
+        #    inplace=True
+        #)
+        #samples_df = samples_df[samples_df['distances'] <= return_threshold]
+        # self.class_logger.warning(f"Return length is set to {len(distances)}", extra={"stack": "BACKEND"})
+    
+        # create the response payload by adding the relevant columns from the dataset
+        result_chunks = []
         
-        final_output.append(output)
+        # see if rerank is enabled
+        # if so run through reranking this
+        # and then limit to the final result 
+        final_output = []
+        
+        reranker_call_success = True
+        for _, row in samples_df.iterrows():
+            output = {}
+            output.update({'Score' : row['distances']})
+            data_row = self.ds[int(row['ann'])]
+            
+            self.class_logger.info(f"Row to pick {int(row['ann'])}", extra={"stack": "BACKEND"})
+            self.class_logger.info(f"[{str(data_row['Content'])}]", extra={"stack": "BACKEND"})
+            
+            for col in columns_to_return:
+                #self.class_logger.warning(f"{col} {data_row[col]}", extra={"stack": "BACKEND"})
+                output.update({col:data_row[col]})
+                
+            # this is not pythonic but let us try this for now
+            #self.class_logger.warning(question, extra={"stack": "BACKEND"})
+            try:
+                if 'Content' in data_row.keys():
+                    content = data_row['Content']
+                else:
+                    content = " ".join([str(val) for val in data_row.values()])
+                    
+                score = self.cross_encode(
+                    [[question, content]]
+                )
+                
+                output.update({'Sim': score})
+            except:
+                reranker_call_success = False
+            
+            final_output.append(output)
 
-      # sort this by sim score
-      if reranker_call_success:
-        new_output = sorted(final_output, key=lambda x : x['Sim'], reverse=True)
-      else:
-        new_output = final_output
-      
-      # filter to the top x
-      new_output = new_output[:result_count]
+        # sort this by sim score
+        if reranker_call_success:
+            new_output = sorted(final_output, key=lambda x : x['Sim'], reverse=True)
+        else:
+            new_output = final_output
+        
+        # filter to the top x
+        new_output = new_output[:result_count]
 
-      return new_output
- 
-      # now comes the reranker 
+        return new_output
+    
+        # now comes the reranker 
     
     def cross_encode(self,
         pair: List[str]
@@ -889,7 +906,5 @@ class FAISSSearcher():
         return self.reranker_gaas_model.model(input=pair)
     
     def init_reranker(self):
-      # local model
-      #self.reranker_gaas_model = ggm.ModelEngine(model_engine=reranker, local=True)
-      self.reranker_gaas_model = ggm.ModelEngine(engine_id="30991037-1e73-49f5-99d3-f28210e6b95c12")
+        self.reranker_gaas_model = ggm.ModelEngine(engine_id="30991037-1e73-49f5-99d3-f28210e6b95c12")
       
