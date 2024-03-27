@@ -4,7 +4,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IReactorEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
 public class FunctionReactor extends AbstractReactor {
@@ -20,7 +19,7 @@ public class FunctionReactor extends AbstractReactor {
 		// TODO Auto-generated method stub
 		String engineId = this.store.getNoun(keysToGet[0]).get(0) + "";
 		
-		IEngine engine = Utility.getFunctionEngine(engineId);
+		IEngine engine = Utility.getReactorEngine(engineId);
 		NounMetadata retData = null;
 		if(engine instanceof IReactorEngine)
 		{
