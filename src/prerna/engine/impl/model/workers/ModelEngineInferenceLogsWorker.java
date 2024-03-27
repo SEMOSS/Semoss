@@ -23,14 +23,14 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String messageMethod;
     private AbstractModelEngine engine;
     private Insight insight;
+    private String context;
     private String prompt;
     private Object fullPrompt;
-    private String context;
+    private Integer promptTokens;
     private ZonedDateTime inputTime;
     private String response;
-    private ZonedDateTime responseTime;
-    private Integer promptTokens;
     private Integer responseTokens;
+    private ZonedDateTime responseTime;
     
     public ModelEngineInferenceLogsWorker(
 		String messageId, 
