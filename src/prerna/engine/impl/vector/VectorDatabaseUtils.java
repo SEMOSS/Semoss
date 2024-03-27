@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
@@ -41,6 +42,7 @@ public class VectorDatabaseUtils {
 		classLogger.info("Processing file : " + file.getName());
 		
 		// process this file
+		String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
 		String mimeType = null;
 		
 		//using tika for mime type check since it is more consistent across env + rhel OS and macOS
@@ -54,7 +56,12 @@ public class VectorDatabaseUtils {
 		
 		if(mimeType != null) {
 			classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-			if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+			if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+					|| (
+							mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
+							&& (filetype.equals("doc") || filetype.equals("docx")) 
+							)
+					)
 			{
 				// document
 				DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
