@@ -112,8 +112,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					engine.getModelType().toString(), user.getPrimaryLoginToken().getId());
 		}
 		
-		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId) && this.messageMethod.equals("ask")) {
-			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
+			String roomName = null;
+			if (this.messageMethod.equals("ask")) {
+				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+			}
 		
 			ModelInferenceLogsUtils.doCreateNewConversation(
 				insightId, 
