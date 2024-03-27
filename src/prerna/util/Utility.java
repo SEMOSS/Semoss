@@ -6220,6 +6220,15 @@ public class Utility {
 	 */
 	public static ZonedDateTime getCurrentZonedDateTimeUTC() {
 		ZonedDateTime zdt = ZonedDateTime.now();
+		return convertZonedDateTimeToUTC(zdt);
+	}
+	
+	/**
+	 * 
+	 * @param zdt
+	 * @return
+	 */
+	public static ZonedDateTime convertZonedDateTimeToUTC(ZonedDateTime zdt) {
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return gmt;
 	}

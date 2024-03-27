@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -392,7 +393,7 @@ public class ModelInferenceLogsUtils {
 									   String sessionId,
 									   String userId,
 									   String userName) {
-		LocalDateTime dateCreated = LocalDateTime.now();
+		ZonedDateTime dateCreated = ZonedDateTime.now();
 		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated, agentId, insightId, sessionId, userId, userName);
 	}
 	
@@ -402,12 +403,16 @@ public class ModelInferenceLogsUtils {
 									   String messageMethod,
 									   Integer tokenSize,
 									   Double reponseTime,
-									   LocalDateTime dateCreated,
+									   ZonedDateTime dateCreated,
 									   String agentId,
 									   String insightId,
 									   String sessionId,
 									   String userId,
 									   String userName) {
+		
+		// convert the time to UTC 
+		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
+		
 		// boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
 			+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID, USER_NAME) " + 
@@ -430,7 +435,7 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setDouble(index++, reponseTime);
-			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreated));
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
 			ps.setString(index++, agentId);
 			ps.setString(index++, insightId);
 			ps.setString(index++, sessionId);
