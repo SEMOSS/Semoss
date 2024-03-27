@@ -24,7 +24,17 @@ def extract_page_number(input_string):
     else:
         raise ValueError("No integer found in the string.")
             
-def find_keyword_indices(sentences, keywords):
+def find_keyword_indices(sentences: List[str], keywords):
+    '''
+    This function takes a list of sentences and a list of keywords as inputs, and returns a list of indices in which the keywords occurred along with the sentences with all keywords removed.
+
+    Args:
+        sentences (List[str]): A list of sentences.
+        keywords (List[str]): A list of keywords to find in sentences.
+
+    Returns:
+        list[tuple]: A tuple with a list of indices where keywords occurred and a list of sentences with all keywords removed.
+    '''
     from ordered_set import OrderedSet
 
     keyword_indices = []
@@ -125,7 +135,6 @@ def split_text_recursively(
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     
     length_function = cfg_tokenizer.count_tokens if chunk_unit == 'tokens' else len
-    
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
