@@ -1,7 +1,7 @@
 package prerna.engine.impl.model.workers;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import com.google.gson.Gson;
 
@@ -26,9 +26,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     private String prompt;
     private Object fullPrompt;
     private String context;
-    private LocalDateTime inputTime;
+    private ZonedDateTime inputTime;
     private String response;
-    private LocalDateTime responseTime;
+    private ZonedDateTime responseTime;
     private Integer promptTokens;
     private Integer responseTokens;
     
@@ -41,10 +41,10 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	String prompt,
 	   	Object fullPrompt,
 	   	Integer promptTokens,
-	   	LocalDateTime inputTime,
+	   	ZonedDateTime inputTime,
 	   	String response,
 	   	Integer responseTokens,
-	   	LocalDateTime responseTime
+	   	ZonedDateTime responseTime
 	) {
     	this.messageId = messageId;
     	this.messageMethod = messageMethod;
