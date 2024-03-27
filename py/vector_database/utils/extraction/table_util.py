@@ -23,6 +23,8 @@ class TableUtil:
 
   def __init__(self, target_folder=None):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    ## TODO - NEED TO SHARE THIS ACROSS PYTHON PROCESSES
     self.structure_recognizer = pipeline(
         pipeline_type="object-detection", 
         model="microsoft/table-transformer-structure-recognition", 
@@ -166,6 +168,7 @@ class TableUtil:
     #pil_image = result
     #img = cv2.imread(img_path)
     img = cv2.cvtColor(numpy.array(pil_image), cv2.COLOR_RGB2BGR)
+    return None
     result = self.table_engine(img)
     save_structure_res(result, target_folder, image_name)
     # try to get the headers and save the column names as metadata
