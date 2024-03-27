@@ -2,7 +2,7 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,9 +84,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 		
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
-		LocalDateTime inputTime = LocalDateTime.now();
+		ZonedDateTime inputTime = ZonedDateTime.now();
 		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, insight, parameters);
-		LocalDateTime outputTime = LocalDateTime.now();
+		ZonedDateTime outputTime = ZonedDateTime.now();
 				
 		askModelResponse.setMessageId(UUID.randomUUID().toString());
 		askModelResponse.setRoomId(insight.getInsightId());
@@ -130,9 +130,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters) {		
 		classLogger.info("Making embeddings call on engine " + this.engineId);
 
-		LocalDateTime inputTime = LocalDateTime.now();
+		ZonedDateTime inputTime = ZonedDateTime.now();
 		EmbeddingsModelEngineResponse embeddingsResponse = embeddingsCall(stringsToEmbed, insight, parameters);
-		LocalDateTime outputTime = LocalDateTime.now();
+		ZonedDateTime outputTime = ZonedDateTime.now();
 
 		classLogger.info("Embeddings Received from engine " + this.engineId);
 	
@@ -170,9 +170,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	@Override
 	public Object model(Object input, Insight insight, Map <String, Object> parameters) {		
-		LocalDateTime inputTime = LocalDateTime.now();
+		ZonedDateTime inputTime = ZonedDateTime.now();
 		Object modelCallResponse = modelCall(input, insight, parameters);
-		LocalDateTime outputTime = LocalDateTime.now();
+		ZonedDateTime outputTime = ZonedDateTime.now();
 	
 		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
