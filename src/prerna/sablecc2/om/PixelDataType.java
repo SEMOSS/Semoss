@@ -83,6 +83,10 @@ public enum PixelDataType {
 	R_ENGINE("R_ENGINE", null),
 	
 	STORAGE("STORAGE", ReactorKeysEnum.STORAGE),
+	
+	MODEL("MODEL", ReactorKeysEnum.MODEL),
+	
+	VECTORDB("VECTORDB", ReactorKeysEnum.VECTORDB),
 
 	EMAIL_SESSION("EMAIL_SESSION", ReactorKeysEnum.EMAIL_SESSION),
 	
