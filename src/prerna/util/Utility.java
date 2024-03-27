@@ -3222,7 +3222,26 @@ public class Utility {
 	 * @param engineId
 	 * @return
 	 */
-	public static IReactorEngine getFunctionEngine(String engineId) {
+	public static IReactorEngine getReactorEngine(String engineId) {
+		return getReactorEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IReactorEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
+		return (IReactorEngine) baseGetEngine(engineId, pullIfNeeded);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IFunctionEngine getFunctionEngine(String engineId) {
 		return getFunctionEngine(engineId, true);
 	}
 	
@@ -3232,8 +3251,8 @@ public class Utility {
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IReactorEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
-		return (IReactorEngine) baseGetEngine(engineId, pullIfNeeded);
+	public static IFunctionEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
+		return (IFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**

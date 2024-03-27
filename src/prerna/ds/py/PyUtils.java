@@ -361,7 +361,7 @@ public class PyUtils {
     	return theDict.toString();
     }
     
-    /* This is basically a utility method that attemps to generate the python code (string) for a java object.
+    /* This is basically a utility method that attempts to generate the python code (string) for a java object.
 	 * It currently only does base types.
 	 * Potentially move it in the future but just keeping it here for now
 	*/
