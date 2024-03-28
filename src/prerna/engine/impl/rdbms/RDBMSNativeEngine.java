@@ -48,10 +48,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
-import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.TupleQueryResult;
 
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -539,77 +535,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public Vector<Object> getEntityOfType(String type)
-	{
-		String table; // table in RDBMS
-		String column; // column of table in RDBMS
-		String query;
-
-		// ugh... for legacy stuff, we do not have the table name on the property
-		// so we need to do the check that the type is not "contains"
-		if(type.contains("http://semoss.org/ontologies") && !Utility.getClassName(type).equals("Contains")){
-			// we are dealing with the physical uri which is in the form ...Concept/Column/Table
-			query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
-		}
-		else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
-			String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
-			TupleQueryResult ret = (TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
-			String conceptURI = null;
-			try {
-				if(ret.hasNext()){
-					BindingSet row = ret.next();
-					conceptURI = row.getBinding("concept").getValue().toString();
-				}
-			} catch (QueryEvaluationException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
-		}
-		else if(type.contains(":")) {
-			int tableStartIndex = type.indexOf("-") + 1;
-			int columnStartIndex = type.indexOf(":") + 1;
-			table = type.substring(tableStartIndex, columnStartIndex - 1);
-			column = type.substring(columnStartIndex);
-			query = "SELECT DISTINCT " + column + " FROM " + table;
-		} else {
-			query = "SELECT DISTINCT " + type + " FROM " + type;
-		}
-		Connection conn = null;
-		ResultSet rs = null;
-		Statement stmt = null;
-		try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-			rs = getResults(stmt, query);
-			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
-			return columnsFromResult;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			closeConnections(conn,rs,stmt);
-		}
-		return null;
-
-	}
-
-	public Vector<Object> getCleanSelect(String query){
-		Connection conn = null;
-		ResultSet rs = null;
-		Statement stmt = null;
-		try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-			rs = getResults(stmt, query);
-			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
-			return columnsFromResult;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			closeConnections(conn,rs,stmt);	
-		}
-		return null;
-	}
-
 	public Map<String, Object> execQuery(String query) throws SQLException
 	{
 		Map<String, Object> map = new HashMap<>();
@@ -760,34 +685,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
-	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
-	{
-		Vector retVector = new Vector();
-		// each value is an array in itself as well
-		try {
-			while(rs.next())
-			{
-				ArrayList list = new ArrayList();
-				Object output = null;
-				for(int colIndex = 1;colIndex <= columns;colIndex++)
-				{					
-					//					output = rs.getString(colIndex);
-					output = rs.getObject(colIndex);
-					//					System.out.print(rs.getObject(colIndex));
-					list.add(output);
-				}
-				if(columns == 1)
-					retVector.addElement(output);
-				else
-					retVector.addElement(list);
-			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		classLogger.info("Found " + retVector.size() + " elements in result set");
-		return retVector;
-	}
-
 	/**
 	 * Private method that returns a ResultSet object. If you choose to make this method public it make it harder to keep track of the Result set
 	 * object and where you need to explicity close it
@@ -885,73 +782,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
 		conceptIdHash.persistBack();
 		System.out.println("Once committed.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
-	}
-
-	// traverse from a type to a type
-	public String traverseOutputQuery(String fromType, String toType, List <String> fromInstances)
-	{
-		/*
-		 * 1. Get the relation for the type
-		 * 2. For every relation create a join
-		 * 3. If Properties are included get the properties
-		 * 4. Add the properties
-		 * 5. For every, type 
-		 */
-		IQueryInterpreter builder = getQueryInterpreter();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.setEngine(this);
-
-		String fromTableName = Utility.getInstanceName(fromType);
-		String toTableName = Utility.getInstanceName(toType);
-		qs.addSelector(fromTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-		qs.addSelector(toTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-
-		// determine relationship order
-		String relationQuery = "SELECT ?relation WHERE {"
-				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
-				+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
-				+ "}";
-
-		String relationName = getRelation(relationQuery);
-		if(relationName != null && relationName.length() != 0) {
-			qs.addRelation(fromTableName, toTableName, "inner.join");
-		} else {
-			qs.addRelation(toTableName, fromTableName, "inner.join");
-		}
-
-		if(fromInstances != null) {
-			// convert instances to simple instance
-			List<String> simpleFromInstances = new Vector<String>();
-			for(int fromIndex = 0;fromIndex < fromInstances.size();fromIndex++) {
-				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
-			}
-			NounMetadata lComparison = new NounMetadata(fromTableName, PixelDataType.COLUMN);
-			NounMetadata rComparison = new NounMetadata(simpleFromInstances, PixelDataType.CONST_STRING);
-			IQueryFilter simple = new SimpleQueryFilter(lComparison, "==", rComparison);
-			qs.addExplicitFilter(simple);
-		}
-
-		String retQuery = builder.composeQuery();
-		return retQuery;
-	}
-
-	private String getRelation(String query)
-	{
-		String relation = null;
-		try {
-			TupleQueryResult tqr = (TupleQueryResult)execOntoSelectQuery(query);
-			while(tqr.hasNext())
-			{
-				BindingSet bs = tqr.next();
-				relation = bs.getBinding("relation").getValue() + "";
-				if(!relation.equalsIgnoreCase("http://semoss.org/ontologies/Relation"))
-					break;
-			}
-		} catch (QueryEvaluationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		return relation;
 	}
 
 	@Override
@@ -1189,6 +1019,161 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 		
 		return false;
+	}
+	
+	
+	/*
+	 * 
+	 * BELOW METHODS USE RDF JARS
+	 * 
+	 */
+	
+	@Override
+	public Vector<Object> getEntityOfType(String type)
+	{
+		String table; // table in RDBMS
+		String column; // column of table in RDBMS
+		String query;
+
+		// ugh... for legacy stuff, we do not have the table name on the property
+		// so we need to do the check that the type is not "contains"
+		if(type.contains("http://semoss.org/ontologies") && !Utility.getClassName(type).equals("Contains")){
+			// we are dealing with the physical uri which is in the form ...Concept/Column/Table
+			query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
+		}
+		else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
+			String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
+			org.openrdf.query.TupleQueryResult ret = (org.openrdf.query.TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
+			String conceptURI = null;
+			try {
+				if(ret.hasNext()){
+					org.openrdf.query.BindingSet row = ret.next();
+					conceptURI = row.getBinding("concept").getValue().toString();
+				}
+			} catch (org.openrdf.query.QueryEvaluationException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
+		}
+		else if(type.contains(":")) {
+			int tableStartIndex = type.indexOf("-") + 1;
+			int columnStartIndex = type.indexOf(":") + 1;
+			table = type.substring(tableStartIndex, columnStartIndex - 1);
+			column = type.substring(columnStartIndex);
+			query = "SELECT DISTINCT " + column + " FROM " + table;
+		} else {
+			query = "SELECT DISTINCT " + type + " FROM " + type;
+		}
+		Connection conn = null;
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			rs = getResults(stmt, query);
+			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
+			return columnsFromResult;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeConnections(conn,rs,stmt);
+		}
+		return null;
+	}
+	
+	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
+	{
+		Vector retVector = new Vector();
+		// each value is an array in itself as well
+		try {
+			while(rs.next())
+			{
+				ArrayList list = new ArrayList();
+				Object output = null;
+				for(int colIndex = 1;colIndex <= columns;colIndex++)
+				{					
+					//					output = rs.getString(colIndex);
+					output = rs.getObject(colIndex);
+					//					System.out.print(rs.getObject(colIndex));
+					list.add(output);
+				}
+				if(columns == 1)
+					retVector.addElement(output);
+				else
+					retVector.addElement(list);
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		classLogger.info("Found " + retVector.size() + " elements in result set");
+		return retVector;
+	}
+	
+	// traverse from a type to a type
+	public String traverseOutputQuery(String fromType, String toType, List <String> fromInstances)
+	{
+		/*
+		 * 1. Get the relation for the type
+		 * 2. For every relation create a join
+		 * 3. If Properties are included get the properties
+		 * 4. Add the properties
+		 * 5. For every, type 
+		 */
+		IQueryInterpreter builder = getQueryInterpreter();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.setEngine(this);
+
+		String fromTableName = Utility.getInstanceName(fromType);
+		String toTableName = Utility.getInstanceName(toType);
+		qs.addSelector(fromTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+		qs.addSelector(toTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+
+		// determine relationship order
+		String relationQuery = "SELECT ?relation WHERE {"
+				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
+				+ "{?relation <" + org.apache.jena.vocabulary.RDFS.subClassOf + "> <http://semoss.org/ontologies/Relation>}"
+				+ "}";
+
+		String relationName = getRelation(relationQuery);
+		if(relationName != null && relationName.length() != 0) {
+			qs.addRelation(fromTableName, toTableName, "inner.join");
+		} else {
+			qs.addRelation(toTableName, fromTableName, "inner.join");
+		}
+
+		if(fromInstances != null) {
+			// convert instances to simple instance
+			List<String> simpleFromInstances = new Vector<String>();
+			for(int fromIndex = 0;fromIndex < fromInstances.size();fromIndex++) {
+				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
+			}
+			NounMetadata lComparison = new NounMetadata(fromTableName, PixelDataType.COLUMN);
+			NounMetadata rComparison = new NounMetadata(simpleFromInstances, PixelDataType.CONST_STRING);
+			IQueryFilter simple = new SimpleQueryFilter(lComparison, "==", rComparison);
+			qs.addExplicitFilter(simple);
+		}
+
+		String retQuery = builder.composeQuery();
+		return retQuery;
+	}
+
+	private String getRelation(String query)
+	{
+		String relation = null;
+		try {
+			org.openrdf.query.TupleQueryResult tqr = (org.openrdf.query.TupleQueryResult)execOntoSelectQuery(query);
+			while(tqr.hasNext())
+			{
+				org.openrdf.query.BindingSet bs = tqr.next();
+				relation = bs.getBinding("relation").getValue() + "";
+				if(!relation.equalsIgnoreCase("http://semoss.org/ontologies/Relation"))
+					break;
+			}
+		} catch (org.openrdf.query.QueryEvaluationException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return relation;
 	}
 
 }
