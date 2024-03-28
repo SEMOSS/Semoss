@@ -8,6 +8,18 @@ def extract_text(
     target_folder: str,
     output_file_name: str
 ) -> int:
+    '''
+    Extracts text content from a PDF file and saves it to a CSV file.
+
+    Args:
+        source_file_name (`str`): Path to the source PDF file.
+        target_folder (`str`): Path to the folder where extracted items will be saved.
+        output_file_name (`str`): Name of the output CSV file.
+
+    Returns:
+        `int`: Number of rows (text entries) saved to the CSV file.
+    '''
+    
     from .pdf_util import PDFUtil
     
     pdf_extractor = PDFUtil(
