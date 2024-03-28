@@ -118,13 +118,15 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 	                        IModelEngineResponseHandler responseObject = responseType.newInstance();
 	                        
 	                        while ((line = reader.readLine()) != null) {
-	                            if (line.contains("data: [DONE]")) {
+//	                        	System.out.println(line);
+	                            if (line.contains("data: [DONE]")
+	                            		|| line.contains("data:[DONE]")) {
 	                                break;
 	                            }
 	                            
-	                            if (line.startsWith("data: ")) {
+	                            if (line.startsWith("data:")) {
 	                                // Extract JSON part
-	                                String jsonPart = line.substring("data: ".length());
+	                                String jsonPart = line.substring("data:".length()).trim();
 	                                IModelEngineResponseStreamHandler partialObject = new Gson().fromJson(jsonPart, responseObject.getStreamHandlerClass());
 	                                Object partial = partialObject.getPartialResponse();
 	                                
@@ -133,6 +135,8 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 		                                JobManager.getManager().addPartialOut(insightId, partial+"");
 		                                responseAssimilator.append(partial);
 	                                }
+	                            } else if(!line.isEmpty()){
+	                            	classLogger.debug("Found unknown rest model response = " + line);
 	                            }
 	                        }
 	                        responseObject.setResponse(responseAssimilator.toString());
