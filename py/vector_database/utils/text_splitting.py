@@ -81,6 +81,22 @@ def split_text(
     chunking_strategy: Optional[Union[str, List[int]]] = [],
     split_method:Optional[str] = 'recursive' # only recursive for now. I dont think the other are needed
 ) -> None:
+    '''
+    Splits text content in a CSV file into chunks based on specified parameters.
+
+    Args:
+        csv_file_location (`str`): Path to the CSV file containing text data.
+        cfg_tokenizer: Tokenizer object used to count tokens (if chunk_unit is 'tokens').
+        chunk_unit (`str`): Unit for chunk size ('characters' or 'tokens').
+        chunk_size (`int`): Maximum size of each chunk (in tokens or characters).
+        chunk_overlap (`int`): Number of characters/tokens to overlap between chunks.
+        chunking_strategy (`Optional[Union[str, List[int]]]`): Optional strategy for customizing chunking (defaults to splitting all text).
+        split_method (`Optional[str]`): Method for splitting text (currently only supports 'recursive').
+
+    Raises:
+        AssertionError: If chunk_unit is not 'characters' or 'tokens'.
+        Exception: If the CSV file cannot be read with any of the specified encodings.
+    '''
     
     assert chunk_unit in ['characters', 'tokens'], f"Unable to create chunks using {chunk_unit}. Please specify either 'characters' or 'tokens'."
     
@@ -98,6 +114,7 @@ def split_text(
     main_df = main_df.dropna(subset=['Content'])
     main_df.reset_index(inplace=True, drop=True) # reset the index to make it a clean df
     
+    # Separate text and other modalities
     assert 'Modality' in main_df.columns
     text_rows = main_df['Modality'] == 'text'
     text_results_df = main_df[text_rows]
@@ -118,6 +135,7 @@ def split_text(
         chunk_overlap=chunk_overlap,
     )
 
+    # Combine text chunks with other modalities and save to CSV 
     result = pd.concat([text_results_df, other_modalities_df], ignore_index=True)
 
     result.to_csv(csv_file_location, index=False)
@@ -132,27 +150,53 @@ def split_text_recursively(
     chunk_size: int,
     chunk_overlap: int,
 ) -> pd.DataFrame:
+    '''
+    This function splits a DataFrame containing text data (text_results_df) into chunks based on the chunking_strategy.
+
+    Args:
+        text_results_df (`pd.DataFrame`): DataFrame containing text data with columns like 'Divider' and 'Content'.
+        chunking_strategy (`Union[str, List[int]]`): Defines how to split the text. Can be a string ('ALL' or 'PAGE_BY_PAGE') or a list of integers.
+        document_name (`str`): Name of the document being processed.
+        cfg_tokenizer: Tokenizer object used to count tokens (if chunk_unit is 'tokens').
+        chunk_unit (`str`): Unit for chunk size ('tokens' or characters).
+        chunk_size (`int`): Maximum size of each chunk (in tokens or characters).
+        chunk_overlap (`int`): Number of characters/tokens to overlap between chunks.
+
+    Returns:
+        A new DataFrame with additional columns like 'Source', 'Modality', 'Part', 'Tokens', and 'Content'.
+    '''
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     
+    # Define function to determine chunk length based on unit
     length_function = cfg_tokenizer.count_tokens if chunk_unit == 'tokens' else len
+    
+    # Initialize text splitter with specified parameters
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         length_function=length_function,
         is_separator_regex=False,
     )
-
+    
+    # Handle different chunking strategies
     if (isinstance(chunking_strategy, List) and len(chunking_strategy) == 0) or (chunking_strategy == 'ALL'):
+        # Create chunks from all text combined but keep track of page numbers for metadata
         identified_pages = '<CFG_IDENTIFIED_AS_PAGE_' + text_results_df['Divider'].astype(str) +'>'
         chunks = text_splitter.create_documents(
             [' '.join(identified_pages + text_results_df['Content'].apply(clean_up_string))]
         )
         
         page_numbers, chunks = find_keyword_indices([document.page_content for document in chunks], identified_pages.to_list()[1:])
-        parts = [0 for i in page_numbers]
         
+        counter = {}    # initialize the counter
+        parts = []      # keep track of the parts list
+        for i in page_numbers:
+            part = counter.get(i, 0)
+            counter[i] = part + 1
+            parts.append(part)
+
     elif (isinstance(chunking_strategy, List) and len(chunking_strategy) == text_results_df.shape[0]) or (chunking_strategy == 'PAGE_BY_PAGE'):
-        
+        # Create chunks from each page individually
         chunks = []
         page_numbers = []
         parts = []
@@ -169,23 +213,14 @@ def split_text_recursively(
                 parts.append(part)
             
     elif all(isinstance(sublist, list) for sublist in chunking_strategy):
+        # Raise exception for unsupported chunking strategy not implemented
+        # The goal here is to create chunks from specific pages
         raise Exception('Specific chunking strategy is not implemented yet')
     
     else:
         raise Exception('Chunking strategy is not defined')
-        
     
-    # if include_modality:
-    #     text_results_df = pd.DataFrame(
-    #         [[document_name, 'text', page_number, part, cfg_tokenizer.count_tokens(chunk), chunk] for page_number, part, chunk in zip(page_numbers, parts, chunks)],
-    #         columns = ['Source', 'Modality', 'Divider', 'Part', 'Tokens', 'Content']
-    #     )
-    # else:
-    #     text_results_df = pd.DataFrame(
-    #         [[document_name, page_number, part, cfg_tokenizer.count_tokens(chunk), chunk] for page_number, part, chunk in zip(page_numbers, parts, chunks)],
-    #         columns = ['Source', 'Divider', 'Part', 'Tokens', 'Content']
-    #     )
-        
+    # Create new DataFrame with additional information about each chunk
     text_results_df = pd.DataFrame(
         [[document_name, 'text', page_number, part, cfg_tokenizer.count_tokens(chunk), chunk] for page_number, part, chunk in zip(page_numbers, parts, chunks)],
         columns = ['Source', 'Modality', 'Divider', 'Part', 'Tokens', 'Content']
