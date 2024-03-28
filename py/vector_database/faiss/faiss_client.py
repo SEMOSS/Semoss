@@ -132,13 +132,13 @@ class FAISSSearcher():
     def nearestNeighbor(
         self, 
         question: str,
-        insight_id:str,
         filter: Optional[str] = None,
         results: Optional[int] = 5, 
         columns_to_return: Optional[List[str]] = None, 
         return_threshold: Optional[Union[int,float]] = 1000, 
         ascending : Optional[bool] = None,
-        total_results: Optional[int] = 10                       # this is used for reranking
+        total_results: Optional[int] = 10,                       # this is used for reranking
+        insight_id:Optional[str] = None,
     ) -> List[Dict]:
         '''
         Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
@@ -146,8 +146,6 @@ class FAISSSearcher():
         Args:
         question(`str`):
             The string you are trying to match against the embedded documents
-        insight_id(`str`):
-            The unique identifier of the insight from which the call is being made
         filter(`str`):
             A SQL filter to find the appropriate indexes before executing the semantic search
         results(`Optional[int]`, *optional*):
@@ -176,6 +174,8 @@ class FAISSSearcher():
             A numerical value that specifies what Score should be less than.
         ascending(`Optional[bool]`):
             A boolean flag to return results in ascending order or not. Default is True
+        insight_id(`Optional[str]`):
+            The unique identifier of the insight from which the call is being made
 
         Return:
             `List[Dict]` consisting of Score and columns
@@ -493,12 +493,12 @@ class FAISSSearcher():
     def addDocumet(
         self, 
         documentFileLocation: List[str], 
-        insight_id:str,
         columns_to_index: Optional[List[str]], 
         columns_to_remove: Optional[List[str]] = [],
         target_column: Optional[str] = "text", 
         separator: Optional[str] = ',',
         keyword_search_params: Optional[Dict] = {},
+        insight_id:Optional[str] = None,
     ) -> Dict:
         '''
         Given a path to a CSV document, perform the following tasks:
@@ -510,8 +510,6 @@ class FAISSSearcher():
         Args:
         documentFileLocation(`List[str]`):
             A list of document file location to create embeddings from
-        insight_id(`str`):
-            The unique identifier of the insight from which the call is being made
         columns_to_index(`List[str]`):
             A list of column names to create the index from. These columns will be concatenated.
         columns_to_remove(`List[str]`):
@@ -522,7 +520,9 @@ class FAISSSearcher():
             The character to use as a delimeter between columns for the concatenated column that the embeddings will be created from
         keyword_search_params (`Dict`):
             A dictionary containing the keyword search parameters
-
+        insight_id(`str`):
+            The unique identifier of the insight from which the call is being made
+            
         Returns:
             `Dict` A dictionary listing which documents have been successfully created
         '''        
