@@ -15,7 +15,15 @@ from .table_util import TableUtil
 @dataclass
 class ExtractedItem:
     """
-    """    
+    This class represents a single extracted content item.
+
+    It holds information about the extracted content, including:
+        - source (`str`): The source of the extracted content.
+        - modality (`str`): The modality of the content (e.g., text, image, table).
+        - divider (`int`): An optional divider number associated with the content.
+        - part (`int`): An optional part number associated with the content.
+        - content (`str`): The actual extracted content itself.
+    """   
     source: str
     modality: str
     divider: int
@@ -23,21 +31,53 @@ class ExtractedItem:
     content: str
     
 class ExtractedContent:
+    """
+    This class represents a collection of extracted content items. 
+
+    It provides methods to add new items and convert the collection to a Pandas DataFrame.
+    """
     
     def __init__(
         self
     ):
+        """
+        Initializes an empty collection of extracted content items.
+
+        Internally, the class uses a list named `rows` to store the extracted items.
+        """
+        
         self.rows = []
         
     def append(
         self,
         extracted_item: ExtractedItem
     ) -> None:
+        """
+        Adds a new extracted item to the collection.
+
+        Args:
+            extracted_item (ExtractedItem): The item to be appended.
+                This argument should be an instance of the `ExtractedItem` class 
+                (which is likely defined elsewhere).
+        """
+        
         self.rows.append(extracted_item)
         
     def to_pandas(
         self
     ) -> pd.DataFrame:
+        """
+        Converts the collection of extracted content items to a Pandas DataFrame.
+
+        This method iterates through each item in the collection, converts it to a dictionary 
+        using the `asdict` function, and creates a DataFrame from the list of dictionaries.
+
+        Returns:
+            pd.DataFrame: A Pandas DataFrame containing the extracted content.
+                The column names of the DataFrame are automatically capitalized using
+                a lambda function.
+        """
+        
         df = pd.DataFrame(
             [asdict(row) for row in self.rows]
         )
@@ -49,13 +89,35 @@ class ExtractedContent:
         
 # just give the source file and all set    
 class PDFUtil:
+    """
+    This class helps extract text, images, and tables from a PDF document.
+
+    It provides methods to:
+        - Open a PDF document (`__init__`).
+        - Close the opened document (`close_document`).
+        - Extract all content from the PDF (text, images, and tables) and organize it 
+          using the `ExtractedContent` class (`extract_items_from_pdf`).
+        - Extract text content from a specific page (`extract_text`).
+        - Extract and potentially process images from a specific page (`extract_images`).
+        - Extract tables from a specific page (`extract_tables`).
+        - Check if an image likely contains a table (`is_table`).
+        - Helper methods to check for empty lists (`is_list_empty`).
+    """
 
     def __init__(
         self, 
         source_file: str, 
         target_folder: Optional[str] = None, 
-        detect_tables: bool = False
     ):
+        """
+        Initializes the class with the PDF source file and an optional target folder.
+
+        Args:
+            source_file (`str`): Path to the PDF document to be processed.
+            target_folder (`Optional[str]`): Path to the folder where extracted images 
+                and potentially table data will be saved. If not provided, the script 
+                will use the directory containing the source PDF.
+        """
 
         self.pdf = source_file
         pdf_path = Path(self.pdf)
@@ -76,11 +138,23 @@ class PDFUtil:
     def close_document(
         self
     ) -> None:
+        """
+        Closes the opened PDF document.
+        """
         self.doc.close()
         
     def extract_items_from_pdf(
         self
-    ) -> List:
+    ) -> ExtractedContent:
+        """
+        Extracts text, images, and tables from all pages in the PDF and returns them 
+        using the `ExtractedContent` class.
+
+        Returns:
+            `ExtractedContent`: An instance containing the extracted content organized 
+                by source, modality (text, image, or table), page divider, part within 
+                the page (for images and tables on the same page), and the actual content.
+        """
         extracted_content = ExtractedContent()
                 
         for page_index in range(len(self.doc)):
@@ -132,12 +206,31 @@ class PDFUtil:
         self,
         page: fitz.fitz.Page
     ) -> str:
+        """
+        Extracts the text content from a single page of the PDF document.
+
+        Args:
+            page (`fitz.fitz.Page`): The page object to extract text from.
+
+        Returns:
+            `str`: The extracted text content from the page.
+        """
         return page.get_text("text")
       
     def extract_images(
         self,
         page: fitz.fitz.Page
     ) -> None:
+        """
+        Extracts images from a single page of the PDF document.
+
+        Args:
+            page (`fitz.fitz.Page`): The page object to extract images from.
+
+        Returns:
+            `None`: This method does not explicitly return a value, but it saves extracted images and potentially parsed tables.
+        """
+    
         # extracts the images and indexes it into the target_folder as table_img_<page_imagenum>
         # for page_index in range(len(self.doc)):
         #     page = self.doc[page_index]
@@ -182,6 +275,15 @@ class PDFUtil:
         self, 
         png_file:str
     ) -> bool:
+        """
+        Determines if a given PNG image likely contains a table.
+
+        Args:
+            png_file (`str`): Path to the PNG image file.
+
+        Returns:
+            `bool`: True if the image likely contains a table, False otherwise.
+        """
         if self.detector is None:
             return True # forcing it to be 1
         else:
@@ -191,6 +293,15 @@ class PDFUtil:
         self,
         page: fitz.fitz.Page
     ) -> None:
+        """
+        Extracts tables directly from a single page of the PDF document.
+
+        Args:
+            page (`fitz.fitz.Page`): The page object to extract tables from.
+
+        Returns:
+            `None`: This method does not explicitly return a value, but it saves extracted tables and potentially parsed content.
+        """
         # for page_index in range(len(self.doc)):
         #     page = self.doc[page_index]
             
