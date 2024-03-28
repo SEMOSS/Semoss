@@ -3,35 +3,34 @@ from typing import (
     Optional, 
     Dict,
     Union,
-    Type,
     Any
 )
+
 from abc import (
     ABC,
     abstractmethod
 )
+
 import os
 
 from gaas_server_proxy import ServerProxy
-from threading import current_thread
-from logging_config import get_logger
 
 
 class AbstractModelEngine(ABC):
     '''This is an abstract class the defined what methods need to be implemeted for a ModelEngine'''
     
     @abstractmethod
-    def ask(self, *args: Any, **kwargs: Any) -> Dict:
+    def ask(self, *args: Any, **kwargs: Any) -> List[Dict]:
         '''This method is responsible for interacting with models that can perform text-generation'''
         pass
     
     @abstractmethod
-    def embeddings(self, *args: Any, **kwargs: Any) -> Dict:
+    def embeddings(self, *args: Any, **kwargs: Any) -> List[Dict]:
         '''This method is responsible for interacting with models that can create embeddings from strings'''
         pass
     
     @abstractmethod
-    def model(self, *args: Any, **kwargs: Any) -> Any:
+    def model(self, *args: Any, **kwargs: Any) -> List[Any]:
         '''This method is responsible for utilizing a specific model function that is unique to that model function'''
         pass
 
@@ -47,124 +46,136 @@ class AbstractModelEngine(ABC):
 
     
 class TomcatModelEngine(AbstractModelEngine, ServerProxy):
-  
+    '''This class implements AbstractModelEngine class and is used as the "ModelEngine" class when calling `from gaas_gpt_model import ModelEngine` from a python 
+    process in Tomcat Server'''
+
     def __init__(
         self, 
         engine_id: str, 
         insight_id: Optional[str] = None,
-        local: Optional[bool]=False,
-        pipeline_type: Optional[str]=None,
         **kwargs
     ):
-        super().__init__()
-        self.engine_id = engine_id
-        self.insight_id = insight_id
-        self.local = local
-        self.pipe = None
-        
-        
-        if local:
-          # start the model and make it available
-          import torch
-          from transformers import pipeline 
-          device = 'cuda' if torch.cuda.is_available() else 'cpu'
-          self.pipeline_type = pipeline_type
-          self.pipe = pipeline(pipeline_type, model=engine_id, device=device)
-    
+        '''
+        Initialize the TomcatModelEngine instance.
+
+        Args:
+            engine_id (`str`): Identifier of the model engine.
+            insight_id (`Optional[str]`): Identifier for insights.
+            local (`Optional[bool]`): Whether the model runs locally.
+            pipeline_type (`Optional[str]`): Type of pipeline for local models.
+            **kwargs: Additional keyword arguments.
+        '''
+        super().__init__()                  # initialize the ServerProxy class
+        self.engine_id = engine_id          # set the engine id
+        self.insight_id = insight_id        # set the insight id
+            
     def ask(
         self, 
         question: str, 
         context: Optional[str] = None, 
-        insight_id: Optional[str] = None, 
-        param_dict: Optional[Dict] = None
-    ) -> Dict:
-
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None
+    ) -> List[Dict]:
+        '''This method is responsible for interacting with models that can perform text-generation
+        
+        Args:
+            - question (str): The question to ask.
+            - context (Optional[str]): Context for the question.
+            - insight_id (Optional[str]): Identifier for insights.
+            - param_dict (Optional[Dict]): Additional parameters.
+            
+        Returns:
+            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
+            - response
+            - numberOfTokensInPrompt
+            - numberOfTokensInResponse
+            - messageId
+            - roomId
+        '''
+        
         if insight_id is None:
             insight_id = self.insight_id
-        assert insight_id is not None    
-        
+            
         epoc = super().get_next_epoc()
-        return super().call(
+        
+        model_response = super().call(
             epoc=epoc, 
             engine_type='Model', 
             engine_id=self.engine_id, 
             method_name='ask', 
-            method_args=[question,context,insight_id, param_dict],
+            method_args=[question,context, insight_id, param_dict],
             method_arg_types=['java.lang.String', 'java.lang.String', 'prerna.om.Insight', 'java.util.Map'],
-            insight_id = insight_id
+            insight_id=insight_id
         )
+        
+        return model_response
   
     def embeddings(
         self, 
         strings_to_embed: List[str], 
-        insight_id: Optional[str] = None, 
-        param_dict: Optional[Dict] = None
-    ) -> Dict:
-    
-        if not self.local:
-          if isinstance(strings_to_embed,str):
-              strings_to_embed = [strings_to_embed]
-          assert isinstance(strings_to_embed, list)
-          if insight_id is None:
-              insight_id = self.insight_id
-          assert insight_id is not None
-          epoc = super().get_next_epoc()
-          return super().call(
-              epoc=epoc, 
-              engine_type='Model', 
-              engine_id=self.engine_id, 
-              insight_id=insight_id, 
-              method_name='embeddings', 
-              method_args=[strings_to_embed, insight_id, param_dict],
-              method_arg_types=['java.util.List', 'prerna.om.Insight', 'java.util.Map']
-          )
-        else:
-          return self.pipe.model.encode(strings_to_embed)
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None
+    ) -> List[Dict]:
+        if insight_id is None:
+            insight_id = self.insight_id
+            
+        if isinstance(strings_to_embed,str):
+            strings_to_embed = [strings_to_embed]
+              
+        assert isinstance(strings_to_embed, list)
+
+        epoc = super().get_next_epoc()
+        model_response = super().call(
+            epoc=epoc, 
+            engine_type='Model', 
+            engine_id=self.engine_id, 
+            method_name='embeddings', 
+            method_args=[strings_to_embed, insight_id, param_dict],
+            method_arg_types=['java.util.List', 'prerna.om.Insight', 'java.util.Map'],
+            insight_id=insight_id
+        )
+        
+        return model_response
     
     def model(
         self,
         input: Any,
-        insight_id: Optional[str] = None, 
         param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None, 
     ):
-        if not self.local:
-          if insight_id is None:
-              insight_id = self.insight_id
-              
-          #assert insight_id is not None
-          
-          epoc = super().get_next_epoc()
-          return super().call(
-              epoc=epoc, 
-              engine_type='Model', 
-              engine_id=self.engine_id, 
-              insight_id=insight_id, 
-              method_name='model', 
-              method_args=[input, insight_id, param_dict],
-              method_arg_types=['java.lang.Object', 'prerna.om.Insight', 'java.util.Map']
-          )
-        else:
-          return self.pipe(input)
+        if insight_id is None:
+            insight_id = self.insight_id
+                         
+        epoc = super().get_next_epoc()
+        model_response = super().call(
+            epoc=epoc, 
+            engine_type='Model', 
+            engine_id=self.engine_id, 
+            method_name='model', 
+            method_args=[input, insight_id, param_dict],
+            method_arg_types=['java.lang.Object', 'prerna.om.Insight', 'java.util.Map'],
+            insight_id=insight_id, 
+        )
+        
+        return model_response
 
     def get_model_type(
         self, 
         insight_id: Optional[str] = None
     ):
-        if not self.local:
-          if insight_id is None:
-              insight_id = self.insight_id
-          epoc = super().get_next_epoc()
-          return super().call(
-              epoc=epoc, 
-              engine_type='Model', 
-              engine_id=self.engine_id, 
-              insight_id=insight_id, 
-              method_name='getModelType', 
-              method_args=[],
-              method_arg_types=[]
-          )
-        else:
-          return self.pipeline_type
+        if insight_id is None:
+            insight_id = self.insight_id
+            
+        epoc = super().get_next_epoc()
+        return super().call(
+            epoc=epoc, 
+            engine_type='Model', 
+            engine_id=self.engine_id, 
+            method_name='getModelType', 
+            method_args=[],
+            method_arg_types=[],
+            insight_id=insight_id,
+        )
           
     # this is a little bit of get out of jail free card
     def do_call(
@@ -182,7 +193,96 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     def get_model_engine_id(self) -> str:
         return self.engine_id
         
-      
+class HuggingFacePipelineModelEngine(AbstractModelEngine):
+    '''This class implements AbstractModelEngine class and is used as the "ModelEngine" class when calling `from gaas_gpt_model import ModelEngine` from a python 
+    process in Tomcat Server'''
+
+    def __init__(
+        self, 
+        engine_id: str, 
+        pipeline_type: Optional[str] = None,
+        **kwargs
+    ):
+        '''
+        Initialize the TomcatModelEngine instance.
+
+        Args:
+            engine_id (`str`): Identifier of the model engine.
+            insight_id (`Optional[str]`): Identifier for insights.
+            local (`Optional[bool]`): Whether the model runs locally.
+            pipeline_type (`Optional[str]`): Type of pipeline for local models.
+            **kwargs: Additional keyword arguments.
+        '''
+        super().__init__()                  # initialize the ServerProxy class
+        self.engine_id = engine_id          # set the engine id
+        
+        # start the model and make it available
+        import torch
+        from transformers import pipeline 
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.pipeline_type = pipeline_type
+        self.pipe = pipeline(pipeline_type, model=engine_id, device=device)
+    
+    def ask(
+        self, 
+        question: str, 
+        context: Optional[str] = None, 
+        param_dict: Optional[Dict] = None
+    ) -> List[Dict]:
+        '''This method is responsible for interacting with models that can perform text-generation
+        
+        Args:
+            - question (str): The question to ask.
+            - context (Optional[str]): Context for the question.
+            - insight_id (Optional[str]): Identifier for insights.
+            - param_dict (Optional[Dict]): Additional parameters.
+            
+        Returns:
+            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
+                - response
+                - numberOfTokensInPrompt
+                - numberOfTokensInResponse
+                - messageId
+                - roomId
+        '''       
+        raise NotImplementedError("HuggingFacePipelineModelEngine does not have an ask method implemented")
+  
+    def embeddings(
+        self, 
+        strings_to_embed: List[str], 
+        param_dict: Optional[Dict] = None
+    ) -> List[Dict]:
+        return self.pipe.model.encode(strings_to_embed)
+    
+    def model(
+        self,
+        input: Any,
+        param_dict: Optional[Dict] = None,
+    ):
+        return self.pipe(input)
+
+    def get_model_type(
+        self, 
+    ):
+        return self.pipeline_type
+          
+    # this is a little bit of get out of jail free card
+    def do_call(
+        self,
+        method_name: str,
+        input: Any,
+        **kwargs
+    ) -> Any:
+        call_maker = getattr(self, method_name, None) 
+        if call_maker is not None:
+            return call_maker(input, **kwargs)
+        else:
+            return None
+        
+    def get_model_engine_id(self) -> str:
+        return self.engine_id
+    
+    
 class LocalModelEngine(AbstractModelEngine):
   
     def __init__(
@@ -320,30 +420,35 @@ class ModelEngine(AbstractModelEngine):
     
     def __init__(
         self,
-        local: Optional[bool] = False,
+        model_engine_class: Optional[str] = "TOMCAT",
         **kwargs
     ):
-        if local:
-            self.model_engine = LocalModelEngine(**kwargs)
-        else:
+        if model_engine_class == "TOMCAT":
             self.model_engine = TomcatModelEngine(**kwargs)
-            
-        assert self.model_engine != None, "Unable to define a Model Engine"
+        elif model_engine_class == "LOCAL":
+            self.model_engine = LocalModelEngine(**kwargs)
+        elif model_engine_class == "HF_PIPELINE":
+            pass
+        else:
+            raise ValueError("Unable to define a Model Engine. Model Engine Class types are 'TOMCAT', 'LOCAL', or 'HF_PIPELINE'.")
         
     def ask(
-        self, 
+        self,
+        insight_id: Optional[str] = None,               # TODO remove once users stop using it. No longer needs to be set.
         **kwargs
     ) -> Dict:
         return self.model_engine.ask(**kwargs)
   
     def embeddings(
-        self, 
+        self,
+        insight_id: Optional[str] = None,               # TODO remove once users stop using it. No longer needs to be set.
         **kwargs
     ) -> Dict:
         return self.model_engine.embeddings(**kwargs)
     
     def model(
         self,
+        insight_id: Optional[str] = None,               # TODO remove once users stop using it. No longer needs to be set.
         **kwargs
     ):
         return self.model_engine.model(**kwargs)
@@ -356,8 +461,6 @@ class ModelEngine(AbstractModelEngine):
      
     def do_call(
         self, 
-        method_name:str, 
-        input: Any, 
         **kwargs: Any
     ) -> Any:
         return self.model_engine.embeddings(**kwargs)
@@ -475,3 +578,4 @@ class ModelEngine(AbstractModelEngine):
                 return "CFG AI"
             
         return ChatCfgAI(model_engine=self)
+    
