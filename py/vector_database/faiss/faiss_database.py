@@ -15,6 +15,7 @@ class FAISSDatabase():
         keyword_engine_id: str,
         distance_method: str,
         searchers: list = [],
+        model_engine_class: Any = ModelEngine,
         embedder_engine: ModelEngine = None,
         keyword_engine: ModelEngine = None,
     ) -> None:
@@ -28,10 +29,10 @@ class FAISSDatabase():
         if embedder_engine is not None:
             self.embeddings_engine = embedder_engine
         else:
-            self.embeddings_engine = ModelEngine(engine_id = embedder_engine_id)
+            self.embeddings_engine = model_engine_class(engine_id = embedder_engine_id)
         
         if (keyword_engine_id != None and keyword_engine_id != ''):
-            self.keyword_engine = ModelEngine(engine_id = keyword_engine_id)
+            self.keyword_engine = model_engine_class(engine_id = keyword_engine_id)
         else:
             self.keyword_engine = keyword_engine
         
