@@ -294,10 +294,6 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		return getContext().getEntityOfType(type);
 	}
 
-	public Vector<Object> getCleanSelect(String query) {
-		return getContext().getCleanSelect(query);
-	}
-
 	public Map<String, Object> execQuery(String query) throws SQLException {
 		return getContext().execQuery(query);
 	}
