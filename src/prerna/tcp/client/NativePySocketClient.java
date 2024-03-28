@@ -378,10 +378,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						Insight insight = insightMap.get(insightId);
 						input.payload[classIndex] = insight;
 					}
-				} catch (ClassNotFoundException e) 
-    			{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					classLogger.error(Constants.STACKTRACE, e);
 				}
     		}
     	}
