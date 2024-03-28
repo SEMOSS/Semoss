@@ -3,6 +3,9 @@ package prerna.reactor.utils;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 
 import prerna.om.Insight;
@@ -12,83 +15,65 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RemoteEngineRunReactor extends AbstractReactor {
 
-	public RemoteEngineRunReactor()
-	{
-		//this.keysToGet = new String[] {ReactorKeysEnum.ENGINE_TYPE.getKey(), ReactorKeysEnum.METHOD_NAME.getKey(), ReactorKeysEnum.PAYLOAD_CLASSES.getKey(), ReactorKeysEnum.PAYLOAD.getKey()};		
+	private static final Logger classLogger = LogManager.getLogger(RemoteEngineRunReactor.class);
+	
+	public RemoteEngineRunReactor() {
 		this.keysToGet = new String [] {ReactorKeysEnum.PAYLOAD.getKey()}; // just get this as string and turn it into json
-		this.keyRequired = new int[] {1};
+		this.keyRequired = new int [] {1};
 	}
-	
-	
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		/*
-		//abandoning this to enable a simpler string
-		PayloadStruct execPayload = new PayloadStruct();
-		execPayload.insightId = insight.getInsightId();
-		execPayload.engineType = this.getNounStore().getNoun(keysToGet[0]).get(0).toString();
-		execPayload.engineType = this.getNounStore().getNoun(keysToGet[0]).get(0).toString();
+		this.organizeKeys();
 		
-		*/
-		
-		organizeKeys();
-		String message = Utility.decodeURIComponent(keyValue.get(keysToGet[0]));
-		Gson gson = new Gson();
-		PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
+		// get the PayloadStruct string
+		String message = Utility.decodeURIComponent(keyValue.get(ReactorKeysEnum.PAYLOAD.getKey()));
+		PayloadStruct ps = new Gson().fromJson(message, PayloadStruct.class);
 		ps = convertPayloadClasses(ps);
+		
+		// run the engine call
 		NativePyEngineWorker pyw = new NativePyEngineWorker(this.insight.getUser(), ps, this.insight);
 		pyw.run();
-		String strOutput = "Evaluating";
+
+		// retrieve the output
 		PayloadStruct output = null;
-		try
-		{
+		try {
 			output = pyw.getOutput();
 			output.payloadClasses = null;
-			strOutput = gson.toJson(output);
-		}catch (Exception ex)
-		{
+		} catch (Exception ex) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			ex.printStackTrace(pw);
-			strOutput = sw.toString(); // stack trace as a string
-			ps.response = true;
-			ps.ex = strOutput;
-			strOutput = gson.toJson(ps);			
+			output.response = true;
+			output.ex = sw.toString();
 		}
+		
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	
-    private PayloadStruct convertPayloadClasses(PayloadStruct input)
-    {
-    	if(input.payloadClassNames != null)
-    	{
+    private PayloadStruct convertPayloadClasses(PayloadStruct input) {
+    	if(input.payloadClassNames != null) {
     		input.payloadClasses = new Class[input.payloadClassNames.length];
-    		for(int classIndex = 0;classIndex < input.payloadClassNames.length;classIndex++)
-    		{
+    		for(int classIndex = 0;classIndex < input.payloadClassNames.length;classIndex++) {
     			try {
 					String className = input.payloadClassNames[classIndex];
 					input.payloadClasses[classIndex] = Class.forName(className);
 					if(input.payloadClasses[classIndex] == Insight.class)
 					{
-						String insightId = "" + input.payload[classIndex]; 
 						Insight insight = this.insight;
 						input.payload[classIndex] = insight;
 					}
-				} catch (ClassNotFoundException e) 
-    			{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					classLogger.error(Constants.STACKTRACE, e);
 				}
     		}
     	}
+    	
     	return input;
     }
-
-
 }
