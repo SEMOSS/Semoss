@@ -10,10 +10,10 @@ class FAISSDatabase():
 
     def __init__(
         self, 
-        embedder_engine_id: str,
         tokenizer,
-        keyword_engine_id: str,
         distance_method: str,
+        embedder_engine_id: Optional[str] = None,
+        keyword_engine_id: Optional[str] = None,
         searchers: list = [],
         model_engine_class: Any = ModelEngine,
         embedder_engine: ModelEngine = None,
