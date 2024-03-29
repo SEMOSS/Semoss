@@ -81,7 +81,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
- * References the RDF source and uses the Sesame API to query a database stored in an RDF file (.jnl file).
+ * References the RDF source and uses the Sesame API to query a database stored in an RDF file
  */
 public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 
