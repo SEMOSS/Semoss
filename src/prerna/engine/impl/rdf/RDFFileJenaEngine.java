@@ -28,7 +28,10 @@
 package prerna.engine.impl.rdf;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +39,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -44,8 +48,15 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.update.UpdateAction;
+import org.apache.jena.update.UpdateFactory;
+import org.apache.jena.update.UpdateRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,16 +67,41 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
- * References the RDF source and uses the Jena API to query a database stored in an RDF file (.jnl file).
+ * References the RDF source and uses the Jena API to query a database stored in an RDF file
  */
 public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	
-	static final Logger classLogger = LogManager.getLogger(RDFFileJenaEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(RDFFileJenaEngine.class);
 
-	Model jenaModel = null;
-	String propFile = null;
-	boolean connected = false;
-
+	private Model jenaModel = null;
+	private String propFile = null;
+	private boolean connected = false;
+	
+	private String fileLocation = null;
+	private String baseURI = null;
+	private String rdfFileType = null;
+	private Lang type = null;
+	
+	/**
+	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
+	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
+	 * least defining the data store.
+	 * @param smssProp contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
+	 * what type of engine is being instantiated.
+	 * @throws Exception 
+	 */
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		this.fileLocation = smssProp.getProperty(Constants.RDF_FILE_NAME);
+		this.baseURI = smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
+		this.rdfFileType = smssProp.getProperty(Constants.RDF_FILE_TYPE);
+		this.type = determineLang(rdfFileType);
+		this.jenaModel = ModelFactory.createDefaultModel();
+		RDFDataMgr.read(this.jenaModel, this.fileLocation, this.baseURI, this.type);
+		this.connected = true;
+	}
+	
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
@@ -74,7 +110,7 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		jenaModel.close();
+		this.jenaModel.close();
 		classLogger.info("Closing the database to the file " + Utility.cleanLogString(propFile));		
 	}
 
@@ -102,8 +138,9 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 			classLogger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
 			return bool;
 		}
-		else
+		else {
 			return null;
+		}
 	}
 
 	/**
@@ -115,9 +152,18 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	 */
 	@Override
 	public void insertData(String query) {
-		
+		UpdateRequest request = UpdateFactory.create();
+		request.add(query);
+		UpdateAction.execute(request, this.jenaModel);
 	}
 
+	@Override
+	public void removeData(String query) {
+		UpdateRequest request = UpdateFactory.create();
+		request.add(query);
+		UpdateAction.execute(request, this.jenaModel);
+	}
+	
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
 		return IDatabaseEngine.DATABASE_TYPE.JENA;
@@ -141,8 +187,8 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 		ResultSet rs = (ResultSet)execQuery(sparqlQuery);
 		
 		// gets only the first variable
-		Iterator varIterator = rs.getResultVars().iterator();
-		String varName = (String)varIterator.next();
+		Iterator<String> varIterator = rs.getResultVars().iterator();
+		String varName = varIterator.next();
 		while(rs.hasNext())
 		{
 			QuerySolution row = rs.next();
@@ -162,7 +208,7 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 		// Fill query with type
 		// run through getCleanSelect()
 		String query = this.getProperty(Constants.TYPE_QUERY);
-		if(query==null){
+		if(query == null){
 			query = DIHelper.getInstance().getProperty(Constants.TYPE_QUERY);
 		}
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
@@ -185,29 +231,6 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	}
 
 	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
-	 * least defining the data store.
-	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
-	 */
-	@Override
-	public void open(String propFile) {
-		try {
-			Properties prop = Utility.loadProperties(propFile);
-			String fileName = prop.getProperty(Constants.RDF_FILE_NAME);
-			String baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
-			String rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
-			Lang type = determineLang(rdfFileType);
-			jenaModel = ModelFactory.createDefaultModel();
-			RDFDataMgr.read(jenaModel, fileName, baseURI, type);
-			this.connected = true;
-		} catch (RuntimeException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	/**
 	 * 
 	 * @param rdfFileType
 	 * @return
@@ -224,15 +247,84 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	}
 	
 	@Override
-	public void removeData(String query) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void commit() {
-		// TODO Auto-generated method stub
-		
+		this.jenaModel.commit();
 	}
 
+	
+	/**
+	 * Method addStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
+	 * @param subject String - RDF Subject
+	 * @param predicate String - RDF Predicate
+	 * @param object Object - RDF Object
+	 * @param concept boolean - True if the statement is a concept
+	 */
+	public void addStatement(Object[] args) {
+		processStatement(args, true);
+	}
+	
+	/**
+	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
+	 * @param subject String - RDF Subject
+	 * @param predicate String - RDF Predicate
+	 * @param object Object - RDF Object
+	 * @param concept boolean - True if the statement is a concept
+	 */
+	public void removeStatement(Object[] args) {
+		processStatement(args, false);
+	}
+	
+	/**
+	 * 
+	 * @param args
+	 * @param add
+	 */
+	private void processStatement(Object[] args, boolean add) {
+		String subject = args[0]+"";
+		String predicate = args[1]+"";
+		Object object = args[2];
+		Boolean concept = (Boolean) args[3];
+			
+		Resource newSub = null;
+		Property newPred = null;
+		String subString = null;
+		String predString = null;
+		String sub = subject.trim();
+		String pred = predicate.trim();
+
+		subString = Utility.cleanString(sub, false);
+		newSub = this.jenaModel.createResource(subString);
+
+		predString = Utility.cleanString(pred, false);
+		newPred = this.jenaModel.createProperty(predString);
+
+		RDFNode newObject = null;
+
+		if(concept) {
+			String objString = Utility.cleanString((object + "").trim(), false);
+			newObject = this.jenaModel.createResource(objString);
+		} else {
+			if(object instanceof Number) {
+				classLogger.debug("Found Double " + object);
+		        newObject = ResourceFactory.createTypedLiteral( ((Number) object).doubleValue() );
+			} else if(object instanceof Date) {
+				classLogger.debug("Found Date " + object);
+				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+				String date = df.format(object);
+		        newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
+			} else if(object instanceof Boolean) {
+				classLogger.debug("Found Boolean " + object);
+		        newObject = ResourceFactory.createTypedLiteral((Boolean) object);
+			} else {
+				classLogger.debug("Found String " + object);
+				newObject = ResourceFactory.createTypedLiteral(object+"");
+			}
+		}
+		
+		if(add) {
+			this.jenaModel.add(newSub, newPred, newObject);
+		} else {
+			this.jenaModel.remove(newSub, newPred, newObject);
+		}
+	}
 }
