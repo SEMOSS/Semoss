@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import org.apache.jena.query.Dataset;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
@@ -231,14 +232,19 @@ public class RdfUploadReactorUtility {
 			try {
 				((BigDataEngine) engine).getSc().removeStatements(null, null, null);
 			} catch (SailException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else if(engine instanceof RDFFileSesameEngine) {
 			try {
 				((RDFFileSesameEngine) engine).getSc().removeStatements(null, null, null);
 			} catch (SailException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
+		} else if(engine instanceof RDFFileJenaEngine) {
+			((RDFFileJenaEngine) engine).getJenaModel().removeAll();
+		} else if(engine instanceof RDFJenaTDBEngine) {
+			Dataset dataset = ((RDFJenaTDBEngine) engine).getDataset();
+			dataset.getDefaultModel().removeAll();
 		} else {
 			throw new IllegalArgumentException("Engine is not a valid type to remove triples from");
 		}
