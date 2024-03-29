@@ -167,7 +167,13 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						// ex: SQLite
 						try {
 							String dateValStr = rs.getString(colNum);
-							val = new SemossDate(dateValStr, "yyyy-MM-dd", this.databaseZoneId);
+							// does the string represent a long?
+							try {
+								long dateLong = Long.parseLong(dateValStr);
+								val = new SemossDate(dateLong, "yyyy-MM-dd", this.databaseZoneId);
+							} catch(NumberFormatException nfee) {
+								val = new SemossDate(dateValStr, "yyyy-MM-dd", this.databaseZoneId);
+							}
 						} catch(Exception e2) {
 							// out of luck...
 							logger.error(Constants.STACKTRACE, e);
