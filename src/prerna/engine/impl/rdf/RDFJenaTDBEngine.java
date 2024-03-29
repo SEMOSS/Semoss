@@ -40,20 +40,20 @@ import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.jena.datatypes.xsd.XSDDatatype;
+import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.update.UpdateAction;
 import org.apache.jena.update.UpdateFactory;
 import org.apache.jena.update.UpdateRequest;
@@ -69,18 +69,16 @@ import prerna.util.Utility;
 /**
  * References the RDF source and uses the Jena API to query a database stored in an RDF file
  */
-public class RDFFileJenaEngine extends AbstractDatabaseEngine {
+public class RDFJenaTDBEngine extends AbstractDatabaseEngine {
 	
-	private static final Logger classLogger = LogManager.getLogger(RDFFileJenaEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(RDFJenaTDBEngine.class);
 
-	private Model jenaModel = null;
+	private Dataset dataset = null;
 	private String propFile = null;
 	private boolean connected = false;
 	
 	private String fileLocation = null;
 	private String baseURI = null;
-	private String rdfFileType = null;
-	private Lang type = null;
 	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
@@ -95,10 +93,7 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 		super.open(smssProp);
 		this.fileLocation = smssProp.getProperty(Constants.RDF_FILE_NAME);
 		this.baseURI = smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
-		this.rdfFileType = smssProp.getProperty(Constants.RDF_FILE_TYPE);
-		this.type = determineLang(rdfFileType);
-		this.jenaModel = ModelFactory.createDefaultModel();
-		RDFDataMgr.read(this.jenaModel, this.fileLocation, this.baseURI, this.type);
+		this.dataset = TDB2Factory.connectDataset(this.fileLocation);
 		this.connected = true;
 	}
 	
@@ -110,7 +105,7 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		this.jenaModel.close();
+		this.dataset.close();
 		classLogger.info("Closing the database to the file " + Utility.cleanLogString(propFile));		
 	}
 
@@ -122,24 +117,30 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	 * @return triple query results that can be displayed as a grid */
 	@Override
 	public Object execQuery(String query) {
-		Query q2 = QueryFactory.create(query); 
-		QueryExecution qexec = QueryExecutionFactory.create(q2, jenaModel) ;
-		if(q2.isSelectType()){
-			ResultSet rs = qexec.execSelect();
-			return rs;
-		}
-		else if(q2.isConstructType()){
-			Model resultModel = qexec.execConstruct() ;
-			classLogger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
-			return resultModel;
-		}
-		else if(q2.isAskType()){
-			Boolean bool = qexec.execAsk() ;
-			classLogger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
-			return bool;
-		}
-		else {
-			return null;
+		this.dataset.begin(ReadWrite.READ);
+		try {
+			Model jenaModel = this.dataset.getDefaultModel();
+			Query q2 = QueryFactory.create(query);
+			QueryExecution qexec = QueryExecutionFactory.create(q2, jenaModel) ;
+			if(q2.isSelectType()){
+				ResultSet rs = qexec.execSelect();
+				return rs;
+			}
+			else if(q2.isConstructType()){
+				Model resultModel = qexec.execConstruct() ;
+				classLogger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
+				return resultModel;
+			}
+			else if(q2.isAskType()){
+				Boolean bool = qexec.execAsk() ;
+				classLogger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
+				return bool;
+			}
+			else {
+				return null;
+			}
+		} finally {
+			this.dataset.end();
 		}
 	}
 
@@ -152,16 +153,30 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	 */
 	@Override
 	public void insertData(String query) {
-		UpdateRequest request = UpdateFactory.create();
-		request.add(query);
-		UpdateAction.execute(request, this.jenaModel);
+		this.dataset.begin(ReadWrite.WRITE);
+		try {
+			Model jenaModel = this.dataset.getDefaultModel();
+			UpdateRequest request = UpdateFactory.create();
+			request.add(query);
+			UpdateAction.execute(request, jenaModel);
+			this.dataset.commit();
+		} finally {
+			this.dataset.end();
+		}
 	}
 
 	@Override
 	public void removeData(String query) {
-		UpdateRequest request = UpdateFactory.create();
-		request.add(query);
-		UpdateAction.execute(request, this.jenaModel);
+		this.dataset.begin(ReadWrite.WRITE);
+		try {
+			Model jenaModel = this.dataset.getDefaultModel();
+			UpdateRequest request = UpdateFactory.create();
+			request.add(query);
+			UpdateAction.execute(request, jenaModel);
+			this.dataset.commit();
+		} finally {
+			this.dataset.end();
+		}
 	}
 	
 	@Override
@@ -230,25 +245,9 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 		return connected;
 	}
 
-	/**
-	 * 
-	 * @param rdfFileType
-	 * @return
-	 */
-	private Lang determineLang(String rdfFileType) {
-		if(rdfFileType.equalsIgnoreCase("RDF/XML")) return Lang.RDFXML;
-		else if(rdfFileType.equalsIgnoreCase("TURTLE")) return Lang.TURTLE;
-		else if(rdfFileType.equalsIgnoreCase("N3")) return Lang.N3;
-		else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) return Lang.NTRIPLES;
-		else if(rdfFileType.equalsIgnoreCase("TRIG")) return Lang.TRIG;
-		else if(rdfFileType.equalsIgnoreCase("TRIX")) return Lang.TRIX;
-		
-		return null;
-	}
-	
 	@Override
 	public void commit() {
-		this.jenaModel.commit();
+		this.dataset.commit();
 	}
 
 	
@@ -280,55 +279,64 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	 * @param add
 	 */
 	private void processStatement(Object[] args, boolean add) {
-		String subject = args[0]+"";
-		String predicate = args[1]+"";
-		Object object = args[2];
-		Boolean concept = (Boolean) args[3];
-			
-		Resource newSub = null;
-		Property newPred = null;
-		String subString = null;
-		String predString = null;
-		String sub = subject.trim();
-		String pred = predicate.trim();
+		this.dataset.begin(ReadWrite.WRITE);
+		try {
+			Model jenaModel = this.dataset.getDefaultModel();
 
-		subString = Utility.cleanString(sub, false);
-		newSub = this.jenaModel.createResource(subString);
+			String subject = args[0]+"";
+			String predicate = args[1]+"";
+			Object object = args[2];
+			Boolean concept = (Boolean) args[3];
+				
+			Resource newSub = null;
+			Property newPred = null;
+			String subString = null;
+			String predString = null;
+			String sub = subject.trim();
+			String pred = predicate.trim();
 
-		predString = Utility.cleanString(pred, false);
-		newPred = this.jenaModel.createProperty(predString);
+			subString = Utility.cleanString(sub, false);
+			newSub = jenaModel.createResource(subString);
 
-		RDFNode newObject = null;
+			predString = Utility.cleanString(pred, false);
+			newPred = jenaModel.createProperty(predString);
 
-		if(concept) {
-			String objString = Utility.cleanString((object + "").trim(), false);
-			newObject = this.jenaModel.createResource(objString);
-		} else {
-			if(object instanceof Number) {
-				classLogger.debug("Found Double " + object);
-		        newObject = ResourceFactory.createTypedLiteral( ((Number) object).doubleValue() );
-			} else if(object instanceof Date) {
-				classLogger.debug("Found Date " + object);
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String date = df.format(object);
-		        newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
-			} else if(object instanceof Boolean) {
-				classLogger.debug("Found Boolean " + object);
-		        newObject = ResourceFactory.createTypedLiteral((Boolean) object);
+			RDFNode newObject = null;
+
+			if(concept) {
+				String objString = Utility.cleanString((object + "").trim(), false);
+				newObject = jenaModel.createResource(objString);
 			} else {
-				classLogger.debug("Found String " + object);
-				newObject = ResourceFactory.createTypedLiteral(object+"");
+				if(object instanceof Number) {
+					classLogger.debug("Found Double " + object);
+			        newObject = ResourceFactory.createTypedLiteral( ((Number) object).doubleValue() );
+				} else if(object instanceof Date) {
+					classLogger.debug("Found Date " + object);
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+					String date = df.format(object);
+			        newObject = ResourceFactory.createTypedLiteral(date, XSDDatatype.XSDdateTime);
+				} else if(object instanceof Boolean) {
+					classLogger.debug("Found Boolean " + object);
+			        newObject = ResourceFactory.createTypedLiteral((Boolean) object);
+				} else {
+					classLogger.debug("Found String " + object);
+					newObject = ResourceFactory.createTypedLiteral(object+"");
+				}
 			}
-		}
-		
-		if(add) {
-			this.jenaModel.add(newSub, newPred, newObject);
-		} else {
-			this.jenaModel.remove(newSub, newPred, newObject);
+			
+			if(add) {
+				jenaModel.add(newSub, newPred, newObject);
+			} else {
+				jenaModel.remove(newSub, newPred, newObject);
+			}
+			
+			this.dataset.commit();
+		} finally {
+			this.dataset.end();
 		}
 	}
 	
-	public Model getJenaModel() {
-		return this.jenaModel;
+	public Dataset getDataset() {
+		return this.dataset;
 	}
 }
