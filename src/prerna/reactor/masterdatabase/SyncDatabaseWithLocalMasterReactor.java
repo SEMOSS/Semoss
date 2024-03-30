@@ -6,9 +6,9 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.AddToMasterDB;
-import prerna.nameserver.DeleteFromMasterDB;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.AddToMasterDB;
+import prerna.masterdatabase.DeleteFromMasterDB;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

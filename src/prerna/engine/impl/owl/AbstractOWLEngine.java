@@ -24,7 +24,7 @@ import prerna.engine.api.IExplorable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.nameserver.utility.MetamodelVertex;
+import prerna.masterdatabase.utility.MetamodelVertex;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;

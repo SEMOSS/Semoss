@@ -9,8 +9,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.masterdatabase.utility.MetadataUtility;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;

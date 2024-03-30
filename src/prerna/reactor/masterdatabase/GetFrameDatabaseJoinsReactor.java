@@ -8,7 +8,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;

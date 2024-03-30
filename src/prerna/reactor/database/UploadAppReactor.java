@@ -20,7 +20,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.DeleteFromMasterDB;
+import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

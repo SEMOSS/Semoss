@@ -57,7 +57,7 @@ import com.google.gson.reflect.TypeToken;
 import aurelienribon.ui.css.Style;
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.SysSiteOptBtnListener;
 import prerna.ui.swing.custom.ToggleButton;
