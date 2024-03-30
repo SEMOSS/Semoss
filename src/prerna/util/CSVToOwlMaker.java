@@ -7,8 +7,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 
 public class CSVToOwlMaker {
 

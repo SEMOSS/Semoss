@@ -2,7 +2,7 @@ package prerna.reactor.qs;
 
 import java.util.List;
 
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.query.querystruct.AbstractQueryStruct;
 
 public class AsReactor extends AbstractQueryStructReactor {

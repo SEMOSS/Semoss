@@ -15,7 +15,7 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 
 public class ParquetFileHelper {
 	
