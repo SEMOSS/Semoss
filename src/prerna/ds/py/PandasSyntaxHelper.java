@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.sablecc2.om.Join;

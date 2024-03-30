@@ -25,7 +25,7 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.engine.impl.tinker.TinkerUtilities;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
