@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.nlp;
+package prerna.util.insight;
 
 import prerna.util.ArrayUtilityMethods;
 
