@@ -16,7 +16,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.nameserver.DeleteFromMasterDB;
+import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
