@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import prerna.ds.r.RDataTable;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

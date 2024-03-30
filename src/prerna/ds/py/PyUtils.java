@@ -11,10 +11,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -110,32 +109,32 @@ public class PyUtils {
 		}
 	}
 	
-	// just gets the directory of where the main user has started
-	public String getTempTupleSpace(User user, String dir)
-	{
-		if(user != null && !userTupleMap.containsKey(user)) {
-			try {
-				classLogger.info(">>>STARTING PYTHON TUPESPACE FOR USER<<<");
-				// going to create this in insight cache dir
-				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-				Path mainCachePath = Paths.get(dir);
-				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-				Utility.writeLogConfigurationFile(tempDirForUser.toString());
-				userTupleMap.put(user, tempDirForUser.toString());
-				// this should possibly also launch the thread
-				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
-				Process p = Utility.startTCPServer(cp, tempDirForUser.toString(), null);
-				userProcessMap.put(user,  p);
-				classLogger.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
-				return tempDirForUser.toString();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
-		}
-		return null;
-	}
+//	// just gets the directory of where the main user has started
+//	public String getTempTupleSpace(User user, String dir)
+//	{
+//		if(user != null && !userTupleMap.containsKey(user)) {
+//			try {
+//				classLogger.info(">>>STARTING PYTHON TUPESPACE FOR USER<<<");
+//				// going to create this in insight cache dir
+//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				Path mainCachePath = Paths.get(dir);
+//				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
+//				Utility.writeLogConfigurationFile(tempDirForUser.toString());
+//				userTupleMap.put(user, tempDirForUser.toString());
+//				// this should possibly also launch the thread
+//				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
+//				Process p = Utility.startTCPServer(cp, tempDirForUser.toString(), null);
+//				userProcessMap.put(user,  p);
+//				classLogger.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
+//				return tempDirForUser.toString();
+//			} catch (Exception e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		} else {
+//			classLogger.info("=== TUPLE SPACE NOT CREATED ====");
+//		}
+//		return null;
+//	}
 	
 	
 	//chroot
@@ -308,40 +307,40 @@ public class PyUtils {
 //		return null;
 //	}
 	
-	public void killTempTupleSpace(Object user) {
-		// kill the process
-		// take out the dir
-		classLogger.info(">>>KILLING PYTHON TUPESPACE FOR USER<<<");
-		if(userTupleMap.containsKey(user)) {
-			String dir = (String)userTupleMap.get(user);
-			// change this to just creating a file so it is simpler
-			File closer = new File(dir + "/alldone.closeall");
-			try {
-				Process p = userProcessMap.get(user);
-				closer.createNewFile();
-				p.destroy();
-				// delete the directory fully
-				FileUtils.deleteDirectory(new File(dir));
-			} catch(Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			userTupleMap.remove(user);
-		}
-		/*		
-		if(dirProcessMap.containsKey(dir))
-		{
-			Process p = (Process)dirProcessMap.get(dir);
-			p.destroyForcibly();
-			try {
-				FileUtils.deleteDirectory(new File(dir));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		*/		
-		classLogger.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
-	}
+//	public void killTempTupleSpace(Object user) {
+//		// kill the process
+//		// take out the dir
+//		classLogger.info(">>>KILLING PYTHON TUPESPACE FOR USER<<<");
+//		if(userTupleMap.containsKey(user)) {
+//			String dir = (String)userTupleMap.get(user);
+//			// change this to just creating a file so it is simpler
+//			File closer = new File(dir + "/alldone.closeall");
+//			try {
+//				Process p = userProcessMap.get(user);
+//				closer.createNewFile();
+//				p.destroy();
+//				// delete the directory fully
+//				FileUtils.deleteDirectory(new File(dir));
+//			} catch(Exception e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//			userTupleMap.remove(user);
+//		}
+//		/*		
+//		if(dirProcessMap.containsKey(dir))
+//		{
+//			Process p = (Process)dirProcessMap.get(dir);
+//			p.destroyForcibly();
+//			try {
+//				FileUtils.deleteDirectory(new File(dir));
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
+//		*/		
+//		classLogger.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
+//	}
 	
 	// this is good for python dictionaries but also for making sure we can easily construct 
 	// the logs into model inference python list, since everything is python at this point.
