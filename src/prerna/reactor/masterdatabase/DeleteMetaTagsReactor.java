@@ -3,8 +3,8 @@ package prerna.reactor.masterdatabase;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.nameserver.AddToMasterDB;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.AddToMasterDB;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;

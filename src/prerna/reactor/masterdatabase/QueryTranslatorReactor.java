@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.query.parsers.SqlTranslator;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;

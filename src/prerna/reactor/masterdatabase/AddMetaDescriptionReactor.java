@@ -2,7 +2,7 @@ package prerna.reactor.masterdatabase;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.AddToMasterDB;
+import prerna.masterdatabase.AddToMasterDB;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
