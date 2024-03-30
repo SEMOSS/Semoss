@@ -2,7 +2,7 @@ package prerna.reactor.qs.selectors;
 
 import java.util.List;
 
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.qs.AbstractQueryStructReactor;

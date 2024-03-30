@@ -9,15 +9,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
-import org.apache.pdfbox.multipdf.PDFMergerUtility;
-import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentNameDictionary;
 import org.apache.pdfbox.pdmodel.PDEmbeddedFilesNameTreeNode;
@@ -41,12 +38,6 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.jsoup.nodes.Attributes;
-
-import prerna.reactor.export.mustache.MustacheUtility;
-import prerna.reactor.export.pdf.PDFUtility.FormObject;
-import prerna.reactor.export.pdf.PDFUtility.RectanglePage;
-import prerna.reactor.export.pdf.PDFUtility.pageLocation;
-import prerna.sablecc2.om.ReactorKeysEnum;
 
 
 

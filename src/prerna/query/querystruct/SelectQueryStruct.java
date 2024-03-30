@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
