@@ -1,4 +1,4 @@
-package prerna.poi.main;
+package prerna.reactor.database.upload.rdbms;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -16,6 +16,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.om.HeadersException;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.database.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.Constants;
