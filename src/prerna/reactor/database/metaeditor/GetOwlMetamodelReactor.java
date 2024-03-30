@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.nameserver.utility.MetamodelVertex;
+import prerna.masterdatabase.utility.MetamodelVertex;
 import prerna.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;

@@ -25,7 +25,7 @@ import prerna.ds.util.flatfile.ParquetFileIterator;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;

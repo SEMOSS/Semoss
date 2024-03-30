@@ -18,7 +18,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;

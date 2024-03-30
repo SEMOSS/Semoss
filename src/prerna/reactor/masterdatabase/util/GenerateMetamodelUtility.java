@@ -18,7 +18,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;

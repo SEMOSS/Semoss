@@ -31,7 +31,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.AbstractThemeUtils;

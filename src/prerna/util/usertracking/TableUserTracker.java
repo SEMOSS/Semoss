@@ -17,7 +17,7 @@ import prerna.auth.User;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractFileQueryStruct;

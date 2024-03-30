@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;

@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
