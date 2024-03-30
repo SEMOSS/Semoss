@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;

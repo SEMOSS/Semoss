@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;

@@ -76,11 +76,11 @@ import prerna.util.Utility;
  */
 public class InMemorySesameEngine extends AbstractDatabaseEngine {
 
-	private static final Logger logger = LogManager.getLogger(InMemorySesameEngine.class.getName());
-	RepositoryConnection rc = null;
-	SailConnection sc = null;
-	ValueFactory vf = null;
-	boolean connected = false;
+	private static final Logger classLogger = LogManager.getLogger(InMemorySesameEngine.class);
+	private RepositoryConnection rc = null;
+	private SailConnection sc = null;
+	private ValueFactory vf = null;
+	private boolean connected = false;
 
 	/**
 	 * Method setRepositoryConnection. Sets the repository connection.
@@ -134,10 +134,9 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 	
 	 * @return triple query results that can be displayed as a grid */
 	public Object execQuery(String query) {
-
 		try {
 			Query fullQuery = rc.prepareQuery(QueryLanguage.SPARQL, query);
-			logger.debug("\nSPARQL: " + Utility.cleanLogString(query));
+			classLogger.debug("\nSPARQL: " + Utility.cleanLogString(query));
 			fullQuery.setIncludeInferred(true /* includeInferred */);
 			if(fullQuery instanceof TupleQuery){
 				TupleQueryResult sparqlResults = ((TupleQuery) fullQuery).evaluate();
@@ -173,7 +172,7 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 		try {
 			up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
 			//sc.addStatement(vf.createURI("<http://semoss.org/ontologies/Concept/Service/tom2>"),vf.createURI("<http://semoss.org/ontologies/Relation/Exposes>"),vf.createURI("<http://semoss.org/ontologies/Concept/BusinessLogicUnit/tom1>"));
-			logger.debug("\nSPARQL: " + query);
+			classLogger.debug("\nSPARQL: " + query);
 			//tq.setIncludeInferred(true /* includeInferred */);
 			//tq.evaluate();
 			rc.setAutoCommit(false);
@@ -204,7 +203,7 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 	{
 		try {
 			TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
-			logger.debug("\nSPARQL: " + sparqlQuery);
+			classLogger.debug("\nSPARQL: " + sparqlQuery);
 			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
 			Vector<Object> retVec = new Vector<Object>();
@@ -287,19 +286,19 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			
 			if(!concept) {
 				if(object.getClass() == new Double(1).getClass()) {
-					logger.debug("Found Double " + object);
+					classLogger.debug("Found Double " + object);
 					sc.addStatement(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				} else if(object.getClass() == new Date(1).getClass()) {
-					logger.debug("Found Date " + object);
+					classLogger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
 					sc.addStatement(newSub, newPred, vf.createLiteral(date, datatype));
 				} else if(object.getClass() == new Boolean(true).getClass()) {
-					logger.debug("Found Boolean " + object);
+					classLogger.debug("Found Boolean " + object);
 					sc.addStatement(newSub, newPred, vf.createLiteral((Boolean)object));
 				} else {
-					logger.debug("Found String " + object);
+					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -341,16 +340,16 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			
 			if(!concept) {
 				if(object.getClass() == new Double(1).getClass()) {
-					logger.debug("Found Double " + object);
+					classLogger.debug("Found Double " + object);
 					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				} else if(object.getClass() == new Date(1).getClass()) {
-					logger.debug("Found Date " + object);
+					classLogger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
 					sc.removeStatements(newSub, newPred, vf.createLiteral(date, datatype));
 				} else {
-					logger.debug("Found String " + object);
+					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			

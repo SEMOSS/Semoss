@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 
 public class QueryOpaqueSelector extends AbstractQuerySelector {
 
