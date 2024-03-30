@@ -26,7 +26,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;

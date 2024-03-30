@@ -25,7 +25,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.poi.main.HeadersException;
+import prerna.om.HeadersException;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Constants;
 import prerna.util.Utility;
