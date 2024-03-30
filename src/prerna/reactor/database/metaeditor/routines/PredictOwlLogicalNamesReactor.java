@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.om.GenRowStruct;

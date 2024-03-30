@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.poi.specific.TaskerGenerationWriter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;

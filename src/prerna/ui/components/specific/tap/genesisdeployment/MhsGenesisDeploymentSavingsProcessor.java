@@ -44,7 +44,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
 import prerna.util.ArrayUtilityMethods;

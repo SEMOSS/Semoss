@@ -45,7 +45,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;

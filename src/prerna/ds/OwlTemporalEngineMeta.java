@@ -40,7 +40,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
-import prerna.nameserver.utility.MetamodelVertex;
+import prerna.masterdatabase.utility.MetamodelVertex;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;

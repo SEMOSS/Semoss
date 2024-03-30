@@ -49,7 +49,7 @@ import org.apache.logging.log4j.Logger;
 
 import aurelienribon.ui.css.Style;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRunBtnListener;

@@ -13,7 +13,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.masterdatabase.util.GenerateMetamodelUtility;
 import prerna.sablecc2.om.GenRowStruct;
