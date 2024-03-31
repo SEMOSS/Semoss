@@ -2012,11 +2012,6 @@
 		    <artifactId>vault-java-driver</artifactId>
 		    <version>5.1.0</version>
 		</dependency>
-		<dependency>
-		  <groupId>com.github.spullara.mustache.java</groupId>
-		  <artifactId>compiler</artifactId>
-		  <version>0.9.10</version>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
 		<dependency>
 		    <groupId>org.apache.pdfbox</groupId>
