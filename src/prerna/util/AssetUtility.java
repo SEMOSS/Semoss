@@ -187,6 +187,18 @@ public class AssetUtility {
 		return portalsFolder;
 	}
 	
+	public static String getProjectNotebookFolder(String projectName, String projectId) {
+		String assetFolder = getProjectAssetFolder(projectName, projectId);
+		String portalsFolder = assetFolder + DIR_SEPARATOR + IProject.NOTEBOOK_FOLDER;
+
+		// if this folder does not exist create it
+		File file = new File(portalsFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return portalsFolder;
+	}
+	
 	public static String getProjectVersionFolder(String projectName, String projectId) {
 		String projectBaseFolder = getProjectBaseFolder(projectName, projectId);
 		String gitFolder = projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
