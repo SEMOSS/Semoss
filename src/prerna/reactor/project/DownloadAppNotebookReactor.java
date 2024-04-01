@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.InsightFile;
-import prerna.project.impl.ProjectHelper;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,7 +44,8 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		
-		List<File> notebookFiles = ProjectHelper.generateNotebookFromBlocks(Utility.getProject(projectId));
+		IProject project = Utility.getProject(projectId);
+		List<File> notebookFiles = project.writeNotebooks();
 		File download = null;
 		if(notebookFiles.size() == 1) {
 			download = notebookFiles.get(0);
