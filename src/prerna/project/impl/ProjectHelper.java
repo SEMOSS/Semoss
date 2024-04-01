@@ -1,8 +1,12 @@
 package prerna.project.impl;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -11,6 +15,16 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonWriter;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -30,6 +44,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.ProjectUtils;
@@ -400,6 +415,97 @@ public class ProjectHelper {
 			//			InsightsDatabaseUpdater3CacheableColumn.update(engineId, insightsRdbms);
 		}
 		return insightsRdbms;
+	}
+	
+	/**
+	 * 
+	 * @param project
+	 * @return
+	 */
+	public static List<File> generateNotebookFromBlocks(IProject project) {
+		String projectId = project.getProjectId();
+		// see if project has a blocks json
+		String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectId);
+		String projectPortalsFolder = projectAssetFolder + "/" + Constants.PORTALS_FOLDER;
+		String notebookFolder = projectAssetFolder + "/" + IProject.NOTEBOOK_FOLDER;
+		
+		// create the notebook dir if it doesn't exist
+		File notebookF = new File(notebookFolder);
+		if(!notebookF.exists() || !notebookF.isDirectory()) {
+			notebookF.mkdirs();
+		}
+		
+		String projectBlocksFile = projectPortalsFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File projectBlocksF = new File(Utility.normalizePath(projectBlocksFile));
+		if(!projectBlocksF.exists() || !projectBlocksF.isFile()) {
+			throw new IllegalArgumentException("Could not find the notebook to download");
+		}
+		
+		List<File> notebookList = new ArrayList<>();
+		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+
+		try (Reader fileReader = new FileReader(projectBlocksF)) {
+			JsonObject blocksFileJson = JsonParser.parseReader(fileReader).getAsJsonObject();
+			
+			JsonObject blocksQueryMap = blocksFileJson.getAsJsonObject("queries");
+			for(String notebookName : blocksQueryMap.keySet()) {
+				// these are from the blocks json
+				JsonObject blocksNotebook = blocksQueryMap.getAsJsonObject(notebookName);
+				List<JsonElement> blocksCells = blocksNotebook.getAsJsonArray("cells").asList();
+				
+				// we now need to move the information from the blocks json
+				// into the notebook we are writing
+				File writeNotebook = new File(notebookFolder + "/" + notebookName + ".ipynb");
+
+				JsonArray cellsArray = new JsonArray();
+				for(JsonElement blocksCell : blocksCells) {
+					JsonObject blocksParam = blocksCell.getAsJsonObject().getAsJsonObject("parameters");
+					
+					String blockType = blocksParam.get("type").getAsString();
+					String blockValue = blocksParam.get("code").getAsString();
+					
+					String cell_type = null;
+					String id = Utility.getRandomString(8);
+					String source = blockValue;
+					
+					if(blockType.equalsIgnoreCase("py") || blockType.equalsIgnoreCase("r")) {
+						cell_type = "code";
+					} else if(blockType.equalsIgnoreCase("markdown")) {
+						cell_type = "raw";
+					} else {
+						cell_type = "markdown";
+					}
+					
+					JsonObject cellObject = new JsonObject();
+					cellObject.addProperty("cell_type", cell_type);
+					cellObject.addProperty("id", id);
+					// will add empty metadata for now
+					cellObject.add("metadata", new JsonObject());
+					JsonArray sourceEle = new JsonArray();
+					sourceEle.add(source);
+					cellObject.add("source", sourceEle);
+					
+					// now add this to the cells array
+					cellsArray.add(cellObject);
+				}
+				
+				JsonObject writeJson = new JsonObject();
+				writeJson.add("cells", cellsArray);
+				
+				// write to the notebook file
+				
+				try(JsonWriter writer = gson.newJsonWriter(new FileWriter(writeNotebook))){
+					gson.toJson(writeJson, writer);
+				}
+				// add to list of notebooks
+				notebookList.add(writeNotebook);
+			}
+			
+		} catch (JsonIOException | JsonSyntaxException | IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return notebookList;
 	}
 
 }
