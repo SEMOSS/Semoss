@@ -1,27 +1,25 @@
 package prerna.reactor.project;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.project.api.IProject;
-import prerna.project.api.IProject.PROJECT_TYPE;
+import prerna.om.InsightFile;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.ZipUtils;
 
 public class DownloadAppNotebookReactor extends AbstractReactor {
 
@@ -46,42 +44,44 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		
-		IProject project = Utility.getProject(projectId);
-		if(project.getProjectType() != PROJECT_TYPE.BLOCKS) {
-			throw new IllegalArgumentException("Project/App must be type 'BLOCKS'");
-		}
-		
-		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-		String blocksJson = portalsFolder + "/" + IProject.BLOCK_FILE_NAME;
-		
-		File blockJF = new File(blocksJson);
-		if(!blockJF.exists() || !blockJF.isFile()) {
-			throw new IllegalArgumentException("Could not find the blocks json");
-		}
-		
-		try(InputStream is = new FileInputStream(blockJF)) {
-			JSONObject json = new JSONObject(IOUtils.toString(is, "UTF-8"));
-			
-			
-			
-			
-			
-			
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		List<File> notebookFiles = ProjectHelper.generateNotebookFromBlocks(Utility.getProject(projectId));
+		File download = null;
+		if(notebookFiles.size() == 1) {
+			download = notebookFiles.get(0);
+		} else {
+			File f = notebookFiles.get(0);
+			download = new File(this.insight.getInsightFolder()+"/notebooks.zip");
+
+			// create a zip
+			ZipOutputStream zos = null;
+			try {
+				zos = ZipUtils.zipFolder(f.getParent(), download.getAbsolutePath());
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to zip and download the notebooks", e);
+			} finally {
+				try {
+					if (zos != null) {
+						zos.flush();
+						zos.close();
+					}
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to zip and download the notebooks", e);
+				}
+			}
 		}
 		
 		String downloadKey = UUID.randomUUID().toString();
-		
-//		InsightFile insightFile = new InsightFile();
-//		insightFile.setFileKey(downloadKey);
-//		insightFile.setDeleteOnInsightClose(false);
-//		insightFile.setFilePath(insightsFile.getAbsolutePath());
-//
-//		// store the insight file 
-//		// in the insight so the FE can download it
-//		// only from the given insight
-//		this.insight.addExportFile(downloadKey, insightFile);
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(false);
+		insightFile.setFilePath(download.getAbsolutePath());
+
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
 
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
