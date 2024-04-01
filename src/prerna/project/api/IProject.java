@@ -48,7 +48,8 @@ public interface IProject extends IEngine, Closeable {
 	
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
-	
+	String NOTEBOOK_FOLDER = "notebooks";
+
 	enum PROJECT_TYPE {
 		BLOCKS,
 		CODE,
