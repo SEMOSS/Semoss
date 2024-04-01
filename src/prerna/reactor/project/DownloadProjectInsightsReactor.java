@@ -33,6 +33,11 @@ public class DownloadProjectInsightsReactor extends AbstractReactor {
 		this.organizeKeys();
 		
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			// you don't have access
+			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+		}
+		
 		File insightsFile = null;
 		try {
 			insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
