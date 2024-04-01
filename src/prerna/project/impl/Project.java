@@ -65,6 +65,8 @@ import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
+import prerna.project.impl.notebook.INotebookBuilder;
+import prerna.project.impl.notebook.NotebookFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
@@ -115,7 +117,8 @@ public class Project implements IProject {
 	private String projectVersionFolder = null;
 	private String projectAssetFolder = null;
 	private String projectPortalFolder = null;
-	
+	private String projectNotebookFolder = null;
+
 	private boolean isAsset = false;
 	private ProjectProperties projectProperties = null;
 	
@@ -149,6 +152,9 @@ public class Project implements IProject {
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	
+	// notebook helper
+	private transient INotebookBuilder notebookBuilder = null;
+	
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
@@ -171,6 +177,7 @@ public class Project implements IProject {
 			this.projectVersionFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId);
 			this.projectAssetFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
 			this.projectPortalFolder = AssetUtility.getProjectPortalsFolder(this.projectName, this.projectId);
+			this.projectNotebookFolder = AssetUtility.getProjectNotebookFolder(this.projectName, this.projectId);
 		}
 		
 		if(this.smssProp.containsKey(Constants.PROJECT_GIT_PROVIDER) && this.smssProp.containsKey(Constants.PROJECT_GIT_CLONE)) {
@@ -1116,6 +1123,33 @@ public class Project implements IProject {
 		}
 		
 		return this.publishedPortal;
+	}
+	
+	@Override
+	public synchronized List<File> writeNotebooks() {
+		// if not blocks json
+		// then ignore for now
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		File projectNotebookF = new File(this.projectNotebookFolder);
+		if(!projectNotebookF.exists() || !projectNotebookF.isDirectory()) {
+			projectNotebookF.mkdirs();
+		}
+		
+		try {
+			INotebookBuilder builder = NotebookFactory.getNotebookBuilder(blocksF);
+			return builder.createNotebooks(projectNotebookF);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ClusterUtil.pushProjectFolder(this, this.projectNotebookFolder);
+		}
+		
+		return null;
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {

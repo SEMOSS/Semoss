@@ -28,6 +28,8 @@
 package prerna.project.api;
 
 import java.io.Closeable;
+import java.io.File;
+import java.util.List;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -189,6 +191,12 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	SemossDate getLastPublishDate();
+	
+	/**
+	 * 
+	 * @return
+	 */
+	List<File> writeNotebooks();
 	
 	/**
 	 * Return if an asset
