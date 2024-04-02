@@ -533,7 +533,6 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 
 		@Override
 		public Map<String, Object> getModelEngineResponse() {
-			
 			Map<String, Object> modelEngineResponse = new HashMap<String, Object>();
 			modelEngineResponse.put(AbstractModelEngineResponse.RESPONSE, this.getResponse());
 	        
@@ -541,8 +540,8 @@ public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
 			if (partialResponses != null && !partialResponses.isEmpty()) {
 				// need to build the responses here
 				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, null);
+				//TODO: is this accurate?
 				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, partialResponses.size());
-		        
 			} else {
 				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, this.getPromptTokens());
 		        modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, this.getResponseTokens());

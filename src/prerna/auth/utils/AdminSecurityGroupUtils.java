@@ -645,6 +645,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
+		if(!groupExists(groupId, groupType)) {
+			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
+		}
+		
 		int curPermission = groupProjectPermission(groupId, groupType, projectId);
 		if(curPermission!= -1) {
 			throw new IllegalArgumentException("Group " + groupId + " already has access to project " + projectId + " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
@@ -1035,6 +1039,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		if(!groupExists(groupId, groupType)) {
+			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
+		}
+		
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if(curPermission!= -1) {
 			throw new IllegalArgumentException("Group " + groupId + " already has access to engine " + engineId + " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));

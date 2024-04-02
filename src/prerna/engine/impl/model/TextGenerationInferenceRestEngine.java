@@ -74,6 +74,7 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		}
 		
 		boolean stream = Boolean.parseBoolean(hyperParameters.remove("stream") + "");
+		stream = true;
 		bodyMap.put("stream", stream);
 		
 		bodyMap.put("parameters", this.adjustHyperParameters(hyperParameters));
@@ -262,17 +263,17 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		    }
 
 		    public class GeneratedTextDetails {
-		        private String finishReason;
-		        private int generatedTokens;
+		        private String finish_reason;
+		        private int generated_tokens;
 		        private Object seed; // Use Object if the type of 'seed' is unknown or can vary
 		        private List<Object> prefill; // Use List<Object> if the type of list elements is unknown or can vary
 		        private List<Token> tokens;
 		        
-	            public String getFinishReason() { return this.finishReason; }
-	            public void setFinishReason(String finishReason) { this.finishReason = finishReason; }
+	            public String getFinishReason() { return this.finish_reason; }
+	            public void setFinishReason(String finishReason) { this.finish_reason = finishReason; }
 	            
-	            public int getGeneratedTokens() { return this.generatedTokens; }
-	            public void setGeneratedTokens(int generatedTokens) { this.generatedTokens = generatedTokens; }
+	            public int getGeneratedTokens() { return this.generated_tokens; }
+	            public void setGeneratedTokens(int generatedTokens) { this.generated_tokens = generatedTokens; }
 	            
 	            public Object getSeed() { return this.seed; }
 	            public void setSeed(Object seed) { this.seed = seed; }
@@ -286,8 +287,8 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		        @Override
 		        public String toString() {
 		            return "GeneratedTextDetails{" +
-		                    "finishReason='" + finishReason + '\'' +
-		                    ", generatedTokens=" + generatedTokens +
+		                    "finishReason='" + finish_reason + '\'' +
+		                    ", generatedTokens=" + generated_tokens +
 		                    ", seed=" + seed +
 		                    ", prefill=" + prefill +
 		                    ", tokens=" + tokens +
@@ -342,7 +343,6 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 
 		@Override
 		public Map<String, Object> getModelEngineResponse() {
-
 			Map<String, Object> modelEngineResponse = new HashMap<String, Object>();
 			modelEngineResponse.put(AbstractModelEngineResponse.RESPONSE, this.getResponse());
 	        
@@ -350,8 +350,11 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 			if (partialResponses != null && !partialResponses.isEmpty()) {
 				// need to build the responses here
 				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, null);
-				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, partialResponses.size());
-		        
+				int tokens = 0;
+				for(int i = 0; i < partialResponses.size(); i++) {
+					tokens += ((TextGenStream) partialResponses.get(i)).getDetails().getGeneratedTokens();
+				}
+				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, tokens);
 			} else {
 				modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_PROMPT, this.getPromptTokens());
 		        modelEngineResponse.put(AbstractModelEngineResponse.NUMBER_OF_TOKENS_IN_RESPONSE, this.getResponseTokens());
@@ -369,14 +372,12 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 
 		@Override
 		public Integer getPromptTokens() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
 		public Integer getResponseTokens() {
-			// TODO Auto-generated method stub
-			return null;
+			return this.generatedItems.get(0).getDetails().getGeneratedTokens();
 		}
 		
 	}
@@ -438,15 +439,15 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
         }
 		
 		public class GeneratedTextDetails {
-	        private String finishReason;
-	        private int generatedTokens;
+	        private String finish_reason;
+	        private int generated_tokens;
 	        private Object seed; // Use Object if the type of 'seed' is unknown or can vary
 	        
-            public String getFinishReason() { return this.finishReason; }
-            public void setFinishReason(String finishReason) { this.finishReason = finishReason; }
+            public String getFinishReason() { return this.finish_reason; }
+            public void setFinishReason(String finishReason) { this.finish_reason = finishReason; }
             
-            public int getGeneratedTokens() { return this.generatedTokens; }
-            public void setGeneratedTokens(int generatedTokens) { this.generatedTokens = generatedTokens; }
+            public int getGeneratedTokens() { return this.generated_tokens; }
+            public void setGeneratedTokens(int generatedTokens) { this.generated_tokens = generatedTokens; }
             
             public Object getSeed() { return this.seed; }
             public void setSeed(Object seed) { this.seed = seed; }
@@ -454,8 +455,8 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 	        @Override
 	        public String toString() {
 	            return "GeneratedTextDetails{" +
-	                    "finishReason='" + finishReason + '\'' +
-	                    ", generatedTokens=" + generatedTokens +
+	                    "finishReason='" + finish_reason + '\'' +
+	                    ", generatedTokens=" + generated_tokens +
 	                    ", seed=" + seed +
 	                    '}';
 	        }
