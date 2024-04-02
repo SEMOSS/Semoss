@@ -738,9 +738,9 @@ public abstract class AbstractHttpHelper {
 			int statusCode = response.getStatusLine().getStatusCode();
 			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
-                responseData = entity != null ? EntityUtils.toString(entity) : null;
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
             } else {
-                responseData = entity != null ? EntityUtils.toString(entity) : "";
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
     			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
             }
 			
@@ -926,9 +926,9 @@ public abstract class AbstractHttpHelper {
 			int statusCode = response.getStatusLine().getStatusCode();
 			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
-                responseData = entity != null ? EntityUtils.toString(entity) : null;
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
             } else {
-                responseData = entity != null ? EntityUtils.toString(entity) : "";
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
     			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
             }
 			
@@ -971,9 +971,9 @@ public abstract class AbstractHttpHelper {
 			int statusCode = response.getStatusLine().getStatusCode();
 			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
-                responseData = entity != null ? EntityUtils.toString(entity) : null;
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
             } else {
-                responseData = entity != null ? EntityUtils.toString(entity) : "";
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
     			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
             }
 			

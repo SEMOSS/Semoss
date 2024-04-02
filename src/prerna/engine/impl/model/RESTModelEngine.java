@@ -107,12 +107,12 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 	            HttpEntity entity = response.getEntity();
 	            if (!isStream) {
 	                // Handle regular response
-	                String responseData = entity != null ? EntityUtils.toString(entity) : null;
+	                String responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
 	                return handleDeserialization(responseData, responseType);
 	            } else {
 	                // Handle streaming response
 	                if (entity != null) {
-	                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()))) {
+	                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent(), "UTF-8"))) {
 	                        String line;
 	                        StringBuilder responseAssimilator = new StringBuilder();
 	                        IModelEngineResponseHandler responseObject = responseType.newInstance();
@@ -149,7 +149,7 @@ public abstract class RESTModelEngine extends AbstractModelEngine {
 	            }
 	        } else {
 	        	// try to send back the error from the server
-	            String errorResponse = EntityUtils.toString(response.getEntity());
+	            String errorResponse = EntityUtils.toString(response.getEntity(), "UTF-8");
 	            throw new IllegalArgumentException("Connected to " + url + " but received error = " + errorResponse);
 	        }
 	    } catch (IOException e) {
