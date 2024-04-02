@@ -1838,6 +1838,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
 		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
