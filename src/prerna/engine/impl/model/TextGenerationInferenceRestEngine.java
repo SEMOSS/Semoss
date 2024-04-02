@@ -66,12 +66,11 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		if (fullPrompt != null) {
 			bodyMap.put("inputs", fullPrompt);
 		} else {
-			
 			if(context != null) {
-				bodyMap.put("inputs", context + question);
+				bodyMap.put("inputs", constructFinalPrompt(context + question));
 			} else {
-				bodyMap.put("inputs", question);
-			}			
+				bodyMap.put("inputs", constructFinalPrompt(question));
+			}
 		}
 		
 		boolean stream = Boolean.parseBoolean(hyperParameters.remove("stream") + "");
@@ -85,6 +84,14 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		Map<String, Object> modelEngineResponseMap = modelResponse.getModelEngineResponse();
 		
 		return AskModelEngineResponse.fromMap(modelEngineResponseMap);
+	}
+	
+	private String constructFinalPrompt(String prompt) {
+		String createdPrompt = "### Instruction:\n\n";
+		createdPrompt += prompt;
+		createdPrompt += "\n\n";
+		createdPrompt += "### Response:";
+		return createdPrompt;
 	}
 	
 	private Map<String, Object> adjustHyperParameters(Map<String, Object> hyperParameters) {
@@ -104,7 +111,10 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		    throw new IllegalArgumentException("The hyperparameter decoder_input_details is set but is not a boolean.");
 		}
 		
-		if (hyperParameters.get("do_sample") != null && !(hyperParameters.get("do_sample") instanceof Boolean)) {
+		if(!hyperParameters.containsKey("do_sample")) {
+			// default to false
+			hyperParameters.put("do_sample", false);
+		} else if (!(hyperParameters.get("do_sample") instanceof Boolean)) {
 		    throw new IllegalArgumentException("The hyperparameter do_sample is set but is not a boolean.");
 		}	
 		
@@ -112,7 +122,10 @@ public class TextGenerationInferenceRestEngine extends RESTModelEngine {
 		    throw new IllegalArgumentException("The hyperparameter max_new_tokens is set but is not a integer.");
 		}
 
-		if (hyperParameters.get("return_full_text") != null && !(hyperParameters.get("return_full_text") instanceof Boolean)) {
+		if(!hyperParameters.containsKey("return_full_text")) {
+			// default to false
+			hyperParameters.put("return_full_text", false);
+		} else if (!(hyperParameters.get("return_full_text") instanceof Boolean)) {
 		    throw new IllegalArgumentException("The hyperparameter top_logprobs is set but is not an boolean.");
 		}
 
