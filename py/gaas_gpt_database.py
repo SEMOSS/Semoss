@@ -26,13 +26,18 @@ class DatabaseEngine(ServerProxy):
                       )
     if isinstance(fileLoc, list) and len(fileLoc) > 0:
       fileLoc = fileLoc[0]
-    if return_pandas:
-      print(f"file Location {fileLoc}")
-      import pandas as pd
-      return pd.read_json(fileLoc)
-    else:
-      return open(fileLoc, "r").read()
-
+    try:
+      if return_pandas:
+        print(f"file Location {fileLoc}")
+        import pandas as pd
+        return pd.read_json(fileLoc)
+      else:
+        return open(fileLoc, "r").read()
+    finally:
+      # Always attempt to remove the file regardless of success
+      import os
+      if os.path.exists(fileLoc):
+        os.remove(fileLoc)
 
   def insertData(self, query=None, insight_id=None):
     assert query is not None
