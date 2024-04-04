@@ -1,7 +1,5 @@
 package prerna.util.edi;
 
-import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850CTT;
-
 public interface IPO850CTT extends IX12Format {
 
 	/**
