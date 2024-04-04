@@ -464,22 +464,31 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 			qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+			// return the end date of the permission
+			qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENDDATE", "end_date"));
+			// also return who did this and when
+			qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY", "permission_granted_by"));
+			qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBYTYPE", "permission_granted_by_type"));
+			qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
+			// filter to owners and editors
 			List<Integer> permissionValues = new Vector<Integer>(2);
 			permissionValues.add(new Integer(1));
 			permissionValues.add(new Integer(2));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues, PixelDataType.CONST_INT));
+			// filter to the engine
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 			qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 			qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 			
 			users = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 			
+			// since global just say all global
 			Map<String, Object> globalMap = new HashMap<String, Object>();
 			globalMap.put("name", "PUBLIC DATABASE");
 			globalMap.put("permission", "READ_ONLY");
 			users.add(globalMap);
 		} else {
-			users = getFullEngineOwnersAndEditors(engineId, null, null, -1, -1);
+			users = getEngineUsers(engineId, null, null, -1, -1);
 		}
 		return users;
 	}
@@ -493,7 +502,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String engineId, String searchParam, String permission, long limit, long offset) {
+	public static List<Map<String, Object>> getEngineUsers(String engineId, String searchParam, String permission, long limit, long offset) {
 		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -502,6 +511,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		// return the end date of the permission
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENDDATE", "end_date"));
+		// also return who did this and when
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY", "permission_granted_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBYTYPE", "permission_granted_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
+		// filter to the engine
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (hasSearchParam) {
 			OrQueryFilter or = new OrQueryFilter();
