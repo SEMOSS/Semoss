@@ -1313,7 +1313,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getEngineUsers(String engineId, String searchParam, String permission, long limit, long offset) {
-		return SecurityEngineUtils.getFullEngineOwnersAndEditors(engineId, searchParam, permission, limit, offset);
+		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
 	
 	/**
@@ -1356,7 +1356,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getProjectUsers(String projectId, String searchParam, String permission, long limit, long offset) {
-		return SecurityProjectUtils.getFullProjectOwnersAndEditors(projectId, searchParam, permission, limit, offset);
+		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 	
 	public static long getProjectUsersCount(String projectId, String searchParam, String permission) {
