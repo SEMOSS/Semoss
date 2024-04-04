@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.reactor.AbstractReactor;
@@ -36,6 +37,9 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have edit access to the database");
+		}
 		String tableName = this.keyValue.get(this.keysToGet[1]);
 		String format = this.keyValue.get(this.keysToGet[2]);
 		if(format == null || (format=format.trim()).isEmpty()) {
