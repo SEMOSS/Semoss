@@ -61,7 +61,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				ReactorKeysEnum.OVERRIDE.getKey(), 
 				INSERT_ID_KEY,
 				IGNORE_OWL
-				};
+			};
 	}
 
 	@Override
@@ -79,7 +79,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			this.engineId = this.keyValue.get(TARGET_DATABASE);
 			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
 			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
-				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
+				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the database");
 			}
 			
 			this.targetTable = this.keyValue.get(TARGET_TABLE);
