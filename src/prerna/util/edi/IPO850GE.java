@@ -1,7 +1,5 @@
 package prerna.util.edi;
 
-import prerna.util.edi.IPO850GE;
-
 public interface IPO850GE extends IX12Format {
 
 	/**
