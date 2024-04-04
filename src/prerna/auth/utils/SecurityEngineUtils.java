@@ -642,19 +642,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * 
-	 * @param databaseId
-	 * @param userId
-	 * @param permission
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String databaseId, String searchParam, String permission, long limit, long offset) {
-		return SecurityUserEngineUtils.getFullEngineOwnersAndEditors(databaseId, searchParam, permission, limit, offset);
-	}
-	
-	/**
 	 * Retrieve the list of users for a given database
 	 * @param user
 	 * @param engineId
@@ -669,35 +656,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if(!userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
-		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		if (hasSearchParam) {
-			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", searchParam));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchParam));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchParam));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchParam));
-			qs.addExplicitFilter(or);
-		}
-		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
-		}
-		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
-		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-		if(limit > 0) {
-			qs.setLimit(limit);
-		}
-		if(offset > 0) {
-			qs.setOffSet(offset);
-		}
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
 	
 	/**
