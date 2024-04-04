@@ -2,8 +2,6 @@ package prerna.util.edi;
 
 import java.time.LocalDateTime;
 
-import prerna.util.edi.IPO850GS;
-
 public interface IPO850GS extends IX12Format {
 
 	/**

@@ -1,7 +1,5 @@
 package prerna.util.edi;
 
-import prerna.util.edi.IPO850FunctionalGroup;
-
 public interface IPO850FunctionalGroup extends IX12Format {
 
 	/**
