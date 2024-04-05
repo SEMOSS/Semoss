@@ -139,16 +139,16 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 					i = 0;
 					for (; i < size; i++) {
 						if(Utility.isNullValue(dataRow[i])) {
-							builder.append("null").append(this.delimiter);
+							builder.append("null");
 						} else {
 							if (typesArr[i] == SemossDataType.STRING) {
 								builder.append("\"").append(dataRow[i]).append("\"");
 							} else {
 								builder.append(dataRow[i]);
 							}
-							if ((i + 1) != size) {
-								builder.append(this.delimiter);
-							}
+						}
+						if ((i + 1) != size) {
+							builder.append(this.delimiter);
 						}
 					}
 					// write row to file
@@ -165,16 +165,16 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 					i = 0;
 					for (; i < size; i++) {
 						if(Utility.isNullValue(dataRow[i])) {
-							builder.append("null").append(this.delimiter);
+							builder.append("null");
 						} else {
 							if (typesArr[i] == SemossDataType.STRING) {
 								builder.append("\"").append(dataRow[i]).append("\"");
 							} else {
 								builder.append(dataRow[i]);
 							}
-							if ((i + 1) != size) {
-								builder.append(this.delimiter);
-							}
+						}
+						if ((i + 1) != size) {
+							builder.append(this.delimiter);
 						}
 					}
 					// write row to file
