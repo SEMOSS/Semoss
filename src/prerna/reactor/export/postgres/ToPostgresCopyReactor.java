@@ -27,9 +27,11 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 
 	private static final String TABLE_NAME = "table";
 	private static final String FORMAT = "format";
-
+	private static final String NULL = "null";
+	
 	public ToPostgresCopyReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), TABLE_NAME, FORMAT, 
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), 
+				TABLE_NAME, FORMAT, NULL, ReactorKeysEnum.DELIMITER.getKey(),
 				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
  	}
 	
@@ -41,10 +43,13 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have edit access to the database");
 		}
 		String tableName = this.keyValue.get(this.keysToGet[1]);
-		String format = this.keyValue.get(this.keysToGet[2]);
-		if(format == null || (format=format.trim()).isEmpty()) {
-			format = "csv";
+		String formatStr = this.keyValue.get(this.keysToGet[2]);
+		if(formatStr == null || (formatStr=formatStr.trim()).isEmpty()) {
+			formatStr = "csv";
 		}
+		String nullStr = this.keyValue.get(this.keysToGet[3]);
+		String delimiterStr = this.keyValue.get(this.keysToGet[4]);
+
 		String filePath = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 		IEngine engine = Utility.getEngine(engineId);
 		if(!(engine instanceof IRDBMSEngine)) {
@@ -55,9 +60,17 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 		IRDBMSEngine database = (IRDBMSEngine) engine;
 		Connection conn = null;
 		try {
+			String options = "FORMAT " + formatStr;
+			if(nullStr != null) {
+				options +=", null \"" + nullStr +"\"";
+			}
+			if(delimiterStr != null && !(delimiterStr=delimiterStr.trim()).isEmpty() ) {
+				options +=", DELIMITER '" + delimiterStr + "'";
+			}
+			
 			conn = database.getConnection();
 			    rowsInserted = new CopyManager((BaseConnection) conn)
-			            .copyIn("COPY " + tableName + " FROM STDIN (FORMAT " + format + ", HEADER)", 
+			            .copyIn("COPY " + tableName + " FROM STDIN (" + options + ", HEADER)", 
 			                new BufferedReader(new FileReader(filePath))
 			                );
 		} catch(Exception e) {
@@ -78,6 +91,8 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 			return "The name of the table we are copying into";
 		} else if(key.equals(FORMAT)) {
 			return "The format of the file being passed in. Default is csv";
+		} else if(key.equals(NULL)) {
+			return "What value is used to represent null";
 		}
 		return super.getDescriptionForKey(key);
 	}
