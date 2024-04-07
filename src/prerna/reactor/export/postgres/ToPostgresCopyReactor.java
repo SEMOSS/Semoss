@@ -27,7 +27,7 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 
 	private static final String TABLE_NAME = "table";
 	private static final String FORMAT = "format";
-	private static final String NULL = "null";
+	private static final String NULL = "nullValue";
 	
 	public ToPostgresCopyReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), 
