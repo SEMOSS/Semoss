@@ -199,8 +199,16 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				Cell cell = headerRow.createCell(i);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
+				
 				// grab metadata from iterator
-				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+				if(headerInfo.get(i).containsKey("dataType")) {
+					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("dataType").toString());
+				} else if(headerInfo.get(i).containsKey("type")) {
+					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+				} else {
+					typesArr[i] = SemossDataType.STRING;
+				}
+				
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
 					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i]));
