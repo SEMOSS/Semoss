@@ -50,9 +50,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	protected boolean closedConnection = false;
 	protected ZoneId databaseZoneId = null;
 
-	protected int numColumns = 0;
+	// we only keep the colTypes as defined by their int values
+	// headers, rawHeaders, types are defined in AbstractWrapper
 	protected int[] colTypes = null;
-	protected SemossDataType[] types;
 
 	protected IHeadersDataRow currRow = null;
 
