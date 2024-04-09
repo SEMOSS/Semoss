@@ -32,7 +32,11 @@ class LocalEmbedder(AbstractEmbedder):
         )
 
         assert self.model_folder != None
+        
+        # sometimes the model folder from self.get_physical_folder is a PosixPath and the get embedder call fails since
+        #  embedder = SentenceTransformer( self.model_folder,device=self.device) needs string for model_folder 
 
+        self.model_folder = str(self.model_folder)
         # if a device number was passed in, make sure its available
         self.device = None
         if torch.cuda.is_available() and device_number != None:
@@ -98,6 +102,7 @@ class LocalEmbedder(AbstractEmbedder):
             )
         except:
             # trust_remote_code is needed to use the encode method
+            # KUNAL: This method seems to fail as it does not force a .encode method on the embedder object (ex. BertEncoder)
             embedder = AutoModel.from_pretrained(
                 self.model_folder,
                 trust_remote_code=True,
