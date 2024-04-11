@@ -2,7 +2,11 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -11,11 +15,15 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
+import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
+import prerna.om.ClientProcessWrapper;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -28,6 +36,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String INSIGHT = "insight";
+	
+	public static final String DIR_SEPARATOR = "/";
+	public static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -48,7 +60,17 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected String defaultIndexClass;
 	
 	protected String distanceMethod;
-	
+	public static final String INDEX_CLASS = "indexClass";
+	protected ClientProcessWrapper cpw = null;
+
+	// python server
+	protected TCPPyTranslator pyt = null;
+	protected String pyDirectoryBasePath = null;
+	protected File cacheFolder;
+	protected boolean modelPropsLoaded = false;
+	File schemaFolder;
+
+
 	// string substitute vars
 	Map<String, String> vars = new HashMap<>();
 	
@@ -102,6 +124,54 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return resolvedString;
 	}
 	
+	public Insight getInsight(Object insightObj) {
+		if (insightObj instanceof String) {
+			return InsightStore.getInstance().get((String) insightObj);
+		} else {
+			return (Insight) insightObj;
+		}
+	}
+	
+	public void checkSocketStatus() {
+		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1);
+		}
+	}
+
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) 
+	{
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
+
+		List<Map<String, Object>> fileList = new ArrayList<>();
+
+		File[] files = documentsDir.listFiles();
+		if (files != null) {
+			for (File file : files) {
+				String fileName = file.getName();
+				long fileSizeInBytes = file.length();
+				double fileSizeInMB = (double) fileSizeInBytes / (1024);
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String lastModified = dateFormat.format(new Date(file.lastModified()));
+
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", fileSizeInMB);
+				fileInfo.put("lastModified", lastModified);
+				fileList.add(fileInfo);
+			}
+		} 
+
+		return fileList;
+	}
+
+	
+	protected abstract void startServer(int lease);
+
 	@Override
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
@@ -201,5 +271,57 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+	
+	
+	
+	protected void verifyModelProps() {
+		// This could get moved depending on other vector db needs
+		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
+		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
+		if (embedderEngineId == null) {
+			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
+			if (embedderEngineId == null) {
+				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
+			}
+			
+			this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, embedderEngineId);
+		}
+		
+		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
+		if (modelEngine == null) {
+			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+		}
+		
+		Properties modelProperties = modelEngine.getSmssProp();
+		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
+			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+		}
+		
+		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
+		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
+		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
+			this.smssProp.put(Constants.MAX_TOKENS, "None");
+		} else {
+			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
+		}
+
+		// model engine responsible for creating keywords
+		String keywordGeneratorEngineId = this.smssProp.getProperty(KEYWORD_ENGINE_ID);
+		if (keywordGeneratorEngineId != null) {
+			// pull the model smss if needed
+			Utility.getModel(keywordGeneratorEngineId);
+			this.smssProp.put(KEYWORD_ENGINE_ID, keywordGeneratorEngineId);
+		} else {
+			// add it to the smss prop so the string substitution does not fail
+			this.smssProp.put(KEYWORD_ENGINE_ID, "");
+		}
+		
+		for (Object smssKey : this.smssProp.keySet()) {
+			String key = smssKey.toString();
+			this.vars.put(key, this.smssProp.getProperty(key));
+		}
+		
+		modelPropsLoaded = true;
 	}
 }
