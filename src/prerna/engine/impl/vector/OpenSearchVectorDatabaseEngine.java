@@ -108,7 +108,7 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
-	private void verifyModelProps() {
+	protected void verifyModelProps() {
 		// TODO need to add check for URL and auth and index name as of right now. 
 		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
 		if (embedderEngineId == null) {
@@ -146,7 +146,7 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		modelPropsLoaded = true;
 	}
 
-	private synchronized void startServer(int port) {
+	protected synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -283,7 +283,7 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		return (List<Map<String, Object>>) output;
 	}
 	
-	private void checkSocketStatus() {
+	public void checkSocketStatus() {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.startServer(-1);
 		}
@@ -318,8 +318,8 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		// TODO Auto-generated method stub
 		
 	}
-	
-	private Insight getInsight(Object insightObj) {
+	// not needed anmore
+	public Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
 			return InsightStore.getInstance().get((String) insightObj);
 		} else {

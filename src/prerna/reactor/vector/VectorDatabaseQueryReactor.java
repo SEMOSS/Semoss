@@ -6,9 +6,7 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.engine.impl.vector.FaissDatabaseEngine;
-import prerna.engine.impl.vector.OpenSearchVectorDatabaseEngine;
+import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
@@ -50,11 +48,12 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		}
 		
 		// for FAISS or openSearch, make sure the user has access to the embedder model
-		if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS || eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH) {
-			String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
-				throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
-			}
+		//if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS || eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH || eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.WEAVIATE) 
+		//{
+		String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
+		if(embeddingsEngineId == null || !SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) 
+		{
+			throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
 		}
 		
 		
@@ -67,16 +66,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		}
 		
 		// add the insightId so Model Engine calls can be made for python
-		VectorDatabaseTypeEnum vectorDbType = eng.getVectorDatabaseType();
-		if (vectorDbType == VectorDatabaseTypeEnum.FAISS) {
-			paramMap.put(FaissDatabaseEngine.INSIGHT, this.insight);
-		}
-		if (vectorDbType == VectorDatabaseTypeEnum.PGVECTOR) {
-			paramMap.put("insight", this.insight);
-		}
-		if (vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH) {
-			paramMap.put(OpenSearchVectorDatabaseEngine.INSIGHT, this.insight);
-		}
+		paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
 		
 		List<IQueryFilter> filters = getFilters();
 		if (filters != null) {

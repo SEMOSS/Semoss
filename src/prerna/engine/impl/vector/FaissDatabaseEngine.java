@@ -59,10 +59,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
 	public static final String INDEX_CLASS = "indexClass";
+	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	
-	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
 	private static final String faissInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
 	
@@ -72,10 +70,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	private List<String> indexClasses;
 	
-	// python server
-	private TCPPyTranslator pyt = null;
-	private String pyDirectoryBasePath = null;
-	private File cacheFolder;
 
 	private ClientProcessWrapper cpw = null;
 	
@@ -110,58 +104,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
-	
-	private void verifyModelProps() {
-		// This could get moved depending on other vector db needs
-		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
-		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
-		if (embedderEngineId == null) {
-			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
-			if (embedderEngineId == null) {
-				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
-			}
-			
-			this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, embedderEngineId);
-		}
-		
-		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
-		if (modelEngine == null) {
-			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
-		}
-		
-		Properties modelProperties = modelEngine.getSmssProp();
-		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
-			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
-		}
-		
-		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
-		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
-		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
-			this.smssProp.put(Constants.MAX_TOKENS, "None");
-		} else {
-			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
-		}
 
-		// model engine responsible for creating keywords
-		String keywordGeneratorEngineId = this.smssProp.getProperty(KEYWORD_ENGINE_ID);
-		if (keywordGeneratorEngineId != null) {
-			// pull the model smss if needed
-			Utility.getModel(keywordGeneratorEngineId);
-			this.smssProp.put(KEYWORD_ENGINE_ID, keywordGeneratorEngineId);
-		} else {
-			// add it to the smss prop so the string substitution does not fail
-			this.smssProp.put(KEYWORD_ENGINE_ID, "");
-		}
-		
-		for (Object smssKey : this.smssProp.keySet()) {
-			String key = smssKey.toString();
-			this.vars.put(key, this.smssProp.getProperty(key));
-		}
-		
-		modelPropsLoaded = true;
-	}
 	
-	private synchronized void startServer(int port) {
+	protected synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -794,19 +739,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return VectorDatabaseTypeEnum.FAISS;
 	}
 	
-	private void checkSocketStatus() {
-		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
-	}
-	
-	private Insight getInsight(Object insightObj) {
-		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get((String) insightObj);
-		} else {
-			return (Insight) insightObj;
-		}
-	}
 
 	@Override
 	public void close() {
