@@ -530,7 +530,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.8.1</version>
+			<version>3.14.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2106,5 +2106,17 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>
+		<!--  Weaviate Vector Engine -->
+		<dependency>
+  <groupId>io.weaviate</groupId>
+  <artifactId>client</artifactId>
+  <version>4.6.0</version>  <!-- Check latest version -->
+  <exclusions>
+        <exclusion>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>org.apache.commons.lang</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
 	</dependencies>
 </project>
