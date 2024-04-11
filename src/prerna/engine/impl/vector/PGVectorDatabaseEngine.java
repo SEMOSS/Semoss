@@ -38,7 +38,6 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.vector.PGVectorDatabaseEngine.PgVectorTable.PgVectorRow;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -464,7 +463,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					PreparedStatement ps = conn.prepareStatement(psString);
 					for(int i = 0; i < extractedFiles.size(); i++) {
 						File extractedFile = extractedFiles.get(i);
-						PgVectorTable dataForTable = readCsv(extractedFile);
+						CSVTable dataForTable = readCsv(extractedFile);
 						
 						if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
 							IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
@@ -473,7 +472,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						
 						dataForTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 						
-						for (PgVectorRow row: dataForTable.getRows()) {
+						for (CSVRow row: dataForTable.getRows()) {
 							int index = 1;
 							ps.setObject(index++, row.getEmbeddings());
 							ps.setString(index++, row.getSource());
@@ -516,8 +515,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 
-	protected PgVectorTable readCsv(File file) throws IOException {
-		PgVectorTable pgVectorTable = new PgVectorTable();
+	protected CSVTable readCsv(File file) throws IOException {
+		CSVTable pgVectorTable = new CSVTable();
 		try (Reader reader = Files.newBufferedReader(Paths.get(file.getAbsolutePath()))) {
 			try (CSVReader csvReader = new CSVReader(reader)) {
 				String[] line;
@@ -653,7 +652,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) 
+	{
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -768,139 +768,4 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 	
-	public class PgVectorTable {
-		
-		public class PgVectorRow {
-			
-			private PGvector embeddings = null; // This could be a placeholder or identifier for actual embeddings
-			private String source;
-			private String modality;
-			private String divider;
-			private String part;
-			private Integer tokens;
-			private String content;
-			private String keywords = "";
-
-	        public PgVectorRow(String source, String modality, String divider, String part, int tokens, String content) {
-	            // Initially, embeddings might not be set
-	            this.source = source;
-	            this.modality = modality;
-	            this.divider = divider;
-	            this.part = part;
-	            this.tokens = tokens;
-	            this.content = content;
-	        }
-
-	        // Method to update the embeddings for a row
-	        public void setEmbeddings(PGvector embeddings) {
-	            this.embeddings = embeddings;
-	        }
-	        
-	        public PGvector getEmbeddings() {
-	            return this.embeddings;
-	        }
-	        
-	        public String getSource() {
-	        	return this.source;
-	        }
-	        
-	        public String getModality() {
-	        	return this.modality;
-	        }
-	        
-	        public String getDivider() {
-	        	return this.divider;
-	        }
-	        
-	        public String getPart() {
-	        	return this.part;
-	        }
-
-	        public Integer getTokens() {
-	        	return this.tokens;
-	        }
-	        
-	        public String getContent() {
-	        	return this.content;
-	        }
-	        
-	        public void setKeywords(String keywords) {
-	            this.keywords = keywords;
-	        }
-	        
-	        public String getKeywords() {
-	            return this.keywords;
-	        }
-	    }
-
-	    protected List<PgVectorRow> rows;
-	    private IModelEngine keywordEngine = null;
-		private int maxKeywords = 12;
-		private int percentile = 0;
-		
-	    public PgVectorTable() {
-	        this.rows = new ArrayList<>();
-	    }
-
-	    public void addRow(String source, String modality, String divider, String part, int tokens, String content) {
-	    	PgVectorRow newRow = new PgVectorRow(source, modality, divider, part, tokens, content);
-	        this.rows.add(newRow);
-	    }
-	    
-	    public void addRow(String source, String modality, String divider, String part, String tokens, String content) {
-	    	PgVectorRow newRow = new PgVectorRow(source, modality, divider, part, Double.valueOf(tokens).intValue(), content);
-	        this.rows.add(newRow);
-	    }
-	            
-	    public List<String> getAllContent() {
-	        List<String> contents = new ArrayList<>();
-	        for (PgVectorRow row : rows) {
-	            contents.add(row.content);
-	        }
-	        return contents;
-	    }
-	    
-	    public List<PgVectorRow> getRows() {
-	    	return this.rows;
-	    }
-	    
-	    public void setKeywordEngine(IModelEngine keywordEngine) {
-            this.keywordEngine = keywordEngine;
-        }
-        
-        public IModelEngine getKeywordEngine() {
-            return this.keywordEngine;
-        }
-	    
-	    public void generateAndAssignEmbeddings(IModelEngine modelEngine, Insight insight) {
-	    	List<String> stringsToEmbed = this.getAllContent();
-	    	
-	    	if (this.keywordEngine != null) {
-	    		
-	    		Map<String, Object> keywordEngineParams = new HashMap<>();
-	    		keywordEngineParams.put("max_keywords", maxKeywords);
-	    		keywordEngineParams.put("percentile", percentile);
-	    		
-	    		@SuppressWarnings({"unchecked" })
-				List<String> keywordsFromChunks = (List<String>) this.keywordEngine.model(stringsToEmbed, insight, keywordEngineParams); 		
-	    		
-	    		for (int i = 0; i < this.rows.size(); i++) {
-	    			String keywordChunk = keywordsFromChunks.get(i);
-	    			
-	    			if (keywordChunk != null && !(keywordChunk=keywordChunk.trim()).isEmpty()) {
-	    				this.rows.get(i).setKeywords(keywordChunk);
-	    				stringsToEmbed.add(i, keywordChunk);
-	    			}
-	    		}
-	    	}
-	    	
-			EmbeddingsModelEngineResponse output = modelEngine.embeddings(stringsToEmbed, insight, null);
-	    	
-			List<List<Double>> vectors = output.getResponse();
-
-			for (int i = 0; i < this.rows.size(); i++) {
-				this.rows.get(i).setEmbeddings(new PGvector(vectors.get(i)));
-			}
-	    }
-	}
 }
