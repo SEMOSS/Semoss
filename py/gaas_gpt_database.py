@@ -13,7 +13,7 @@ class DatabaseEngine(ServerProxy):
     assert query is not None
     if insight_id is None:
       insight_id = self.insight_id
-    assert insight_id is not None
+    # assert insight_id is not None
     epoc = super().get_next_epoc()
     fileLoc = super().call(
                       epoc = epoc, 
@@ -43,7 +43,7 @@ class DatabaseEngine(ServerProxy):
     assert query is not None
     if insight_id is None:
       insight_id = self.insight_id
-    assert insight_id is not None
+    # assert insight_id is not None
     epoc = super().get_next_epoc()
     return super().call(
                       epoc = epoc, 
@@ -60,7 +60,7 @@ class DatabaseEngine(ServerProxy):
     assert query is not None
     if insight_id is None:
       insight_id = self.insight_id
-    assert insight_id is not None
+    # assert insight_id is not None
     epoc = super().get_next_epoc()
     return super().call(
                       epoc = epoc, 
