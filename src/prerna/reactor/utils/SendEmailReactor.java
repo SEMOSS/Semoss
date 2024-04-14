@@ -220,7 +220,7 @@ public class SendEmailReactor extends AbstractReactor {
 				NounMetadata noun = grs.getNoun(i);
 				if(noun.getOpType().contains(PixelOperationType.FILE_DOWNLOAD)) {
 					input[i] = this.insight.getExportFileLocation((String)noun.getValue());
-				} else if(noun.getNounType() == PixelDataType.FILE_REFERENCE) {
+				} else if(noun.getOpType().contains(PixelOperationType.FILE_REFERENCE)) {
 					FileReference fileRef = (FileReference) noun.getValue();
 					input[i] = UploadInputUtility.getFilePath(this.insight, fileRef);
 				} else {
