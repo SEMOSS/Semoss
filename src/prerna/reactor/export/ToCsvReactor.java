@@ -81,8 +81,6 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		return retNoun;
 	}
 	
-
-	
 	private boolean appendTimeStamp() {
 		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[3]);
 		if(boolGrs != null) {
