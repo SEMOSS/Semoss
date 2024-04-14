@@ -2083,7 +2083,19 @@
 		    <artifactId>pgvector</artifactId>
 		    <version>0.1.4</version>
 		</dependency>
-
+		<!--  Weaviate Vector Engine -->
+		<dependency>
+			<groupId>io.weaviate</groupId>
+			<artifactId>client</artifactId>
+			<version>4.6.0</version>  <!-- Check latest version -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>org.apache.commons.lang</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
@@ -2106,17 +2118,5 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>
-		<!--  Weaviate Vector Engine -->
-		<dependency>
-  <groupId>io.weaviate</groupId>
-  <artifactId>client</artifactId>
-  <version>4.6.0</version>  <!-- Check latest version -->
-  <exclusions>
-        <exclusion>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>org.apache.commons.lang</artifactId>
-        </exclusion>
-    </exclusions>
-</dependency>
 	</dependencies>
 </project>
