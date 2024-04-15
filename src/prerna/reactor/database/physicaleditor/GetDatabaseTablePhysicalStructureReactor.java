@@ -3,7 +3,6 @@ package prerna.reactor.database.physicaleditor;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,25 +54,7 @@ public class GetDatabaseTablePhysicalStructureReactor extends AbstractReactor {
 		try {
 			con = rdbms.getConnection();
 			// the final map
-			LinkedHashMap<String, String> columnDetails = new LinkedHashMap<>();
-			
-			LinkedHashMap<String, Map<String, Object>> allColumnDetails = queryUtil.getAllTableColumnTypes(con, table, rdbms.getDatabase(), rdbms.getSchema());
-			for(String col : allColumnDetails.keySet()) {
-				Map<String, Object> details = allColumnDetails.get(col);
-				String type = details.get(AbstractSqlQueryUtil.DATA_TYPE)+"";
-				Object maxCharLength = details.get(AbstractSqlQueryUtil.CHARACTER_MAXIMUM_LENGTH);
-				Object numericPrecision = details.get(AbstractSqlQueryUtil.NUMERIC_PRECISION);
-				Object numericScale = details.get(AbstractSqlQueryUtil.NUMERIC_SCALE);
-
-				String finalDataType = type;
-				if(Utility.isStringType(type) && maxCharLength != null) {
-					finalDataType += "(" + maxCharLength + ")";
-				} else if(Utility.isDoubleType(type) && numericPrecision != null && numericScale != null) {
-					finalDataType += "(" + numericPrecision + "," + numericScale + ")";
-				}
-				columnDetails.put(col, finalDataType);
-			}
-			
+			LinkedHashMap<String, String> columnDetails = queryUtil.getAllTableColumnTypesSimple(con, table, rdbms.getDatabase(), rdbms.getSchema());
 			return new NounMetadata(columnDetails, PixelDataType.MAP);
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
