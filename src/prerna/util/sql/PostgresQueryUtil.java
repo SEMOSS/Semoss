@@ -246,12 +246,12 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String getAllColumnDetails(String tableName, String database, String schema) {
-		return "select column_name, data_type from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
+		return "select column_name, udt_name, character_maximum_length, numeric_precision, numeric_scale from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
 	}
 	
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
-		return "select column_name, data_type from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "' and column_name='" + columnName + "'";
+		return "select column_name, udt_name, character_maximum_length, numeric_precision, numeric_scale from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "' and column_name='" + columnName + "'";
 	}
 	
 	@Override
