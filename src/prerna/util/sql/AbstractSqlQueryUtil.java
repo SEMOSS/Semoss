@@ -1777,6 +1777,40 @@ public abstract class AbstractSqlQueryUtil {
 	}
 	
 	/**
+	 * Get all the table columns and their types
+	 * @param conn
+	 * @param tableName
+	 * @param database
+	 * @param schema
+	 * @return
+	 */
+	public LinkedHashMap<String, String> getAllTableColumnTypesSimple(Connection conn, String tableName, String database, String schema) {
+		// the final map
+		LinkedHashMap<String, String> columnDetails = new LinkedHashMap<>();
+		
+		// call the base method
+		// and just combine for the varchar max / decimal percision
+		LinkedHashMap<String, Map<String, Object>> allColumnDetails = this.getAllTableColumnTypes(conn, tableName, database, schema);
+		for(String col : allColumnDetails.keySet()) {
+			Map<String, Object> details = allColumnDetails.get(col);
+			String type = details.get(AbstractSqlQueryUtil.DATA_TYPE)+"";
+			Object maxCharLength = details.get(AbstractSqlQueryUtil.CHARACTER_MAXIMUM_LENGTH);
+			Object numericPrecision = details.get(AbstractSqlQueryUtil.NUMERIC_PRECISION);
+			Object numericScale = details.get(AbstractSqlQueryUtil.NUMERIC_SCALE);
+
+			String finalDataType = type;
+			if(Utility.isStringType(type) && maxCharLength != null) {
+				finalDataType += "(" + maxCharLength + ")";
+			} else if(Utility.isDoubleType(type) && numericPrecision != null && numericScale != null) {
+				finalDataType += "(" + numericPrecision + "," + numericScale + ")";
+			}
+			columnDetails.put(col, finalDataType);
+		}
+		
+		return columnDetails;
+	}
+	
+	/**
 	 * Get the details for a specific column
 	 * @param conn
 	 * @param tableName
