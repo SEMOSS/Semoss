@@ -282,13 +282,13 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String getAllColumnDetails(String tableName, String database, String schema) {
-		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
 				+ "' AND TABLE_NAME='" + tableName +"'";
 	}
 	
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
-		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
 				+ "' AND TABLE_NAME='" + tableName +"' AND COLUMN_NAME='" + columnName.toUpperCase() + "'";
 	}
 	
