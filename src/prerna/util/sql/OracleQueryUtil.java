@@ -231,6 +231,6 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String getAllColumnDetails(String tableName, String database, String schema) {
-		return "SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
 	}
 }
