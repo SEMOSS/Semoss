@@ -40,6 +40,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -127,6 +129,12 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String SUB_URL = "sub_url";
 	public static final String PROJECT = "project";
 	public static final String INSIGHT = "insight";
+
+	// rdbms metadata for defining the types 
+	public static final String DATA_TYPE = "DATA_TYPE";
+	public static final String CHARACTER_MAXIMUM_LENGTH = "CHARACTER_MAXIMUM_LENGTH";
+	public static final String NUMERIC_PRECISION = "NUMERIC_PRECISION";
+	public static final String NUMERIC_SCALE = "NUMERIC_SCALE";
 
 	// h2 force file for creating embedded file
 	public static final String FORCE_FILE = "forceFile";
@@ -1511,20 +1519,7 @@ public abstract class AbstractSqlQueryUtil {
 		} catch (SQLException e) {
 			return false;
 		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 	}
 
@@ -1674,20 +1669,7 @@ public abstract class AbstractSqlQueryUtil {
 		} catch (SQLException e) {
 			return false;
 		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 	}
 	
@@ -1746,20 +1728,49 @@ public abstract class AbstractSqlQueryUtil {
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
+		}
+
+		return tableColumns;
+	}
+	
+	/**
+	 * Get all the table columns and their types
+	 * @param conn
+	 * @param tableName
+	 * @param database
+	 * @param schema
+	 * @return
+	 */
+	public LinkedHashMap<String, Map<String, Object>> getAllTableColumnTypes(Connection conn, String tableName, String database, String schema) {
+		LinkedHashMap<String, Map<String, Object>> tableColumns = new LinkedHashMap<>();
+		String query = this.getAllColumnDetails(tableName, database, schema);
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			
+			ResultSetMetaData metadata = rs.getMetaData();
+			int numCols = metadata.getColumnCount();
+			while (rs.next()) {
+				Map<String, Object> columnDetails = new HashMap<>();
+				columnDetails.put(DATA_TYPE, rs.getString(2));
+				if(numCols >= 3) {
+					columnDetails.put(CHARACTER_MAXIMUM_LENGTH, rs.getString(3));
 				}
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+				if(numCols >= 4) {
+					columnDetails.put(NUMERIC_PRECISION, rs.getInt(4));
 				}
+				if(numCols >= 5) {
+					columnDetails.put(NUMERIC_SCALE, rs.getInt(5));
+				}
+				tableColumns.put(rs.getString(1), columnDetails);
 			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 
 		return tableColumns;
@@ -1787,20 +1798,7 @@ public abstract class AbstractSqlQueryUtil {
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 
 		return null;
