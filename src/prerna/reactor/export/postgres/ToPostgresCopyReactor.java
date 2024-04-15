@@ -28,13 +28,12 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ToPostgresCopyReactor.class);
 
-	private static final String TABLE_NAME = "table";
 	private static final String FORMAT = "format";
 	private static final String NULL = "nullValue";
 	
 	public ToPostgresCopyReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), 
-				TABLE_NAME, FORMAT, NULL, ReactorKeysEnum.DELIMITER.getKey(),
+				ReactorKeysEnum.TABLE.getKey(), FORMAT, NULL, ReactorKeysEnum.DELIMITER.getKey(),
 				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
  	}
 	
@@ -72,14 +71,20 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 			}
 			
 			conn = database.getConnection();
+			Connection postgresConn = null;
+			if(database.isConnectionPooling()) {
+				postgresConn = conn.unwrap(Connection.class);
+			} else {
+				postgresConn = conn;
+			}
 			int majorV = conn.getMetaData().getDatabaseMajorVersion();
 			if(majorV >= 15) {
-			    rowsInserted = new CopyManager((BaseConnection) conn)
+			    rowsInserted = new CopyManager((BaseConnection) postgresConn)
 		            .copyIn("COPY " + tableName + " FROM STDIN (" + options + ", HEADER MATCH)", 
 		                new BufferedReader(new FileReader(filePath))
 		                );
 			} else {
-				rowsInserted = new CopyManager((BaseConnection) conn)
+				rowsInserted = new CopyManager((BaseConnection) postgresConn)
 			        .copyIn("COPY " + tableName + " FROM STDIN (" + options + ", HEADER)", 
 			            new BufferedReader(new FileReader(filePath))
 			            );
@@ -128,7 +133,7 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(TABLE_NAME)) {
+		if(key.equals(ReactorKeysEnum.TABLE.getKey())) {
 			return "The name of the table we are copying into";
 		} else if(key.equals(FORMAT)) {
 			return "The format of the file being passed in. Default is csv";
