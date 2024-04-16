@@ -4065,7 +4065,7 @@ public class Utility {
 		}
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
 
-		if(DIHelper.getInstance().coreProp != null && Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.LOG_ENCODING) + "")) {
+		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.LOG_ENCODING) + "")) {
 			message = ESAPI.encoder().encodeForHTML(message);
 		}
 
@@ -5347,7 +5347,7 @@ public class Utility {
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
+			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5489,7 +5489,7 @@ public class Utility {
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
+			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5860,7 +5860,7 @@ public class Utility {
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
+			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
