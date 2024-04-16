@@ -43,41 +43,50 @@ import prerna.util.DIHelper;
 /**
  * This is the table that stores all the shapes and colors for nodes on the graph play sheet.
  */
-public class TypeColorShapeTable {
-	
-	Hashtable <String, Shape> shapeHash = new Hashtable<String, Shape>();
-	Hashtable <String, Color> colorHash = new Hashtable<String, Color>();
-
-	Hashtable <String, Shape> shapeHashL = new Hashtable<String, Shape>();
-
-	Hashtable <String, String> shapeStringHash = new Hashtable<String, String>();
-	Hashtable <String, String> colorStringHash = new Hashtable<String, String>();
-
-	String [] shapes = null;
-	String [] colors = null;
-	static TypeColorShapeTable instance = null;
+public final class TypeColorShapeTable {
 	
 	private static final Logger classLogger = LogManager.getLogger(TypeColorShapeTable.class);
+	
+	// the singleton
+	private static TypeColorShapeTable instance = null;
+
+	private	Hashtable <String, Shape> shapeHash = new Hashtable<String, Shape>();
+	private Hashtable <String, Color> colorHash = new Hashtable<String, Color>();
+
+	private Hashtable <String, Shape> shapeHashL = new Hashtable<String, Shape>();
+
+	private Hashtable <String, String> shapeStringHash = new Hashtable<String, String>();
+	private Hashtable <String, String> colorStringHash = new Hashtable<String, String>();
+
+	private String [] shapes = null;
+	private String [] colors = null;
 	
 	/**
 	 * Constructor for TypeColorShapeTable.
 	 */
-	protected TypeColorShapeTable()
-	{
-		
+	private TypeColorShapeTable() {
+		// do nothing
 	}
 	
 	/**
 	 * Method getInstance.  Gets an instance of a TypeColorShapeTable.
 	
 	 * @return TypeColorShapeTable */
-	public static TypeColorShapeTable getInstance()
-	{
-		if(instance == null)
-		{
-			instance = new TypeColorShapeTable();
-			instance.getAllShapes();
-			instance.getAllColors();
+	public static TypeColorShapeTable getInstance() {
+		if(instance != null) {
+			return instance;
+		}
+		
+		synchronized(TypeColorShapeTable.class) {
+			if(instance != null) {
+				return instance;
+			}
+			
+			if(instance == null) {
+				instance = new TypeColorShapeTable();
+				instance.getAllShapes();
+				instance.getAllColors();
+			}
 		}
 		return instance;
 	}
