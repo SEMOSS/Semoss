@@ -34,7 +34,7 @@ public class TCPPyTranslator extends PyTranslator {
 	}
 
 	@Override
-	public synchronized Object runScript(String script) 
+	public Object runScript(String script) 
 	{
 		if(method != null)
 		{
@@ -75,7 +75,7 @@ public class TCPPyTranslator extends PyTranslator {
 	// use this if we want to get the output from an operation
 	// typically useful for model type operations
 	@Override
-	public synchronized Object runScript(String script, Insight insight) 
+	public Object runScript(String script, Insight insight) 
 	{
 		if(method != null)
 		{
@@ -149,7 +149,7 @@ public class TCPPyTranslator extends PyTranslator {
 
 	
 	@Override
-	protected synchronized Hashtable executePyDirect(String...script)
+	protected Hashtable executePyDirect(String...script)
 	{
 		Hashtable retHash = new Hashtable();
 		retHash.put(script, runScript(script[0])); 
