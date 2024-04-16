@@ -52,7 +52,6 @@ import prerna.ui.components.specific.tap.DHMSMSysDecommissionSchedulingPlaySheet
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysDecommissionScheduleGraphFunctions;
 import prerna.ui.components.specific.tap.SystemPropertyGridPlaySheet;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -226,7 +225,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		
 	    sysBudgetSheet = new SystemPropertyGridPlaySheet();
 	    sysBudgetSheet.setQuery(systemBudgetQuery);
-		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getEngine(tapCoreDB);
 		sysBudgetSheet.setRDFEngine(engine);
 		sysBudgetSheet.setAccountingFormat(false);
 	    sysBudgetSheet.createData();
@@ -273,7 +272,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	}
 	
 	public ISelectWrapper executeQuery(String engineName,String query) {
-		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getEngine(engineName);
 		ISelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
