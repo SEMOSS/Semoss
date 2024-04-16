@@ -72,8 +72,8 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadUtilities;
 
 /**
  * An Abstract Engine that sets up the base constructs needed to create an

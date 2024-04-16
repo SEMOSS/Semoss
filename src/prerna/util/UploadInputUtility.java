@@ -1,4 +1,4 @@
-package prerna.util.upload;
+package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,14 +17,11 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
-public class UploadInputUtility {
+public final class UploadInputUtility {
 
 	public static final String ENGINE = ReactorKeysEnum.ENGINE.getKey();
 	public static final String DATABASE = ReactorKeysEnum.DATABASE.getKey();
@@ -120,21 +117,53 @@ public class UploadInputUtility {
 	/**
 	 * 
 	 * @param store
-	 * @param in
+	 * @param insight
 	 * @return
 	 */
-	public static String getFilePath(NounStore store, Insight in) {
-		return getFilePath(store, in, FILE_PATH);
+	public static String getExtendedFilePath(NounStore store, Insight insight) {
+		// did a file download get piped into this reactor?
+		{
+			GenRowStruct grs = store.getNoun(PixelDataType.CONST_STRING.toString());
+			if (grs != null) {
+				for(int i = 0; i < grs.size(); i++) {
+					NounMetadata noun = grs.getNoun(i);
+					if(noun.getOpType().contains(PixelOperationType.FILE_DOWNLOAD)) {
+						return insight.getExportFileLocation((String)grs.getNoun(0).getValue());
+					}
+				}
+			} 
+		}
+		// did a file reference get piped into this reactor?
+		{
+			GenRowStruct grs = store.getNoun(PixelDataType.FILE_REFERENCE.toString());
+			if (grs != null) {
+				FileReference fileRef = (FileReference) grs.getNoun(0).getValue();
+				return UploadInputUtility.getFilePath(insight, fileRef);
+			} 
+		}
+		
+		// TODO: should look at adding the above into this method in general
+		return UploadInputUtility.getFilePath(store, insight);
+	}
+	
+	/**
+	 * 
+	 * @param store
+	 * @param insight
+	 * @return
+	 */
+	public static String getFilePath(NounStore store, Insight insight) {
+		return getFilePath(store, insight, FILE_PATH);
 	}
 
 	/**
 	 * 
 	 * @param store
-	 * @param in
+	 * @param insight
 	 * @param keyToGrab
 	 * @return
 	 */
-	public static String getFilePath(NounStore store, Insight in, String keyToGrab) {
+	public static String getFilePath(NounStore store, Insight insight, String keyToGrab) {
 		GenRowStruct fileGrs = store.getNoun(keyToGrab);
 		if(fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
@@ -155,7 +184,7 @@ public class UploadInputUtility {
 			space = spaceGrs.get(0).toString();
 		} 
 
-		return getFilePath(in, fileLocation, space);
+		return getFilePath(insight, fileLocation, space);
 	}
 	
 	/**

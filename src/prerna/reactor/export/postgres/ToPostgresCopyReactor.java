@@ -12,17 +12,14 @@ import org.postgresql.core.BaseConnection;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.om.FileReference;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
-import prerna.util.upload.UploadInputUtility;
 
 public class ToPostgresCopyReactor extends AbstractReactor {
 
@@ -52,7 +49,7 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 		String nullStr = this.keyValue.get(this.keysToGet[3]);
 		String delimiterStr = this.keyValue.get(this.keysToGet[4]);
 
-		String filePath = Utility.normalizePath(getFilePath());
+		String filePath = Utility.normalizePath(UploadInputUtility.getExtendedFilePath(this.store, this.insight));
 		IEngine engine = Utility.getEngine(engineId);
 		if(!(engine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("Engine must be an RDBMS postgres engine");
@@ -101,36 +98,6 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 		return new NounMetadata(rowsInserted, PixelDataType.CONST_INT);
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
-	private String getFilePath() {
-		// did a file download get piped into this reactor?
-		{
-			GenRowStruct grs = this.store.getNoun(PixelDataType.CONST_STRING.toString());
-			if (grs != null) {
-				for(int i = 0; i < grs.size(); i++) {
-					NounMetadata noun = grs.getNoun(i);
-					if(noun.getOpType().contains(PixelOperationType.FILE_DOWNLOAD)) {
-						return this.insight.getExportFileLocation((String)grs.getNoun(0).getValue());
-					}
-				}
-			} 
-		}
-		// did a file reference get piped into this reactor?
-		{
-			GenRowStruct grs = this.store.getNoun(PixelDataType.FILE_REFERENCE.toString());
-			if (grs != null) {
-				FileReference fileRef = (FileReference) grs.getNoun(0).getValue();
-				return UploadInputUtility.getFilePath(this.insight, fileRef);
-			} 
-		}
-		
-		// TODO: should look at adding the above into this method
-		return UploadInputUtility.getFilePath(this.store, this.insight);
-	}
-
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.TABLE.getKey())) {
