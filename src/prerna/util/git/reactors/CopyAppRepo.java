@@ -17,8 +17,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.UploadUtilities;
 import prerna.util.git.GitConsumer;
-import prerna.util.upload.UploadUtilities;
 
 public class CopyAppRepo extends AbstractReactor {
 

@@ -49,10 +49,10 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.PGVectorQueryUtil;
 import prerna.util.sql.RDBMSUtility;
-import prerna.util.upload.UploadUtilities;
 
 public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVectorDatabaseEngine {
 

@@ -11,7 +11,7 @@ import prerna.poi.main.helper.FileHelperUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.upload.UploadInputUtility;
+import prerna.util.UploadInputUtility;
 
 public class PredictDataTypesReactor extends AbstractReactor {
 

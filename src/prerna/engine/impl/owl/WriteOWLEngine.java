@@ -35,8 +35,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadUtilities;
 
 public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
