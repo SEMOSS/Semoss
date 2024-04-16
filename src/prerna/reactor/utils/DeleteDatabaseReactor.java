@@ -26,8 +26,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadUtilities;
 
 @Deprecated
 public class DeleteDatabaseReactor extends AbstractReactor {

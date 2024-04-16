@@ -22,9 +22,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
-import prerna.util.upload.UploadUtilities;
 
 public class CreateAppFromBlocksReactor extends AbstractReactor {
 

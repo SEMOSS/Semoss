@@ -10,7 +10,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.upload.UploadInputUtility;
+import prerna.util.UploadInputUtility;
 
 public class ValidateUserProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	

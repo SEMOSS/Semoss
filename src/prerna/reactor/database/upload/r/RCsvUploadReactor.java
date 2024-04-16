@@ -16,9 +16,9 @@ import prerna.reactor.database.upload.AbstractUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.UploadInputUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadInputUtility;
-import prerna.util.upload.UploadUtilities;
 
 public class RCsvUploadReactor extends AbstractUploadFileReactor {
 	
