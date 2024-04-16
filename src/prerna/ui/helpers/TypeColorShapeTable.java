@@ -29,9 +29,7 @@ package prerna.ui.helpers;
 
 import java.awt.Color;
 import java.awt.Shape;
-import java.lang.reflect.Field;
 import java.util.Hashtable;
-import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,6 +44,7 @@ import prerna.util.DIHelper;
  * This is the table that stores all the shapes and colors for nodes on the graph play sheet.
  */
 public class TypeColorShapeTable {
+	
 	Hashtable <String, Shape> shapeHash = new Hashtable<String, Shape>();
 	Hashtable <String, Color> colorHash = new Hashtable<String, Color>();
 
@@ -58,7 +57,7 @@ public class TypeColorShapeTable {
 	String [] colors = null;
 	static TypeColorShapeTable instance = null;
 	
-	static final Logger logger = LogManager.getLogger(TypeColorShapeTable.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(TypeColorShapeTable.class);
 	
 	/**
 	 * Constructor for TypeColorShapeTable.
@@ -197,7 +196,7 @@ public class TypeColorShapeTable {
 	 * @return Shape - the shape of the node*/
 	public Shape getShape(String type, String vertName)
 	{
-		logger.debug("Getting type / vertex name " + type + " <> " + vertName);
+		classLogger.debug("Getting type / vertex name " + type + " <> " + vertName);
 		Shape retShape = null;
 		// first check the vertex name
 		if(shapeHash.containsKey(vertName))
@@ -239,7 +238,7 @@ public class TypeColorShapeTable {
 	 * @return Shape - the shape of the node*/
 	public Shape getShapeL(String type, String vertName)
 	{
-		logger.debug("Getting type / vertex name " + type + " <> " + vertName);
+		classLogger.debug("Getting type / vertex name " + type + " <> " + vertName);
 		Shape retShape = null;
 		// first check the vertex name
 		if(shapeHashL.containsKey(vertName))
