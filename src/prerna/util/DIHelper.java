@@ -64,7 +64,6 @@ public class DIHelper {
 	public static DIHelper helper = null;
 
 	private String rdfMapFileLocation = null;
-	private Properties rdfMap = null;
 
 	// core properties file
 	private Properties coreProp = null;
@@ -75,10 +74,10 @@ public class DIHelper {
 	// will have the following keys
 	// Perspective -<Hashtable of questions and identifier> - Possibly change this over to vector
 	// Question-ID Key
-	private Hashtable localProp = new Hashtable();
+	private Hashtable<String, Object> localProp = new Hashtable<>();
 
 	// localprop for engine
-	private Hashtable engineLocalProp = new Hashtable();
+	private Hashtable<String, Object> engineLocalProp = new Hashtable<>();
 
 	/**
 	 * Constructor for DIHelper.
@@ -218,8 +217,7 @@ public class DIHelper {
 	 * @param String		Key used to retrieve properties
 
 	 * @return				Property name */
-	public String getProperty(String name)
-	{
+	public String getProperty(String name) {
 		if(this.coreProp == null) {
 			return null;
 		}
