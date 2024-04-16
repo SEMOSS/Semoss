@@ -7,9 +7,9 @@ import prerna.reactor.database.upload.rdbms.CreateNewRdbmsDatabaseReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.UploadInputUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.upload.UploadInputUtility;
 
 public class CreateNewRdbmsInternalDatabaseReactor extends CreateNewRdbmsDatabaseReactor {
 

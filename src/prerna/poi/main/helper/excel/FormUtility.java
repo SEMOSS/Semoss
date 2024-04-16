@@ -1,6 +1,6 @@
-package prerna.util.upload;
+package prerna.poi.main.helper.excel;
 
-public class FormUtility {
+public final class FormUtility {
 
 	public static String getTextComponent(String label) {
 		return new StringBuilder("<div smss-form-model=\"" + label + "\" class=\"smss-text\">{{item.model}}</div>\\n").toString();

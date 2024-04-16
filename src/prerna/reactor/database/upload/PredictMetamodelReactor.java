@@ -17,7 +17,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.upload.UploadInputUtility;
+import prerna.util.UploadInputUtility;
 
 public class PredictMetamodelReactor extends AbstractReactor {
 	

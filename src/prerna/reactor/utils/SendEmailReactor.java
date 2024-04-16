@@ -23,8 +23,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
-import prerna.util.upload.UploadInputUtility;
 
 public class SendEmailReactor extends AbstractReactor {
 

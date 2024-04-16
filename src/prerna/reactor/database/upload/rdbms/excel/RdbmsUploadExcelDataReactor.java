@@ -39,10 +39,10 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.UploadInputUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.upload.UploadInputUtility;
-import prerna.util.upload.UploadUtilities;
 
 public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 

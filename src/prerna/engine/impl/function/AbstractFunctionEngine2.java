@@ -23,8 +23,8 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadUtilities;
 
 public abstract class AbstractFunctionEngine2 extends AbstractReactor implements IReactorEngine {
 

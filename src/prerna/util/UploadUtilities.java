@@ -1,4 +1,4 @@
-package prerna.util.upload;
+package prerna.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -52,6 +51,7 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
+import prerna.poi.main.helper.excel.FormUtility;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -65,7 +65,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class UploadUtilities {
+public final class UploadUtilities {
 
 	private static final Logger classLogger = LogManager.getLogger(UploadUtilities.class);
 	
@@ -1617,7 +1617,7 @@ public class UploadUtilities {
 						.replaceAll("\\s\\s+", "")
 						.replace("<<ENGINE>>", databaseId);
 				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new Vector<>();
+				List<String> pixelRecipeToSave = new ArrayList<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, EXPLORE_INSIGHT_INSIGHT_NAME);
 				boolean global = true;
@@ -1637,7 +1637,7 @@ public class UploadUtilities {
 						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 				// add the git here
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new Vector<>();
+				List<String> files = new ArrayList<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -1657,7 +1657,7 @@ public class UploadUtilities {
 	
 	public static Map<String, Object> addInsightUsageStats(String projectId, String projectName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		List<String> pixelRecipeToSave = new Vector<>();
+		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
 		pixelRecipeToSave.add("Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] );");
 		pixelRecipeToSave.add("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
@@ -1682,7 +1682,7 @@ public class UploadUtilities {
 					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 			// add the git here
 			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-			List<String> files = new Vector<>();
+			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + INSIGHT_USAGE_STATS_INSIGHT_NAME + " insight on"));
@@ -1707,7 +1707,7 @@ public class UploadUtilities {
 	 */
 	public static Map<String, Object> addGridDeltaInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		List<String> pixelRecipeToSave = new Vector<>();
+		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + databaseId + "\"}</encode>\");");
 		String insightName = getInsightName(databaseName, GRID_DELTA_INSIGHT_NAME);
 		// write recipe to file
@@ -1728,7 +1728,7 @@ public class UploadUtilities {
 					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-			List<String> files = new Vector<>();
+			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -1763,7 +1763,7 @@ public class UploadUtilities {
 						.replace("<<ENGINE>>", databaseId).
 						replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new Vector<>();
+				List<String> pixelRecipeToSave = new ArrayList<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				boolean global = true;
@@ -1783,7 +1783,7 @@ public class UploadUtilities {
 						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 				// add the insight to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new Vector<>();
+				List<String> files = new ArrayList<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -1818,7 +1818,7 @@ public class UploadUtilities {
 						.replace("<<ENGINE>>", databaseId)
 						.replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new Vector<>();
+				List<String> pixelRecipeToSave = new ArrayList<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
 				boolean global = true;
@@ -1838,7 +1838,7 @@ public class UploadUtilities {
 						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 				// add the insight to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new Vector<>();
+				List<String> files = new ArrayList<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -1875,7 +1875,7 @@ public class UploadUtilities {
 		String insightName = getInsightFormSheetName(sheetName);
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
-		List<String> pixelRecipeToSave = new Vector<>();
+		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
 			boolean global = true;
@@ -1896,7 +1896,7 @@ public class UploadUtilities {
 					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
-			List<String> files = new Vector<>();
+			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -1933,7 +1933,7 @@ public class UploadUtilities {
 		String[] headers = new TreeSet<>(metamodel.get(sheetName).keySet()).toArray(new String[] {});
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
-		List<String> pixelRecipeToSave = new Vector<>();
+		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
 			boolean global = true;
@@ -1954,7 +1954,7 @@ public class UploadUtilities {
 					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
-			List<String> files = new Vector<>();
+			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -1994,7 +1994,7 @@ public class UploadUtilities {
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":"
 				+ gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
-		List<String> pixelRecipeToSave = new Vector<>();
+		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
 			boolean global = true;
@@ -2015,7 +2015,7 @@ public class UploadUtilities {
 					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
-			List<String> files = new Vector<>();
+			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -2051,7 +2051,7 @@ public class UploadUtilities {
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":"
 				+ gson.toJson(widgetJson) + "}</encode>\");";
-		List<String> pixelRecipeToSave = new Vector<>();
+		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
 			boolean global = true;
@@ -2072,7 +2072,7 @@ public class UploadUtilities {
 					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
-			List<String> files = new Vector<>();
+			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
@@ -2154,8 +2154,8 @@ public class UploadUtilities {
 	 */
 	public static Map<String, Object> createInsertForm(String databaseId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
-		formMap.put("js", new Vector<>());
-		formMap.put("css", new Vector<>());
+		formMap.put("js", new ArrayList<>());
+		formMap.put("css", new ArrayList<>());
 		// assuming this is a flat table so there is only one concept
 		String conceptualName = existingMetamodel.keySet().iterator().next();
 		Map<String, SemossDataType> propMap = existingMetamodel.get(conceptualName);
@@ -2207,9 +2207,9 @@ public class UploadUtilities {
 			// build data property map for data binding
 			Map<String, Object> propertyMap = new HashMap<>();
 			propertyMap.put("defaultValue", "");
-			propertyMap.put("options", new Vector());
+			propertyMap.put("options", new ArrayList());
 			propertyMap.put("name", property);
-			propertyMap.put("dependsOn", new Vector());
+			propertyMap.put("dependsOn", new ArrayList());
 			propertyMap.put("required", true);
 			propertyMap.put("autoPopulate", false);
 			Map<String, Object> configMap = new HashMap<>();
