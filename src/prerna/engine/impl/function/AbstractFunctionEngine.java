@@ -19,8 +19,8 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadUtilities;
 
 public abstract class AbstractFunctionEngine implements IFunctionEngine {
 

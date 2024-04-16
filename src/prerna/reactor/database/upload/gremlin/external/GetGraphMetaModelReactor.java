@@ -25,7 +25,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoMappingBuilder;
-import prerna.util.upload.UploadInputUtility;
+import prerna.util.UploadInputUtility;
 
 public class GetGraphMetaModelReactor extends AbstractReactor {
 

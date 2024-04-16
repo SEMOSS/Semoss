@@ -14,8 +14,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.upload.UploadInputUtility;
-import prerna.util.upload.UploadUtilities;
+import prerna.util.UploadInputUtility;
+import prerna.util.UploadUtilities;
 
 public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraphReactor {
 

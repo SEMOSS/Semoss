@@ -30,9 +30,9 @@ import prerna.reactor.database.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.UploadInputUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadInputUtility;
-import prerna.util.upload.UploadUtilities;
 
 public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	
