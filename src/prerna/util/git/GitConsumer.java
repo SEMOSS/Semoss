@@ -51,7 +51,7 @@ public class GitConsumer {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String dbFolder = AssetUtility.getProjectBaseFolder(yourName4Database, temporaryDatabaseId);
 		File db = new File(dbFolder);
 		if(!db.exists()) {

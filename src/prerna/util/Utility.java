@@ -68,7 +68,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -84,7 +83,6 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
@@ -124,8 +122,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.openrdf.model.Value;
-import org.openrdf.query.Binding;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
 import org.quartz.CronExpression;
@@ -196,7 +192,7 @@ import prerna.util.git.GitAssetUtils;
  * concept names, printing messages, loading engines, and writing Excel
  * workbooks.
  */
-public class Utility {
+public final class Utility {
 
 	public static int id = 0;
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
@@ -253,6 +249,23 @@ public class Utility {
 		}
 
 		return paramHash;
+	}
+	
+	/**
+	 * Get the Base Folder
+	 * @return
+	 */
+	public static String getBaseFolder() {
+		return getDIHelperProperty(Constants.BASE_FOLDER);
+	}
+	
+	/**
+	 * Get any property from DIHelper
+	 * @param prop
+	 * @return
+	 */
+	public static String getDIHelperProperty(String prop) {
+		return DIHelper.getInstance().getProperty(prop);
 	}
 
 	/**
@@ -740,17 +753,6 @@ public class Utility {
 	}
 
 	/**
-	 * Displays confirmation message.
-	 * 
-	 * @param Text to be displayed.
-	 */
-	public static Integer showConfirm(String text) {
-		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		return JOptionPane.showConfirmDialog(playPane, text);
-
-	}
-
-	/**
 	 * Displays a message on the screen.
 	 * 
 	 * @param Text to be displayed.
@@ -789,29 +791,6 @@ public class Utility {
 		df.format(roundedValue);
 
 		return formatter.format(roundedValue);
-	}
-
-	// public static void main(String[] args) {
-	// String date = "qweqweqw";
-	// System.out.println(isStringDate(date));
-	// }
-
-	public static boolean isStringDate(String inDate) {
-		List<SimpleDateFormat> dateFormatList = new ArrayList<>();
-
-		dateFormatList.add(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss'Z'"));
-		dateFormatList.add(new SimpleDateFormat("MM-dd-yyyy__HH:mm:ss_a"));
-
-		for (SimpleDateFormat format : dateFormatList) {
-			try {
-				format.setLenient(false);
-				format.parse(inDate);
-				return true;
-			} catch (ParseException e) {
-
-			}
-		}
-		return false;
 	}
 
 	public static boolean isFactorType(String dataType) {
@@ -1178,38 +1157,6 @@ public class Utility {
 		}
 	}
 
-	public static Hashtable<String, Object> getParamsFromString(String params) {
-		Hashtable<String, Object> paramHash = new Hashtable<>();
-		if (params != null) {
-			StringTokenizer tokenz = new StringTokenizer(params, "~");
-			while (tokenz.hasMoreTokens()) {
-				String thisToken = tokenz.nextToken();
-				int index = thisToken.indexOf('$');
-				String key = thisToken.substring(0, index);
-				String value = thisToken.substring(index + 1);
-				// attempt to see if
-				boolean found = false;
-				try {
-					double dub = Double.parseDouble(value);
-					paramHash.put(key, dub);
-					found = true;
-				} catch (RuntimeException ignored) {
-					classLogger.debug(ignored);
-				}
-				if (!found) {
-					try {
-						int dub = Integer.parseInt(value);
-						paramHash.put(key, dub);
-					} catch (RuntimeException ignored) {
-						classLogger.debug(ignored);
-					}
-				}
-				paramHash.put(key, value);
-			}
-		}
-		return paramHash;
-	}
-
 	public static String retrieveResult(String api, Hashtable<String, String> params) {
 		String output = "";
 		BufferedReader stream = null;
@@ -1404,33 +1351,6 @@ public class Utility {
 		return ("STRING");
 	}
 
-	public static String[] filterNames(String[] names, boolean[] include) {
-		int size = 0;
-		for (boolean val : include) {
-			if (val) {
-				size++;
-			}
-		}
-
-		String[] newNames = new String[size];
-		int nextIndex = 0;
-		for (int i = 0; i < names.length; i++) {
-			if (include[i]) {
-				newNames[nextIndex] = names[i];
-				nextIndex++;
-			}
-		}
-		return newNames;
-	}
-
-	public static Date getCurrentTime() {
-		Calendar calendar = Calendar.getInstance();
-		TimeZone timeZone = calendar.getTimeZone();
-		calendar.setTimeZone(timeZone);
-
-		return calendar.getTime();
-	}
-
 	/**
 	 * Gets the vector of uris from first variable returned from the query
 	 * 
@@ -1517,39 +1437,6 @@ public class Utility {
 		return retArray;
 	}
 
-	/**
-	 * Gets the vector of uris from first variable returned from the query
-	 * 
-	 * @param sparql
-	 * @param eng
-	 * @return Vector of uris associated with first variale returned from the query
-	 */
-	public static Vector<String[]> getVectorObjectOfReturn(String query, IDatabaseEngine engine) {
-		Vector<String[]> retString = new Vector<>();
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		String[] names = wrap.getPhysicalVariables();
-
-		while (wrap.hasNext()) {
-			String[] values = new String[names.length];
-			ISelectStatement bs = wrap.next();
-			for (int i = 0; i < names.length; i++) {
-				Object value = bs.getRawVar(names[i]);
-				String val = null;
-				if (value instanceof Binding) {
-					val = ((Value) ((Binding) value).getValue()).stringValue();
-				} else {
-					val = value + "";
-				}
-				val = val.replace("\"", "");
-				values[i] = val;
-			}
-			retString.addElement(values);
-		}
-		return retString;
-
-	}
-
 	public static Map<String, List<Object>> cleanParamsForRDBMS(Map<String, List<Object>> paramHash) {
 		// TODO Auto-generated method stub
 		// really simple, I am running the keys and then I will have strip the instance
@@ -1620,17 +1507,6 @@ public class Utility {
 		return dm;
 	}
 
-	public static IPlaySheet preparePlaySheet(IDatabaseEngine engine, String sparql, String psName, String playSheetTitle,
-			String insightID) {
-		IPlaySheet playSheet = getPlaySheet(engine, psName);
-		// QuestionPlaySheetStore.getInstance().put(insightID, playSheet);
-		playSheet.setQuery(sparql);
-		playSheet.setRDFEngine(engine);
-		playSheet.setQuestionID(insightID);
-		playSheet.setTitle(playSheetTitle);
-		return playSheet;
-	}
-
 	public static ISEMOSSTransformation getTransformation(IDatabaseEngine engine, String transName) {
 		classLogger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
@@ -1698,75 +1574,6 @@ public class Utility {
 		return null;
 	}
 
-//	/**
-//	 * 
-//	 * @param engine
-//	 * @param nodesList
-//	 * @param getDisplayNames
-//	 * @return
-//	 */
-//	public static List getTransformedNodeNamesList(IDatabase engine, List nodesList, boolean getDisplayNames){
-//		//array, list or vector support only
-//
-//		for(int i = 0; i< nodesList.size(); i++){
-//			String currentUri =  nodesList.get(i).toString();
-//			String finalUri = Utility.getTransformedNodeName(engine, currentUri , getDisplayNames);
-//			if(!finalUri.equals(currentUri)){
-//				nodesList.set(i, finalUri);
-//			}
-//		}
-//		return nodesList;
-//	}
-
-//	/**
-//	 *  use for maps that map a string to a list of nodes...more commmonly used than I expected
-//	 * @param engine
-//	 * @param nodeMap
-//	 * @param getDisplayNames
-//	 * @return
-//	 */
-//	public static Map<String, List<Object>> getTransformedNodeNamesMap(IDatabase engine, Map<String, List<Object>> nodeMap, boolean getDisplayNames){
-//		if(nodeMap!= null && nodeMap.size()>0){
-//			for(Map.Entry<String, List<Object>> eachMap: nodeMap.entrySet()){
-//				List<Object> binding = Utility.getTransformedNodeNamesList(engine, nodeMap.get(eachMap.getKey()),false);
-//			}
-//		}
-//		return nodeMap;
-//	}
-
-//	/**
-//	 * returns the physical or logical/display name
-//	 * loop through the first time using the qualified class name ie this assumes you got something like http://semoss.org/ontologies/Concept/Director/Clint_Eastwood
-//	 *     so getting the qualified name will give you http://semoss.org/ontologies/Concept/Director
-//	 * if the translated uri is the same (ie no translated name was found, so maybe you actually did come into this method with a nodeUri of http://semoss.org/ontologies/Concept/Director) 
-//	 *     on the second loop use that nodeUri directly and try to find a translated Uri
-//	 * 
-//	 * @param engine
-//	 * @param nodeUri
-//	 * @param getDisplayNames
-//	 * @return
-//	 */
-//	public static String getTransformedNodeName(IDatabase engine, String nodeUri, boolean getDisplayNames){
-//		String finalUri = nodeUri;
-//		boolean getClassName = true;
-//		for(int j = 0; j < 2; j++){
-//
-//			String fullUri = nodeUri;
-//			String uri = fullUri;
-//
-//			if(getClassName){
-//				uri = Utility.getQualifiedClassName(uri);
-//				getClassName = false;
-//			}
-//			String physicalUri = engine.getTransformedNodeName(uri, getDisplayNames);
-//			if(!uri.equals(physicalUri)){
-//				finalUri = fullUri.replace(uri, physicalUri);
-//				break;
-//			}
-//		}
-//		return finalUri;
-//	}
-
 	/**
 	 * Return Object[] with prediction of the data type Index 0 -> return the casted
 	 * object Index 1 -> return the pixel data type Index 2 -> return the additional
@@ -1810,57 +1617,6 @@ public class Utility {
 			else {
 				retObject[0] = input;
 				retObject[1] = SemossDataType.STRING;
-			}
-		}
-		return retObject;
-	}
-
-	@Deprecated
-	public static Object[] findTypes(String input) {
-		// System.out.println("String that came in.. " + input);
-		Object[] retObject = null;
-		if (input != null) {
-			Object retO = null;
-			if (input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")) {
-				retObject = new Object[2];
-				retObject[0] = "boolean";
-				retObject[1] = retO;
-
-			}
-			// all numbers are
-			// else if(NumberUtils.isDigits(input))
-			// {
-			// retO = Integer.parseInt(input);
-			// retObject = new Object[2];
-			// retObject[0] = "int";
-			// retObject[1] = retO;
-			// }
-
-			else if ((retO = getDate(input)) != null)// try dates ? - yummy !!
-			{
-				retObject = new Object[2];
-				retObject[0] = "date";
-				retObject[1] = retO;
-
-			} else if ((retO = getDouble(input)) != null) {
-				retObject = new Object[2];
-				retObject[0] = "double";
-				retObject[1] = retO;
-			} 
-			// get currency always returns null... so commenting out
-//			else if ( (retO = getCurrency(input)) != null) {
-//
-//				retObject = new Object[2];
-//				if (retO instanceof String)
-//					retObject[0] = "varchar(800)";
-//				else
-//					retObject[0] = "double";
-//				retObject[1] = retO;
-//			} 
-			else {
-				retObject = new Object[2]; // need to do some more stuff to determine this
-				retObject[0] = "varchar(800)";
-				retObject[1] = input;
 			}
 		}
 		return retObject;
@@ -1947,36 +1703,6 @@ public class Utility {
 	}
 
 	@Deprecated
-	public static Date getDateObjFromStringFormat(String input, String curFormat) {
-		SimpleDateFormat sdf = new SimpleDateFormat(curFormat);
-		Date mydate = null;
-		try {
-			mydate = sdf.parse(input);
-		} catch (ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return mydate;
-	}
-
-	@Deprecated
-	public static Date getTimeStampAsDateObj(String input) {
-		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.ssss");
-		String output_date = getTimeStamp(input);
-		if (output_date == null) {
-			return null;
-		}
-
-		Date outDate = null;
-		try {
-			outDate = outdate_formatter.parse(output_date);
-		} catch (ParseException e) {
-//			logger.error(Constants.STACKTRACE, e);
-		}
-
-		return outDate;
-	}
-
-	@Deprecated
 	public static Object getCurrency(String input) {
 		// COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS,
 		// NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
@@ -2030,81 +1756,7 @@ public class Utility {
 		}
 	}
 
-	// this doesn't consider 1.2E8 etc.
-	// public static boolean isNumber(String input) {
-	// //has digits, followed by optional period followed by digits
-	// return input.matches("(\\d+)\\Q.\\E?(\\d+)?");
-	// }
-
-	@Deprecated
-	public static String[] castToTypes(String[] thisOutput, String[] types) {
-		String[] values = new String[thisOutput.length];
-
-		for (int outIndex = 0; outIndex < thisOutput.length; outIndex++) {
-			// if the value is not null
-			if (thisOutput[outIndex] != null && thisOutput[outIndex].length() > 0) {
-				values[outIndex] = thisOutput[outIndex] + "";
-
-				if (thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
-				{
-					if (types[outIndex].equalsIgnoreCase("Date"))
-						values[outIndex] = getDate(thisOutput[outIndex]);
-					else if (types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
-						values[outIndex] = getCurrency(thisOutput[outIndex]) + "";
-					else if (types[outIndex].equalsIgnoreCase("varchar(800)")) {
-						if (thisOutput[outIndex].length() >= 800)
-							thisOutput[outIndex] = thisOutput[outIndex].substring(0, 798);
-						values[outIndex] = thisOutput[outIndex];
-					}
-				}
-			} else if (types[outIndex] != null) {
-				if (types[outIndex].equalsIgnoreCase("Double"))
-					values[outIndex] = "NULL";
-				else if (types[outIndex].equalsIgnoreCase("varchar(800)") || types[outIndex].equalsIgnoreCase("date"))
-					values[outIndex] = "";
-			} else {
-				values[outIndex] = "";
-			}
-		}
-
-		for (int i = 0; i < values.length; i++) {
-			values[i] = Utility.cleanString(values[i], true, true, false);
-		}
-		return values;
-	}
-
-	@Deprecated
-	public static String castToTypes(String thisOutput, String type) {
-		String values = "";
-
-		if (thisOutput != null && thisOutput.length() > 0) {
-			values = thisOutput + "";
-
-			if (thisOutput != null) // && castTargets.contains(outIndex + ""))
-			{
-				if (type.equalsIgnoreCase("Date"))
-					values = getDate(thisOutput);
-				else if (type.equalsIgnoreCase("Currency"))// this is a currency
-					values = getCurrency(thisOutput) + "";
-				else if (type.equalsIgnoreCase("varchar(800)")) {
-					if (thisOutput.length() >= 800)
-						thisOutput = thisOutput.substring(0, 798);
-					values = thisOutput;
-				}
-			}
-		} else if (type != null) {
-			if (type.equalsIgnoreCase("Double"))
-				values = "NULL";
-			else if (type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
-				values = "";
-		} else {
-			values = "";
-		}
-		return values;
-	}
-
-	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders,
-			Map<String, Set<String>> edgeHash) {
+	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders, Map<String, Set<String>> edgeHash) {
 		Map<Integer, Set<Integer>> retMapping = new Hashtable<>();
 
 		if (edgeHash == null) {
@@ -2139,20 +1791,6 @@ public class Utility {
 		return retMapping;
 	}
 
-	public static String getRawDataType(String cleanDataType) {
-		if (cleanDataType == null || cleanDataType.isEmpty()) {
-			return "VARCHAR(800)";
-		}
-		cleanDataType = cleanDataType.toUpperCase();
-
-		if (cleanDataType.equals("STRING")) {
-			return "VARCHAR(800)";
-		}
-
-		// currently send double and date, which are the same as raw data type
-		return cleanDataType;
-	}
-
 	public static String getCleanDataType(String origDataType) {
 		if (origDataType == null || origDataType.isEmpty()) {
 			return "STRING";
@@ -2172,98 +1810,6 @@ public class Utility {
 		}
 
 		return "STRING";
-	}
-
-	public static String getH2DataType(String dataType) {
-		if (isH2DataType(dataType)) {
-			return dataType;
-		}
-
-		String returnType = getH2TypeConversionMap().get(dataType);
-
-		return returnType;
-	}
-
-	public static boolean isH2DataType(String dataType) {
-		if (
-		// INT TYPE
-		dataType.equals("INT") || dataType.equals("INTEGER") || dataType.equals("MEDIUMINT") || dataType.equals("INT4")
-				|| dataType.equals("SIGNED")
-
-				// BOOLEAN TYPE
-				|| dataType.equals("BOOLEAN") || dataType.equals("BIT") || dataType.equals("BOOL")
-
-				// TINYINT TYPE
-				|| dataType.equals("TINYINT")
-
-				// SMALLINT TYPE
-				|| dataType.equals("SMALLINT") || dataType.equals("INT2") || dataType.equals("YEAR")
-
-				// BIGINT TYPE
-				|| dataType.equals("BIGINT") || dataType.equals("INT8")
-
-				// IDENTITY TYPE
-				|| dataType.equals("IDENTITY")
-
-				// DECIMAL TYPE
-				|| dataType.equals("DECIMAL") || dataType.equals("NUMBER") || dataType.equals("DEC")
-				|| dataType.equals("NUMERIC")
-
-				// DOUBLE TYPE
-				|| dataType.equals("DOUBLE") || dataType.equals("PRECISION") || dataType.equals("FLOAT")
-				|| dataType.equals("FLOAT8")
-
-				// REAL TYPE
-				|| dataType.equals("REAL") || dataType.equals("FLOAT4")
-
-				// TIME TYPE
-				|| dataType.equals("TIME")
-
-				// DATE TYPE
-				|| dataType.equals("DATE")
-
-				// TIMESTAMP TYPE
-				|| dataType.equals("TIMESTAMP") || dataType.equals("DATETIME") || dataType.equals("SMALLDATETIME")
-
-				// BINARY TYPE
-				|| dataType.startsWith("BINARY") || dataType.startsWith("VARBINARY")
-				|| dataType.startsWith("LONGVARBINARY") || dataType.startsWith("RAW") || dataType.startsWith("BYTEA")
-
-				// OTHER TYPE
-				|| dataType.equals("OTHER")
-
-				// VARCHAR TYPE
-				|| dataType.startsWith("VARCHAR") || dataType.startsWith("LONGVARCHAR")
-				|| dataType.startsWith("VARCHAR2") || dataType.startsWith("NVARCHAR")
-				|| dataType.startsWith("NVARCHAR2") || dataType.startsWith("VARCHAR_CASESENSITIVE")
-
-				// VARCHAR_IGNORECASE TYPE
-				|| dataType.startsWith("VARCHAR_IGNORECASE")
-
-				// CHAR TYPE
-				|| dataType.startsWith("CHAR") || dataType.startsWith("CHARACTER") || dataType.startsWith("NCHAR")
-
-				// BLOB TYPE
-				|| dataType.equals("BLOB") || dataType.equals("TINYBLOB") || dataType.equals("MEDIUMBLOB")
-				|| dataType.equals("LONGBLOB") || dataType.equals("IMAGE") || dataType.equals("OID")
-
-				// CLOG TYPE
-				|| dataType.equals("CLOB") || dataType.equals("TINYTEXT") || dataType.equals("TEXT")
-				|| dataType.equals("MEDIUMTEXT") || dataType.equals("NTEXT") || dataType.equals("NCLOB")
-
-				// UUID TYPE
-				|| dataType.equals("UUID")
-
-				// ARRAY TYPE
-				|| dataType.equals("ARRAY")
-
-				// GEOMETRY TYPE
-				|| dataType.equals("GEOMETRY")
-
-		) {
-			return true;
-		}
-		return false;
 	}
 
 	public static boolean isNumericType(String dataType) {
@@ -2367,19 +1913,6 @@ public class Utility {
 		dataType = dataType.toUpperCase().trim();
 
 		return dataType.startsWith("TIMESTAMP") || dataType.startsWith("DATETIME");
-	}
-
-	// return the translation from sql types to h2 types
-	private static Map<String, String> getH2TypeConversionMap() {
-		Map<String, String> conversionMap = new HashMap<>();
-
-		conversionMap.put("MONEY", "DECIMAL");
-		conversionMap.put("SMALLMONEY", "DECIMAL");
-		conversionMap.put("TEXT", "VARCHAR(800)");
-		conversionMap.put("STRING", "VARCHAR(800)");
-		conversionMap.put("NUMBER", "DOUBLE");
-
-		return conversionMap;
 	}
 
 	/**
@@ -2770,37 +2303,6 @@ public class Utility {
 		EngineSyncUtility.clearEngineCache(engineId);
 	}
 
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the instance name.
-	 * 
-	 * @param String URI to be split into tokens.
-	 * 
-	 * @return String Instance name.
-	 */
-	public static String getInstanceName(String uri, IDatabaseEngine.DATABASE_TYPE type) {
-		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
-		int totalTok = tokens.countTokens();
-		String instanceName = null;
-
-		String secondLastToken = null;
-
-		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
-			if (tokIndex + 2 == totalTok) {
-				secondLastToken = tokens.nextToken();
-			} else if (tokIndex + 1 == totalTok) {
-				instanceName = tokens.nextToken();
-			} else {
-				tokens.nextToken();
-			}
-		}
-
-		if (type == IDatabaseEngine.DATABASE_TYPE.RDBMS || type == IDatabaseEngine.DATABASE_TYPE.R)
-			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;
-
-		return instanceName;
-	}
-
 	public static String getRandomString(int len) {
 		String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
 
@@ -2814,11 +2316,11 @@ public class Utility {
 	}
 
 	public static boolean engineLoaded(String engineId) {
-		return DIHelper.getInstance().getLocalProp(engineId) != null;
+		return DIHelper.getInstance().getEngineProperty(engineId) != null;
 	}
 	
 	public static boolean projectLoaded(String projectId) {
-		return DIHelper.getInstance().getLocalProp(projectId) != null;
+		return DIHelper.getInstance().getProjectProperty(projectId) != null;
 	}
 	
 	/**
@@ -3464,56 +2966,6 @@ public class Utility {
 		Map<String, SemossDataType> typesMap = TaskUtility.getTypesMapFromTask(task);
 		return Utility.writeResultToFile(fileLocation, task, typesMap, seperator);
 	}
-	
-	/*
-		public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator, int parallel) {
-			
-			fileLocation = fileLocation.replace(".tsv", "");
-			
-			File fileLoc = new File(fileLocation);
-			if(fileLoc.exists())
-				fileLoc.delete();
-			fileLoc.mkdir();
-			
-			if(parallel == -1)
-				parallel = 10; // defaulting to ten threads
-			
-			// result gatherer thread that is invoked after all threads are done
-			ResultGathererThread rgt = new ResultGathererThread();
-			Object daLock = new Object();
-			rgt.daLock = daLock;
-			
-			
-			CyclicBarrier cyb = new CyclicBarrier(parallel, new Thread(rgt));
-			for(int parIndex = 0;parIndex < parallel;parIndex++)
-			{
-				ResultWriterThread rwt = new ResultWriterThread();
-				rwt.cyb = cyb;
-				rwt.fileLocation = fileLocation;
-				rwt.it = it;
-				rwt.typesMap = typesMap;
-				rwt.seperator = seperator;
-				rwt.suffix = parIndex+"";
-				Thread rwThread = new Thread(rwt);
-				rwThread.start();
-			}
-			
-			// need a lock to sleep here but.. 
-			synchronized(daLock)
-			{
-				try {
-					daLock.wait();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-			
-			return fileLoc;
-		}
-	
-		*/
 	
 	/**
 	 * 
@@ -4414,21 +3866,6 @@ public class Utility {
 		return filterList.split(",");
 	}
 	
-//	/**
-//	 * Get a comma separated list of widget ids to filter on
-//	 * @return
-//	 */
-//	@Deprecated
-//	public static String[] getApplicationWidgetTabExportDashboard() {
-//		String filterList = DIHelper.getInstance().getProperty(Constants.WIDGET_TAB_EXPORT_DASHBOARD);
-//		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
-//			// default null
-//			return null;
-//		} 
-//		
-//		return filterList.split(",");
-//	}
-	
 	/**
 	 * Determine if on the application we should cache insights or not
 	 * @return
@@ -4798,8 +4235,8 @@ public class Utility {
 			URLConnection conn = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 			String inputLine;
-			// write file
 			
+			// write file
 			while ((inputLine = in.readLine()) != null) {
 				out.write(inputLine + System.getProperty("line.separator"));
 			}
@@ -6070,22 +5507,6 @@ public class Utility {
 		}
 	}
 	
-	/**
-	 * Make sure jdk tools.jar is in the classpath
-	 * @return
-	 */
-//	public static boolean isValidJava() {
-//		if(isjavac == null) {
-//			try {
-//				Class.forName("com.sun.tools.javac.Main");
-//				isjavac = true;
-//			} catch(ClassNotFoundException ex) {
-//				isjavac = false;
-//			}
-//		}
-//		return isjavac;
-//	}
-		
 	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
 		do {
 			file = file.getParent();

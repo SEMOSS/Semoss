@@ -43,7 +43,6 @@ import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.specific.tap.QueryProcessor;
 import prerna.ui.helpers.EntityFiller;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -53,8 +52,6 @@ public class DistanceDownstreamInserter {
 	String unfilledQuery = "SELECT DISTINCT ?System2 ?System3 WHERE { BIND( <@Data-Data@> AS ?Data1). { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System1 ?provide ?Data1 ;} {?provide <http://semoss.org/ontologies/Relation/Contains/SOR> 'Yes' ;} BIND(?Data1 AS ?System2) BIND(?System1 AS ?System3) } UNION { BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System2), 45), ':', SUBSTR(STR(?System3), 45))) AS ?passes). {?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?System2 ?upstream1 ?icd1 ;} {?icd1 ?downstream1 ?System3;} {?icd1 ?carries ?Data1;} } }";
 	Hashtable masterHash = new Hashtable();
 	static final Logger logger = LogManager.getLogger(DistanceDownstreamInserter.class.getName());
-	String RELATION_URI = null;
-	String PROP_URI = null;
 	IDatabaseEngine engine;
 	double depreciationRate;
 	double appreciationRate;
@@ -211,18 +208,6 @@ public class DistanceDownstreamInserter {
 		insertQuery = insertQuery + "}";
 		
 		return insertQuery;
-	}
-	
-	
-	
-	/**
-	 * Creates base URIs.
-	 */
-	private void createBaseURIs(){
-		RELATION_URI = DIHelper.getInstance().getProperty(
-				Constants.PREDICATE_URI);
-		PROP_URI = DIHelper.getInstance()
-				.getProperty(Constants.PROP_URI);
 	}
 	
 	//this is for getting all of the objects of a certain type.  I am most likely getting DataObject so that I can populate my forest queries

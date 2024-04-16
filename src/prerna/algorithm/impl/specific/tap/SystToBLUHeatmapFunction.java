@@ -44,15 +44,14 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.BLUSysComparison;
 import prerna.ui.components.specific.tap.SysToBLUDataGapsPlaySheet;
-import prerna.util.DIHelper;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * This class is used to process through two variables to identify relationships.
  */
 public class SystToBLUHeatmapFunction implements IAlgorithm {	
 	static final Logger logger = LogManager.getLogger(SystToBLUHeatmapFunction.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	SysToBLUDataGapsPlaySheet playSheet;
 	IDatabaseEngine engine;
@@ -77,26 +76,26 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 		try {
 			bsc = (BLUSysComparison) Class.forName("prerna.ui.components.specific.tap.BLUSysComparison").getConstructor(null).newInstance(null);
 		} catch (InstantiationException ie) {
-			logger.error(STACKTRACE, ie);
+			logger.error(Constants.STACKTRACE, ie);
 		} catch (IllegalAccessException iae) {
-			logger.error(STACKTRACE, iae);
+			logger.error(Constants.STACKTRACE, iae);
 		} catch (IllegalArgumentException iar) {
-			logger.error(STACKTRACE, iar);
+			logger.error(Constants.STACKTRACE, iar);
 		} catch (InvocationTargetException ite) {
-			logger.error(STACKTRACE, ite);
+			logger.error(Constants.STACKTRACE, ite);
 		} catch (NoSuchMethodException nsme) {
-			logger.error(STACKTRACE, nsme);
+			logger.error(Constants.STACKTRACE, nsme);
 		} catch (SecurityException se) {
-			logger.error(STACKTRACE, se);
+			logger.error(Constants.STACKTRACE, se);
 		} catch (ClassNotFoundException cnf) {
-			logger.error(STACKTRACE, cnf);
+			logger.error(Constants.STACKTRACE, cnf);
 		}
 		playSheet.HeatPanel.removeAll();
 		playSheet.HeatPanel.setLayout(new GridLayout(1, 0, 0, 0));
 		playSheet.HeatPanel.add(bsc);
 
 		if (bsc != null) {
-			bsc.setRDFEngine((IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
+			bsc.setRDFEngine((IDatabaseEngine) Utility.getEngine("TAP_Core_Data"));
 			bsc.setPlaySheet(playSheet);
 			bsc.createData(rowNames, colNames);
 			bsc.runAnalytics();
