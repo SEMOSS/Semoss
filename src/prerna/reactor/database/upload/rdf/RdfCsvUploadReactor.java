@@ -22,9 +22,9 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.reactor.database.upload.AbstractUploadFileReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.UploadInputUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.upload.UploadInputUtility;
-import prerna.util.upload.UploadUtilities;
 
 public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
