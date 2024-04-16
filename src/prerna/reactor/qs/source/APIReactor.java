@@ -20,7 +20,6 @@ import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class APIReactor extends AbstractQueryStructReactor {
@@ -68,7 +67,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 		
 		// if there is alias get it
 		if (this.getNounStore().getNoun("aliasFile") != null) {
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			String baseFolder = Utility.getBaseFolder();
 
 			String alias = this.getNounStore().getNoun("alias").getNoun(0).getValue() + "";
 			// load the alias

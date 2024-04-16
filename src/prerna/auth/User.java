@@ -912,8 +912,8 @@ public class User implements Serializable {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
-		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
-				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
+				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(this.pyt == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
@@ -983,8 +983,8 @@ public class User implements Serializable {
 	 * @param context
 	 */
 	public void setContext(String context) {
-		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
-				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
+				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(!useNettyPy) {
 			//TODO this breaks the git terminal, but right now that is using payload struct only
 			return;
@@ -1006,10 +1006,10 @@ public class User implements Serializable {
 	}
 	
 	public MountHelper getUserMountHelper() {
-		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if(mountHelper == null) {		
 				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-				String baseMountPath = DIHelper.getInstance().getProperty("CHROOT_DIR");
+				String baseMountPath = Utility.getDIHelperProperty("CHROOT_DIR");
 				mountTuple = baseMountPath + DIR_SEPARATOR + uniqueUserName;
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
 				mountHelper = new MountHelper(mountTuple);
@@ -1027,14 +1027,14 @@ public class User implements Serializable {
 		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			boolean nativePyServer = false;
 			// defined in rdf map
-			String nativePyServerStr = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER);
+			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
 			if(nativePyServerStr != null && !(nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
 				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
 			}
 			
 			boolean debug = false;
 			if(port < 0) {
-				String forcePort = DIHelper.getInstance().getProperty(Settings.FORCE_PORT);
+				String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
 				// port has not been forced
 				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
 					try {
@@ -1047,12 +1047,12 @@ public class User implements Serializable {
 				}
 			}
 			
-			String loggerLevel =  DIHelper.getInstance().getProperty(Settings.LOGGER_LEVEL);
+			String loggerLevel =  Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
 			if (loggerLevel == null || (loggerLevel=loggerLevel.trim()).isEmpty()) {
 				loggerLevel = "WARNING";
 			}
 			
-			String customClassPath = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+			String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
 			if(customClassPath == null) {
 				classLogger.info("No custom class path set");
 			}
@@ -1060,7 +1060,7 @@ public class User implements Serializable {
 			Path serverDirectoryPath = null;
 			String serverDirectory = null;
 
-			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
 				this.mountHelper = getUserMountHelper();
 				
@@ -1073,11 +1073,11 @@ public class User implements Serializable {
 					throw new IllegalArgumentException("Unable to connect to user server");
 				}
 			} else {
-				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE") != null 
-						&& !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
-					serverDirectory = DIHelper.getInstance().getProperty("PY_TUPLE_SPACE");
+				if(Utility.getDIHelperProperty("PY_TUPLE_SPACE") != null 
+						&& !Utility.getDIHelperProperty("PY_TUPLE_SPACE").isEmpty()) {
+					serverDirectory = Utility.getDIHelperProperty("PY_TUPLE_SPACE");
 				} else {
-					serverDirectory = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+					serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 				}
 				
 				try {
@@ -1134,12 +1134,12 @@ public class User implements Serializable {
 	private void addUserMemory() {
 		long memoryInGigs = 0;
 		// check if the user has memory
-		boolean checkMem = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.CHECK_MEM) + "");
+		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
 		if(checkMem) {
 			long freeMem = MgmtUtil.getFreeMemory();
-			String memProfileSettings = DIHelper.getInstance().getProperty(Settings.MEM_PROFILE_SETTINGS);
+			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
 			if(memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
-				String memLimitSettings = DIHelper.getInstance().getProperty(Settings.USER_MEM_LIMIT);
+				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
 				memoryInGigs = Integer.parseInt(memLimitSettings);
 			}
 			
@@ -1150,13 +1150,13 @@ public class User implements Serializable {
 	public void removeUserMemory() {
 		long memoryInGigs = 0;
 		// check if the user has memory
-		boolean checkMem = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.CHECK_MEM) + "");
+		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
 		if(checkMem) {
 			long freeMem = MgmtUtil.getFreeMemory();
-			String memProfileSettings = DIHelper.getInstance().getProperty(Settings.MEM_PROFILE_SETTINGS);
+			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
 			
 			if(memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
-				String memLimitSettings = DIHelper.getInstance().getProperty(Settings.USER_MEM_LIMIT);
+				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
 				memoryInGigs = Integer.parseInt(memLimitSettings);
 			}
 			
