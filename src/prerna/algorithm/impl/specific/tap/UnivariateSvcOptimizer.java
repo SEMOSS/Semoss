@@ -51,7 +51,6 @@ import prerna.ui.components.specific.tap.OptChartUtilityMethods;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
 import prerna.ui.components.specific.tap.SerOptGraphFunctions;
 import prerna.ui.components.specific.tap.SerOptPlaySheet;
-import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
@@ -142,7 +141,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt {
 		((SerOptPlaySheet) playSheet).playSheetPanel.add(jdp);
 		String query = "CONSTRUCT {?year ?transitioned ?ser. ?transitioned ?subprop ?relation. ?year ?subclass ?concept. ?trans ?transRel ?year. ?transRel ?subprop ?relation. ?trans ?subclass ?concept} WHERE { BIND(SUBSTR(STR(?fullName), 5) AS ?serName) BIND(SUBSTR(STR(?fullName), 0, 4) AS ?yearName) BIND(URI(CONCAT(\"http://semoss.org/ontologies/Concept/Year/\", ?yearName)) AS ?year)  BIND(URI(CONCAT(\"http://semoss.org/ontologies/Concept/Service/\", ?serName)) AS ?ser) BIND(URI(CONCAT(\"http://semoss.org/ontologies/Relation\",STR(?yearName), \":\", SUBSTR(STR(?ser), 45))) AS ?transitioned) BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation) BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?subclass) BIND(<http://semoss.org/ontologies/Concept> AS ?concept) BIND(URI(\"http://semoss.org/ontologies/Concept/Transition/SOA_Transition\") AS ?trans) BIND(URI(CONCAT(\"http://semoss.org/ontologies/Relation\",SUBSTR(STR(?trans), 47), \":\", STR(?yearName))) AS ?transRel) } BINDINGS ?fullName"
 				+ bindStr.toString();
-		IDatabaseEngine eng = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabaseEngine eng = (IDatabaseEngine) Utility.getEngine("TAP_Core_Data");
 
 		if (gps != null) {
 			gps.setRDFEngine(eng);

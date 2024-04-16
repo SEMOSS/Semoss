@@ -212,29 +212,28 @@ public final class DIHelper {
 			return null;
 		}
 		
-		String retName = this.coreProp.getProperty(name);
-
-		//if(retName == null && engineCoreProp != null && engineCoreProp.containsKey(name))
-		//retName = "" + engineCoreProp.get(name);
-
-		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-
-		if(retName == null && list != null)
-		{
-			// get the selected repository
-			Object[] repos = (Object[]) list.getSelectedValues();
-			if(repos != null && repos.length > 0)
-			{
-				IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
-				//logger.info("Engine is " + engine.getEngineId() + Utility.cleanLogString(name));
-				retName =  engine.getProperty(name);
-				//logger.info("RetName " + retName);
-			}
+		String retValue = this.coreProp.getProperty(name);
+		if(retValue != null) {
+			return retValue;
 		}
 
-
-		//logger.debug("Engine Local Prop" + engineLocalProp);
-		return retName;
+		// this below is legacy code ...
+		// can just return the retValue even if null
+		{
+			JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			if(list != null) {
+				// get the selected repository
+				Object[] repos = (Object[]) list.getSelectedValues();
+				if(repos != null && repos.length > 0)
+				{
+					IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
+					//logger.info("Engine is " + engine.getEngineId() + Utility.cleanLogString(name));
+					retValue =  engine.getProperty(name);
+					//logger.info("RetName " + retName);
+				}
+			}
+			return retValue;
+		}
 	}
 
 	/**
