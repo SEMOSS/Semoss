@@ -58,40 +58,32 @@ import prerna.engine.api.IDatabaseEngine;
  */
 public class DIHelper {
 
+	private static final Logger classLogger = LogManager.getLogger(DIHelper.class);
+	
 	// helps with all of the dependency injection
 	public static DIHelper helper = null;
 
-	String rdfMapFileLocation = null;
-
-	IDatabaseEngine rdfEngine = null;
-	Properties rdfMap = null;
+	private String rdfMapFileLocation = null;
+	private Properties rdfMap = null;
 
 	// core properties file
-	Properties coreProp = null;
-	Properties engineProp = null;
-	Properties projectProp = null;
-//	Properties storageProp = null;
-//	Properties llmProp = null;
+	private Properties coreProp = null;
+	private Properties engineProp = null;
+	private Properties projectProp = null;
 	
 	// Hashtable of local properties
 	// will have the following keys
 	// Perspective -<Hashtable of questions and identifier> - Possibly change this over to vector
 	// Question-ID Key
-	Hashtable localProp = new Hashtable();
+	private Hashtable localProp = new Hashtable();
 
 	// localprop for engine
-	Hashtable engineLocalProp = new Hashtable();
-
-	// cached questions for an engine
-	Hashtable <String, Hashtable> engineQHash = new Hashtable<String, Hashtable>();
-	// Logger
-	static final Logger logger = LogManager.getLogger(DIHelper.class.getName());
+	private Hashtable engineLocalProp = new Hashtable();
 
 	/**
 	 * Constructor for DIHelper.
 	 */
-	protected DIHelper()
-	{
+	private DIHelper() {
 		// do nothing
 	}
 
@@ -100,121 +92,110 @@ public class DIHelper {
 	 * Put properties for each in a hashtable of local properties.
 
 	 * @return DIHelper 		Properties. */
-	public static DIHelper getInstance()
-	{
-		if(helper == null)
-		{
-			helper = new DIHelper();
-			helper.coreProp = new Properties();
-			helper.engineProp = new Properties();
-			helper.projectProp = new Properties();
-//			helper.storageProp = new Properties();
-//			helper.llmProp = new Properties();
-			
-			// need to set up the shapes here
-			//Shape square = new Rectangle2D.Double(-5,-5,10, 10);
-
-			//new Graphics2D().dr
-			//square = (Shape) g2;
-			//Shape circle = new Ellipse2D.Double(-5, -5, 10, 10);
-			Ellipse2D.Double circle = new Ellipse2D.Double(-6, -6, 12, 12);
-
-			Rectangle2D.Double square = new Rectangle2D.Double(-6,-6,12, 12);
-			//RoundRectangle2D.Double round = new RoundRectangle2D.Double(-6,-6,12, 12, 6, 6);
-
-			Shape triangle = helper.createUpTriangle(6);
-			Shape star = helper.createStar();
-			Shape rhom = helper.createRhombus(7);
-			Shape hex = helper.createHex(7);
-			Shape pent = helper.createPent(7);
-
-
-			helper.localProp.put(Constants.SQUARE, square);
-			helper.localProp.put(Constants.CIRCLE, circle);
-			helper.localProp.put(Constants.TRIANGLE, triangle);
-			helper.localProp.put(Constants.STAR, star);
-			helper.localProp.put(Constants.DIAMOND, rhom);
-			helper.localProp.put(Constants.HEXAGON, hex);
-			helper.localProp.put(Constants.PENTAGON, pent);
-
-			Shape squareL = new Rectangle2D.Double(0,0,40, 40);
-			//Shape circleL = new Ellipse2D.Double(0, 0, 13, 13);
-			Shape circleL = new Ellipse2D.Double(0,0,20,20);
-			Shape triangleL = helper.createUpTriangleL();
-			Shape starL = helper.createStarL();
-			Shape rhomL = helper.createRhombusL();
-			Shape pentL = helper.createPentL();
-			Shape hexL = helper.createHexL();
-
-			helper.localProp.put(Constants.SQUARE + Constants.LEGEND, squareL);
-			helper.localProp.put(Constants.CIRCLE + Constants.LEGEND, circleL);
-			helper.localProp.put(Constants.TRIANGLE + Constants.LEGEND, triangleL);
-			helper.localProp.put(Constants.STAR + Constants.LEGEND, starL);
-			helper.localProp.put(Constants.HEXAGON + Constants.LEGEND, hex);
-			helper.localProp.put(Constants.DIAMOND + Constants.LEGEND, rhomL);
-			helper.localProp.put(Constants.PENTAGON + Constants.LEGEND, pentL);
-			helper.localProp.put(Constants.HEXAGON + Constants.LEGEND, hexL);
-
-			Color blue = new Color(31, 119, 180);
-			Color green = new Color(44, 160, 44);
-			Color red = new Color(214, 39, 40);
-			Color brown = new Color(143, 99, 42);
-			Color yellow = new Color(254, 208, 2);
-			Color orange = new Color(255, 127, 14);
-			Color purple = new Color(148, 103, 189);
-			Color aqua = new Color(23, 190, 207);
-			Color pink = new Color(241, 47, 158);
-			Color black = new Color(3, 3, 3);
-			Color darkGray = new Color(105, 105, 105);
-			Color lightGray = new Color(209, 209, 209);
-			Color cyan = new Color(0, 255, 255);
-
-			helper.localProp.put(Constants.BLUE, blue);
-			helper.localProp.put(Constants.GREEN, green);
-			helper.localProp.put(Constants.RED, red);
-			helper.localProp.put(Constants.BROWN, brown);
-			helper.localProp.put(Constants.MAGENTA, pink);
-			helper.localProp.put(Constants.YELLOW, yellow);
-			helper.localProp.put(Constants.ORANGE, orange);
-			helper.localProp.put(Constants.PURPLE, purple);
-			helper.localProp.put(Constants.AQUA, aqua);
-			helper.localProp.put(Constants.BLACK, black);
-			helper.localProp.put(Constants.DARK_GRAY, darkGray);
-			helper.localProp.put(Constants.LIGHT_GRAY, lightGray);
-			helper.localProp.put(Constants.CYAN, cyan);
-
-			// put all the layouts as well
-			helper.localProp.put(Constants.FR, FRLayout.class);
-			helper.localProp.put(Constants.KK, KKLayout.class);
-			helper.localProp.put(Constants.ISO, ISOMLayout.class);
-			helper.localProp.put(Constants.SPRING, SpringLayout.class);
-			helper.localProp.put(Constants.CIRCLE_LAYOUT, CircleLayout.class);
-			helper.localProp.put(Constants.RADIAL_TREE_LAYOUT, RadialTreeLayout.class);
-			helper.localProp.put(Constants.TREE_LAYOUT, TreeLayout.class);
-			helper.localProp.put(Constants.BALLOON_LAYOUT, BalloonLayout.class);
-
+	public static DIHelper getInstance() {
+		if(helper != null) {
+			return helper;
 		}
+		
+		synchronized(DIHelper.class) {
+			if(helper != null) {
+				return helper;
+			}
+			
+			if(helper == null) {
+				helper = new DIHelper();
+				helper.coreProp = new Properties();
+				helper.engineProp = new Properties();
+				helper.projectProp = new Properties();
+				
+				// need to set up the shapes here
+				//Shape square = new Rectangle2D.Double(-5,-5,10, 10);
+	
+				//new Graphics2D().dr
+				//square = (Shape) g2;
+				//Shape circle = new Ellipse2D.Double(-5, -5, 10, 10);
+				Ellipse2D.Double circle = new Ellipse2D.Double(-6, -6, 12, 12);
+	
+				Rectangle2D.Double square = new Rectangle2D.Double(-6,-6,12, 12);
+				//RoundRectangle2D.Double round = new RoundRectangle2D.Double(-6,-6,12, 12, 6, 6);
+	
+				Shape triangle = helper.createUpTriangle(6);
+				Shape star = helper.createStar();
+				Shape rhom = helper.createRhombus(7);
+				Shape hex = helper.createHex(7);
+				Shape pent = helper.createPent(7);
+	
+	
+				helper.localProp.put(Constants.SQUARE, square);
+				helper.localProp.put(Constants.CIRCLE, circle);
+				helper.localProp.put(Constants.TRIANGLE, triangle);
+				helper.localProp.put(Constants.STAR, star);
+				helper.localProp.put(Constants.DIAMOND, rhom);
+				helper.localProp.put(Constants.HEXAGON, hex);
+				helper.localProp.put(Constants.PENTAGON, pent);
+	
+				Shape squareL = new Rectangle2D.Double(0,0,40, 40);
+				//Shape circleL = new Ellipse2D.Double(0, 0, 13, 13);
+				Shape circleL = new Ellipse2D.Double(0,0,20,20);
+				Shape triangleL = helper.createUpTriangleL();
+				Shape starL = helper.createStarL();
+				Shape rhomL = helper.createRhombusL();
+				Shape pentL = helper.createPentL();
+				Shape hexL = helper.createHexL();
+	
+				helper.localProp.put(Constants.SQUARE + Constants.LEGEND, squareL);
+				helper.localProp.put(Constants.CIRCLE + Constants.LEGEND, circleL);
+				helper.localProp.put(Constants.TRIANGLE + Constants.LEGEND, triangleL);
+				helper.localProp.put(Constants.STAR + Constants.LEGEND, starL);
+				helper.localProp.put(Constants.HEXAGON + Constants.LEGEND, hex);
+				helper.localProp.put(Constants.DIAMOND + Constants.LEGEND, rhomL);
+				helper.localProp.put(Constants.PENTAGON + Constants.LEGEND, pentL);
+				helper.localProp.put(Constants.HEXAGON + Constants.LEGEND, hexL);
+	
+				Color blue = new Color(31, 119, 180);
+				Color green = new Color(44, 160, 44);
+				Color red = new Color(214, 39, 40);
+				Color brown = new Color(143, 99, 42);
+				Color yellow = new Color(254, 208, 2);
+				Color orange = new Color(255, 127, 14);
+				Color purple = new Color(148, 103, 189);
+				Color aqua = new Color(23, 190, 207);
+				Color pink = new Color(241, 47, 158);
+				Color black = new Color(3, 3, 3);
+				Color darkGray = new Color(105, 105, 105);
+				Color lightGray = new Color(209, 209, 209);
+				Color cyan = new Color(0, 255, 255);
+	
+				helper.localProp.put(Constants.BLUE, blue);
+				helper.localProp.put(Constants.GREEN, green);
+				helper.localProp.put(Constants.RED, red);
+				helper.localProp.put(Constants.BROWN, brown);
+				helper.localProp.put(Constants.MAGENTA, pink);
+				helper.localProp.put(Constants.YELLOW, yellow);
+				helper.localProp.put(Constants.ORANGE, orange);
+				helper.localProp.put(Constants.PURPLE, purple);
+				helper.localProp.put(Constants.AQUA, aqua);
+				helper.localProp.put(Constants.BLACK, black);
+				helper.localProp.put(Constants.DARK_GRAY, darkGray);
+				helper.localProp.put(Constants.LIGHT_GRAY, lightGray);
+				helper.localProp.put(Constants.CYAN, cyan);
+	
+				// put all the layouts as well
+				helper.localProp.put(Constants.FR, FRLayout.class);
+				helper.localProp.put(Constants.KK, KKLayout.class);
+				helper.localProp.put(Constants.ISO, ISOMLayout.class);
+				helper.localProp.put(Constants.SPRING, SpringLayout.class);
+				helper.localProp.put(Constants.CIRCLE_LAYOUT, CircleLayout.class);
+				helper.localProp.put(Constants.RADIAL_TREE_LAYOUT, RadialTreeLayout.class);
+				helper.localProp.put(Constants.TREE_LAYOUT, TreeLayout.class);
+				helper.localProp.put(Constants.BALLOON_LAYOUT, BalloonLayout.class);
+	
+			}
+		}
+		
+		
 		return helper; 
 	}
-
-
-
-	/**
-	 * Obtains a specific RDF engine.
-
-	 * @return IDatabase 		RDF engine. */
-	public IDatabaseEngine getRdfEngine() {
-		return rdfEngine;
-	}
-
-	/**
-	 * Sets the specific RDF engine.
-	 * @param IDatabaseEngine		Obtained RDF engine.
-	 */
-	public void setRdfEngine(IDatabaseEngine rdfEngine) {
-		this.rdfEngine = rdfEngine;
-	}
-
 
 	/**
 	 * Gets core properties.
@@ -239,13 +220,16 @@ public class DIHelper {
 	 * @return				Property name */
 	public String getProperty(String name)
 	{
-		String retName = coreProp.getProperty(name);
+		if(this.coreProp == null) {
+			return null;
+		}
+		
+		String retName = this.coreProp.getProperty(name);
 
 		//if(retName == null && engineCoreProp != null && engineCoreProp.containsKey(name))
 		//retName = "" + engineCoreProp.get(name);
 
-		JList list = (JList) DIHelper.getInstance().getLocalProp(
-				Constants.REPO_LIST);
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 
 		if(retName == null && list != null)
 		{
@@ -509,22 +493,7 @@ public class DIHelper {
 		DIHelper.getInstance().loadCoreProp(rdfMapFileLocation);
 	}
 
-	/**
-	 * Gets the local prop of the engine
-	 */
-	public Hashtable getEngineLocalProp(String engineName)
-	{
-		return engineQHash.get(engineName);
-	}
-
-	/**
-	 * Gets the core prop of the engine
-	 */
-	public Properties getEngineCoreProp(String engineName) {
-		return (Properties) engineQHash.get(engineName + "_CORE_PROP");
-	}
-
-	public String getRDFMapFile() {
+	public String getRDFMapFileLocation() {
 		return this.rdfMapFileLocation;
 	}
 	
@@ -559,36 +528,4 @@ public class DIHelper {
 	public Object removeProjectProperty(Object key) {
 		return this.projectProp.remove(key);
 	}
-	
-//	public Properties getStorageProp() {
-//		return this.storageProp;
-//	}
-//	
-//	public void setStorageProperty(Object key, Object value) {
-//		this.storageProp.put(key, value);
-//	}
-//	
-//	public Object getStorageProperty(Object key) {
-//		return this.storageProp.get(key);
-//	}
-//	
-//	public Object removeStorageProperty(Object key) {
-//		return this.storageProp.remove(key);
-//	}
-//	
-//	public Properties getLlmProp() {
-//		return this.llmProp;
-//	}
-//	
-//	public void setLLmProperty(Object key, Object value) {
-//		this.llmProp.put(key, value);
-//	}
-//	
-//	public Object getLlmProperty(Object key) {
-//		return this.llmProp.get(key);
-//	}
-//	
-//	public Object removeLlmProperty(Object key) {
-//		return this.llmProp.remove(key);
-//	}
 }
