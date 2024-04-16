@@ -56,12 +56,12 @@ import prerna.engine.api.IDatabaseEngine;
 /**
  * DIHelper is used throughout SEMOSS to obtain property names from core propfiles and engine core propfiles.
  */
-public class DIHelper {
+public final class DIHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(DIHelper.class);
 	
-	// helps with all of the dependency injection
-	public static DIHelper helper = null;
+	// the singleton
+	private static DIHelper helper = null;
 
 	private String rdfMapFileLocation = null;
 
@@ -107,23 +107,15 @@ public class DIHelper {
 				helper.engineProp = new Properties();
 				helper.projectProp = new Properties();
 				
-				// need to set up the shapes here
-				//Shape square = new Rectangle2D.Double(-5,-5,10, 10);
-	
-				//new Graphics2D().dr
-				//square = (Shape) g2;
-				//Shape circle = new Ellipse2D.Double(-5, -5, 10, 10);
 				Ellipse2D.Double circle = new Ellipse2D.Double(-6, -6, 12, 12);
 	
 				Rectangle2D.Double square = new Rectangle2D.Double(-6,-6,12, 12);
-				//RoundRectangle2D.Double round = new RoundRectangle2D.Double(-6,-6,12, 12, 6, 6);
 	
 				Shape triangle = helper.createUpTriangle(6);
 				Shape star = helper.createStar();
 				Shape rhom = helper.createRhombus(7);
 				Shape hex = helper.createHex(7);
 				Shape pent = helper.createPent(7);
-	
 	
 				helper.localProp.put(Constants.SQUARE, square);
 				helper.localProp.put(Constants.CIRCLE, circle);
@@ -188,10 +180,8 @@ public class DIHelper {
 				helper.localProp.put(Constants.RADIAL_TREE_LAYOUT, RadialTreeLayout.class);
 				helper.localProp.put(Constants.TREE_LAYOUT, TreeLayout.class);
 				helper.localProp.put(Constants.BALLOON_LAYOUT, BalloonLayout.class);
-	
 			}
 		}
-		
 		
 		return helper; 
 	}
