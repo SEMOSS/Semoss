@@ -160,22 +160,28 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 			finalTypes.put(name, currentType);
 		}
 		
-		// write it to the target
-		String createTable = targetRDBMS.getQueryUtil().createTable(targetTable, finalTypes);
 		// only attempt to drop if the table already exists
 		if(override && targetRDBMS.getQueryUtil().tableExists(targetRDBMS, targetTable, targetRDBMS.getDatabase(), targetRDBMS.getSchema())) {
+			String dropTable = targetRDBMS.getQueryUtil().dropTable(targetTable);
 			try {
-				targetRDBMS.removeData(targetRDBMS.getQueryUtil().dropTable(targetTable));
+				classLogger.info(User.getSingleLogginName(user) + " is droping existing table on " + targetDatabaseId + " with sql: " + dropTable);
+				targetRDBMS.removeData(dropTable);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error occured creating the table in the target. Detailed message = " + e.getMessage());
+				throw new IllegalArgumentException("Error occured dropping the table in the target database " + targetDatabaseId + ". Detailed message = " 
+						+ e.getMessage() + ". SQL Executed = " + dropTable);
 			}
 		}
+		
+		// write it to the target
+		String createTable = targetRDBMS.getQueryUtil().createTable(targetTable, finalTypes);
 		try {
+			classLogger.info(User.getSingleLogginName(user) + " is creating table on " + targetDatabaseId + " with sql: " + createTable);
 			targetRDBMS.insertData(createTable);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured creating the table in the target. Detailed message = " + e.getMessage());
+			throw new IllegalArgumentException("Error occured creating the table in the target database " + targetDatabaseId + ". Detailed message = " 
+					+ e.getMessage() + ". SQL Executed = " + createTable);
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
