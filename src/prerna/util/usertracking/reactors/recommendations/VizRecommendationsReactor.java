@@ -27,7 +27,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class VizRecommendationsReactor extends AbstractRFrameReactor {
@@ -58,7 +57,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		File desc = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-user-history.rds");
 		if (!desc.exists()) {
 			String message = "Necessary files missing to generate search results. Please run UpdateQueryData().";

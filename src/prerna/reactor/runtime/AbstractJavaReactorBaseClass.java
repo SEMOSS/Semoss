@@ -14,7 +14,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Console;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 
@@ -572,7 +572,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	protected String getBaseFolder() {
 		String baseFolder = null;
 		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			baseFolder = Utility.getBaseFolder();
 		} catch (Exception ignored) {
 			logger.info("No BaseFolder detected... most likely running as test...");
 		}

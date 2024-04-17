@@ -48,6 +48,7 @@ public class GetDatabaseTablePhysicalStructureReactor extends AbstractReactor {
 		if(!(engine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}
+		
 		IRDBMSEngine rdbms = (IRDBMSEngine) engine;
 		AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
 		Connection con = null;
