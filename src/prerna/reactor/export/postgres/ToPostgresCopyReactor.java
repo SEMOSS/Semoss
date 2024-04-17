@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -36,9 +37,11 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
 		organizeKeys();
+		
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have edit access to the database");
 		}
 		String tableName = this.keyValue.get(this.keysToGet[1]);
@@ -75,17 +78,23 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 				postgresConn = conn;
 			}
 			int majorV = conn.getMetaData().getDatabaseMajorVersion();
+			// due to changes in postgres version
+			// we will do a header match if version 15+
+			String copySyntax = null;
 			if(majorV >= 15) {
-			    rowsInserted = new CopyManager((BaseConnection) postgresConn)
-		            .copyIn("COPY " + tableName + " FROM STDIN (" + options + ", HEADER MATCH)", 
-		                new BufferedReader(new FileReader(filePath))
-		                );
+				copySyntax = "COPY " + tableName + " FROM STDIN (" + options + ", HEADER MATCH)";
 			} else {
-				rowsInserted = new CopyManager((BaseConnection) postgresConn)
-			        .copyIn("COPY " + tableName + " FROM STDIN (" + options + ", HEADER)", 
-			            new BufferedReader(new FileReader(filePath))
-			            );
+				copySyntax = "COPY " + tableName + " FROM STDIN (" + options + ", HEADER)";
 			}
+			
+			classLogger.info(User.getSingleLogginName(user) + " is running copy command on " + engineId + " with sql: " + copySyntax 
+					+ " on file " + filePath);
+			rowsInserted = new CopyManager((BaseConnection) postgresConn)
+	            .copyIn(copySyntax, 
+	                new BufferedReader(new FileReader(filePath))
+	                );
+			classLogger.info(User.getSingleLogginName(user) + " is ran copy command on " + engineId + " and added " + rowsInserted + " rows");
+			
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error executing the COPY command. Detailed message = " + e.getMessage());
