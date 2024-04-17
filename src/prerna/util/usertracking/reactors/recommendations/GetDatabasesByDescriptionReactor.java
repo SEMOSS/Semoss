@@ -18,7 +18,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -47,7 +46,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		// Check to make sure that these files exist before searching
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		File lsa = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-dbid-desc-lsa.rds");
 		File vocab = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-dbid-desc-lsa-vocab.rds");
 		File desc = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-dbid-desc.rds");
@@ -84,7 +83,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 			List<String> enginesWithAccess = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 			// source scripts and run find_db
 			sb.append(RSyntaxHelper.loadPackages(packages));
-			sb.append("setwd(\"" + DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\");");
+			sb.append("setwd(\"" + Utility.getBaseFolder() + "\\R\\Recommendations\");");
 			sb.append("source(\"db_recom.r\");").append("source(\"topic_modelling.r\");");
 			sb.append("source(\"SemanticSimilarity/lsi_dataitem.r\");");
 			String output = "output" + Utility.getRandomString(8);

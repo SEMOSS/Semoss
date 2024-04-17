@@ -21,7 +21,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
@@ -41,7 +40,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 		String[] packages = { "igraph", "jsonlite" };
 		String userName = "null";
 		User user = this.insight.getUser();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 
 		// Check to make sure that the necessary files exist
 		File itemsim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-itemsim.rds");
