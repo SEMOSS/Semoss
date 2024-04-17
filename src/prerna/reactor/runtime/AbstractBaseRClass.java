@@ -40,7 +40,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
@@ -192,7 +191,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// we'll write to CSV and load into data.table to avoid rJava setup
 		final String sep = java.nio.file.FileSystems.getDefault().getSeparator();
 		String random = Utility.getRandomString(10);
-		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
+		String outputLocation = Utility.getBaseFolder().replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
 		try {
 			gridFrame.getBuilder().runQuery("CALL CSVWRITE("
 					+ "'" + outputLocation + "', "
@@ -489,7 +488,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 
 		// we will make a temp file
-		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String tempFileLocation = Utility.getInsightCacheDir() + "\\" + Utility.getCsvInsightCacheDir();
 		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
 		this.rJavaTranslator.executeEmptyR("fwrite(" + frameName + ", file='" + tempFileLocation + "')");

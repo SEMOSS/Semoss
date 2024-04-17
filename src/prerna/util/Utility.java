@@ -260,6 +260,22 @@ public final class Utility {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public static String getInsightCacheDir() {
+		return getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static String getCsvInsightCacheDir() {
+		return getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+	}
+	
+	/**
 	 * Get any property from DIHelper
 	 * @param prop
 	 * @return
