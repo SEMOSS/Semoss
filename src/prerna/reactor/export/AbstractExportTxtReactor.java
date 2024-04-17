@@ -69,6 +69,14 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	
 	@Override
 	protected void buildTask() {
+		// TODO: consolidate with Utility writeResultToFile?
+		// TODO: consolidate with Utility writeResultToFile?
+		// TODO: consolidate with Utility writeResultToFile?
+		// TODO: consolidate with Utility writeResultToFile?
+		// TODO: consolidate with Utility writeResultToFile?
+		// TODO: consolidate with Utility writeResultToFile?
+		// TODO: consolidate with Utility writeResultToFile?
+		
 		if (delimiter == null) {
 			throw new IllegalArgumentException("Delimiter has not been defined for output");
 		}
@@ -144,7 +152,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 							builder.append("null");
 						} else {
 							if (typesArr[i] == SemossDataType.STRING) {
-								builder.append("\"").append(dataRow[i]).append("\"");
+								builder.append("\"").append(dataRow[i].toString().replace("\"", "\"\"")).append("\"");
 							} else {
 								builder.append(dataRow[i]);
 							}
@@ -170,7 +178,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 							builder.append("null");
 						} else {
 							if (typesArr[i] == SemossDataType.STRING) {
-								builder.append("\"").append(dataRow[i]).append("\"");
+								builder.append("\"").append(dataRow[i].toString().replace("\"", "\"\"")).append("\"");
 							} else {
 								builder.append(dataRow[i]);
 							}
