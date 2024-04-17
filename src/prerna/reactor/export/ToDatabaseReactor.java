@@ -99,6 +99,9 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			if(batchSizeStr != null && !(batchSizeStr=batchSizeStr.trim()).isEmpty()) {
 				try {
 					this.batchSize = Integer.parseInt(batchSizeStr);
+					if(batchSize < 1) {
+						throw new IllegalArgumentException("Batch size cannot be less than 1");
+					}
 				} catch(NumberFormatException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Invalid batch size value of " + batchSizeStr);
