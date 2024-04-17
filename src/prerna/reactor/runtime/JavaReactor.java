@@ -20,7 +20,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class JavaReactor extends AbstractReactor implements ICodeExecution {
@@ -45,7 +44,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 
 	//@Override
 	public NounMetadata execute_old() {
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
@@ -53,7 +52,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 		}
 
 		//check if java terminal is disabled
-		String disable_java_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_JAVA_TERMINAL);
+		String disable_java_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_JAVA_TERMINAL);
 		if(disable_java_terminal != null && !disable_java_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_java_terminal)) {
 					throw new IllegalArgumentException("Java terminal has been disabled.");
