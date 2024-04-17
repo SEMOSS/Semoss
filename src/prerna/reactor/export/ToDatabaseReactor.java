@@ -44,14 +44,16 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	private static final String TARGET_DATABASE = "targetDatabase";
 	private static final String TARGET_TABLE = "targetTable";
 	private static final String INSERT_ID_KEY = "insertId";
-	private static final String IGNORE_OWL = "ignoreOWL";
-
+	private static final String IGNORE_OWL_KEY = "ignoreOWL";
+	private static final String BATCH_SIZE_KEY = "batchSize";
+	
 	private String engineId = null;
 	private String targetTable = null;
 	private boolean override = false;
 	private boolean newTable = false;
 	private boolean genId = false;
 	private boolean ignoreOWL = false;
+	private int batchSize = 5_000;
 	
 	public ToDatabaseReactor() {
 		this.keysToGet = new String[]{ 
@@ -60,7 +62,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				TARGET_TABLE, 
 				ReactorKeysEnum.OVERRIDE.getKey(), 
 				INSERT_ID_KEY,
-				IGNORE_OWL
+				IGNORE_OWL_KEY,
+				BATCH_SIZE_KEY
 			};
 	}
 
@@ -90,8 +93,18 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			this.newTable = !MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(this.engineId).contains(this.targetTable);
 			// boolean check if a unique id will be generated
 			this.genId = Boolean.parseBoolean( this.keyValue.get(INSERT_ID_KEY)+"" );
-			this.ignoreOWL = Boolean.parseBoolean( this.keyValue.get(IGNORE_OWL)+"" );
+			this.ignoreOWL = Boolean.parseBoolean( this.keyValue.get(IGNORE_OWL_KEY)+"" );
 
+			String batchSizeStr = this.keyValue.get(BATCH_SIZE_KEY);
+			if(batchSizeStr != null && !(batchSizeStr=batchSizeStr.trim()).isEmpty()) {
+				try {
+					this.batchSize = Integer.parseInt(batchSizeStr);
+				} catch(NumberFormatException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Invalid batch size value of " + batchSizeStr);
+				}
+			}
+			
 			if(this.newTable && this.override) {
 				// you cannot override a table that doesn't exist
 				throw new SemossPixelException(
@@ -238,7 +251,6 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		}
 		try {
 			// keep a batch size so we dont get heapspace
-			final int batchSize = 5000;
 			int count = 0;
 	
 			logger.info("Begin inserting new data");
@@ -334,7 +346,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				ps.addBatch();
 
 				// batch commit based on size
-				if (++count % batchSize == 0) {
+				if (++count % this.batchSize == 0) {
 					logger.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
 				}
