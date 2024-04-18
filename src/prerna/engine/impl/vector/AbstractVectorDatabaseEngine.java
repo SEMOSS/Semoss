@@ -279,9 +279,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
 		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
-		if (embedderEngineId == null) {
+		if (embedderEngineId == null || (embedderEngineId=embedderEngineId.trim()).isEmpty()) {
 			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
-			if (embedderEngineId == null) {
+			if (embedderEngineId == null || (embedderEngineId=embedderEngineId.trim()).isEmpty()) {
 				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
 			}
 			
@@ -308,7 +308,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 		// model engine responsible for creating keywords
 		String keywordGeneratorEngineId = this.smssProp.getProperty(KEYWORD_ENGINE_ID);
-		if (keywordGeneratorEngineId != null) {
+		if (keywordGeneratorEngineId != null && !(keywordGeneratorEngineId=keywordGeneratorEngineId.trim()).isEmpty()) {
 			// pull the model smss if needed
 			Utility.getModel(keywordGeneratorEngineId);
 			this.smssProp.put(KEYWORD_ENGINE_ID, keywordGeneratorEngineId);
