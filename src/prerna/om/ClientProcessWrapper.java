@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.MountHelper;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
@@ -81,7 +80,7 @@ public class ClientProcessWrapper {
 					Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
 					// we will be creating a fake semoss home in the chrooted directory
 					// so grabbing the current base folder to mock the same pattern
-					String baseFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+					String baseFolderPath = Utility.getBaseFolder();
 					// this is the fake semoss home in the chroot 
 					Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
 					// create a temp folder where we will start the process for the server
@@ -113,7 +112,7 @@ public class ClientProcessWrapper {
 					Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
 					// we will be creating a fake semoss home in the chrooted directory
 					// so grabbing the current base folder to mock the same pattern
-					String baseFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+					String baseFolderPath = Utility.getBaseFolder();
 					// this is the fake semoss home in the chroot 
 					Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
 					// create a temp folder where we will start the process for the server

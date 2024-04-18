@@ -44,15 +44,15 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.secrets.SecretsUtility;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.cluster.VersionReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.gson.InsightAdapter;
@@ -468,8 +468,12 @@ public class InsightCacheUtility {
 		// from an existing insight as the .cache folder gets moved
 
 		String folderDir = Utility.normalizePath(getInsightCacheFolderPath(projectId, projectName, rdbmsId, parameters));
-		Path projectFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR 
-				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId));
+		Path projectFolder = Paths.get(EngineUtility.getSpecificEngineBaseFolder(
+									IEngine.CATALOG_TYPE.PROJECT, 
+									projectId,
+									projectName
+								)
+							);
 		Path relative = projectFolder.relativize( Paths.get(folderDir));
 		if(pullCloud) {
 			ClusterUtil.pullProjectFolder(projectId, folderDir, relative.toString());
