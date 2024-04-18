@@ -120,6 +120,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
+			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage());
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
