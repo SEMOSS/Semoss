@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,8 +57,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.comments.InsightComment;
-import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.TCPPyTranslator;
@@ -153,9 +150,6 @@ public class Insight implements Serializable {
 	// this is the store holding information around the panels associated with this insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
-	
-	// insight comments
-	private transient LinkedList<InsightComment> insightCommentList = null;
 	
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
@@ -447,20 +441,6 @@ public class Insight implements Serializable {
 	
 	public void addNewInsightSheet(InsightSheet insightSheet) {
 		this.insightSheets.put(insightSheet.getSheetId(), insightSheet);
-	}
-	
-	/////////////////////////////////////////////////////////
-	// insight comments
-	
-	public LinkedList<InsightComment> getInsightComments() {
-		if(this.insightCommentList == null) {
-			this.insightCommentList = InsightCommentHelper.generateInsightCommentList(this.projectId, this.rdbmsId);
-		}
-		return this.insightCommentList;
-	}
-	
-	public void addInsightComment(InsightComment newComment) {
-		InsightCommentHelper.addInsightCommentToList(getInsightComments(), newComment);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
