@@ -27,12 +27,10 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
-import prerna.om.InsightStore;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -48,9 +46,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.CleanerThread;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Settings;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -752,8 +750,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		classLogger.debug("Delete vector database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		this.close();
 		
-		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.engineId, this.engineName);
-		File engineFolder = new File(specificEngineLocation);
+		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
+									getCatalogType(), this.engineId, this.engineName)
+								);
+		
+		//TODO: is the below necessary?
+		//TODO: we usually just call the delete 
+		//TODO: and i thought the cpw waits for the remove
 		if(engineFolder.exists()) {
 			// this is ugly but not sure we have a choice since we have to wait for the
 			// py process to shutdown and that call in the close is also threaded
@@ -773,12 +776,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// remove from DIHelper
-		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + this.engineId, "");
-		// in case we are at the start
-		engineIds = engineIds.replace(this.engineId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
-		DIHelper.getInstance().removeEngineProperty(this.engineId);
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	private String addFilters(List<IQueryFilter> filters) {

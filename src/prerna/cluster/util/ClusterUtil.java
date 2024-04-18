@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -22,9 +21,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 public class ClusterUtil {
 
@@ -35,39 +34,39 @@ public class ClusterUtil {
 	private static final Logger classLogger = LogManager.getLogger(ClusterUtil.class);
 
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";
-	public static final boolean IS_CLUSTER = (DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
-			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY)) : (
+	public static final boolean IS_CLUSTER = (Utility.getDIHelperProperty(IS_CLUSTER_KEY) != null && !(Utility.getDIHelperProperty(IS_CLUSTER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(Utility.getDIHelperProperty(IS_CLUSTER_KEY)) : (
 					(System.getenv().containsKey(IS_CLUSTER_KEY)) 
 					? Boolean.parseBoolean(System.getenv(IS_CLUSTER_KEY)) : false);
 			
 
 
 	private static final String STORAGE_PROVIDER_KEY = "SEMOSS_STORAGE_PROVIDER";
-	public static final String STORAGE_PROVIDER = (DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY) != null && !(DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY).isEmpty())) 
-			? DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY) : System.getenv(STORAGE_PROVIDER_KEY);
+	public static final String STORAGE_PROVIDER = (Utility.getDIHelperProperty(STORAGE_PROVIDER_KEY) != null && !(Utility.getDIHelperProperty(STORAGE_PROVIDER_KEY).isEmpty())) 
+			? Utility.getDIHelperProperty(STORAGE_PROVIDER_KEY) : System.getenv(STORAGE_PROVIDER_KEY);
 
 	private static final String REMOTE_RSERVE_KEY = "REMOTE_RSERVE";
-	public static final boolean REMOTE_RSERVE = (DIHelper.getInstance().getProperty(REMOTE_RSERVE_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
-			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(REMOTE_RSERVE_KEY)) : (
+	public static final boolean REMOTE_RSERVE = (Utility.getDIHelperProperty(REMOTE_RSERVE_KEY) != null && !(Utility.getDIHelperProperty(IS_CLUSTER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(Utility.getDIHelperProperty(REMOTE_RSERVE_KEY)) : (
 					(System.getenv().containsKey(REMOTE_RSERVE_KEY)) 
 					? Boolean.parseBoolean(System.getenv(REMOTE_RSERVE_KEY)) : false);
 
 
 	private static final String LOAD_ENGINES_LOCALLY_KEY = "SEMOSS_LOAD_ENGINES_LOCALLY";
-	public static final boolean LOAD_ENGINES_LOCALLY = (DIHelper.getInstance().getProperty(LOAD_ENGINES_LOCALLY_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
-			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(LOAD_ENGINES_LOCALLY_KEY)) : (
+	public static final boolean LOAD_ENGINES_LOCALLY = (Utility.getDIHelperProperty(LOAD_ENGINES_LOCALLY_KEY) != null && !(Utility.getDIHelperProperty(IS_CLUSTER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(Utility.getDIHelperProperty(LOAD_ENGINES_LOCALLY_KEY)) : (
 					(System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)) 
 					? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY)) : false);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "images";
+	public static String IMAGES_FOLDER_PATH = Utility.getBaseFolder() + DIR_SEPARATOR + "images";
 	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
 
 	private static final String IS_CLUSTERED_SCHEDULER_KEY = "SEMOSS_SCHEDULER_IS_CLUSTER";
 	
-	public static final boolean IS_CLUSTERED_SCHEDULER = (DIHelper.getInstance().getProperty(IS_CLUSTERED_SCHEDULER_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTERED_SCHEDULER_KEY).isEmpty())) 
-			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTERED_SCHEDULER_KEY)) : (
+	public static final boolean IS_CLUSTERED_SCHEDULER = (Utility.getDIHelperProperty(IS_CLUSTERED_SCHEDULER_KEY) != null && !(Utility.getDIHelperProperty(IS_CLUSTERED_SCHEDULER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(Utility.getDIHelperProperty(IS_CLUSTERED_SCHEDULER_KEY)) : (
 					(System.getenv().containsKey(IS_CLUSTERED_SCHEDULER_KEY)) 
 					? Boolean.parseBoolean(System.getenv(IS_CLUSTERED_SCHEDULER_KEY)) : IS_CLUSTER);
 
@@ -91,8 +90,8 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			classLogger.info("Checking if pod is leader");
 			//check rdf
-			if(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY) != null && !(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY).isEmpty())) {
-				return Boolean.parseBoolean(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY));
+			if(Utility.getDIHelperProperty(SCHEDULER_EXECUTOR_KEY) != null && !(Utility.getDIHelperProperty(SCHEDULER_EXECUTOR_KEY).isEmpty())) {
+				return Boolean.parseBoolean(Utility.getDIHelperProperty(SCHEDULER_EXECUTOR_KEY));
 			}
 
 			//then check env var
@@ -600,7 +599,7 @@ public class ClusterUtil {
 	 * @param absolutePath
 	 * @param relativePath
 	 */
-	public static void  pushProjectFolder(IProject project, String absolutePath, String relativePath) {
+	public static void pushProjectFolder(IProject project, String absolutePath, String relativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
 				if(absolutePath.endsWith(DIR_SEPARATOR)) {
@@ -610,14 +609,15 @@ public class ClusterUtil {
 				}
 			}
 			
-			String projectHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
+			String projectHome = EngineUtility.getSpecificEngineBaseFolder(
+										IEngine.CATALOG_TYPE.PROJECT, 
+										project.getProjectId(),
+										project.getProjectName()
+									);
 			Path projectHomePath = Paths.get(projectHome);
 			Path relative = projectHomePath.relativize( Paths.get(absolutePath));
 			ClusterUtil.pushProjectFolder(project.getProjectId(), absolutePath, relative.toString());
-
-		}		
+		}
 	}
 
 	/**
@@ -665,9 +665,11 @@ public class ClusterUtil {
 				}
 			}
 			
-			String projectHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
+			String projectHome = EngineUtility.getSpecificEngineBaseFolder(
+									IEngine.CATALOG_TYPE.PROJECT, 
+									project.getProjectId(),
+									project.getProjectName()
+								);
 			Path projectHomePath = Paths.get(projectHome);
 			Path relative = projectHomePath.relativize( Paths.get(absolutePath));
 			ClusterUtil.pullProjectFolder(project.getProjectId(), absolutePath, relative.toString());

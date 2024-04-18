@@ -21,8 +21,6 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RiGraph extends AbstractTableDataFrame {
@@ -75,11 +73,9 @@ public class RiGraph extends AbstractTableDataFrame {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 
-		String insightCacheDir = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();;
-		String csvCache = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		String path = insightCacheDir + FILE_SEPARATOR + csvCache + FILE_SEPARATOR + Utility.getRandomString(10) + ".r";
-
+		String insightCacheDir = Utility.getInsightCacheDir();
+		String csvCache = Utility.getCsvInsightCacheDir();
+		String path = insightCacheDir + "/" + csvCache + "/" + Utility.getRandomString(10) + ".r";
 		boolean isError = false;
 		try {
 			writer = new FileWriter(path);

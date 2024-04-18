@@ -39,8 +39,6 @@ import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -557,7 +555,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			
 			String loadsqlDF = "library(sqldf);";
 			String frameName = Utility.getRandomString(5);
-			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 			
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
@@ -566,14 +564,12 @@ public class RDataTable extends AbstractTableDataFrame {
 			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
 			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
 			
-			
 			return fileName;
 		}
 		else
 		{
-
 			String frameName = Utility.getRandomString(5);
-			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			File fileName = new File(Utility.getInsightCacheDir(),   frameName + ".csv");
 
 			try {
 				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
@@ -606,11 +602,8 @@ public class RDataTable extends AbstractTableDataFrame {
 				e.printStackTrace();
 			}
 			
-			
 			return fileName;
 		}
-
-		
 	}
 
 	@Override
@@ -625,7 +618,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			
 			String loadsqlDF = "library(sqldf);library(jsonlite);";
 			String frameName = Utility.getRandomString(5);
-			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 			
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
@@ -634,13 +627,12 @@ public class RDataTable extends AbstractTableDataFrame {
 			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
 			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
 			
-			
 			return fileName;
 		}
 		else
 		{
 			String frameName = Utility.getRandomString(5);
-			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 
 			try {
 				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
@@ -669,15 +661,11 @@ public class RDataTable extends AbstractTableDataFrame {
 				bw.flush();
 				bw.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
-			
 			return fileName;
 		}
-
-		
 	}
 
 	
