@@ -24,6 +24,7 @@ import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public abstract class AbstractModelEngine implements IModelEngine {
@@ -283,10 +284,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		File engineFolder = new File(
-				EngineUtility.getSpecificEngineBaseFolder
-					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
-				);
+		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
+									getCatalogType(), this.engineId, this.engineName)
+								);
 		if(engineFolder.exists()) {
 			classLogger.info("Delete model engine folder " + engineFolder);
 			try {
@@ -307,12 +307,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 
 		// remove from DIHelper
-		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + this.engineId, "");
-		// in case we are at the start
-		engineIds = engineIds.replace(this.engineId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
-		DIHelper.getInstance().removeEngineProperty(this.engineId);
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override

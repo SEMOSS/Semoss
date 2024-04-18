@@ -42,7 +42,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RFrameBuilder {
@@ -199,14 +198,11 @@ public class RFrameBuilder {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
 			// and read it back in
-
-			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
-
-			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			String newFileLoc = Utility.getInsightCacheDir() + "/" + Utility.getRandomString(6) + ".tsv";
+			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 				Insight in = this.getRJavaTranslator().getInsight();
 				
 				String insightFolder = this.getRJavaTranslator().getInsight().getInsightFolder();
-			
 				try {
 					FileUtils.forceMkdir(new File(insightFolder));
 					if(in.getUser() != null) {
@@ -228,7 +224,6 @@ public class RFrameBuilder {
 			});
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
-			//sudo do.delete();
 			
 //			// check that the variable exists
 //			if(isEmpty(tableName)) {
