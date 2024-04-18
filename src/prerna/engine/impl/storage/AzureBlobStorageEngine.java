@@ -207,10 +207,10 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 					rClonePath += path;
 				}
 			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
 			List<String> results = runRcloneFastListProcess(rCloneConfig, "rclone", "lsf", rClonePath);
 			return results;
 		} finally {
@@ -240,10 +240,10 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 					rClonePath += path;
 				}
 			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
 			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, "rclone", "lsjson", rClonePath, "--max-depth=1");
 			return results;
 		} finally {
@@ -435,9 +435,9 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			rClonePath += storagePath;
 	
 			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
 			
 			if(leaveFolderStructure) {
 				// always do delete
@@ -479,10 +479,10 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			}
 			rClonePath += storageFolderPath;
 	
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("\"")) {
-				rClonePath = "\""+rClonePath+"\"";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("\"")) {
+//				rClonePath = "\""+rClonePath+"\"";
+//			}
 			
 			runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
 		} finally {
