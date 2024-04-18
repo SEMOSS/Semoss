@@ -13,7 +13,8 @@ import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public abstract class AbstractStorageEngine implements IStorageEngine {
@@ -112,8 +113,9 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		File engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "/" + Constants.STORAGE_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
+								getCatalogType(), this.engineId, this.engineName)
+							);
 		if(engineFolder.exists()) {
 			classLogger.info("Delete storage engine folder " + engineFolder);
 			try {
@@ -134,12 +136,7 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 		}
 
 		// remove from DIHelper
-		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + this.engineId, "");
-		// in case we are at the start
-		engineIds = engineIds.replace(this.engineId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
-		DIHelper.getInstance().removeEngineProperty(this.engineId);
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override
