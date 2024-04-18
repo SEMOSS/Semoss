@@ -78,10 +78,9 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
-		File engineFolder = new File(
-				EngineUtility.getSpecificEngineBaseFolder
-					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
-				);
+		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
+									getCatalogType(), this.engineId, this.engineName)
+								);
 		try {
 			FileUtils.deleteDirectory(engineFolder);
 		} catch (IOException e) {

@@ -40,7 +40,6 @@ import com.google.gson.JsonSyntaxException;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -599,7 +598,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	private void createCacheFolder() {
 		// create a generic folder
 		this.workingDirectory = "MODEL_" + Utility.getRandomString(6);
-		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirectory;
+		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 		
 		// make the folder if one does not exist
