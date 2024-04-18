@@ -24,10 +24,6 @@ import prerna.aws.s3.PushAssetToS3Reactor;
 import prerna.aws.s3.S3FileRetrieverReactor;
 import prerna.aws.s3.S3ListBucketsReactor;
 import prerna.aws.s3.S3ListFilesReactor;
-import prerna.comments.AddInsightCommentReactor;
-import prerna.comments.DeleteInsightCommentReactor;
-import prerna.comments.GetInsightCommentsReactor;
-import prerna.comments.ModifyInsightCommentReactor;
 import prerna.date.reactor.DateReactor;
 import prerna.date.reactor.DayReactor;
 import prerna.date.reactor.MonthReactor;
@@ -1085,12 +1081,6 @@ public class ReactorFactory {
 //		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
 //		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
 
-		// Insight Comments
-		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
-		reactorHash.put("DeleteInsightComment", DeleteInsightCommentReactor.class);
-		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
-		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
-		
 		// Clusters
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
 		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
