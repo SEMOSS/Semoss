@@ -54,26 +54,50 @@ import prerna.util.sql.RDBMSUtility;
 
 public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
-	String pyDirectoryBasePath = null;
-	File cacheFolder = null;
-	WeaviateClient client = null;
-	String className = null;
-	String embedderEngineId = null;
-	IModelEngine embeddingsEngine = null;
-	int autocut = 1;
-	
+	private static final Logger classLogger = LogManager.getLogger(WeaviateVectorDatabaseEngine.class);
+
 	public static final String WEAVIATE_CLASSNAME = "WEAVIATE_CLASSNAME";
 	public static final String AUTOCUT = "AUTOCUT";
 	
+	private WeaviateClient client = null;
+	private String host = null;
+	private String protocol = "https";
+	private String apiKey = null;
+	
+	private String pyDirectoryBasePath = null;
+	private File cacheFolder = null;
+	private String className = null;
+	private String embedderEngineId = null;
+	private IModelEngine embeddingsEngine = null;
+	private int autocut = 1;
+	
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');import vector_database;";
 
-	
-	private static final Logger classLogger = LogManager.getLogger(WeaviateVectorDatabaseEngine.class);
-
-	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		
+		this.host = smssProp.getProperty(Constants.HOSTNAME);
+		if(this.host == null || (this.host=this.host.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the host");
+		}
+		
+		if(this.host.startsWith("https://")) {
+			this.host = this.host.substring("https://".length(), host.length());
+		} else if(this.host.startsWith("http://")) {
+			this.protocol = "http";
+			this.host = this.host.substring("http://".length(), host.length());
+		}
+		
+		this.apiKey = smssProp.getProperty(Constants.API_KEY);
+		if(this.apiKey == null || (this.apiKey=this.apiKey.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the api key");
+		}
+		
+		this.className = smssProp.getProperty(WEAVIATE_CLASSNAME);
+		
+		connect2Weviate(this.protocol, this.host, this.apiKey);
+		createClass(this.className);
 		
 		this.pyDirectoryBasePath = Utility.normalizePath(this.engineDirectoryPath + "py" + DIR_SEPARATOR);
 		this.cacheFolder = new File(this.pyDirectoryBasePath);
@@ -89,51 +113,55 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		this.smssProp.put(Constants.WORKING_DIR, this.schemaFolder.getAbsolutePath());
 		
-		String host = smssProp.getProperty(Constants.HOSTNAME);
-		String apiKey = smssProp.getProperty(Constants.API_KEY);
-		
-		this.className = smssProp.getProperty(WEAVIATE_CLASSNAME);
-		
-		 
-		connect2Weviate(host, apiKey);
-		createClass(className);
-		
 		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
 		
-		if(smssProp.containsKey(AUTOCUT))
-			autocut = Integer.parseInt(smssProp.getProperty(AUTOCUT));
-		
-	}
-	
-	// connect to weaviate and get the client ready
-	private void connect2Weviate(String host, String apiKey)
-	{
-		try 
-		{
-			Config config = new Config("https", host);
-			client = WeaviateAuthClient.apiKey(config, apiKey);
-		} catch (AuthException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		String autoCutStr = smssProp.getProperty(AUTOCUT);
+		if(autoCutStr != null && !(autoCutStr=autoCutStr.trim()).isEmpty()) {
+			try {
+				this.autocut = Integer.parseInt(autoCutStr);
+			} catch(NumberFormatException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Invalid input for autocut. Must be a positive integer value. Value was: " + autoCutStr);
+			}
 		}
 	}
 	
-	private void createClass(String className)
-	{
+	/**
+	 * 
+	 * @param protocol
+	 * @param host
+	 * @param apiKey
+	 */
+	private void connect2Weviate(String protocol, String host, String apiKey) {
+		try {
+			Config config = new Config(protocol, host);
+			this.client = WeaviateAuthClient.apiKey(config, apiKey);
+		} catch (AuthException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param className
+	 */
+	private void createClass(String className) {
 		// check to see if the class is available
 		// if not create a class
 		Schema s = client.schema().getter().run().getResult();
-		List <WeaviateClass> classes = s.getClasses();
+		if(s == null) {
+			throw new IllegalArgumentException("Unable to pull the weaviate schema");
+		}
+		
+		List<WeaviateClass> classes = s.getClasses();
 		boolean foundClass = false;
-		for(int classIndex = 0;!foundClass && classIndex < classes.size();classIndex++)
-		{
+		for(int classIndex = 0; !foundClass && classIndex < classes.size(); classIndex++) {
 			WeaviateClass wc = classes.get(classIndex);
 			String curName = wc.getClassName();
 			foundClass = curName.equalsIgnoreCase(className);
 		}
 		
-		if(!foundClass)
-		{
+		if(!foundClass) {
 			// see if the properties have been passed
 			// if not create it
 			//String [] classProps = 
@@ -142,8 +170,8 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					  .build();
 			// Add the class to the schema
 			Result<Boolean> result = client.schema().classCreator()
-			  .withClass(emptyClass)
-			  .run();
+					  .withClass(emptyClass)
+					  .run();
 		}
 	}
 
@@ -309,8 +337,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				try {
 					dataForTable = readCsv(extractedFile);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				
 				//dataForTable.generateAndAssignEmbeddings(embeddingsEngine, this.getInsight(insight));
@@ -436,8 +463,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 		}
@@ -446,14 +472,15 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
 		}
-
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit,
-			Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
+	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
 		List <Map<String, Object>> retOut = new ArrayList <Map<String, Object>>();
+
+		if(limit == null) {
+			limit = 3;
+		}
 		
 		int cutter = autocut;
 		if(parameters.containsKey(AUTOCUT))
@@ -478,8 +505,16 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			        Field.builder().name("certainty").build(),  // only supported if distance==cosine
 			        Field.builder().name("distance").build()   // always supported
 			      }).build();
+		
 		NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
-		GraphQLResponse response = client.graphQL().get().withClassName(className).withFields(content, source, divider, part, modality, _additional).withNearVector(nearVector).withAutocut(cutter).withLimit(3).run().getResult();
+		
+		GraphQLResponse response = client.graphQL().get().withClassName(className)
+				.withFields(content, source, divider, part, modality, _additional)
+				.withNearVector(nearVector)
+				.withAutocut(cutter)
+				.withLimit(limit.intValue())
+				.run()
+				.getResult();
 
 		// hashmap = LinkedTreeMap
 		// each level is a hashmap
@@ -634,7 +669,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String apiKey = "Xxxxxxxxx";
 		String host = "wsandbox-13hnmiur.weaviate.network";
 		
-		w.connect2Weviate(host, apiKey);
+		w.connect2Weviate("https", host, apiKey);
 		
 		Meta meta = w.client.misc().metaGetter().run().getResult();
 		
