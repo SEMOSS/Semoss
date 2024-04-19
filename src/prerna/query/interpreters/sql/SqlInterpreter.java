@@ -1,11 +1,16 @@
 package prerna.query.interpreters.sql;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -1367,6 +1372,14 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected String formatDate(Object o, SemossDataType dateType) {
 		if(o instanceof SemossDate) {
 			return ((SemossDate) o).getFormattedDate();
+		} else if(o instanceof ZonedDateTime) {
+			DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+					.appendPattern("yyyy-MM-dd HH:mm:ss")
+					.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+	                .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+	                .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+					.toFormatter(Locale.ENGLISH);
+			return ((ZonedDateTime) o).toLocalDateTime().format(formatter);
 		} else {
 			if(dateType == SemossDataType.DATE) {
 				SemossDate value = SemossDate.genDateObj(o + "");
