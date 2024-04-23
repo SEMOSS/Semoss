@@ -56,7 +56,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	public ExcelSheetFileIterator(Sheet sheet, ExcelQueryStruct qs) {
 		if(sheet == null) {
 			ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-			helper.parse(qs.getFilePath());
+			helper.parse(qs.getFilePath(), qs.getPassword());
 			sheet = helper.getSheet(qs.getSheetName());
 		}
 		// get the excel elements

@@ -29,6 +29,7 @@ public class ExcelWorkbookFilePreProcessor {
 	
 	private Map<String, ExcelSheetPreProcessor> sheetProcessor = null;
 	
+	@Deprecated
 	public void parse(String fileLocation) {
 		parse(fileLocation, null);
 	}

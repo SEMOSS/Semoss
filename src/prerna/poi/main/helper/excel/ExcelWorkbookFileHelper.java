@@ -26,6 +26,7 @@ public class ExcelWorkbookFileHelper {
 	private String fileLocation = null;
 	private String password = null;
 	
+	@Deprecated
 	public void parse(String fileLocation) {
 		parse(fileLocation, null);
 	}
@@ -105,7 +106,7 @@ public class ExcelWorkbookFileHelper {
 	 */
 	public static ExcelSheetFileIterator buildSheetIterator(ExcelQueryStruct qs) {
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		helper.parse(qs.getFilePath());
+		helper.parse(qs.getFilePath(), qs.getPassword());
 		return helper.getSheetIterator(qs);
 	}
 	
