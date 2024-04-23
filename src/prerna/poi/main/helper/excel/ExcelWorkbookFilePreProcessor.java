@@ -8,23 +8,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ExcelWorkbookFilePreProcessor {
 
+	private static final Logger classLogger = LogManager.getLogger(ExcelWorkbookFilePreProcessor.class);
+
 	private	Workbook workbook = null;
 	private FileInputStream sourceFile = null;
 	private String fileLocation = null;
+	private String password = null;
 	
 	private Map<String, ExcelSheetPreProcessor> sheetProcessor = null;
 	
 	public void parse(String fileLocation) {
+		parse(fileLocation, null);
+	}
+	
+	public void parse(String fileLocation, String password) {
 		this.fileLocation = fileLocation;
+		this.password = password;
 		createParser();
 	}
 	
@@ -35,15 +46,15 @@ public class ExcelWorkbookFilePreProcessor {
 		try {
 			sourceFile = new FileInputStream(Utility.normalizePath(fileLocation));
 			try {
-				workbook = WorkbookFactory.create(sourceFile);
+				workbook = WorkbookFactory.create(sourceFile, this.password);
 			} catch (EncryptedDocumentException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			sheetProcessor = new HashMap<String, ExcelSheetPreProcessor>();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -83,9 +94,9 @@ public class ExcelWorkbookFilePreProcessor {
 				sourceFile.close(); 
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

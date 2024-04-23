@@ -15,7 +15,7 @@ import prerna.om.HeadersException;
 
 public class ExcelSheetPreProcessor {
 
-	private static final Logger LOGGER = LogManager.getLogger(ExcelSheetPreProcessor.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(ExcelSheetPreProcessor.class);
 
 	private Sheet sheet;
 	private String sheetName;
@@ -87,7 +87,7 @@ public class ExcelSheetPreProcessor {
 		
 		ExcelBlock thisBlock = new ExcelBlock();
 		
-		LOGGER.info("Processing " + sheetName + " from rows " + startRow + " to " + lastRow);
+		classLogger.info("Processing " + sheetName + " from rows " + startRow + " to " + lastRow);
 		for(int rowIndex = startRow; rowIndex <= lastRow; rowIndex++) {
 			Row thisRow = sheet.getRow(rowIndex);
 			
