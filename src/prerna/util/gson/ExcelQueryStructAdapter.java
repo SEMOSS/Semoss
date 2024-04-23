@@ -34,6 +34,11 @@ public class ExcelQueryStructAdapter  extends AbstractSemossTypeAdapter<ExcelQue
 		in.beginObject();
 		while(in.hasNext()) {
 			String name = in.nextName();
+			if(in.peek() == JsonToken.NULL) {
+				in.nextNull();
+				continue;
+			}
+			
 			if(name.equals("qsType")) {
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			} else if(name.equals("isDistinct")) {
@@ -53,7 +58,10 @@ public class ExcelQueryStructAdapter  extends AbstractSemossTypeAdapter<ExcelQue
 				qs.setSheetName(in.nextString());
 			} else if(name.equals("sheetRange")) {
 				qs.setSheetRange(in.nextString());
+			}  else if(name.equals("excelPassword")) {
+				qs.setPassword(in.nextString());
 			}
+			
 			// all files
 			else if(name.equals("filePath")) {
 				qs.setFilePath(in.nextString());
@@ -174,6 +182,7 @@ public class ExcelQueryStructAdapter  extends AbstractSemossTypeAdapter<ExcelQue
 		// excel stuff
 		out.name("sheetName").value(value.getSheetName());
 		out.name("sheetRange").value(value.getSheetRange());
+		out.name("excelPassword").value(value.getPassword());
 		// all files
 		out.name("filePath").value(value.getFilePath());
 		out.name("newHeaderNames");

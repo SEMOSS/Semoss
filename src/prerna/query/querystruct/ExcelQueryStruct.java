@@ -4,6 +4,7 @@ public class ExcelQueryStruct extends AbstractFileQueryStruct {
 
 	private String sheetName;
 	private String sheetRange;
+	private String password;
 	
 	public ExcelQueryStruct() {
 		this.setQsType(QUERY_STRUCT_TYPE.EXCEL_FILE);
@@ -25,6 +26,14 @@ public class ExcelQueryStruct extends AbstractFileQueryStruct {
 		this.sheetRange = sheetRange;
 	}
 	
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
 	@Override
 	public SelectQueryStruct getNewBaseQueryStruct() {
 		ExcelQueryStruct newQs = new ExcelQueryStruct();
@@ -33,6 +42,7 @@ public class ExcelQueryStruct extends AbstractFileQueryStruct {
 		newQs.setColumnTypes(this.getColumnTypes());
 		newQs.setSheetName(this.getSheetName());
 		newQs.setSheetRange(this.getSheetRange());
+		newQs.setPassword(this.password);
 		return newQs;
 	}
 }
