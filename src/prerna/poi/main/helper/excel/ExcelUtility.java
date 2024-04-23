@@ -1,24 +1,56 @@
 package prerna.poi.main.helper.excel;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
 import org.apache.poi.poifs.crypt.EncryptionMode;
 import org.apache.poi.poifs.crypt.Encryptor;
+import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ExcelUtility {
 
+	private static final Logger classLogger = LogManager.getLogger(ExcelUtility.class);
+
+	/**
+	 * 
+	 * @param fileLocation
+	 * @return
+	 */
+	public static boolean isExcelEncrypted(String fileLocation) {
+		boolean isEncrypted = false;
+		try (POIFSFileSystem x = new POIFSFileSystem(new FileInputStream(fileLocation))  ) { 
+			isEncrypted = true;
+		} catch(OfficeXmlFileException e) {
+			// This is a regular ooxml .xlsx file
+			isEncrypted = false;
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		
+		return isEncrypted;
+	}
+	
+	/**
+	 * 
+	 * @param workbook
+	 * @param fileLocation
+	 * @param password
+	 */
 	public static void encrypt(Workbook workbook, String fileLocation, String password) {
 		POIFSFileSystem fs = null;
 		OutputStream os  = null;
@@ -40,27 +72,27 @@ public class ExcelUtility {
 		} catch (GeneralSecurityException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(workbook != null) {
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(os != null) {
 				try {
 					os.close();
 				} catch(IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(fs != null) {
 				try {
 					fs.close();
 				} catch(IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -87,13 +119,13 @@ public class ExcelUtility {
 			fileOut = new FileOutputStream(fileLocation);
 			workbook.write(fileOut);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (fileOut != null) {
 				try {
 					fileOut.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (workbook != null) {
@@ -101,7 +133,7 @@ public class ExcelUtility {
 					workbook.close();
 					workbook.dispose();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -128,22 +160,22 @@ public class ExcelUtility {
 			out = new FileOutputStream(fileLocation);
 			workbook.write(out);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (workbook != null) {
 				try {
 					workbook.close();
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
