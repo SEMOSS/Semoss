@@ -16,6 +16,7 @@ import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadInputUtility;
@@ -26,7 +27,7 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 	private static final String CLASS_NAME = PredictExcelDataTypesReactor.class.getName();
 
 	public PredictExcelDataTypesReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, ReactorKeysEnum.PASSWORD.getKey()};
 	}
 
 	@Override
@@ -45,13 +46,15 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 			e.setContinueThreadOfExecution(false);
 			throw e;
 		}
+		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+
 		Map<String, Object> fileData = new HashMap<String, Object>();
 
 		// processing excel file data
 		// trying to determine data blocks within a sheet
 		ExcelWorkbookFilePreProcessor preProcessor = new ExcelWorkbookFilePreProcessor();
 		logger.info(stepCounter+ ". Parsing file");
-		preProcessor.parse(filePath);
+		preProcessor.parse(filePath, password);
 		logger.info(stepCounter+". Done");
 		stepCounter++;
 		
