@@ -24,7 +24,8 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 	public static final String SHEET_RANGE = "sheetRange";
 	
 	public PredictExcelRangeMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), SHEET_RANGE};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
+				ReactorKeysEnum.SHEET_NAME.getKey(), SHEET_RANGE, ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override
@@ -36,6 +37,7 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		}
 		String sheetName = this.keyValue.get(this.keysToGet[2]);
 		String sheetRange = this.keyValue.get(this.keysToGet[3]);
+		String password = this.keyValue.get(this.keysToGet[4]);
 		
 		// check if file is valid
 		if(!ExcelParsing.isExcelFile(filePath)) {
@@ -46,7 +48,7 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		}
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		helper.parse(filePath);
+		helper.parse(filePath, password);
 		Sheet sheet = helper.getSheet(sheetName);
 		
 		ExcelSheetPreProcessor sheetProcessor = new ExcelSheetPreProcessor(sheet);

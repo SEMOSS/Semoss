@@ -34,6 +34,11 @@ public class CsvQueryStructAdapter  extends AbstractSemossTypeAdapter<CsvQuerySt
 		in.beginObject();
 		while(in.hasNext()) {
 			String name = in.nextName();
+			if(in.peek() == JsonToken.NULL) {
+				in.nextNull();
+				continue;
+			}
+			
 			if(name.equals("qsType")) {
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			} else if(name.equals("isDistinct")) {
