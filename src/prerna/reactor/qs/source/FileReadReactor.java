@@ -25,6 +25,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	//keys to get inputs from pixel command
 	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
 	private static final String SPACE = ReactorKeysEnum.SPACE.getKey();
+	private static final String PASSWORD = ReactorKeysEnum.PASSWORD.getKey();
 	private static final String SHEET_NAME = "sheetName";
 	private static final String SHEET_RANGE = "sheetRange";
 	private static final String DATA_TYPES = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
@@ -80,9 +81,11 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			// get excel inputs
 			String sheetName = getSheetName();
 			String sheetRange = getRange();
+			String password = getPassword();
 			qs = new ExcelQueryStruct();
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
 			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
+			((ExcelQueryStruct) qs).setPassword(password);
 		} else if(isParquet) {
 			qs = new ParquetQueryStruct();
 		} else { // set csv qs
@@ -139,6 +142,17 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException("Need to specify " + SHEET_RANGE + "=[sheetRange] in pixel command");
 		}
 		return sheetRange;
+	}
+	
+	private String getPassword() {
+		GenRowStruct rangeGRS = this.store.getNoun(PASSWORD);
+		String excelPassword = null;
+		NounMetadata rangeNoun;
+		if (rangeGRS != null) {
+			rangeNoun = rangeGRS.getNoun(0);
+			excelPassword = (String) rangeNoun.getValue();
+		}
+		return excelPassword;
 	}
 
 	private Map<String, String> getDataTypes() {
@@ -205,7 +219,11 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(SHEET_NAME)) {
-			return "The excel sheet name";
+			return "The excel sheet name. Only valid for excel files";
+		} else if(key.equals(SHEET_RANGE)) {
+			return "The excel sheet range. Only valid for excel files";
+		} else if(key.equals(PASSWORD)) {
+			return "The password if the excel is password protected. Only valid for excel files";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
