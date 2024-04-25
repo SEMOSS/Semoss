@@ -12,7 +12,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -41,8 +40,8 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		
 		StringBuilder rsb = new StringBuilder();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\");";
+		String baseFolder = Utility.getBaseFolder().replace("\\", "/");
+		String bestMatchScript = "source(\"" + baseFolder + "/R/Recommendations/advanced_federation_blend.r\");";
 		bestMatchScript = bestMatchScript.replace("\\", "/");
 		rsb.append(bestMatchScript);
 

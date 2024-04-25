@@ -25,7 +25,7 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
@@ -117,7 +117,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	private String getRDataFile() {
 		if (userIsDefined()) {
 			// do we have a user workspace and is the person logged in?
-			if ( Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USER_WORKSPACE)) && !this.insight.getUser().isAnonymous() ) {
+			if ( Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.USER_WORKSPACE)) && !this.insight.getUser().isAnonymous() ) {
 				String assetDirectory = WorkspaceAssetUtils.getUserAssetRootDirectory(this.insight.getUser(), this.insight.getUser().getPrimaryLogin());
 				if (assetDirectory != null && new File(assetDirectory).isDirectory()) {
 					String rDataDirectory = assetDirectory + "/" + "RData";

@@ -415,7 +415,7 @@ public class Constants {
 	public static final String DEPEND = "DEPEND";
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
-	public static final Object URI_BASE = "URI_BASE";
+	public static final String URI_BASE = "URI_BASE";
 	
 	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
 	public static final String CSV_INSIGHT_CACHE_FOLDER = "CSV_INSIGHT_CACHE_FOLDER";
@@ -909,8 +909,6 @@ public class Constants {
 	public static final String INDEX_NAME = "INDEX_NAME";
 	public static final String HOSTS = "HOSTS";
 
-	
-	
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
 	

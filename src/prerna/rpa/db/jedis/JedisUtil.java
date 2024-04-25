@@ -11,8 +11,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -34,7 +32,7 @@ public class JedisUtil {
 	
 	public static JedisPool getJedisPool() {
 		JedisPool jedisPool = null;
-		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "config.properties")) {
+		try(InputStream input = new FileInputStream(Utility.getBaseFolder() + DIR_SEPARATOR + "config.properties")) {
 			Properties prop = new Properties();
 
 			prop.load(input);

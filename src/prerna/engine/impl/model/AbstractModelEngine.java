@@ -22,7 +22,6 @@ import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;

@@ -14,7 +14,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SaveAssetReactor extends AbstractReactor {
@@ -41,7 +40,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		String fileName = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		
 		// limit saving R/Py Files in prod - No new files can be created but they can be sourced
-		boolean strict_script_source =  Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE));
+		boolean strict_script_source = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		if(strict_script_source) {
 			 String extension = FilenameUtils.getExtension(fileName);
 			 if(extension.equalsIgnoreCase("py") || extension.equalsIgnoreCase("R") ) {
