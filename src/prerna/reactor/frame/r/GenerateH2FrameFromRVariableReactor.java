@@ -11,8 +11,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -99,8 +97,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		qs.setSelectorsAndTypes(colNames, colTypes);
 
 		// we will make a temp file
-		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String tempFileLocation = Utility.getInsightCacheDir() + "\\" + Utility.getCsvInsightCacheDir();
 		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
 		rJavaTranslator.executeEmptyR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");

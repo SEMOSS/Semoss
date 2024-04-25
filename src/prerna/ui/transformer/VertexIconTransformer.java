@@ -45,7 +45,7 @@ import edu.uci.ics.jung.visualization.decorators.DefaultVertexIconTransformer;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.DBCMIcon;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  */
@@ -105,8 +105,7 @@ public class VertexIconTransformer extends DefaultVertexIconTransformer<SEMOSSVe
 		try {
 			String propType = (String)arg0.getProperty(Constants.VERTEX_TYPE);
 			
-			String fileName = DIHelper.getInstance().getProperty("System_ICON");
-			fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/pictures/globe.jpg";
+			String fileName = Utility.getBaseFolder() + "/pictures/globe.jpg";
 
 			if(propType !=null && fileName != null)
 			{

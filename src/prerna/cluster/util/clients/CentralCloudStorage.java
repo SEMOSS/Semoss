@@ -102,8 +102,7 @@ public class CentralCloudStorage implements ICloudClient {
 					return instance;
 				}
 				
-				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-				baseFolder = baseFolder.replace("\\", "/");
+				String baseFolder = Utility.getBaseFolder().replace("\\", "/");
 				if(!baseFolder.endsWith("/")) {
 					baseFolder += "/";
 				}

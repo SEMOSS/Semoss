@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class GitlabUtility {
 
@@ -42,9 +42,9 @@ public class GitlabUtility {
 		String keyStorePass = null;
 		String keyPass = null;
 		if(useApplicationCert) {
-			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
 		Map<String, String> headersMap = new HashMap<>();
@@ -80,9 +80,9 @@ public class GitlabUtility {
 		String keyStorePass = null;
 		String keyPass = null;
 		if(useApplicationCert) {
-			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
 		Map<String, String> headersMap = new HashMap<>();
@@ -121,9 +121,9 @@ public class GitlabUtility {
 		String keyStorePass = null;
 		String keyPass = null;
 		if(useApplicationCert) {
-			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
 		Map<String, String> headersMap = new HashMap<>();
@@ -172,9 +172,9 @@ public class GitlabUtility {
 		String keyStorePass = null;
 		String keyPass = null;
 		if(useApplicationCert) {
-			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
 		Map<String, String> headersMap = new HashMap<>();
