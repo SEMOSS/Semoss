@@ -32,7 +32,7 @@ import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.quartz.CommonDataKeys;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RunPixelJobFromDB implements InterruptableJob {
 
@@ -60,14 +60,14 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
 		
 		// add the scheduler cert if required
-		String keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-		String keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-		String keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+		String keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+		String keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+		String keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		
 		try {
 			// run the pixel endpoint
 			boolean success = false;
-			String url = DIHelper.getInstance().getProperty(Constants.SCHEDULER_ENDPOINT);
+			String url = Utility.getDIHelperProperty(Constants.SCHEDULER_ENDPOINT);
 			if(url == null) {
 				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
 			}

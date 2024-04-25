@@ -25,7 +25,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
@@ -62,7 +61,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
 		// also add the max user limit check
-		String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
 		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 			try {
 				int userLimit = Integer.parseInt(userLimitStr);

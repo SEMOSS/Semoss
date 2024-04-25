@@ -18,7 +18,7 @@ import prerna.usertracking.AbstractUserTrackingUtils;
 import prerna.usertracking.IUserTracking;
 import prerna.usertracking.UserTrackingDetails;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 	
@@ -30,7 +30,7 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 	
 	private static DatabaseReader reader;
 	
-	private static String workdir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+	private static String workdir = Utility.getBaseFolder();
 	private static String folder = "GeoIp2Artifacts";
 	private static String fileName = "GeoLite2-City.mmdb";
 	private static String filePath = workdir + File.separator + folder + File.separator + fileName;

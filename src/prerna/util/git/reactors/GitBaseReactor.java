@@ -8,13 +8,13 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class GitBaseReactor extends AbstractReactor {
 
 	public String getToken() {
 		User user = insight.getUser();
-		String gitProvider = DIHelper.getInstance().getProperty(Constants.GIT_PROVIDER);
+		String gitProvider = Utility.getDIHelperProperty(Constants.GIT_PROVIDER);
 		AccessToken gitAccess = null;
 		if(gitProvider != null && !(gitProvider.isEmpty()) && gitProvider.toLowerCase().equals(AuthProvider.GITLAB.toString().toLowerCase())) {
 			 gitAccess = user.getAccessToken(AuthProvider.GITLAB);

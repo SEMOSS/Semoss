@@ -10,7 +10,6 @@ import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -36,7 +35,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			String extension = "?databases=";
 			// read datadistrict file
 			String[] relevantEngines = new String[10000]; //arbitrary size.. but should not have more than 10,000 relevant databases
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
 			File f = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-datadistrict.rds");
 
 			if (f.exists()) {
@@ -64,9 +63,9 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 				extension+= row + ";";
 			}
 
-			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/semantic" + extension;
+			String FILE_URL = Utility.getDIHelperProperty("T_ENDPOINT") + "exportTable/semantic" + extension;
 			String FILE_NAME = "dataitem-datasemantic.tsv";
-			String path = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
+			String path = Utility.getBaseFolder().replace("\\", "/") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
 
 			// server is available: Begin Method
 			logger.info("Cacheing data semantic file");

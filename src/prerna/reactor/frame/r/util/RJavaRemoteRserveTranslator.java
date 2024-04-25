@@ -21,7 +21,6 @@ import prerna.reactor.runtime.AbstractBaseRClass;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
@@ -212,8 +211,8 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 
 	@Override
 	public void runR(String script) {
-		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String insightCacheLoc = Utility.getInsightCacheDir();
+		String csvInsightCacheFolder = Utility.getCsvInsightCacheDir();
 		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
 		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
@@ -248,8 +247,8 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 			r = getRcon();
 			remoteR = true;
 		}
-		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String insightCacheLoc = Utility.getInsightCacheDir();
+		String csvInsightCacheFolder = Utility.getCsvInsightCacheDir();
 		String baseDir = insightCacheLoc + DIR_SEPARATOR + csvInsightCacheFolder + DIR_SEPARATOR;
 		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
