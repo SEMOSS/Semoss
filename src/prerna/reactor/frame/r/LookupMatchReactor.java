@@ -17,8 +17,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class LookupMatchReactor extends AbstractRFrameReactor {
@@ -69,7 +67,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		String currentWd = this.rJavaTranslator.getString(RSyntaxHelper.getWorkingDirectory());
 
 		// load the script
-		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		String base = Utility.getBaseFolder().replace("\\", "/");
 
 		StringBuilder script = new StringBuilder();
 		script.append(RSyntaxHelper.loadPackages(packages));

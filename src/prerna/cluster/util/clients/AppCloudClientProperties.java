@@ -2,16 +2,14 @@ package prerna.cluster.util.clients;
 
 import java.util.Map;
 
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class AppCloudClientProperties {
 
 	private Map<String, String> env = null;
-	private DIHelper helper = null;
 	
 	public AppCloudClientProperties() {
 		this.env = System.getenv();
-		this.helper = DIHelper.getInstance();
 	}
 	
 	/**
@@ -37,16 +35,16 @@ public class AppCloudClientProperties {
 			return val;
 		}
 		
-		val = this.helper.getProperty(key);
+		val = Utility.getDIHelperProperty(key);
 		if(val != null && !(val=val.trim()).isEmpty()) {
 			return val;
 		}
 		// give benefit of the doubt..
-		val = this.helper.getProperty(key.toUpperCase());
+		val = Utility.getDIHelperProperty(key.toUpperCase());
 		if(val != null && !(val=val.trim()).isEmpty()) {
 			return val;
 		}
-		val = this.helper.getProperty(key.toLowerCase());
+		val = Utility.getDIHelperProperty(key.toLowerCase());
 		if(val != null && !(val=val.trim()).isEmpty()) {
 			return val;
 		}

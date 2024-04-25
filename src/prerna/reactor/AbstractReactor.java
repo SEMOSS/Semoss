@@ -36,7 +36,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
-	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	public static final String DIR_SEPARATOR = "/";//java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final String ALL_NOUN_STORE = "all";
 	
 	protected Insight insight = null;

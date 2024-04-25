@@ -16,8 +16,7 @@ import prerna.reactor.frame.r.util.IRJavaTranslator;
 import prerna.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class AbstractRFrameReactor extends AbstractFrameReactor implements ICodeExecution {
 
@@ -213,7 +212,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
      protected String getBaseFolder() {
           String baseFolder = null;
           try {
-              baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+              baseFolder = Utility.getBaseFolder();
           } catch (Exception ignored) {
               //logger.info("No BaseFolder detected... most likely running as test...");
           }
@@ -229,7 +228,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
  		if(frame != null && frame instanceof RDataTable)
  		{
  			StringBuffer script = new StringBuffer();
- 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+ 			String baseFolder = Utility.getBaseFolder();
  			script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");\n");
  			script.append("if (!exists(\"allframe\")) allframe <- list();");
  			script.append("allframe <- getCurMeta(" + this.insight.getCurFrame().getName() + ", allframe); \n");
