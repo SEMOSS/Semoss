@@ -39,7 +39,6 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -94,7 +93,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		if(!(new File(Utility.normalizePath(this.folderDir)).exists())) {
 			new File(Utility.normalizePath(this.folderDir)).mkdirs();
 		}
@@ -234,7 +233,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	
 	@Override
 	public Insight read(JsonReader in) throws IOException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 
 		Insight insight = new Insight();
 		// TODO: this is because the BE adds a default sheet for new insights

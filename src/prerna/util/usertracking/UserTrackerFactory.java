@@ -1,7 +1,7 @@
 package prerna.util.usertracking;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class UserTrackerFactory {
 
@@ -30,10 +30,10 @@ public class UserTrackerFactory {
 	private static IUserTracker createInstance() {
 		String trackingOn = "true";
 		try {
-			trackingOn = DIHelper.getInstance().getProperty(Constants.T_ON);
+			trackingOn = Utility.getDIHelperProperty(Constants.T_ON);
 			// for the old key that was google analytics specific
 			if(trackingOn == null) {
-				trackingOn = DIHelper.getInstance().getProperty("GA_TRACKING");
+				trackingOn = Utility.getDIHelperProperty("GA_TRACKING");
 			}
 		} catch(Exception e) {
 			// this happens if DIHelper isn't loaded
@@ -47,7 +47,7 @@ public class UserTrackerFactory {
 		if(track) {
 			String endpoint = null;
 			try {
-				endpoint = DIHelper.getInstance().getProperty("T_ENDPOINT");
+				endpoint = Utility.getDIHelperProperty("T_ENDPOINT");
 				if(endpoint == null) {
 					// well, can't do much without an endpoint
 					return new NullUserTracker();

@@ -56,7 +56,7 @@ public class RJavaTranslatorFactory {
 	 * This will determine the translator class to use (Rserve or JRI)
 	 */
 	private static void init() {
-		String useRStr =  DIHelper.getInstance().getProperty(Constants.USE_R);
+		String useRStr =  Utility.getDIHelperProperty(Constants.USE_R);
 		if(useRStr != null) {
 			RJavaTranslatorFactory.USE_R = Boolean.parseBoolean(useRStr);
 			if(!RJavaTranslatorFactory.USE_R) {
@@ -65,17 +65,17 @@ public class RJavaTranslatorFactory {
 			}
 		}
 		
-		String rMemory = DIHelper.getInstance().getProperty(Constants.R_MEM_LIMIT);
+		String rMemory = Utility.getDIHelperProperty(Constants.R_MEM_LIMIT);
 		if(rMemory != null) {
 			RJavaTranslatorFactory.rMemory = rMemory; 
 		}
 		
-		String nettyStr =  DIHelper.getInstance().getProperty(Constants.NETTY_R);
+		String nettyStr =  Utility.getDIHelperProperty(Constants.NETTY_R);
 		if(nettyStr != null) {
 			useNetty = Boolean.parseBoolean(nettyStr);
 		}
 
-		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
+		String useJriStr = Utility.getDIHelperProperty(Constants.R_CONNECTION_JRI);
 		if(useJriStr != null) {
 			useJri = Boolean.valueOf(useJriStr);
 		}

@@ -4,7 +4,6 @@ import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -20,7 +19,7 @@ public class MatchColumnValuesReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder").replace("\\", "/");
+		String baseFolder = Utility.getBaseFolder().replace("\\", "/");
 
 		// check if packages are installed
 		String[] packages = { "stringdist" };

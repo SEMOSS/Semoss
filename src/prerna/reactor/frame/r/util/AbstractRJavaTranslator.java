@@ -26,7 +26,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
@@ -529,7 +528,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			
 			rTemp = insightRootPath + "/R/Temp/";
 		} else {
-			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
+			rTemp = (Utility.getBaseFolder() + "/R/Temp/").replace('\\', '/');
 		}
 		
 		File rTempF = new File(Utility.normalizePath(rTemp));
@@ -615,7 +614,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			
 			rTemp = insightRootPath + "/R/Temp/";
 		} else {
-			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
+			rTemp = (Utility.getBaseFolder() + "/R/Temp/").replace('\\', '/');
 		}
 
 		logger.info("Executing file at " + rTemp);
