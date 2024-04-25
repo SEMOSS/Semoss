@@ -9,8 +9,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class LookupGenerateReactor extends AbstractRFrameReactor {
@@ -57,7 +55,7 @@ public class LookupGenerateReactor extends AbstractRFrameReactor {
 		String filePath = assetFolder + "/" + fileName;
 
 		// load the script
-		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		String base = Utility.getBaseFolder().replace("\\", "/");
 
 		StringBuilder script = new StringBuilder();
 		script.append("source(\"" + base + "/R/Lookup/fuzzy_lookup.r" + "\");");

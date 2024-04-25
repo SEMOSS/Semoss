@@ -6,7 +6,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
@@ -21,7 +21,7 @@ public class GitVersion extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String appFolder = baseFolder + "db/" + keyValue.get(keysToGet[0]);	
 		
 		Logger logger = getLogger(this.getClass().getName());

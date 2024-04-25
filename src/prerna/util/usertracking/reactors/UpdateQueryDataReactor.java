@@ -9,7 +9,6 @@ import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -30,13 +29,15 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.checkPackages(packages);
 			Logger logger = getLogger(CLASS_NAME);
 
+			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
+			
 			//Getting the user info
 			User user = this.insight.getUser();
 			String userName = "";
 			// Updating "dataquery.tsv" and storing it in working directory
-			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/query";
+			String FILE_URL = Utility.getDIHelperProperty("T_ENDPOINT") + "exportTable/query";
 			String FILE_NAME = "dataitem-dataquery.tsv";
-			String path = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
+			String path = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
 
 			logger.info("Cacheing data query file");
 			long start = System.currentTimeMillis();
@@ -56,15 +57,14 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 				// Visualization Data
 				logger.info("Cacheing data visualization  file");
 				start = System.currentTimeMillis();
-				FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/visualization";
+				FILE_URL = Utility.getDIHelperProperty("T_ENDPOINT") + "exportTable/visualization";
 				FILE_NAME = "dataitem-visualization.tsv";
-				path = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
+				path = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
 				Utility.copyURLtoFile(FILE_URL, path + FILE_NAME);
 				end = System.currentTimeMillis();
 				logger.info("Cacheing time " + (end - start) + " ms");
 
 				// Updating the local file using "dataquery.tsv"
-				String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 				String rwd = "wd_" + Utility.getRandomString(8);
 				StringBuilder rsb = new StringBuilder();
 				rsb.append(rwd + "<- getwd();");

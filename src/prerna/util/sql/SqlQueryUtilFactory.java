@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SqlQueryUtilFactory {
 
@@ -196,14 +196,7 @@ public class SqlQueryUtilFactory {
 			return keywordsMap.get(type);
 		}
 		
-		// see if it exists in dihelper and load
-		// this check is just for main methods 
-		// to prevent null pointer exceptions
-		if(DIHelper.getInstance().getCoreProp() == null) {
-			return new Vector<>();
-		}
-		
-		String keywordsString = DIHelper.getInstance().getProperty(type.getLabel().toUpperCase() + Constants.KEYWORDS_SUFFIX);
+		String keywordsString = Utility.getDIHelperProperty(type.getLabel().toUpperCase() + Constants.KEYWORDS_SUFFIX);
 		if(keywordsString != null) {
 			List<String> keywordsList = new Vector<String>();
 			// the string is comma delimited

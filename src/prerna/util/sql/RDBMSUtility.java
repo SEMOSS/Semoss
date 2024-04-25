@@ -30,7 +30,7 @@ package prerna.util.sql;
 
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RDBMSUtility {
 	
@@ -58,7 +58,7 @@ public class RDBMSUtility {
 			baseURL = getH2BaseConnectionURL();
 		}
 		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
 			baseFolder = baseFolder.substring(0, baseFolder.length()-1);
 		}

@@ -30,7 +30,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GitPushUtils {
@@ -263,7 +262,7 @@ public class GitPushUtils {
 	public static void push(String repository, String remoteToPush, String branch, String token) {
 		int attempt = 1;
 		
-		String gitProvider = DIHelper.getInstance().getProperty(Constants.GIT_PROVIDER);
+		String gitProvider = Utility.getDIHelperProperty(Constants.GIT_PROVIDER);
 		if(gitProvider != null && !(gitProvider.isEmpty()) && gitProvider.toLowerCase().equals(AuthProvider.GITLAB.toString().toLowerCase())) {
 			push(repository, remoteToPush, branch, token, AuthProvider.GITLAB, attempt);
 		} else {
@@ -448,8 +447,8 @@ public class GitPushUtils {
 		   dirFile = new File(workingDir);
 	   }
 
-	   String trustedRepo =  DIHelper.getInstance().getProperty(Constants.GIT_TRUSTED_REPO);
-	   String defaultBranch =  DIHelper.getInstance().getProperty(Constants.GIT_DEFAULT_BRANCH);
+	   String trustedRepo = Utility.getDIHelperProperty(Constants.GIT_TRUSTED_REPO);
+	   String defaultBranch =  Utility.getDIHelperProperty(Constants.GIT_DEFAULT_BRANCH);
 
 	   if(trustedRepo!=null && !trustedRepo.isEmpty()) {
 		   if(!repo.startsWith(trustedRepo)) {

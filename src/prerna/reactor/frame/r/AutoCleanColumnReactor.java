@@ -12,7 +12,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -46,7 +45,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		}
 
 		// source teh scripts
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String sourceScript = "source(\"" + baseFolder + "\\R\\Recommendations\\master_col_data.r\") ;";
 		sourceScript = sourceScript.replace("\\", "/");
 		this.rJavaTranslator.runR(sourceScript);

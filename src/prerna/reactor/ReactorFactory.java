@@ -391,9 +391,6 @@ import prerna.reactor.workspace.NewDirReactor;
 import prerna.reactor.workspace.UploadUserFileReactor;
 import prerna.reactor.workspace.UserDirReactor;
 import prerna.util.Constants;
-//import prerna.solr.reactor.SetInsightDescriptionReactor;
-//import prerna.solr.reactor.SetInsightTagsReactor;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.reactors.AddAppCollaborator;
 import prerna.util.git.reactors.CopyAppRepo;
@@ -467,7 +464,7 @@ public class ReactorFactory {
 		
 		String additionalReactorsPath = "";
 		try {
-			additionalReactorsPath = DIHelper.getInstance().getProperty(Constants.ADDITIONAL_REACTORS);
+			additionalReactorsPath = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTORS);
 			if(additionalReactorsPath != null) {
 				classLogger.info("Loading additional reactors from file");
 				File f = new File(additionalReactorsPath);
@@ -488,7 +485,7 @@ public class ReactorFactory {
 		packagesToLoad.add("prerna");
 		String additionalPackages = null;
 		try {
-			additionalPackages = DIHelper.getInstance().getProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
+			additionalPackages = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
 			if(additionalPackages != null && !(additionalPackages=additionalPackages.trim()).isEmpty()) {
 				classLogger.info("Loading additional reactors from packages [" + additionalPackages + "]");
 				String[] packagesArr = additionalPackages.split(",");

@@ -17,8 +17,6 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SynchronizeToRReactor extends AbstractRFrameReactor {
@@ -143,7 +141,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 
 		// we'll write to TSV and load into data.table to avoid rJava setup
 		String random = Utility.getRandomString(10);
-		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + DIR_SEPARATOR + "R"
+		String outputLocation = Utility.getBaseFolder().replace("\\", "/") + DIR_SEPARATOR + "R"
 				+ DIR_SEPARATOR + "Temp" + DIR_SEPARATOR + "output" + random + ".tsv";
 		try {
 			gridFrame.getBuilder().runQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "

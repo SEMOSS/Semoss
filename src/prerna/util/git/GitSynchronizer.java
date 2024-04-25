@@ -27,7 +27,6 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GitSynchronizer {
@@ -40,7 +39,7 @@ public class GitSynchronizer {
 	}
 	
 	public static void syncDatabases(String localDatabaseId, String localDatabaseName, String remoteDatabaseName, String username, String password, Logger logger) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String appFolder = AssetUtility.getProjectBaseFolder(localDatabaseName, localDatabaseId); //baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, localAppId);
 		
 		// the remote location
@@ -175,7 +174,7 @@ public class GitSynchronizer {
 	 * @return 
 	 */
 	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String username, String password, List<String> filesToSync, boolean dual) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);
 		
 		String repoName = "";
@@ -246,7 +245,7 @@ public class GitSynchronizer {
 	
 	
 	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String username, String password, boolean dual) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
@@ -300,7 +299,7 @@ public class GitSynchronizer {
 	}
 	
 	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String token, boolean dual) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
@@ -478,7 +477,7 @@ public class GitSynchronizer {
 	
 	
 	public static void syncDatabases(String appId, String localAppName, String remoteAppName, String token, Logger logger) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String appFolder = AssetUtility.getProjectBaseFolder(localAppName, appId);;
 		
 		// the remote location
@@ -526,7 +525,7 @@ public class GitSynchronizer {
 	 * @return 
 	 */
 	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String token, List<String> filesToSync, boolean dual) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);;
 		
 		String repoName = "";
