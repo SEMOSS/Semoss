@@ -2,7 +2,6 @@ package prerna.ds.py;
 
 import java.util.Hashtable;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,7 +13,7 @@ import jep.python.PyObject;
 import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public final class PyExecutorThread extends Thread {
 
@@ -188,7 +187,7 @@ public final class PyExecutorThread extends Thread {
 
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
-				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+				pyBase = Utility.getBaseFolder() + "/" + Constants.PY_BASE_FOLDER;
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
 				
@@ -202,7 +201,7 @@ public final class PyExecutorThread extends Thread {
 				aJepConfig.setRedirectOutputStreams(true);
 
 				// add the libraries
-				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
+				String sitepackages = Utility.getDIHelperProperty("PYTHON_PACKAGES");
 				if (sitepackages != null && !sitepackages.isEmpty()) {
 					aJepConfig.addIncludePaths(sitepackages);
 				}

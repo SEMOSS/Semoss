@@ -19,7 +19,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -163,7 +162,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 	private void createCacheFolder() {
 		// create a generic folder
 		this.workingDirectory = "FUNCTION_" + Utility.getRandomString(6);
-		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirectory;
+		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 		
 		// make the folder if one does not exist

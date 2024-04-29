@@ -24,7 +24,6 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -60,7 +59,7 @@ public class PyUtils {
 	private static void setPyEnabled() {
 		if(pyEnabled == null) {
 			pyEnabled = false;
-			String usePythonStr =  DIHelper.getInstance().getProperty(Constants.USE_PYTHON);
+			String usePythonStr =  Utility.getDIHelperProperty(Constants.USE_PYTHON);
 			if(usePythonStr != null) {
 				pyEnabled = Boolean.parseBoolean(usePythonStr);
 			}
@@ -74,7 +73,7 @@ public class PyUtils {
 	public static boolean pyEnabled() {
 		if(pyEnabled == null) {
 			pyEnabled = false;
-			String usePythonStr =  DIHelper.getInstance().getProperty(Constants.USE_PYTHON);
+			String usePythonStr =  Utility.getDIHelperProperty(Constants.USE_PYTHON);
 			if(usePythonStr != null) {
 				pyEnabled = Boolean.parseBoolean(usePythonStr);
 			}
@@ -116,13 +115,13 @@ public class PyUtils {
 //			try {
 //				classLogger.info(">>>STARTING PYTHON TUPESPACE FOR USER<<<");
 //				// going to create this in insight cache dir
-//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				//String mainCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 //				Path mainCachePath = Paths.get(dir);
 //				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
 //				Utility.writeLogConfigurationFile(tempDirForUser.toString());
 //				userTupleMap.put(user, tempDirForUser.toString());
 //				// this should possibly also launch the thread
-//				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
+//				String cp = Utility.getDIHelperProperty("PY_WORKER_CP");
 //				Process p = Utility.startTCPServer(cp, tempDirForUser.toString(), null);
 //				userProcessMap.put(user,  p);
 //				classLogger.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
@@ -145,7 +144,7 @@ public class PyUtils {
 //			try {
 //				classLogger.info(">>>STARTING PyServe USER<<<");
 //				// going to create this in insight cache dir
-//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				//String mainCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 //				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir));
 //				Path mainCachePath = Paths.get(chrootDir+paramDir);
 //				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
@@ -157,7 +156,7 @@ public class PyUtils {
 //				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
 //				userTupleMap.put(user, tempDirForUser.toString());
 //				// this should possibly also launch the thread
-//				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+//				String cp = Utility.getDIHelperProperty("TCP_WORKER_CP");
 //				if(cp == null) {
 //					classLogger.info("Unable to see class path ");
 //				}
@@ -190,13 +189,13 @@ public class PyUtils {
 			try {
 				classLogger.info(">>>STARTING PyServe USER<<<");
 				// going to create this in insight cache dir
-				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+				//String mainCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 				Path mainCachePath = Paths.get(dir);
 				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
 				Utility.writeLogConfigurationFile(tempDirForUser.toString());
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
-				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+				String cp = Utility.getDIHelperProperty(Constants.TCP_WORKER_CP);
 				if(cp == null)
 					classLogger.info("Unable to see class path ");
 				Process  p = Utility.startTCPServer(cp, tempDirForUser.toString(), port);
@@ -227,13 +226,13 @@ public class PyUtils {
 //			try {
 //				classLogger.info(">>>STARTING PyServe USER<<<");
 //				// going to create this in insight cache dir
-//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				//String mainCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 //				Path mainCachePath = Paths.get(dir);
 //				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
 //				Utility.writeLogConfigurationFile(tempDirForUser.toString());
 //				userTupleMap.put(user, tempDirForUser.toString());
 //				// this should possibly also launch the thread
-//				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+//				String cp = Utility.getDIHelperProperty("TCP_WORKER_CP");
 //				if(cp == null)
 //					classLogger.info("Unable to see class path ");
 //				// dont want to pass the user object into utility
@@ -267,7 +266,7 @@ public class PyUtils {
 //			try {
 //				classLogger.info(">>>STARTING PyServe USER<<<");
 //				// going to create this in insight cache dir
-//				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+//				//String mainCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 //				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir)); // /opt/kunal__sessionid/
 //				Path mainCachePath = Paths.get(chrootDir+dir); // /opt/semosshome
 //				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
@@ -279,7 +278,7 @@ public class PyUtils {
 //				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
 //				userTupleMap.put(user, tempDirForUser.toString());
 //				// this should possibly also launch the thread
-//				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+//				String cp = Utility.getDIHelperProperty("TCP_WORKER_CP");
 //				if(cp == null)
 //					classLogger.info("Unable to see class path ");
 //				// dont want to pass the user object into utility
@@ -430,13 +429,13 @@ public class PyUtils {
     public static String getPythonHomeDir() {
     	String py = System.getenv(Settings.PYTHONHOME);
     	if(py == null) {
-    		py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+    		py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
     	}
     	if(py == null) {
     		System.getenv(Settings.PY_HOME);
     	}
     	if (py == null) {
-    		py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+    		py = Utility.getDIHelperProperty(Settings.PY_HOME);
     	}
     	if(py == null) {
     		throw new NullPointerException("Must define python home");
@@ -497,7 +496,7 @@ public class PyUtils {
     }
     
     public static List<String> getPythonHomeSitePackages() throws IOException {
-    	String mainPySitePackages = DIHelper.getInstance().getProperty(Settings.PYTHONHOME_SITE_PACKAGES);
+    	String mainPySitePackages = Utility.getDIHelperProperty(Settings.PYTHONHOME_SITE_PACKAGES);
     	if (mainPySitePackages == null || (mainPySitePackages=mainPySitePackages.trim()).isEmpty()) {
     		String pythonExecutablePath = appendPythonExecutable(getPythonHomeDir());
     		ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutablePath, "-c", "\"import site; import json; print(json.dumps(site.getsitepackages()))\"");
@@ -526,8 +525,8 @@ public class PyUtils {
     
     public static String [] applyUlimit (String [] commands) {
     	// need to make sure we are not windows cause ulimit will not work
-    	if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-    		String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+    	if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+    		String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
     		StringBuilder sb = new StringBuilder();
     		for (String str : commands) {
     			sb.append(str).append(" ");

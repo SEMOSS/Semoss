@@ -14,7 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.SmssUtilities;
+import prerna.engine.api.IEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -24,7 +24,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -66,10 +66,9 @@ public class AuditDatabase {
 		this.databaseId = databaseId;
 		this.databaseName = databaseName;
 
-		String dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		dbFolder += DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(databaseName, databaseId);
+		String dbFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
-		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+		String rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if (rdbmsTypeStr == null) {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";

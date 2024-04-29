@@ -12,7 +12,7 @@ import com.google.gson.Gson;
 
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class AwsSecretsManager {
 
@@ -116,9 +116,9 @@ public class AwsSecretsManager {
 	public void setUseApplicationCerts(boolean useApplicationCerts) {
 		this.useApplicationCerts = useApplicationCerts;
 		if(this.useApplicationCerts) {
-			setKeyStore(DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE));
-			setKeyStorePass(DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD));
-			setKeyPass(DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD));
+			setKeyStore(Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE));
+			setKeyStorePass(Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD));
+			setKeyPass(Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD));
 		}
 	}
 
