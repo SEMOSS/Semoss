@@ -63,7 +63,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -209,7 +208,7 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 		// run through getCleanSelect()
 		String query = this.getProperty(Constants.TYPE_QUERY);
 		if(query == null){
-			query = DIHelper.getInstance().getProperty(Constants.TYPE_QUERY);
+			query = Utility.getDIHelperProperty(Constants.TYPE_QUERY);
 		}
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		List<Object> retList = new ArrayList<Object>();

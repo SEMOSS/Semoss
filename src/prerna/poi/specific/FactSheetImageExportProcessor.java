@@ -37,7 +37,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.HealthGridExporter;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class FactSheetImageExportProcessor {
 
@@ -46,7 +46,7 @@ public class FactSheetImageExportProcessor {
 	public void runImageExport() {
 		//Select Systems
 		ArrayList<String> sysList = new ArrayList<String>();
-		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getEngine("TAP_Core_Data");
 
 		//for services
 		String query = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?Owner}}ORDER BY ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";

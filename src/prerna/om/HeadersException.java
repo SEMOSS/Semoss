@@ -11,7 +11,6 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class HeadersException {
@@ -41,7 +40,7 @@ public class HeadersException {
 	private HeadersException() {
 		// grab the giant string from helper
 		try {
-			String prohibitedHeadersStr = DIHelper.getInstance().getProperty(Constants.PROBHIBITED_HEADERS);
+			String prohibitedHeadersStr = Utility.getDIHelperProperty(Constants.PROBHIBITED_HEADERS);
 			// the string is comma delimited
 			String[] words = prohibitedHeadersStr.split(",");
 			for(String word : words) {

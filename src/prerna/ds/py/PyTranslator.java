@@ -22,7 +22,6 @@ import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PyTranslator {
@@ -241,7 +240,7 @@ public class PyTranslator {
 			addRootVariable = "ROOT <- '" + rootPath.replace("'", "\\'") + "';";
 			String removeRootVar = "ROOT";
 		} else {
-			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
+			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
 
 		File pyTempF = new File(Utility.normalizePath(pyTemp));
@@ -321,7 +320,7 @@ public class PyTranslator {
 
 			pyTemp = insightRootPath + "/Py/Temp/";
 		} else {
-			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
+			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
 
 		if(!removePathVariables.isEmpty()) {
@@ -340,7 +339,7 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
 				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
 			}
@@ -502,7 +501,7 @@ public class PyTranslator {
 
 			pyTemp = insightRootPath + "/Py/Temp/";
 		} else {
-			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
+			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
 		
 		if(!removePathVariables.isEmpty()) {
@@ -522,7 +521,7 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
 				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
 			}
@@ -907,7 +906,7 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
 				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
 			}

@@ -16,7 +16,6 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SaveInsightIntoWorkspace {
@@ -83,7 +82,7 @@ public class SaveInsightIntoWorkspace {
 	
 	public static boolean isCacheUserWorkspace() {
 		if(SAVE_USER_WORKSPACE == null) {
-			SAVE_USER_WORKSPACE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USER_WORKSPACE));
+			SAVE_USER_WORKSPACE = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.USER_WORKSPACE));
 		}
 		return SAVE_USER_WORKSPACE;
 	}

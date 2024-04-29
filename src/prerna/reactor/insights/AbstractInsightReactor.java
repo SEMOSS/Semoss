@@ -23,7 +23,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.SmssUtilities;
+import prerna.engine.api.IEngine;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
 import prerna.om.Pixel;
@@ -35,8 +35,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -371,15 +370,14 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	protected void storeImageFromFile(final String fileName, final String insightId, final String appId, final String appName) {
+	protected void storeImageFromFile(final String fileName, final String insightId, final String projectId, final String projectName) {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
-		final String basePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + "project" 
-				+ DIR_SEP + SmssUtilities.getUniqueName(appName, appId)
-				+ DIR_SEP + "app_root" 
-				+ DIR_SEP + "version" 
-				+ DIR_SEP + insightId;
+		final String basePath = EngineUtility.getSpecificEngineVersionFolder(
+						IEngine.CATALOG_TYPE.PROJECT, 
+						projectId, 
+						projectName)
+					+ DIR_SEP + insightId;
 		final String newImageFile = basePath + DIR_SEP + fileName;
 		final File newImage = new File(newImageFile);
 		
@@ -395,7 +393,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			try {
 				Map<String, String> selectors = new HashMap<>();
 				selectors.put(CouchUtil.INSIGHT, insightId);
-				selectors.put(CouchUtil.PROJECT, appId);
+				selectors.put(CouchUtil.PROJECT, projectId);
 				CouchUtil.upload(CouchUtil.INSIGHT, selectors, saveImageFile);
 			} catch (CouchException e) {
 				e.printStackTrace();
@@ -431,14 +429,10 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	protected void storeImageFromPng(String base64Image, String insightId, String appId, String appName) {
+	protected void storeImageFromPng(String base64Image, String insightId, String projectId, String projectName) {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
-		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + Constants.PROJECT_FOLDER 
-				+ DIR_SEP + SmssUtilities.getUniqueName(appName, appId)
-				+ DIR_SEP + "app_root" 
-				+ DIR_SEP + "version" 
+		final String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, projectId, projectName)
 				+ DIR_SEP + insightId + DIR_SEP + "image.png";
 		
 		// decode image and write to file
@@ -463,7 +457,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	protected boolean saveFilesInInsight(PixelList insightPixelList, String projectId, String projectName, String newInsightId, boolean deleteOrigFile, PixelList originalInsightPixelList) {
 		boolean filesSaved = false;
-		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		final String BASE = Utility.getBaseFolder();
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		
 		for(Pixel p : insightPixelList) {
@@ -568,17 +562,13 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	/**
 	 * Get the pipeline file location for an insight
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsID
 	 * @return
 	 */
-	protected File getPipelineFileLocation(String appId, String appName, String rdbmsID) {
-		String pipelinePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "project"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-				+ DIR_SEPARATOR + "app_root" 
-				+ DIR_SEPARATOR + "version" 
+	protected File getPipelineFileLocation(String projectId, String projectName, String rdbmsID) {
+		String pipelinePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, projectId, projectName)
 				+ DIR_SEPARATOR + rdbmsID;
 		
 		File f = new File(pipelinePath + DIR_SEPARATOR + PIPELINE_FILE);

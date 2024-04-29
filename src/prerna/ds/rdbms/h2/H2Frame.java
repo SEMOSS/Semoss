@@ -45,7 +45,6 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -89,11 +88,11 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String folderToUsePath = null;
 		if(sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+			folderToUsePath = Utility.getInsightCacheDir() + 
 					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
 			this.fileNameToUse = "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
 		} else {
-			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+			folderToUsePath = Utility.getInsightCacheDir() + 
 					DIR_SEPARATOR + "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
 			this.fileNameToUse = "database.mv.db";
 		}

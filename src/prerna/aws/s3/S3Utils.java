@@ -16,7 +16,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 
 public class S3Utils {
@@ -60,16 +60,16 @@ public class S3Utils {
 		String account = null;
 		if (env.containsKey(AWS_SHARED_ACCOUNT_KEY)) {
 			account = env.get(AWS_SHARED_ACCOUNT_KEY);
-		} else if (DIHelper.getInstance().getProperty(AWS_SHARED_ACCOUNT_KEY) != null
-				&& !(DIHelper.getInstance().getProperty(AWS_SHARED_ACCOUNT_KEY).isEmpty())) {
-			account = DIHelper.getInstance().getProperty(AWS_SHARED_ACCOUNT_KEY);
+		} else if (Utility.getDIHelperProperty(AWS_SHARED_ACCOUNT_KEY) != null
+				&& !(Utility.getDIHelperProperty(AWS_SHARED_ACCOUNT_KEY).isEmpty())) {
+			account = Utility.getDIHelperProperty(AWS_SHARED_ACCOUNT_KEY);
 		}
 		String key = null;
 		if (env.containsKey(AWS_SHARED_ACCESS_KEY)) {
 			key = env.get(AWS_SHARED_ACCESS_KEY);
-		} else if (DIHelper.getInstance().getProperty(AWS_SHARED_ACCESS_KEY) != null
-				&& !(DIHelper.getInstance().getProperty(AWS_SHARED_ACCESS_KEY).isEmpty())) {
-			key = DIHelper.getInstance().getProperty(AWS_SHARED_ACCESS_KEY);
+		} else if (Utility.getDIHelperProperty(AWS_SHARED_ACCESS_KEY) != null
+				&& !(Utility.getDIHelperProperty(AWS_SHARED_ACCESS_KEY).isEmpty())) {
+			key = Utility.getDIHelperProperty(AWS_SHARED_ACCESS_KEY);
 		}
 		if (account != null && account.length() > 0 && key != null && key.length() > 0) {
 			credProviders.add(new AWSStaticCredentialsProvider(new BasicAWSCredentials(account, key)));
@@ -80,9 +80,9 @@ public class S3Utils {
 		// endpoint
 		if (env.containsKey(AWS_SHARED_ENDPOINT_KEY)) {
 			AWS_ENDPOINT = env.get(AWS_SHARED_ENDPOINT_KEY);
-		} else if (DIHelper.getInstance().getProperty(AWS_SHARED_ENDPOINT_KEY) != null
-				&& !(DIHelper.getInstance().getProperty(AWS_SHARED_ENDPOINT_KEY).isEmpty())) {
-			AWS_ENDPOINT = DIHelper.getInstance().getProperty(AWS_SHARED_ENDPOINT_KEY);
+		} else if (Utility.getDIHelperProperty(AWS_SHARED_ENDPOINT_KEY) != null
+				&& !(Utility.getDIHelperProperty(AWS_SHARED_ENDPOINT_KEY).isEmpty())) {
+			AWS_ENDPOINT = Utility.getDIHelperProperty(AWS_SHARED_ENDPOINT_KEY);
 		}
 	}
 

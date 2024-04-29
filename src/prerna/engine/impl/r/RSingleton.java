@@ -15,7 +15,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RSingleton {
 	
@@ -64,7 +64,7 @@ public class RSingleton {
 			
 			// If R_HOME doesn't exist, then check RDF_Map
 			if(rHome == null || rHome.isEmpty()) {
-				rHome = DIHelper.getInstance().getProperty(R_HOME);
+				rHome = Utility.getDIHelperProperty(R_HOME);
 			}
 			
 			rHome = rHome.replace("\\", DIR_SEPERATOR);
@@ -174,7 +174,7 @@ public class RSingleton {
 		int count = 0;
 	
 		// need to also see if this is already running RServe and if so get that sorted out
-		String portsForR = DIHelper.getInstance().getProperty(R_PORTS);
+		String portsForR = Utility.getDIHelperProperty(R_PORTS);
 		if(portsForR != null && !portsForR.isEmpty()) {
 			if(portsForR.contains("-")) { // If a range is specified: start-end
 				String[] portRange = portsForR.trim().replace(" ", "").split("-");
