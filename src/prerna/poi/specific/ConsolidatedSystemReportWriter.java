@@ -43,8 +43,6 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 
@@ -78,7 +76,7 @@ public class ConsolidatedSystemReportWriter {
 		writeSheet(wb, "LPI", lpiSystemList);
 		writeSheet(wb, "LPNI", lpniSystemList);
 
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String workingDir = Utility.getBaseFolder();
 		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		String writeFileName = "ConsolidatedSystemTransitionReport" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;

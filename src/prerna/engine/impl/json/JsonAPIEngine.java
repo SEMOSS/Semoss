@@ -41,7 +41,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class JsonAPIEngine extends AbstractDatabaseEngine {
@@ -69,7 +68,7 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
-		baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		baseFolder = Utility.getBaseFolder();
 		Hashtable <String, String> paramHash = new Hashtable <>();
 		paramHash.put("BaseFolder", baseFolder);
 		if(getEngineId() != null)

@@ -24,7 +24,6 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -324,7 +323,7 @@ public abstract class PythonModelEngine extends AbstractModelEngine {
 	private void createCacheFolder() {
 		// create a generic folder
 		this.workingDirectory = "MODEL_" + Utility.getRandomString(6);
-		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirectory;
+		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 		
 		// make the folder if one does not exist

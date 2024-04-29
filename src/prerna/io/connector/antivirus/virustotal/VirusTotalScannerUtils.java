@@ -28,7 +28,7 @@ import com.bettercloud.vault.json.JsonValue;
 import prerna.io.connector.antivirus.IVirusScanner;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class VirusTotalScannerUtils implements IVirusScanner {
 
@@ -73,9 +73,9 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		String keyStorePass = null;
 		String keyPass = null;
 		if(this.useServerCert) {
-			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
 		String analysisFileId = uploadFileEndpoint(name, is, keyStore, keyStorePass, keyPass);
@@ -906,7 +906,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 * @return
 	 */
 	private static String getApiKey() {
-		String apiKey = DIHelper.getInstance().getProperty(VIRUSTOTAL_API_KEY);
+		String apiKey = Utility.getDIHelperProperty(VIRUSTOTAL_API_KEY);
 		if(apiKey == null || (apiKey=apiKey.trim()).isEmpty() ) {
 			throw new NullPointerException("Must define the VIRUSTOTAL API KEY");
 		}
@@ -919,7 +919,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 * @return
 	 */
 	private static boolean useServerCert() {
-		String useServerCert = DIHelper.getInstance().getProperty(VIRUSTOTAL_USE_CERT);
+		String useServerCert = Utility.getDIHelperProperty(VIRUSTOTAL_USE_CERT);
 		if(useServerCert == null || (useServerCert=useServerCert.trim()).isEmpty() ) {
 			return false;
 		}

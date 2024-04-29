@@ -42,7 +42,6 @@ import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -189,9 +188,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(!loaded) {
 			// default behavior is to just write this to a csv file
 			// and read it back in
-			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".json";
+			String newFileLoc = Utility.getInsightCacheDir() + "/" + Utility.getRandomString(6) + ".json";
 			
-			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 				Insight in = this.pyt.insight;
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
@@ -740,8 +739,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 			Object output = pyt.runScript(query);
 			
 			// if using native py server, and cant'structure output, try convert.
-			if (DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
-					&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true") 
+			if (Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER) != null
+					&& Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true") 
 					&& output instanceof String) {
 				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
 			}
@@ -1207,11 +1206,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		{
 			Map retMap = new HashMap();
 			
-
 			try
 			{
 				String frameName = Utility.getRandomString(5);
-				File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+				File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 				
 				String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
@@ -1248,7 +1246,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		else
 		{
 			String frameName = Utility.getRandomString(5);
-			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 
 			try {
 				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
@@ -1303,9 +1301,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(sql.toUpperCase().startsWith("SELECT"))
 		{
 			Map retMap = new HashMap();
-			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".json");
+			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".json");
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
-
 			
 			//String loadsqlDF = "from pandasql import sqldf";
 			//String frameName = Utility.getRandomString(5);

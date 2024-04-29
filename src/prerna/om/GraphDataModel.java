@@ -74,7 +74,6 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.JenaSesameUtils;
 import prerna.util.Utility;
 
@@ -137,9 +136,9 @@ public class GraphDataModel implements IDataMaker {
 		edgeStore =new Hashtable<String, SEMOSSEdge>();
 		createBaseURIs();
 
-		sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
-		prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
-		search = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
+		sudowl = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.GPSSudowl));
+		prop = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.GPSProp));
+		search = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.GPSSearch));
 	}
 
 	public boolean getSudowl(){
@@ -796,10 +795,8 @@ public class GraphDataModel implements IDataMaker {
 	 */
 	private void createBaseURIs()
 	{
-		RELATION_URI = DIHelper.getInstance().getProperty(
-				Constants.PREDICATE_URI);
-		PROP_URI = DIHelper.getInstance()
-				.getProperty(Constants.PROP_URI);
+		RELATION_URI = Utility.getDIHelperProperty(Constants.PREDICATE_URI);
+		PROP_URI = Utility.getDIHelperProperty(Constants.PROP_URI);
 	}
 
 	public void undoData(){

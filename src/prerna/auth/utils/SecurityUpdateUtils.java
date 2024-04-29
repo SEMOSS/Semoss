@@ -27,7 +27,6 @@ import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
@@ -177,7 +176,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				synchronized(SecurityUpdateUtils.class) {
 					
 					// also add the max user limit check
-					String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+					String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
 					if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 						try {
 							int userLimit = Integer.parseInt(userLimitStr);
@@ -479,7 +478,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		// also add the max user limit check
-		String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
 		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 			try {
 				int userLimit = Integer.parseInt(userLimitStr);

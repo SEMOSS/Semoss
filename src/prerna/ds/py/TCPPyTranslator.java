@@ -7,7 +7,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.SocketClient;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -101,8 +100,8 @@ public class TCPPyTranslator extends PyTranslator {
 			{
 				sc.addInsight2Insight(ps.insightId, insight);
 			}
-			boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
-					&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
+			boolean nativePyServer = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER) != null
+					&& Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
 
 			if(!nativePyServer)
 			{

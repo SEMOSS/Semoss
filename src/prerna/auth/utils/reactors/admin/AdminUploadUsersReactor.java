@@ -33,7 +33,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -176,7 +175,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		// see if there is a user limit applied
 		int currentUserCount = -1;
 
-		String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
 		int userLimit = -1;
 		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 			try {

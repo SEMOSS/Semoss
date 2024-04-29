@@ -8,24 +8,23 @@ import org.apache.logging.log4j.Logger;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class MapDb {
 
-	private static final Logger LOGGER = LogManager.getLogger(MapDb.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(MapDb.class);
 
 	private static MapDb singleton;
 	private DB db;
 	private ConcurrentNavigableMap<String, Insight> insightMap;
 	
 	private MapDb() {
-		String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String path = Utility.getBaseFolder();
 		File f = new File(path + "/insightMapDb");
 		db = DBMaker.fileDB(f)
 		        .closeOnJvmShutdown()
 		        .make();
-		LOGGER.info("Generated DB object for storage...");
+		classLogger.info("Generated DB object for storage...");
 		this.insightMap = db.treeMap("insightMap");
 	}
 	
@@ -38,16 +37,16 @@ public class MapDb {
 	
 	public void commit() {
 		db.commit();
-		LOGGER.info("Committed DB object to file...");
+		classLogger.info("Committed DB object to file...");
 	}
 	
 	public void storeValue(String insightId, Insight in) {
 		insightMap.put(insightId, in);
-		LOGGER.info("Stored new Insight object with id = "  + insightId + "...");
+		classLogger.info("Stored new Insight object with id = "  + insightId + "...");
 	}
 	
 	public Insight getValue(String insightId) {
-		LOGGER.info("Retrieving Insight object with id = "  + insightId + "...");
+		classLogger.info("Retrieving Insight object with id = "  + insightId + "...");
 		Insight in = insightMap.get(insightId);
 		return in;
 	}
