@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.secrets.hashicorp.vault.HashiCorpVaultUtil;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SecretsFactory {
@@ -21,7 +20,7 @@ public class SecretsFactory {
 			return null;
 		}
 		
-		String storeType = DIHelper.getInstance().getProperty(Constants.SECRET_STORE_TYPE);
+		String storeType = Utility.getDIHelperProperty(Constants.SECRET_STORE_TYPE);
 		if(storeType.equalsIgnoreCase(ISecrets.HASHICORP_VAULT)) {
 			return HashiCorpVaultUtil.getInstance();
 		} else {

@@ -87,28 +87,28 @@ public abstract class AbstractSecurityUtils {
 		}
 		initialize();
 
-		Object anonymousUsers = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_ALLOWED);
+		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
 		if(anonymousUsers == null) {
 			anonymousUsersEnabled = false;
 		} else {
 			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers) ) || (Boolean.parseBoolean(anonymousUsers.toString()));
 		}
 
-		Object anonymousUsersData = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_UPLOAD_DATA);
+		Object anonymousUsersData = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_UPLOAD_DATA);
 		if(anonymousUsersData == null) {
 			anonymousUsersUploadData = false;
 		} else {
 			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData) ) || (Boolean.parseBoolean(anonymousUsersData.toString()));
 		}
 
-		Object adminSetsPublisher = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_PUBLISHER);
+		Object adminSetsPublisher = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_PUBLISHER);
 		if(adminSetsPublisher == null) {
 			adminSetPublisher = false;
 		} else {
 			adminSetPublisher = (adminSetsPublisher instanceof Boolean && ((boolean) adminSetsPublisher) ) || (Boolean.parseBoolean(adminSetsPublisher.toString()));
 		}
 
-		Object adminSetsExporter = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_EXPORTER);
+		Object adminSetsExporter = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_EXPORTER);
 		if(adminSetsExporter == null) {
 			adminSetExporter = false;
 		} else {
@@ -2042,7 +2042,7 @@ public abstract class AbstractSecurityUtils {
 	 * @return
 	 */
 	public static File getStockImage(String databaseId, String insightId) {
-		String imageDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/images/stock/";
+		String imageDir = Utility.getBaseFolder() + "/images/stock/";
 		String layout = null;
 
 		//		String query = "SELECT LAYOUT FROM INSIGHT WHERE INSIGHT.ENGINEID='" + appId + "' AND INSIGHT.INSIGHTID='" + insightId + "'";

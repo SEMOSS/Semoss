@@ -283,6 +283,10 @@ public final class Utility {
 	public static String getDIHelperProperty(String prop) {
 		return DIHelper.getInstance().getProperty(prop);
 	}
+	
+	public static Object getDIHelperLocalProperty(String prop) {
+		return DIHelper.getInstance().getLocalProp(prop);
+	}
 
 	/**
 	 * 

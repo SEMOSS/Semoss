@@ -16,7 +16,6 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
@@ -63,9 +62,7 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException("Need to give file path on s3");
 		}
 
-		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR 
-				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		
+		String filePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + Utility.getCsvInsightCacheDir();
 		filePath += DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
 
 		try {

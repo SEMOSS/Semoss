@@ -2,7 +2,6 @@ package prerna.engine.impl.venv;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
@@ -13,8 +12,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public abstract class AbstractVenvEngine implements IVenvEngine {
@@ -127,12 +126,7 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 		}
 
 		// remove from DIHelper
-		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + this.engineId, "");
-		// in case we are at the start
-		engineIds = engineIds.replace(this.engineId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
-		DIHelper.getInstance().removeEngineProperty(this.engineId);
+		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 
 	@Override

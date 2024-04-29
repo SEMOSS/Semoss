@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
@@ -60,7 +59,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 	        }
 			
 			
-			this.workerAddress = DIHelper.getInstance().getProperty(Constants.WORKER_ADDRESS);
+			this.workerAddress = Utility.getDIHelperProperty(Constants.WORKER_ADDRESS);
 			if (this.workerAddress == null || this.workerAddress.trim().isEmpty()) {
 				this.workerAddress = System.getenv(Constants.WORKER_ADDRESS);
 			}
@@ -74,7 +73,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 			
 			// create a generic folder
 			this.workingDirectory = "EM_MODEL_" + Utility.getRandomString(6);
-			this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirectory;
+			this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + workingDirectory;
 			this.cacheFolder = new File(workingDirectoryBasePath);
 			
 			// make the folder if one does not exist

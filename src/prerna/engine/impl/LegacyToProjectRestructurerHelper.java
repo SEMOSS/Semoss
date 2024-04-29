@@ -15,7 +15,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -66,14 +65,14 @@ public class LegacyToProjectRestructurerHelper {
 	
 	public void init() {
 		// Create the project dir.
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		createFolder(baseFolder + PROJECT_DIRECTORY);
 		createFolder(baseFolder + USER_DIRECTORY);
 	}
 
 	public void executeRestructure() {
 		System.out.println("STARTING APP/PROJECT RESTRUCTURE");
-		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		this.baseFolder = Utility.getBaseFolder();
 		init();
 		//this.engine = engine;
 		String dbDir = baseFolder + ENGINE_DIRECTORY;

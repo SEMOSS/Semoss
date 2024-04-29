@@ -3,7 +3,7 @@ package prerna.ds.util;
 import java.util.UUID;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RdbmsFrameUtility {
 
@@ -36,7 +36,7 @@ public class RdbmsFrameUtility {
 	}
 	
 	public static int getLimitSize() {
-		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.H2_IN_MEM_SIZE);
+		String limitSize = (String) Utility.getDIHelperProperty(Constants.H2_IN_MEM_SIZE);
 		int LIMIT_SIZE;
 		if (limitSize == null) {
 			LIMIT_SIZE = 10_000;
@@ -46,7 +46,7 @@ public class RdbmsFrameUtility {
 				if(val < 0) {
 					LIMIT_SIZE = Integer.MAX_VALUE;
 				} else {
-					LIMIT_SIZE = val;//Integer.parseInt(limitSize.trim());
+					LIMIT_SIZE = val;
 				}
 			} catch(Exception e) {
 				LIMIT_SIZE = 10_000;

@@ -15,8 +15,6 @@ import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implements ICodeExecution {
 
@@ -104,7 +102,6 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		if(this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame)
 		{
 			StringBuffer script = new StringBuffer();
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			// source the script
 			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
 			String sync = pyt.runScript(script.toString()) + "";

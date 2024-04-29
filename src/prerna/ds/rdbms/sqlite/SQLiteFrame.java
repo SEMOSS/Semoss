@@ -14,8 +14,6 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.om.ThreadStore;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -52,11 +50,11 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		String folderToUsePath = null;
 		if(sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+			folderToUsePath = Utility.getInsightCacheDir() + 
 					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
 			this.fileNameToUse = "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".sqlite";
 		} else {
-			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+			folderToUsePath = Utility.getInsightCacheDir() + 
 					DIR_SEPARATOR + "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
 			this.fileNameToUse = "database.sqlite";
 		}
