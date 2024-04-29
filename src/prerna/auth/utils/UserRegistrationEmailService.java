@@ -9,11 +9,10 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
 import prerna.auth.PasswordRequirements;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 
 public class UserRegistrationEmailService {
 
@@ -38,7 +37,7 @@ public class UserRegistrationEmailService {
 				}
 				
 				instance = new UserRegistrationEmailService();
-				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+				String baseFolder = Utility.getBaseFolder();
 				if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
 					instance.emailTemplatesFolder = baseFolder + instance.EMAIL_TEMPLATES_FOLDER + "/";
 				} else {

@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.antivirus.IVirusScanner;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 import xyz.capybara.clamav.ClamavClient;
 import xyz.capybara.clamav.Platform;
 import xyz.capybara.clamav.commands.scan.result.ScanResult;
@@ -79,7 +79,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * @return
 	 */
 	private static String getVirusScanningAddress() {
-		return DIHelper.getInstance().getProperty(CLAMAV_SCANNING_ADDRESS);
+		return Utility.getDIHelperProperty(CLAMAV_SCANNING_ADDRESS);
 	}
 	
 	/**
@@ -87,7 +87,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * @return
 	 */
 	private static Integer getVirusScanningPort() {
-		String virusScanning = DIHelper.getInstance().getProperty(CLAMAV_SCANNING_PORT);
+		String virusScanning = Utility.getDIHelperProperty(CLAMAV_SCANNING_PORT);
 		if(virusScanning == null) {
 			// default configuration is false
 			return null;
@@ -101,7 +101,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * @return
 	 */
 	public static Platform getVirusScanningFileSystem() {
-		String platform = DIHelper.getInstance().getProperty(CLAMAV_SCANNING_FS);
+		String platform = Utility.getDIHelperProperty(CLAMAV_SCANNING_FS);
 
 		if ("WINDOWS".equalsIgnoreCase(platform)) {
 			return Platform.WINDOWS;	

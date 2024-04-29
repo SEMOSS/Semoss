@@ -28,17 +28,16 @@ import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
-import prerna.reactor.IReactor;
-import prerna.reactor.qs.SubQueryExpression;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.reactor.IReactor;
+import prerna.reactor.qs.SubQueryExpression;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PandasInterpreter extends AbstractQueryInterpreter {
@@ -179,16 +178,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	public String composeQuery() {
 		StringBuilder query = new StringBuilder();
 		
-		if(DIHelper.getInstance().getCoreProp().containsKey("SWIFTER")) {
-			swifter = DIHelper.getInstance().getCoreProp().get("SWIFTER")+"";
+		if(Utility.getDIHelperProperty("SWIFTER") != null && !Utility.getDIHelperProperty("SWIFTER").trim().isEmpty()) {
+			swifter = Utility.getDIHelperProperty("SWIFTER").trim();
 		} else {
 			swifter = "";
 		}
 		// force swifter
 		swifter = "";
 				
-		if(DIHelper.getInstance().getCoreProp().containsKey("EXP")) {
-			exp = DIHelper.getInstance().getCoreProp().get("EXP")+"";
+		if(Utility.getDIHelperProperty("EXP") != null && !Utility.getDIHelperProperty("EXP").trim().isEmpty()) {
+			exp = Utility.getDIHelperProperty("EXP").trim();
 		} else {
 			exp = "";
 		}

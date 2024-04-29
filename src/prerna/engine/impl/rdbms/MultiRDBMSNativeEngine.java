@@ -53,12 +53,11 @@ import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -355,9 +354,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		try {
 			close();
 			// see if any h2 files are here...
-			String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-					+ "/" + Constants.DATABASE_FOLDER 
-					+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId);
+			String path = EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName);
 			DeleteDbFiles.execute(path, "database", false);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

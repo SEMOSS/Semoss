@@ -88,7 +88,6 @@ import prerna.util.AssetUtility;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
@@ -269,11 +268,11 @@ public class Insight implements Serializable {
 		this.insightId = UUID.randomUUID().toString();
 		
 		// put the pragmap
-		if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE")) {
-			this.pragmap.put("xCache", DIHelper.getInstance().getCoreProp().getProperty("X_CACHE"));
+		if(Utility.getDIHelperProperty("X_CACHE") != null && !Utility.getDIHelperProperty("X_CACHE").trim().isEmpty()) {
+			this.pragmap.put("xCache", Utility.getDIHelperProperty("X_CACHE").trim());
 		}
 		// put the pragmap
-		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)+"")) {
 			if(this.user != null) {
 				this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
 			}
@@ -458,8 +457,8 @@ public class Insight implements Serializable {
 					sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
 				}
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-				this.insightFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
-						DIR_SEPARATOR + sessionId + DIR_SEPARATOR + this.insightId;
+				this.insightFolder = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId 
+						+ DIR_SEPARATOR + this.insightId;
 			} else {
 				this.insightFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId)
 						+ DIR_SEPARATOR + this.rdbmsId;
@@ -1447,16 +1446,13 @@ public class Insight implements Serializable {
 		return retURL.toString();
 	}
 	
-	public String getProperty(String propName)
-	{
-		String retOutput = DIHelper.getInstance().getProperty(propName);
-		//if(retOutput == null)
-		{
-			Object retObject = this.varStore.get(propName);
-			if(retObject != null)
-				retOutput = ((NounMetadata)retObject).getValue().toString();
+	public String getProperty(String propName) {
+		Object retObject = this.varStore.get(propName);
+		if(retObject != null) {
+			return ((NounMetadata)retObject).getValue().toString();
 		}
-		return retOutput;
+		
+		return Utility.getDIHelperProperty(propName);
 	}
 
 	/**

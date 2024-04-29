@@ -18,7 +18,6 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RdfUploadReactorUtility {
@@ -203,7 +202,7 @@ public class RdfUploadReactorUtility {
 	
 	public static String getBasePropURI() {
 		// TODO this does not use custom base input
-		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
+		String semossURI = Utility.getDIHelperProperty(Constants.SEMOSS_URI);
 		return semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + "Contains";
 	}
 	
