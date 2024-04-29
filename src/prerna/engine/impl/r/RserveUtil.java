@@ -25,14 +25,13 @@ import com.google.common.base.Strings;
 
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RserveUtil {
 
 	protected static final Logger classLogger = LogManager.getLogger(RserveUtil.class);
 
-	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
+	private static final String R_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
 	private static final String R_DATA_EXT = ".RData";
 	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
 
@@ -62,23 +61,23 @@ public class RserveUtil {
 	//////////////////////////////////////////////////////////////////////
 	
 	public static final String IS_USER_RSERVE_KEY = "IS_USER_RSERVE";
-	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_USER_RSERVE_KEY) + "");
+	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(Utility.getDIHelperProperty(IS_USER_RSERVE_KEY) + "");
 			
 	public static final String R_USER_CONNECTION_TYPE_KEY = "R_USER_CONNECTION_TYPE";
-	public static final String R_USER_CONNECTION_TYPE = DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY) != null
-			? DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY)
+	public static final String R_USER_CONNECTION_TYPE = Utility.getDIHelperProperty(R_USER_CONNECTION_TYPE_KEY) != null
+			? Utility.getDIHelperProperty(R_USER_CONNECTION_TYPE_KEY)
 			: "undefined";
 			
 	public static final String RSERVE_CONNECTION_POOL_SIZE_KEY = "RSERVE_CONNECTION_POOL_SIZE";
-	public static final int RSERVE_CONNECTION_POOL_SIZE = DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
-			? Integer.parseInt(DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
+	public static final int RSERVE_CONNECTION_POOL_SIZE = Utility.getDIHelperProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
+			? Integer.parseInt(Utility.getDIHelperProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
 			: 12;
 			
 	public static final String R_USER_RECOVERY_DEFAULT_KEY = "R_USER_RECOVERY_DEFAULT";
-	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_USER_RECOVERY_DEFAULT_KEY) + "");
+	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(Utility.getDIHelperProperty(R_USER_RECOVERY_DEFAULT_KEY) + "");
 	
 	public static final String R_KILL_ON_STARTUP_KEY = "R_KILL_ON_STARTUP";
-	public static final boolean R_KILL_ON_STARTUP = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_KILL_ON_STARTUP_KEY) + "");
+	public static final boolean R_KILL_ON_STARTUP = Boolean.parseBoolean(Utility.getDIHelperProperty(R_KILL_ON_STARTUP_KEY) + "");
 	
 	//////////////////////////////////////////////////////////////////////
 	// Connections
@@ -111,7 +110,7 @@ public class RserveUtil {
 		
 		// Start
 		try {
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			String baseFolder = Utility.getDIHelperProperty("BaseFolder");
 
 			File output = new File(baseFolder + FS + "Rserve.output.log");
 			File error = new File(baseFolder + FS + "Rserve.error.log");
@@ -121,8 +120,8 @@ public class RserveUtil {
 				pb = new ProcessBuilder(rBin, "-e",
 						"\"library(Rserve);" +
 						"Rserve(FALSE," + port + ",args='--vanilla option(error=function() NULL)')\"");
-			} else if(!(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT")))){
-				String ulimit = DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT");
+			} else if(!(Strings.isNullOrEmpty(Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT")))){
+				String ulimit = Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT");
 				pb = new ProcessBuilder("/bin/bash", "-c","ulimit -v " + ulimit + " && " + rBin+" CMD Rserve --vanilla --RS-port " + port);
 				List<String> coms = pb.command();
 				classLogger.info(Arrays.toString(coms.toArray()));

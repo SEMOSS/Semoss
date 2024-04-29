@@ -70,7 +70,6 @@ import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -191,8 +190,8 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		
 		// do the piece of encrypting here
 		boolean encryptFile = false;
-		if(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) != null) {
-			encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) + "");
+		if(Utility.getDIHelperProperty(Constants.ENCRYPT_SMSS) != null) {
+			encryptFile = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ENCRYPT_SMSS) + "");
 		}
 		// if not at application level, are we doing at app level
 		if(!encryptFile && this.smssProp.containsKey(Constants.ENCRYPT_SMSS)) {
@@ -424,10 +423,8 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		// (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName()
 		// + "_" + Constants.OWL);
 		if (this.owlFileLocation == null) {
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			owlFileLocation = baseFolder + DIR_SEPARATOR + 
-					Constants.DATABASE_FOLDER + DIR_SEPARATOR + 
-					SmssUtilities.getUniqueName(getEngineName(), getEngineId()) + DIR_SEPARATOR +
+			this.owlFileLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, getEngineId(), getEngineName())
+					+ DIR_SEPARATOR +
 					getEngineName()	+ "_OWL.OWL"; 
 		}
 		baseRelEngine.setFilePath(this.owlFileLocation);

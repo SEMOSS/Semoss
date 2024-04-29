@@ -21,7 +21,6 @@ import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -57,7 +56,7 @@ public class SmssUtilities {
 			}
 		}
 		// if we dont have a full filepath
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String owlFile = baseFolder + DIR_SEPARATOR + owl;
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
@@ -77,7 +76,7 @@ public class SmssUtilities {
 		String rdbmsInsightsType = prop.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsInsightsType);
 
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String rdbmsInsights = Utility.normalizePath(baseFolder) + DIR_SEPARATOR + Utility.normalizePath(prop.getProperty(Constants.RDBMS_INSIGHTS));
 		String engineId = prop.getProperty(Constants.PROJECT);
 		String engineName = prop.getProperty(Constants.PROJECT_ALIAS);
@@ -106,7 +105,7 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.ENGINE_PROPERTIES) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String engineProps = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.ENGINE_PROPERTIES);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
@@ -164,7 +163,7 @@ public class SmssUtilities {
 		if(prop.getProperty(PROP_NAME) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String jnlLocation = baseFolder + DIR_SEPARATOR + prop.getProperty(PROP_NAME);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
@@ -181,7 +180,7 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.RDF_FILE_NAME) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String rdfFileLoc = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.RDF_FILE_NAME);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
@@ -206,7 +205,7 @@ public class SmssUtilities {
 		if(prop.getProperty(AbstractDatabaseEngine.DATA_FILE) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String dataSuffix = prop.getProperty(AbstractDatabaseEngine.DATA_FILE);
 		if(dataSuffix.startsWith("@BaseFolder@/")) {
 			dataSuffix = dataSuffix.substring("@BaseFolder@/".length());
@@ -236,7 +235,7 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.TINKER_FILE) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String tinkerFile = null;
 		String tinkerStr = prop.getProperty(Constants.TINKER_FILE);
 		if(tinkerStr.contains("@BaseFolder@")) {
@@ -260,7 +259,7 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.NEO4J_FILE) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String neo4jFile = null;
 		String neoConfPath = prop.getProperty(Constants.NEO4J_FILE);
 		if(neoConfPath.contains("@BaseFolder@")) {
@@ -284,7 +283,7 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.JANUS_CONF) == null) {
 			return null;
 		}
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		String janusFile = null;
 		String janusConfPath = prop.getProperty(Constants.JANUS_CONF);
 		if(janusConfPath.contains("@BaseFolder@")) {
@@ -366,7 +365,7 @@ public class SmssUtilities {
 	 * @throws error if project folder exists
 	 */
 	public static File generateProjectFolder(String projectId, String projectName) throws Error {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
 			baseFolder += DIR_SEPARATOR;
 		}
@@ -387,7 +386,7 @@ public class SmssUtilities {
 	 * @return
 	 */
 	private static String getProjectTempSmssLoc(String projectId, String projectName) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
 			baseFolder += DIR_SEPARATOR;
 		}
@@ -501,7 +500,7 @@ public class SmssUtilities {
 				rdbmsType = forceInsightDatabaseType;
 				rdbmsTypeStr = rdbmsType.getLabel();
 			} else {
-				rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 				if(rdbmsTypeStr == null) {
 					// default will be h2
 					rdbmsTypeStr = "H2_DB";
@@ -552,7 +551,7 @@ public class SmssUtilities {
 	 */
 	public static File createTemporaryAssetAndWorkspaceSmss(String projectId, String projectName, boolean isAsset, 
 			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
 			baseFolder += DIR_SEPARATOR;
 		}
@@ -589,7 +588,7 @@ public class SmssUtilities {
 				rdbmsType = forceInsightDatabaseType;
 				rdbmsTypeStr = rdbmsType.getLabel();
 			} else {
-				rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 				if(rdbmsTypeStr == null) {
 					// default will be h2
 					rdbmsTypeStr = "H2_DB";
@@ -654,7 +653,7 @@ public class SmssUtilities {
 			throw new IOException("Project name already exists.  Please provide a unique project name");
 		}
 
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
 			baseFolder += DIR_SEPARATOR;
 		}
@@ -678,7 +677,7 @@ public class SmssUtilities {
 	 * @throws Exception 
 	 */
 	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, String projectName) throws Exception {
-		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+		String rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if(rdbmsTypeStr == null) {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";

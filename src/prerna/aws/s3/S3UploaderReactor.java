@@ -22,7 +22,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class S3UploaderReactor extends TaskBuilderReactor {
@@ -73,7 +72,7 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 		
 		logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + fileName + ".csv";
+		this.fileLocation = Utility.getBaseFolder() + DIR_SEPARATOR + fileName + ".csv";
 		
 		//make file
 		buildTask();

@@ -51,11 +51,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.SmssUtilities;
+import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.insight.TextToGraphic;
 
@@ -85,7 +86,7 @@ public class CouchUtil {
 	 * boolean indicator that CouchDB is configured to be enabled
 	 */
 	public static final boolean COUCH_ENABLED = 
-		StringUtils.isEmpty(DIHelper.getInstance().getProperty(COUCH_ENABLED_KEY))
+		StringUtils.isEmpty(Utility.getDIHelperProperty(COUCH_ENABLED_KEY))
 		?
 		(
 			System.getenv().containsKey(COUCH_ENABLED_KEY)
@@ -95,12 +96,12 @@ public class CouchUtil {
 			false
 		)
 		:
-		Boolean.parseBoolean(DIHelper.getInstance().getProperty(COUCH_ENABLED_KEY))
+		Boolean.parseBoolean(Utility.getDIHelperProperty(COUCH_ENABLED_KEY))
 		;
 	
 	private static final String COUCH_ENDPOINT_KEY = "COUCH_ENDPOINT";
 	private static final String COUCH_ENDPOINT = 
-		StringUtils.isEmpty(DIHelper.getInstance().getProperty(COUCH_ENDPOINT_KEY))
+		StringUtils.isEmpty(Utility.getDIHelperProperty(COUCH_ENDPOINT_KEY))
 		?
 		(
 			System.getenv().containsKey(COUCH_ENDPOINT_KEY)
@@ -110,12 +111,12 @@ public class CouchUtil {
 			""
 		)
 		:
-		DIHelper.getInstance().getProperty(COUCH_ENDPOINT_KEY)
+		Utility.getDIHelperProperty(COUCH_ENDPOINT_KEY)
 		;
 	
 	private static final String COUCH_CREDS_KEY = "COUCH_CREDS";
 	private static final String COUCH_CREDS = 
-		StringUtils.isEmpty(DIHelper.getInstance().getProperty(COUCH_CREDS_KEY))
+		StringUtils.isEmpty(Utility.getDIHelperProperty(COUCH_CREDS_KEY))
 		?
 		(
 			System.getenv().containsKey(COUCH_CREDS_KEY)
@@ -125,7 +126,7 @@ public class CouchUtil {
 			""
 		)
 		:
-		DIHelper.getInstance().getProperty(COUCH_CREDS_KEY)
+		Utility.getDIHelperProperty(COUCH_CREDS_KEY)
 		;
 	private static final String COUCH_AUTH = "Basic " 
 		+ new String(Base64.encodeBase64(COUCH_CREDS.getBytes(StandardCharsets.ISO_8859_1)));
@@ -502,11 +503,10 @@ public class CouchUtil {
 							+ DIR_SEPARATOR + "databases";
 					images = InsightUtility.findImageFile(imagePath, databaseId);
 				} else {
-					String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-							+ DIR_SEPARATOR + Constants.DATABASE_FOLDER 
-							+ DIR_SEPARATOR + SmssUtilities.getUniqueName(databaseName, databaseId) 
-							+ DIR_SEPARATOR + "app_root"
-							+ DIR_SEPARATOR + "version";
+					String imagePath = EngineUtility.getSpecificEngineVersionFolder(
+								IEngine.CATALOG_TYPE.DATABASE, 
+								databaseId, 
+								databaseName);
 					images = InsightUtility.findImageFile(imagePath);
 				}
 				

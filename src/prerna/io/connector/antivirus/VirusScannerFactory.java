@@ -7,7 +7,6 @@ import prerna.io.connector.antivirus.clamav.ClamAVScannerUtils;
 import prerna.io.connector.antivirus.tika.ApacheTikaScannerUtils;
 import prerna.io.connector.antivirus.virustotal.VirusTotalScannerUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class VirusScannerFactory {
@@ -22,7 +21,7 @@ public class VirusScannerFactory {
 		if (Utility.isVirusScanningDisabled()) {
 			return null;
 		}
-		String scanType = DIHelper.getInstance().getProperty(Constants.VIRUS_SCANNING_METHOD).toUpperCase();
+		String scanType = Utility.getDIHelperProperty(Constants.VIRUS_SCANNING_METHOD).toUpperCase();
 		
 		if(scanType.equals(IVirusScanner.VIRUS_SCANNER_TYPE.CLAM_AV.toString())) {
 			return ClamAVScannerUtils.getInstance();

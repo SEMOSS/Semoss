@@ -18,9 +18,9 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 
 public class AdminLockAccountWarningReactor extends AbstractReactor {
 
@@ -55,7 +55,7 @@ public class AdminLockAccountWarningReactor extends AbstractReactor {
 			final String DAYS_TO_LOCK_REPLACEMENT = "$daysToLock$";
 			
 			String template = null;
-			String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
+			String templatePath = Utility.getDIHelperProperty(Constants.EMAIL_TEMPLATES);
 			if(templatePath.endsWith("\\") || templatePath.endsWith("/")) {
 				templatePath += ACCOUNT_LOCK_WARNING_TEMPLATE;
 			} else {

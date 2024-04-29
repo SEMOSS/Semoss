@@ -66,7 +66,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -790,9 +790,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		try {
 			close();
 			if(this.dbType == RdbmsTypeEnum.H2_DB) {
-				String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-						+ "/" + Constants.DATABASE_FOLDER 
-						+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId);
+				String path = EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName);
 				DeleteDbFiles.execute(path, "database", false);
 			}
 		} catch (Exception e) {

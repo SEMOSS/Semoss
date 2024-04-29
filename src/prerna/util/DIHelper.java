@@ -76,8 +76,8 @@ public final class DIHelper {
 	// Question-ID Key
 	private Hashtable<String, Object> localProp = new Hashtable<>();
 
-	// localprop for engine
-	private Hashtable<String, Object> engineLocalProp = new Hashtable<>();
+//	// localprop for engine
+//	private Hashtable<String, Object> engineLocalProp = new Hashtable<>();
 
 	/**
 	 * Constructor for DIHelper.
@@ -419,11 +419,13 @@ public final class DIHelper {
 
 	 * @return 	Property mapped to a specific key */
 	public Object getLocalProp(String key) {
-		if(localProp.containsKey(key)) {
-			return localProp.get(key);
-		} else {
-			return engineLocalProp.get(key);
-		}
+		return localProp.get(key);
+		
+//		if(localProp.containsKey(key)) {
+//			return localProp.get(key);
+//		} else {
+//			return engineLocalProp.get(key);
+//		}
 	}
 
 	/**
@@ -439,14 +441,14 @@ public final class DIHelper {
 		localProp.remove(property);
 	}
 
-	/**
-	 * Get the ID for a specific question.
-	 * @param String		Question.
-
-	 * @return String		ID. */
-	public String getIDForQuestion(String question) {
-		return (String)engineLocalProp.get(question);
-	}
+//	/**
+//	 * Get the ID for a specific question.
+//	 * @param String		Question.
+//
+//	 * @return String		ID. */
+//	public String getIDForQuestion(String question) {
+//		return (String)engineLocalProp.get(question);
+//	}
 
 	/**
 	 * Creates a new list and loads properties given a certain file name.
