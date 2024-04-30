@@ -21,12 +21,12 @@ public class MooseReactor extends GaasBaseReactor {
 		this.keysToGet = new String[] {ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.PROJECT.getKey()};
 		this.keyRequired = new int[] {1, 0};
 		
-		commandReactorMap.put("text2sql", NLPQuery2Reactor.class);
+		commandReactorMap.put("text2sql", NLPQuery3Reactor.class);
 		commandReactorMap.put("docqa", QueryQAModelReactor.class);
 		commandReactorMap.put("chat", MooseChatReactor.class);
 		commandReactorMap.put("lfqa", QueryQAModelReactor.class);
 		commandReactorMap.put("fillform", FillFormReactor.class);
-		commandReactorMap.put("text2viz", NLPQuery2Reactor.class); // need to replace this
+		commandReactorMap.put("text2viz", NLPQuery3Reactor.class); // need to replace this
 	}
 	
 	@Override
