@@ -95,6 +95,11 @@ public class ToPostgresCopyReactor extends AbstractReactor {
 	                );
 			classLogger.info(User.getSingleLogginName(user) + " is ran copy command on " + engineId + " and added " + rowsInserted + " rows");
 			
+			// commit the copy
+			if(!postgresConn.getAutoCommit()) {
+				postgresConn.commit();
+			}
+			
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error executing the COPY command. Detailed message = " + e.getMessage());
