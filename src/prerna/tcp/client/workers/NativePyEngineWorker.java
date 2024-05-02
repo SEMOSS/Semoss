@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -20,48 +22,41 @@ import prerna.om.IStringExportProcessor;
 import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativePyEngineWorker implements Runnable {
 	
+	private static final Logger classLogger = LogManager.getLogger(NativePyEngineWorker.class);
+
 	// responsible for doing all of the work from an engine's perspective
 	// the server sends information to semoss core to execute something
 	// this thread will work through in terms of executing it
 	// and then send the response back
-	PayloadStruct ps = null;
-	public static final int MAX_ROWS = 50;
-	PayloadStruct output = null;
-	User user = null;
-	Insight insight = null;
+	private PayloadStruct ps = null;
+	private PayloadStruct output = null;
+	private User user = null;
+	private Insight insight = null;
 	
-	public NativePyEngineWorker(User user, PayloadStruct ps)
-	{
+	public NativePyEngineWorker(User user, PayloadStruct ps) {
 		this.ps = ps;
 		this.user = user;
 	}
 
-	public NativePyEngineWorker(User user, PayloadStruct ps, Insight insight)
-	{
+	public NativePyEngineWorker(User user, PayloadStruct ps, Insight insight) {
 		this.ps = ps;
 		this.user = user;
 		this.insight = insight;
 	}
 
 	@Override
-	public void run() 
-	{
-		
-		try
-		{
-			// TODO Auto-generated method stub
+	public void run() {
+		try {
 			String engineId = ps.objId;
-			
-			// TODO: *****************need to do a security check *************
 			boolean canAccess = SecurityEngineUtils.userCanViewEngine(user, engineId); 
-			
-			if(canAccess)
-			{
+			if(canAccess) {
 				IEngine engine = null;
+				
 				if(ps.engineType.equalsIgnoreCase("DATABASE") && ps.methodName.equalsIgnoreCase("execquery"))
 				{
 					engine = Utility.getDatabase(engineId);
@@ -99,16 +94,17 @@ public class NativePyEngineWorker implements Runnable {
 				}
 				else
 				{
-					if(ps.engineType.equalsIgnoreCase("MODEL"))
+					if(ps.engineType.equalsIgnoreCase("MODEL")) {
 						engine = Utility.getModel(engineId);
-					else if(ps.engineType.equalsIgnoreCase("STORAGE"))
+					} else if(ps.engineType.equalsIgnoreCase("STORAGE")) {
 						engine = Utility.getStorage(engineId);
-					else if(ps.engineType.equalsIgnoreCase("DATABASE"))
+					} else if(ps.engineType.equalsIgnoreCase("DATABASE")) {
 						engine = Utility.getDatabase(engineId);
-					else if(ps.engineType.equalsIgnoreCase("VECTOR"))
+					} else if(ps.engineType.equalsIgnoreCase("VECTOR")) {
 						engine = Utility.getVectorDatabase(engineId);
-					else if(ps.engineType.equalsIgnoreCase("FUNCTION"))
+					} else if(ps.engineType.equalsIgnoreCase("FUNCTION")) {
 						engine = Utility.getFunctionEngine(engineId);
+					}
 					
 					Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
 					Object retObject = method.invoke(engine, ps.payload);
@@ -119,7 +115,6 @@ public class NativePyEngineWorker implements Runnable {
 						if(((Map) retObject).containsKey(RDBMSNativeEngine.RESULTSET_OBJECT))
 						{
 							JSONArray retArray = convertToJSONArray((ResultSet)((Map) retObject).get(RDBMSNativeEngine.RESULTSET_OBJECT));
-							
 							//ps.payload = new Object [] {"helo"};
 						}
 						else
@@ -135,26 +130,20 @@ public class NativePyEngineWorker implements Runnable {
 					}
 				}					
 			}
-			else
-			{
+			else {
 				// this should just go into the catch below
 				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to it");
 			}
 			// got the response
 			ps.response = true;
-			
-		} catch(Exception ex)
-		{
-			ex.printStackTrace();
-			
+		} catch(Exception ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 		    // Get the message from the current exception
 		    String errorMessage = (ex.getCause() != null) ? ex.getCause().getMessage() : ex.getLocalizedMessage();
-
 		    // if its null, pass a generic message
 		    if (errorMessage == null) {
 		        errorMessage = "Runtime Error Processing Python Command";
 		    }
-		    
 			ps.ex = errorMessage;
 			ps.response = true;
 		}
@@ -180,7 +169,7 @@ public class NativePyEngineWorker implements Runnable {
             } catch (NoSuchMethodException e) {
                 // If the method is not found in the current class, continue with the superclass
             } catch (SecurityException e) {
-                e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
             }
             // Move to the superclass for the next iteration
             currentClass = currentClass.getSuperclass();
@@ -193,7 +182,12 @@ public class NativePyEngineWorker implements Runnable {
         return retMethod;
     }
     
-    private Map <String, Object> normalizeMap(Map <String, Object> input)
+    /**
+     * 
+     * @param input
+     * @return
+     */
+    private Map <String, Object> normalizeMap(Map<String, Object> input)
     {
     	// parse through the objects
     	// if the object is not serializable no go
@@ -215,8 +209,7 @@ public class NativePyEngineWorker implements Runnable {
 					jsonArray = convertToJSONArray((ResultSet)obj);
 					output.put(key, jsonArray);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
     		}
     		else if(obj instanceof Serializable)
@@ -227,14 +220,21 @@ public class NativePyEngineWorker implements Runnable {
     	return output;
     }
     
-    public PayloadStruct getOutput()
-    {
+    /**
+     * 
+     * @return
+     */
+    public PayloadStruct getOutput() {
     	return this.output;
     }
 
-    
-    public JSONArray convertToJSONArray(ResultSet resultSet)
-            throws Exception {
+    /**
+     * 
+     * @param resultSet
+     * @return
+     * @throws Exception
+     */
+    public JSONArray convertToJSONArray(ResultSet resultSet) throws Exception {
         JSONArray jsonArray = new JSONArray();
         while (resultSet.next()) {
             JSONObject obj = new JSONObject();
@@ -246,7 +246,7 @@ public class NativePyEngineWorker implements Runnable {
             }
             jsonArray.put(obj);
         }
-        return jsonArray;// .toString();
+        return jsonArray;
     }
 	
 }
