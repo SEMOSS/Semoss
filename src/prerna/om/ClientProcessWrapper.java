@@ -25,6 +25,9 @@ public class ClientProcessWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(ClientProcessWrapper.class);
 
+	private final Object lockCreate = new Object();
+    private final Object lockDestroy = new Object();
+	
 	private SocketClient socketClient;
 	private Process process;
 	private String prefix;
@@ -50,7 +53,7 @@ public class ClientProcessWrapper {
 	 * @param debug
 	 * @throws Exception
 	 */
-	public synchronized void createProcessAndClient(boolean nativePyServer,
+	public void createProcessAndClient(boolean nativePyServer,
 			MountHelper chrootMountHelper,
 			int port,
 			String venvPath,
@@ -60,164 +63,168 @@ public class ClientProcessWrapper {
 			String timeout,
 			String loggerLevel) throws Exception 
 	{
-		this.nativePyServer = nativePyServer;
-		this.chrootMountHelper = chrootMountHelper;
-		this.classPath = classPath;
-		this.port = calculatePort(port);
-		this.venvPath = venvPath;
-		this.serverDirectory = serverDirectory;
-		this.debug = debug;
-		this.loggerLevel = loggerLevel;
-		this.timeout = timeout;
-		if(this.timeout == null) {
-			this.timeout = "-1";
-		}
-		boolean serverRunning = debug && port > 0;
-		if(!serverRunning) {
-			if(nativePyServer) {
-				if(chrootMountHelper != null) {
-					// for a user process - this will be something like /opt/user_id_randomid/
-					Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
-					// we will be creating a fake semoss home in the chrooted directory
-					// so grabbing the current base folder to mock the same pattern
-					String baseFolderPath = Utility.getBaseFolder();
-					// this is the fake semoss home in the chroot 
-					Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-					// create a temp folder where we will start the process for the server
-					Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-					this.serverDirectory = serverDirectoryPath.toString();
-					// we need to have a relative path to replace the log4j file as it is started 
-					// in the chroot world and not the base OS world
-					// .. technically since i'm hard coding above the base folder from rdf_map, could replace but w/e
-					String relative = chrootPath.relativize(serverDirectoryPath).toString();
-					if(!relative.startsWith("/")) {
-						relative ="/"+relative;
+		synchronized(lockCreate) {
+			this.nativePyServer = nativePyServer;
+			this.chrootMountHelper = chrootMountHelper;
+			this.classPath = classPath;
+			this.port = calculatePort(port);
+			this.venvPath = venvPath;
+			this.serverDirectory = serverDirectory;
+			this.debug = debug;
+			this.loggerLevel = loggerLevel;
+			this.timeout = timeout;
+			if(this.timeout == null) {
+				this.timeout = "-1";
+			}
+			boolean serverRunning = debug && port > 0;
+			if(!serverRunning) {
+				if(nativePyServer) {
+					if(chrootMountHelper != null) {
+						// for a user process - this will be something like /opt/user_id_randomid/
+						Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
+						// we will be creating a fake semoss home in the chrooted directory
+						// so grabbing the current base folder to mock the same pattern
+						String baseFolderPath = Utility.getBaseFolder();
+						// this is the fake semoss home in the chroot 
+						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
+						// create a temp folder where we will start the process for the server
+						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
+						this.serverDirectory = serverDirectoryPath.toString();
+						// we need to have a relative path to replace the log4j file as it is started 
+						// in the chroot world and not the base OS world
+						// .. technically since i'm hard coding above the base folder from rdf_map, could replace but w/e
+						String relative = chrootPath.relativize(serverDirectoryPath).toString();
+						if(!relative.startsWith("/")) {
+							relative ="/"+relative;
+						}
+						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
+						
+						Object[] ret = Utility.startTCPServerNativePyChroot(chrootMountHelper.getTargetDirName(), relative, this.port+"");
+						this.process = (Process) ret[0];
+						this.prefix = (String) ret[1];
+					} else {
+						// write the log4j file in the server directory
+						Utility.writeLogConfigurationFile(this.serverDirectory);
+											
+						Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", this.venvPath, timeout, loggerLevel);
+						this.process = (Process) ret[0];
+						this.prefix = (String) ret[1];
 					}
-					Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-					
-					Object[] ret = Utility.startTCPServerNativePyChroot(chrootMountHelper.getTargetDirName(), relative, this.port+"");
-					this.process = (Process) ret[0];
-					this.prefix = (String) ret[1];
 				} else {
-					// write the log4j file in the server directory
-					Utility.writeLogConfigurationFile(this.serverDirectory);
-										
-					Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", this.venvPath, timeout, loggerLevel);
-					this.process = (Process) ret[0];
-					this.prefix = (String) ret[1];
-				}
-			} else {
-				if(chrootMountHelper != null) {
-					// for a user process - this will be something like /opt/user_id_randomid/
-					Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
-					// we will be creating a fake semoss home in the chrooted directory
-					// so grabbing the current base folder to mock the same pattern
-					String baseFolderPath = Utility.getBaseFolder();
-					// this is the fake semoss home in the chroot 
-					Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-					// create a temp folder where we will start the process for the server
-					Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-					this.serverDirectory = serverDirectoryPath.toString();
-					// we need to have a relative path to replace the log4j file as it is started 
-					// in the chroot world and not the base OS world
-					// .. technically since i'm hard coding above the base folder from rdf_map, could replace but w/e
-					String relative = chrootPath.relativize(serverDirectoryPath).toString();
-					if(!relative.startsWith("/")) {
-						relative ="/"+relative;
+					if(chrootMountHelper != null) {
+						// for a user process - this will be something like /opt/user_id_randomid/
+						Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
+						// we will be creating a fake semoss home in the chrooted directory
+						// so grabbing the current base folder to mock the same pattern
+						String baseFolderPath = Utility.getBaseFolder();
+						// this is the fake semoss home in the chroot 
+						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
+						// create a temp folder where we will start the process for the server
+						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
+						this.serverDirectory = serverDirectoryPath.toString();
+						// we need to have a relative path to replace the log4j file as it is started 
+						// in the chroot world and not the base OS world
+						// .. technically since i'm hard coding above the base folder from rdf_map, could replace but w/e
+						String relative = chrootPath.relativize(serverDirectoryPath).toString();
+						if(!relative.startsWith("/")) {
+							relative ="/"+relative;
+						}
+						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
+						
+						this.process = Utility.startTCPServerChroot(classPath, chrootMountHelper.getTargetDirName(), relative, this.port+"");
+					} else {
+						// write the log4j file in the server directory
+						Utility.writeLogConfigurationFile(this.serverDirectory);
+						this.process = Utility.startTCPServer(classPath, serverDirectory, this.port+"");
 					}
-					Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-					
-					this.process = Utility.startTCPServerChroot(classPath, chrootMountHelper.getTargetDirName(), relative, this.port+"");
-				} else {
-					// write the log4j file in the server directory
-					Utility.writeLogConfigurationFile(this.serverDirectory);
-					this.process = Utility.startTCPServer(classPath, serverDirectory, this.port+"");
 				}
 			}
-		}
-		
-		try {
-			if(this.nativePyServer) {
-				this.socketClient = new NativePySocketClient();
-			} else {
-				this.socketClient = new SocketClient();
-			}
-			this.socketClient.connect("127.0.0.1", this.port, false);
-			Thread t = new Thread(socketClient);
-			t.start();
-			while(!socketClient.isReady())
-			{
-				synchronized(socketClient)
+			
+			try {
+				if(this.nativePyServer) {
+					this.socketClient = new NativePySocketClient();
+				} else {
+					this.socketClient = new SocketClient();
+				}
+				this.socketClient.connect("127.0.0.1", this.port, false);
+				Thread t = new Thread(socketClient);
+				t.start();
+				while(!socketClient.isReady())
 				{
-					try 
+					synchronized(socketClient)
 					{
-						socketClient.wait();
-						classLogger.info("Setting the socket client ");
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						try 
+						{
+							socketClient.wait();
+							classLogger.info("Setting the socket client ");
+						} catch (InterruptedException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
 	/**
 	 * 
 	 */
-	public synchronized void shutdown(boolean cleanUpFolder) {
-		if(this.socketClient != null && this.socketClient.isConnected()) {
-	        ExecutorService executor = Executors.newSingleThreadExecutor();
-	
-	        Callable<String> callableTask = () -> {
-	        	if(cleanUpFolder) {
-	        		this.socketClient.stopPyServe(this.serverDirectory);
-	        	} else {
-	        		this.socketClient.stopPyServe(null);
-	        	}
-	            return "Successfully stopped the process";
-	        };
-	
-	        Future<String> future = executor.submit(callableTask);
-	        try {
-	        	// wait 1 minute at most
-	            String result = future.get(60, TimeUnit.SECONDS);
-	            classLogger.info(result);
-	        } catch (TimeoutException e) {
-	        	classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
-	        	try {
-	        		// still call the close to shut down the io streams
-	        		this.socketClient.close();
+	public void shutdown(boolean cleanUpFolder) {
+		synchronized(lockDestroy) {
+			if(this.socketClient != null && this.socketClient.isConnected()) {
+		        ExecutorService executor = Executors.newSingleThreadExecutor();
+		
+		        Callable<String> callableTask = () -> {
+		        	if(cleanUpFolder) {
+		        		this.socketClient.stopPyServe(this.serverDirectory);
+		        	} else {
+		        		this.socketClient.stopPyServe(null);
+		        	}
+		            return "Successfully stopped the process";
+		        };
+		
+		        Future<String> future = executor.submit(callableTask);
+		        try {
+		        	// wait 1 minute at most
+		            String result = future.get(60, TimeUnit.SECONDS);
+		            classLogger.info(result);
+		        } catch (TimeoutException e) {
+		        	classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
+		        	try {
+		        		// still call the close to shut down the io streams
+		        		this.socketClient.close();
+		    			this.process.destroy();
+		    		} catch(Exception e2) {
+		            	classLogger.error(Constants.STACKTRACE, e2);
+		    		}
+		            future.cancel(true); 
+		        } catch (InterruptedException | ExecutionException e) {
+		        	classLogger.error(Constants.STACKTRACE, e);
+		        } finally {
+		            executor.shutdown();
+		            
+		            // reset the venv path
+		            this.venvPath = null;
+		        }
+			}
+	//		// no socket but have a process? try to kill it
+	//		else if(this.process != null){
+	//			try {
+	//    			this.process.destroy();
+	//    		} catch(Exception e) {
+	//            	classLogger.error(Constants.STACKTRACE, e);
+	//    		}
+	//		}
+			// you know what, always try this...
+			if(this.process != null){
+				try {
 	    			this.process.destroy();
-	    		} catch(Exception e2) {
-	            	classLogger.error(Constants.STACKTRACE, e2);
+	    		} catch(Exception e) {
+	            	classLogger.error(Constants.STACKTRACE, e);
 	    		}
-	            future.cancel(true); 
-	        } catch (InterruptedException | ExecutionException e) {
-	        	classLogger.error(Constants.STACKTRACE, e);
-	        } finally {
-	            executor.shutdown();
-	            
-	            // reset the venv path
-	            this.venvPath = null;
-	        }
-		}
-//		// no socket but have a process? try to kill it
-//		else if(this.process != null){
-//			try {
-//    			this.process.destroy();
-//    		} catch(Exception e) {
-//            	classLogger.error(Constants.STACKTRACE, e);
-//    		}
-//		}
-		// you know what, always try this...
-		if(this.process != null){
-			try {
-    			this.process.destroy();
-    		} catch(Exception e) {
-            	classLogger.error(Constants.STACKTRACE, e);
-    		}
+			}
 		}
 	}
 	
