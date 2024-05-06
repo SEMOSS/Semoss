@@ -55,12 +55,15 @@ public class CloseEngineReactor extends AbstractReactor {
 			} 
 		}
 		
+		
 		// once all are good, we can close
 		for (String engineId : engineIds) {
+			classLogger.info("Shutting down engine: " + engineId);
 			// we may have the alias
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			IEngine engine = Utility.getEngine(engineId);
 			try {
+				classLogger.info("Attempting to close engine: " + engineId);
 				engine.close();
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
