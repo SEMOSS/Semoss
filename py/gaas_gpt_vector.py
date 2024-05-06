@@ -149,7 +149,7 @@ class VectorEngine(ServerProxy):
             # Update file_path to include the insight folder path
             if not os.path.isfile(file_path):
                 # should never start a path with a /
-                if(file_path[0] == "/"):
+                if file_path[0] == "/":
                     file_path = file_path[1:]
 
                 updated_file_path = os.path.join(self.insight_folder, file_path)

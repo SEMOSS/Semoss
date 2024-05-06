@@ -1,5 +1,6 @@
 package prerna.tcp.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.Socket;
@@ -15,14 +16,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.ws.rs.core.StreamingOutput;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.reactor.job.JobReactor;
+import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.JobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
@@ -53,12 +60,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     private Socket clientSocket = null;
 	//InputStream is = null;
 	//OutputStream os = null;
-	SocketClientHandler sch = new SocketClientHandler();
-	Gson gson = new Gson();
+	//SocketClientHandler sch = new SocketClientHandler();
+	private Gson gson = new Gson();
 
-	
-    public void connect(String HOST, int PORT, boolean SSL)
-    {
+	/**
+	 * 
+	 */
+    public void connect(final String HOST, final int PORT, final boolean SSL) {
     	this.HOST = HOST;
     	this.PORT = PORT;
     	this.SSL = SSL;
@@ -76,6 +84,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     	this.killall = true;
     }
     
+    /**
+     * 
+     */
     public void run()	
     {
     	// there is 2 portions to the run
@@ -128,7 +139,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	    	}
 	    	
 	    	if(attempt > 6) {
-	            classLogger.info("CLIENT Connection Failed !!!!!!!");
+	            classLogger.error("CLIENT Connection Failed !!!!!!!");
 	            killall = true;
 	            connected = false;
 	            ready = false;
@@ -136,8 +147,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	            {
 	            	this.notifyAll();
 	            }
+	            throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 	    	}
-    	}    	
+    	}
     	
     	// this is the read portion
     	if(connected)
@@ -290,7 +302,31 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	    					// will come to it in a bit
 	    					// clean up the payload struct a little
 	    					ps = convertPayloadClasses(ps);
-	    					processRequest(ps);
+	    					processEngineRequest(ps);
+	    				}
+	    				// this is a request for a reactor
+	    				else if(ps.operation == ps.operation.REACTOR)
+	    				{
+	    					ByteArrayOutputStream output = new ByteArrayOutputStream();
+	    					try {
+		    					String insightId = ps.insightId;
+								Insight insight = insightMap.get(insightId);
+		    					String pixelOp = (String) ps.payload[0];
+		    					PixelRunner pixelRunner = insight.runPixel(pixelOp);
+		    					StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner, null);
+		    					streamedOutput.write(output);
+		    					JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
+		    					ps.payload = new Object[] {json};
+		    					ps.response = true;
+		    					executeCommand(ps);
+	    					} catch(Exception e) {
+    							ps.response = true;
+    							ps.ex = "An error occurred running the pixel";
+    							// return the error
+    							executeCommand(ps);
+	    					} finally {
+	    						output.close();
+	    					}
 	    				}
 	    				// unhandled pieces.. nothing we can do here.. just give the response back
 	    				// so we dont choke the thread
@@ -333,7 +369,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     	}
     }
     
-    private void processRequest(PayloadStruct ps)
+    private void processEngineRequest(PayloadStruct ps)
     {
 		String insightId = ps.insightId;
 		if(insightId == null || (insightId=insightId.trim()).isEmpty() || insightId.equals("${i}")) {
@@ -433,18 +469,15 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
 				{
 					//classLogger.info("Checking to see if there was a response");
-					try
-					{
+					try {
 						if(pollNum < 10) {
 							ps.wait(averageMillis);
 						} else { //if(ps.longRunning) // this is to make sure the kill all is being checked
 							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
 						}
 						pollNum++;
-					}catch (InterruptedException e) 
-					{
-							// TODO Auto-generated catch block
-						e.printStackTrace();
+					} catch (InterruptedException e) {
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
