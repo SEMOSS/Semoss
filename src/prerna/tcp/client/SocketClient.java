@@ -149,6 +149,7 @@ public class SocketClient implements Runnable, Closeable {
             {
             	this.notifyAll();
             }
+            throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
     	}
     }	
     

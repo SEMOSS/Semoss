@@ -7,8 +7,9 @@ class DatabaseEngine(ServerProxy):
     super().__init__()
     self.engine_id = engine_id
     self.insight_id = insight_id
-    print("initialized")
-   
+    print(f"Engine {engine_id} is initialized")
+
+
   def execQuery(self, query=None, insight_id=None, return_pandas=True):
     assert query is not None
     if insight_id is None:
@@ -39,38 +40,60 @@ class DatabaseEngine(ServerProxy):
       if os.path.exists(fileLoc):
         os.remove(fileLoc)
 
+
   def insertData(self, query=None, insight_id=None):
-    assert query is not None
-    if insight_id is None:
-      insight_id = self.insight_id
-    # assert insight_id is not None
-    epoc = super().get_next_epoc()
-    return super().call(
-                      epoc = epoc, 
-                      engine_type='database', 
-                      engine_id=self.engine_id, 
-                      insight_id=insight_id, 
-                      method_name='insertData', 
-                      method_args=[query],
-                      method_arg_types=['java.lang.String']
-                      )
+    '''
+      This method is responsible for running a insert data into the database
+      
+      Args:
+          query (`str`): The query to run against the database
+          insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+          
+      Returns:
+          boolean: true/false if this ran successfully
+    '''
+    return self.runQuery(query, insight_id)
 
 
   def removeData(self, query=None, insight_id=None):
+    '''
+      This method is responsible for removing data from the database
+      
+      Args:
+          query (`str`): The query to run against the database
+          insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+          
+      Returns:
+          boolean: true/false if this ran successfully
+    '''
+    return self.runQuery(query, insight_id)
+    
+
+  def runQuery(self, query=None, insight_id=None):
+    '''
+      This method is responsible for running the exec query against the database
+      
+      Args:
+          query (`str`): The query to run against the database
+          insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+          
+      Returns:
+          boolean: true/false if this ran successfully
+    '''
     assert query is not None
     if insight_id is None:
       insight_id = self.insight_id
     # assert insight_id is not None
     epoc = super().get_next_epoc()
-    return super().call(
-                      epoc = epoc, 
-                      engine_type='database', 
-                      engine_id=self.engine_id, 
+    pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery();'
+    pixelReturn = super().callReactor(
+                      epoc = epoc,
+                      pixel=pixel,
                       insight_id=insight_id, 
-                      method_name='removeData', 
-                      method_args=[query],
-                      method_arg_types=['java.lang.String']
                       )
-
+    if pixelReturn is not None and len(pixelReturn) > 0:
+        output = pixelReturn[0]['pixelReturn'][0]
+        return output['output']
+    return pixelReturn
   
     

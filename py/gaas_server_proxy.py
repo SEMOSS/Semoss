@@ -32,9 +32,17 @@ class ServerProxy:
         method_name:str,
         method_args:Optional[List[Any]] = [],
         method_arg_types:Optional[List[str]] = [],
-        insight_id:Optional[str] = None
+        insight_id:Optional[str] = None,
+        operation:str = "ENGINE"
     ):
         '''
+        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
+        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
+        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
+        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
+        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
+
+
         This method in responsible for:
             - converting the args into a PayloadStruct
             - adds itself to the monitor block
@@ -77,7 +85,7 @@ class ServerProxy:
             "payload": method_args,
             "payloadClassNames": method_arg_types,
             "insightId": insight_id,
-            "operation": "ENGINE",
+            "operation": operation,
         }
         
         self.server.monitors.update({epoc: self.condition}) # adds itself to the monitor block
@@ -86,7 +94,7 @@ class ServerProxy:
         self.condition.wait()
         self.condition.release()                            # once it gets the response removes it from the monitors
 
-    def call(
+    def callEngine(
         self,
         epoc:str,
         engine_type:str,
@@ -97,7 +105,7 @@ class ServerProxy:
         insight_id:Optional[str] = None
     ):
         '''
-        This method is responsible for initiating a communication with the server using a separate thread, which calls the `comm` method.
+        This method is responsible for initiating a remote engine communication with the server using a separate thread, which calls the `comm` method.
         
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -124,6 +132,7 @@ class ServerProxy:
                 "method_args": method_args,
                 "method_arg_types": method_arg_types,
                 "insight_id": insight_id,
+                "operation": "ENGINE"
             },
         )
         orig_payload = getattr(current_thread(), "payload", None)
@@ -139,6 +148,70 @@ class ServerProxy:
             raise Exception(new_payload_struct["ex"])
         else:
             return new_payload_struct["payload"]
+
+    def call(
+        self,
+        epoc:str,
+        engine_type:str,
+        engine_id:str,
+        method_name:str = "None",
+        method_args:Optional[List[Any]] = [],
+        method_arg_types:Optional[List[str]] = [],
+        insight_id:Optional[str] = None
+    ):
+        '''
+        This method is deprecated!
+        Please use callEngine instead
+        '''
+        return self.callEngine(epoc,engine_type,engine_id,method_name,method_args,method_arg_types,insight_id)
+
+    def callReactor(
+            self,
+            epoc:str,
+            pixel:str,
+            insight_id:Optional[str] = None
+        ):
+            '''
+            This method is responsible for initiating a pixel call communication with the server using a separate thread, which calls the `comm` method.
+            
+            Args:
+                epoc (`str`): The epoc ID for the payload struct.
+                pixel (`str`): The pixel being executed to tomcat
+                insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+                
+            Returns:
+                `List[Dict]`: A list that contains the response from the Tomcat server engine.
+            '''
+            # epoc = self.get_next_epoc()
+            # if insight_id is None:
+            #   return "Insight Id cannot be none"
+            thread = threading.Thread(
+                target=self.comm,
+                kwargs={
+                    "epoc": epoc,
+                    "method_args": [pixel],
+                    "insight_id": insight_id,
+                    "operation": "REACTOR",
+                    # these are not used but ...
+                    "engine_type": None,
+                    "engine_id": None,
+                    "method_name": None,
+                    "method_arg_types": None
+                },
+            )
+            orig_payload = getattr(current_thread(), "payload", None)
+            thread.payload = orig_payload
+            
+            thread.start()           # start the thread
+            thread.join()            # wait for it to finish
+            
+            new_payload_struct = self.server.monitors.pop(epoc)
+
+            if "ex" in new_payload_struct:
+                # if exception, convert exception and give back
+                raise Exception(new_payload_struct["ex"])
+            else:
+                return new_payload_struct["payload"]
 
     def test(self):
         epoc = self.get_next_epoc()
