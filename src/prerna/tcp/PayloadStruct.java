@@ -2,13 +2,12 @@ package prerna.tcp;
 
 import java.io.Serializable;
 
-public class PayloadStruct implements Serializable{
+public class PayloadStruct implements Serializable {
 	
 	public String epoc = null;
 	// other operations to introduce
 	// ENGINE 
 	// SET
-	
 	
 	public enum OPERATION {R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR}; 
 	public OPERATION operation = OPERATION.R; // setting default to R
