@@ -158,6 +158,10 @@ public class ExecQueryReactor extends AbstractReactor {
 		return noun;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private NounMetadata getQueryStruct() {
 		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
@@ -169,6 +173,10 @@ public class ExecQueryReactor extends AbstractReactor {
 		return f;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public String getCustomSuccessMessage() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
@@ -178,6 +186,10 @@ public class ExecQueryReactor extends AbstractReactor {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @param qs
+	 */
 	public void setQueryStruct(NounMetadata qs) {
 		this.qStruct = qs;
 	}
