@@ -39,7 +39,14 @@ public class ClusterUtil {
 					(System.getenv().containsKey(IS_CLUSTER_KEY)) 
 					? Boolean.parseBoolean(System.getenv(IS_CLUSTER_KEY)) : false);
 			
-
+	
+	// are we running the zk cluster synchronizer
+	private static final String IS_CLUSTER_ZK_KEY = "SEMOSS_IS_CLUSTER_ZK";
+	public static final boolean IS_CLUSTER_ZK = (Utility.getDIHelperProperty(IS_CLUSTER_ZK_KEY) != null && !(Utility.getDIHelperProperty(IS_CLUSTER_ZK_KEY).isEmpty())) 
+			? Boolean.parseBoolean(Utility.getDIHelperProperty(IS_CLUSTER_ZK_KEY)) : (
+					(System.getenv().containsKey(IS_CLUSTER_ZK_KEY)) 
+					? Boolean.parseBoolean(System.getenv(IS_CLUSTER_ZK_KEY)) : false);
+	
 
 	private static final String STORAGE_PROVIDER_KEY = "SEMOSS_STORAGE_PROVIDER";
 	public static final String STORAGE_PROVIDER = (Utility.getDIHelperProperty(STORAGE_PROVIDER_KEY) != null && !(Utility.getDIHelperProperty(STORAGE_PROVIDER_KEY).isEmpty())) 
@@ -139,6 +146,16 @@ public class ClusterUtil {
 		return CentralCloudStorage.getInstance();
 	}
 	
+	
+	/**
+	 * 
+	 * @return
+	 * @throws Exception 
+	 */
+	public static ClusterSynchronizer getClusterSynchronizer() throws Exception {
+		return ClusterSynchronizer.getInstance();
+	}
+	
 	/**
 	 * 
 	 * @param databaseId
@@ -202,6 +219,17 @@ public class ClusterUtil {
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push engine '"+engineId+"' to cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishEngineChange(engineId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -557,6 +585,18 @@ public class ClusterUtil {
 				NounMetadata noun = new NounMetadata("Failed to push project '"+projectId+"' to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
+		
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishProjectChange(projectId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish project '"+projectId+"' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
