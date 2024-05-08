@@ -1,6 +1,15 @@
 package prerna.cluster.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -46,9 +55,9 @@ public class ClusterSynchronizer {
 		
 		// what is the zk server ip
 		String zk_server = clientProps.get(ZK_SERVER_STRING);
-		
+		//zk_server="localhost:2181";
+
 		if (zk_server == null || zk_server.isEmpty()) {
-//			zk_server="localhost:2181";
 			throw new IllegalArgumentException("Zookeeper Server endpoint is not defined");
 			}
 		
@@ -95,20 +104,40 @@ public class ClusterSynchronizer {
 	                @Override
 	                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
 	                    if (event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED) {
-	                        String updatedByNodeId = new String(event.getData().getData());
+	                        ByteArrayInputStream byteIn = new ByteArrayInputStream(event.getData().getData());
+	                        ObjectInputStream in = new ObjectInputStream(byteIn);
+	                        //Map<String, String> dataMap = (Map<String, String>) in.readObject();
+	                        Map<String, Object> dataMap = (Map<String, Object>) in.readObject();
+
+	                        String updatedByNodeId = (String) dataMap.get("nodeId");
 	                        // if the host updated it, then its already ready - other nodes have to pull
 	                        if (!updatedByNodeId.equals(host)) {
 	                            String fullPath = event.getData().getPath();
-	                            System.out.println( fullPath + " updated, pulling latest data from cloud storage");
-	                            if(fullPath.startsWith(SYNC_PROJECT_PATH)) {
-	                                String[] path = fullPath.split(SYNC_PROJECT_PATH+"/");
-	                                String projectID = path[1];
-	                                ClusterUtil.pullProject(projectID);
-	                            } else {
-	                                String[] path = fullPath.split(SYNC_ENGINE_PATH+"/");
-	                                String engineID = path[1];
-	                                ClusterUtil.pullEngine(engineID);
+	                            classLogger.info( fullPath + " updated, pulling latest data from cloud storage");
+//	                            String id;                      
+//	                            if(fullPath.startsWith(SYNC_PROJECT_PATH)) {
+//	                                String[] path = fullPath.split(SYNC_PROJECT_PATH+"/");
+//	                                 id = path[1];
+////	                                ClusterUtil.pullProject(projectID);
+//	                            } else {
+//	                                String[] path = fullPath.split(SYNC_ENGINE_PATH+"/");
+//	                                 id = path[1];
+////	                                ClusterUtil.pullEngine(engineID);
+//	                            }
+
+	                            
+	                            try {
+	                                List<String> params = (List<String>) dataMap.get("params");
+	                                Class<?>[] paramTypes = new Class[params.size()];
+	                                for (int i = 0; i < params.size(); i++) {
+	                                    paramTypes[i] = params.get(i).getClass();
+	                                }
+	                                Method method = ClusterUtil.class.getMethod(dataMap.get("methodName").toString(), paramTypes);
+	                                method.invoke(null, params.toArray());
+	                            } catch (Exception e) {
+	                                e.printStackTrace();
 	                            }
+	                            
 	                        }
 	                    }
 	                }
@@ -143,8 +172,7 @@ public class ClusterSynchronizer {
 	}
 	
 	
-	//TODO - break this out smarter to be for all different pushes
-	public void publishEngineChange(String engineId) throws Exception {
+	public void publishCloudChange(String engineId, String methodName,  Object... params) throws Exception {
 		
 		String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
 		
@@ -153,27 +181,72 @@ public class ClusterSynchronizer {
 		    client.create().creatingParentsIfNeeded().forPath(enginePath);
 		}
 		
-		// this updates the path and the watcher is watching for updates
-		//TODO - pass a full map as the data where host will be a key along with the function used - ex. pushOwl, pushInsightDB
-		 client.setData().forPath(enginePath, host.getBytes());
-		
+	   Map<String, Object> dataMap = new HashMap<>();
+       dataMap.put("nodeId", host);
+       dataMap.put("methodName", methodName);
+       List<Object> paramList = Arrays.asList(params);
+       dataMap.put("params", paramList);
+
+       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+       ObjectOutputStream out = new ObjectOutputStream(byteOut);
+       out.writeObject(dataMap);
+	
+       client.setData().forPath(enginePath, byteOut.toByteArray());
+
 	}
 	
-	//TODO - break this out smarter to be for all different pushes
-	public void publishProjectChange(String projectId) throws Exception {
-		
-		String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
-		
-		//this creates the path if it doesnt exist
-		if (client.checkExists().forPath(projectPath) == null) {
-		    client.create().creatingParentsIfNeeded().forPath(projectPath);
-		}
-		
-		// this updates the path and the watcher is watching for updates
-		//TODO - pass a full map as the data where host will be a key along with the function used - ex. pushProjectFolder
-		 client.setData().forPath(projectPath, host.getBytes());
-		
-	}
+//	
+//	//TODO - break this out smarter to be for all different pushes
+//	public void publishEngineChange(String engineId, String methodName) throws Exception {
+//		
+//		String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
+//		
+//		//this creates the path if it doesnt exist
+//		if (client.checkExists().forPath(enginePath) == null) {
+//		    client.create().creatingParentsIfNeeded().forPath(enginePath);
+//		}
+//		
+//	   Map<String, String> dataMap = new HashMap<>();
+//       dataMap.put("nodeId", host);
+//       dataMap.put("methodName", methodName);
+//       
+//       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+//       ObjectOutputStream out = new ObjectOutputStream(byteOut);
+//       out.writeObject(dataMap);
+//	
+//		// this updates the path and the watcher is watching for updates
+//		//TODO - pass a full map as the data where host will be a key along with the function used - ex. pushOwl, pushInsightDB
+//		 //client.setData().forPath(enginePath, host.getBytes());
+//       client.setData().forPath(enginePath, byteOut.toByteArray());
+//
+//	}
+//	
+//	//TODO - break this out smarter to be for all different pushes
+//	public void publishProjectChange(String projectId, String methodName) throws Exception {
+//		
+//		String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
+//		
+//		//this creates the path if it doesnt exist
+//		if (client.checkExists().forPath(projectPath) == null) {
+//		    client.create().creatingParentsIfNeeded().forPath(projectPath);
+//		}
+//		
+//		   Map<String, String> dataMap = new HashMap<>();
+//	       dataMap.put("nodeId", host);
+//	       dataMap.put("methodName", methodName);
+//	       
+//	       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+//	       ObjectOutputStream out = new ObjectOutputStream(byteOut);
+//	       out.writeObject(dataMap);
+//		
+//			// this updates the path and the watcher is watching for updates
+//			//TODO - pass a full map as the data where host will be a key along with the function used - ex. pushOwl, pushInsightDB
+//			 //client.setData().forPath(enginePath, host.getBytes());
+//	       client.setData().forPath(projectPath, byteOut.toByteArray());
+//		
+//	}
+//	
+	
 	
 	public static void main(String[] args) {
 		
