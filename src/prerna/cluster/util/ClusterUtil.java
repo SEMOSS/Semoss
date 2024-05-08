@@ -226,11 +226,11 @@ public class ClusterUtil {
 		
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishEngineChange(engineId);
+				getClusterSynchronizer().publishCloudChange(engineId, "pullEngine", engineId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
-				err.setContinueThreadOfExecution(false);
+				err.setContinueThreadOfExecution(true);
 				throw err;
 			}
 		}
@@ -251,6 +251,16 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(engineId, "pullEngine", engineId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
 	}
 	
 	/**
@@ -265,6 +275,16 @@ public class ClusterUtil {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push engine '"+engineId+"'smss to cloud storage");
 				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(engineId, "pullEngine", engineId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
 				throw err;
 			}
 		}
@@ -393,6 +413,7 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+
 	}
 	
 	/**
@@ -516,6 +537,16 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(projectId, "pullInsightsDB", projectId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish project '"+projectId+"' to sync with ZK cluster to pull insight db");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
 		return;
 	}
 
@@ -569,6 +600,16 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(databaseId, "pullOwl", databaseId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish owl change for '"+databaseId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
 		return;
 	}
 
@@ -593,11 +634,11 @@ public class ClusterUtil {
 		
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishProjectChange(projectId);
+				getClusterSynchronizer().publishCloudChange(projectId, "pullProject", projectId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish project '"+projectId+"' to sync with ZK cluster");
-				err.setContinueThreadOfExecution(false);
+				err.setContinueThreadOfExecution(true);
 				throw err;
 			}
 		}
@@ -676,6 +717,16 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(projectId, "pullProjectFolder",projectId,absolutePath,remoteRelativePath );
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish project folder for '"+projectId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
 	}
 
 	/**
@@ -750,6 +801,17 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+		
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(projectId, "pullInsight",projectId,rdbmsId);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish insight folder for '"+projectId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
 	}
 	
 	/**
@@ -802,6 +864,17 @@ public class ClusterUtil {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to push user/workplace project");
 				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				getClusterSynchronizer().publishCloudChange(projectId, "pullUserWorkspace",projectId,isAsset);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish user workspace '"+projectId+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
 				throw err;
 			}
 		}
