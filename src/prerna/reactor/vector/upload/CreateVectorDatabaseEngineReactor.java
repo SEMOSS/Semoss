@@ -108,7 +108,8 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			vectorDbDetails.put(Constants.INDEX_CLASSES, "default");
 		}
 		
-		if(vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH) {
+		if(vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH 
+				|| vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH_REST) {
 			if(vectorDbDetails.get(Constants.USERNAME) == null) { throw new IllegalArgumentException("Username is not provided."); }
 			if(vectorDbDetails.get(Constants.PASSWORD) == null) { throw new IllegalArgumentException("Password is not provided."); }
 			if(vectorDbDetails.get(Constants.HOSTS) == null) { throw new IllegalArgumentException("HOSTS is not provided."); }
