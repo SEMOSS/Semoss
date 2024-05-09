@@ -65,7 +65,11 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		}
 		
 		// for FAISS, make sure the user has access to the embedder model as well
-		if (vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS || vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR  || vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.WEAVIATE) {
+		if (vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS 
+				|| vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.PGVECTOR  
+				|| vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.WEAVIATE 
+				|| vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH 
+				|| vectorDatabase.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH_REST) {
 			String embeddingsEngineId = vectorDatabase.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
 			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
 				throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
