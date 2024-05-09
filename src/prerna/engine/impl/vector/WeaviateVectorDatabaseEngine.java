@@ -64,8 +64,6 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private String protocol = "https";
 	private String apiKey = null;
 	
-	private String pyDirectoryBasePath = null;
-	private File cacheFolder = null;
 	private String className = null;
 	private String embedderEngineId = null;
 	private IModelEngine embeddingsEngine = null;
@@ -178,7 +176,6 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
-		// TODO Auto-generated method stub
 		return VectorDatabaseTypeEnum.WEAVIATE;
 		
 	}
@@ -416,18 +413,9 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return pgVectorTable;
 	}
 
-		
-		
-	private void insertDocument()
-	{
-		
-	}
-
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) 
 	{
-		// TODO Auto-generated method stub
-		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
