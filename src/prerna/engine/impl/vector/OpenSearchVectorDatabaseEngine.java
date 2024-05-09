@@ -2,58 +2,27 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.CopyFilesToEngineRunner;
-import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.query.querystruct.filters.AndQueryFilter;
-import prerna.query.querystruct.filters.BetweenQueryFilter;
-import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.OrQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
-import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.reactor.qs.SubQueryExpression;
-import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.tcp.client.CleanerThread;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
+	
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchVectorDatabaseEngine.class);
 
 	protected String vectorDatabaseSearcher = null;
@@ -65,19 +34,6 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String openSearchInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', username = '${USERNAME}', password = '${PASSWORD}', index_name = '${INDEX_NAME}', hosts = ['${HOSTS}'], distance_method = '${DISTANCE_METHOD}')";
-
-	// python server
-	private TCPPyTranslator pyt = null;
-	private String pyDirectoryBasePath = null;
-	private File cacheFolder;
-
-	private ClientProcessWrapper cpw = null;
-
-	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
-
-	private boolean modelPropsLoaded = false;
-	private List<String> indexNames;
-	private List<String> clusterURls;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -318,6 +274,7 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		// TODO Auto-generated method stub
 		
 	}
+	
 	// not needed anmore
 	public Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
@@ -326,7 +283,5 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 			return (Insight) insightObj;
 		}
 	}
-	
-	
 	
 }

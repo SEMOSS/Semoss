@@ -6,11 +6,9 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,7 +26,6 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -44,11 +41,8 @@ import prerna.reactor.qs.SubQueryExpression;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.tcp.client.CleanerThread;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Settings;
-import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -56,7 +50,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
-	public static final String INDEX_CLASS = "indexClass";
 	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
@@ -64,16 +57,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	protected String vectorDatabaseSearcher = null;
 	
-	private File schemaFolder;
-	
 	private List<String> indexClasses;
-	
-
-	private ClientProcessWrapper cpw = null;
-	
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
 	
-	private boolean modelPropsLoaded = false;
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -658,37 +644,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return (List<Map<String, Object>>) output;
 	}
 	
-	@Override
-	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		String indexClass = this.defaultIndexClass;
-		if (parameters != null && parameters.containsKey(INDEX_CLASS)) {
-			indexClass = (String) parameters.get(INDEX_CLASS);
-		}
-		
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
-		
-        List<Map<String, Object>> fileList = new ArrayList<>();
-
-		File[] files = documentsDir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                String fileName = file.getName();
-                long fileSizeInBytes = file.length();
-                double fileSizeInMB = (double) fileSizeInBytes / (1024);
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                String lastModified = dateFormat.format(new Date(file.lastModified()));
-                
-                Map<String, Object> fileInfo = new HashMap<>();
-                fileInfo.put("fileName", fileName);
-                fileInfo.put("fileSize", fileSizeInMB);
-                fileInfo.put("lastModified", lastModified);
-                fileList.add(fileInfo);
-            }
-        } 
-		
-		return fileList;
-	}
-	
 	public Map<String, String> removeCorruptedFiles(String indexClass){
 		if (indexClass == null || indexClass.isEmpty()) {
 			indexClass = this.defaultIndexClass;
@@ -736,49 +691,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.FAISS;
 	}
-	
 
-	@Override
-	public void close() {
-		if(this.cpw != null) {
-			this.cpw.shutdown(true);
-		}
-	}
-	
-	@Override
-	public void delete() {
-		classLogger.debug("Delete vector database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		this.close();
-		
-		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
-									getCatalogType(), this.engineId, this.engineName)
-								);
-		
-		//TODO: is the below necessary?
-		//TODO: we usually just call the delete 
-		//TODO: and i thought the cpw waits for the remove
-		if(engineFolder.exists()) {
-			// this is ugly but not sure we have a choice since we have to wait for the
-			// py process to shutdown and that call in the close is also threaded
-			classLogger.info("Delete vector database engine folder " + engineFolder);
-			CleanerThread t = new CleanerThread(engineFolder.getAbsolutePath());
-			t.start();
-		} else {
-			classLogger.info("Vector Database engine folder " + engineFolder + " does not exist");
-		}
-		
-		classLogger.info("Deleting vector database engine smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
-	}
-	
+	/**
+	 * 
+	 * @param filters
+	 * @return
+	 */
 	private String addFilters(List<IQueryFilter> filters) {
 		List<String> filterStatements = new ArrayList<>();
 		
@@ -794,6 +712,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return String.join(" and ", filterStatements);
 	}
 	
+	/**
+	 * 
+	 * @param filter
+	 * @return
+	 */
 	private StringBuilder processFilter(IQueryFilter filter) {
 		// logic taken from SqlInterpreter.processFilter
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
@@ -811,6 +734,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param filter
+	 * @return
+	 */
 	protected StringBuilder processOrQueryFilter(OrQueryFilter filter) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
@@ -827,6 +755,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return filterBuilder;
 	}
 
+	/**
+	 * 
+	 * @param filter
+	 * @return
+	 */
 	protected StringBuilder processAndQueryFilter(AndQueryFilter filter) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
@@ -843,6 +776,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return filterBuilder;
 	}
 	
+	/**
+	 * 
+	 * @param filter
+	 * @return
+	 */
 	protected StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter)
 	{
 		StringBuilder retBuilder = new StringBuilder();
@@ -854,6 +792,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return retBuilder;
 	}
 	
+	/**
+	 * 
+	 * @param filter
+	 * @return
+	 */
 	protected StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
@@ -883,7 +826,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return null;
 	}
 	
-	/**d
+	/**
 	 * Add filter for column to column
 	 * @param leftComp
 	 * @param rightComp
