@@ -258,7 +258,7 @@ public class SocketClient implements Runnable, Closeable {
      * @param dir
      * @return
      */
-    public boolean stopPyServe(String dir) {
+    public boolean stopPyServe() {
 		try {
     		if(isConnected()) {
     			ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -293,11 +293,6 @@ public class SocketClient implements Runnable, Closeable {
     	} finally {
     		// always call close on the IO
     		close();
-    		
-    		if(dir != null) {
-	    		CleanerThread t = new CleanerThread(dir);
-	    		t.start();
-    		}
     	}
 		
     }

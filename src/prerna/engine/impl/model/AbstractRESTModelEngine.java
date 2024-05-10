@@ -28,9 +28,9 @@ import prerna.sablecc2.comm.JobManager;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
 
-public abstract class RESTModelEngine extends AbstractModelEngine {
+public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(RESTModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractRESTModelEngine.class);
 	
 	protected static final String ENDPOINT = "ENDPOINT";
 	
