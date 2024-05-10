@@ -8,6 +8,7 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -28,7 +29,6 @@ public class PySingleton {
 	public static String pyTupleSpace = null;
 	public static SocketClient tcpServer;
 
-	
 	private PySingleton()
 	{
 		
@@ -93,8 +93,10 @@ public class PySingleton {
 			if (pyt instanceof prerna.ds.py.PyTranslator)
 				PyUtils.getInstance().killPyThread(pyt.getPy());
 			if (pyt instanceof TCPPyTranslator) {
-				String dir = pyTupleSpace;
-				tcpServer.stopPyServe(dir);
+				tcpServer.stopPyServe();
+        		// TODO: come here again to confirm we delete the folder
+        		CleanerThread t = new CleanerThread(pyTupleSpace);
+	    		t.start();
 			}
 		}
 
