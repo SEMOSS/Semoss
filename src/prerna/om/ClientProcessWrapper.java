@@ -181,10 +181,12 @@ public class ClientProcessWrapper {
 		        	boolean result = false;
 		        	if(cleanUpFolder) {
 		        		this.socketClient.stopPyServe();
+		        		classLogger.info("Sucessfully stopped the process");
 		        		int attempt = 1;
 		        		while(!result) {
 		        			try {
 		        				FileUtils.deleteDirectory(this.serverDirectory);
+				        		classLogger.info("Sucessfully cleaned up the directory");
 		        				result = true;
 		        			} catch (Exception ignored) {
 		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
@@ -198,6 +200,7 @@ public class ClientProcessWrapper {
 		        		}
 		        	} else {
 		        		this.socketClient.stopPyServe();
+		        		classLogger.info("Sucessfully stopped the process");
 		        		result = true;
 		        	}
 		            return result;
@@ -210,11 +213,13 @@ public class ClientProcessWrapper {
 		            if(result) {
 		            	classLogger.info("Successfully shutdown the process");
 		            } else {
-		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
-		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
+		            	classLogger.warn("Assigning new port...");
+		            	this.port = calculatePort(-1);
 		            }
 		        } catch (TimeoutException e) {
 		        	classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
