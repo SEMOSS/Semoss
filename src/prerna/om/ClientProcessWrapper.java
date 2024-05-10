@@ -13,8 +13,8 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.codehaus.plexus.util.FileUtils;
 
-import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
@@ -177,23 +177,45 @@ public class ClientProcessWrapper {
 			if(this.socketClient != null && this.socketClient.isConnected()) {
 		        ExecutorService executor = Executors.newSingleThreadExecutor();
 		
-		        Callable<String> callableTask = () -> {
+		        Callable<Boolean> callableTask = () -> {
+		        	boolean result = false;
 		        	if(cleanUpFolder) {
 		        		this.socketClient.stopPyServe();
-		        		// TODO: come here again to confirm we delete the folder
-		        		CleanerThread t = new CleanerThread(this.serverDirectory);
-			    		t.start();
+		        		int attempt = 1;
+		        		while(!result) {
+		        			try {
+		        				FileUtils.deleteDirectory(this.serverDirectory);
+		        				result = true;
+		        			} catch (Exception ignored) {
+		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
+		        				attempt++;
+		        				try {
+		        					Thread.sleep(attempt * 1000);
+		        				} catch (InterruptedException e1) {
+		        					classLogger.error(Constants.STACKTRACE, e1);
+		        				}
+		        			}
+		        		}
 		        	} else {
 		        		this.socketClient.stopPyServe();
+		        		result = true;
 		        	}
-		            return "Successfully stopped the process";
+		            return result;
 		        };
 		
-		        Future<String> future = executor.submit(callableTask);
+		        Future<Boolean> future = executor.submit(callableTask);
 		        try {
-		        	// wait 1 minute at most
-		            String result = future.get(60, TimeUnit.SECONDS);
-		            classLogger.info(result);
+		        	// dont have the user wait forever...
+		            Boolean result = future.get(70, TimeUnit.SECONDS);
+		            if(result) {
+		            	classLogger.info("Successfully shutdown the process");
+		            } else {
+		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
+		            	classLogger.warn("FAILED TO SHUTDOWN THE PROCESS ON PORT " + this.port);
+		            }
 		        } catch (TimeoutException e) {
 		        	classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
 		        	try {
