@@ -124,7 +124,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			// pull the relevant values from the smss
 			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
 			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
 			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 			
