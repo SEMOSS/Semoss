@@ -20,7 +20,7 @@ import prerna.om.Insight;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
 
-public class TextEmbeddingsEngine extends RESTModelEngine {
+public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(TextEmbeddingsEngine.class);
 

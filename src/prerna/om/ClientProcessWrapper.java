@@ -14,6 +14,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.tcp.client.CleanerThread;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
@@ -178,9 +179,12 @@ public class ClientProcessWrapper {
 		
 		        Callable<String> callableTask = () -> {
 		        	if(cleanUpFolder) {
-		        		this.socketClient.stopPyServe(this.serverDirectory);
+		        		this.socketClient.stopPyServe();
+		        		// TODO: come here again to confirm we delete the folder
+		        		CleanerThread t = new CleanerThread(this.serverDirectory);
+			    		t.start();
 		        	} else {
-		        		this.socketClient.stopPyServe(null);
+		        		this.socketClient.stopPyServe();
 		        	}
 		            return "Successfully stopped the process";
 		        };
