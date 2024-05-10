@@ -37,7 +37,7 @@ import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class OpenAiChatCompletionRestEngine extends RESTModelEngine {
+public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 	
 	//TODO decide what we want logged
 	private static final Logger classLogger = LogManager.getLogger(OpenAiChatCompletionRestEngine.class);

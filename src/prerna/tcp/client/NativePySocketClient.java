@@ -566,7 +566,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     /**
      * Logout of py server
      */
-    public boolean stopPyServe(String dir) {
+    @Override
+    public boolean stopPyServe() {
     	try {
     		if(isConnected()) {
     			ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -604,9 +605,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     	} finally {
     		// always call close on the IO
     		close();
-    		
-    		CleanerThread t = new CleanerThread(dir);
-    		t.start();
     	}
     }
 
