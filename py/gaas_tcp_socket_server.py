@@ -88,12 +88,12 @@ class Server(socketserver.ThreadingTCPServer):
     return
 
   def serve_forever(self):
-    self.logger.debug(f'waiting for request on port {self.port}')
+    self.logger.info(f'waiting for request on port {self.port}')
     self.logger.info('Handling requests, press <Ctrl-C> to quit')
     try:
       while not self.stop: 
           if self.max_count > self.cur_count:
-            print("listening")
+            print("listening on port " + str(self.port))
             self.handle_request()
             self.timed_out = False
             self.cur_count = self.cur_count + 1
