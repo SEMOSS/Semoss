@@ -23,7 +23,7 @@ import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
 import prerna.om.Insight;
 import prerna.util.Constants;
 
-public class TextGenerationInferenceRestEngine extends RESTModelEngine {
+public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 
 	//TODO decide what we want logged
 	private static final Logger classLogger = LogManager.getLogger(TextGenerationInferenceRestEngine.class);

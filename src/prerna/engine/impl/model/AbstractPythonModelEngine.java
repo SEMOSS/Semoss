@@ -33,9 +33,9 @@ import prerna.util.Utility;
  * a python process. The corresponding python class should handle all method implementations. This java class is 
  * simply mechanism to forward calls to the python process.
  */
-public abstract class PythonModelEngine extends AbstractModelEngine {
+public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	
-	private static final Logger classLogger = LogManager.getLogger(PythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
 
 	// python server
 	protected String prefix = null;
