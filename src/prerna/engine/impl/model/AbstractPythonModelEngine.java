@@ -321,8 +321,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 	
 	private void createCacheFolder() {
+		String engineId = this.getEngineId();
+		
+		if (engineId == null || engineId.isEmpty()) {
+			engineId="";
+		}
 		// create a generic folder
-		this.workingDirectory = "MODEL_" + Utility.getRandomString(6);
+		this.workingDirectory = "MODEL_" + engineId + "_" + Utility.getRandomString(6);
 		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 		
