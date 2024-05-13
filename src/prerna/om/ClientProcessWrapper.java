@@ -80,9 +80,9 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if(!serverRunning) {
 				if(nativePyServer) {
-					if(chrootMountHelper != null) {
+					if(this.chrootMountHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
+						Path chrootPath = Paths.get(this.chrootMountHelper.getTargetDirName());
 						// we will be creating a fake semoss home in the chrooted directory
 						// so grabbing the current base folder to mock the same pattern
 						String baseFolderPath = Utility.getBaseFolder();
@@ -100,14 +100,14 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						Object[] ret = Utility.startTCPServerNativePyChroot(chrootMountHelper.getTargetDirName(), relative, this.port+"");
+						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootMountHelper.getTargetDirName(), relative, this.port+"");
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					} else {
 						// write the log4j file in the server directory
 						Utility.writeLogConfigurationFile(this.serverDirectory);
 											
-						Object[] ret = Utility.startTCPServerNativePy(serverDirectory, this.port+"", this.venvPath, timeout, loggerLevel);
+						Object[] ret = Utility.startTCPServerNativePy(this.serverDirectory, this.port+"", this.venvPath, this.timeout, this.loggerLevel);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					}
@@ -132,11 +132,11 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						this.process = Utility.startTCPServerChroot(classPath, chrootMountHelper.getTargetDirName(), relative, this.port+"");
+						this.process = Utility.startTCPServerChroot(classPath, this.chrootMountHelper.getTargetDirName(), relative, this.port+"");
 					} else {
 						// write the log4j file in the server directory
 						Utility.writeLogConfigurationFile(this.serverDirectory);
-						this.process = Utility.startTCPServer(classPath, serverDirectory, this.port+"");
+						this.process = Utility.startTCPServer(classPath, this.serverDirectory, this.port+"");
 					}
 				}
 			}

@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -37,16 +38,17 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-
+		
+		User user = this.insight.getUser();
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-	
+		
 		if(projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
 		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
@@ -75,6 +77,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Syncing project for cloud backup");
 			ClusterUtil.pushProjectFolder(project, newProjectAssetFolder);
+			SecurityProjectUtils.setPortalPublish(user, projectId);
 		}
 		
 		return new NounMetadata(true, PixelDataType.MAP);
