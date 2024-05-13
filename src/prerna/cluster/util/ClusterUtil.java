@@ -226,7 +226,7 @@ public class ClusterUtil {
 		
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(engineId, "pullEngine", engineId);
+				getClusterSynchronizer().publishEngineChange(engineId, "pullEngine", engineId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
@@ -253,7 +253,7 @@ public class ClusterUtil {
 		}
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(engineId, "pullEngine", engineId);
+				getClusterSynchronizer().publishEngineChange(engineId, "pullEngine", engineId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
@@ -280,7 +280,7 @@ public class ClusterUtil {
 		}
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(engineId, "pullEngine", engineId);
+				getClusterSynchronizer().publishEngineChange(engineId, "pullEngine", engineId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+engineId+"' to sync with ZK cluster");
@@ -539,7 +539,7 @@ public class ClusterUtil {
 		}
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(projectId, "pullInsightsDB", projectId);
+				getClusterSynchronizer().publishProjectChange(projectId, "pullInsightsDB", projectId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish project '"+projectId+"' to sync with ZK cluster to pull insight db");
@@ -602,7 +602,7 @@ public class ClusterUtil {
 		}
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(databaseId, "pullOwl", databaseId);
+				getClusterSynchronizer().publishEngineChange(databaseId, "pullOwl", databaseId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish owl change for '"+databaseId+"' to sync with ZK cluster");
@@ -634,7 +634,7 @@ public class ClusterUtil {
 		
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(projectId, "pullProject", projectId);
+				getClusterSynchronizer().publishProjectChange(projectId, "pullProject", projectId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish project '"+projectId+"' to sync with ZK cluster");
@@ -719,7 +719,7 @@ public class ClusterUtil {
 		}
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(projectId, "pullProjectFolder",projectId,absolutePath,remoteRelativePath );
+				getClusterSynchronizer().publishProjectChange(projectId, "pullProjectFolder",projectId,absolutePath,remoteRelativePath );
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish project folder for '"+projectId+"' to sync with ZK cluster");
@@ -804,7 +804,7 @@ public class ClusterUtil {
 		
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(projectId, "pullInsight",projectId,rdbmsId);
+				getClusterSynchronizer().publishProjectChange(projectId, "pullInsight",projectId,rdbmsId);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish insight folder for '"+projectId+"' to sync with ZK cluster");
@@ -870,7 +870,7 @@ public class ClusterUtil {
 		
 		if(ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishCloudChange(projectId, "pullUserWorkspace",projectId,isAsset);
+				getClusterSynchronizer().publishProjectChange(projectId, "pullUserWorkspace",projectId,isAsset);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to publish user workspace '"+projectId+"' to sync with ZK cluster");
