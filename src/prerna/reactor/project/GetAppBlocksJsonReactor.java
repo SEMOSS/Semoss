@@ -45,6 +45,10 @@ public class GetAppBlocksJsonReactor extends AbstractReactor {
 		}
 		
 		IProject project = Utility.getProject(projectId);
+		if(project.requirePublish(true)) {
+			classLogger.info(project.getProjectId() + " had to pull from cloud");
+		}
+		
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(project.getProjectId());
 		File blocksJsonFile = new File(portalsFolder+"/"+IProject.BLOCK_FILE_NAME);
 		if(!blocksJsonFile.exists() && !blocksJsonFile.isFile()) {
