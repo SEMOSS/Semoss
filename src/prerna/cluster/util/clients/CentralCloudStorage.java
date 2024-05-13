@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.cluster.util.ClusterSynchronizer;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -107,6 +108,13 @@ public class CentralCloudStorage implements ICloudClient {
 					baseFolder += "/";
 				}
 				instance = new CentralCloudStorage();
+				
+				// instantiate the sync
+				if(ClusterUtil.IS_CLUSTER_ZK) {
+					ClusterSynchronizer.getInstance();		
+				}
+	
+				
 			}
 		}
 		
