@@ -23,7 +23,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
 
 import prerna.cluster.util.clients.AppCloudClientProperties;
+import prerna.project.api.IProject;
 import prerna.tcp.client.workers.NativePyEngineWorker;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ClusterSynchronizer {
@@ -114,18 +117,21 @@ public class ClusterSynchronizer {
 	                        if (!updatedByNodeId.equals(host)) {
 	                            String fullPath = event.getData().getPath();
 	                            classLogger.info( fullPath + " updated, pulling latest data from cloud storage");
-//	                            String id;                      
-//	                            if(fullPath.startsWith(SYNC_PROJECT_PATH)) {
-//	                                String[] path = fullPath.split(SYNC_PROJECT_PATH+"/");
-//	                                 id = path[1];
-////	                                ClusterUtil.pullProject(projectID);
-//	                            } else {
-//	                                String[] path = fullPath.split(SYNC_ENGINE_PATH+"/");
-//	                                 id = path[1];
-////	                                ClusterUtil.pullEngine(engineID);
-//	                            }
-
+	                            String id;
+	                            boolean pull;
+	                            if(fullPath.startsWith(SYNC_PROJECT_PATH)) {
+	                                String[] path = fullPath.split(SYNC_PROJECT_PATH+"/");
+	                                id = path[1];
+	                                pull = projectLoaded(id);
+	                            } else {
+	                                String[] path = fullPath.split(SYNC_ENGINE_PATH+"/");
+	                                 id = path[1];
+		                             pull = engineLoaded(id);
+	                            }
 	                            
+	                            // always check if the engine has been loaded before pulling. 
+
+	                            if(pull) {
 	                            try {
 	                                List<String> params = (List<String>) dataMap.get("params");
 	                                Class<?>[] paramTypes = new Class[params.size()];
@@ -137,6 +143,7 @@ public class ClusterSynchronizer {
 	                            } catch (Exception e) {
 	                                e.printStackTrace();
 	                            }
+	                           }
 	                            
 	                        }
 	                    }
@@ -151,7 +158,27 @@ public class ClusterSynchronizer {
 	}
 	
 	
+	private static boolean projectLoaded(String projectId) {
+		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
+
+		if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";") || projects.endsWith(";" + projectId)) {
+			classLogger.info("Loaded project " + projectId + " is out of date. Pulling latest changes");
+			return true;
+		} else {
+			return false;
+		}
+	}
 	
+	private static boolean engineLoaded(String engineId) {
+		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
+
+		if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";") || engines.endsWith(";" + engineId)) {
+			classLogger.info("Loaded engine " + engineId + " is out of date. Pulling latest changes");
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	public static ClusterSynchronizer getInstance() throws Exception {
 		if(sync != null) {
@@ -172,7 +199,7 @@ public class ClusterSynchronizer {
 	}
 	
 	
-	public void publishCloudChange(String engineId, String methodName,  Object... params) throws Exception {
+	public void publishEngineChange(String engineId, String methodName,  Object... params) throws Exception {
 		
 		String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
 		
@@ -181,6 +208,7 @@ public class ClusterSynchronizer {
 		    client.create().creatingParentsIfNeeded().forPath(enginePath);
 		}
 		
+	   classLogger.info("Publishing change for engine " + engineId + " and for nodes to " + methodName);
 	   Map<String, Object> dataMap = new HashMap<>();
        dataMap.put("nodeId", host);
        dataMap.put("methodName", methodName);
@@ -194,6 +222,31 @@ public class ClusterSynchronizer {
        client.setData().forPath(enginePath, byteOut.toByteArray());
 
 	}
+	
+	public void publishProjectChange(String projectId, String methodName,  Object... params) throws Exception {
+		
+		String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
+		
+		//this creates the path if it doesnt exist
+		if (client.checkExists().forPath(projectPath) == null) {
+		    client.create().creatingParentsIfNeeded().forPath(projectPath);
+		}
+		
+	   classLogger.info("Publishing change for project " + projectId + " and for nodes to " + methodName);
+	   Map<String, Object> dataMap = new HashMap<>();
+       dataMap.put("nodeId", host);
+       dataMap.put("methodName", methodName);
+       List<Object> paramList = Arrays.asList(params);
+       dataMap.put("params", paramList);
+
+       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+       ObjectOutputStream out = new ObjectOutputStream(byteOut);
+       out.writeObject(dataMap);
+	
+       client.setData().forPath(projectPath, byteOut.toByteArray());
+
+	}
+	
 	
 //	
 //	//TODO - break this out smarter to be for all different pushes
