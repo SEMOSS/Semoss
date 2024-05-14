@@ -149,7 +149,7 @@ public class SendEmailReactor extends AbstractReactor {
 		if(emailSessionGrs == null || emailSessionGrs.isEmpty()) {
 			return null;
 		}
-		List<NounMetadata> mapInputs = emailSessionGrs.getNounsOfType(PixelDataType.EMAIL_SESSION);
+		List<NounMetadata> mapInputs = emailSessionGrs.getNounsOfType(PixelDataType.PROJECT_EMAIL_SESSION);
 		if (mapInputs != null && !mapInputs.isEmpty()) {
 			return (Session) ((ProjectPropertyEvaluator) mapInputs.get(0).getValue()).eval();
 		}
