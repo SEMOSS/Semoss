@@ -2,20 +2,19 @@ package prerna.reactor.project;
 
 import org.apache.commons.lang3.StringUtils;
 
-import jakarta.mail.Store;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHeaderAuthEvaluator;
 import prerna.project.impl.ProjectProperties;
-import prerna.project.impl.ProjectPropertyEvaluator;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetIMAPEmailSessionReactor extends AbstractReactor {
+public class GetProjectAuthorizationHeaderReactor extends AbstractReactor {
 		
-	public GetIMAPEmailSessionReactor() {
+	public GetProjectAuthorizationHeaderReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
 	}
 
@@ -29,22 +28,20 @@ public class GetIMAPEmailSessionReactor extends AbstractReactor {
 		}
 			
 		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
+			throw new IllegalArgumentException("Project does not exist or user does not have edit access to get the authorization headers");
 		}
 		
 		// make sure we have the value or throw a null pointer
 		IProject project = Utility.getProject(projectId);
 		ProjectProperties props = project.getProjectProperties();
 		
-		Store imapStore = props.getImapEmailStore();
-		if(imapStore == null) {
-			throw new IllegalArgumentException("IMAP Email Store is not defined for this project");
-		}
-
-		ProjectPropertyEvaluator eval = new ProjectPropertyEvaluator();
+		//TODO assuming right now it is Basic with access/secret key
+		
+		ProjectHeaderAuthEvaluator eval = new ProjectHeaderAuthEvaluator();
 		eval.setProjectId(projectId);
-		eval.setMethodName("getImapEmailStore");
-		NounMetadata noun = new NounMetadata(eval, PixelDataType.EMAIL_SESSION);
+		eval.setAccessKey(props.getProperty("accessKey"));
+		eval.setSecretKey(props.getProperty("secretKey"));
+		NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_AUTHORIZATION_HEADER);
 		return noun;
 	}
 	

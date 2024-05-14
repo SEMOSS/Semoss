@@ -94,6 +94,7 @@ public enum ReactorKeysEnum {
 	GRAPH_METAMODEL("graphMetamodel",               	        "The metamodel of the graph"),
 	GRAPH_TYPE_ID("graphTypeId",                        	    "The type identifier of the graph nodes"),
 	HEADERS("headers",                                      	"All the headers strings we want to push as part of the header on the excel / powerpoint export"),
+	HEADERS_MAP("headersMap", 									"Map containing key-value pairs to send in the headers of a request"),		
 	HEIGHT("height", 											"The height to use for screenshot capture."),
 	HOST("host",                    	                        "The host URL"),
 	HTML("html",                        	                    "The html"),
