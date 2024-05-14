@@ -1,11 +1,13 @@
 package prerna.reactor.utils;
 
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.project.impl.ProjectHeaderAuthEvaluator;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,7 +23,7 @@ public class PostRequestReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(PostRequestReactor.class);
 
 	public PostRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "bodyMap", 
+		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.HEADERS_MAP.getKey(), "bodyMap", 
 				ReactorKeysEnum.USE_APPLICATION_CERT.getKey()};
 	}
 	
@@ -54,7 +56,17 @@ public class PostRequestReactor extends AbstractReactor {
 		if(headersGrs != null && !headersGrs.isEmpty()) {
 			Map<String, String> headers = new HashMap<>();
 			for(int i = 0; i < headersGrs.size(); i++) {
-				headers.putAll( (Map<String, String>) headersGrs.get(i)); 
+				NounMetadata noun = headersGrs.getNoun(i);
+				if(noun.getNounType() == PixelDataType.PROJECT_AUTHORIZATION_HEADER) {
+					try {
+						headers.putAll( ((ProjectHeaderAuthEvaluator) noun.getValue()).eval() );
+					} catch (UnsupportedEncodingException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("An error occurred trying to get the project authorization headers");
+					}
+				} else {
+					headers.putAll( (Map<String, String>) headersGrs.get(i)); 
+				}
 			}
 			return headers;
 		}

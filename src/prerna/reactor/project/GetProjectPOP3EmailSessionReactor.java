@@ -2,7 +2,7 @@ package prerna.reactor.project;
 
 import org.apache.commons.lang3.StringUtils;
 
-import jakarta.mail.Session;
+import jakarta.mail.Store;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectProperties;
@@ -13,9 +13,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetSMTPSessionReactor extends AbstractReactor {
+public class GetProjectPOP3EmailSessionReactor extends AbstractReactor {
 		
-	public GetSMTPSessionReactor() {
+	public GetProjectPOP3EmailSessionReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
 	}
 
@@ -27,7 +27,7 @@ public class GetSMTPSessionReactor extends AbstractReactor {
 		if(StringUtils.isBlank(projectId)) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
-			
+		
 		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
 		}
@@ -36,14 +36,14 @@ public class GetSMTPSessionReactor extends AbstractReactor {
 		IProject project = Utility.getProject(projectId);
 		ProjectProperties props = project.getProjectProperties();
 		
-		Session emailSession = props.getSmtpEmailSession();
-		if(emailSession == null) {
-			throw new IllegalArgumentException("Email Session is not defined for this project");
+		Store pop3Store = props.getPop3EmailStore();
+		if(pop3Store  == null) {
+			throw new IllegalArgumentException("POP3 Email Store is not defined for this project");
 		}
 
 		ProjectPropertyEvaluator eval = new ProjectPropertyEvaluator();
 		eval.setProjectId(projectId);
-		eval.setMethodName("getSmtpEmailSession");
+		eval.setMethodName("getPop3EmailStore");
 		NounMetadata noun = new NounMetadata(eval, PixelDataType.PROJECT_EMAIL_SESSION);
 		return noun;
 	}
