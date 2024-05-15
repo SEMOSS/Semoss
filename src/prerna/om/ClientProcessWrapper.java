@@ -257,6 +257,17 @@ public class ClientProcessWrapper {
 	    		}
 			}
 		}
+		if(this.port > 0) {
+			if(!PortAllocator.isPortAvailable(this.port)) {
+            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+            	classLogger.warn("Assigning new port...");
+				this.port = -1;
+			}
+		}
 	}
 	
 	/**
