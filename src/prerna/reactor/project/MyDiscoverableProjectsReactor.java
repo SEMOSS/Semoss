@@ -39,24 +39,24 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
-		List<String> project = getProjectTypeFilters();
+		List<String> projectTypes = getProjectTypeFilters();
 		List<String> projectIdFilters = getProjectIdFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 		Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())+"");
 
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserDiscoverableProjectList(this.insight.getUser(), 
-				project, projectIdFilters, portalsOnly, engineMetadataFilter, searchTerm, limit, offset);
+				projectTypes, projectIdFilters, portalsOnly, engineMetadataFilter, searchTerm, limit, offset);
 
 		if(!projectInfo.isEmpty() && !noMeta) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
 			int size = projectInfo.size();
 			// now we want to add most executed insights
 			for(int i = 0; i < size; i++) {
-				Map<String, Object> database = projectInfo.get(i);
-				String databaseId = database.get("database_id").toString();
-				// keep list of database ids to get the index
-				index.put(databaseId, Integer.valueOf(i));
+				Map<String, Object> project = projectInfo.get(i);
+				String projectId = project.get("project_id").toString();
+				// keep list of project ids to get the index
+				index.put(projectId, Integer.valueOf(i));
 			}
 			
 			IRawSelectWrapper wrapper = null;
@@ -64,14 +64,14 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 				wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys(), true);
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
-					String databaseId = (String) data[0];
+					String projectId = (String) data[0];
 					String metaKey = (String) data[1];
 					String metaValue = (String) data[2];
 					if(metaValue == null) {
 						continue;
 					}
 	
-					int indexToFind = index.get(databaseId);
+					int indexToFind = index.get(projectId);
 					Map<String, Object> res = projectInfo.get(indexToFind);
 					// whatever it is, if it is single send a single value, if it is multi send as array
 					if(res.containsKey(metaKey)) {
