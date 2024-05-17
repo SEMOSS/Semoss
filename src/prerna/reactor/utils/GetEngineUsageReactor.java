@@ -89,6 +89,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"databaseEngine = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
 				"databaseEngine.execQuery(query = 'SELECT * FROM table_name')\r\n" + 
 				"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
+				"databaseEngine.updateData(query = 'UPDATE table_name set column1=value1 WHERE condition')\r\n" + 
 				"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IDatabaseEngine;\r\n" + 
