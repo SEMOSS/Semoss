@@ -41,59 +41,96 @@ class DatabaseEngine(ServerProxy):
         os.remove(fileLoc)
 
 
-  def insertData(self, query=None, insight_id=None):
+  def insertData(
+      self,
+      query=None, 
+      insight_id=None,
+      commit:bool = True):
     '''
       This method is responsible for running a insert data into the database
       
       Args:
           query (`str`): The query to run against the database
           insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
-          
+          commit (`bool`): commit to the database if autocommit is false. default is true
+      
       Returns:
           boolean: true/false if this ran successfully
     '''
-    return self.runQuery(query, insight_id)
+    return self.runQuery(query, insight_id, commit)
 
+  def updateData(
+      self,
+      query=None, 
+      insight_id=None,
+      commit:bool = True):
+    '''
+      This method is responsible for running a insert data into the database
+      
+      Args:
+          query (`str`): The query to run against the database
+          insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+          commit (`bool`): commit to the database if autocommit is false. default is true
 
-  def removeData(self, query=None, insight_id=None):
+      Returns:
+          boolean: true/false if this ran successfully
+    '''
+    return self.runQuery(query, insight_id, commit)
+
+  def removeData(
+      self, 
+      query=None, 
+      insight_id=None,
+      commit:bool = True):
     '''
       This method is responsible for removing data from the database
       
       Args:
           query (`str`): The query to run against the database
           insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
-          
+          commit (`bool`): commit to the database if autocommit is false. default is true
+
       Returns:
           boolean: true/false if this ran successfully
     '''
-    return self.runQuery(query, insight_id)
+    return self.runQuery(query, insight_id, commit)
     
 
-  def runQuery(self, query=None, insight_id=None):
+  def runQuery(
+      self, 
+      query=None, 
+      insight_id=None,
+      commit:bool = True):
     '''
       This method is responsible for running the exec query against the database
       
       Args:
           query (`str`): The query to run against the database
           insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
-          
+          commit (`bool`): commit to the database if autocommit is false. default is true
+
       Returns:
           boolean: true/false if this ran successfully
     '''
     assert query is not None
     if insight_id is None:
       insight_id = self.insight_id
+    
+    commitStr = "true" if commit else "false"
+
     # assert insight_id is not None
     epoc = super().get_next_epoc()
-    pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery();'
+    pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery(commit={commitStr});'
     pixelReturn = super().callReactor(
                       epoc = epoc,
                       pixel=pixel,
                       insight_id=insight_id, 
                       )
+    
     if pixelReturn is not None and len(pixelReturn) > 0:
         output = pixelReturn[0]['pixelReturn'][0]
         return output['output']
+    
     return pixelReturn
   
     
