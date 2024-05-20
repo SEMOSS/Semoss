@@ -298,7 +298,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			else
 			{
 				Map params = new HashMap();
-				params.put("temperature", "0.66");
+				params.put("temperature", 0.66);
 				Map<String, Object> modelOutput = engine.ask(finalDbString +"", null, this.insight, params).toMap();
 				String response = modelOutput.get("response")+"";
 				
