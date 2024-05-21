@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
@@ -21,9 +23,12 @@ import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.reactor.imports.NativeImporter;
 import prerna.sablecc2.om.Join;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SQLQueryUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(SQLQueryUtils.class);
 
 	/**
 	 * Merge 2 native frame query structs together based on the joins defined
@@ -40,8 +45,6 @@ public class SQLQueryUtils {
 
 		SqlParser2 parser2 = new SqlParser2();
 		parser2.parameterize = false;
-
-		
 		try {
 			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(curQS);
@@ -79,7 +82,7 @@ public class SQLQueryUtils {
 			
 			return emptyFrame;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -111,8 +114,7 @@ public class SQLQueryUtils {
 			try {
 				curExpr = parser.processQuery(sql).root;
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			String aliasForThisExpr = Utility.getRandomString(5);
@@ -158,7 +160,7 @@ public class SQLQueryUtils {
 						newSelector.setLeftExpr(curSelector.leftExpr);
 					}
 					newSelector.tableName = aliasForThisExpr;
-					
+					newSelector.userTableName = aliasForThisExpr;
 					// replace the alias / name of this column this needs to be 
 					//newSelector.replaceTableAlias(newSelector, curTableAlias, aliasForThisExpr);
 					newSelector.aQuery = newSelector.tableName + "." + newSelector.getLeftExpr();
@@ -360,36 +362,36 @@ public class SQLQueryUtils {
 
 			retExpression = (GenExpression)retObject;
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(baos != null) {
 				try {
 					baos.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(fo != null) {
 				try {
 					fo.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(bais != null) {
 				try {
 					bais.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(fi != null) {
 				try {
 					fi.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -397,7 +399,12 @@ public class SQLQueryUtils {
 		return retExpression;
 	}
 	
-
+	/**
+	 * 
+	 * @param subQueryStruct
+	 * @param wrapperQueryStruct
+	 * @return
+	 */
 	public static NativeFrame subQuery(SelectQueryStruct subQueryStruct, SelectQueryStruct wrapperQueryStruct)
 	{
 		
@@ -457,8 +464,8 @@ public class SQLQueryUtils {
 			emptyFrame.setName(wrapperQueryStruct.getFrameName());
 			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
 			importer.insertData();
-		} catch(Exception ex) {
-			ex.printStackTrace();
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return emptyFrame;
 	}
@@ -495,7 +502,7 @@ public class SQLQueryUtils {
 			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
 			importer.insertData();
 		}catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return emptyFrame;
 	}
@@ -554,15 +561,18 @@ public class SQLQueryUtils {
 			
 			return emptyFrame;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
 	}
 
-	
-	public static GenExpression unionSQL(List <String> expressions)
-	{
+	/**
+	 * 
+	 * @param expressions
+	 * @return
+	 */
+	public static GenExpression unionSQL(List <String> expressions) {
 		// get the expression
 		// add the selectors to the master one
 		// and then add the join
@@ -581,17 +591,14 @@ public class SQLQueryUtils {
 		retExpression.setComposite(true);
 		GenExpression lastExpression = null;
 		
-		for(int expIndex = 0;expIndex < expressions.size();expIndex++)
-		{
+		for(int expIndex = 0;expIndex < expressions.size();expIndex++) {
 			String sql = expressions.get(expIndex);
-			
 			
 			GenExpression curExpr = null;
 			try {
 				curExpr = parser.processQuery(sql).root;
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			// first one is easy
@@ -615,36 +622,38 @@ public class SQLQueryUtils {
 		return finalExpression;
 	}
 	
-	public static GenExpression selfSubQuery(GenExpression innerQuery, GenExpression outerQuery)
-	{
+	/**
+	 * 
+	 * @param innerQuery
+	 * @param outerQuery
+	 * @return
+	 */
+	public static GenExpression selfSubQuery(GenExpression innerQuery, GenExpression outerQuery) {
 		GenExpression retExpression = new GenExpression();
 		retExpression.setOperation("select");
-		
 	
-		try
-		{
+		try {
 			// get the selectors from the outer query
 			String randomString = Utility.getRandomString(5);
 			String subqName = randomString;
 			
-			
-			if(innerQuery.from  != null)
-			{
+			if(innerQuery.from  != null) {
 				subqName = innerQuery.from.getLeftExpr();		
-				if(subqName == null)
+				if(subqName == null) {
 					subqName = innerQuery.from.leftAlias;
+				}
 				subqName = subqName + "_" + randomString;
 			}
 			
-			for(int selectorIndex = 0;selectorIndex < outerQuery.nselectors.size();selectorIndex++)
-			{
+			for(int selectorIndex = 0; selectorIndex < outerQuery.nselectors.size(); selectorIndex++) {
 				GenExpression curSelector = outerQuery.nselectors.get(selectorIndex);
 				GenExpression newSelector = new GenExpression();
 				newSelector.setOperation("column");
-				if(curSelector.leftAlias != null && curSelector.leftAlias.length() > 0)
+				if(curSelector.leftAlias != null && curSelector.leftAlias.length() > 0) {
 					newSelector.setLeftExpr(curSelector.leftAlias);
-				else
+				} else {
 					newSelector.setLeftExpr(curSelector.leftExpr);
+				}
 				newSelector.tableName = subqName;
 				
 				retExpression.addSelect(newSelector);
@@ -655,14 +664,10 @@ public class SQLQueryUtils {
 			retExpression.composite = true;
 			retExpression.from = innerQuery;
 			retExpression.from.leftAlias = subqName;
-			
-		}catch(Exception ex)
-		{
-			
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return retExpression;
-
 	}
-	
 	
 }
