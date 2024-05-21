@@ -148,7 +148,9 @@ public class PixelRunner {
 			// add if there is an error or warning
 			determineErrorOrWarning(pixel, result);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
-			Pixel.translationMerge(pixel, this.translation.getPixelObj());
+			if(this.translation != null) {
+				Pixel.translationMerge(pixel, this.translation.getPixelObj());
+			}
 			if(pixel.isReturnedError() && !this.maintainErrors) {
 				// we actually need to remove this from the pixel list
 				// there is also no sync required 

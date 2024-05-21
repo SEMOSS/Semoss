@@ -44,62 +44,63 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 
 		in.beginObject();
 		while(in.hasNext()) {
-			if(in.peek() == JsonToken.NAME) {
-				String name = in.nextName();
-				if(name.equals("pixelType")) {
-					String typeStr = in.nextString();
-					type = PixelDataType.valueOf(typeStr);
-				} else if(name.equals("class")) {
-					if(in.peek() == JsonToken.NULL) {
-						in.nextNull();
-						isNull = true;
-					} else if(in.peek() == JsonToken.BEGIN_ARRAY) {
-						isArray = true;
-						in.beginArray();
-						while(in.hasNext()) {
-							if(in.peek() == JsonToken.NULL) {
-								in.nextNull();
-								classNames.add(null);
-							} else {
-								String className = in.nextString();
-								classNames.add(className);
-							}
-						}
-						in.endArray();
-					} else {
-						String className = in.nextString();
-						classNames.add(className);
-					}
-				} else if(name.equals("value")) {
+			if(in.peek() != JsonToken.NAME) {
+				throw new IllegalArgumentException("NounMetadata requires the root to be a map");
+			}
+			String name = in.nextName();
+			if(name.equals("pixelType")) {
+				String typeStr = in.nextString();
+				type = PixelDataType.valueOf(typeStr);
+			} else if(name.equals("class")) {
+				if(in.peek() == JsonToken.NULL) {
+					in.nextNull();
+					isNull = true;
+				} else if(in.peek() == JsonToken.BEGIN_ARRAY) {
+					isArray = true;
 					in.beginArray();
-					int counter = 0;
 					while(in.hasNext()) {
 						if(in.peek() == JsonToken.NULL) {
 							in.nextNull();
-							objList.add(null);
+							classNames.add(null);
 						} else {
-							String className = classNames.get(counter);
-							Class c = null;
-							// get the class
-							try {
-								c = Class.forName(className);
-								TypeAdapter adapter = GSON.getAdapter(c);
-								objList.add(adapter.read(in));
-							} catch (ClassNotFoundException e) {
-								e.printStackTrace();
-							}
+							String className = in.nextString();
+							classNames.add(className);
 						}
-						// increase the index
-						counter++;
 					}
 					in.endArray();
-				} else if(name.equals("opType")) {
-					in.beginArray();
-					while(in.hasNext()) {
-						ops.add(PixelOperationType.valueOf(in.nextString()));
-					}
-					in.endArray();
+				} else {
+					String className = in.nextString();
+					classNames.add(className);
 				}
+			} else if(name.equals("value")) {
+				in.beginArray();
+				int counter = 0;
+				while(in.hasNext()) {
+					if(in.peek() == JsonToken.NULL) {
+						in.nextNull();
+						objList.add(null);
+					} else {
+						String className = classNames.get(counter);
+						Class c = null;
+						// get the class
+						try {
+							c = Class.forName(className);
+							TypeAdapter adapter = GSON.getAdapter(c);
+							objList.add(adapter.read(in));
+						} catch (ClassNotFoundException e) {
+							e.printStackTrace();
+						}
+					}
+					// increase the index
+					counter++;
+				}
+				in.endArray();
+			} else if(name.equals("opType")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					ops.add(PixelOperationType.valueOf(in.nextString()));
+				}
+				in.endArray();
 			}
 		}
 		in.endObject();
