@@ -68,7 +68,7 @@ public class VectorDatabaseUtils {
 				dp.process();
 				processedList.add(file.getAbsolutePath());
 			}
-			else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation"))
+			else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation") || mimeType.equalsIgnoreCase("application/x-tika-ooxml"))
 			{
 				// powerpoint
 				PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
