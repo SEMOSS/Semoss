@@ -2,7 +2,6 @@ package prerna.reactor.imports;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -165,54 +164,34 @@ public class MergeReactor extends AbstractReactor {
 		ITableDataFrame mergeFrame = null;
 
 		if(curFrame instanceof NativeFrame && frame instanceof NativeFrame) {
-			try {
-				// get the querystruct
-				SelectQueryStruct curQS = ((NativeFrame)curFrame).getQueryStruct();
-				curQS = QSAliasToPhysicalConverter.getPhysicalQs(curQS, curFrame.getMetaData());
+			// get the querystruct
+			SelectQueryStruct curQS = ((NativeFrame)curFrame).getQueryStruct();
+			curQS = QSAliasToPhysicalConverter.getPhysicalQs(curQS, curFrame.getMetaData());
 
-				qs = ((NativeFrame)qs.getFrame()).getQueryStruct();
-				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
+			qs = ((NativeFrame)qs.getFrame()).getQueryStruct();
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
 
-				IDatabaseEngine curEngine = curQS.getEngine();
-				IDatabaseEngine thisEngine = qs.getEngine();
-				if(thisEngine == null)
-					thisEngine = qs.retrieveQueryStructEngine();
+			IDatabaseEngine curEngine = curQS.getEngine();
+			IDatabaseEngine thisEngine = qs.getEngine();
+			if(thisEngine == null)
+				thisEngine = qs.retrieveQueryStructEngine();
 
-				if(curEngine == null)
-					curEngine = curQS.retrieveQueryStructEngine();
+			if(curEngine == null)
+				curEngine = curQS.retrieveQueryStructEngine();
 
-				// check to see they are RDBMS
-				if(curEngine instanceof IRDBMSEngine && thisEngine instanceof IRDBMSEngine) {
-					// get the url now
-					// we get the url because the focus area can be an app too
-					// this way we can be sure
-					
-					//TODO: need to account for closing connection created for connection pooling
-					//TODO: need to account for closing connection created for connection pooling
-					//TODO: need to account for closing connection created for connection pooling
-					//TODO: need to account for closing connection created for connection pooling
-					//TODO: need to account for closing connection created for connection pooling
-					//TODO: need to account for closing connection created for connection pooling
-
-					String curURL = ((IRDBMSEngine)curEngine).getConnectionMetadata().getURL();
-					String thisURL = ((IRDBMSEngine)thisEngine).getConnectionMetadata().getURL();
-
-
-					if(curURL.equalsIgnoreCase(thisURL)) {
-						// ok great these are same database
-						// create the SQL Queries
-						// need to check if these are query structs also
-						mergeFrame = (NativeFrame) SQLQueryUtils.joinQueryStructs(curQS, qs, joins);
-						mergeFrame.setName(curFrame.getName());
-					} else {
-						throw new SemossPixelException("Joining tables across databases is not possible, please consider converting to a materialized frame");
-					}
+			// check to see they are RDBMS
+			if(curEngine instanceof IRDBMSEngine && thisEngine instanceof IRDBMSEngine) {
+				if(curEngine.getEngineId().equals(thisEngine.getEngineId())) {
+					// ok great these are same database
+					// create the SQL Queries
+					// need to check if these are query structs also
+					mergeFrame = (NativeFrame) SQLQueryUtils.joinQueryStructs(curQS, qs, joins);
+					mergeFrame.setName(curFrame.getName());
 				} else {
-					throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
-
+					throw new SemossPixelException("Joining tables across databases is not possible, please consider converting to a materialized frame");
 				}
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			} else {
+				throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
 			}
 		}
 		
