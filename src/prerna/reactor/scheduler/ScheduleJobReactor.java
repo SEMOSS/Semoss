@@ -265,7 +265,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.JOB_NAME, jobName);
 		jsonObject.addProperty(JobConfigKeys.JOB_GROUP, jobGroup);
 		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
-		jsonObject.addProperty(JobConfigKeys.JOB_CRON_TIMEZONE, cronTimeZone.getDisplayName());
+		jsonObject.addProperty(JobConfigKeys.JOB_CRON_TIMEZONE, cronTimeZone.getID());
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
 		jsonObject.addProperty(JobConfigKeys.UI_STATE, uiState);
 		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, providerInfo);
