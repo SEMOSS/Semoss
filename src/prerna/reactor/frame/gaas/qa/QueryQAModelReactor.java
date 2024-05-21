@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.ds.py.PyTranslator;
-import prerna.reactor.frame.gaas.GaasBaseReactor;
+import prerna.reactor.frame.gaas.AbstractGaasBaseReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class QueryQAModelReactor extends GaasBaseReactor {
+public class QueryQAModelReactor extends AbstractGaasBaseReactor {
 
 	// creates a qa model
 	final String modelType = "gaas";

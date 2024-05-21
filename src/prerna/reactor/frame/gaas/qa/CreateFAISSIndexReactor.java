@@ -21,7 +21,7 @@ import net.snowflake.client.jdbc.internal.apache.commons.io.FileUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyTranslator;
 import prerna.project.api.IProject;
-import prerna.reactor.frame.gaas.GaasBaseReactor;
+import prerna.reactor.frame.gaas.AbstractGaasBaseReactor;
 import prerna.reactor.frame.gaas.processors.CSVWriter;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
@@ -32,15 +32,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class CreateFAISSIndexReactor extends GaasBaseReactor 
-{
+public class CreateFAISSIndexReactor extends AbstractGaasBaseReactor {
 
-	public CreateFAISSIndexReactor()
-	{
+	public CreateFAISSIndexReactor() {
 		// fileName - List of files
 		// Name - the name for this config.json
 		// baseFolder relative to the project
-
 		this.keysToGet = new String [] {ReactorKeysEnum.FILE_NAME.getKey(), 
 										ReactorKeysEnum.NAME.getKey(),
 										ReactorKeysEnum.PROJECT.getKey(),
@@ -54,8 +51,6 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		//organizeKeys();
 		Logger logger = getLogger(this.getClass().getName());
 		String projectId = getProjectId();
 		
@@ -112,83 +107,77 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 			contentOverlap = Integer.parseInt(this.store.getNoun(keysToGet[6]).get(0) + "");
 		
 		CSVWriter writer = new CSVWriter(csvFileName);
-		writer.setContentLength(contentLength);
-		writer.overlapLength(contentOverlap);
-
-		logger.info("Starting file conversions ");
-		
-		// pick up the files and convert them to CSV
-		for(int fileIndex = 0;fileIndex < fileNames.size();fileIndex++)
-		{
-			String thisFile = fileNames.get(fileIndex);
-			logger.info("Processing file : " + thisFile);
-
-			String fileLocation = indexingFolder + "/" + thisFile;		
-			// process this file
-			Map fileMap = addFileProperties(fileLocation);
-			if(fileMap != null)
-			{
-				String mimeType = fileMap.get("mime_type") + "";
-				if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
-				{
-					// document
-					DocProcessor dp = new DocProcessor(fileLocation, writer);
-					dp.process();
-					configMap.put(thisFile, fileMap);
-					processedList.add(thisFile);
-				}
-				else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation"))
-				{
-					// powerpoint
-					PPTProcessor pp = new PPTProcessor(fileLocation, writer);
-					pp.process();
-					configMap.put(thisFile, fileMap);
-					processedList.add(thisFile);
-				}
-				else if(mimeType.equalsIgnoreCase("application/pdf"))
-				{
-					PDFProcessor pdf = new PDFProcessor(fileLocation, writer);
-					pdf.process();
-					configMap.put(thisFile, fileMap);
-					processedList.add(thisFile);
-				}
-				else
-				{
-					String message = "We Currently do not support mime-type" + mimeType;
-					configMap.put(thisFile, message);
-					unProcessedList.add(thisFile);
-				}
-
-				logger.info("Completed Processing file : " + thisFile);
-			}
-		}
-		
-		configMap.put("Processed", processedList);
-		configMap.put("Unprocessed", unProcessedList);
-		
-		logger.info("Creating index ");
-		indexData(projectId, baseURL, configName, csvFileName, faiss_index);
-		
-		// write this to a json
-		Gson gson = new Gson();
-		String json = gson.toJson(configMap);
-		
 		try {
-			FileUtils.writeStringToFile(new File(configFile), json);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-		//push to cloud
-		
-		if (ClusterUtil.IS_CLUSTER) {
+			writer.setContentLength(contentLength);
+			writer.overlapLength(contentOverlap);
 	
-		IProject project = Utility.getProject(projectId);
-		String projectFolderPath = AssetUtility.getProjectBaseFolder(project.getProjectName(), projectId).replace("\\", "/");
-		ClusterUtil.pushProjectFolder(project, projectFolderPath);
-
+			logger.info("Starting file conversions ");
+			
+			// pick up the files and convert them to CSV
+			for(int fileIndex = 0;fileIndex < fileNames.size();fileIndex++)
+			{
+				String thisFile = fileNames.get(fileIndex);
+				logger.info("Processing file : " + thisFile);
+	
+				String fileLocation = indexingFolder + "/" + thisFile;		
+				// process this file
+				Map fileMap = addFileProperties(fileLocation);
+				if(fileMap != null)
+				{
+					String mimeType = fileMap.get("mime_type") + "";
+					if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+					{
+						// document
+						DocProcessor dp = new DocProcessor(fileLocation, writer);
+						dp.process();
+						configMap.put(thisFile, fileMap);
+						processedList.add(thisFile);
+					}
+					else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")) {
+						// powerpoint
+						PPTProcessor pp = new PPTProcessor(fileLocation, writer);
+						pp.process();
+						configMap.put(thisFile, fileMap);
+						processedList.add(thisFile);
+					}
+					else if(mimeType.equalsIgnoreCase("application/pdf")) {
+						PDFProcessor pdf = new PDFProcessor(fileLocation, writer);
+						pdf.process();
+						configMap.put(thisFile, fileMap);
+						processedList.add(thisFile);
+					}
+					else {
+						String message = "We Currently do not support mime-type" + mimeType;
+						configMap.put(thisFile, message);
+						unProcessedList.add(thisFile);
+					}
+					logger.info("Completed Processing file : " + thisFile);
+				}
+			}
+			
+			configMap.put("Processed", processedList);
+			configMap.put("Unprocessed", unProcessedList);
+			
+			logger.info("Creating index ");
+			indexData(projectId, baseURL, configName, csvFileName, faiss_index);
+			
+			// write this to a json
+			Gson gson = new Gson();
+			String json = gson.toJson(configMap);
+			try {
+				FileUtils.writeStringToFile(new File(configFile), json);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			//push to cloud
+			if (ClusterUtil.IS_CLUSTER) {
+				IProject project = Utility.getProject(projectId);
+				String projectFolderPath = AssetUtility.getProjectBaseFolder(project.getProjectName(), projectId).replace("\\", "/");
+				ClusterUtil.pushProjectFolder(project, projectFolderPath);
+			}
+		} finally {
+			writer.close();
 		}
 		
 		return new NounMetadata(configMap, PixelDataType.MAP);
@@ -230,12 +219,15 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 		pyt.runPyAndReturnOutput(commands);
 	}
 	
-	private Map addFileProperties(String fileLocation)
-	{
-		Map fileMap = new HashMap();
+	/**
+	 * 
+	 * @param fileLocation
+	 * @return
+	 */
+	private Map<String, Object> addFileProperties(String fileLocation) {
+		Map<String, Object> fileMap = new HashMap<>();
 		Path path = Paths.get(fileLocation);
-		try
-		{
+		try {
 			BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
 			fileMap.put("create_time", attr.creationTime());
 			fileMap.put("last_modified_time", attr.lastModifiedTime());
@@ -244,17 +236,13 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 			String mimeType = null;
 			if (SystemUtils.IS_OS_MAC) {
 			     mimeType = URLConnection.guessContentTypeFromName(path.toFile().getName());
-
 			} else {
 				 mimeType = Files.probeContentType(path);
 			}
 	
 			fileMap.put("mime_type", mimeType);
-			
 			fileMap.put("name", path.getFileName() +"");
-			//fileMap.put("location", path); // need to remove the reference to project
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			return null;
 		}
 		System.err.println(fileMap);
