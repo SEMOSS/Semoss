@@ -1,14 +1,14 @@
 package prerna.reactor.frame.gaas.qa;
 
 import prerna.ds.py.PyTranslator;
-import prerna.reactor.frame.gaas.GaasBaseReactor;
+import prerna.reactor.frame.gaas.AbstractGaasBaseReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class CreateQAModelReactor extends GaasBaseReactor {
+public class CreateQAModelReactor extends AbstractGaasBaseReactor {
 
 	// creates a qa model
 	final String modelType = "gaas";

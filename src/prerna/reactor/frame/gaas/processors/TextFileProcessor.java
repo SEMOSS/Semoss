@@ -6,41 +6,49 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.util.Utility;
 
 public class TextFileProcessor {
 	
-	String fileName = null;
-	CSVWriter writer = null;
+	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
+
+	private String filePath = null;
+	private CSVWriter writer = null;
 	
-	public TextFileProcessor(String fileName, CSVWriter writer)
-	{
-		this.fileName = fileName;
+	public TextFileProcessor(String filePath, CSVWriter writer) {
+		this.filePath = filePath;
 		this.writer = writer;
 	}
 	
 	public void process() throws IOException {
-		String source = getSource(fileName);
+		String source = getSource(this.filePath);
 		
 		String fileContent = null;
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(this.filePath))) {
         	fileContent = reader.lines().collect(Collectors.joining("\n"));
         }
 
         // for a text document there is only ever one page / divider
         String pageIndex = "1";
-        writer.writeRow(source, pageIndex, fileContent, "");
-	}	
+        this.writer.writeRow(source, pageIndex, fileContent, "");
+	}
 	
-	private String getSource(String fileName)
-	{
+	/**
+	 * 
+	 * @param filePath
+	 * @return
+	 */
+	private String getSource(String filePath) {
 		String source = null;
-		File file = new File(fileName);
-		if(file.exists())
+		File file = new File(filePath);
+		if(file.exists()) {
 			source = file.getName();
-				
+		}
 		source = Utility.cleanString(source, true);
-	
 		return source;
 	}
+	
 }
