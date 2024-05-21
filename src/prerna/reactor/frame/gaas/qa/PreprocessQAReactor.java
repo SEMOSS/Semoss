@@ -12,14 +12,14 @@ import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
-import prerna.reactor.frame.gaas.GaasBaseReactor;
+import prerna.reactor.frame.gaas.AbstractGaasBaseReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class PreprocessQAReactor extends GaasBaseReactor {
+public class PreprocessQAReactor extends AbstractGaasBaseReactor {
 
 	// preprocesses documents in a given folder
 	// essentially turns it into a text file and drops it into the folder / text directory

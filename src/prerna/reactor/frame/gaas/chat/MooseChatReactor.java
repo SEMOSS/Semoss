@@ -3,7 +3,7 @@ package prerna.reactor.frame.gaas.chat;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.reactor.frame.gaas.GaasBaseReactor;
+import prerna.reactor.frame.gaas.AbstractGaasBaseReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -11,7 +11,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class MooseChatReactor extends GaasBaseReactor {
+public class MooseChatReactor extends AbstractGaasBaseReactor {
 
 	public MooseChatReactor()
 	{
