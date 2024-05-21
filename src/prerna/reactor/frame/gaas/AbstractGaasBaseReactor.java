@@ -9,63 +9,66 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public abstract class GaasBaseReactor extends AbstractReactor {
+public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 
-	public String getProjectId()
-	{
+	/**
+	 * 
+	 * @return
+	 */
+	public String getProjectId() {
 		String projectId = null;
-		
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
-		
-		if(grs != null && !grs.isEmpty())
+		if(grs != null && !grs.isEmpty()) {
 			projectId = grs.get(0).toString();
-		else
-		{
+		} else {
 			projectId = this.insight.getProjectId();
-			if(projectId == null)
+			if(projectId == null) {
 				projectId = this.insight.getContextProjectId();
+			}
 		}
-
 		return projectId;
 	}
 	
-	public Map processParamMap()
-	{
+	/**
+	 * 
+	 * @return
+	 */
+	public Map processParamMap() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(grs != null)
-		{
+		if(grs != null) {
 			List maps = grs.getValuesOfType(PixelDataType.MAP);
-			if(maps != null && maps.size() > 0)
+			if(maps != null && maps.size() > 0) {
 				return (Map)maps.get(0);
+			}
 		}
 		return null;
 	}
 	
-	public String processMapToString(Map inputMap)
-	{
+	/**
+	 * 
+	 * @param inputMap
+	 * @return
+	 */
+	public String processMapToString(Map<String, Object> inputMap) {
 		StringBuilder buf = new StringBuilder("");
-		Iterator <String> keys = inputMap.keySet().iterator();
-		while(keys.hasNext())
-		{
+		Iterator<String> keys = inputMap.keySet().iterator();
+		while(keys.hasNext()) {
 			String thisKey = keys.next();
 			Object value = inputMap.get(thisKey);
 			
-			if(buf.length() != 0)
+			if(buf.length() != 0) {
 				buf.append(", ");
-			
+			}
 			// add the key
 			buf.append(thisKey).append("=");
-			
 			// add the value
-			if(value instanceof String)
+			if(value instanceof String) {
 				buf.append("\"").append(value).append("\"");
-			else
+			} else {
 				buf.append(value);
+			}
 		}
-		
 		return buf.toString();
-		
-		
 	}
 	
 }
