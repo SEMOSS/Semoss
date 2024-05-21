@@ -32,6 +32,13 @@ public class VectorDatabaseUtils {
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
+	/**
+	 * 
+	 * @param csvFileName
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
 	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 
@@ -68,7 +75,12 @@ public class VectorDatabaseUtils {
 				dp.process();
 				processedList.add(file.getAbsolutePath());
 			}
-			else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation") || mimeType.equalsIgnoreCase("application/x-tika-ooxml"))
+			else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+					|| (
+							mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
+							&& (filetype.equals("ppt") || filetype.equals("pptx")) 
+							)
+					)
 			{
 				// powerpoint
 				PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
@@ -89,7 +101,13 @@ public class VectorDatabaseUtils {
 			}
 			else
 			{
-				classLogger.warn("We Currently do not support mime-type " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
 			}
 			classLogger.info("Completed Processing file : " + file.getAbsolutePath());
 		

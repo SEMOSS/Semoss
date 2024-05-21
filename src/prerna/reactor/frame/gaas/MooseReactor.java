@@ -11,7 +11,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class MooseReactor extends GaasBaseReactor {
+public class MooseReactor extends AbstractGaasBaseReactor {
 
 	// we could move this to RDF Map also later
 	Map <String, Class> commandReactorMap = new HashMap<String, Class>(); 

@@ -6,7 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.poi.ooxml.POIXMLProperties.CoreProperties;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFNotes;
 import org.apache.poi.xslf.usermodel.XSLFShape;
@@ -14,62 +15,86 @@ import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xslf.usermodel.XSLFTextParagraph;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PPTProcessor {
 
+	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
+
 	// constructor with file name
 	// For every slide get the text shapes
 	// index it into a csv
-	String fileName = null;
-	CSVWriter writer = null;
+	private String filePath = null;
+	private CSVWriter writer = null;
 	
-	public PPTProcessor(String fileName, CSVWriter writer)
-	{
-		this.fileName = fileName;
+	/**
+	 * 
+	 * @param filePath
+	 * @param writer
+	 */
+	public PPTProcessor(String filePath, CSVWriter writer) {
+		this.filePath = filePath;
 		this.writer = writer;
 	}
 	
-	public void process()
-	{
-		FileInputStream inputStream;
-		
+	/**
+	 * 
+	 */
+	public void process() {
+		FileInputStream is = null;
+		XMLSlideShow ppt = null;
 		try {
-			inputStream = new FileInputStream(fileName);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			return;
-		}
-		
-		XMLSlideShow ppt;
-		
-		try {
-			ppt = new XMLSlideShow(inputStream);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return;
-		}
+			try {
+				is = new FileInputStream(this.filePath);
+			} catch (FileNotFoundException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				return;
+			}
 
-		processSlides(ppt);
+			try {
+				ppt = new XMLSlideShow(is);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				return;
+			}
+
+			processSlides(ppt);
+		} finally {
+			if(ppt != null) {
+				try {
+					ppt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
-	public  void processSlides(XMLSlideShow ppt) 
-	{
-        CoreProperties props = ppt.getProperties().getCoreProperties();
-        String title = props.getTitle();
-		String source = getSource(fileName);
-
-        
+	/**
+	 * 
+	 * @param ppt
+	 */
+	private void processSlides(XMLSlideShow ppt) {
+//      CoreProperties props = ppt.getProperties().getCoreProperties();
+//      String title = props.getTitle();
+		
+		String source = getSource(this.filePath);
         int count = 1;
         for (XSLFSlide slide: ppt.getSlides()) {
         	//System.out.println("Processing Slide..." + count);
         	StringBuilder slideText = new StringBuilder();
         	
         	List<XSLFShape> shapes = slide.getShapes();
-        	for (XSLFShape shape: shapes) 
-        	{
-        		if (shape instanceof XSLFTextShape) 
-        		{
+        	for (XSLFShape shape: shapes) {
+        		if (shape instanceof XSLFTextShape) {
         	        XSLFTextShape textShape = (XSLFTextShape)shape;
         	        String text = textShape.getText();
         	        slideText.append(text);
@@ -79,8 +104,7 @@ public class PPTProcessor {
         	
         	// get the notes
         	XSLFNotes mynotes = slide.getNotes();
-        	if(mynotes != null)
-        	{
+        	if(mynotes != null) {
 	            for (XSLFShape shape : mynotes) {
 	                if (shape instanceof XSLFTextShape) {
 	                    XSLFTextShape txShape = (XSLFTextShape) shape;
@@ -92,27 +116,26 @@ public class PPTProcessor {
 	                }
 	            }
         	}
-        	writer.writeRow(source, count+"", slideText.toString(), "");
-        	
+        	this.writer.writeRow(source, count+"", slideText.toString(), "");
         	
         	//System.out.println("----------------------------");
         	count++;
         }	 
 	}	
-	
-	private String getSource(String fileName)
-	{
+
+	/**
+	 * 
+	 * @param filePath
+	 * @return
+	 */
+	private String getSource(String filePath) {
 		String source = null;
-		File file = new File(fileName);
-		if(file.exists())
+		File file = new File(filePath);
+		if(file.exists()) {
 			source = file.getName();
-				
+		}
 		source = Utility.cleanString(source, true);
-		
 		return source;
-
 	}
-
-	
 	
 }

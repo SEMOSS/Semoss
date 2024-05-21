@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
 import prerna.project.api.IProject;
-import prerna.reactor.frame.gaas.GaasBaseReactor;
+import prerna.reactor.frame.gaas.AbstractGaasBaseReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,7 +15,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class QAFAISSIndexReactor extends GaasBaseReactor 
+public class QAFAISSIndexReactor extends AbstractGaasBaseReactor 
 {
 
 	public QAFAISSIndexReactor()
