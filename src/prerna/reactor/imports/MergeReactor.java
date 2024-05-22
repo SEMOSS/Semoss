@@ -121,7 +121,7 @@ public class MergeReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Could not find any data input to merge into the frame");
 				}
 			}
-		}		
+		}
 		// clear cached info after merge
 		mergeFrame.clearCachedMetrics();
 		mergeFrame.clearQueryCache();
@@ -186,6 +186,7 @@ public class MergeReactor extends AbstractReactor {
 					// create the SQL Queries
 					// need to check if these are query structs also
 					mergeFrame = (NativeFrame) SQLQueryUtils.joinQueryStructs(curQS, qs, joins);
+					mergeFrame.setOriginalName(curFrame.getOriginalName());
 					mergeFrame.setName(curFrame.getName());
 				} else {
 					throw new SemossPixelException("Joining tables across databases is not possible, please consider converting to a materialized frame");
@@ -261,7 +262,7 @@ public class MergeReactor extends AbstractReactor {
 						
 						SelectQueryStruct filterQs = new SelectQueryStruct();
 						QueryColumnSelector column = new QueryColumnSelector(leftColumnJoin);
-						filterQs.addSelector(column);						
+						filterQs.addSelector(column);
 						try {
 							Iterator<IHeadersDataRow> it = frame.query(filterQs);
 							List<Object> values = new ArrayList<Object>();
