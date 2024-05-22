@@ -350,26 +350,19 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		// if not set in the prop file
 		// try to grab from the connection details
 		if(this.schema == null) {
-			DatabaseMetaData meta = getConnectionMetadata();
-			if(meta != null) {
-				Connection conn = null;
-				try {
-					conn = getConnection();
-					this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
-				} catch(SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(this.datasourceConnected && conn != null) {
-						try {
-							conn.close();
-						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-						try {
-							meta.getConnection().close();
-						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
+			Connection conn = null;
+			try {
+				conn = getConnection();
+				DatabaseMetaData meta = conn.getMetaData();
+				this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
+			} catch(SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(this.datasourceConnected && conn != null) {
+					try {
+						conn.close();
+					} catch (SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
