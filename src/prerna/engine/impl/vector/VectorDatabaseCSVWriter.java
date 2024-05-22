@@ -4,10 +4,10 @@ import prerna.reactor.frame.gaas.processors.CSVWriter;
 
 public class VectorDatabaseCSVWriter extends CSVWriter {
 
-	int rowsCreated;
+	private int rowsCreated;
 	
-	public VectorDatabaseCSVWriter(String fileName) {
-		super(fileName);
+	public VectorDatabaseCSVWriter(String filePath) {
+		super(filePath);
 	}
 	
 	public int getRowsInCsv() {
@@ -16,14 +16,14 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 
 	@Override
 	protected void writeHeader() {
-		StringBuffer row = new StringBuffer();
-		row.append("Source").append(",")
-		.append("Modality").append(",")
-		.append("Divider").append(",")
-		.append("Part").append(",")
-		.append("Content")
-		.append("\r\n");
-		pw.print(row + "");
+		StringBuffer row = new StringBuffer()
+				.append("Source").append(",")
+				.append("Modality").append(",")
+				.append("Divider").append(",")
+				.append("Part").append(",")
+				.append("Content")
+				.append("\r\n");
+		this.pw.print(row + "");
 		
 		// this should always be the first row
 		this.rowsCreated = 1;
@@ -67,18 +67,17 @@ public class VectorDatabaseCSVWriter extends CSVWriter {
 //			}
 //		}
 		
-		StringBuilder row = new StringBuilder();
-		row.append("\"").append(cleanString(source)).append("\"").append(",")
-		.append("\"").append("text").append("\"").append(",")
-		.append("\"").append(cleanString(divider)).append("\"").append(",")
-		.append("\"").append(0).append("\"").append(",")
-		.append("\"").append(cleanString(content)).append("\"")
-		.append("\r\n");
+		StringBuilder row = new StringBuilder()
+				.append("\"").append(cleanString(source)).append("\"").append(",")
+				.append("\"").append("text").append("\"").append(",")
+				.append("\"").append(cleanString(divider)).append("\"").append(",")
+				.append("\"").append(0).append("\"").append(",")
+				.append("\"").append(cleanString(content)).append("\"")
+				.append("\r\n");
 		//System.out.println(row);
-		pw.print(row+"");
+		this.pw.print(row.toString());
 		//pw.print(separator);
-		pw.flush();
-		
-		rowsCreated += 1;
+		this.pw.flush();
+		this.rowsCreated += 1;
 	}
 }
