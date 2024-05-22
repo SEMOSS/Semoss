@@ -23,21 +23,21 @@ public class CSVWriter {
 	
 	// takes an input file
 	// starts appending CSV to it
-	protected String fileName = null;
+	protected String filePath = null;
+	
 	protected int contentLength = 512;
 	protected int overlapLength = 10;
 	protected float tokenLimit = 0.1f;
-	protected PrintWriter pw = null;
 	protected int minContentLength = 30;
+
 	protected FileWriter fw = null;
+	protected PrintWriter pw = null;
 
-	public CSVWriter(String fileName) {
-		this.fileName = fileName;
-		File file = new File(fileName);
-
+	public CSVWriter(String filePath) {
+		this.filePath = filePath;
+		File file = new File(filePath);
 		try {
-			if(file.exists())
-			{
+			if(file.exists()) {
 				// no need to write headers
 				// open in append mode
 				fw = new FileWriter(file, true);
@@ -54,8 +54,7 @@ public class CSVWriter {
 		}
 	}
 
-	public void setContentLength(int contentLength)
-	{
+	public void setContentLength(int contentLength) {
 		this.contentLength = contentLength;
 	}
 
@@ -64,13 +63,13 @@ public class CSVWriter {
 	}
 
 	protected void writeHeader() {
-		StringBuffer row = new StringBuffer();
-		row.append("Source").append(",")
-		.append("Divider").append(",")
-		.append("Part").append(",")
-		.append("Content")
-		.append("\r\n");
-		pw.print(row + "");
+		StringBuffer row = new StringBuffer()
+				.append("Source").append(",")
+				.append("Divider").append(",")
+				.append("Part").append(",")
+				.append("Content")
+				.append("\r\n");
+		this.pw.print(row.toString());
 	}
 
 	/**
@@ -93,16 +92,16 @@ public class CSVWriter {
 			if(thisBlock.length() >= minContentLength)
 			{
 				//System.err.println(contentIndex + " <> " + contentBlocks.get(contentIndex));
-				StringBuilder row = new StringBuilder();
-				row.append("\"").append(cleanString(source)).append("\"").append(",")
-				.append("\"").append(cleanString(divider)).append("\"").append(",")
-				.append("\"").append(contentIndex).append("\"").append(",")
-				.append("\"").append(cleanString(thisBlock)).append("\"")
-				.append("\r\n");
+				StringBuilder row = new StringBuilder()
+						.append("\"").append(cleanString(source)).append("\"").append(",")
+						.append("\"").append(cleanString(divider)).append("\"").append(",")
+						.append("\"").append(contentIndex).append("\"").append(",")
+						.append("\"").append(cleanString(thisBlock)).append("\"")
+						.append("\r\n");
 				//System.out.println(row);
-				pw.print(row+"");
+				this.pw.print(row+"");
 				//pw.print(separator);
-				pw.flush();
+				this.pw.flush();
 			}
 		}
 	}
@@ -182,6 +181,35 @@ public class CSVWriter {
 		return chunks;
 	}
 	
+	/**
+	 * 
+	 * @param chunk
+	 * @param overlapLength
+	 * @return
+	 */
+	private int getOverlapIndex(String chunk, int overlapLength) {
+		int endIndex = chunk.length() - 1;
+		int overlapIndex = Math.max(0, endIndex - overlapLength);
+		int lastSentenceIndex = chunk.lastIndexOf('.', overlapIndex);
+		return lastSentenceIndex >= 0 ? lastSentenceIndex + 1 : overlapIndex;
+	}
+	
+	/**
+	 * 
+	 */
+	public void close() {
+		if(this.pw != null) {
+			this.pw.close();
+		}
+		if(this.fw != null) {
+			try {
+				this.fw.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
+	
 //	public List<String> chunkString(String stringToChunk, List<String> chunks) {
 //		StringBuilder currentChunk = new StringBuilder();
 //
@@ -226,20 +254,6 @@ public class CSVWriter {
 	/*
 	 * Testing
 	 */
-
-	/**
-	 * 
-	 * @param chunk
-	 * @param overlapLength
-	 * @return
-	 */
-	private int getOverlapIndex(String chunk, int overlapLength) {
-		int endIndex = chunk.length() - 1;
-		int overlapIndex = Math.max(0, endIndex - overlapLength);
-		int lastSentenceIndex = chunk.lastIndexOf('.', overlapIndex);
-		return lastSentenceIndex >= 0 ? lastSentenceIndex + 1 : overlapIndex;
-	}
-
 
 	private List<String> recursivelyBreakParagraphs(String curSentence, StringBuilder curBlock, List <String> sentenceList, List <String> blockList)
 	{
@@ -304,12 +318,6 @@ public class CSVWriter {
 		return blockList;
 	}
 
-	/**
-	 * 
-	 * @param sentence
-	 * @param length
-	 * @return
-	 */
 	private StringBuilder getWordsForLength(String sentence, int length) {
 		// need to use spacy to get words
 		StringBuilder retSentence = new StringBuilder();
@@ -329,15 +337,8 @@ public class CSVWriter {
 		return retSentence;
 	}
 	
-	public void close() {
-		try {
-			this.fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		this.pw.close();
-	}
+	
+	///////////////////////////////////////////
 
 
 	public static void main(String [] args)
