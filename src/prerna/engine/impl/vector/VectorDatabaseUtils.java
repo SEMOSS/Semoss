@@ -41,78 +41,80 @@ public class VectorDatabaseUtils {
 	 */
 	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
-
-		classLogger.info("Starting file conversions ");
-		List <String> processedList = new ArrayList<String>();
-
-		// pick up the files and convert them to CSV
-		classLogger.info("Processing file : " + file.getName());
-		
-		// process this file
-		String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
-		String mimeType = null;
-		
-		//using tika for mime type check since it is more consistent across env + rhel OS and macOS
-		Tika tika = new Tika();
-
-		try (FileInputStream inputstream = new FileInputStream(file)) {
-			mimeType = tika.detect(inputstream, new Metadata());
-		} catch (IOException e) {
-			classLogger.error(Constants.ERROR_MESSAGE, e);
-        }
-		
-		if(mimeType != null) {
-			classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-			if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-					|| (
-							mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
-							&& (filetype.equals("doc") || filetype.equals("docx")) 
-							)
-					)
-			{
-				// document
-				DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
-				dp.process();
-				processedList.add(file.getAbsolutePath());
+		try {
+			classLogger.info("Starting file conversions ");
+			List <String> processedList = new ArrayList<String>();
+	
+			// pick up the files and convert them to CSV
+			classLogger.info("Processing file : " + file.getName());
+			
+			// process this file
+			String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
+			String mimeType = null;
+			
+			//using tika for mime type check since it is more consistent across env + rhel OS and macOS
+			Tika tika = new Tika();
+	
+			try (FileInputStream inputstream = new FileInputStream(file)) {
+				mimeType = tika.detect(inputstream, new Metadata());
+			} catch (IOException e) {
+				classLogger.error(Constants.ERROR_MESSAGE, e);
+	        }
+			
+			if(mimeType != null) {
+				classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
+				if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+						|| (
+								mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
+								&& (filetype.equals("doc") || filetype.equals("docx")) 
+								)
+						)
+				{
+					// document
+					DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
+					dp.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+						|| (
+								mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
+								&& (filetype.equals("ppt") || filetype.equals("pptx")) 
+								)
+						)
+				{
+					// powerpoint
+					PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
+					pp.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else if(mimeType.equalsIgnoreCase("application/pdf"))
+				{
+					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
+					pdf.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else if(mimeType.equalsIgnoreCase("text/plain"))
+				{
+					TextFileProcessor text = new TextFileProcessor(file.getAbsolutePath(), writer);
+					text.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else
+				{
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				}
+				classLogger.info("Completed Processing file : " + file.getAbsolutePath());
+			
 			}
-			else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-					|| (
-							mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
-							&& (filetype.equals("ppt") || filetype.equals("pptx")) 
-							)
-					)
-			{
-				// powerpoint
-				PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
-				pp.process();
-				processedList.add(file.getAbsolutePath());
-			}
-			else if(mimeType.equalsIgnoreCase("application/pdf"))
-			{
-				PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
-				pdf.process();
-				processedList.add(file.getAbsolutePath());
-			}
-			else if(mimeType.equalsIgnoreCase("text/plain"))
-			{
-				TextFileProcessor text = new TextFileProcessor(file.getAbsolutePath(), writer);
-				text.process();
-				processedList.add(file.getAbsolutePath());
-			}
-			else
-			{
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			}
-			classLogger.info("Completed Processing file : " + file.getAbsolutePath());
-		
+		} finally {
+			writer.close();
 		}
-		writer.close();
 		
 		return writer.getRowsInCsv();
 	}
