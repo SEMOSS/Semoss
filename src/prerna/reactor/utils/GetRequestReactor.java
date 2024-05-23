@@ -132,7 +132,7 @@ public class GetRequestReactor extends AbstractReactor {
 						throw new IllegalArgumentException("An error occurred trying to get the project authorization headers");
 					}
 				} else {
-					headers.putAll( (Map<String, String>) headersGrs.get(i)); 
+					headers.putAll( (Map<String, String>) noun.getValue() );
 				}
 			}
 			return headers;
