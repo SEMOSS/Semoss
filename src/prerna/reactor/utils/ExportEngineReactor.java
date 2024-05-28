@@ -99,11 +99,11 @@ public class ExportEngineReactor extends AbstractReactor {
 				ignoreDirs.add(engineNameAndId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/.git");
 			}
 			
-			// zip database
+			// zip engine
 			FileOutputStream fos = null;
 			ZipOutputStream zos = null;
 			try {
-				// zip db folder
+				// zip engine folder
 				if(thisEngineF.exists()) {
 					logger.info("Zipping engine files...");
 					// now zip up
@@ -159,7 +159,7 @@ public class ExportEngineReactor extends AbstractReactor {
 			try {
 				if(closed) {
 					logger.info("Opening the engine again...");
-					Utility.getDatabase(engineId);
+					Utility.getEngine(engineId);
 					logger.info("Opened the engine");
 				}
 			} finally {
