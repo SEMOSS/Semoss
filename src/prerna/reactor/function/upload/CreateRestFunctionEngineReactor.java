@@ -31,11 +31,11 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 
-public class CreateFunctionEngineReactor extends AbstractReactor {
+public class CreateRestFunctionEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateFunctionEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateRestFunctionEngineReactor.class);
 
-	public CreateFunctionEngineReactor() {
+	public CreateRestFunctionEngineReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(), ReactorKeysEnum.FILE_NAME.getKey()};
 		this.keyRequired = new int [] {1, 1, 0};
 	}
