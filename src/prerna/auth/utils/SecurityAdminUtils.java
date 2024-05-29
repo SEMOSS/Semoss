@@ -908,7 +908,37 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return true;
 	}
 	
-
+	/**
+	 * 
+	 * @param userId
+	 * @param userType
+	 * @param newEmail
+	 */
+	public void updateUserEmail(String userId, String userType, String newEmail) {
+		String query = "UPDATE SMSS_USER SET EMAIL=? WHERE ID=? AND TYPE=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			if(newEmail == null || (newEmail=newEmail.trim()).isEmpty()) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, newEmail);
+			}
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, userType);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred updating this user's email");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+	
 	/**
 	 * Set the user's publishing rights
 	 * @param userId
