@@ -5,7 +5,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class FrameSizeRetrictions {
 
@@ -23,25 +23,23 @@ public class FrameSizeRetrictions {
 	static {
 		// null check is only for testing
 		// in case DIHelper isn't loaded
-		if(DIHelper.getInstance() != null) {
-			String limitSize = (String) DIHelper.getInstance().getProperty(Constants.FRAME_SIZE_LIMIT);
-			if (limitSize == null) {
-				LIMIT_SIZE = Integer.MAX_VALUE;
-			} else {
-				try {
-					int val = Integer.parseInt(limitSize.trim());
-					if(val < 0) {
-						LIMIT_SIZE = Integer.MAX_VALUE;
-					} else {
-						SIZE_RESTRICTED = true;
-						LIMIT_SIZE = Integer.parseInt(limitSize.trim());
-					}
-				} catch(Exception e) {
-					LIMIT_SIZE = 10_000;
+		String limitSize = (String) Utility.getDIHelperProperty(Constants.FRAME_SIZE_LIMIT);
+		if (limitSize == null) {
+			LIMIT_SIZE = Integer.MAX_VALUE;
+		} else {
+			try {
+				int val = Integer.parseInt(limitSize.trim());
+				if(val < 0) {
+					LIMIT_SIZE = Integer.MAX_VALUE;
+				} else {
+					SIZE_RESTRICTED = true;
+					LIMIT_SIZE = Integer.parseInt(limitSize.trim());
 				}
+			} catch(Exception e) {
+				LIMIT_SIZE = 10_000;
 			}
-			RESTRICT_NATIVE = Boolean.parseBoolean( DIHelper.getInstance().getProperty(Constants.FRAME_SIZE_LIMIT_NATIVE) + "");
 		}
+		RESTRICT_NATIVE = Boolean.parseBoolean( Utility.getDIHelperProperty(Constants.FRAME_SIZE_LIMIT_NATIVE) + "");
 	}
 	
 	/**
