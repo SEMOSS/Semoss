@@ -51,7 +51,6 @@ import prerna.poi.main.helper.ImportOptions;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -80,15 +79,15 @@ public class ImportDataListener implements IChakraListener {
 	public void actionPerformed(ActionEvent e) {
 		// get the import data
 		// trigger the import
-		JComboBox comboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_COMBOBOX);
-		JComboBox typeBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_TYPE_COMBOBOX);
-		JCheckBox autoGenerateInsights = (JCheckBox)DIHelper.getInstance().getLocalProp(Constants.AUTO_GENERATE_INSIGHTS_CHECK_BOX);
+		JComboBox comboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.IMPORT_COMBOBOX);
+		JComboBox typeBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.IMPORT_TYPE_COMBOBOX);
+		JCheckBox autoGenerateInsights = (JCheckBox) Utility.getDIHelperLocalProperty(Constants.AUTO_GENERATE_INSIGHTS_CHECK_BOX);
 		
 		ImportDataProcessor processor = new ImportDataProcessor();
 
 		// create the options object
 		ImportOptions options = new ImportOptions();
-		options.setBaseFolder(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER));
+		options.setBaseFolder(Utility.getBaseFolder());
 		
 		// set the import method
 		String selection = comboBox.getSelectedItem() + "";
@@ -122,19 +121,19 @@ public class ImportDataListener implements IChakraListener {
 		options.setDbType(ImportOptions.DB_TYPE.RDF);
 		
 		// set the file names
-		String fileNames = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_FIELD)).getText();
+		String fileNames = ((JTextField) Utility.getDIHelperLocalProperty(Constants.IMPORT_FILE_FIELD)).getText();
 		if(fileNames.equals("")) {
 			Utility.showError("Please select a file to import");
 		}
 		options.setFileLocation(fileNames);
 
 		// set the custom base uri
-		String customBaseURI = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.BASE_URI_TEXT_FIELD)).getText();
+		String customBaseURI = ((JTextField) Utility.getDIHelperLocalProperty(Constants.BASE_URI_TEXT_FIELD)).getText();
 		options.setBaseUrl(customBaseURI);
 		
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		JList list = (JList) Utility.getDIHelperLocalProperty(Constants.REPO_LIST);
 		String repoSelection = list.getSelectedValue()+"";
-		String dbNameBox = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
+		String dbNameBox = ((JTextField) Utility.getDIHelperLocalProperty(Constants.DB_NAME_FIELD)).getText();
 
 		//if we are replacing data, need a more through check for the user
 		//unless we are creating a new engine, though, we want to have the user confirm the import
@@ -185,7 +184,7 @@ public class ImportDataListener implements IChakraListener {
 	private boolean runOverrideCheck(String fileNames){
 
 		String replacedString = "";
-		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JFrame playPane = (JFrame) Utility.getDIHelperLocalProperty(Constants.MAIN_FRAME);
 		String[] files = fileNames.split(";");
 
 		for(String file : files) {
@@ -264,7 +263,7 @@ public class ImportDataListener implements IChakraListener {
 	}
 	
 	public boolean runCheck(){
-		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JFrame playPane = (JFrame) Utility.getDIHelperLocalProperty(Constants.MAIN_FRAME);
 		Object[] buttons = {"Cancel Loading", "Continue With Loading"};
 		int response = JOptionPane.showOptionDialog(playPane, "This move cannot be undone. Please make sure the excel file is formatted correctly \nand make a back up jnl file before continuing. Would you still like to continue?", 
 				"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);

@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class AddParameterBtnListener extends AbstractListener {
 	Logger logger = LogManager.getLogger(getClass());
@@ -48,9 +48,8 @@ public class AddParameterBtnListener extends AbstractListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
-		JTextPane questionSparql = (JTextPane) DIHelper.getInstance().getLocalProp(
-				Constants.QUESTION_SPARQL_TEXT_PANE);
-		ParamComboBox addParameterComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);
+		JTextPane questionSparql = (JTextPane) Utility.getDIHelperLocalProperty(Constants.QUESTION_SPARQL_TEXT_PANE);
+		ParamComboBox addParameterComboBox = (ParamComboBox) Utility.getDIHelperLocalProperty(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);
 		
 		String currentQuery = questionSparql.getText();
 		String parameter = (String) addParameterComboBox.getSelectedItem();

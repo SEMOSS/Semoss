@@ -31,7 +31,7 @@ import javax.swing.JToggleButton;
 import javax.swing.event.InternalFrameEvent;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  */
@@ -49,7 +49,7 @@ public class GridPlaySheetListener extends PlaySheetListener {
 		super.internalFrameActivated(e);
 		
 		// this should also enable the extend and overlay buttons
-		JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton append = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 		append.setEnabled(true);
 		logger.info("Internal Frame Activated >>>> Complete ");
 	}
@@ -69,7 +69,7 @@ public class GridPlaySheetListener extends PlaySheetListener {
 	public void internalFrameOpened(InternalFrameEvent arg0) {
 		logger.info("Internal Frame opened");
 		// this should also enable the extend and overlay buttons
-		JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton append = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 		append.setEnabled(true);
 	}
 }

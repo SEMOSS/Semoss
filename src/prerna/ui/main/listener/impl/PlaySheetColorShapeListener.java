@@ -45,7 +45,7 @@ import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  */
@@ -71,7 +71,7 @@ public class PlaySheetColorShapeListener implements InternalFrameListener {
 	
 		logger.info("Lable count is " + model.getRowCount());
 		// get the table
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.COLOR_SHAPE_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.COLOR_SHAPE_TABLE);
 		table.setModel(model);
 		
 		TableColumn col = table.getColumnModel().getColumn(2);
@@ -99,7 +99,7 @@ public class PlaySheetColorShapeListener implements InternalFrameListener {
 		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		// get the table
 		TableModel model = new DefaultTableModel();
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.COLOR_SHAPE_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.COLOR_SHAPE_TABLE);
 		table.setModel(model);
 		logger.debug("Cleaned up the filter tables ");
 		logger.info("Complete ");

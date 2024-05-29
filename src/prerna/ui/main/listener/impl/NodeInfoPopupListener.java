@@ -36,7 +36,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.ui.components.NodeInfoPopup;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls showing the node info pop up.
@@ -62,7 +62,7 @@ public class NodeInfoPopupListener implements ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		NodeInfoPopup pop = new NodeInfoPopup(ps, selectedNodes);
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+		JDesktopPane pane = (JDesktopPane) Utility.getDIHelperLocalProperty(Constants.DESKTOP_PANE);
 		pop.setJDesktopPane(pane);
 		pop.runTable();
 	}

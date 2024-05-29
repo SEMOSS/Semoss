@@ -50,7 +50,7 @@ import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.ui.transformer.VertexShapeTransformer;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls what happens when a picked state occurs.
@@ -79,7 +79,7 @@ public class PickedStateListener implements ItemListener {
 
 		GraphPlaySheet ps3 = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();
 		table.setModel(tm);
 

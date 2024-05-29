@@ -43,7 +43,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the selection of the object type for the export data section of the db modification tab.
@@ -79,8 +79,8 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 	}
 	
 	private void updateComboBoxes() {
-		JComboBox subjectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
-		JComboBox objectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
+		JComboBox subjectNodeTypeComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
+		JComboBox objectNodeTypeComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
 		if(subjectNodeTypeComboBox.getSelectedItem() != null && objectNodeTypeComboBox.getSelectedItem() != null) {
 			this.subjectNodeType = subjectNodeTypeComboBox.getSelectedItem().toString();
 			this.objectNodeType = objectNodeTypeComboBox.getSelectedItem().toString();
@@ -102,7 +102,7 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 	 * @param values Object[]
 	 */
 	private void populateRelationshipComboBox(Object[] values) {
-		JComboBox nodeRelationshipComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_NODE_RELATIONSHIP_COMBOBOX + this.exportNo);
+		JComboBox nodeRelationshipComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_NODE_RELATIONSHIP_COMBOBOX + this.exportNo);
 		DefaultComboBoxModel model = new DefaultComboBoxModel(values);
 		nodeRelationshipComboBox.setModel(model);
 		nodeRelationshipComboBox.setEditable(false);
@@ -130,8 +130,8 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 		
 		query += "{?in ?relationship ?out ;} {?relationship <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?verb } }";
 		
-		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		JComboBox exportDataSourceComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getDIHelperLocalProperty(exportDataSourceComboBox.getSelectedItem().toString());
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

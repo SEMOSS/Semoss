@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Gets all settings check boxes relating to the graph play sheet,
@@ -53,10 +54,10 @@ public class GraphPlaySheetSettingsListener implements IChakraListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		logger.info("Registering check box");
-		JCheckBox sudowlCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.sudowlCheck);
-		JCheckBox propCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.propertyCheck);
-		JCheckBox searchCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.searchCheck);
-		JCheckBox highQualityExportCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.highQualityExportCheck);
+		JCheckBox sudowlCheck = (JCheckBox) Utility.getDIHelperLocalProperty(Constants.sudowlCheck);
+		JCheckBox propCheck = (JCheckBox) Utility.getDIHelperLocalProperty(Constants.propertyCheck);
+		JCheckBox searchCheck = (JCheckBox) Utility.getDIHelperLocalProperty(Constants.searchCheck);
+		JCheckBox highQualityExportCheck = (JCheckBox) Utility.getDIHelperLocalProperty(Constants.highQualityExportCheck);
 		
 		boolean sudowl = sudowlCheck.isSelected();
 		logger.info("GPSSudowl: " + sudowl);

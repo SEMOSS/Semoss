@@ -40,7 +40,7 @@ import prerna.ui.components.VertexFilterTableModel;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  */
@@ -65,7 +65,7 @@ public class GraphPlaySheetListener extends PlaySheetListener {
 		// get the filter data
 		VertexFilterTableModel model = new VertexFilterTableModel(vfd);	
 		// get the table
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.FILTER_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.FILTER_TABLE);
 		table.setModel(model);
 		//table.repaint();
 		model.fireTableDataChanged();
@@ -73,14 +73,14 @@ public class GraphPlaySheetListener extends PlaySheetListener {
 
 		EdgeFilterTableModel model2 = new EdgeFilterTableModel(vfd);	
 		// get the table
-		JTable table2 = (JTable)DIHelper.getInstance().getLocalProp(Constants.EDGE_TABLE);
+		JTable table2 = (JTable) Utility.getDIHelperLocalProperty(Constants.EDGE_TABLE);
 		// need to figure a way to put the renderer here
 		table2.setModel(model2);
 		model2.fireTableDataChanged();
 		logger.debug("Added the Edge filter table ");
 		
 		// this should also enable the extend and overlay buttons
-		JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton append = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 		append.setEnabled(true);
 		CSSApplication css = new CSSApplication(append,".toggleButton");
 		//append.repaint();
@@ -103,13 +103,13 @@ public class GraphPlaySheetListener extends PlaySheetListener {
 		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		// get the table
 		TableModel model = new DefaultTableModel();
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.FILTER_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.FILTER_TABLE);
 		table.setModel(model);
-		JTable table3 = (JTable)DIHelper.getInstance().getLocalProp(Constants.EDGE_TABLE);
+		JTable table3 = (JTable) Utility.getDIHelperLocalProperty(Constants.EDGE_TABLE);
 		table3.setModel(model);
 		logger.debug("Cleaned up the filter tables ");
 		// also clear the properties table
-		JTable table2 = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
+		JTable table2 = (JTable) Utility.getDIHelperLocalProperty(Constants.PROP_TABLE);
 		table2.setModel(model);
 		
 		//if the playsheet has a data latency popup associated with it, close it
@@ -134,7 +134,7 @@ public class GraphPlaySheetListener extends PlaySheetListener {
 	public void internalFrameOpened(InternalFrameEvent arg0) {
 		logger.info("Internal Frame opened");
 		// this should also enable the extend and overlay buttons
-		JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton append = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 		CSSApplication css = new CSSApplication(append,".toggleButton");
 		append.setEnabled(true);
 

@@ -47,7 +47,6 @@ import javax.swing.JTextPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabaseEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.project.api.IProject;
@@ -55,7 +54,6 @@ import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class QuestionModificationTypeBtnListener extends AbstractListener {
@@ -97,44 +95,44 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 	String order = "";
 	
 	private void getFieldData(){
-		addParameterComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);
-		questionPerspectiveSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
-		questionModSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
-		lblQuestionSelectPerspective = (JLabel) DIHelper.getInstance().getLocalProp(Constants.LABEL_QUESTION_SELECT_PERSPECTIVE);
-		lblSelectQuestion = (JLabel) DIHelper.getInstance().getLocalProp(Constants.LABEL_SELECT_QUESTION);
+		addParameterComboBox = (ParamComboBox) Utility.getDIHelperLocalProperty(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);
+		questionPerspectiveSelector = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_PERSPECTIVE_SELECTOR);
+		questionModSelector = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_MOD_SELECTOR);
+		lblQuestionSelectPerspective = (JLabel) Utility.getDIHelperLocalProperty(Constants.LABEL_QUESTION_SELECT_PERSPECTIVE);
+		lblSelectQuestion = (JLabel) Utility.getDIHelperLocalProperty(Constants.LABEL_SELECT_QUESTION);
 		
-		questionSparqlTextPane = (JTextPane ) DIHelper.getInstance().getLocalProp(Constants.QUESTION_SPARQL_TEXT_PANE);
-		questionPerspectiveField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_FIELD);
-		questionField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_FIELD);
-		questionLayoutField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LAYOUT_FIELD);
+		questionSparqlTextPane = (JTextPane ) Utility.getDIHelperLocalProperty(Constants.QUESTION_SPARQL_TEXT_PANE);
+		questionPerspectiveField = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_PERSPECTIVE_FIELD);
+		questionField = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_FIELD);
+		questionLayoutField = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_LAYOUT_FIELD);
 		
-		questionModButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_BUTTON);
-		questionAddParameterButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ADD_PARAMETER_BUTTON);
+		questionModButton = (JButton) Utility.getDIHelperLocalProperty(Constants.QUESTION_MOD_BUTTON);
+		questionAddParameterButton = (JButton) Utility.getDIHelperLocalProperty(Constants.QUESTION_ADD_PARAMETER_BUTTON);
 		
-		addParameterOptionButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.ADD_PARAMETER_OPTION_BUTTON);
-		addParameterDependButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.ADD_PARAMETER_DEPENDENCY_BUTTON);
-		addParameterQueryButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.ADD_PARAMETER_QUERY_BUTTON);
+		addParameterOptionButton = (JButton) Utility.getDIHelperLocalProperty(Constants.ADD_PARAMETER_OPTION_BUTTON);
+		addParameterDependButton = (JButton) Utility.getDIHelperLocalProperty(Constants.ADD_PARAMETER_DEPENDENCY_BUTTON);
+		addParameterQueryButton = (JButton) Utility.getDIHelperLocalProperty(Constants.ADD_PARAMETER_QUERY_BUTTON);
 		
-		parameterQueryTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERY_TEXT_PANE);
-		parameterDependTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_DEPEND_TEXT_PANE);
-		parameterOptionTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTION_TEXT_PANE);
+		parameterQueryTextPane = (JTextPane) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERY_TEXT_PANE);
+		parameterDependTextPane = (JTextPane) Utility.getDIHelperLocalProperty(Constants.PARAMETER_DEPEND_TEXT_PANE);
+		parameterOptionTextPane = (JTextPane) Utility.getDIHelperLocalProperty(Constants.PARAMETER_OPTION_TEXT_PANE);
 		
-		parameterDependList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_DEPENDENCIES_JLIST);
-		parameterQueryList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERIES_JLIST);
-		parameterOptionList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTIONS_JLIST);
+		parameterDependList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_DEPENDENCIES_JLIST);
+		parameterQueryList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERIES_JLIST);
+		parameterOptionList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_OPTIONS_JLIST);
 		
-		editParameterDependButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_DEPEND_EDIT_BUTTON);
-		deleteParameterDependButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_DEPEND_DELETE_BUTTON);
+		editParameterDependButton = (JButton) Utility.getDIHelperLocalProperty(Constants.PARAMETER_DEPEND_EDIT_BUTTON);
+		deleteParameterDependButton = (JButton) Utility.getDIHelperLocalProperty(Constants.PARAMETER_DEPEND_DELETE_BUTTON);
 		
-		editParameterQueryButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERY_EDIT_BUTTON);
-		deleteParameterQueryButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERY_DELETE_BUTTON);
+		editParameterQueryButton = (JButton) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERY_EDIT_BUTTON);
+		deleteParameterQueryButton = (JButton) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERY_DELETE_BUTTON);
 		
-		editParameterOptionButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTION_EDIT_BUTTON);
-		deleteParameterOptionButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTION_DELETE_BUTTON);
+		editParameterOptionButton = (JButton) Utility.getDIHelperLocalProperty(Constants.PARAMETER_OPTION_EDIT_BUTTON);
+		deleteParameterOptionButton = (JButton) Utility.getDIHelperLocalProperty(Constants.PARAMETER_OPTION_DELETE_BUTTON);
 		
-		questionDBSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_DB_SELECTOR);
-		questionOrderComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ORDER_COMBO_BOX);
-		questionLayoutListComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
+		questionDBSelector = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_DB_SELECTOR);
+		questionOrderComboBox = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_ORDER_COMBO_BOX);
+		questionLayoutListComboBox = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
 		
 		engineName = (String) questionDBSelector.getSelectedItem();
 	}
@@ -199,14 +197,13 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		editParameterQueryButton.setEnabled(true);
 		deleteParameterQueryButton.setEnabled(true);
 		
-		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 		Map qMap = (Map) questionModSelector.getSelectedItem();
 		String question = (String) qMap.get(MapComboBoxRenderer.VALUE);
 		String id = (String) qMap.get(MapComboBoxRenderer.KEY);
 		String[] questionSplit = question.split("\\. ", 2);
 		question = questionSplit[1];
 		
-		IProject project = Utility.getProject(engine.getEngineId());
+		IProject project = Utility.getProject(engineName);
 		OldInsight in = (OldInsight) project.getInsight(id).get(0);
 
 		// now get the SPARQL query for this id
@@ -225,8 +222,8 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		
 		if(!paramInfoVector.isEmpty()){
 			for(int i = 0; i < paramInfoVector.size(); i++){
-				if(paramInfoVector.get(i).getQuery() != null && !paramInfoVector.get(i).getQuery().equals(DIHelper.getInstance().getProperty(
-						"TYPE" + "_" + Constants.QUERY))){
+				if(paramInfoVector.get(i).getQuery() != null && !paramInfoVector.get(i).getQuery().equals(
+						Utility.getDIHelperProperty("TYPE" + "_" + Constants.QUERY))){
 					parameterQueryVector.add(paramInfoVector.get(i).getName() + "_QUERY_-_" + paramInfoVector.get(i).getQuery());
 				}
 				

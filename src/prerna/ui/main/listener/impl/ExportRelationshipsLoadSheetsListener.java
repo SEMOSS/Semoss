@@ -40,7 +40,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.RelationshipLoadingSheetWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls exporting of graph relationships into loading sheets.
@@ -56,14 +56,14 @@ public class ExportRelationshipsLoadSheetsListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		
-		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		JComboBox exportDataSourceComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getDIHelperLocalProperty(exportDataSourceComboBox.getSelectedItem().toString());
 		
 		ArrayList<String[]> relationships = new ArrayList<String[]>();
 		for(int i = 1; i <= Constants.MAX_EXPORTS; i++) {
-			JComboBox subject = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + i);
-			JComboBox object = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + i);
-			JComboBox relationship = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_NODE_RELATIONSHIP_COMBOBOX + i);
+			JComboBox subject = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + i);
+			JComboBox object = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + i);
+			JComboBox relationship = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_NODE_RELATIONSHIP_COMBOBOX + i);
 			if(subject.isVisible() && subject.getSelectedItem() != null && relationship.isVisible() && relationship.getSelectedItem() != null && 
 					object.isVisible() && object.getSelectedItem() != null) {
 				relationships.add(new String[]{subject.getSelectedItem().toString(), relationship.getSelectedItem().toString(), object.getSelectedItem().toString()});
