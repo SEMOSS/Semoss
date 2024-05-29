@@ -124,6 +124,7 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
+			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), functionId);
