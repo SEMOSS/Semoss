@@ -39,7 +39,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls browsing files for a database.
@@ -62,7 +62,7 @@ public class DBBrowseListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JTextField view = (JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD);
+		JTextField view = (JTextField) Utility.getDIHelperLocalProperty(Constants.DB_NAME_FIELD);
 		// I just need to show the file chooser and set the action performed to a file chooser class
 		JFileChooser jfc = new JFileChooser();
 		jfc.setCurrentDirectory(new java.io.File("."));

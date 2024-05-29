@@ -35,7 +35,7 @@ import javax.swing.JPanel;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls what to do when the "Show Advanced Features" button is selected in the DB modification tab.  Hides/Unhides the options.
@@ -49,7 +49,7 @@ public class AdvancedImportOptionsListener implements IChakraListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		JButton button = (JButton) e.getSource();
-		JPanel advancedPanel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_PANEL);
+		JPanel advancedPanel = (JPanel) Utility.getDIHelperLocalProperty(Constants.ADVANCED_IMPORT_OPTIONS_PANEL);
 		
 		//if button currently says "Show", show panel and set text of button to Hide
 		if(button.getText().contains("Show")){

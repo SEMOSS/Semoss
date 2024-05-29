@@ -43,7 +43,6 @@ import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.helpers.EntityFillerForSubClass;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
@@ -53,11 +52,11 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 	public void actionPerformed(ActionEvent e) {
 		JComboBox<String> questionModDBComboBox = (JComboBox<String>)e.getSource();
 		String engineName = (String) questionModDBComboBox.getSelectedItem();
-		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(engineName);
-		JRadioButton addQuestionModType = (JRadioButton) DIHelper.getInstance().getLocalProp(Constants.ADD_QUESTION_BUTTON);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getDIHelperLocalProperty(engineName);
+		JRadioButton addQuestionModType = (JRadioButton) Utility.getDIHelperLocalProperty(Constants.ADD_QUESTION_BUTTON);
 
 		//populate layout combobox
-		JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
+		JComboBox playSheetComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
 		playSheetComboBox.removeAllItems();
 		
 		playSheetComboBox.insertItemAt("*Custom_PlaySheet", 0);
@@ -69,7 +68,7 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		
 		//entity filler; this will populate the parameter combobox for users to select a parameter they want to bind
 		ArrayList<JComboBox> boxes = new ArrayList<JComboBox>();
-		ParamComboBox addParameterComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);
+		ParamComboBox addParameterComboBox = (ParamComboBox) Utility.getDIHelperLocalProperty(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);
 		boxes.add(addParameterComboBox);
 		
 		EntityFillerForSubClass entityFillerSC = new EntityFillerForSubClass();
@@ -84,7 +83,7 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		Vector<String> perspectives = project.getPerspectives();
 		Collections.sort(perspectives);
 		
-		JComboBox<String> box = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
+		JComboBox<String> box = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_PERSPECTIVE_SELECTOR);
 		box.removeAllItems();
 		
 		//populates perspectives based on selected db

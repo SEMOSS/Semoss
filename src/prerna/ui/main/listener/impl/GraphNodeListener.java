@@ -56,7 +56,7 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls what happens when a user clicks on a node in a graph.
@@ -102,7 +102,7 @@ public class GraphNodeListener extends ModalLensGraphMouse implements IChakraLis
 //    	GraphPlaySheet ps3 = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
     	GraphPlaySheet ps3 = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();
 		
 		Hashtable vertHash = new Hashtable();

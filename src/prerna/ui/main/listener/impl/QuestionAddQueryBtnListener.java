@@ -38,14 +38,14 @@ import javax.swing.ListModel;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class QuestionAddQueryBtnListener implements IChakraListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JList<String> parameterQueriesList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERIES_JLIST);
-		JTextPane parameterQueryTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERY_TEXT_PANE);
+		JList<String> parameterQueriesList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERIES_JLIST);
+		JTextPane parameterQueryTextPane = (JTextPane) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERY_TEXT_PANE);
 		
 		Vector<String> listData = new Vector<String>();
 		ListModel<String> model = parameterQueriesList.getModel();

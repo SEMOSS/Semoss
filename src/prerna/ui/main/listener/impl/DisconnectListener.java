@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls disconnecting from the repository.
@@ -66,14 +66,14 @@ public class DisconnectListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		JList list = (JList) Utility.getDIHelperLocalProperty(Constants.REPO_LIST);
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
 
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 			String repoName = repos[repoIndex] +"";
-			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repoName);
+			IDatabaseEngine engine = Utility.getDatabase(repoName);
 			if(engine.isConnected())
 			{
 				logger.info("Attempting to disconnect " + repoName);

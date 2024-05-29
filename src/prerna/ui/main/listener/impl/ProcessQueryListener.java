@@ -57,7 +57,6 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.OldInsightProcessor;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -83,22 +82,22 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	public void actionPerformed(ActionEvent actionevent) {
 
 		//enable the top right playsheet selector button
-		JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
+		JButton btnShowPlaySheetsList = (JButton) Utility.getDIHelperLocalProperty(Constants.SHOW_PLAYSHEETS_LIST);
 		btnShowPlaySheetsList.setEnabled(true);
 
 		//setting the playsheet selectiondropdown as enabled when a graph is created
-		((JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST)).setEnabled(true);
+		((JButton) Utility.getDIHelperLocalProperty(Constants.SHOW_PLAYSHEETS_LIST)).setEnabled(true);
 		
-		JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
-		JToggleButton appendBtn = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton btnCustomSparql = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.CUSTOMIZE_SPARQL);
+		JToggleButton appendBtn = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 
 		// get the selected repository, in case someone selects multiple, it'll always use first one
-		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		JList list = (JList) Utility.getDIHelperLocalProperty(Constants.REPO_LIST);
 		String engineName = (String)list.getSelectedValue();
 
 		Map<String, List<Object>> paramHash = new HashMap<>();
 		OldInsight insight = null;
-		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getDIHelperLocalProperty(engineName);
 
 		// There are four options to get through here:
 		// 1. Not custom; Not overlay ---- get insight and run it
@@ -167,7 +166,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	private Map<String, List<Object>> getParamHash(){
 		Map<String, List<Object>> paramHash = new HashMap<>();
 		// get Swing UI and set ParamHash;
-		JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
+		JPanel panel = (JPanel) Utility.getDIHelperLocalProperty(Constants.PARAM_PANEL_FIELD);
 		// get the currently visible panel
 		Component[] comps = panel.getComponents();
 		JComponent curPanel = null;
@@ -196,7 +195,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	
 	private OldInsight getSelectedInsight(IDatabaseEngine engine){
 		IProject project = Utility.getProject(engine.getEngineId());
-		String insightString = ((Map<String, String>) ((JComboBox<Map<String,String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem()).get(MapComboBoxRenderer.KEY);
+		String insightString = ((Map<String, String>) ((JComboBox<Map<String,String>>) Utility.getDIHelperLocalProperty(Constants.QUESTION_LIST_FIELD)).getSelectedItem()).get(MapComboBoxRenderer.KEY);
 		String[] insightStringSplit = insightString.split("\\. ", 2);
 		if( ((OldInsight) project.getInsight(insightString).get(0)).getOutput().equals("Unknown")){
 			insightString = insightStringSplit[1];
@@ -206,13 +205,13 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	}
 	
 	private DataMakerComponent createDMC(String engineName){
-		String query = ((JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD)).getText();
+		String query = ((JTextArea) Utility.getDIHelperLocalProperty(Constants.SPARQL_AREA_FIELD)).getText();
 
 		return new DataMakerComponent(engineName, query);
 	}
 	
 	private String getPlaySheetString(){
-		JComboBox playSheetComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
+		JComboBox playSheetComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.PLAYSHEET_COMBOBOXLIST);
 		String playSheetString = playSheetComboBox.getSelectedItem()+"";
 		if(playSheetString.startsWith("*"))
 		{

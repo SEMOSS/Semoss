@@ -43,7 +43,6 @@ import prerna.poi.main.RelationshipLoadingSheetWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.QueryProcessor;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -58,8 +57,8 @@ public class ExportDatabaseLoadSheetsListener implements IChakraListener {
 	public void actionPerformed(ActionEvent arg0) {
 		
 		//Get engine to export from
-		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		JComboBox exportDataSourceComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getDIHelperLocalProperty(exportDataSourceComboBox.getSelectedItem().toString());
 
 		//Get all concepts in the database
 		String conceptQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <" + Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "> ;} ORDERBY ?entity";

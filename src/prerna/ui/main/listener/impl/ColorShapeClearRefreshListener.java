@@ -43,7 +43,7 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Repaints and clears the active sheet when refresh is pressed.
@@ -69,7 +69,7 @@ public class ColorShapeClearRefreshListener implements IChakraListener {
 		playSheet.getVertexLabelFontTransformer().clearSizeData();
 		playSheet.getEdgeLabelFontTransformer().clearSizeData();
 		
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.COLOR_SHAPE_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.COLOR_SHAPE_TABLE);
 		table.repaint();
 		
 		playSheet.repaint();

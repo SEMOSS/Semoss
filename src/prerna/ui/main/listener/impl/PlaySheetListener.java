@@ -40,7 +40,7 @@ import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  */
@@ -62,7 +62,7 @@ public class PlaySheetListener implements InternalFrameListener {
 		InsightStore.getInstance().setActiveInsight(ps.getQuestionID());
 //		QuestionPlaySheetStore.getInstance().setActiveSheet(ps);
 		//always disable append unless specific playsheets are activated
-		JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton append = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 		append.setEnabled(false);
 		CSSApplication css = new CSSApplication(append,".toggleButtonDisabled");
 		logger.info("Internal Frame Activated >>>> Complete ");
@@ -92,7 +92,7 @@ public class PlaySheetListener implements InternalFrameListener {
 		InsightStore.getInstance().remove(questionID);
 		if(InsightStore.getInstance().isEmpty())
 		{
-			JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(
+			JButton btnShowPlaySheetsList = (JButton) Utility.getDIHelperLocalProperty(
 					Constants.SHOW_PLAYSHEETS_LIST);
 			btnShowPlaySheetsList.setEnabled(false);
 		}
@@ -100,7 +100,7 @@ public class PlaySheetListener implements InternalFrameListener {
 //		if(QuestionPlaySheetStore.getInstance().size()==1)
 		if(InsightStore.getInstance().size()==1)
 		{
-			JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+			JToggleButton append = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 			append.setEnabled(false);
 			CSSApplication css = new CSSApplication(append,".toggleButtonDisabled");
 		}

@@ -39,8 +39,8 @@ import javax.swing.JToggleButton;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
+import prerna.util.Utility;
 
 /**
  * Controls the customize SPARQL query button.
@@ -62,16 +62,11 @@ public class CustomizeSparqlBtnListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance()
-				.getLocalProp(Constants.CUSTOMIZE_SPARQL);
-		JTextArea area = (JTextArea) DIHelper.getInstance().getLocalProp(
-				Constants.SPARQL_AREA_FIELD);
-		JComboBox playSheetComboBox = (JComboBox) DIHelper.getInstance()
-				.getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
-		JButton btnShowHint = (JButton) DIHelper.getInstance().getLocalProp(
-				Constants.SHOW_HINT);
-		JButton btnGetQuestionSparql = (JButton) DIHelper.getInstance()
-				.getLocalProp(Constants.GET_CURRENT_SPARQL);
+		JToggleButton btnCustomSparql = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.CUSTOMIZE_SPARQL);
+		JTextArea area = (JTextArea) Utility.getDIHelperLocalProperty(Constants.SPARQL_AREA_FIELD);
+		JComboBox playSheetComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.PLAYSHEET_COMBOBOXLIST);
+		JButton btnShowHint = (JButton) Utility.getDIHelperLocalProperty(Constants.SHOW_HINT);
+		JButton btnGetQuestionSparql = (JButton) Utility.getDIHelperLocalProperty(Constants.GET_CURRENT_SPARQL);
 		String selectedPlaySheet = (String) playSheetComboBox.getSelectedItem();
 		
 		// activating custom sparql will enable the sparql text area, show hint btn

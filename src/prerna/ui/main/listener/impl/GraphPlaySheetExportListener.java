@@ -48,7 +48,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the export graph to grid feature.
@@ -114,7 +114,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		
 		NewplaySheet.setTitle(title);
 		NewplaySheet.setQuestionID(question);
-		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+		JDesktopPane pane = (JDesktopPane) Utility.getDIHelperLocalProperty(Constants.DESKTOP_PANE);
 		NewplaySheet.setJDesktopPane(pane);
 	
 		OldInsight insight = new OldInsight(NewplaySheet);

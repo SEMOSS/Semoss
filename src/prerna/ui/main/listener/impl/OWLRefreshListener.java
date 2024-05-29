@@ -48,6 +48,7 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the refreshing of the OWL.
@@ -138,13 +139,13 @@ public class OWLRefreshListener implements IChakraListener {
 		
 		
 		
-		JTextField field = (JTextField)DIHelper.getInstance().getLocalProp(Constants.OBJECT_PROP_STRING);
+		JTextField field = (JTextField) Utility.getDIHelperLocalProperty(Constants.OBJECT_PROP_STRING);
 		DIHelper.getInstance().putProperty(Constants.PREDICATE_URI, field.getText());
 
-		field = (JTextField)DIHelper.getInstance().getLocalProp(Constants.DATA_PROP_STRING);
+		field = (JTextField) Utility.getDIHelperLocalProperty(Constants.DATA_PROP_STRING);
 		DIHelper.getInstance().putProperty(Constants.PROP_URI, field.getText());
 
-		JToggleButton overlay = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+		JToggleButton overlay = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.APPEND);
 
 		// need to see if there is a neater way to do this
 		if(overlay.isSelected()) {
