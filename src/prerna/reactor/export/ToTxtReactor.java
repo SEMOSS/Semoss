@@ -22,7 +22,7 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 	
 	public ToTxtReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.DELIMITER.getKey(), 
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP};
 	}
 	
 	@Override
@@ -37,14 +37,17 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		this.task = getTask();
 		// set to tab separated
 		this.setDelimiter(getDelimiter());
-		
+		// do we append the timestamp to the name
+		this.appendTimestamp = appendTimeStamp();
+
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "txt");
+		String exportName = getExportFileName(user, prefixName, "txt", this.appendTimestamp);
+		
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
