@@ -1,4 +1,4 @@
-package prerna.reactor.export;
+package prerna.reactor.qs.source;
 
 import java.io.File;
 import java.util.HashMap;
@@ -23,6 +23,7 @@ import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.export.AbstractExportTxtReactor;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
