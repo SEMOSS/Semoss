@@ -25,7 +25,7 @@ public class AdminLoadLdapUsersReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AdminLoadLdapUsersReactor.class);
 
 	public AdminLoadLdapUsersReactor() {
-		this.keysToGet = new String[] {"searchContextName", "searchFilter", "searchContextScope", "authProvider"};
+		this.keysToGet = new String[] {"searchContextName", "searchFilter", "searchContextScope", "authProvider", "updateAttributes"};
 	}
 	
 	@Override
@@ -58,6 +58,7 @@ public class AdminLoadLdapUsersReactor extends AbstractReactor {
 				throw new IllegalArgumentException("New provider " + newProvider + " is not a valid auth provider");
 			}
 		}
+		boolean updateAttributes = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]));
 		
 		List<AccessToken> foundUsers = new ArrayList<>();
 		ILdapAuthenticator authenticator;
@@ -70,7 +71,8 @@ public class AdminLoadLdapUsersReactor extends AbstractReactor {
 		}
 		
 		List<AccessToken> addedUsers = new ArrayList<>();
-		
+		List<AccessToken> updatedUsers = new ArrayList<>();
+
 		for(AccessToken newUser : foundUsers) {
 			if(newP != null) {
 				newUser.setProvider(newP);
@@ -78,11 +80,16 @@ public class AdminLoadLdapUsersReactor extends AbstractReactor {
 			boolean newUserAdded = SecurityUpdateUtils.addOAuthUser(newUser);
 			if(newUserAdded) {
 				addedUsers.add(newUser);
+			} else if(updateAttributes) {
+				// new user is actually existing
+				SecurityUpdateUtils.updateOAuthUser(newUser);
+				updatedUsers.add(newUser);
 			}
 		}
 		
 		Map<String, List<AccessToken>> retMap = new HashMap<>();
 		retMap.put("addedUsers", addedUsers);
+		retMap.put("updatedUsers", updatedUsers);
 		retMap.put("foundUsers", foundUsers);
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
