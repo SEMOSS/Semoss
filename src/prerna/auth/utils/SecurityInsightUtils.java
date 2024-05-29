@@ -2883,6 +2883,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__SINGLEMULTI", "single_multi"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYORDER", "display_order"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYOPTIONS", "display_options"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DEFAULTVALUES", "display_values"));
 		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETAKEYS__METAKEY", "==", metakey));
 		}

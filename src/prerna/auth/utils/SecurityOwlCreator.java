@@ -101,8 +101,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/USERID/SMSS_GROUP")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/"+Constants.ENGINE_METAKEYS);
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/"+Constants.ENGINE_METAKEYS+"/DEFAULTVALUES")) {
 				return true;
 			}
 		}
@@ -517,6 +517,7 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "SINGLEMULTI", "VARCHAR(255)");
 			owler.addProp(tableName, "DISPLAYORDER", "INT");
 			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
+			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
 		}
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");

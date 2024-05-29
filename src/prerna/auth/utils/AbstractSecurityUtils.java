@@ -1603,8 +1603,8 @@ public abstract class AbstractSecurityUtils {
 			List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
 			for(String tableName : metaKeyTableNames) {
 				// all have the same columns and default values
-				colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS"};
-				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)"};
+				colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES"};
+				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(500)"};
 				defaultValues = new Object[]{null, null, null, true, false};
 				if(allowIfExistsTable) {
 					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
@@ -1619,22 +1619,35 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(sql);
 					}
 				}
+				// check all the columns we want are there
+				{
+					List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+					for (int i = 0; i < colNames.length; i++) {
+						String col = colNames[i];
+						if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+							classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+							String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+							classLogger.info("Running sql " + addColumnSql);
+							securityDb.insertData(addColumnSql);
+						}
+					}
+				}
 				// see if there are any default values
-				boolean fresh = false;
 				{
 					IRawSelectWrapper wrapper = null;
 					try {
 						wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from " + tableName);
 						if(wrapper.hasNext()) {
 							int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-							if(numrows < 4) {
+							if(numrows < 6) {
 								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
 								int order = 0;
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
-								fresh = true;
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"data classification", "multi", order++, "select-box", "CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED"}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"data restrictions", "multi", order++, "select-box", "CONFIDENTIAL ALLOWED,FOUO ALLOWED,INTERNAL ALLOWED,IP ALLOWED,PII ALLOWED,PHI ALLOWED,RESTRICTED ALLOWED"}));
 							}
 						}
 					} catch (Exception e) {
@@ -1646,30 +1659,6 @@ public abstract class AbstractSecurityUtils {
 							} catch(IOException e) {
 								classLogger.error(Constants.STACKTRACE, e);
 							}
-						}
-					}
-				}
-				// DATE 2022-09-06
-				if(!fresh) {
-					IRawSelectWrapper wrapper = null;
-					try {
-						wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select DISPLAYOPTIONS from " + tableName + " where metakey='domain'");
-						if(wrapper.hasNext()) {
-							String display = wrapper.next().getValues()[0] + "";
-							if(!display.equals("multi-typeahead")) {
-								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
-								int order = 0;
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
-							}
-						}
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(wrapper != null) {
-							wrapper.close();
 						}
 					}
 				}
