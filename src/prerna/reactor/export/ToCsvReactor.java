@@ -1,7 +1,6 @@
 package prerna.reactor.export;
 
 import java.io.File;
-import java.util.List;
 import java.util.UUID;
 
 import prerna.auth.User;
@@ -9,7 +8,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,9 +17,6 @@ import prerna.util.Utility;
 public class ToCsvReactor extends AbstractExportTxtReactor {
 
 	private static final String CLASS_NAME = ToCsvReactor.class.getName();
-	private static final String APPEND_TIMESTAMP = "appendTimestamp";
-
-	private boolean appendTimestamp = true;
 
 	public ToCsvReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP};
@@ -37,11 +32,10 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		}
 		this.logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-		
-		this.appendTimestamp = appendTimeStamp();
-		
 		// set to comma separated
 		this.setDelimiter(",");
+		// do we append the timestamp to the name
+		this.appendTimestamp = appendTimeStamp();
 		
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
@@ -49,7 +43,7 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = getExportFileName(user, prefixName, "csv", appendTimestamp);
+		String exportName = getExportFileName(user, prefixName, "csv", this.appendTimestamp);
 
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
@@ -81,21 +75,4 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		return retNoun;
 	}
 	
-	private boolean appendTimeStamp() {
-		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[3]);
-		if(boolGrs != null) {
-			if(boolGrs.size() > 0) {
-				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-				return (boolean) val.get(0);
-			}
-		}
-		
-		List<NounMetadata> booleanInput = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
-		if(booleanInput != null && !booleanInput.isEmpty()) {
-			return (boolean) booleanInput.get(0).getValue();
-		}
-		
-		return true;
-	}
-
 }
