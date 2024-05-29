@@ -2717,6 +2717,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI", "single_multi"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYORDER", "display_order"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYOPTIONS", "display_options"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DEFAULTVALUES", "display_values"));
 		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETAKEYS__METAKEY", "==", metakey));
 		}
