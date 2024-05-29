@@ -33,12 +33,8 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.ui.comparison.specific.tap.GenericDBComparisonWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DatabaseComparisonListener implements IChakraListener
@@ -49,15 +45,15 @@ public class DatabaseComparisonListener implements IChakraListener
 	public void actionPerformed(ActionEvent arg0)
 	{
 		// get selected values
-		JComboBox<String> newDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.NEW_DB_COMBOBOX);
+		JComboBox<String> newDBComboBox = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.NEW_DB_COMBOBOX);
 		String newDBName = newDBComboBox.getSelectedItem() + "";
 		
-		JComboBox<String> oldDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.OLD_DB_COMBOBOX);
+		JComboBox<String> oldDBComboBox = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.OLD_DB_COMBOBOX);
 		String oldDBName = oldDBComboBox.getSelectedItem() + "";
 		
 		// get associated engines
-		IDatabaseEngine newDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(newDBName);
-		IDatabaseEngine oldDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(oldDBName);
+		IDatabaseEngine newDB = Utility.getDatabase(newDBName);
+		IDatabaseEngine oldDB = Utility.getDatabase(oldDBName);
 		
 //		RDFFileSesameEngine newMetaDB = ((AbstractDatabaseEngine) newDB).getBaseDataEngine();
 //		RDFFileSesameEngine oldMetaDB = ((AbstractDatabaseEngine) oldDB).getBaseDataEngine();

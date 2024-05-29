@@ -42,7 +42,7 @@ import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.PropertyTableModel;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the OWL for a play sheet.  Allows setting up of properties and relationships.
@@ -73,7 +73,7 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 		logger.info("Lable count is " + model.getRowCount());
 		PropertyTableModel model2 = new PropertyTableModel(psd);
 		// get the table
-		JTable table2 = (JTable)DIHelper.getInstance().getLocalProp(Constants.DATA_PROP_TABLE);
+		JTable table2 = (JTable) Utility.getDIHelperLocalProperty(Constants.DATA_PROP_TABLE);
 		table2.setModel(model2);
 		//table.repaint();
 		model2.fireTableDataChanged();
@@ -95,9 +95,9 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		// get the table
 		TableModel model = new DefaultTableModel();
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.OBJECT_PROP_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.OBJECT_PROP_TABLE);
 		table.setModel(model);
-		JTable table3 = (JTable)DIHelper.getInstance().getLocalProp(Constants.DATA_PROP_TABLE);
+		JTable table3 = (JTable) Utility.getDIHelperLocalProperty(Constants.DATA_PROP_TABLE);
 		table3.setModel(model);
 		logger.debug("Cleaned up the filter tables ");
 		

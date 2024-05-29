@@ -40,12 +40,11 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class JTableExcelExportListener extends AbstractListener {
-	private final String WORKING_DIR = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+	
+	private final String WORKING_DIR = Utility.getBaseFolder();
 	private final String EXPORT_FOLDER = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Excel" + System.getProperty("file.separator");
 	private JTable table;
 	private String filename;

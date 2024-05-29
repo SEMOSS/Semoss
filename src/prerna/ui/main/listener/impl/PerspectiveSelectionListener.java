@@ -47,7 +47,6 @@ import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -79,10 +78,10 @@ public class PerspectiveSelectionListener extends AbstractListener {
 			ArrayList<String> tTip = new ArrayList<String>();
 			qp.removeAllItems();
 			// grab the selected engine
-			JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			JList<String> list = (JList<String>) Utility.getDIHelperLocalProperty(Constants.REPO_LIST);
 			List<String> selectedValuesList = list.getSelectedValuesList();
 			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
-			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(selectedVal);
+			IDatabaseEngine engine = Utility.getDatabase(selectedVal);
 			
 			// grab the list of insights in the selected engine, this list is already ordered
 			IProject project = Utility.getProject(engine.getEngineId());

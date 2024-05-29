@@ -41,7 +41,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.ui.components.BrowserTabSheetFullAddress;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the running of node editor.
@@ -66,7 +66,7 @@ public class NodeEditorListener implements ActionListener {
 		
 		String replacedURI = "<"+uri.replaceAll("/", "^") +">";
 		 
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String workingDir = Utility.getBaseFolder();
 		
 		String address = "file://" + workingDir + htmlFileName;
 		String fullAddress = address+replacedURI;

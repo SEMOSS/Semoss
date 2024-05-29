@@ -42,7 +42,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the type of import.  Tied to the JComboBox in the Import Data section of the DB modification pane.
@@ -65,28 +65,28 @@ public class ImportTypeSelectionListener extends AbstractListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		JComboBox bx = (JComboBox)e.getSource();
-		JComboBox typeBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_TYPE_COMBOBOX);
-		JLabel typeLbl = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_TYPE_LABEL);
-		JPanel importPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_PANEL);
-		JLabel lblDBName = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_ENTERDB_LABEL);
-		JLabel lblFileImport = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_LABEL);
-		JLabel lblDBImportURL = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_LABEL);
-		JLabel lblDBImportDriverType = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_LABEL);
-		JLabel lblDBImportUsername = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_LABEL);
-		JLabel lblDBImportPW = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_LABEL);
-		JTextField dbImportURLField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_FIELD);
-		JComboBox dbImportRDBMSDriverComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX);
-		JTextField dbImportUsernameField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD);
-		JTextField dbImportPWField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD);
-		JTextField dbNameField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD);
-		JTextField fileImportField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_FIELD);
+		JComboBox typeBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.IMPORT_TYPE_COMBOBOX);
+		JLabel typeLbl = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_TYPE_LABEL);
+		JPanel importPanel = (JPanel) Utility.getDIHelperLocalProperty(Constants.IMPORT_PANEL);
+		JLabel lblDBName = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_ENTERDB_LABEL);
+		JLabel lblFileImport = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_FILE_LABEL);
+		JLabel lblDBImportURL = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_URL_LABEL);
+		JLabel lblDBImportDriverType = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_DRIVER_LABEL);
+		JLabel lblDBImportUsername = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_USERNAME_LABEL);
+		JLabel lblDBImportPW = (JLabel) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_PW_LABEL);
+		JTextField dbImportURLField = (JTextField) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_URL_FIELD);
+		JComboBox dbImportRDBMSDriverComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX);
+		JTextField dbImportUsernameField = (JTextField) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_USERNAME_FIELD);
+		JTextField dbImportPWField = (JTextField) Utility.getDIHelperLocalProperty(Constants.IMPORT_RDBMS_PW_FIELD);
+		JTextField dbNameField = (JTextField) Utility.getDIHelperLocalProperty(Constants.DB_NAME_FIELD);
+		JTextField fileImportField = (JTextField) Utility.getDIHelperLocalProperty(Constants.IMPORT_FILE_FIELD);
 //		JButton btnFileBrowse = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON_BROWSE);
 //		JButton btnImport = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON);
-		JButton btnTestRDBMSConnection = (JButton)DIHelper.getInstance().getLocalProp(Constants.TEST_RDBMS_CONNECTION);
-		JButton btnGetRDBMSSchema = (JButton)DIHelper.getInstance().getLocalProp(Constants.GET_RDBMS_SCHEMA);
-		JTextField mapText = (JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD);
-		JButton advancedButton = (JButton)DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_BUTTON);
-		JPanel advancedPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_PANEL);
+		JButton btnTestRDBMSConnection = (JButton) Utility.getDIHelperLocalProperty(Constants.TEST_RDBMS_CONNECTION);
+		JButton btnGetRDBMSSchema = (JButton) Utility.getDIHelperLocalProperty(Constants.GET_RDBMS_SCHEMA);
+		JTextField mapText = (JTextField) Utility.getDIHelperLocalProperty(Constants.MAP_TEXT_FIELD);
+		JButton advancedButton = (JButton) Utility.getDIHelperLocalProperty(Constants.ADVANCED_IMPORT_OPTIONS_BUTTON);
+		JPanel advancedPanel = (JPanel) Utility.getDIHelperLocalProperty(Constants.ADVANCED_IMPORT_OPTIONS_PANEL);
 		String selection = bx.getSelectedItem() + "";
 		if(selection.equals("Add to existing database engine") )
 		{

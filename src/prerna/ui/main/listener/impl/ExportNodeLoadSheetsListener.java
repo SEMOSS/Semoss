@@ -38,7 +38,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.NodeLoadingSheetWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls exporting of graph nodes into loading sheets.
@@ -52,13 +52,13 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 	public void actionPerformed(ActionEvent arg0) {
 		
 		//Get engine to export from
-		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		JComboBox exportDataSourceComboBox = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
+		IDatabaseEngine engine = (IDatabaseEngine) Utility.getDIHelperLocalProperty(exportDataSourceComboBox.getSelectedItem().toString());
 
 		//Get all node types to be exported
 		ArrayList<String> nodeTypes = new ArrayList<String>();
 		for(int i = 1; i < Constants.MAX_EXPORTS; i++) {
-			JComboBox box = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + i);
+			JComboBox box = (JComboBox) Utility.getDIHelperLocalProperty(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + i);
 			if(box.isVisible() && box.getSelectedItem() != null && !box.getSelectedItem().toString().isEmpty()) {
 				nodeTypes.add(box.getSelectedItem().toString());
 			}

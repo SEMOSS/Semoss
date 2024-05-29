@@ -39,7 +39,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
-import prerna.engine.api.IDatabaseEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
@@ -48,7 +47,6 @@ import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
@@ -82,25 +80,20 @@ public class QuestionModSelectorListener implements IChakraListener {
 	Vector<String> optionVector = new Vector<>();
 
 	public void getFieldData() {
-		questionSparqlTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.QUESTION_SPARQL_TEXT_PANE);
-		questionPerspectiveField = (JTextField) DIHelper.getInstance()
-				.getLocalProp(Constants.QUESTION_PERSPECTIVE_FIELD);
-		questionField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_FIELD);
-		questionLayoutField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LAYOUT_FIELD);
-		parameterDependList = (JList<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.PARAMETER_DEPENDENCIES_JLIST);
-		parameterQueryList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERIES_JLIST);
-		parameterOptionList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTIONS_JLIST);
+		questionSparqlTextPane = (JTextPane) Utility.getDIHelperLocalProperty(Constants.QUESTION_SPARQL_TEXT_PANE);
+		questionPerspectiveField = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_PERSPECTIVE_FIELD);
+		questionField = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_FIELD);
+		questionLayoutField = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_LAYOUT_FIELD);
+		parameterDependList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_DEPENDENCIES_JLIST);
+		parameterQueryList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERIES_JLIST);
+		parameterOptionList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_OPTIONS_JLIST);
 
-		questionPerspectiveSelector = (JComboBox<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
-		addQuestionModTypeBtn = (JRadioButton) DIHelper.getInstance().getLocalProp(Constants.ADD_QUESTION_BUTTON);
+		questionPerspectiveSelector = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_PERSPECTIVE_SELECTOR);
+		addQuestionModTypeBtn = (JRadioButton) Utility.getDIHelperLocalProperty(Constants.ADD_QUESTION_BUTTON);
 
-		questionDBSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_DB_SELECTOR);
-		questionOrderComboBox = (JComboBox<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.QUESTION_ORDER_COMBO_BOX);
-		questionLayoutComboBox = (JComboBox<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
+		questionDBSelector = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_DB_SELECTOR);
+		questionOrderComboBox = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_ORDER_COMBO_BOX);
+		questionLayoutComboBox = (JComboBox<String>) Utility.getDIHelperLocalProperty(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
 
 		engineName = (String) questionDBSelector.getSelectedItem();
 		qM = (Map) questionModSelector.getSelectedItem();
@@ -130,10 +123,9 @@ public class QuestionModSelectorListener implements IChakraListener {
 		getFieldData();
 
 		if (qM != null && !perspective.equals("*NEW Perspective")) {
-			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
 			//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
-			IProject project = Utility.getProject(engine.getEngineId());
+			IProject project = Utility.getProject(engineName);
 			Vector<Insight> vectorInsight = project.getInsight(questionId);
 			OldInsight in = null;
 			if(vectorInsight.size() > 1){
@@ -160,7 +152,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 			// and store them
 			if (!paramInfoVector.isEmpty()) {
 				for (int i = 0; i < paramInfoVector.size(); i++) {
-					if (paramInfoVector.get(i).getQuery() != null && !paramInfoVector.get(i).getQuery().equals(DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY))) {
+					if (paramInfoVector.get(i).getQuery() != null && !paramInfoVector.get(i).getQuery().equals(Utility.getDIHelperProperty("TYPE" + "_" + Constants.QUERY))) {
 						parameterQueryVector.add(paramInfoVector.get(i).getName() + "_QUERY_-_" + paramInfoVector.get(i).getQuery());
 					}
 					

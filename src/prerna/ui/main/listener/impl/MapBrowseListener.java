@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls browsing for the map file.
@@ -66,11 +66,11 @@ public class MapBrowseListener implements IChakraListener {
 		//get the name of the source to know which text field to populate
 		JButton button = (JButton) e.getSource();
 		if(button.getName().equals(Constants.MAP_BROWSE_BUTTON)) 
-			view = (JTextField) DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD);
+			view = (JTextField) Utility.getDIHelperLocalProperty(Constants.MAP_TEXT_FIELD);
 		else if (button.getName().equals(Constants.DB_PROP_BROWSE_BUTTON))
-			view = (JTextField) DIHelper.getInstance().getLocalProp(Constants.DB_PROP_TEXT_FIELD);
+			view = (JTextField) Utility.getDIHelperLocalProperty(Constants.DB_PROP_TEXT_FIELD);
 		else if (button.getName().equals(Constants.QUESTION_BROWSE_BUTTON))
-			view = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD);
+			view = (JTextField) Utility.getDIHelperLocalProperty(Constants.QUESTION_TEXT_FIELD);
 		// I just need to show the file chooser and set the action performed to a file chooser class
 		JFileChooser jfc = new JFileChooser();
 		jfc.setCurrentDirectory(new java.io.File("."));

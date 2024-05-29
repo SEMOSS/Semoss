@@ -42,7 +42,7 @@ import prerna.ui.components.LabelTableModel;
 import prerna.ui.components.TooltipTableModel;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the play sheet.
@@ -70,7 +70,7 @@ public class PlaySheetControlListener implements InternalFrameListener {
 	
 		logger.info("Label count is " + model.getRowCount());
 		// get the table
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.LABEL_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.LABEL_TABLE);
 		table.setModel(model);
 		//table.repaint();
 		model.fireTableDataChanged();
@@ -78,7 +78,7 @@ public class PlaySheetControlListener implements InternalFrameListener {
 
 		TooltipTableModel model2 = new TooltipTableModel(vfd);	
 		// get the table
-		JTable table2 = (JTable)DIHelper.getInstance().getLocalProp(Constants.TOOLTIP_TABLE);
+		JTable table2 = (JTable) Utility.getDIHelperLocalProperty(Constants.TOOLTIP_TABLE);
 		// need to figure a way to put the renderer here
 		//TableColumn col = table2.getColumnModel().getColumn(3);
 		//table2.setDefaultRenderer(Double.class, new EdgeFilterRenderer());
@@ -107,9 +107,9 @@ public class PlaySheetControlListener implements InternalFrameListener {
 		
 		// get the table
 		TableModel model = new DefaultTableModel();
-		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.TOOLTIP_TABLE);
+		JTable table = (JTable) Utility.getDIHelperLocalProperty(Constants.TOOLTIP_TABLE);
 		table.setModel(model);
-		JTable table3 = (JTable)DIHelper.getInstance().getLocalProp(Constants.LABEL_TABLE);
+		JTable table3 = (JTable) Utility.getDIHelperLocalProperty(Constants.LABEL_TABLE);
 		table3.setModel(model);
 		
 		logger.debug("Cleaned up the filter tables ");
