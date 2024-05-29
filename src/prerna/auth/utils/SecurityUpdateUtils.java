@@ -5,8 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,10 +21,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
@@ -353,41 +351,73 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static boolean updateOAuthUser(AccessToken existingToken) throws IllegalArgumentException {
-		// lower case the emails coming in
-		if(existingToken.getEmail() != null) {
-			existingToken.setEmail(existingToken.getEmail().toLowerCase());
-		}
 		String name = existingToken.getName();
 		String username = existingToken.getUsername();
 		String email = existingToken.getEmail();
+		boolean updateName = name != null && !(name=name.trim()).isEmpty();
+		boolean updateUsername = username != null && !(username=username.trim()).isEmpty();
+		boolean updateEmail = email != null && !(email=email.trim().toLowerCase()).isEmpty();
 		
-		UpdateQueryStruct uqs = new UpdateQueryStruct();
-		uqs.setEngine(securityDb);
-		uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", existingToken.getId()));
+		StringBuilder updateQuery = new StringBuilder("UPDATE SMSS_USER SET ");
+		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?"));
+		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail));
+		List<String> values = new ArrayList<>(Arrays.asList(name, username, email));
 		
-		List<IQuerySelector> selectors = new Vector<>();
-		selectors.add(new QueryColumnSelector("SMSS_USER__NAME"));
-		selectors.add(new QueryColumnSelector("SMSS_USER__USERNAME"));
-		selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		List<Object> values = new Vector<>();
-		values.add(name);
-		values.add(username);
-		values.add(email);
-		
-		uqs.setSelectors(selectors);
-		uqs.setValues(values);
-		
-		UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-		String updateQuery = updateInterp.composeQuery();
-
+		boolean first = true;
+		for(int i = 0; i < set.size(); i++) {
+			if(!hasVal.get(i)) {
+				continue;
+			}
+			if(!first) {
+				updateQuery.append(",");
+			}
+			
+			updateQuery.append(set.get(i));
+			first = false;
+		}
+		// nothing here to update...
+		if(first) {
+			return false;
+		}
+		updateQuery.append("WHERE ID=? AND TYPE=?");
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(updateQuery);
-			return true;
+			int parameterIndex = 1;
+			ps = securityDb.getPreparedStatement(updateQuery.toString());
+			// loop through the set for the values
+			for(int i = 0; i < hasVal.size(); i++) {
+				if(hasVal.get(i)) {
+					ps.setString(parameterIndex++, values.get(i));
+				}
+			}
+			// always ahve the where clause
+			ps.setString(parameterIndex++, existingToken.getId());
+			ps.setString(parameterIndex++, existingToken.getProvider().toString());
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(ps != null && securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
-
-		return false;
+		
+		return true;
 	}
 	
 	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
