@@ -15,15 +15,21 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.reactor.task.TaskBuilderReactor;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 
+	protected static final String APPEND_TIMESTAMP = "appendTimestamp";
+
 	protected String fileLocation = null;
 	protected Logger logger;
 	protected String delimiter;
-
+	protected boolean appendTimestamp = true;
+	
 	/**
 	 * Set the delimiter for the export
 	 * 
@@ -47,6 +53,23 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 			return Utility.normalizePath(customName.trim()) + "." + extension;
 		}
 		return Utility.normalizePath("SEMOSS_Export") + "." + extension;
+	}
+	
+	protected boolean appendTimeStamp() {
+		GenRowStruct boolGrs = this.store.getNoun(APPEND_TIMESTAMP);
+		if(boolGrs != null) {
+			if(boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
+		}
+		
+		List<NounMetadata> booleanInput = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
+		if(booleanInput != null && !booleanInput.isEmpty()) {
+			return (boolean) booleanInput.get(0).getValue();
+		}
+		
+		return true;
 	}
 	
 	/**
