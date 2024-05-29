@@ -19,7 +19,7 @@ public class ToTsvReactor extends AbstractExportTxtReactor {
 	private static final String CLASS_NAME = ToTsvReactor.class.getName();
 	
 	public ToTsvReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP};
 	}
 	
 	@Override
@@ -34,6 +34,8 @@ public class ToTsvReactor extends AbstractExportTxtReactor {
 		this.task = getTask();
 		// set to tab separated
 		this.setDelimiter("\t");
+		// do we append the timestamp to the name
+		this.appendTimestamp = appendTimeStamp();
 		
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
@@ -41,7 +43,8 @@ public class ToTsvReactor extends AbstractExportTxtReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "tsv");
+		String exportName = getExportFileName(user, prefixName, "tsv", this.appendTimestamp);
+		
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
