@@ -37,13 +37,13 @@ import javax.swing.ListModel;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class QuestionDeleteQueryBtnListener implements IChakraListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JList<String> parameterQueriesList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERIES_JLIST);
+		JList<String> parameterQueriesList = (JList<String>) Utility.getDIHelperLocalProperty(Constants.PARAMETER_QUERIES_JLIST);
 
 		if(parameterQueriesList.getSelectedValue()!=null){
 			String selectedQuery = (String) parameterQueriesList.getSelectedValue();

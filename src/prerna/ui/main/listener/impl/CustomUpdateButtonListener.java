@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the Custom Insert/Delete query update button in the DB modification tab.
@@ -58,7 +58,7 @@ public class CustomUpdateButtonListener implements IChakraListener{
 		int response = showWarning();
 		if(response == 1)
 		{
-			JTextPane updateSparqlArea = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.UPDATE_SPARQL_AREA);
+			JTextPane updateSparqlArea = (JTextPane) Utility.getDIHelperLocalProperty(Constants.UPDATE_SPARQL_AREA);
 			//get the query
 			String query = updateSparqlArea.getText();			
 			//create UpdateProcessor class.  Set the query.  Let it run.
@@ -74,7 +74,7 @@ public class CustomUpdateButtonListener implements IChakraListener{
 	 * @return int */
 	public int showWarning(){
 		Object[] buttons = {"Cancel", "Continue"};
-		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JFrame playPane = (JFrame) Utility.getDIHelperLocalProperty(Constants.MAIN_FRAME);
 		int response = JOptionPane.showOptionDialog(playPane, "The update query you are about to run \n" +
 				"cannot be undone.  Would you like to continue?", 
 				"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);

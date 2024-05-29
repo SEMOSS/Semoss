@@ -44,7 +44,6 @@ import javax.swing.JToggleButton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabaseEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.project.api.IProject;
@@ -53,7 +52,6 @@ import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamPanel;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
@@ -87,23 +85,21 @@ public class QuestionListener implements IChakraListener {
 			String questionID = selectedItem.get(MapComboBoxRenderer.KEY);
 			String questionName = selectedItem.get(MapComboBoxRenderer.VALUE);
 			
-			JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
+			JToggleButton btnCustomSparql = (JToggleButton) Utility.getDIHelperLocalProperty(Constants.CUSTOMIZE_SPARQL);
 			btnCustomSparql.setSelected(false);
 
-			JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			JList<String> list = (JList<String>) Utility.getDIHelperLocalProperty(Constants.REPO_LIST);
 			// get the selected repository
 			List<String> selectedValuesList = list.getSelectedValuesList();
 			String selectedEngine = selectedValuesList.get(selectedValuesList.size()-1).toString();
-			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
-
-			IProject project = Utility.getProject(engine.getEngineId());
+			IProject project = Utility.getProject(selectedEngine);
 			OldInsight in = (OldInsight) project.getInsight(questionID).get(0);
 			// now get the SPARQL query for this id
 //			String sparql = in.getDataMakerComponents()[0].getQuery();
 			String sparql = in.getDataMakerComponents().get(0).getQuery();
 			String layoutValue = in.getOutput();
 			// save the playsheet for the current question for modifying current query
-			JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
+			JComboBox playSheetComboBox = (JComboBox)Utility.getDIHelperLocalProperty(Constants.PLAYSHEET_COMBOBOXLIST);
 			// set the model each time a question is choosen to include playsheets that are not in PlaySheetEnum
 			playSheetComboBox.setModel(new DefaultComboBoxModel(PlaySheetRDFMapBasedEnum.getCustomSheetNames().toArray()));
 			if(!PlaySheetRDFMapBasedEnum.getAllSheetNames().contains(layoutValue))
@@ -129,7 +125,7 @@ public class QuestionListener implements IChakraListener {
 
 			// finally add the param to the core panel
 			// confused about how to add this need to revisit
-			JPanel mainPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
+			JPanel mainPanel = (JPanel)Utility.getDIHelperLocalProperty(Constants.PARAM_PANEL_FIELD);
 			mainPanel.add(panel, questionName + "_1"); // mark it to the question index
 			CardLayout layout = (CardLayout)mainPanel.getLayout();
 			layout.show(mainPanel, questionName + "_1");
