@@ -255,7 +255,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # handle setting prefix
             elif command == "prefix" and payload["operation"] == "CMD":
                 self.prefix = output_file
-                print("set the prefix to .. " + self.prefix)
+                if self.prefix is None:
+                    print("The prefix is None")
+                else:                      
+                    print("The prefix is set to value = " + self.prefix)
                 self.send_output(
                     "prefix set", payload, operation="PYTHON", response=True
                 )
@@ -330,7 +333,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # print("sending output " + output)
         # make it back into payload just for epoch
         # if this comes with prefix. it is part of the response
-        if self.prefix != "" and str(output).startswith(self.prefix):
+        if self.prefix is not None and self.prefix != "" and str(output).startswith(self.prefix):
             output = output.replace(self.prefix, "")
             operation = "STDOUT"  # orig_payload["operation"]
             response = True
