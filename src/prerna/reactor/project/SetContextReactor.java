@@ -9,6 +9,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class SetContextReactor extends AbstractReactor {
 	
@@ -39,6 +41,14 @@ public class SetContextReactor extends AbstractReactor {
 		if(!success) {
 			return getError("No mount point " + context + " - please use Mount(<mount point>, App Name) to set a mount point");
 		}
+		
+		//if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			//get the app_root folder for the project
+			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(context);
+			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder,projectAppRootFolder, false);
+		}
+
 		
 		// if python enabled
 		// set the path
