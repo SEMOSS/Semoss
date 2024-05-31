@@ -4846,13 +4846,14 @@ public class Utility {
 		}
 		
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) { 
-			commandsStarter =  new String[5];
+			commandsStarter =  new String[6];
 			starter = dir + "/starter.sh";
 			commandsStarter[0] = "fakechroot";
 			commandsStarter[1] = "fakeroot";
 			commandsStarter[2] = "chroot";
-			commandsStarter[3] = "/bin/bash";
-			commandsStarter[4] = starter;
+			commandsStarter[3] = "--userspec=1001:1001";
+			commandsStarter[4] = "/bin/bash";
+			commandsStarter[5] = starter;
 		}
 
 		
@@ -4879,14 +4880,15 @@ public class Utility {
 			commandsStarter[1] = starter;
 		}
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) { 
-			commandsStarter =  new String[6];
+			commandsStarter =  new String[7];
 			starter = dir + "/starter.sh";
 			commandsStarter[0] = "fakechroot";
 			commandsStarter[1] = "fakeroot";
 			commandsStarter[2] = "chroot";
-			commandsStarter[3] = chrootDir;
-			commandsStarter[4] = "/bin/bash";
-			commandsStarter[5] = starter;
+			commandsStarter[3] = "--userspec=1001:1001";
+			commandsStarter[4] = chrootDir;
+			commandsStarter[5] = "/bin/bash";
+			commandsStarter[6] = starter;
 			
 			starter =chrootDir + dir + "/starter.sh";
 
