@@ -16,7 +16,6 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -827,7 +826,7 @@ public class Project implements IProject {
 			compileReactorsFromJavaFiles(customLoader);
 		}
 		
-		this.lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
+		this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
 		classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 	}
 	
@@ -910,7 +909,7 @@ public class Project implements IProject {
 			if( !javaDirectory.exists() ) {
 				// dont need to keep setting this 
 				if(this.lastReactorCompilationDate == null) {
-					this.lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
+					this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
 					classLogger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
 				}
 				return null;
@@ -947,7 +946,7 @@ public class Project implements IProject {
 				}
 			}
 
-			this.lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
+			this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
 			classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 		}
 		
@@ -1576,7 +1575,7 @@ public class Project implements IProject {
 				this.projectSpecificHash = Utility.loadReactors(this.projectAssetFolder, cl);
 				if(this.projectSpecificHash != null && !this.projectSpecificHash.isEmpty()) {
 					ProjectCustomReactorCompilator.setCompiled(this.projectId);
-					lastReactorCompilationDate = new SemossDate(Utility.getLocalDateTimeUTC(LocalDateTime.now()));
+					lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
 				}
 			}
 		}
