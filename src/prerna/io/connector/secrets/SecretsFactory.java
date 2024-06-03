@@ -9,7 +9,7 @@ import prerna.util.Utility;
 
 public class SecretsFactory {
 
-	private static final Logger logger = LogManager.getLogger(SecretsFactory.class);
+	private static final Logger classLogger = LogManager.getLogger(SecretsFactory.class);
 	
 	private SecretsFactory() {
 		
@@ -24,7 +24,7 @@ public class SecretsFactory {
 		if(storeType.equalsIgnoreCase(ISecrets.HASHICORP_VAULT)) {
 			return HashiCorpVaultUtil.getInstance();
 		} else {
-			logger.warn("Secret store is enabled but could not find type for input = '" + storeType + "'");
+			classLogger.warn("Secret store is enabled but could not find type for input = '" + storeType + "'");
 			return null;
 		}
 	}
