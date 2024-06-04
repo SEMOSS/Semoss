@@ -1,6 +1,5 @@
 import pandas as pd
-from opensearchpy import OpenSearch
-from opensearchpy import helpers
+
 from typing import Any, Dict, List, Mapping, Optional, Union
 import gaas_gpt_model as ggm
 from gaas_gpt_model import ModelEngine
@@ -57,12 +56,9 @@ class OpenSearchConnection():
             self, 
             index_name: str,
             tokenizer,
-            username: str,
-            password: str,
             distance_method: str,
             embedder_engine_id: str,
             indexList: list = [str],
-            hosts: Optional[Hosts] = None,
             embedder_engine: ModelEngine = None,
            **kwargs,
     )-> None:
@@ -84,12 +80,12 @@ class OpenSearchConnection():
 
 
 
-    def getClient(self)-> OpenSearch:
-        '''
-        Return the client
-        '''
-        # return self.client
-        return None
+    # def getClient(self)-> OpenSearch:
+    #     '''
+    #     Return the client
+    #     '''
+    #     # return self.client
+    #     return None
     
     def count_documents(self) -> int: 
         '''
