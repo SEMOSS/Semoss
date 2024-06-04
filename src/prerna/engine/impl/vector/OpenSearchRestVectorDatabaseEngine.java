@@ -61,11 +61,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String openSearchInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', username = '${USERNAME}', password = '${PASSWORD}', index_name = '${INDEX_NAME}', hosts = ['${HOSTS}'], tokenizer = cfg_tokenizer, distance_method = '${DISTANCE_METHOD}')";
+	private static final String openSearchInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', index_name = '${INDEX_NAME}', tokenizer = cfg_tokenizer, distance_method = '${DISTANCE_METHOD}')";
 	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
 	private String mapping = "{\"settings\":{\"index\":{\"knn\":true}},\"mappings\":{\"properties\":{\"my_vector1\":{\"type\":\"knn_vector\",\"dimension\":1024,\"method\":{\"name\":\"hnsw\",\"space_type\":\"l2\",\"engine\":\"lucene\",\"parameters\":{\"ef_construction\":128,\"m\":24}}}}}}";
 	
-	// MOVE THESE TO CLASS VARIABLES??? 
 	private String indexName = null;
 	private String clusterUrl = null;
 	private String username = null;
@@ -412,12 +411,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			HttpPut httpPut = new HttpPut(this.clusterUrl + "/" + this.indexName + "/" + "_doc" + "/" + documentName);
 			String encodedPassword = getEncoding();
 			httpPut.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
-//			httpPut.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 			httpPut.setEntity(new StringEntity(mappings.toString(), ContentType.APPLICATION_JSON));
 			response = httpClient.execute(httpPut);
 			System.out.println(response);
-//			JsonObject jsonResponse = Json.parse(responseData).asObject();
-//			System.out.println(jsonResponse.toString());
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
@@ -469,9 +465,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				} else {
 					throw new IllegalArgumentException("Unable to delete from open search cluster");
 				}
-				System.out.println(response);
-//				JsonObject jsonResponse = Json.parse(responseData).asObject();
-//				System.out.println(jsonResponse.toString());
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
@@ -511,11 +504,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		if (parameters.containsKey(INDEX_CLASS)) {
 			indexClass = (String) parameters.get(INDEX_CLASS);
 		}
-		
-//		if (!this.indexClasses.contains(indexClass)) {
-//			throw new IllegalArgumentException("Unable to remove documents from a directory that does not exist");
-//		}
-			
+					
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + this.indexName + DIR_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
@@ -696,8 +685,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			httpPut.setEntity(new StringEntity(jsonObject.toString(), ContentType.APPLICATION_JSON));
 			response = httpClient.execute(httpPut);
 			System.out.println(response);
-//			JsonObject jsonResponse = Json.parse(responseData).asObject();
-//			System.out.println(jsonResponse.toString());
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
@@ -751,9 +738,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			} else {
 				return false;
 			}
-//			System.out.println(response);
-//			JsonObject jsonResponse = Json.parse(responseData).asObject();
-//			System.out.println(jsonResponse.toString());
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
