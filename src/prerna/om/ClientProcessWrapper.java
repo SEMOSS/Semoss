@@ -100,7 +100,7 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootMountHelper.getTargetDirName(), relative, this.port+"");
+						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootMountHelper.getTargetDirName(), relative, this.port+"", this.timeout, this.loggerLevel);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					} else {
