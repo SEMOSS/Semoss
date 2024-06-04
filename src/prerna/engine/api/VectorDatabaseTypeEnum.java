@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.vector.AzureAISearchVectorDatabaseEngine;
 import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchVectorDatabaseEngine;
@@ -8,6 +9,7 @@ import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 
+	AZURE_AI_SEARCH("AZURE_AI_SEARCH", AzureAISearchVectorDatabaseEngine.class.getName()),
 	FAISS("FAISS", FaissDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	OPENSEARCH("OPENSEARCH", OpenSearchVectorDatabaseEngine.class.getName()),
