@@ -5128,7 +5128,7 @@ public final class Utility {
 		return new Object[] {thisProcess, prefix};
 	}
 	
-	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String ...otherProps ) {
+	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String timeout, String loggerLevel ) {
 		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
 		// this basically starts a java process
 		// the string is an identifier for this process
@@ -5172,12 +5172,13 @@ public final class Utility {
 			
 			String outputFile =chrootDir + finalDir + "/console.txt";
 			
-			String timeout = "15";
-			if(otherProps!= null && otherProps.length > 0)
-				timeout = otherProps[0];
+			//String timeout = "15";
+//			if(otherProps!= null && otherProps.length > 0)
+//				timeout = otherProps[0];
 			
-			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot", chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
+		//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 
+			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){

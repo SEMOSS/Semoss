@@ -524,7 +524,7 @@ public class PyTranslator {
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+				this.insight.getUser().getUserMountHelper().mountFolder(insightRootPath, insightRootPath, false);
 			}
 		}
 
