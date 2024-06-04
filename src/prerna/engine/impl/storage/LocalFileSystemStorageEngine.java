@@ -3,23 +3,38 @@ package prerna.engine.impl.storage;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.StorageTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Utility;
 
 public class LocalFileSystemStorageEngine extends AbstractRCloneStorageEngine {
+
+	private static final Logger classLogger = LogManager.getLogger(LocalFileSystemStorageEngine.class);
 
 	{
 		this.PROVIDER = "local";
 	}
 	
 	// this is not really needed
-	public static final String LOCAL_PATH_PREFIX = "LOCAL_PATH_PREFIX";
+	public static final String PATH_PREFIX = "PATH_PREFIX";
 
+	@Deprecated
+	private static final String LOCAL_PATH_PREFIX = "LOCAL_PATH_PREFIX";
+
+	
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		this.BUCKET = smssProp.getProperty(LOCAL_PATH_PREFIX);
+		this.BUCKET = smssProp.getProperty(PATH_PREFIX);
 		if(this.BUCKET == null) {
-			throw new IllegalArgumentException("Must provide the " + LOCAL_PATH_PREFIX + " for the local file system");
+			this.BUCKET = smssProp.getProperty(LOCAL_PATH_PREFIX);
+			if(this.BUCKET == null) {
+				throw new IllegalArgumentException("Must provide the " + PATH_PREFIX + " for the local file system");
+			} else {
+				classLogger.warn("Update SMSS key for " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " from " + LOCAL_PATH_PREFIX + " to new key " + PATH_PREFIX);
+			}
 		}
 		
 		this.BUCKET = this.BUCKET.replace("\\", "/");
