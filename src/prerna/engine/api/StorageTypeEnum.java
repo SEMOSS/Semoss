@@ -3,6 +3,7 @@ package prerna.engine.api;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.CephStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
+import prerna.engine.impl.storage.JCIFSStorageEngine;
 import prerna.engine.impl.storage.LocalFileSystemStorageEngine;
 import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
@@ -13,12 +14,14 @@ public enum StorageTypeEnum {
 	AMAZON_S3("AMAZON_S3", S3StorageEngine.class.getName()),
 	CEPH("CEPH", CephStorageEngine.class.getName()),
 	GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE", GoogleCloudStorageEngine.class.getName()),
+	JCIFS("JCIFS", JCIFSStorageEngine.class.getName()),
 	LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
 //	GOOGLE_DRIVE("GOOGLE_DRIVE",""),
 	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
 	MINIO("MINIO", MinioStorageEngine.class.getName()),
-	SFTP("SFTP", SFTPStorageEngine.class.getName());
-	
+	SFTP("SFTP", SFTPStorageEngine.class.getName()),
+	SMB_CIFS("SMB_CIFS", JCIFSStorageEngine.class.getName());
+
 	private String storageName;
 	private String storageClass;
 	
