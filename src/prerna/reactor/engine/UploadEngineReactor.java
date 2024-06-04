@@ -23,6 +23,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.StorageTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.AbstractReactor;
@@ -143,6 +144,25 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
 		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
+		
+		// do we have any other checks we want to make based on the SMSS
+		// let us do it now
+		if(engineType == IEngine.CATALOG_TYPE.STORAGE) {
+			String storageTypeStr = (String) typeAndSubtypeAndCost[1];
+			StorageTypeEnum storageType = null;
+			try {
+				storageType = StorageTypeEnum.getEnumFromName(storageTypeStr);
+			} catch(Exception e) {
+				throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
+			}
+			if(storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
+				// only admin can create a local file system storage engine
+				if(!SecurityAdminUtils.userIsAdmin(user)) {
+					throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
+				}
+			}
+		}
+		
 		logger.info(step + ") Done");
 		step++;
 
