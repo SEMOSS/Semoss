@@ -20,7 +20,7 @@ import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -75,7 +75,7 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 
 		//make call to dropbox to upload
 		String url_str = "https://content.dropboxapi.com/2/files/upload";
-		String output = AbstractHttpHelper.makeBinaryFilePostCall(url_str, accessToken, fileName, this.fileLocation.toString());
+		String output = HttpHelperUtility.makeBinaryFilePostCall(url_str, accessToken, fileName, this.fileLocation.toString());
 
 		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}

@@ -22,7 +22,7 @@ public class LocalFileSystemStorageEngine extends AbstractRCloneStorageEngine {
 	public static final String PATH_PREFIX = "PATH_PREFIX";
 
 	@Deprecated
-	private static final String LOCAL_PATH_PREFIX = "LOCAL_PATH_PREFIX";
+	public static final String LOCAL_PATH_PREFIX = "LOCAL_PATH_PREFIX";
 
 	
 	public void open(Properties smssProp) throws Exception {

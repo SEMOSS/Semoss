@@ -13,7 +13,7 @@ import prerna.om.RemoteItem;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GetSurveyMonkeySurveysReactor extends AbstractReactor{
@@ -54,7 +54,7 @@ public class GetSurveyMonkeySurveysReactor extends AbstractReactor{
 		params.put("per_page", 1000);
 		params.put("sort_order", "DESC");
 		// make the call
-		String output = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, true);
+		String output = HttpHelperUtility.makeGetCall(url_str, accessToken, params, true);
 		
 		// fill the bean with the return
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
