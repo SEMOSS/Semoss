@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GenericProfile implements IConnectorIOp{
@@ -37,14 +37,14 @@ public class GenericProfile implements IConnectorIOp{
 		params.put("alt", "json");
 		
 		// make the API call
-		String output = AbstractHttpHelper.makeGetCall(userInfoURL, accessToken, null, true);
+		String output = HttpHelperUtility.makeGetCall(userInfoURL, accessToken, null, true);
 
 		if(sanitizeResponse) {
 			output = output.replace("\\", "\\\\");
 			// add more replacements as need be in the future
 		}
 
-		//String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
+		//String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
 		
 		
 		acToken = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanPropsArr, acToken);

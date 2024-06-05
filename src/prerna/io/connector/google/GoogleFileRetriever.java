@@ -9,7 +9,7 @@ import java.util.Hashtable;
 
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 
 public class GoogleFileRetriever implements IConnectorIOp{
 
@@ -23,7 +23,7 @@ public class GoogleFileRetriever implements IConnectorIOp{
 			String url_str = "https://docs.google.com/spreadsheets/export"; 
 			//System.out.println("....");
 			
-			BufferedReader br = AbstractHttpHelper.getHttpStream(url_str, null, params, false);
+			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, null, params, false);
 			
 			// create a file
 			File outputFile = new File(fileName);

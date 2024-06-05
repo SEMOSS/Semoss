@@ -12,7 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -93,7 +93,7 @@ public class InitAppRepo extends GitBaseReactor {
 				Hashtable params = new Hashtable();
 				params.put("access_token", token);
 				
-				String output = AbstractHttpHelper.makeGetCall(url, token, params, false);
+				String output = HttpHelperUtility.makeGetCall(url, token, params, false);
 				AccessToken accessToken2 = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new AccessToken());
 				username = accessToken2.getProfile();
 

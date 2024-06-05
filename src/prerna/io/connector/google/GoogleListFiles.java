@@ -8,7 +8,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.RemoteItem;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GoogleListFiles implements IConnectorIOp{
@@ -46,7 +46,7 @@ public class GoogleListFiles implements IConnectorIOp{
 		// you fill what you want to send on the API call
 		params.put("access_token", accessToken);
 		
-		String output = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, false);
+		String output = HttpHelperUtility.makeGetCall(url_str, accessToken, params, false);
 		
 		// fill the bean with the return
 		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());

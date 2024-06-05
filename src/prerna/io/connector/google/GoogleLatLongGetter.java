@@ -12,7 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GoogleLatLongGetter implements IConnectorIOp{
@@ -51,7 +51,7 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 		params.put("key", accessToken);
 
 		// make the API call
-		String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
 		//System.out.println("Output >>>>> " + output);
 		
 		// fill the bean with the return

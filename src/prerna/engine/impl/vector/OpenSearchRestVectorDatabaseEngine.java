@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,7 +25,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -33,11 +33,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import com.bettercloud.vault.json.Json;
-import com.bettercloud.vault.json.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.internal.LinkedTreeMap;
 
 import prerna.ds.py.PyUtils;
@@ -47,6 +47,7 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -110,8 +111,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		if(this.smssProp.getProperty("INDEX_NAME") != null) { this.indexName = this.smssProp.getProperty("INDEX_NAME");}
 		if(this.smssProp.getProperty("HOSTS") != null) { this.clusterUrl = Utility.decodeURIComponent(this.smssProp.getProperty("HOSTS"));}
-		if(this.smssProp.getProperty("USERNAME") != null) { this.username = this.smssProp.getProperty("USERNAME");}
-		if(this.smssProp.getProperty("PASSWORD") != null) { this.password = Utility.decodeURIComponent(this.smssProp.getProperty("PASSWORD"));}
+		if(this.smssProp.getProperty(Constants.USERNAME) != null) { this.username = this.smssProp.getProperty(Constants.USERNAME);}
+		if(this.smssProp.getProperty(Constants.PASSWORD) != null) { this.password = Utility.decodeURIComponent(this.smssProp.getProperty(Constants.PASSWORD));}
 		
 		// If embedderEngine does not exist, do not set up the following
 		if(embedderEngineId != null && !embedderEngineId.isEmpty()) {
@@ -555,7 +556,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
 		verifyModelProps();
-		Object mappings;
+		Object mappings = null;
 		if(parameters.containsKey("MAPPINGS")) {
 			// Do rest call and pass in the mappings as a json object 
 			mappings = parameters.get("MAPPINGS");
@@ -585,48 +586,20 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			mappings = pyt.runScript(callMaker.toString(), insight);
 			mappings = convertKeyValueToJSON(mappings);
 			System.out.println(mappings);
+			System.out.println(mappings);
+			System.out.println(mappings);
+			System.out.println(mappings);
 		}
-		CloseableHttpClient httpClient = null;
-	    CloseableHttpResponse response = null;
-	    String responseData = null;
-	    HttpEntity entity = null;
-		try {
-			httpClient = HttpClients.createDefault();
-			HttpPost httpPost = new HttpPost(this.clusterUrl+"/_search");
-			String encodedPassword = getEncoding();
-			httpPost.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
-			httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-			httpPost.setEntity(new StringEntity(mappings.toString()));
-			response = httpClient.execute(httpPost);
-			System.out.println(response);
-			JsonObject jsonResponse = Json.parse(responseData).asObject();
-			System.out.println(jsonResponse.toString());
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
-		} finally {
-			if(entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
+		
+		Map<String, String> headersMap = new HashMap<>();
+		String encodedPassword = getEncoding();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+		headersMap.put(HttpHeaders.ACCEPT, "application/json");
+		String utilResponse = HttpHelperUtility.postRequestStringBody(this.clusterUrl+"/"+this.indexName+"/_search", headersMap, mappings.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		System.out.println(utilResponse);
+		
+		
 		return null;
 	}
 
@@ -635,23 +608,53 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return encoding;
 	}
 
-	public static JSONObject convertKeyValueToJSON(Object mappings) {
-        JSONObject jo=new JSONObject();
-        Object[] objs = ((LinkedTreeMap<String, Object>) mappings).entrySet().toArray();
-        for (int l=0;l<objs.length;l++)
-        {
-            Map.Entry o= (Map.Entry) objs[l];
-            try {
-                if (o.getValue() instanceof LinkedTreeMap)
-                    jo.put(o.getKey().toString(),convertKeyValueToJSON((LinkedTreeMap<String, Object>) o.getValue()));
-                else
-                    jo.put(o.getKey().toString(),o.getValue());
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        return jo;
-    }
+	public static JsonObject convertKeyValueToJSON(Object mappings) {
+		return processLinkedTreeMap((LinkedTreeMap<String, Object>) mappings);
+	}
+	
+	public static JsonObject processLinkedTreeMap(LinkedTreeMap<String, Object> input) {
+		JsonObject thisObject = new JsonObject();
+		Object[] objs = input.entrySet().toArray();
+		for (int i=0; i<objs.length; i++) {
+			Map.Entry o = (Map.Entry) objs[i];
+			String thisKey = o.getKey().toString();
+			Object thisValue = o.getValue();
+			if(thisValue == null) {
+				thisObject.add(thisKey, JsonNull.INSTANCE);
+			} else if (thisValue instanceof LinkedTreeMap) {
+				thisObject.add(thisKey, processLinkedTreeMap((LinkedTreeMap<String, Object>) o.getValue()));
+			} else if(thisValue instanceof Collection) {
+				thisObject.add(thisKey, processArray((Collection<Object>) o.getValue()));
+			} else if(thisValue  instanceof Number) {
+				thisObject.addProperty(thisKey, (Number) thisValue); 
+			} else if(thisValue instanceof Boolean) {
+				thisObject.addProperty(thisKey, (Boolean) thisValue); 
+			} else {
+				thisObject.addProperty(thisKey, thisValue + ""); 
+			}
+		}
+		return thisObject;
+	}
+	
+	public static JsonArray processArray(Collection<Object> input) {
+		JsonArray thisArr = new JsonArray();
+		for(Object in : input) {
+			if(in == null) {
+				thisArr.add(JsonNull.INSTANCE);
+			} else if(in instanceof LinkedTreeMap) {
+				thisArr.add(processLinkedTreeMap((LinkedTreeMap<String, Object>) in));
+			} else if(in instanceof Collection) {
+				thisArr.add(processArray((Collection<Object>) in));
+			} else if(in instanceof Number) {
+				thisArr.add((Number) in); 
+			} else if(in instanceof Boolean) {
+				thisArr.add((Boolean) in); 
+			} else {
+				thisArr.add(in + ""); 
+			}
+		}
+		return thisArr;
+	}
 	
 	/**
 	 * 
@@ -671,7 +674,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			verifyModelProps();
 		}
 		
-        JSONObject jsonObject = new JSONObject(mapping);
+        JsonObject jsonObject = JsonParser.parseString(mapping).getAsJsonObject();
         CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		String responseData = null;

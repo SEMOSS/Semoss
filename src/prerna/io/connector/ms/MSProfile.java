@@ -6,7 +6,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class MSProfile implements IConnectorIOp{
@@ -33,9 +33,9 @@ public class MSProfile implements IConnectorIOp{
 		params.put("alt", "json");
 		
 		// make the API call
-		String output = AbstractHttpHelper.makeGetCall(url, accessToken, null, true);
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, null, true);
 
-		//String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
+		//String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
 		
 		// fill the bean with the return
 		acToken = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanProps, acToken);

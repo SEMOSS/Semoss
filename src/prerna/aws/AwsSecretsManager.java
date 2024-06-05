@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -66,7 +66,7 @@ public class AwsSecretsManager {
 			headersMap.put("Authorization", authorization);
 		}
 
-		this.responseData = AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
+		this.responseData = HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
 		this.responseJson = new Gson().fromJson(this.responseData, Map.class);
 	}
 

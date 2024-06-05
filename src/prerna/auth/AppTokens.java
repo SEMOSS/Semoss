@@ -18,7 +18,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 
 import prerna.om.AbstractValueObject;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.git.GitRepoUtils;
 
@@ -134,7 +134,7 @@ public class AppTokens extends AbstractValueObject{
 					result.append(line);
 				}
 
-				twitToken = AbstractHttpHelper.getJAccessToken(result.toString());
+				twitToken = HttpHelperUtility.getJAccessToken(result.toString());
 				twitToken.setProvider(AuthProvider.TWITTER);
 			} catch(Exception ex) {
 				ex.printStackTrace();

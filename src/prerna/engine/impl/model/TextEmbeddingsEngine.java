@@ -17,7 +17,7 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
 public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
@@ -69,7 +69,7 @@ public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 			Map<String, Object> bodyMap = new HashMap<>();
 			bodyMap.put("inputs", sublist);
 			bodyMap.put("truncate", true);
-			String output = AbstractHttpHelper.postRequestStringBody(this.endpoint, null, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
+			String output = HttpHelperUtility.postRequestStringBody(this.endpoint, null, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
 			
 			List<List<Double>> outputParsed = new Gson().fromJson(output, new TypeToken<List<List<Double>>>() {}.getType());
 			embeddings.addAll(outputParsed);

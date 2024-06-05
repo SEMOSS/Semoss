@@ -21,7 +21,7 @@ import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -85,13 +85,13 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 		Hashtable params = new Hashtable();
 		params.put("name", fileName);
 		params.put("mimeType", "text/csv");
-		String output = AbstractHttpHelper.makePostCall(urlStr, accessToken,params,true);
+		String output = HttpHelperUtility.makePostCall(urlStr, accessToken,params,true);
 		RemoteItem upload = (RemoteItem)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
 		String uploadId=upload.getId();
 
 		//make an update call to the id to add data through binary post
 		String urlStr2 = "https://www.googleapis.com/upload/drive/v3/files/"+uploadId+"?uploadType=media";
-		String output2 = AbstractHttpHelper.makeBinaryFilePatchCall(urlStr2, accessToken, this.fileLocation.toString());
+		String output2 = HttpHelperUtility.makeBinaryFilePatchCall(urlStr2, accessToken, this.fileLocation.toString());
 
 
 		return new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
