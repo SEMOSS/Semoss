@@ -9,7 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -54,7 +54,7 @@ public class GitlabUtility {
 			headersMap.put("PRIVATE-TOKEN", privateToken);
 		}
 		
-		String responseData = AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
+		String responseData = HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
 		Gson gson = new Gson();
         return gson.fromJson(responseData, List.class);
 	}
@@ -92,7 +92,7 @@ public class GitlabUtility {
 			headersMap.put("PRIVATE-TOKEN", privateToken);
 		}
 		
-		String responseData = AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
+		String responseData = HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass);
 		Gson gson = new Gson();
         return gson.fromJson(responseData, List.class);
 	}
@@ -137,7 +137,7 @@ public class GitlabUtility {
 			saveFileName = "artifact.zip";
 		}
 		
-		File artifact = AbstractHttpHelper.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+		File artifact = HttpHelperUtility.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
 		return artifact;
 	}
 	
@@ -188,7 +188,7 @@ public class GitlabUtility {
 			saveFileName = "artifact.zip";
 		}
 		
-		File artifact = AbstractHttpHelper.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
+		File artifact = HttpHelperUtility.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName);
 		return artifact;
 	}
 	

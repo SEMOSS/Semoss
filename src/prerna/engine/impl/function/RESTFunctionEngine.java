@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Utility;
 
 public class RESTFunctionEngine extends AbstractFunctionEngine {
@@ -88,7 +88,7 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 				first = false;
 			}
 			String runTimeUrl = url + "?" + queryString;
-			output = AbstractHttpHelper.getRequest(runTimeUrl, this.headers, null, null, null);
+			output = HttpHelperUtility.getRequest(runTimeUrl, this.headers, null, null, null);
 		} else {
 			// for POST, will assume we are constructing a JSON body
 			Map<String, String> bodyMap = new HashMap<>();
@@ -96,9 +96,9 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 				bodyMap.put(k, parameterValues.get(k) + "");
 			}
 			if(this.contentType.equalsIgnoreCase("JSON")) {
-				output = AbstractHttpHelper.postRequestStringBody(this.url, this.headers, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
+				output = HttpHelperUtility.postRequestStringBody(this.url, this.headers, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
 			} else {
-				output = AbstractHttpHelper.postRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
+				output = HttpHelperUtility.postRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
 			}
 		}
 		return output;

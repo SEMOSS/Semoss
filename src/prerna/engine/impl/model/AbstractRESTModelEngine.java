@@ -25,7 +25,7 @@ import com.google.gson.Gson;
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
 import prerna.sablecc2.comm.JobManager;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
 public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
@@ -90,7 +90,7 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 		CloseableHttpClient httpClient = null;
 	    CloseableHttpResponse response = null;
 	    try {
-	        httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+	        httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
 	        HttpPost httpPost = new HttpPost(url);
 	        if (headersMap != null && !headersMap.isEmpty()) {
 	            for (String key : headersMap.keySet()) {

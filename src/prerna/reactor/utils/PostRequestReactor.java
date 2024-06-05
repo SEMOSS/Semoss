@@ -13,7 +13,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -44,7 +44,7 @@ public class PostRequestReactor extends AbstractReactor {
 			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
-		return new NounMetadata(AbstractHttpHelper.postRequestUrlEncodedBody(url, headersMap, bodyMap, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
+		return new NounMetadata(HttpHelperUtility.postRequestUrlEncodedBody(url, headersMap, bodyMap, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
 	}
 
 	/**

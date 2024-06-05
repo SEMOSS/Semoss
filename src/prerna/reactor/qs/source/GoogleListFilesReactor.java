@@ -14,7 +14,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GoogleListFilesReactor extends AbstractReactor{
@@ -90,7 +90,7 @@ public class GoogleListFilesReactor extends AbstractReactor{
 		String [] beanProps = {"id", "name", "type"};
 		String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
 		
-		String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
 		
 		// loop through and aggregate results
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
