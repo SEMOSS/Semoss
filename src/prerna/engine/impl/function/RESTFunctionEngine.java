@@ -34,8 +34,10 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 		this.httpMethod = smssProp.getProperty("HTTP_METHOD");
 		if(this.httpMethod == null 
 				|| (this.httpMethod=this.httpMethod.trim().toUpperCase()).isEmpty()
-				|| (!this.httpMethod.equals("GET") && !this.httpMethod.equals("POST"))) {
-			throw new IllegalArgumentException("RESTFunctionEngine only supports GET or POST requests");
+				|| (!this.httpMethod.equals("GET") && !this.httpMethod.equals("POST") 
+						&& !this.httpMethod.equals("PUT") && !this.httpMethod.equals("HEAD")
+						)) {
+			throw new IllegalArgumentException("RESTFunctionEngine only supports GET, HEAD, POST, or PUT requests");
 		}
 		
 		this.url = smssProp.getProperty("URL");
@@ -89,6 +91,29 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 			}
 			String runTimeUrl = url + "?" + queryString;
 			output = HttpHelperUtility.getRequest(runTimeUrl, this.headers, null, null, null);
+		} else if(httpMethod.equalsIgnoreCase("HEAD")) {
+			StringBuffer queryString = new StringBuffer();
+			boolean first = true;
+			for(String k : parameterValues.keySet()) {
+				if(!first) {
+					queryString.append("&");
+				}
+				queryString.append(k).append("=").append(parameterValues.get(k));
+				first = false;
+			}
+			String runTimeUrl = url + "?" + queryString;
+			output = HttpHelperUtility.headRequest(runTimeUrl, this.headers, null, null, null);
+		} else if(httpMethod.equalsIgnoreCase("PUT")) {
+			// for PUT, will assume we are constructing a JSON body
+			Map<String, String> bodyMap = new HashMap<>();
+			for(String k : parameterValues.keySet()) {
+				bodyMap.put(k, parameterValues.get(k) + "");
+			}
+			if(this.contentType.equalsIgnoreCase("JSON")) {
+				output = HttpHelperUtility.putRequestStringBody(this.url, this.headers, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
+			} else {
+				output = HttpHelperUtility.putRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
+			}
 		} else {
 			// for POST, will assume we are constructing a JSON body
 			Map<String, String> bodyMap = new HashMap<>();

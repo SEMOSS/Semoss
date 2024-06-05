@@ -473,13 +473,60 @@ public final class HttpHelperUtility {
 	 * 
 	 * @param url
 	 * @param headersMap
-	 * @param contentType
+	 * @param bodyMap
 	 * @param keyStore
 	 * @param keyStorePass
 	 * @param keyPass
 	 * @return
 	 */
-	public static String headRequestStringBody(String url, Map<String, String> headersMap, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap, Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpPut httpPost = new HttpPut(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpPost.addHeader(key, headersMap.get(key));
+				}
+			}
+			if(bodyMap != null && !bodyMap.isEmpty()) {
+				List<NameValuePair> params = new ArrayList<NameValuePair>();
+				for(String key : bodyMap.keySet()) {
+					params.add(new BasicNameValuePair(key, bodyMap.get(key)));
+				}
+				httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+			}
+			response = httpClient.execute(httpPost);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
+		}
+	}
+	
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
         String responseData = null;
 		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
