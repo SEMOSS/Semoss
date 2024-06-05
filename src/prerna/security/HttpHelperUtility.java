@@ -37,7 +37,9 @@ import org.apache.http.client.CookieStore;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -420,8 +422,135 @@ public final class HttpHelperUtility {
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 	}
+	
+	
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param body
+	 * @param contentType
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpPut httpPut = new HttpPut(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpPut.addHeader(key, headersMap.get(key));
+				}
+			}
+			if(body != null && !body.isEmpty()) {
+				httpPut.setEntity(new StringEntity(body, contentType));
+			}
+			response = httpClient.execute(httpPut);
 			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
 			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param contentType
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String headRequestStringBody(String url, Map<String, String> headersMap, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpHead httpHead = new HttpHead(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpHead.addHeader(key, headersMap.get(key));
+				}
+			}
+			response = httpClient.execute(httpHead);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		}
+	}
+
+	/**
+	 * 
+	 * @param url
+	 * @param headersMap
+	 * @param contentType
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
+	 */
+	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
+		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
+		try {
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			HttpDelete httpHead = new HttpDelete(url);
+			if(headersMap != null && !headersMap.isEmpty()) {
+				for(String key : headersMap.keySet()) {
+					httpHead.addHeader(key, headersMap.get(key));
+				}
+			}
+			response = httpClient.execute(httpHead);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return responseData;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		}
+	}
+	
 	/////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
