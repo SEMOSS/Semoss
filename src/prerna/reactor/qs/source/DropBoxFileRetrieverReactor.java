@@ -21,7 +21,7 @@ import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -86,7 +86,7 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		Hashtable params = new Hashtable();
 		params.put("path", dropboxPath);
 
-		String output = AbstractHttpHelper.makePostCall(url_str, accessToken, params, true);
+		String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
 
 		// fill the bean with the return. This return will have a url to download the file from which is done below
 		RemoteItem link = (RemoteItem) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());

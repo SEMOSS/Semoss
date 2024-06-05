@@ -7,7 +7,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.SentimentAnalysis;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GoogleSentimentAnalyzer implements IConnectorIOp {
@@ -27,7 +27,7 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 		String accessToken = googToken.getAccess_token();
 		
 		// make the API call
-		String jsonString = AbstractHttpHelper.makePostCall(url, accessToken, params , true);
+		String jsonString = HttpHelperUtility.makePostCall(url, accessToken, params , true);
 //		System.out.println("Output >>>>> " + jsonString);
 		
 //		// fill the bean with the return

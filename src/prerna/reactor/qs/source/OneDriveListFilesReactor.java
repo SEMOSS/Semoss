@@ -15,7 +15,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class OneDriveListFilesReactor extends AbstractReactor{
@@ -63,7 +63,7 @@ public class OneDriveListFilesReactor extends AbstractReactor{
 		Hashtable params = new Hashtable();
 		params.put("select", "name,id");
 		String url_str = "https://graph.microsoft.com/v1.0/me/drive/root/search(q='.csv')";
-		String output = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, true);
+		String output = HttpHelperUtility.makeGetCall(url_str, accessToken, params, true);
 
 		// fill the bean with the return
 		//fill an object

@@ -12,7 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class TwitterSearcher implements IConnectorIOp{
@@ -55,7 +55,7 @@ public class TwitterSearcher implements IConnectorIOp{
 		String accessToken = twitToken.getAccess_token();
 				
 		// make the API call
-		String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, true);
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, true);
 //		System.out.println(output);
 		
 		// need a way to convert this into a full review

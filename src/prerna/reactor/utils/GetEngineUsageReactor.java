@@ -42,6 +42,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			case VECTOR:
 				outputMap = getVectorUsage(engineId);
 				break;
+			case FUNCTION:
+				outputMap = getFunctionUsage(engineId);
+				break;
 			default:
 				outputMap = new HashMap<>();
 				outputMap.put(PYTHON, "Documentation pending");
@@ -78,7 +81,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IStorageEngine;\r\n" + 
-				"IStorage storage = Utility.getStorage(\""+engineId+"\");");
+				"IStorageEngine storage = Utility.getStorage(\""+engineId+"\");");
 		usageMap.put(PIXEL,"Storage(storage = \""+engineId+"\")");
 		return usageMap;
 	}
@@ -93,7 +96,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IDatabaseEngine;\r\n" + 
-				"IDatabase database = Utility.getDatabase(\""+engineId+"\");");
+				"IDatabaseEngine database = Utility.getDatabase(\""+engineId+"\");");
 		usageMap.put(PIXEL,"Database(database = \""+engineId+"\")");
 		return usageMap;
 	}
@@ -131,6 +134,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"\n## Remove document(s) from the vector database ##\r\n" +
 				"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
 				);
+		return usageMap;
+	}
+	
+	private Map<String, String> getFunctionUsage(String engineId) {
+		Map<String, String> usageMap = new HashMap<>();
+		usageMap.put(PYTHON,"");
+		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
+				"import prerna.engine.api.IFunctionEngine;\r\n" + 
+				"IFunctionEngine function = Utility.getFunction(\""+engineId+"\");");
+		usageMap.put(PIXEL,"ExecuteFunctionEngine(engine = \""+engineId+"\", map=[{'param1':'value1', ... , 'paramN':'valueN'}] )");
 		return usageMap;
 	}
 }

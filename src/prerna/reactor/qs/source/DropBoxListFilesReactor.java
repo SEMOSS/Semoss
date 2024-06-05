@@ -15,7 +15,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class DropBoxListFilesReactor extends AbstractReactor{
@@ -70,7 +70,7 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 		params.put("mode", "filename");
 
 
-		String output = AbstractHttpHelper.makePostCall(url_str, accessToken, params, true);
+		String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
 
 		// fill the bean with the return
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
