@@ -26,7 +26,7 @@ import com.bettercloud.vault.json.JsonObject;
 import com.bettercloud.vault.json.JsonValue;
 
 import prerna.io.connector.antivirus.IVirusScanner;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -96,7 +96,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpPost httpPost = new HttpPost(VIRUS_TOTAL_URL);
 			httpPost.addHeader("x-apikey", this.apiKey);
 			httpPost.addHeader("accept", "application/json");
@@ -192,7 +192,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
+			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL+analysisFileId);
 			httpGet.addHeader("x-apikey", this.apiKey);
 			httpGet.addHeader("accept", "application/json");

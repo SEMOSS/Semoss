@@ -20,7 +20,7 @@ import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -79,7 +79,7 @@ public class SharePointFileRetrieverReactor extends AbstractQueryStructReactor{
 		BufferedWriter target = null;
 		try {
 			String url_str = "https://graph.microsoft.com/v1.0/drives/"+driveID+"/items/"+fileID+"/content";
-			BufferedReader br = AbstractHttpHelper.getHttpStream(url_str, accessToken, params, true);
+			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
 
 			// create a file
 			String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"

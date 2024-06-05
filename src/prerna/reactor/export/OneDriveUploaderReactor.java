@@ -20,7 +20,7 @@ import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -81,7 +81,7 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 
 		//make call to OneDrive
 		String urlStr = "https://graph.microsoft.com/v1.0/me/drive/items/root:/"+fileName+".csv:/content";
-		String output = AbstractHttpHelper.makeBinaryFilePutCall(urlStr, accessToken, fileName, this.fileLocation.toString());
+		String output = HttpHelperUtility.makeBinaryFilePutCall(urlStr, accessToken, fileName, this.fileLocation.toString());
 
 		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}

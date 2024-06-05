@@ -193,8 +193,10 @@ public class CentralCloudStorage implements ICloudClient {
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("LOCAL_FILE_SYSTEM")){
 			
 			centralStorageEngine = new LocalFileSystemStorageEngine();
-			propertiesMigratePut(props, LocalFileSystemStorageEngine.LOCAL_PATH_PREFIX, clientProps, LocalFileSystemStorageEngine.LOCAL_PATH_PREFIX);
-			
+			propertiesMigratePut(props, LocalFileSystemStorageEngine.PATH_PREFIX, clientProps, LocalFileSystemStorageEngine.PATH_PREFIX);
+			if(!props.containsKey(LocalFileSystemStorageEngine.PATH_PREFIX)) {
+				propertiesMigratePut(props, LocalFileSystemStorageEngine.PATH_PREFIX, clientProps, LocalFileSystemStorageEngine.LOCAL_PATH_PREFIX);
+			}
 		}
 		else {
 			throw new IllegalArgumentException("You have specified an incorrect storage provider");
