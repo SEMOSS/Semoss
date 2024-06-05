@@ -7,7 +7,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.EntityResolution;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GoogleEntityResolver implements IConnectorIOp {
@@ -27,7 +27,7 @@ public class GoogleEntityResolver implements IConnectorIOp {
 		String accessToken = googToken.getAccess_token();
 		
 		// make the API call
-		String jsonString = AbstractHttpHelper.makePostCall(url, accessToken, params , true);
+		String jsonString = HttpHelperUtility.makePostCall(url, accessToken, params , true);
 //		System.out.println("Output >>>>> " + jsonString);
 		
 		EntityResolution entity = new EntityResolution();

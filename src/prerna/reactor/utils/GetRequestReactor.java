@@ -15,7 +15,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -68,7 +68,7 @@ public class GetRequestReactor extends AbstractReactor {
 	 * @return
 	 */
 	private NounMetadata nonFile(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
-		return new NounMetadata(AbstractHttpHelper.getRequest(url, headersMap, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
+		return new NounMetadata(HttpHelperUtility.getRequest(url, headersMap, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
 	}
 	
 	/**
@@ -82,7 +82,7 @@ public class GetRequestReactor extends AbstractReactor {
 	 */
 	private NounMetadata file(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
 		String filePath = this.insight.getInsightFolder();
-		File savedFile = AbstractHttpHelper.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, filePath, null);
+		File savedFile = HttpHelperUtility.getRequestFileDownload(url, headersMap, keyStore, keyStorePass, keyPass, filePath, null);
 		String savedFilePath = savedFile.getAbsolutePath();
 		String savedFileName = FilenameUtils.getName(savedFilePath);
 		// we only commit if its a saved insight

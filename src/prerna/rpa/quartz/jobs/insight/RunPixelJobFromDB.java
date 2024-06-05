@@ -30,7 +30,7 @@ import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.quartz.CommonDataKeys;
-import prerna.security.AbstractHttpHelper;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -75,7 +75,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			String csrfToken = null;
 			CookieStore httpCookieStore = new BasicCookieStore();
-			CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(httpCookieStore, keyStore, keyStorePass, keyPass);
+			CloseableHttpClient httpclient = HttpHelperUtility.getCustomClient(httpCookieStore, keyStore, keyStorePass, keyPass);
 			if(FETCH_CSRF){
 				String fetchUrl = url;
 				if(fetchUrl.endsWith("/")) {
