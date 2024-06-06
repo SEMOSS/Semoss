@@ -86,10 +86,6 @@
 			<outputDirectory>R</outputDirectory>
 		</fileSet>
 		<fileSet>
-			<directory>rdbms</directory>
-			<outputDirectory>rdbms</outputDirectory>
-		</fileSet>
-		<fileSet>
 			<directory>RDFGraphLib</directory>
 			<outputDirectory>RDFGraphLib</outputDirectory>
 		</fileSet>
