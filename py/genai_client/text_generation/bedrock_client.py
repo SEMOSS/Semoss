@@ -68,13 +68,39 @@ class BedrockClient(AbstractTextGenerationClient):
                 region_name=self.region,
             )
             
-    def create_json_body(self,prompt, max_new_tokens, temperature, top_p):
+    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
         # Create a dictionary with the desired parameters
         body_dict = {
             "prompt": prompt,
             "max_tokens_to_sample": max_new_tokens,
             "temperature": temperature,
             "top_p": top_p,
+        }
+
+        # Filter out parameters with null or empty values
+        filtered_body_dict = {key: value for key, value in body_dict.items() if value is not None and value != ""}
+
+        # Convert the filtered dictionary to JSON
+        body_json = json.dumps(filtered_body_dict)  # Optional: indent for pretty printing
+
+        return body_json
+
+    def create_json_body_titan(self, prompt, max_new_tokens, temperature, top_p, stop_sequences):
+        # Create a dictionary with the desired parameters
+        if stop_sequences is None:
+            stop_sequences = []
+
+        if top_p is None:
+            top_p = 0.9
+
+        body_dict = {
+            "inputText": prompt,
+            "textGenerationConfig": {
+                "maxTokenCount": max_new_tokens,
+                "stopSequences": stop_sequences,
+                "temperature": temperature,
+                "topP": top_p
+            }
         }
 
         # Filter out parameters with null or empty values
@@ -94,6 +120,7 @@ class BedrockClient(AbstractTextGenerationClient):
         max_new_tokens=500,
         temperature=None,
         top_p=None,
+        stop_sequences=None,
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
@@ -107,13 +134,11 @@ class BedrockClient(AbstractTextGenerationClient):
             'include_logprobs', 
             False
         )
-        
         try:
             message_payload = []
-
             # Common variable assignment for both chat-completion and completion
             mapping = {"question": question} | kwargs
-
+            prompt_content = ""
 
             if FULL_PROMPT not in kwargs.keys():
                 if context and not template_name:
@@ -150,38 +175,54 @@ class BedrockClient(AbstractTextGenerationClient):
                     [msg["content"] for msg in message_payload]
                 )
                 prompt_content = "\n\nHuman:" + msg_content + "\n\nAssistant:"
-                model_engine_response.prompt_tokens = self.tokenizer.count_tokens(prompt_content)
-                body = self.create_json_body(prompt_content,max_new_tokens, temperature,top_p)
-                # body = json.dumps(
-                #     {
-                #         "prompt": prompt_content,
-                #         "max_tokens_to_sample": max_new_tokens,
-                #         "temperature": temperature,
-                #         "top_p": top_p,
-                #     }
-                # )
-                accept = 'application/json'
-                contentType = 'application/json'
-                response = client.invoke_model_with_response_stream(
-                    modelId=self.modelId, body=body,
-                    accept=accept, contentType=contentType
-                )
-                stream = response.get("body")
-                if stream:
-                    for event in stream:
-                        chunk = event.get("chunk")
-                        if chunk:
+
+            else:
+                if self.modelId == "anthropic.claude-instant-v1":
+                    prompt_content = "\n\nHuman:" + kwargs[FULL_PROMPT] + "\n\nAssistant:"
+                elif self.modelId == "amazon.titan-text-express-v1":
+                    prompt_content = kwargs[FULL_PROMPT]
+
+            model_engine_response.prompt_tokens = self.tokenizer.count_tokens(prompt_content)
+            # body = json.dumps(
+            #     {
+            #         "prompt": prompt_content,
+            #         "max_tokens_to_sample": max_new_tokens,
+            #         "temperature": temperature,
+            #         "top_p": top_p,
+            #     }
+            # )
+
+            if self.modelId == "anthropic.claude-instant-v1":
+                body = self.create_json_body(prompt_content,max_new_tokens,temperature,top_p)
+            elif self.modelId == "amazon.titan-text-express-v1":
+                body = self.create_json_body_titan(prompt_content,max_new_tokens,temperature,top_p,stop_sequences)
+
+            accept = 'application/json'
+            contentType = 'application/json'
+            response = client.invoke_model_with_response_stream(
+                modelId=self.modelId, body=body,
+                accept=accept, contentType=contentType
+            )
+            stream = response.get("body")
+            
+            if stream:
+                for event in stream:
+                    chunk = event.get("chunk")
+                    if chunk:
+                        if self.modelId == "anthropic.claude-instant-v1":
                             partial = json.loads(chunk.get("bytes").decode()).get('completion')
-                            print(prefix+partial,end='')
-                            final_response += partial
+                        elif self.modelId == "amazon.titan-text-express-v1":
+                            partial = json.loads(chunk.get("bytes").decode()).get('outputText')
+                        print(prefix+partial,end='')
+                        final_response += partial
+
+            model_engine_response.response_tokens = self.tokenizer.count_tokens(final_response)
+            model_engine_response.response = final_response
+            return model_engine_response
                 
-                model_engine_response.response_tokens = self.tokenizer.count_tokens(final_response)
-                model_engine_response.response = final_response
-                return model_engine_response
 
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
-            raise
 
         return final_response
 
