@@ -67,6 +67,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		typeConversionMap.put("NUMBER", "FLOAT");
 		typeConversionMap.put("FLOAT", "FLOAT");
 		typeConversionMap.put("DOUBLE", "FLOAT");
+		typeConversionMap.put("VARCHAR(MAX)", "TEXT");
 	}
 	
 	@Override
@@ -222,6 +223,13 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public String getClobDataTypeName() {
 		return "TEXT";
 	}
+	
+	
+	@Override
+	public String getDoubleDataTypeName() {
+		return "FLOAT";
+	}
+
 	
 	@Override
 	public boolean allowIfExistsAddConstraint() {

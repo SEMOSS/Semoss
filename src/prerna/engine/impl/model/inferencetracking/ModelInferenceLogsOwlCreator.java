@@ -54,6 +54,7 @@ public class ModelInferenceLogsOwlCreator {
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+
 		this.agentColumns = Arrays.asList(
 				Pair.with("AGENT_ID", "VARCHAR(50)"),
 				Pair.with("AGENT_NAME", "VARCHAR(255)"),
@@ -97,7 +98,7 @@ public class ModelInferenceLogsOwlCreator {
 		this.feedbackColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
 				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
-				Pair.with("FEEDBACK_TEXT", "VARCHAR(MAX)"),
+				Pair.with("FEEDBACK_TEXT", CLOB_DATATYPE_NAME),
 				Pair.with("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);

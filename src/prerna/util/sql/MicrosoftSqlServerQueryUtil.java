@@ -200,6 +200,11 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getDoubleDataTypeName() {
+		return "FLOAT";
+	}
+	
+	@Override
 	public boolean allowBlobDataType() {
 		return false;
 	}
