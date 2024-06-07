@@ -317,6 +317,7 @@
 			<systemPath>${env.JAVA_HOME}/lib/tools.jar</systemPath>
 		</dependency>
 		 -->
+		 <!-- 
 		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr-complete</artifactId>
@@ -328,6 +329,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		 -->
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
@@ -2096,11 +2098,11 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.samba.jcifs/jcifs -->
-		<dependency>
-		    <groupId>org.samba.jcifs</groupId>
-		    <artifactId>jcifs</artifactId>
-		    <version>1.3.14-kohsuke-1</version>
-		</dependency>
+	<dependency>
+	    <groupId>org.samba.jcifs</groupId>
+	    <artifactId>jcifs</artifactId>
+	    <version>1.3.14-kohsuke-1</version>
+	</dependency>
 		
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->

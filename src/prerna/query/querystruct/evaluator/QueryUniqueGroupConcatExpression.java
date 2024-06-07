@@ -1,12 +1,11 @@
 package prerna.query.querystruct.evaluator;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
-
-import org.antlr.misc.OrderedHashSet;
 
 public class QueryUniqueGroupConcatExpression implements IQueryStructExpression {
 
-	private Set<Object> objs = new OrderedHashSet<Object>();
+	private Set<Object> objs = new LinkedHashSet<Object>();
 	
 	@Override
 	public void processData(Object obj) {
