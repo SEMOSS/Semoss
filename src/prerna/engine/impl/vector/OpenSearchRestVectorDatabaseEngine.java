@@ -23,8 +23,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -445,53 +443,28 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
+		List<String> successfulFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
 		for(String fileName: fileNames) {
 			fileName = fileName.replaceAll("\\s+","");
 			String fileNameSubString = fileName.substring(0, fileName.indexOf("."));
-			CloseableHttpClient httpClient = null;
-			CloseableHttpResponse response = null;
-			String responseData = null;
-			HttpEntity entity = null;
+			
+	        String url = this.clusterUrl + "/" + this.indexName + "/" + "_doc" + "/" + fileNameSubString;
+			Map<String, String> headersMap = new HashMap<>();
+			headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getEncoding());
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
 			try {
-				httpClient = HttpClients.createDefault();
-				HttpDelete httpDelete = new HttpDelete(
-						this.clusterUrl + "/" + this.indexName + "/" + "_doc" + "/" + fileNameSubString);
-				String encodedPassword = getEncoding();
-				httpDelete.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
-				httpDelete.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-				response = httpClient.execute(httpDelete);
-				int statusCode = response.getStatusLine().getStatusCode();
-				if(statusCode == 200) {
-					removeDocumentsFromFileDir(fileNames, parameters);
-				} else {
-					throw new IllegalArgumentException("Unable to delete from open search cluster");
-				}
-			} catch (IOException e) {
+				HttpHelperUtility.deleteRequestStringBody(url, headersMap, null, null, null);
+				successfulFiles.add(fileName);
+			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
-			} finally {
-				if (entity != null) {
-					try {
-						EntityUtils.consume(entity);
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-				if (response != null) {
-					try {
-						response.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-				if (httpClient != null) {
-					try {
-						httpClient.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				failedFiles.add(fileName);
 			}
+		}
+		
+		if(!successfulFiles.isEmpty()) {
+			removeDocumentsFromFileDir(fileNames, parameters);
 		}
 	}
 
@@ -675,45 +648,14 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 		
         JsonObject jsonObject = JsonParser.parseString(mapping).getAsJsonObject();
-        CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
-		String responseData = null;
-		HttpEntity entity = null;
-		try {
-			httpClient = HttpClients.createDefault();
-			HttpPut httpPut = new HttpPut(this.clusterUrl + "/" + this.indexName);
-			String encodedPassword = getEncoding();
-			httpPut.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
-			httpPut.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-			httpPut.setEntity(new StringEntity(jsonObject.toString(), ContentType.APPLICATION_JSON));
-			response = httpClient.execute(httpPut);
-			System.out.println(response);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
-		} finally {
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
+        String url = this.clusterUrl + "/" + this.indexName;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getEncoding());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		String body = jsonObject.toString();
+		
+        String response = HttpHelperUtility.putRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+        System.out.println("Create Index Response = " + response);
 	}
 
 	/**
@@ -724,49 +666,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		if(!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
-		String responseData = null;
-		HttpEntity entity = null;
-		try {
-			httpClient = HttpClients.createDefault();
-			HttpHead httphead = new HttpHead(this.clusterUrl + "/" + this.indexName);
-			String encodedPassword = getEncoding();
-			httphead.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
-			httphead.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-			response = httpClient.execute(httphead);
-			int statusCode = response.getStatusLine().getStatusCode();
-			if(statusCode == 200) {
-				return true;
-			} else {
-				return false;
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + this.clusterUrl);
-		} finally {
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
+		
+		String url = this.clusterUrl + "/" + this.indexName;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getEncoding());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+		HttpHelperUtility.headRequest(url, headersMap, null, null, null);
+		return true;
 	}
 
 	@Override
