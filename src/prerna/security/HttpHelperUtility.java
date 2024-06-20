@@ -567,7 +567,7 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
         String responseData = null;
 		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
