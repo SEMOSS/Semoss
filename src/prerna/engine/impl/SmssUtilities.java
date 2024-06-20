@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -21,6 +22,7 @@ import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -653,12 +655,8 @@ public class SmssUtilities {
 			throw new IOException("Project name already exists.  Please provide a unique project name");
 		}
 
-		String baseFolder = Utility.getBaseFolder();
-		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
-			baseFolder += DIR_SEPARATOR;
-		}
 		// need to make sure app folder doesn't already exist
-		String projectLocation = baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId);
+		String projectLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.PROJECT, projectId, projectName);
 		File projectFolder = new File(projectLocation);
 		if(projectFolder.exists()) {
 			throw new IOException("Project folder already contains a project directory with the same name. "
