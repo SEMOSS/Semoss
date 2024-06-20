@@ -38,7 +38,7 @@ public class LLMReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> paramMap = getMap();
-		IModelEngine eng = Utility.getModel(engineId);
+		IModelEngine modelEngine = Utility.getModel(engineId);
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
@@ -49,7 +49,7 @@ public class LLMReactor extends AbstractReactor {
 //		}
 //		
 		
-		Map<String, Object> output = eng.ask(question, context, this.insight, paramMap).toMap();
+		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
