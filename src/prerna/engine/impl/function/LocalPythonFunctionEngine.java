@@ -43,7 +43,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
-		this.cacheFolder = new File(this.engineDirectoryPath + "py");
+		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 	}
 
 	private synchronized void startServer(int port) {

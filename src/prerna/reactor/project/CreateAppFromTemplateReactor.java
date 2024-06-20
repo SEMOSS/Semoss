@@ -91,6 +91,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
+		} else if(key.equals("projectTemplate")) {
+			return "The id of the existing project that is serving as the template for the copy";
 		} else if(key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
 			return "The GIT provider - user must be logged in with this provider for credentials";
 		} else if(key.equals(ReactorKeysEnum.URL.getKey())) {
