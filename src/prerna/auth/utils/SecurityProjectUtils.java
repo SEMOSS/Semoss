@@ -2498,6 +2498,37 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Determine if a user can request a project
+	 * @param projectId
+	 * @return
+	 */
+	public static boolean projectIsDiscoverable(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				// if you are here, you can request
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Get the list of the project information that the user has access to
 	 * @param userId
 	 * @return
@@ -3284,6 +3315,48 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @return
+	 */
+	public static int getUserPendingAccessRequest(User user, String projectId) {
+		// grab user info who is submitting request
+		Pair<String, String> requesterDetails = User.getPrimaryUserIdAndTypePair(user);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_DECISION"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__REQUEST_USERID", "==", requesterDetails.getValue0()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__REQUEST_TYPE", "==", requesterDetails.getValue1()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
+		qs.addOrderBy("PROJECTACCESSREQUEST__REQUEST_TIMESTAMP", "desc");
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				String mostRecentAction = (String) values[0];
+				if(!mostRecentAction.equals("APPROVED") && !mostRecentAction.equals("DENIED") && !mostRecentAction.equals("OLD")) {
+					return ((Number) values[1]).intValue();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(it != null) {
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return -1;
 	}
 	
 	/**
