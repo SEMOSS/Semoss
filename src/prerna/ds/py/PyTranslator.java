@@ -248,6 +248,13 @@ public class PyTranslator {
 		if (!pyTempF.exists()) {
 			pyTempF.mkdirs();
 		}
+		
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			if (this.insight.getUser() != null) {
+				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+			}
+		}
+
 
 		String scriptFileName = Utility.getRandomString(12);
 		String scriptPath = pyTemp + scriptFileName + ".py";
