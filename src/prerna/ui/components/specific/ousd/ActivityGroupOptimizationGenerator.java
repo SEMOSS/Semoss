@@ -15,6 +15,7 @@ import lpsolve.LpSolveException;
 import prerna.annotations.BREAKOUT;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
+import prerna.util.Constants;
 
 @BREAKOUT
 public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
@@ -195,7 +196,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 					opt.setupModel();
 					opt.writeLp("OUSD Optimization year " + year + ".lp");
 				} catch (LpSolveException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 
 				//EXECUTES THE MODEL

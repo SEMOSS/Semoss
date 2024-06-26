@@ -48,6 +48,7 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class MhsGenesisDeploymentSavingsProcessor {
@@ -150,13 +151,13 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				frame.addRow(newValuesWithInstance, headers);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			if(updatePs != null) {
 				try {
 					updatePs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -197,13 +198,13 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			}
 			updatePs.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			if(updatePs != null) {
 				try {
 					updatePs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 			closeRs(rs);
@@ -226,7 +227,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			}
 			frame.addRow(colTotalArr, headers);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 
 	}
@@ -377,7 +378,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			}
 			updatePs.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 
 		return mainSustainmentFrame;	
@@ -418,14 +419,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			}
 			updatePs.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally { 
 		      if(updatePs != null) {
 		          try {
 		        	  updatePs.close();
 		          } catch (SQLException e) {
 		            // TODO Auto-generated catch block
-		            e.printStackTrace();
+		            LOGGER.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
@@ -468,14 +469,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			}
 			updatePs.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(updatePs != null) {
 					updatePs.close();
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 			closeRs(siteSpecificSystemsIterator);
 		}
@@ -526,14 +527,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				}
 				updatePs.executeBatch();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			} finally {
 			      try {
 			          if(updatePs != null) {
 			        	  updatePs.close();
 			               }
 			       } catch (SQLException e) {
-			               e.printStackTrace();
+			               LOGGER.error(Constants.STACKTRACE, e);
 			       }
 			}
 		} catch (Exception e1) {
@@ -543,7 +544,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				try {
 					rawIterator.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -589,7 +590,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				}
 				updatePs.executeBatch();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
@@ -598,7 +599,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				try {
 					rawIterator.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -653,7 +654,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				try {
 					rawWrapper.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -670,7 +671,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				systemsWithCostList.add(rs.getString(1));
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(rs);
 		}
@@ -784,7 +785,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			// execute the update
 			updatePs.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 
 		tempFrame.close();
@@ -837,13 +838,13 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			// add the data into the frame
 			mainSustainmentFrame2.addRowsViaIterator(rawWrapper, dataTypes);
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			if(rawWrapper != null) {
 				try {
 					rawWrapper.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -870,13 +871,13 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					waveSiteSystemBuilder.append("(<http://health.mil/ontologies/Concept/System/").append(rawWrapper.next().getValues()[0]).append(">)");
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			} finally {
 				if(rawWrapper != null) {
 					try {
 						rawWrapper.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						LOGGER.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -961,7 +962,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 							systemsSiteComboList.add(rs.getString(1) + "+++" + rs.getString(2));
 						}
 					} catch (SQLException e) {
-						e.printStackTrace();
+						LOGGER.error(Constants.STACKTRACE, e);
 					} finally {
 						closeRs(rs);
 					}
@@ -1053,7 +1054,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 						// drop the intermediary temp frame
 						tempFrame.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						LOGGER.error(Constants.STACKTRACE, e);
 					}
 
 					// iterate through the results for testing
@@ -1070,7 +1071,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 						try {
 							rawWrapper.close();
 						} catch (IOException e) {
-							e.printStackTrace();
+							LOGGER.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -1088,12 +1089,12 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			try {
 				stmt = rs.getStatement();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 			try {
 				rs.close();
 			} catch(SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(stmt != null) {

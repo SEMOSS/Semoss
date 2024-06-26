@@ -48,6 +48,7 @@ import prerna.ui.components.NewHoriScrollBarUI;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
+import prerna.util.Constants;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -114,7 +115,7 @@ public class GridPlaySheet extends TablePlaySheet{
 
 			logger.debug("Added the main pane");
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 

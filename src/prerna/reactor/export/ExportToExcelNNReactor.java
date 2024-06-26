@@ -308,7 +308,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw new IllegalArgumentException("An error occurred generating the excel file");
 		} finally {
 			if(driver != null && driver instanceof ChromeDriver) {

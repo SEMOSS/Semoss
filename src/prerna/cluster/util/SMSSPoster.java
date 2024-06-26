@@ -26,8 +26,13 @@ import org.apache.zookeeper.data.Stat;
 
 import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheListener
 {
+	protected static final Logger classLogger = LogManager.getLogger(SMSSPoster.class);
+
 	boolean connected = false;
 	String modelId = null;
 	boolean lockSet = false;
@@ -120,17 +125,17 @@ public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheLi
 				} catch (KeeperException e) {
 					// TODO Auto-generated catch block
 					System.err.println("Node exists.. ");
-					//e.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, e);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
-					//e.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, e);
 				}
 				
 			}
 						
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}	
 		
@@ -153,10 +158,10 @@ public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheLi
 			return true;
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return false;
 	}
@@ -211,13 +216,13 @@ public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheLi
 						
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -275,13 +280,13 @@ public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheLi
 
 			} catch (KeeperException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (UnsupportedEncodingException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(type == EventType.NodeDeleted)
@@ -305,10 +310,10 @@ public class SMSSPoster extends ModelZKServer implements Watcher, CuratorCacheLi
 			zk.delete(MODEL_ROOT + "/" + modelId, -1);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

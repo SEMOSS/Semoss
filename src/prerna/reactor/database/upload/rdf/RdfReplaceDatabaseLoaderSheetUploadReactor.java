@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -89,7 +90,7 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
-			e.printStackTrace();
+			this.logger.error(Constants.STACKTRACE, e);
 			this.error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;

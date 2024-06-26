@@ -53,6 +53,7 @@ import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysDecommissionScheduleGraphFunctions;
 import prerna.ui.components.specific.tap.SystemPropertyGridPlaySheet;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
 /**
  * This class is used to optimize the calculations for univariate services.
@@ -277,7 +278,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return wrapper;
 	}

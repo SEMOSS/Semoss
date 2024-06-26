@@ -1,9 +1,13 @@
 package prerna.reactor.database.upload.gremlin.external;
 
 import java.io.File;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -23,8 +27,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.UploadInputUtility;
+import prerna.util.Constants;
+
 
 public class GetGraphPropertiesReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GetGraphPropertiesReactor.class);
+
 	
 	public GetGraphPropertiesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -94,7 +103,7 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -104,7 +113,7 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 			try {
 				g.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

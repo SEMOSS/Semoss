@@ -14,8 +14,14 @@ import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AlgorithmMergeHelper {
+
+	protected static final Logger classLogger = LogManager.getLogger(AlgorithmMergeHelper.class);
 
 	private AlgorithmMergeHelper() {
 		
@@ -78,7 +84,7 @@ public class AlgorithmMergeHelper {
 		try {
 			return importer.mergeData(joins);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 	}

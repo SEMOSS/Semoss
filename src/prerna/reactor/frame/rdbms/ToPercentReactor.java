@@ -1,8 +1,12 @@
 package prerna.reactor.frame.rdbms;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -10,8 +14,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.Constants;
+
 
 public class ToPercentReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ToPercentReactor.class);
+
 
 	private static final String BY100 = "by100";
 	private static final String SIG_DIGITS = "sigDigits";
@@ -80,7 +89,7 @@ public class ToPercentReactor extends AbstractFrameReactor {
 				}
 				return retNoun;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		throw new IllegalArgumentException("Unable to generate percent column");

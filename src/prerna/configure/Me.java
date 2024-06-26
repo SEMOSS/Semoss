@@ -138,14 +138,14 @@ public class Me {
 			bw.write("\necho R_LIBS IS %R_LIBS%");
 			bw.flush();
 		} catch(IOException e) {
-			e.printStackTrace();
+			System.err.print(e);
 		} finally {
 			try {
 				if(bw != null) {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 	}
@@ -172,14 +172,14 @@ public class Me {
 			bw.write("set JAVA_OPTS=" + options);
 			bw.flush();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.print(e);
 		} finally {
 			try {
 				if(bw != null) {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 		
@@ -194,14 +194,14 @@ public class Me {
 			writer.flush();
 			writer.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.print(e);
 		} finally {
 			try {
 				if(writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 	}
@@ -293,7 +293,7 @@ public class Me {
 				 try {
 					portStr = br.readLine();
 				} catch (IOException e) {
-					e.printStackTrace();
+					System.err.print(e);
 				}
 				System.out.println("Using port: " + portStr);
 			} else {
@@ -305,14 +305,14 @@ public class Me {
 					is.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 			try {
 				if(br != null) {
 					br.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 		return portStr;
@@ -415,7 +415,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			System.err.print(e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -437,7 +437,7 @@ public class Me {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 		replaceFiles(appPath, altPath);
@@ -471,7 +471,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			System.err.print(e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -493,7 +493,7 @@ public class Me {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 		
@@ -529,7 +529,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			System.err.print(e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -551,7 +551,7 @@ public class Me {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 		
@@ -618,7 +618,7 @@ public class Me {
 				fileOut.write(lineBreak);
 			}
 		} catch(IOException e){
-			e.printStackTrace();
+			System.err.print(e);
 		} finally{
 			// close the readers
 			try{
@@ -626,7 +626,7 @@ public class Me {
 					reader.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.print(e);
 			}
 
 			try{
@@ -634,7 +634,7 @@ public class Me {
 					fileOut.close();
 				}
 			} catch (IOException e){
-				e.printStackTrace();
+				System.err.print(e);
 			}
 		}
 	}

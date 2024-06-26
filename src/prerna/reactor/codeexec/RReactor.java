@@ -264,7 +264,7 @@ public final class RReactor extends AbstractRFrameReactor {
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		if(animate)

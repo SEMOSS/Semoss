@@ -146,7 +146,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -184,7 +184,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -245,15 +245,15 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 //		fileOut.close();
 //
 //		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}finally{
 //			try{
 //				if(fileOut!=null)
 //					fileOut.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				logger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		logger.info("Printed: " +key +" testPrint.xls");
@@ -293,15 +293,15 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 //		fileOut.flush();
 //
 //		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}finally{
 //			try{
 //				if(fileOut!=null)
 //					fileOut.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				logger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
@@ -341,9 +341,9 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 //		fileOut.close();
 //
 //		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
 //	}	

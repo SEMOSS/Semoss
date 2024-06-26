@@ -12,6 +12,7 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
 import prerna.annotations.BREAKOUT;
+import prerna.util.Constants;
 
 @BREAKOUT
 public class ActivityGroupOptimizer extends LPOptimizer{
@@ -120,7 +121,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 		try {
 			solver.addConstraintex(sysListSize, row, colno, LpSolve.LE, budgetConstraint);
 		} catch (LpSolveException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 
 		if(additionalConstraints){
@@ -147,7 +148,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 						solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(granularBlu, granularBLUMap, true));
 					}
 				} catch (LpSolveException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 				count++;
 			}
@@ -171,7 +172,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 					solver.setRowName(count, dataObj);
 					solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(dataObj, dataSystemMap, true));
 				} catch (LpSolveException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 				count++;
 			}
@@ -198,7 +199,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 				try {
 					solver.addConstraintex(sysListSize, row, colno, LpSolve.EQ, 0);
 				} catch (LpSolveException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

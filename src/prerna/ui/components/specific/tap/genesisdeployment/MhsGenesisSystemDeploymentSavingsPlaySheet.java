@@ -17,6 +17,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
+import prerna.util.Constants;
 
 public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet { 
 
@@ -154,7 +155,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				systemListData.put(system, systemData);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(mapSystemRs);
 		}
@@ -208,7 +209,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(mapSiteRs);
 		}
@@ -248,7 +249,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				systemDataList.add(data);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(systemRs);
 		}
@@ -320,7 +321,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				siteDataList.add(data);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(siteRs);
 		}
@@ -472,7 +473,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 					siteSystemFilter.append(",'").append(rs.getString(1)).append("'");
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			} finally {
 				closeRs(rs);
 			}
@@ -531,7 +532,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.systemDeploymentSavings, system, newValues, endYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(systemDataRs);
 		}
@@ -566,7 +567,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(systemDataRs);
 		}
@@ -599,7 +600,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(systemDataRs);
 		}
@@ -616,12 +617,12 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			try {
 				stmt = rs.getStatement();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 			try {
 				rs.close();
 			} catch(SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(stmt != null) {

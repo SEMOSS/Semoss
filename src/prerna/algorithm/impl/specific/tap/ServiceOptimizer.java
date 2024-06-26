@@ -36,6 +36,7 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
+import prerna.util.Constants;
 
 /**
  * This class is used to optimize calculations for TAP-specific services.
@@ -174,7 +175,7 @@ public class ServiceOptimizer extends LPOptimizer{
 			solver.addConstraintex(colCount, row, colno, LpSolve.LE, budget);
 		}
 		catch (LpSolveException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		
 	}
@@ -225,7 +226,7 @@ public class ServiceOptimizer extends LPOptimizer{
 
 		}
 		catch (LpSolveException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -269,7 +270,7 @@ public class ServiceOptimizer extends LPOptimizer{
 			solver.setMaxim();
 		}
 		catch (LpSolveException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -359,7 +360,7 @@ public class ServiceOptimizer extends LPOptimizer{
 				}
 				icdSerMatrix = newMatrix;
 			} catch (LpSolveException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 			yearlyServicesList.add(impSerList);
 			yearlyICDList.add(impICDList);

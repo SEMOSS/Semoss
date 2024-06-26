@@ -3,6 +3,9 @@ package prerna.reactor.frame.gaas;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.gaas.chat.MooseChatReactor;
 import prerna.reactor.frame.gaas.ner.FillFormReactor;
@@ -10,8 +13,12 @@ import prerna.reactor.frame.gaas.qa.QueryQAModelReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+
 
 public class MooseReactor extends AbstractGaasBaseReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(MooseReactor.class);
 
 	// we could move this to RDF Map also later
 	Map <String, Class> commandReactorMap = new HashMap<String, Class>(); 
@@ -64,10 +71,10 @@ public class MooseReactor extends AbstractGaasBaseReactor {
 				return reactor.execute();
 			} catch (InstantiationException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;

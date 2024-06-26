@@ -34,6 +34,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
 public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 
@@ -94,13 +95,13 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 				collection.add(new Object[] {rawUri, literal, null});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(iterator != null) {
 				try {
 					iterator.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -116,7 +116,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 				this.gps.updateProgressBar("100%...Graph Generation Complete", 100);
 
 			} catch (RuntimeException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				logger.fatal(e.getStackTrace());
 			}
 		}
@@ -146,7 +146,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 
 			this.gps.genAllData();
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.gps.updateProgressBar("100%...Graph Undo Complete", 100);
 	}
@@ -169,7 +169,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 	// printConnectedNodes();
 	// printSpanningTree();
 	// }catch (PropertyVetoException e) {
-	// e.printStackTrace();
+	// logger.error(Constants.STACKTRACE, e);
 	// }
 	// updateProgressBar("100%...Graph Redo Complete", 100);
 	// }
@@ -244,7 +244,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 			setUndoRedoBtn();
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 

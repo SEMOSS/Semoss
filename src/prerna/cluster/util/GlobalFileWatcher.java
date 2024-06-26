@@ -9,8 +9,14 @@ import java.nio.file.attribute.FileTime;
 
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GlobalFileWatcher implements CuratorCacheListener {
+
+	protected static final Logger logger = LogManager.getLogger(GlobalFileWatcher.class);
 
 	String semossHome = null;
 	DBSynchronizer dbs = null;
@@ -131,7 +137,7 @@ public class GlobalFileWatcher implements CuratorCacheListener {
 			return ft.toString();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;

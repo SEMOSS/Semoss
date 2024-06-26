@@ -32,7 +32,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class CreateFAISSIndexReactor extends AbstractGaasBaseReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(CreateFAISSIndexReactor.class);
 
 	public CreateFAISSIndexReactor() {
 		// fileName - List of files
@@ -167,7 +174,7 @@ public class CreateFAISSIndexReactor extends AbstractGaasBaseReactor {
 			try {
 				FileUtils.writeStringToFile(new File(configFile), json);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			//push to cloud

@@ -18,12 +18,19 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class PreprocessQAReactor extends AbstractGaasBaseReactor {
 
 	// preprocesses documents in a given folder
 	// essentially turns it into a text file and drops it into the folder / text directory
 	
+	private static final Logger classLogger = LogManager.getLogger(PreprocessQAReactor.class);
+
 	public PreprocessQAReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SEPARATOR.getKey()};
 		this.keyRequired = new int[] {1, 0};
@@ -130,10 +137,10 @@ public class PreprocessQAReactor extends AbstractGaasBaseReactor {
 			pw.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -168,10 +175,10 @@ public class PreprocessQAReactor extends AbstractGaasBaseReactor {
 			pw.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

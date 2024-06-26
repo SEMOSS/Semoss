@@ -640,7 +640,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -794,7 +794,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			try {
 				database.insertData(createIndex);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			tempIndexAddedList.add(indexOnTable);
 			tempIndexDropList.add(dropIndex);
@@ -814,7 +814,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				try {
 					database.insertData(createIndex);
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				tempIndexDropList.add(dropIndex);
 				tempIndexAddedList.add(indexOnTable);

@@ -23,8 +23,14 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 //import org.neo4j.graphdb.Transaction;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GraphUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(GraphUtility.class);
 
 	/**
 	 * Get metamodel from a type property
@@ -252,7 +258,7 @@ public class GraphUtility {
 				properties.add(property);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -279,7 +285,7 @@ public class GraphUtility {
 				labels.add(label);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -303,7 +309,7 @@ public class GraphUtility {
 //				properties.add(resultSet.getString(1));
 //			}
 //		}catch (SQLException e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return properties;
 		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
@@ -318,7 +324,7 @@ public class GraphUtility {
 				properties.add(property);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -347,7 +353,7 @@ public class GraphUtility {
 				properties.add(property);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -380,7 +386,7 @@ public class GraphUtility {
 				edgeMap.put(relationship, nodes);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -412,7 +418,7 @@ public class GraphUtility {
 				edgeMap.put(relationship, nodes);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -479,14 +485,14 @@ public class GraphUtility {
 				nodeMap.put(node, propMap);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				 if(statement != null) {
 					 statement.close();
 			        }
 			} catch (SQLException e) {
-		          e.printStackTrace();
+		          classLogger.error(Constants.STACKTRACE, e);
 			}
 
 		}

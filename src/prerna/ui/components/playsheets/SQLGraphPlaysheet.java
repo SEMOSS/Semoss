@@ -24,6 +24,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.SimpleGraphListener;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SQLGraphPlaysheet extends AbstractPlaySheet {
@@ -103,7 +104,7 @@ public class SQLGraphPlaysheet extends AbstractPlaySheet {
 			
 		} catch (PropertyVetoException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

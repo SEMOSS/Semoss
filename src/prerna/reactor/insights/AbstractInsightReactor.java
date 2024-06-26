@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -38,8 +42,11 @@ import prerna.util.AssetUtility;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
+import prerna.util.Constants;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractInsightReactor.class);
 
 	// used for saving a base insight
 	protected static final String IMAGE_THEME_FILE = "insight_theme.json";
@@ -396,7 +403,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				selectors.put(CouchUtil.PROJECT, projectId);
 				CouchUtil.upload(CouchUtil.INSIGHT, selectors, saveImageFile);
 			} catch (CouchException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -415,7 +422,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				Files.copy(newImage, saveImageFile);
 				newImage.delete();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -440,9 +447,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		try (OutputStream stream = new FileOutputStream(imagePath)) {
 			stream.write(data);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -549,7 +556,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 									origF.delete();
 								}
 							} catch (IOException e) {
-								e.printStackTrace();
+								classLogger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
@@ -602,7 +609,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				try {
 					writer.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
