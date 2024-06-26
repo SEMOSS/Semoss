@@ -21,9 +21,13 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import freemarker.template.Version;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class NGINXAppListener extends NGINXDomainListener implements IZKListener {
-
+	protected static final Logger logger = LogManager.getLogger(NGINXAppListener.class);
 	
 	//static String semossHome = "/opt/semosshome/";
 	static String semossHome = "c:/users/pkapaleeswaran/workspacej3/docker/";
@@ -160,7 +164,7 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			
 		}catch (Exception ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	

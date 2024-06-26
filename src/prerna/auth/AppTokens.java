@@ -21,9 +21,14 @@ import prerna.om.AbstractValueObject;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.git.GitRepoUtils;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AppTokens extends AbstractValueObject{
-	
+	protected static final Logger logger = LogManager.getLogger(AppTokens.class);
+
 	// name of this user in the SEMOSS system if there is one
 	
 	private static AppTokens app = null;
@@ -137,7 +142,7 @@ public class AppTokens extends AbstractValueObject{
 				twitToken = HttpHelperUtility.getJAccessToken(result.toString());
 				twitToken.setProvider(AuthProvider.TWITTER);
 			} catch(Exception ex) {
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, ex);
 			} finally {
 				if(is != null) {
 					try {

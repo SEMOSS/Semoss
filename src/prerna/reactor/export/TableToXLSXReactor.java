@@ -75,8 +75,12 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 public class TableToXLSXReactor	extends AbstractReactor {
+	protected static final Logger classLogger = LogManager.getLogger(TableToXLSXReactor.class);
 
 	List <Integer> autoWrappedColumns = new Vector<Integer>();
 	int startColumn = 0;
@@ -419,7 +423,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			 return "Waiting for next command";
 		}catch (Exception ex)
 		{
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 //		} finally {
 //			if(wb != null) {

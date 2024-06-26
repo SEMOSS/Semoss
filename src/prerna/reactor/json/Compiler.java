@@ -16,8 +16,13 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 public class Compiler
+
+
 {
 //	public static void main(String[] arguments) throws ParserException, LexerException, IOException
 //	{
@@ -115,6 +120,8 @@ public class Compiler
 //		
 ////		System.out.println(runner.getResults());
 //	}
+	protected static final Logger classLogger = LogManager.getLogger(Compiler.class);
+
 	
 	public StringBuffer composeStringFromFile(String fileName)
 	{
@@ -130,7 +137,7 @@ public class Compiler
 			}
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(br != null) {
 		          try {

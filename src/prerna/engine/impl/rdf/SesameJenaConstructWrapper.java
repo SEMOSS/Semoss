@@ -40,6 +40,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
 /**
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes CONSTRUCT statements. 
@@ -221,13 +222,13 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 			
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;
@@ -285,13 +286,13 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return thisSt;
-	}
+	}	
 
 	/**
 	 * Method getJenaStatement.  Gets the query solution for a JENA model.

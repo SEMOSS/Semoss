@@ -17,6 +17,8 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.hslf.usermodel.HSLFPictureData;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
 import org.apache.poi.sl.usermodel.StrokeStyle;
@@ -83,8 +85,11 @@ import prerna.util.ChromeDriverUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
+import prerna.util.Constants;
 
 public class ExportToPPTReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ExportToPPTReactor.class);
 
 	private static final String GRID_ON_X = "tools.shared.editGrid.x";
 	private static final String GRID_ON_Y = "tools.shared.editGrid.y";
@@ -243,7 +248,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 				insertImage(user, options, slideshow, task, panel);
 			}
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(driver != null && driver instanceof ChromeDriver) {
 				
