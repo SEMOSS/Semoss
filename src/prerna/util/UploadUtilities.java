@@ -469,7 +469,7 @@ public final class UploadUtilities {
 //				bufferedWriter.write(Constants.IS_ASSET_APP + tab + true + newLine);
 //			}
 //		} catch (IOException ex) {
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //			throw new IOException("Could not generate database smss file");
 //		} finally {
 //			try {
@@ -539,7 +539,7 @@ public final class UploadUtilities {
 			bufferedWriter.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
 
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
@@ -700,7 +700,7 @@ public final class UploadUtilities {
 			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
@@ -784,7 +784,7 @@ public final class UploadUtilities {
 			String json = gson.toJson(nameMap);
 			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
@@ -868,7 +868,7 @@ public final class UploadUtilities {
 			bufferedWriter.write(Constants.NAME_MAP+ "\t" + json + "\n");
 			
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
@@ -935,7 +935,7 @@ public final class UploadUtilities {
 			String json = gson.toJson(nameMap);
 			bufferedWriter.write(Constants.NAME_MAP + "\t" + json + "\n");
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
@@ -1000,7 +1000,7 @@ public final class UploadUtilities {
 			String json = gson.toJson(nameMap);
 			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {

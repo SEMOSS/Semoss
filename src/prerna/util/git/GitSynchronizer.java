@@ -28,8 +28,14 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GitSynchronizer {
+
+	protected static final Logger classLogger = LogManager.getLogger(GitSynchronizer.class);
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
@@ -108,7 +114,7 @@ public class GitSynchronizer {
 				}
 				FileUtils.copyFileToDirectory(filesToMove[i], versionDir);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -120,7 +126,7 @@ public class GitSynchronizer {
 		try {
 			FileUtils.copyFileToDirectory(smssFile, versionDir);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -157,7 +163,7 @@ public class GitSynchronizer {
 					}
 					FileUtils.copyFileToDirectory(filesToMove[i], gitDataDir);
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -368,7 +374,7 @@ public class GitSynchronizer {
 				output.add(cFiles.next());
 			}
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		}		
 		return output;
 	}
@@ -442,7 +448,7 @@ public class GitSynchronizer {
 				finalHash.put("DEL", delFiles);
 			}
 		} catch (IOException | GitAPIException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return finalHash;

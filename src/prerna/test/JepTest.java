@@ -19,9 +19,11 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class JepTest implements Runnable {
+	protected static final Logger classLogger = LogManager.getLogger(JepTest.class);
 
 	Jep jep = null;
 	static Object pdFrame = null;
@@ -262,7 +264,7 @@ public class JepTest implements Runnable {
 			System.out.println("Time Seconds " + seconds);
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	

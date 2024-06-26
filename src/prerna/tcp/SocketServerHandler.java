@@ -134,13 +134,13 @@ public class SocketServerHandler implements Runnable {
 				} catch(InvocationTargetException ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
 					classLogger.info(ex + ps.methodName);
-					ex.printStackTrace();
+					//ex.printStackTrace();
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 				} catch(Exception ex ) {
 					classLogger.error(Constants.STACKTRACE, ex);
 					classLogger.info(ex + ps.methodName);
-					ex.printStackTrace();
+					//ex.printStackTrace();
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 				}
@@ -163,7 +163,7 @@ public class SocketServerHandler implements Runnable {
 					//ps.operation = ps.operation.PYTHON;
 					// remove this item
 				} catch(Exception ex) {
-					ex.printStackTrace();
+					//ex.printStackTrace();
 					classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -343,7 +343,7 @@ public class SocketServerHandler implements Runnable {
 				return ps;
 			}
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			//ex.printStackTrace();
 			classLogger.error(Constants.STACKTRACE, ex);
 			ps.ex = ex.getMessage();
 		}

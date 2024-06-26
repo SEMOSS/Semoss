@@ -62,10 +62,15 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 /**
  */
 public class Printer {
+
+	protected static final Logger logger = LogManager.getLogger(Printer.class);
 
 //	/**
 //	 * Method main.
@@ -237,7 +242,7 @@ public class Printer {
 					}*/
 			}catch (Exception ex)
 			{
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, ex);
 			} finally {
 				
 				try {
@@ -373,7 +378,7 @@ public class Printer {
 		}catch(Exception ex)
 		{
 			// nothings
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		
