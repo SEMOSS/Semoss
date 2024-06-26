@@ -35,10 +35,15 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
+import prerna.util.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class SysOptUtilityMethods {
 
 	
+	protected static final Logger logger = LogManager.getLogger(SysOptUtilityMethods.class);
+
 	public static String makeBindingString(String type,ArrayList<String> vals) {
 		String bindings = "";
 		for(String val : vals)
@@ -64,13 +69,13 @@ public final class SysOptUtilityMethods {
 					return sjss.getVar(names[0]);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					try {
 						wrapper.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -95,13 +100,13 @@ public final class SysOptUtilityMethods {
 					list.add((String) sjss.getVar(names[0]));
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					try {
 						wrapper.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -189,7 +194,7 @@ public final class SysOptUtilityMethods {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

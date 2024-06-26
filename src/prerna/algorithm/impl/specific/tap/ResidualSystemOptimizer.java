@@ -37,6 +37,7 @@ import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
+import prerna.util.Constants;
 
 public class ResidualSystemOptimizer extends LPOptimizer{
 	
@@ -171,7 +172,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 				}
 			}
 		}catch (LpSolveException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	public void addDecommissionSystemsConstraint(double[] systemRequired)
@@ -196,7 +197,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 				}
 			}
 		}catch (LpSolveException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -222,7 +223,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 				}
 			}
 		}catch (LpSolveException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	/**
@@ -242,7 +243,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	        solver.setObjFnex(systemCostOfMaintenance.length, row, colno);
 			solver.setMinim();
 		}catch (LpSolveException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -344,7 +345,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			solver=null;
 			
 		} catch (LpSolveException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 			
