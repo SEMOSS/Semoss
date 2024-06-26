@@ -9,7 +9,7 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 
-import prerna.reactor.IReactor;;
+import prerna.reactor.IReactor;
 import prerna.util.Constants;
 
 import org.apache.logging.log4j.LogManager;
