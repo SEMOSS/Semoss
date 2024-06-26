@@ -96,7 +96,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 			isCalculated = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 				
 		if(isCalculated){		

@@ -43,6 +43,7 @@ import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMDispositionFactSheetProcessor;
 import prerna.ui.components.specific.tap.DHMSMHelper;
+import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -86,7 +87,7 @@ public class FactSheetListener implements IChakraListener {
 			try {
 				processor = new DHMSMDispositionFactSheetProcessor();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				Utility.showError(e.getMessage());
 			}
 		}

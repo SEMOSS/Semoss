@@ -23,10 +23,17 @@ import prerna.reactor.ReactorFactory;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public class MvnReactor extends AbstractReactor
 {
+	
+	private static final Logger classLogger = LogManager.getLogger(MvnReactor.class);
+
 	public MvnReactor() {
 		// need repository
 		// Oauth
@@ -121,7 +128,7 @@ public class MvnReactor extends AbstractReactor
 			}		
 		} catch (MavenInvocationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return new NounMetadata("Compile successful", PixelDataType.CONST_STRING);

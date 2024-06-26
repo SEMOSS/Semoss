@@ -42,12 +42,16 @@ import prerna.ui.components.specific.tap.FillTMVendorHash;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Listener for btnCalculateVendorTMAlone
  * Determines technical maturity calculations for a selected database for vendor selection 
  */
 public class RunVendorTMAloneButtonListener implements IChakraListener {
+
+	private static final Logger classLogger = LogManager.getLogger(RunVendorTMAloneButtonListener.class);
 
 	/**
 	 * Performs technical maturity calculations when btnCalculateVendorTMAlone is pressed by the user
@@ -80,7 +84,7 @@ public class RunVendorTMAloneButtonListener implements IChakraListener {
 			distanceExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		String distanceQuery2 = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> AS ?contains) {?s ?contains ?prop ;} }";
@@ -90,7 +94,7 @@ public class RunVendorTMAloneButtonListener implements IChakraListener {
 			distanceExists = distanceExists || proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		if(distanceExists){

@@ -4609,7 +4609,6 @@ public final class Utility {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(cl != null) {

@@ -39,12 +39,18 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.CapabilityBVCalculationPerformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Listener for btnRunCapabilityBV
  * Determines business value calculations for a selected database
  */
 public class RunCapabilityBVButtonListener implements IChakraListener{
+
+	private static final Logger classLogger = LogManager.getLogger(RunCapabilityBVButtonListener.class);
 
 	/**
 	 * Performs business value when btnRunCapabilityBV is pressed by the user
@@ -68,7 +74,7 @@ public class RunCapabilityBVButtonListener implements IChakraListener{
 		try {
 			bvExists = proc.processQuery();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if(bvExists){
 			//display message

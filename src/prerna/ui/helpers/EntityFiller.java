@@ -149,7 +149,7 @@ public class EntityFiller implements Runnable {
 									}
 								} catch (QueryEvaluationException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									logger.error(Constants.STACKTRACE, e);
 								}
 					        	sparqlQuery = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getClassName(conceptURI);
 					        }

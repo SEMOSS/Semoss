@@ -85,7 +85,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			replaceTaskWeights(taskAndWeights);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}	
 
 		//hashtable to hold scoring values
@@ -102,7 +102,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			replaceBVTVCost(vendors,vendorsCustomCost,vendorsHWSWCost);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		logger.info("Source Report Generator Button Pushed");
@@ -139,7 +139,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return tasks;
 	}
@@ -187,7 +187,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		wrapper = WrapperManager.getInstance().getSWrapper(engine, query2);
@@ -216,7 +216,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		for(String task : tasks)

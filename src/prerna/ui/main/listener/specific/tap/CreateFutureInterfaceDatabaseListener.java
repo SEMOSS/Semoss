@@ -41,6 +41,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.specific.tap.CreateFutureStateDHMSMDatabase;
 import prerna.ui.components.specific.tap.GLItemGeneratorSelfReportedFutureInterfaces;
 import prerna.ui.main.listener.impl.AbstractListener;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
@@ -129,14 +130,14 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
 		} catch (IOException e) {
 			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} 
 		catch (RepositoryException e) {
 			Utility.showError("Error with generting new DB");
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (RDFHandlerException e) {
 			Utility.showError("Error with generting new DB");
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 	}
 

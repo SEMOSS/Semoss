@@ -174,7 +174,7 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		ArrayList<String> objectNodeTypes = new ArrayList<String>();

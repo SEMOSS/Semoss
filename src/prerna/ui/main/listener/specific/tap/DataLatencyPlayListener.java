@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
+import prerna.util.Constants;
 
 /**
  * Opens the Data Latency Scenario user interface when JMenuItem "Data Latency Scenario" is selected by the user
@@ -101,7 +102,7 @@ public class DataLatencyPlayListener implements ActionListener{
 		try {
 			dataLatePopup.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 }

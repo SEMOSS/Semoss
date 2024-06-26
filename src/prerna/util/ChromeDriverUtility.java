@@ -169,14 +169,14 @@ public class ChromeDriverUtility {
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		// take image
 		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 		try {
 			FileUtils.copyFile(scrFile, new File(Utility.normalizePath(imagePath)));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -327,7 +327,7 @@ public class ChromeDriverUtility {
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// grab body not body//table so that we can support multiple pivot sections
@@ -406,14 +406,14 @@ public class ChromeDriverUtility {
 //		try {
 //			Thread.sleep(10_000);
 //		} catch (InterruptedException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //		// take image
 //		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 //		try {
 //			FileUtils.copyFile(scrFile, new File(imagePath));
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //		if (close) {
 //			driver.quit();

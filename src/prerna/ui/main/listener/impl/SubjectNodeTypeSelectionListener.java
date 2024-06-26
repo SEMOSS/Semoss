@@ -149,7 +149,7 @@ public class SubjectNodeTypeSelectionListener extends AbstractListener {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		ArrayList<String> objectNodeTypes = new ArrayList<String>();

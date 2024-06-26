@@ -36,12 +36,20 @@ import java.io.IOException;
 import javax.swing.ImageIcon;
 import javax.swing.JDesktopPane;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
 import prerna.util.Utility;
+
 
 /**
  * This class extends JDesktopPane in order to create a custom desktop pane.
  */
 public class CustomDesktopPane extends JDesktopPane{
+	
+	private static final Logger classLogger = LogManager.getLogger(CustomDesktopPane.class);
+
 	String workingDir = Utility.getBaseFolder();
 	final String fileString = workingDir +"/pictures/desktop.png";
 	ImageIcon icon = new ImageIcon(fileString);
@@ -57,7 +65,7 @@ public class CustomDesktopPane extends JDesktopPane{
     	try {
 			img = javax.imageio.ImageIO.read(file);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} 
     }  
     
