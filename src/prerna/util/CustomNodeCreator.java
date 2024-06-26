@@ -38,9 +38,13 @@ import java.util.Vector;
 
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CustomNodeCreator {
 	
+	private static final Logger classLogger = LogManager.getLogger(CustomNodeCreator.class);
+
 	GraphPlaySheet ps = null;
 	String selected = null;
 	String expression = null;
@@ -121,7 +125,7 @@ public class CustomNodeCreator {
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		

@@ -174,7 +174,7 @@ public class CmdExecUtil {
 				}
 			}  catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			// replace the mount dir location
 			output = replaceAppAlias(output);

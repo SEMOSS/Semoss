@@ -44,11 +44,17 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 /**
  * Listener for btnCalculateVendorBVTM
  * Determines business value and technical maturity calculations for a selected database for vendor selection 
  */
 public class RunVendorBVTMButtonListener implements IChakraListener{
+
+	private static final Logger classLogger = LogManager.getLogger(RunVendorBVTMButtonListener.class);
 
 	/**
 	 * Performs business value and technical maturity calculations when btnCalculateVendorBVTM is pressed by the user
@@ -81,7 +87,7 @@ public class RunVendorBVTMButtonListener implements IChakraListener{
 			bvExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		String distanceQuery2 = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> AS ?contains) {?s ?contains ?prop ;} }";
@@ -91,7 +97,7 @@ public class RunVendorBVTMButtonListener implements IChakraListener{
 			bvExists = bvExists || proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		String distanceQuery3 = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> AS ?contains) {?s ?contains ?prop ;} }";
@@ -101,7 +107,7 @@ public class RunVendorBVTMButtonListener implements IChakraListener{
 			bvExists = bvExists || proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		if(bvExists){

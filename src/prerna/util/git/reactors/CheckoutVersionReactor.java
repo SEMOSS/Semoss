@@ -1,12 +1,19 @@
 package prerna.util.git.reactors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.git.GitRepoUtils;
 
+
 public class CheckoutVersionReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(CheckoutVersionReactor.class);
 
 
 
@@ -50,7 +57,7 @@ public class CheckoutVersionReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}

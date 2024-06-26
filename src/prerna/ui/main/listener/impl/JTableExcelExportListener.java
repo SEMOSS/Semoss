@@ -40,10 +40,16 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class JTableExcelExportListener extends AbstractListener {
 	
+	private static final Logger classLogger = LogManager.getLogger(JTableExcelExportListener.class);
+
 	private final String WORKING_DIR = Utility.getBaseFolder();
 	private final String EXPORT_FOLDER = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Excel" + System.getProperty("file.separator");
 	private JTable table;
@@ -98,13 +104,13 @@ public class JTableExcelExportListener extends AbstractListener {
 				if(stream!=null)
 					stream.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 	        if(wb != null) {
                 try {
                   wb.close();
                 } catch(IOException e) {
-    				e.printStackTrace();
+                	classLogger.error(Constants.STACKTRACE, e);
                 }
               }
 		}

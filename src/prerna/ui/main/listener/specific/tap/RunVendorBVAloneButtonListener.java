@@ -43,11 +43,18 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * Listener for btnCalculateVendorBVAlone
  * Determines business value calculations for a selected database for vendor selection 
  */
 public class RunVendorBVAloneButtonListener implements IChakraListener{
+
+	private static final Logger classLogger = LogManager.getLogger(RunVendorBVAloneButtonListener.class);
 
 	/**
 	 * Performs business value calculations when btnCalculateVendorBVAlone is pressed by the user
@@ -80,7 +87,7 @@ public class RunVendorBVAloneButtonListener implements IChakraListener{
 			bvExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if(bvExists){
 			//display message

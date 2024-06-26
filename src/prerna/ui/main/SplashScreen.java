@@ -48,12 +48,17 @@ import javax.swing.plaf.basic.BasicProgressBarUI;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 
 /**
  * This generates a Splash Screen and progress bar when the SEMOSS application is initially opened.
  */
 public class SplashScreen extends JWindow {
+
+	private static final Logger classLogger = LogManager.getLogger(SplashScreen.class);
 
 	private static JProgressBar progressBar = new JProgressBar();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -74,7 +79,7 @@ public class SplashScreen extends JWindow {
 			picLabel = new JLabel(new ImageIcon(image));
 			picLabel.setSize(661, 335);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		

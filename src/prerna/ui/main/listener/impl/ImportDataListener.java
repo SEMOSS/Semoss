@@ -236,13 +236,13 @@ public class ImportDataListener implements IChakraListener {
 				logger.error(e);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}finally{
 				try{
 					if(fileIn!=null)
 						fileIn.close();
 				}catch(IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				if(book != null) {
 			          try {

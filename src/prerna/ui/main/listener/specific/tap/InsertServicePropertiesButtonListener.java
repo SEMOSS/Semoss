@@ -41,11 +41,17 @@ import prerna.ui.components.specific.tap.ServiceICDProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 /**
  * Listener for btnInsertServiceProperties
  * Inserts service business value into selected database 
  */
 public class InsertServicePropertiesButtonListener implements IChakraListener{
+
+	private static final Logger logger = LogManager.getLogger(InsertServicePropertiesButtonListener.class);
 
 	String type = "Service";
 	
@@ -77,7 +83,7 @@ public class InsertServicePropertiesButtonListener implements IChakraListener{
 			distanceExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		if(distanceExists){
 			//display message

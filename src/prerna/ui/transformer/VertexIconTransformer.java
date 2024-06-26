@@ -46,11 +46,15 @@ import prerna.om.SEMOSSVertex;
 import prerna.ui.components.DBCMIcon;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  */
 public class VertexIconTransformer extends DefaultVertexIconTransformer<SEMOSSVertex>  implements Transformer<SEMOSSVertex, Icon>{
 	
+	private static final Logger classLogger = LogManager.getLogger(VertexIconTransformer.class);
+
 	public static VertexIconTransformer tx = null;
 	
 	/**
@@ -142,7 +146,7 @@ public class VertexIconTransformer extends DefaultVertexIconTransformer<SEMOSSVe
 				//return icon2;
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

@@ -37,12 +37,16 @@ import javax.swing.JComponent;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Controls the buttons to start the training modules from the Help tab.
  */
 public class StartTrainingListener extends AbstractListener {
 	
+	private static final Logger classLogger = LogManager.getLogger(StartTrainingListener.class);
+
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
 	 * @param actionevent ActionEvent - The event that triggers the actions in the method.
@@ -68,7 +72,7 @@ public class StartTrainingListener extends AbstractListener {
 		        try {
 					desktop.open(file);
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 		 }
 		 

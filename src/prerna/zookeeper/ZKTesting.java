@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreV2;
@@ -17,6 +16,10 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import com.google.gson.Gson;
 
 import prerna.engine.impl.storage.S3StorageEngine;
+import prerna.util.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class ZKTesting {
 
@@ -35,6 +38,8 @@ public class ZKTesting {
 //			engine.close();
 //		}
 //	}
+
+	private static final Logger classLogger = LogManager.getLogger(ZKTesting.class);
 
 	public static void startTimeLockThread(ZKCuratorUtility utility) {
 		Thread t = new Thread(new Runnable() {
@@ -59,7 +64,7 @@ public class ZKTesting {
 					byte[] data = gson.toJson(dataMap).getBytes();
 					utility.createEphemeralNode("/userWithLock", data);
 				} catch(Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(timebasedLock != null && lease != null) {
 						timebasedLock.returnLease(lease);
@@ -102,7 +107,7 @@ public class ZKTesting {
 					try {
 						engine.copyToLocal("/ncrt/catalogPictures/" + itemName, "/opt/semosshome/catalogAttachments" + itemName);
 					} catch (IOException | InterruptedException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				
