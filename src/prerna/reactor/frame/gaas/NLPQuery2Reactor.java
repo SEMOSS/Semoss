@@ -641,7 +641,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

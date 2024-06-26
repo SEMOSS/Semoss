@@ -13,6 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
@@ -39,7 +43,8 @@ public class DBSynchronizer extends ZKClient
 	String fileExtensions = "py;python;r;js;css;mosfet;json;java;"; // thse are the only file extensions to track // should we include the .db too ? or .smss ?
 	
 	public String semossHome = null;
-	
+	protected static final Logger classLogger = LogManager.getLogger(DBSynchronizer.class);
+
 	
 	private DBSynchronizer()
 	{
@@ -54,7 +59,7 @@ public class DBSynchronizer extends ZKClient
 			client.start();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 	}
@@ -139,7 +144,7 @@ public class DBSynchronizer extends ZKClient
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -201,7 +206,7 @@ public class DBSynchronizer extends ZKClient
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		//else - this is a local deployment nothing to do move on
@@ -282,7 +287,7 @@ public class DBSynchronizer extends ZKClient
 			return ft.toString();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -310,13 +315,13 @@ public class DBSynchronizer extends ZKClient
 			dbLock.get(db).release();
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		
@@ -338,7 +343,7 @@ public class DBSynchronizer extends ZKClient
 			dbLock.get(db).release();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} 
 	}
 
@@ -355,13 +360,13 @@ public class DBSynchronizer extends ZKClient
 			dbLock.get(db).release();
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		

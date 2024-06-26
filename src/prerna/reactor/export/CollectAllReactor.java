@@ -11,7 +11,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.usertracking.UserTrackerFactory;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class CollectAllReactor extends TaskBuilderReactor {
+	private static final Logger classLogger = LogManager.getLogger(CollectAllReactor.class);
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
@@ -39,7 +45,7 @@ public class CollectAllReactor extends TaskBuilderReactor {
 					UserTrackerFactory.getInstance().trackQueryData(this.insight, ((BasicIteratorTask) task).getQueryStruct());
 				}
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

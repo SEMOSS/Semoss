@@ -164,7 +164,7 @@ public class TCPChromeDriverUtility {
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		// take image
 		File srcFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
@@ -180,7 +180,7 @@ public class TCPChromeDriverUtility {
 			}
 			return srcFile.getAbsolutePath();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -358,7 +358,7 @@ public class TCPChromeDriverUtility {
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			e.printStackTrace(); 
+			logger.error(Constants.STACKTRACE, e); 
 		}
 
 		// trying the wait
@@ -450,14 +450,14 @@ public class TCPChromeDriverUtility {
 	//		try {
 	//			Thread.sleep(10_000);
 	//		} catch (InterruptedException e) {
-	//			e.printStackTrace();
+	//			logger.error(Constants.STACKTRACE, e);
 	//		}
 	//		// take image
 	//		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 	//		try {
 	//			FileUtils.copyFile(scrFile, new File(imagePath));
 	//		} catch (IOException e) {
-	//			e.printStackTrace();
+	//			logger.error(Constants.STACKTRACE, e);
 	//		}
 	//		if (close) {
 	//			driver.quit();

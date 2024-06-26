@@ -1,5 +1,9 @@
 package prerna.reactor.database.upload.gremlin.external;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +19,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.GraphUtility;
+import prerna.util.Constants;
 
 public class GetJanusGraphMetaModelReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetJanusGraphMetaModelReactor.class);
 
 	public GetJanusGraphMetaModelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey() };
@@ -73,7 +80,7 @@ public class GetJanusGraphMetaModelReactor extends AbstractReactor {
 			try {
 				g.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

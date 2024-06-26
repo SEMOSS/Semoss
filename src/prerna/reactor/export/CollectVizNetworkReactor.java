@@ -103,7 +103,7 @@ public class CollectVizNetworkReactor extends TaskBuilderReactor {
 		try {
 			outputMap.put("values", new String[]{FileUtils.readFileToString(filePathF, StandardCharsets.UTF_8)});
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw new IllegalArgumentException("Error occurred reading the html file with full message: " + e.getMessage());
 		}
 		outputMap.put("visNetwork", visNetworkCommand);	

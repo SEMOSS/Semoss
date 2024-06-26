@@ -7,6 +7,8 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -24,10 +26,12 @@ import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.database.metaeditor.meta.RemoveOwlDescriptionReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -38,6 +42,8 @@ import prerna.util.Utility;
  * getPhysicalRelationships returns these relationships.
  */
 public class DownloadOwlRelationshipsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DownloadOwlRelationshipsReactor.class);
 
 	static final String START_TABLE = "START_TABLE";
 	static final String START_COLUMN = "START_COLUMN";
@@ -81,7 +87,7 @@ public class DownloadOwlRelationshipsReactor extends AbstractReactor {
 			createExcelFile(output, userId, fileLocation);
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String error = "Error occurred creating the export!";
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				error += e.getMessage();

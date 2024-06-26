@@ -3,6 +3,9 @@ package prerna.reactor.frame.nativeframe;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -15,9 +18,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.Constants;
+
 
 public class NativeCollectNewColReactor extends TaskBuilderReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(NativeCollectNewColReactor.class);
+
+	
 	public NativeCollectNewColReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
@@ -62,7 +70,7 @@ public class NativeCollectNewColReactor extends TaskBuilderReactor {
 			importer = new NativeImporter(frame, pqs, ((BasicIteratorTask) task).getIterator());
 			importer.insertData();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		
