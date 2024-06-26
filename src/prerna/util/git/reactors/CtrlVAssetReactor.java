@@ -1,6 +1,5 @@
 package prerna.util.git.reactors;
 
-import static prerna.reactor.AbstractReactor.classLogger;
 
 import java.io.File;
 import java.io.IOException;
