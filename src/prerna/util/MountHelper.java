@@ -118,7 +118,7 @@ public class MountHelper {
 		// create the RDF and py/R folders
 		createCustomRDFMap();
 	}
-	
+
 	public String getTargetDirName() {
 		return this.targetDirName;
 	}
@@ -133,12 +133,12 @@ public class MountHelper {
 		if (subPath == null) {
 			subPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		}
-		
+
 		File sourceDir = new File(sourceDirName);
 		if (!sourceDir.exists()) {
 			classLogger.info("Source directory not available" + sourceDirName);
 		}
-		
+
 		// list files from source file and make a copy
 		String[] allSourceFiles = sourceDir.list();
 		for (int sourceFileIndex = 0; sourceFileIndex < allSourceFiles.length; sourceFileIndex++) {
@@ -165,12 +165,12 @@ public class MountHelper {
 		if (subPath == null) {
 			subPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		}
-		
+
 		File sourceDir = new File(Utility.normalizePath(sourceDirName));
 		if (!sourceDir.exists() || !sourceDir.isDirectory()) {
 			classLogger.info("Source directory not available" + Utility.cleanLogString(sourceDirName));
 		}
-		
+
 		String targetPath = targetDirName + FILE_SEPARATOR + subPath;
 
 		File thisTargetFile = new File(Utility.normalizePath(targetPath));
@@ -204,7 +204,7 @@ public class MountHelper {
 			classLogger.debug(pb.command().toString());
 			Process p = pb.start();
 			// Thread.sleep(5000);
-			 p.waitFor(10, TimeUnit.SECONDS);
+			p.waitFor(10, TimeUnit.SECONDS);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
@@ -328,33 +328,37 @@ public class MountHelper {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		mountFolder(baseFolder + FILE_SEPARATOR + Constants.R_BASE_FOLDER,
 				baseFolder + FILE_SEPARATOR + Constants.R_BASE_FOLDER, true);
 		mountFolder(baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER,
 				baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER, true);
-		
+
 		boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
 				&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
 		if(!nativePyServer) {
 			// MOUNTING CP IS NEEDED FOR TCP with java/jvm
 			mountFolder(getCP(), getCP(), true);
 		}
-		
+
 		String m2Location = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
-		File m2LocationF = new File(m2Location);
-		if(m2LocationF.exists() && m2LocationF.isDirectory()) {
-			mountFolder(m2Location, m2Location, false);
+		if(m2Location != null && !m2Location.isEmpty()) {
+			File m2LocationF = new File(m2Location);
+			if(m2LocationF.exists() && m2LocationF.isDirectory()) {
+				mountFolder(m2Location, m2Location, false);
+			}
 		}
 
 		String mvnLocation = DIHelper.getInstance().getProperty(Settings.MVN_HOME);
-		File mvnLocationF = new File(mvnLocation);
-		if(mvnLocationF.exists() && mvnLocationF.isDirectory()) {
-			mountFolder(mvnLocation, mvnLocation, false);
+		if(mvnLocation != null && !mvnLocation.isEmpty()) {
+			File mvnLocationF = new File(mvnLocation);
+			if(mvnLocationF.exists() && mvnLocationF.isDirectory()) {
+				mountFolder(mvnLocation, mvnLocation, false);
+			}
 		}
-		
+
 		// TODO add insight cache here too - get users insight cache
 		mountTarget(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),
 				DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR), false);
