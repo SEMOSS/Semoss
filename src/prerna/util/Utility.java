@@ -126,6 +126,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
@@ -3600,6 +3602,18 @@ public final class Utility {
 		return message;
 	}
 
+	// this is to remove scripts from being passed
+	// ex. <script>alert('XSS');</script> is blocked
+	public static String inputSanitizer(String stringToNormalize) {
+		if (stringToNormalize == null) {
+			classLogger.error("input is null");
+			throw new IllegalArgumentException("The filepath passed in is invalid");
+		}
+		
+		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
+	    return policy.sanitize(stringToNormalize );
+	}
+	
 	public static String normalizePath(String stringToNormalize) {
 		if(stringToNormalize == null ) {
 			return stringToNormalize;
