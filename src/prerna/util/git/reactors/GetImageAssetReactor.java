@@ -12,10 +12,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GetImageAssetReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetImageAssetReactor.class);
 
 	// gets a particular asset in a particular version
 	// if the version is not provided - this gets the head
@@ -67,7 +72,7 @@ public class GetImageAssetReactor extends AbstractReactor {
 			mimeType = Files.probeContentType(new File(assetFolder + "/" + assetDir + "/" + asset).toPath());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		//sw.write("<html><body>");

@@ -6,8 +6,15 @@ import java.sql.Statement;
 import java.util.Map;
 
 import prerna.ds.rdbms.h2.H2Frame;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
+
 
 public class RdbmsGexfIterator extends AbstractGexfIterator {
+
+	private static final Logger classLogger = LogManager.getLogger(RdbmsGexfIterator.class);
 
 	private H2Frame dataframe;
 
@@ -58,7 +65,7 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return false;
 	}
@@ -97,7 +104,7 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		node.append("</attvalues></node>");
@@ -139,7 +146,7 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return false;
 	}
@@ -183,7 +190,7 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 			}
 			
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		edge.append("</edge>");
@@ -216,12 +223,12 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 			try {
 				stmt = rs.getStatement();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				rs.close();
 			} catch(SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(stmt != null) {

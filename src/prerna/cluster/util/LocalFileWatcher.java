@@ -1,6 +1,11 @@
 package prerna.cluster.util;
 
 import java.io.File;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import prerna.util.Constants;
+
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -16,6 +21,7 @@ public class LocalFileWatcher implements Runnable
 	DBSynchronizer dbs = null;
 	String db = null;
 	String fileExtensions = "py;python;r;js;css;mosfet;json;"; // thse are the only file extensions to track
+	private static final Logger classLogger = LogManager.getLogger(LocalFileWatcher.class);
 
 	
 	public LocalFileWatcher(DBSynchronizer dbs, String db)
@@ -36,7 +42,7 @@ public class LocalFileWatcher implements Runnable
 			        StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -51,7 +57,7 @@ public class LocalFileWatcher implements Runnable
 			        StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -111,7 +117,7 @@ public class LocalFileWatcher implements Runnable
 			}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
