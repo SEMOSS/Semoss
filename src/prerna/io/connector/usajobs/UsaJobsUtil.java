@@ -52,8 +52,8 @@ public class UsaJobsUtil {
 //		List <String> states = new ArrayList<String>();
 //		states.add("VA");
 //		List <String> cred = new ArrayList<String>();
-//		cred.add("***REMOVED***");
-//		cred.add("***REMOVED***");
+//		cred.add("prabhuk12@gmail.com");
+//		cred.add("v1y+niWf2+6TDnDU/uXyqtojViOvLryPIhBO7WfG5So=");
 //		cred.add("data.usajobs.gov");
 //
 //		// make sure the credential is fulled properly

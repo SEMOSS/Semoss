@@ -402,9 +402,9 @@ public class HashiCorpVaultUtil implements ISecrets {
 //		
 //		Map<String, Object> nameValuePairs = new HashMap<>();
 //		nameValuePairs.put("PASSWORD","password");
-//		instance.writeDatabaseSecrets("***REMOVED***", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", nameValuePairs);
+//		instance.writeDatabaseSecrets("Sql Server VHA Supply", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", nameValuePairs);
 //		
-//		Map<String, String> dbSecrets = instance.getDatabaseSecrets("***REMOVED***", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c");
+//		Map<String, String> dbSecrets = instance.getDatabaseSecrets("Sql Server VHA Supply", "fe5e2c23-59e6-42ae-939d-b2ca9699f38c");
 //		System.out.println(dbSecrets);
 //	}
 

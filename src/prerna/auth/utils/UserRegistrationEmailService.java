@@ -113,7 +113,7 @@ public class UserRegistrationEmailService {
 //	public static void main(String[] args) {
 //		TestUtilityMethods.loadDIHelper("/Users/mahkhalil/development/workspace/Semoss_Dev/RDF_Map.prop");
 //		UserRegistrationEmailService emailInstance = UserRegistrationEmailService.getInstance();
-//		emailInstance.sendPasswordResetRequestEmail("***REMOVED***", 
+//		emailInstance.sendPasswordResetRequestEmail("khalil.maher91@gmail.com", 
 //				"http://localhost:8080/Monolith_Dev/resetPassword/index.html?token=***REMOVED***", 
 //				null);
 //	}
