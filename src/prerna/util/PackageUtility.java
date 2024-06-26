@@ -10,9 +10,15 @@ import java.util.LinkedList;
 import java.util.List;
 
 import prerna.reactor.IReactor;;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PackageUtility {
 	
+	private static final Logger classLogger = LogManager.getLogger(PackageUtility.class);
+
 	private final static char DOT = '.';
 	private final static char SLASH = '/';
 	private final static String CLASS_SUFFIX = ".class";
@@ -33,22 +39,22 @@ public class PackageUtility {
 					validReactor = true;
 				}
 			} catch (InstantiationException e) {
-				// e.printStackTrace();
+				// classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalArgumentException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (InvocationTargetException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (NoSuchMethodException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (SecurityException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			if (!validReactor) {
 				classes.remove(i);

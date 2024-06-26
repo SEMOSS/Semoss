@@ -1,5 +1,7 @@
 package prerna.util.git.reactors;
 
+import static prerna.reactor.AbstractReactor.classLogger;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -11,10 +13,18 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class CtrlVAssetReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(CtrlVAssetReactor.class);
+
+	
 	public CtrlVAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
 	}
@@ -74,7 +84,7 @@ public class CtrlVAssetReactor extends AbstractReactor {
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return NounMetadata.getSuccessNounMessage("Pasted " + copyObj.showSource);

@@ -20,8 +20,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class UploadInputUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(UploadInputUtility.class);
 
 	public static final String ENGINE = ReactorKeysEnum.ENGINE.getKey();
 	public static final String DATABASE = ReactorKeysEnum.DATABASE.getKey();
@@ -450,7 +454,7 @@ public final class UploadInputUtility {
 				Map<String, Object> result = new ObjectMapper().readValue(new File(metamodelPath), Map.class);
 				return result;
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;

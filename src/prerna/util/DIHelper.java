@@ -463,15 +463,15 @@ public final class DIHelper {
 			coreProp.load(fileIn);
 			coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(fileIn!=null)
 					fileIn.close();
 			} catch(IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
