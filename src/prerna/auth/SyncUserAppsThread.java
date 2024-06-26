@@ -3,6 +3,8 @@ package prerna.auth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.servlet.http.HttpSession;
 
@@ -10,6 +12,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.util.Constants;
 
 public class SyncUserAppsThread implements Runnable {
+	protected static final Logger classLogger = LogManager.getLogger(SyncUserAppsThread.class);
 
 	Collection<String> workspaceIds = null;
 	Collection<String> assetIds = null;
@@ -72,7 +75,7 @@ public class SyncUserAppsThread implements Runnable {
 					try {
 						ClusterUtil.pushUserWorkspace(workspaceAppId, false);
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -81,7 +84,7 @@ public class SyncUserAppsThread implements Runnable {
 					try {
 						ClusterUtil.pushUserWorkspace(assetAppId, true);
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
