@@ -11,9 +11,14 @@ import java.io.IOException;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Deprecated
 public class TextToGraphic {
+	protected static final Logger classLogger = LogManager.getLogger(TextToGraphic.class);
 
 	private static Random rand = new Random();
 	
@@ -22,7 +27,7 @@ public class TextToGraphic {
         try {
             ImageIO.write(img, "png", new File(imageLocation));
         } catch (IOException ex) {
-            ex.printStackTrace();
+        	classLogger.error(Constants.STACKTRACE, ex);
         }
     }
     

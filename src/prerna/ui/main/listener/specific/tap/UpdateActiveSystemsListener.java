@@ -40,12 +40,17 @@ import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Listener for btnUpdateActiveSystems on the MHS TAP tab
  * Allow user to traverse freely only to active systems and not decommissioned systems
  */
 public class UpdateActiveSystemsListener extends AbstractListener{
+	protected static final Logger logger = LogManager.getLogger(UpdateActiveSystemsListener.class);
 
 	/**
 	 * This is executed when the btnUpdateActiveSystems is pressed by a user
@@ -73,13 +78,13 @@ public class UpdateActiveSystemsListener extends AbstractListener{
 				Utility.showMessage("Your database has been successfully updated!");
 			}
 		} catch (RuntimeException ex){
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			Utility.showError("Load has failed.");
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			Utility.showError("Load has failed.");
 		} catch (RDFHandlerException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			Utility.showError("Load has failed.");
 		}
 	}

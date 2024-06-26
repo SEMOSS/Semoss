@@ -174,7 +174,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 					}
 				}
 			}catch(RuntimeException ex) {
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, ex);
 			}
 			
 			

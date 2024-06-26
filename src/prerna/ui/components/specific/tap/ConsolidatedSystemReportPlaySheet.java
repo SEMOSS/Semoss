@@ -91,7 +91,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		try {
 			TAP_Portfolio = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 		} catch (RuntimeException ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 		//check if interface modernization cost property exists on system
 		//if it does not, run insert

@@ -442,7 +442,7 @@ public class GraphDataModel implements IDataMaker {
 							e.printStackTrace();
 						}
 					} catch(RuntimeException ex) {
-						ex.printStackTrace();
+						logger.error(Constants.STACKTRACE, ex);
 					}
 				}
 
@@ -480,7 +480,7 @@ public class GraphDataModel implements IDataMaker {
 							e.printStackTrace();
 						}
 					} catch(RuntimeException ex) {
-						ex.printStackTrace();
+						logger.error(Constants.STACKTRACE, ex);
 					}
 					//genProperties(propertyQuery + predicates + " } ");
 				}
@@ -907,7 +907,7 @@ public class GraphDataModel implements IDataMaker {
 			}
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	
