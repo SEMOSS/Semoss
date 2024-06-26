@@ -15,7 +15,14 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.GraphUtility;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class GetJanusGraphPropertiesReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetJanusGraphPropertiesReactor.class);
 
 	public GetJanusGraphPropertiesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
@@ -55,7 +62,7 @@ public class GetJanusGraphPropertiesReactor extends AbstractReactor {
 			try {
 				g.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

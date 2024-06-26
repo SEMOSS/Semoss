@@ -1,5 +1,6 @@
 package prerna.reactor.algorithms;
 
+import prerna.util.Constants;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -16,8 +17,12 @@ import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Discretize;
 import weka.filters.unsupervised.attribute.StringToNominal;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class WekaReactorHelper {
+
+	protected static final Logger classLogger = LogManager.getLogger(WekaReactorHelper.class);
 
 	private WekaReactorHelper() {
 		
@@ -101,7 +106,7 @@ public class WekaReactorHelper {
 				convert.setInputFormat(data);
 				data = Filter.useFilter(data, convert);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -118,7 +123,7 @@ public class WekaReactorHelper {
 			convert.setInputFormat(data);
 			data = Filter.useFilter(data, convert);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return data;
 	}
@@ -135,7 +140,7 @@ public class WekaReactorHelper {
 			convert.setInputFormat(data);
 			data = Filter.useFilter(data, convert);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return data;
 	}

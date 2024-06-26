@@ -188,21 +188,21 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new FileNotFoundException(e.getMessage());
 			} else {
 				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("Could not read Excel file located at " + fileName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
@@ -213,7 +213,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				try {
 					poiReader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
@@ -221,7 +221,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					//throw new IOException("Could not close Excel file stream");
 				}
 			}

@@ -28,6 +28,11 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 /*
  * Utility class to process additional tools applied on the data while exporting.
@@ -35,6 +40,7 @@ import prerna.util.Utility;
 public class FormattingUtility {
 
 	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+	private static final Logger classLogger = LogManager.getLogger(FormattingUtility.class);
 
 	// data format options
 	public static final String PREPEND = "prepend";
@@ -246,7 +252,7 @@ public class FormattingUtility {
     			// ignore
     			
     		} catch(Exception e) {
-    			e.printStackTrace();
+    			classLogger.error(Constants.STACKTRACE, e);
     		}
 
     		if(customDataFormat != null && !customDataFormat.isEmpty()) {
@@ -464,7 +470,7 @@ public class FormattingUtility {
 			mydate = sdf.parse(value.toString());
 		} catch (ParseException e) {
 			// ignore
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// target SimpleDateformat from selected format
 		SimpleDateFormat outdate = new SimpleDateFormat(targetFormat);

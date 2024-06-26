@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.sablecc2.om.PixelDataType;
@@ -29,6 +31,8 @@ import prerna.util.git.reactors.GitBaseReactor;
 
 public class CommandReactor extends GitBaseReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(CommandReactor.class);
+
 	private static final String CLASS_NAME = CommandReactor.class.getName();
 	
 	static final Set<String> approvedProdCommands = new HashSet<String>(
@@ -329,24 +333,24 @@ public class CommandReactor extends GitBaseReactor {
 						
 					} catch (FileNotFoundException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						try {
 							if(fis != null)
 								fis.close();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						try {
 							if(fos != null)
 								fos.close();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -360,7 +364,7 @@ public class CommandReactor extends GitBaseReactor {
 							FileUtils.deleteDirectory(gitFolder);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -422,17 +426,17 @@ public class CommandReactor extends GitBaseReactor {
 			}			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(fis != null)
 					fis.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -464,17 +468,17 @@ public class CommandReactor extends GitBaseReactor {
 				newOutput = newOutput +"\n" + repos;
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				try {
 					if(fis != null)
 						fis.close();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

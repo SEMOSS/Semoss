@@ -15,7 +15,14 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class RdbmsUploadReactorUtility {
+
+	private static final Logger logger = LogManager.getLogger(RdbmsUploadReactorUtility.class);
 
 	public static final String UNIQUE_ROW_ID = "_UNIQUE_ROW_ID";
 	
@@ -158,7 +165,7 @@ public class RdbmsUploadReactorUtility {
 			try {
 				engine.removeData(deleteQuery);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

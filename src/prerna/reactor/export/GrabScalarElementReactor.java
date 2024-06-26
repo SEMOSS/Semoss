@@ -3,12 +3,16 @@ package prerna.reactor.export;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GrabScalarElementReactor extends AbstractReactor {
@@ -18,7 +22,8 @@ public class GrabScalarElementReactor extends AbstractReactor {
 	 */
 	
 	private static final String CLEAN_UP_KEY = "cleanUp";
-	
+	private static final Logger classLogger = LogManager.getLogger(GrabScalarElementReactor.class);
+
 	public GrabScalarElementReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), CLEAN_UP_KEY};
 	}
@@ -49,7 +54,7 @@ public class GrabScalarElementReactor extends AbstractReactor {
 			try {
 				task.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			this.insight.getTaskStore().removeTask(task.getId());
 		}

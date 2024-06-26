@@ -671,7 +671,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try {
 			passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();

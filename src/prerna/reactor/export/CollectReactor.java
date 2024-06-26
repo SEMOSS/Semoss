@@ -14,12 +14,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.usertracking.UserTrackerFactory;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CollectReactor extends TaskBuilderReactor {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
 	 */
+
+	private static final Logger classLogger = LogManager.getLogger(CollectReactor.class);
 
 	private int limit = 0;
 	
@@ -35,7 +41,7 @@ public class CollectReactor extends TaskBuilderReactor {
 		try {
 			buildTask();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 		

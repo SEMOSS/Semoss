@@ -93,7 +93,7 @@ public class ClusterSynchronizer {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		
@@ -141,7 +141,7 @@ public class ClusterSynchronizer {
 	                                Method method = ClusterUtil.class.getMethod(dataMap.get("methodName").toString(), paramTypes);
 	                                method.invoke(null, params.toArray());
 	                            } catch (Exception e) {
-	                                e.printStackTrace();
+	                            	classLogger.error(Constants.STACKTRACE, e);
 	                            }
 	                           }
 	                            
@@ -310,7 +310,7 @@ public class ClusterSynchronizer {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 	}

@@ -183,7 +183,7 @@ public class DocProcessor {
 				System.err.println(embed);
 			}
 		} catch (OpenXML4JException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

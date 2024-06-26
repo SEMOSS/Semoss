@@ -31,6 +31,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class VersionReactor extends AbstractReactor {
 
@@ -39,6 +44,7 @@ public class VersionReactor extends AbstractReactor {
 	public static String VERSION_KEY = "version";
 	public static String DATETIME_KEY = "datetime";
 	public static String OS = System.getProperty("os.name");
+	protected static final Logger classLogger = LogManager.getLogger(VersionReactor.class);
 
 
 	public VersionReactor() {
@@ -107,9 +113,9 @@ public class VersionReactor extends AbstractReactor {
 						VersionReactor.versionMap = new HashedMap<>(tempMap);
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} catch (ParseException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 
 					try {
@@ -117,7 +123,7 @@ public class VersionReactor extends AbstractReactor {
 							versionStream.close();
 						}
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 
 					try {
@@ -125,14 +131,14 @@ public class VersionReactor extends AbstractReactor {
 							dateStream.close();
 						}
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 					try {
 						if(br != null) {
 							br.close();
 						}
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 
 				}

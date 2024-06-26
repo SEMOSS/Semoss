@@ -18,6 +18,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
 public class RdbmsReplaceDatabaseCsvUploadReactor extends RdbmsCsvUploadReactor {
 
@@ -102,7 +103,7 @@ public class RdbmsReplaceDatabaseCsvUploadReactor extends RdbmsCsvUploadReactor 
 			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			this.error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;

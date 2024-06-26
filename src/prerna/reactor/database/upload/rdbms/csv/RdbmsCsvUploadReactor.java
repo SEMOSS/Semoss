@@ -148,7 +148,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// LOGGER.info("-- ********* completed processing file " + fileName
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (helper != null) {
 				helper.clear();
