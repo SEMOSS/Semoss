@@ -22,11 +22,18 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import prerna.security.InstallCertNow;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // main class for all things fetch
 // need a way to install the cert here too
 
 public class GitFetchUtils {
+	
+	protected static final Logger classLogger = LogManager.getLogger(GitFetchUtils.class);
+
 		
 	public static void fetchGeneric(String fullRemoteAppName, String localFolder, String host)
 	{
@@ -39,7 +46,7 @@ public class GitFetchUtils {
 			prerna.security.InstallCertNow.please(host, null, null);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		
@@ -161,18 +168,18 @@ public class GitFetchUtils {
 				
 			}catch(TransportException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				return fetchApp(localRepo, remoteRepo, userName, password, attempt);
 				
 			} catch (IOException | GitAPIException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				mon.endTask();
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
@@ -218,18 +225,18 @@ public class GitFetchUtils {
 				}
 			}catch(SSLHandshakeException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				fetchApp(localRepo, remoteRepo, token, attempt);
 				
 			} catch (IOException | GitAPIException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
 				if(thisGit != null) {
@@ -255,16 +262,16 @@ public class GitFetchUtils {
 			gclone.close();
 		} catch (InvalidRemoteException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (org.eclipse.jgit.api.errors.TransportException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (GitAPIException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		

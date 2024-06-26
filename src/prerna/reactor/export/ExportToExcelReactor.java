@@ -544,7 +544,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 			
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			insight.getChromeDriver().quit(driver);
 
 //			if(driver != null && driver instanceof ChromeDriver) {

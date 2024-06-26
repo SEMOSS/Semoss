@@ -997,7 +997,7 @@ public final class HttpHelperUtility {
 			}
 			return result.toString();
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -1038,7 +1038,7 @@ public final class HttpHelperUtility {
 				return result.toString();
 			}catch(Exception ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 			} finally {
 				if(httpclient != null) {
 			          try {
@@ -1080,7 +1080,7 @@ public final class HttpHelperUtility {
 			return result.toString();
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -1121,7 +1121,7 @@ public final class HttpHelperUtility {
 			return result.toString();
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(httpclient != null) {
 		          try {

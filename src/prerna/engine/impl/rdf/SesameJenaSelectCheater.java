@@ -255,7 +255,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			}
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			retBool = false;
 		} catch (ClassNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);

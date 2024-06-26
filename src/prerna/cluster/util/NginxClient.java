@@ -30,9 +30,14 @@ import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import freemarker.template.Version;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 public class NginxClient implements Watcher{
 	
+	protected static final Logger logger = LogManager.getLogger(NginxClient.class);
+
 	/*
 	// Environment Variables this depnds on
 	 * zk - semicolon separated list of zk to use for registration
@@ -410,7 +415,7 @@ public class NginxClient implements Watcher{
 			
 		}catch (Exception ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	

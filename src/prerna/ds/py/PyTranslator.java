@@ -197,7 +197,7 @@ public class PyTranslator {
 			try {
 				monitor.wait();
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, ex);
 			}
 			logger.info("Completed processing");
 		}
@@ -216,7 +216,7 @@ public class PyTranslator {
 			try {
 				monitor.wait();
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, ex);
 			}
 			logger.info("Completed processing");
 			

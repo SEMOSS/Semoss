@@ -18,8 +18,12 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 public class SynchronizeToRReactor extends AbstractRFrameReactor {
+	protected static final Logger classLogger = LogManager.getLogger(SynchronizeToRReactor.class);
 
 	/**
 	 * This reactor takes a frame and synchronizes it to an r frame inputs are:
@@ -215,7 +219,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			graphLocs.add(wd);
 			storeVariable(R_GRAQH_FOLDERS, new NounMetadata(graphLocs, PixelDataType.CONST_STRING));
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			System.out.println(
 					"ERROR ::: Could not convert TinkerFrame into igraph.\nPlease make sure iGraph package is installed.");
 		} finally {
@@ -244,14 +248,14 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 				os = new FileOutputStream(fileName);
 				graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 			} finally {
 				try {
 					if (os != null) {
 						os.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

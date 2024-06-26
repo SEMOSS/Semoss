@@ -341,7 +341,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 			setUndoRedoBtn();
 			this.gps.updateProgressBar("100%...Graph Extension Complete", 100);
 		} catch (RuntimeException ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			logger.fatal(ex);
 		}
 	}

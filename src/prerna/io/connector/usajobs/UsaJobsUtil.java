@@ -27,6 +27,9 @@ import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.util.Utility;
+import prerna.util.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class UsaJobsUtil {
 
@@ -41,6 +44,7 @@ public class UsaJobsUtil {
 	HttpClient client = new DefaultHttpClient();
 	FileWriter curFile = null;
 	boolean header = false;
+	protected static final Logger logger = LogManager.getLogger(UsaJobsUtil.class);
 
 
 	
@@ -259,7 +263,7 @@ public class UsaJobsUtil {
 			curFile = new FileWriter(file);
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();			
+			logger.error(Constants.STACKTRACE, ex);		
 		}
 	}
 	

@@ -174,7 +174,7 @@ public class IndividualSystemTransitionReportWriter {
 			success = true;
 		} catch (Exception ex) {
 			success = false;
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 		return success;
 	}

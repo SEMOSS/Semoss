@@ -43,6 +43,7 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
+import prerna.util.Constants;
 
 /**
  * This class is a temporary fix for queries to run across multiple databases
@@ -76,26 +77,26 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
 		} catch (IllegalAccessException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		Hashtable hash = new Hashtable();
 		finalNames = this.getNames();
@@ -119,26 +120,26 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
 		} catch (IllegalAccessException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		Hashtable hash = new Hashtable();
 		finalNames = this.getNames();

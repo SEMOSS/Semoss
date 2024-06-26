@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
 public class ClusterGraphReactor extends AbstractRFrameReactor {
 
@@ -71,7 +72,7 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
 			return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		throw new IllegalArgumentException("Unable to cluster graph");

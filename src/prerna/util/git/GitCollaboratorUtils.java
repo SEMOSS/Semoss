@@ -14,8 +14,13 @@ import org.kohsuke.github.HttpException;
 import org.kohsuke.github.PagedIterator;
 
 import prerna.security.InstallCertNow;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GitCollaboratorUtils {
+	protected static final Logger classLogger = LogManager.getLogger(GitCollaboratorUtils.class);
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
@@ -42,7 +47,7 @@ public class GitCollaboratorUtils {
 		try {
 			ghr = gh.getRepository(remoteRepositoryName);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
 		}
 
@@ -54,17 +59,17 @@ public class GitCollaboratorUtils {
 				newUser = gh.getUser(collaborator);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				addCollaborator(remoteRepositoryName, username, password, collaborator, attempt);
 			}  catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find user with name " + collaborator);
 			}
 		}
@@ -76,17 +81,17 @@ public class GitCollaboratorUtils {
 				ghr.addCollaborators(newUser);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				addCollaborator(remoteRepositoryName, username, password, collaborator, attempt);
 			}  catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error adding user to repository");
 			}
 		}
@@ -109,17 +114,17 @@ public class GitCollaboratorUtils {
 				ghr = gh.getRepository(remoteRepositoryName);
 			} catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				removeCollaborator(remoteRepositoryName, username, password, collaborator, attempt);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
 			}
 	
@@ -128,24 +133,24 @@ public class GitCollaboratorUtils {
 				existingUser = gh.getUser(collaborator);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				removeCollaborator(remoteRepositoryName, username, password, collaborator, attempt);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find user with name " + collaborator);
 			}
 	
 			try {
 				ghr.removeCollaborators(existingUser);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error removing user to repository");
 			}
 		}
@@ -193,12 +198,12 @@ public class GitCollaboratorUtils {
 					userList.add(userMap);
 				}catch(HttpException ex)
 				{
-					ex.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, ex);
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 					attempt = attempt + 1;
 					searchUsers(query, username, password, attempt);
@@ -232,7 +237,7 @@ public class GitCollaboratorUtils {
 			try {
 				ghr = gh.getRepository(remoteRepositoryName);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
 			}
 	
@@ -254,7 +259,7 @@ public class GitCollaboratorUtils {
 				// if other error code, throw generic error
 				throw new IllegalArgumentException("Error getting list of collaborators for repository");
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error getting list of collaborators for repository");
 			}
 		}
@@ -283,7 +288,7 @@ public class GitCollaboratorUtils {
 		try {
 			ghr = gh.getRepository(remoteRepositoryName);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
 		}
 
@@ -295,17 +300,17 @@ public class GitCollaboratorUtils {
 				newUser = gh.getUser(collaborator);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				addCollaborator(remoteRepositoryName, collaborator, token, attempt);
 			}  catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find user with name " + collaborator);
 			}
 		}
@@ -317,17 +322,17 @@ public class GitCollaboratorUtils {
 				ghr.addCollaborators(newUser);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				addCollaborator(remoteRepositoryName, collaborator, token, attempt);
 			}  catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error adding user to repository");
 			}
 		}
@@ -350,17 +355,17 @@ public class GitCollaboratorUtils {
 				ghr = gh.getRepository(remoteRepositoryName);
 			} catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				removeCollaborator(remoteRepositoryName, collaborator, token, attempt);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
 			}
 	
@@ -369,24 +374,24 @@ public class GitCollaboratorUtils {
 				existingUser = gh.getUser(collaborator);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				removeCollaborator(remoteRepositoryName, collaborator, token, attempt);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Could not find user with name " + collaborator);
 			}
 	
 			try {
 				ghr.removeCollaborators(existingUser);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error removing user to repository");
 			}
 		}
@@ -410,7 +415,7 @@ public class GitCollaboratorUtils {
 			try {
 				ghr = gh.getRepository(remoteRepositoryName);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				// if the repository is not found - why not just clean up the remote reference
 				//GitRepoUtils.removeRemote(localRepository, repositoryName);
 				throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
@@ -434,7 +439,7 @@ public class GitCollaboratorUtils {
 				// if other error code, throw generic error
 				throw new IllegalArgumentException("Error getting list of collaborators for repository");
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error getting list of collaborators for repository");
 			}
 		}
@@ -485,12 +490,12 @@ public class GitCollaboratorUtils {
 					userList.add(userMap);
 				}catch(HttpException ex)
 				{
-					ex.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, ex);
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 					attempt = attempt + 1;
 					searchUsers(query, token, attempt);

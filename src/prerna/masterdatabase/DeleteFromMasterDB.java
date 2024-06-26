@@ -79,7 +79,7 @@ public class DeleteFromMasterDB {
 			// it is good
 			engine.conceptIdHash = null;
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			return false;
 		} finally {
 			try {

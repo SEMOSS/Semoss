@@ -163,11 +163,11 @@ public class ImportDataListener implements IChakraListener {
 			
 			Utility.showMessage("Your database has been successfully updated!");
 		} catch(IOException ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			Utility.showError("Import has failed.\n" + ex.getMessage());
 			return;
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 			Utility.showError("Import has failed.\n" + ex.getMessage());
 			return;
 		}

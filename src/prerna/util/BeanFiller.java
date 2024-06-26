@@ -15,8 +15,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class BeanFiller {
+
+	protected static final Logger classLogger = LogManager.getLogger(BeanFiller.class);
 
 	// takes the data that is coming in from the json
 	// gets a list of properties
@@ -37,7 +41,7 @@ public class BeanFiller {
 			
 			return result;
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 		return null;
 	}
@@ -74,7 +78,7 @@ public class BeanFiller {
 				retObject = fillSingleObject(result, beanProps, bean);
 			}
 		} catch(Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 		return retObject;
 	}
@@ -131,11 +135,11 @@ public class BeanFiller {
 				}
 			}
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} 
 		
 		return bean;
@@ -197,11 +201,11 @@ public class BeanFiller {
 				}
 			}
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} 
 		
 		return bean;
