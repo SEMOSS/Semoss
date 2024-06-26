@@ -390,7 +390,7 @@ public class EmailUtility {
 ////		boolean isHtml = true;
 ////
 ////		System.out.println("Connection Made");
-////		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "VHAMSPOPMOSupport@VA.gov", "Covid Response Test", message, isHtml, null);
+////		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"khalil.maher91@gmail.com"}, null, null, "VHAMSPOPMOSupport@VA.gov", "Covid Response Test", message, isHtml, null);
 ////		if(success) {
 ////			System.out.println("Email Sent");
 ////		} else {
