@@ -142,7 +142,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 			this.gps.updateProgressBar("100%...Graph Generation Complete", 100);
 			
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			logger.fatal(e.getStackTrace());
 		}
 	}
@@ -174,7 +174,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 
 				this.gps.genAllData();
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.gps.updateProgressBar("100%...Graph Undo Complete", 100);
 	}
@@ -198,7 +198,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 //               printConnectedNodes();
 //               printSpanningTree();
         }catch (PropertyVetoException e) {
-        	e.printStackTrace();
+        	logger.error(Constants.STACKTRACE, e);
         }
         this.gps.updateProgressBar("100%...Graph Redo Complete", 100);
     }
@@ -277,7 +277,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 			setUndoRedoBtn();
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -384,7 +384,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 		try {
 			((GraphDataModel)this.gps.dataFrame).baseRelEngine.exportDB();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}	
 //    /**
@@ -454,10 +454,10 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 //	                      }
 //                      } catch (RuntimeException e) {
 //                            // TODO: Specify exception
-//                            e.printStackTrace();
+//                            logger.error(Constants.STACKTRACE, e);
 //                      } catch (IOException e) {
 //						// TODO Auto-generated catch block
-//						e.printStackTrace();
+//						logger.error(Constants.STACKTRACE, e);
 //					}
 //	                      
 //                }
@@ -571,16 +571,16 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 			
 			} catch (RuntimeException e) {
 				// TODO: Specify exception
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (UpdateExecutionException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (RepositoryException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (MalformedQueryException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

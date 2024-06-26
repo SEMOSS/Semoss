@@ -677,7 +677,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 			logger.info("Completed " + count + " number of rows");
 			ps.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			String errorMessage = "";
 			if (nextRow == null) {
 				errorMessage = "Error occurred while performing insert on excel row number = " + count;

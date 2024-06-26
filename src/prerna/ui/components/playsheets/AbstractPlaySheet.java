@@ -46,6 +46,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.EditPlaySheetTitleListener;
+import prerna.util.Constants;
+
 
 /**
  * The AbstractRDFPlaySheet class creates the structure of the basic components of the Play Sheet, including the RDFEngine, the query, and the panel.
@@ -282,16 +284,16 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 			logger.info("Successfully invoked method : " + methodName);
 		} catch (NoSuchMethodException | SecurityException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return ret;
 

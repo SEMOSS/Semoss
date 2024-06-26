@@ -33,8 +33,14 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GitConsumer {
+
+	private static final Logger classLogger = LogManager.getLogger(GitConsumer.class);
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
@@ -49,7 +55,7 @@ public class GitConsumer {
 		try {
 			prerna.security.InstallCertNow.please("github.com", null, null);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		String baseFolder = Utility.getBaseFolder();
 		String dbFolder = AssetUtility.getProjectBaseFolder(yourName4Database, temporaryDatabaseId);
@@ -184,7 +190,7 @@ public class GitConsumer {
 				FileUtils.copyFileToDirectory(files[i], dbFile);
 				files[i].delete();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -203,7 +209,7 @@ public class GitConsumer {
 					FileUtils.copyFileToDirectory(dataFiles[i], appDataDir);
 					files[i].delete();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -233,7 +239,7 @@ public class GitConsumer {
 				// move the smss
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -255,13 +261,13 @@ public class GitConsumer {
 //			
 //			AppNameRecipeModifier.renameDatabaseForInsights(location, yourName4App, origEngineName);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(fis != null) {
 //				try {
 //					fis.close();
 //				} catch (IOException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -282,7 +288,7 @@ public class GitConsumer {
 			try {
 				newFile.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		FileInputStream fis = null;
@@ -307,20 +313,20 @@ public class GitConsumer {
 			}
 			prop.store(fos, "Changing File Content for engine");
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fos != null) {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -344,14 +350,14 @@ public class GitConsumer {
 			SecurityProjectUtils.setProjectCompletelyGlobal(prop.getProperty(Constants.PROJECT));
 			return engine;
 		} catch(IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error with loading project metadata");
 		} finally {
 			if(fileIn!=null) {
 				try{
 					fileIn.close();
 				} catch(IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -209,9 +209,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				XSLFPictureData pictureData = slideshow.addPicture(picture, PictureType.PNG);
 				Rectangle lowerRightCornerBounds = createStandardPowerPointSemossLogoBounds();
@@ -792,7 +792,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 				try {
 					task.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				break MAX_TABLE_SIZE;
 			}
@@ -904,9 +904,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 			OutputStream out = new FileOutputStream(path);
 			slideshow.write(out);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -942,13 +942,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
 			pic.setAnchor(new Rectangle(0, 0, 800, 600));
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(inputStream != null) {
 				try {
 					inputStream.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(driver != null && driver instanceof ChromeDriver) {

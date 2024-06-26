@@ -27,7 +27,12 @@ import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.UploadInputUtility;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class GetGraphMetaModelReactor extends AbstractReactor {
+
+	protected static final Logger classLogger = LogManager.getLogger(GetGraphMetaModelReactor.class);
 
 	public GetGraphMetaModelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
@@ -110,7 +115,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -123,7 +128,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 			try {
 				g.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

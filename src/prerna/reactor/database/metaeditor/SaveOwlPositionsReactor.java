@@ -20,11 +20,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SaveOwlPositionsReactor extends AbstractReactor {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-	
+	protected static final Logger classLogger = LogManager.getLogger(SaveOwlPositionsReactor.class);
+
 	public SaveOwlPositionsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.POSITION_MAP.getKey()};
 	}
@@ -56,13 +61,13 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 			writer = new FileWriter(positionFile);
 			GSON.toJson(positions, writer);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(writer != null) {
 				try {
 					writer.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

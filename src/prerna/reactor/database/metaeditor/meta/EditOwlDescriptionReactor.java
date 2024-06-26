@@ -55,7 +55,7 @@ public class EditOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			try {
 				owlEngine.export();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add description", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				return noun;

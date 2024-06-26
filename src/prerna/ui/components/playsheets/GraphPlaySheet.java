@@ -167,10 +167,10 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			//logger.debug("model size: " +rc.size());
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (PropertyVetoException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -185,7 +185,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			this.setSelected(false);
 			this.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 	}

@@ -51,6 +51,7 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
+import prerna.util.Constants;
 
 /**
  * The BrowserPlaySheet creates an instance of a browser to utilize the D3 Javascript library to create visualizations.
@@ -145,7 +146,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 //				TimeUnit.MILLISECONDS.sleep(50);
 //			} catch (InterruptedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				logger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		empty = false;
@@ -271,7 +272,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 			this.setSelected(true);
 			logger.debug("Added the main pane");
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -301,7 +302,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 			this.setSelected(true);
 			// LOGGER.debug("Added the main pane");
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

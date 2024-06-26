@@ -12,6 +12,7 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
 import prerna.annotations.BREAKOUT;
+import prerna.util.Constants;
 
 @BREAKOUT
 public class SystemRoadmapOptimizer extends LPOptimizer{
@@ -128,7 +129,7 @@ public class SystemRoadmapOptimizer extends LPOptimizer{
 					solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(granularBlu, granularBluMap, true));
 				}
 			} catch (LpSolveException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -151,7 +152,7 @@ public class SystemRoadmapOptimizer extends LPOptimizer{
 			try {
 				solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(dataObj, dataMap, true));
 			} catch (LpSolveException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -167,7 +168,7 @@ public class SystemRoadmapOptimizer extends LPOptimizer{
 				try {
 					solver.addConstraintex(sysListSize, row, colno, LpSolve.EQ, 1);
 				} catch (LpSolveException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -188,7 +189,7 @@ public class SystemRoadmapOptimizer extends LPOptimizer{
 			try {
 				solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, yearLimitCalculator());
 			} catch (LpSolveException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -393,7 +394,7 @@ public class SystemRoadmapOptimizer extends LPOptimizer{
 	//		try {
 	//			ps.setupModel();
 	//		} catch (LpSolveException e) {
-	//			e.printStackTrace();
+	//			LOGGER.error(Constants.STACKTRACE, e);
 	//		}
 	//
 	//		ps.execute();

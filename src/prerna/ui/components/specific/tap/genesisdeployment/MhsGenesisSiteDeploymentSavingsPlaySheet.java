@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Constants;
 
 public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet { 
 
@@ -173,7 +174,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, "Fixed_Sustainment_Cost", newValues, endYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(fixedCostDataRs);
 		}
@@ -213,7 +214,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 					siteSystemFilter.append(",'").append(rs.getString(1)).append("'");
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			} finally {
 				closeRs(rs);
 			}
@@ -298,7 +299,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.siteDeploymentSavings, site, newValues, endYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(siteDataRs);
 		}
@@ -335,7 +336,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, site, newValues, modEndYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} finally {
 			closeRs(systemSiteDataRs);
 		}
@@ -351,12 +352,12 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 			try {
 				stmt = rs.getStatement();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 			try {
 				rs.close();
 			} catch(SQLException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(stmt != null) {

@@ -74,6 +74,7 @@ import prerna.ui.main.listener.impl.RegressionIndepVarDeleteListener;
 import prerna.ui.main.listener.impl.RegressionIndepVarListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
+import prerna.util.Constants;
 
 /**
  */
@@ -506,7 +507,7 @@ public class RegressionAnalysisPlaySheet extends AbstractPlaySheet{
 			logger.debug("Added the main pane");
 			
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 	}

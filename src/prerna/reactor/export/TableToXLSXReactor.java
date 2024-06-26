@@ -268,7 +268,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 							}
 						}
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				} else {
 					wb = new XSSFWorkbook();
@@ -430,7 +430,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 //		          try {
 //		        	  wb.close();
 //		          } catch(IOException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //		          }
 //		        }
 //		}
@@ -577,11 +577,11 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			}
 
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (CSSException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return new List[] {names, values};
 	}
@@ -1059,9 +1059,9 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			FileOutputStream fileOut = new FileOutputStream(fileLocation);
 			wb.write(fileOut);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -1325,13 +1325,13 @@ public class TableToXLSXReactor	extends AbstractReactor {
 						} 
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					try {
 						wrapper.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}

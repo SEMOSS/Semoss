@@ -1512,7 +1512,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			//Create the Cell B3
 			Cell cell = targetSheet.createRow(2).createCell(1);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		sheetLastRow = sheetLastRow + height + rowGutter;

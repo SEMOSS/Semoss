@@ -265,7 +265,7 @@ public class ActiveSystemUpdater {
 			owlEngine.commit();
 			owlEngine.export();
 		} catch (InterruptedException | IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 	

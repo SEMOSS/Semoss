@@ -28,8 +28,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CollectGGPlotReactor extends TaskBuilderReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(CollectGGPlotReactor.class);
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
@@ -209,7 +215,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 			mimeType = Files.probeContentType(new File(Utility.normalizePath(retFile)).toPath());
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		if(animate) {

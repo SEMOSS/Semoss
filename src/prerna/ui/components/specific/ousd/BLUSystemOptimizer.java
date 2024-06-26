@@ -13,6 +13,7 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
 import prerna.annotations.BREAKOUT;
+import prerna.util.Constants;
 
 @BREAKOUT
 public class BLUSystemOptimizer extends LPOptimizer{
@@ -124,7 +125,7 @@ public class BLUSystemOptimizer extends LPOptimizer{
 				solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, 1);
 			} catch (LpSolveException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

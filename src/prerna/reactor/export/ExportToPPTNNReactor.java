@@ -41,12 +41,18 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ChromeDriverUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // export to excel non-native is the NN
 public class ExportToPPTNNReactor extends AbstractReactor {
 
 	public static final String exportTemplate = "PPT_EXPORT_TEMPLATE";
+	private static final Logger logger = LogManager.getLogger(ExportToPPTNNReactor.class);
 
 
 	public ExportToPPTNNReactor() {
@@ -249,14 +255,14 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the ppt file"));
 			return retNoun;
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred generating the ppt file");
 		} finally {
 			if(fileOut != null) {
 				try {
 					fileOut.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(driver != null && driver instanceof ChromeDriver) {

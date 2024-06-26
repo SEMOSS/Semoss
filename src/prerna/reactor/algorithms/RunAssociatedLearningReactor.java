@@ -158,7 +158,7 @@ public class RunAssociatedLearningReactor extends AbstractFrameReactor {
 		try {
 			apriori.buildAssociations(this.instancesData);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		logger.info("Finished Running Algorithm...");
 		

@@ -1,6 +1,7 @@
 package prerna.reactor.export;
 
 import java.util.Arrays;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -20,6 +21,8 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
@@ -32,6 +35,8 @@ public class POIExportUtility {
 
 	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 	
+	private static final Logger classLogger = LogManager.getLogger(POIExportUtility.class);
+
 	private POIExportUtility() {
 		
 	}
@@ -217,7 +222,7 @@ public class POIExportUtility {
     		} catch(JsonSyntaxException e) {
     			// ignore
     		} catch(Exception e) {
-    			e.printStackTrace();
+    			classLogger.error(Constants.STACKTRACE, e);
     		}
 
     		format = getBaseExcelFormat(metamodelAdditionalDataType);

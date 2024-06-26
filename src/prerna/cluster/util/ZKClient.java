@@ -15,6 +15,7 @@ import java.util.Vector;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessMultiLock;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -25,6 +26,10 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ZKClient implements Watcher{
 	
@@ -78,7 +83,8 @@ public class ZKClient implements Watcher{
 	boolean connected = false;
 	
 	public static ZKClient zkClient = null;
-	
+	protected static final Logger classLogger = LogManager.getLogger(ZKClient.class);
+
 	Map <String, List<IZKListener>> listeners = new HashMap<String, List<IZKListener>>();
 	Map <String, Boolean> repeat = new HashMap<String, Boolean>();
 	
@@ -115,11 +121,11 @@ public class ZKClient implements Watcher{
 	{
 		// make the curator here also
 		try {
-			client =  CuratorFrameworkFactory.newClient(zkServer, new RetryOneTime(1));
+			client =  CuratorFrameworkFactory.newClient(zkServer, new RetryNTimes(3, 10));
 			client.start();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 	}
@@ -189,6 +195,7 @@ public class ZKClient implements Watcher{
 				semossHome = env.get(SEMOSS_HOME.toUpperCase());
 			
 			// TODO >>>timb:not sure if the host is needed for both the engine and user containers
+			// pretty sure this can be skipped
 			if(zkServer != null && host != null)
 			{
 				// open zk
@@ -204,7 +211,7 @@ public class ZKClient implements Watcher{
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -218,10 +225,10 @@ public class ZKClient implements Watcher{
 			touchRoot();
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// also need to publish to the user
 		// usally this is home/user
@@ -234,10 +241,10 @@ public class ZKClient implements Watcher{
 			touchRoot();
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -246,10 +253,10 @@ public class ZKClient implements Watcher{
 			zk.delete(home + container + "/" + ipPort, -1);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -262,10 +269,10 @@ public class ZKClient implements Watcher{
 			zk.delete(home + app + "/" + engineID, -1);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// also need to publish to the user
 		// usally this is home/user
@@ -283,7 +290,7 @@ public class ZKClient implements Watcher{
 			System.out.println("Node already exists for " + engineID);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -326,7 +333,7 @@ public class ZKClient implements Watcher{
 			System.out.println("Running current version at " + version);
 		} catch (KeeperException | InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -366,7 +373,7 @@ public class ZKClient implements Watcher{
 			zk.getChildren(path , true, null);
 		} catch (KeeperException | InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}		
 	}
 
@@ -377,7 +384,7 @@ public class ZKClient implements Watcher{
 			zk.getData(path , true, null);
 		} catch (KeeperException | InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}		
 	}
 	
@@ -449,13 +456,13 @@ public class ZKClient implements Watcher{
 			data = new String(b, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return data;
@@ -536,7 +543,7 @@ public class ZKClient implements Watcher{
 			}
 		} catch (KeeperException | InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return version;
@@ -565,7 +572,7 @@ public class ZKClient implements Watcher{
 			}
 		} catch (KeeperException | InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -591,7 +598,7 @@ public class ZKClient implements Watcher{
 			lock.release();			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 	}
@@ -615,10 +622,10 @@ public class ZKClient implements Watcher{
 			
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 	}
@@ -632,10 +639,10 @@ public class ZKClient implements Watcher{
 			
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 	}

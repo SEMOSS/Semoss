@@ -259,7 +259,7 @@ public class RegExplorerPlaySheet extends AbstractPlaySheet{
 			logger.debug("Added the main pane");
 		} catch (PropertyVetoException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
