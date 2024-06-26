@@ -60,6 +60,8 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
+import java.text.Normalizer;
+import java.text.Normalizer.Form;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -3608,8 +3610,10 @@ public final class Utility {
 		while(stringToNormalize.contains("//")){
 			stringToNormalize=stringToNormalize.replace("//", "/");
 		}
-		String normalizedString = FilenameUtils.normalize(stringToNormalize);
+		
+		String normalizedString = Normalizer.normalize(stringToNormalize,Form.NFKC);
 
+		 normalizedString = FilenameUtils.normalize(normalizedString);
 		if (normalizedString == null) {
 			classLogger.error("File path is null");
 			throw new IllegalArgumentException("The filepath passed in is invalid");
@@ -5759,4 +5763,6 @@ public final class Utility {
 		
 		return ZonedDateTime.now(zoneId);
 	}
+	
+
 }
