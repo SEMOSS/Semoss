@@ -51,6 +51,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.RelationPlaySheet;
+import prerna.util.Constants;
 
 /**
  * This class is used to process through two variables to identify relationships.
@@ -129,7 +130,7 @@ public class RelationFunction implements IAlgorithm {
 			((RelationPlaySheet) playSheet).setSelected(false);
 			((RelationPlaySheet) playSheet).setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		// display output for heatmap tab
@@ -198,13 +199,13 @@ public class RelationFunction implements IAlgorithm {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(sjsw != null) {
 				try {
 					sjsw.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

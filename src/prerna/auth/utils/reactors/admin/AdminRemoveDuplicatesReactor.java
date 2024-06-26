@@ -1,6 +1,8 @@
 package prerna.auth.utils.reactors.admin;
 
 import java.time.LocalDateTime;
+import prerna.util.Constants;
+
 
 import org.apache.logging.log4j.Logger;
 
@@ -66,7 +68,7 @@ public class AdminRemoveDuplicatesReactor extends AbstractReactor {
 				app.insertData(query4);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 

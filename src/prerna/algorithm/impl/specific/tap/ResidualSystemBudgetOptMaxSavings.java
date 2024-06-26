@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
+import prerna.util.Constants;
 
 	public class ResidualSystemBudgetOptMaxSavings extends LPOptimizer{
 		
@@ -160,7 +161,7 @@ import prerna.algorithm.impl.LPOptimizer;
 			        solver.addConstraintex(systemProviderMatrix.length, row, colno, LpSolve.GE, constraintMatrix[colInd]);
 				}
 			}catch (LpSolveException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 		}
@@ -182,7 +183,7 @@ import prerna.algorithm.impl.LPOptimizer;
 		        solver.setObjFnex(systemCostOfMaintenance.length, row, colno);
 				solver.setMinim();
 			}catch (LpSolveException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -246,7 +247,7 @@ import prerna.algorithm.impl.LPOptimizer;
 				solver=null;
 				
 			} catch (LpSolveException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 				
 			return returnHash;

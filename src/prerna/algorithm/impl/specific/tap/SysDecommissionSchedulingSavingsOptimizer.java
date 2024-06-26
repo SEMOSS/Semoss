@@ -28,6 +28,8 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
+import prerna.util.Constants;
+
 import java.util.Hashtable;
 
 import javax.swing.JTextArea;
@@ -189,7 +191,7 @@ import prerna.algorithm.impl.LPOptimizer;
 			    solver.addConstraintex(sysListLeftOver.size(), row, colno, LpSolve.LE, budget);
 			    
 			}catch (LpSolveException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -210,7 +212,7 @@ import prerna.algorithm.impl.LPOptimizer;
 				    solver.addConstraintex(sysListLeftOver.size(), row, colno, LpSolve.LE, sysToSiteCountLeftOver.get(sys));
 				}
 			}catch (LpSolveException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		public void addBoundsConstraints()
@@ -229,7 +231,7 @@ import prerna.algorithm.impl.LPOptimizer;
 				    solver.addConstraintex(sysListLeftOver.size(), row, colno, LpSolve.GE, 0);
 				}
 			}catch (LpSolveException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -262,7 +264,7 @@ import prerna.algorithm.impl.LPOptimizer;
 		        solver.setObjFnex(sysListLeftOver.size(), row, colno);
 				solver.setMaxim();
 			}catch (LpSolveException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -428,7 +430,7 @@ import prerna.algorithm.impl.LPOptimizer;
 				solver=null;
 				
 			} catch (LpSolveException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 		}

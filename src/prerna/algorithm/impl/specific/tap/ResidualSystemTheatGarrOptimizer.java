@@ -29,6 +29,7 @@ package prerna.algorithm.impl.specific.tap;
 
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
+import prerna.util.Constants;
 
 public class ResidualSystemTheatGarrOptimizer extends ResidualSystemOptimizer{
 	
@@ -97,7 +98,7 @@ public class ResidualSystemTheatGarrOptimizer extends ResidualSystemOptimizer{
 				}
 			}
 		}catch (LpSolveException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
