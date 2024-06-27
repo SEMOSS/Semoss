@@ -211,7 +211,7 @@ public class RFrameBuilder {
 					newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".tsv";
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			
@@ -556,7 +556,7 @@ public class RFrameBuilder {
 				}
 			} catch (Exception e) {
 				logger.debug("ERROR WITH R INDEX !!! " + rIndex);
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -595,7 +595,7 @@ public class RFrameBuilder {
 				logger.info("Finished generating indices on R Data Table on columns = " + Utility.cleanLogString(StringUtils.join(colNamesSet,", ")));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH R INDEX !!! " + rIndex);
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			
 		}

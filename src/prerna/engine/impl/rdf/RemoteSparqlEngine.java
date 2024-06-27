@@ -132,7 +132,7 @@ public class RemoteSparqlEngine extends AbstractDatabaseEngine {
 			bdSail.shutDown();
 			connected = false;
 		} catch (SailException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		// ng.shutdown();
 	}
@@ -163,11 +163,11 @@ public class RemoteSparqlEngine extends AbstractDatabaseEngine {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -197,13 +197,13 @@ public class RemoteSparqlEngine extends AbstractDatabaseEngine {
 			ie.computeClosure(null);
 			rc.commit();
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (UpdateExecutionException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (SailException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -245,11 +245,11 @@ public class RemoteSparqlEngine extends AbstractDatabaseEngine {
 
 			return retVec;
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

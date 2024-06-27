@@ -44,8 +44,14 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PandasFrame extends AbstractTableDataFrame {
+
+	private static final Logger classLogger = LogManager.getLogger(PandasFrame.class);
 
 	public static final String DATA_MAKER_NAME = "PandasFrame";
 	
@@ -1276,7 +1282,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				bw.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			return fileName;
 		}
