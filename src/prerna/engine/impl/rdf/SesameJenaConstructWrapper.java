@@ -122,7 +122,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 				remoteWrapperProxy = (SesameJenaConstructWrapper)engine.execQuery(query);
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -192,18 +192,18 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 								ris.close();
 							}
 						} catch(IOException e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 
 				} catch (RuntimeException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					retSt = null;
 					retBool = false;
 				} catch (ClassNotFoundException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					retSt = null;
 					retBool = false;
 				}

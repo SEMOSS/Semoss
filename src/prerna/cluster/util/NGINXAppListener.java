@@ -95,10 +95,10 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		
@@ -141,11 +141,11 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			//reloadNginx();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (TemplateException e) {
 			// TODO Auto-generated catch block
 			
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -186,10 +186,10 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			pb.start();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		*/
 	}
@@ -203,13 +203,13 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			data = new String(b, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return data;

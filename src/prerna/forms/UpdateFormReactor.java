@@ -12,9 +12,16 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class UpdateFormReactor extends AbstractReactor {
 
 	private static final String FORM_DATA = "form_input";
+
+	private static final Logger classLogger = LogManager.getLogger(UpdateFormReactor.class);
 
 	public UpdateFormReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), FORM_DATA};
@@ -42,7 +49,7 @@ public class UpdateFormReactor extends AbstractReactor {
 		try {
 			formbuilder.commitFormData(engineHash, userId);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata(false, PixelDataType.BOOLEAN);
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);

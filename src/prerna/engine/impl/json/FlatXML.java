@@ -31,6 +31,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import net.minidev.json.JSONArray;
 import prerna.util.Utility;
+import prerna.util.Constants;
 
 public class FlatXML {
 
@@ -247,7 +248,7 @@ public class FlatXML {
 					bw.close();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

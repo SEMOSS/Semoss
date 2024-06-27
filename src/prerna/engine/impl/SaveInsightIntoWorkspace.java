@@ -18,6 +18,12 @@ import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 public class SaveInsightIntoWorkspace {
 
 	private static Boolean SAVE_USER_WORKSPACE = null;
@@ -27,6 +33,8 @@ public class SaveInsightIntoWorkspace {
 	 * into the user workspace app
 	 */
 	
+	private static final Logger classLogger = LogManager.getLogger(SaveInsightIntoWorkspace.class);
+
 	private IProject userWorkspaceProject;
 	private InsightAdministrator insightAdmin;
 	private String workspaceSavedInsightId;
@@ -92,6 +100,8 @@ class InsightCacher implements Runnable {
 
 	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd h:mm:ss a");
 
+	private static final Logger classLogger = LogManager.getLogger(InsightCacher.class);
+
 	private BlockingQueue<List<String>> queue;
 
 	private String workspaceAppId;
@@ -152,7 +162,7 @@ class InsightCacher implements Runnable {
 				}
 			}
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

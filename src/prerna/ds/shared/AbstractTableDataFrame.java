@@ -772,7 +772,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		try {
 			return this.query(qs);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

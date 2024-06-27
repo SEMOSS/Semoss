@@ -39,11 +39,18 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.update.UpdateAction;
 
 import prerna.engine.impl.AbstractDatabaseEngine;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 /**
  * Holds the database in memory, and uses the Jena API to facilitate querying of RDF data sources.
  */
 public class InMemoryJenaEngine extends AbstractDatabaseEngine {
+
+	private static final Logger classLogger = LogManager.getLogger(InMemoryJenaEngine.class);
 
 	Model jenaModel = null;
 
@@ -81,7 +88,7 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 			QueryExecution qex = QueryExecutionFactory.create(q2, jenaModel);
 			rs = qex.execSelect();
 		}catch (RuntimeException e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return rs;
 	}

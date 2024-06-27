@@ -164,7 +164,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -203,7 +203,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		//				try {
 		//					stmt.close();
 		//				} catch (SQLException e) {
-		//					e.printStackTrace();
+		//					logger.error(Constants.STACKTRACE, e);
 		//				}
 		//			}
 		//		}
@@ -218,7 +218,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			r = new InputStreamReader(gis);
 			RunScript.execute(this.conn, r);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			try {
@@ -232,7 +232,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 					r.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 
@@ -264,7 +264,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				serverURL = "jdbc:h2:" + server.getURL() + "/nio:" + this.schema;
 				server.start();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		printSchemaTables(pass);
@@ -290,13 +290,13 @@ public class H2Frame extends AbstractRdbmsFrame {
 			System.out.println(".. " + conn.getMetaData().getURL());
 			System.out.println(".. " + conn.getMetaData().getUserName());
 		} catch (ClassNotFoundException | SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(conn!=null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 
@@ -304,7 +304,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -356,14 +356,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 				tablePermissions.put(tableName, retString);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(stmt != null){
 					try {
 						stmt.close();
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -411,7 +411,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -424,7 +424,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		try {
 			this.builder.runQuery(query);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 

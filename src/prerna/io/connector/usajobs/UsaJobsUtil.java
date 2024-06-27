@@ -125,7 +125,7 @@ public class UsaJobsUtil {
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 	}
@@ -244,10 +244,10 @@ public class UsaJobsUtil {
 			}
 		} catch (JsonProcessingException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -276,7 +276,7 @@ public class UsaJobsUtil {
 			return dtf.format(now);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}  
 		return null;
 	}
@@ -299,7 +299,7 @@ public class UsaJobsUtil {
 			curFile.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -334,10 +334,10 @@ public class UsaJobsUtil {
 				total = result.asInt();
 			} catch (JsonMappingException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (JsonProcessingException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}		
 		return total;
@@ -382,13 +382,13 @@ public class UsaJobsUtil {
 			return retUrl;
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

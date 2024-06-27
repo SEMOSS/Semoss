@@ -9,11 +9,16 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import prerna.util.Constants;
 
 // counts the number of fails
 // and says if the overall status failed
 
 public class ModelFailListener implements IModelZKListener {
+
+	private static final Logger classLogger = LogManager.getLogger(ModelFailListener.class);
 
 	String path = null;
 	ModelZKServer server = null;
@@ -65,10 +70,10 @@ public class ModelFailListener implements IModelZKListener {
 					server.updateNodeData(statusNode, "FAIL", true);
 			} catch (KeeperException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 	}
 }

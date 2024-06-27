@@ -11,8 +11,17 @@ import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.security.HttpHelperUtility;
 
-public class GoogleFileRetriever implements IConnectorIOp{
+import prerna.util.Constants;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
+public class GoogleFileRetriever implements IConnectorIOp{
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
+
+	
 	@Override
 	public Object execute(User user, Hashtable params) {
 		
@@ -40,7 +49,7 @@ public class GoogleFileRetriever implements IConnectorIOp{
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(target != null) {
 		          try {

@@ -18,6 +18,11 @@ import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 /**
  * 
@@ -51,6 +56,8 @@ import prerna.util.sql.RdbmsTypeEnum;
  */
 
 public class LegacyToProjectRestructurerHelper {
+
+	private static final Logger classLogger = LogManager.getLogger(LegacyToProjectRestructurerHelper.class);
 
 	private String baseFolder;
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -133,7 +140,7 @@ public class LegacyToProjectRestructurerHelper {
 					System.out.println("\tDONE REFACTORING " + appName + " at " + folderName);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -213,14 +220,14 @@ public class LegacyToProjectRestructurerHelper {
 			Properties prop = Utility.loadProperties(dbSmssFile);
 			existingRdbmsType = RdbmsTypeEnum.valueOf(prop.get(Constants.RDBMS_INSIGHTS_TYPE) + "");
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		File tempProjectSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset, existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		tempProjectSmss.delete();
 	}
@@ -371,7 +378,7 @@ public class LegacyToProjectRestructurerHelper {
 			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
 			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, 
@@ -380,7 +387,7 @@ public class LegacyToProjectRestructurerHelper {
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		tempProjectSmss.delete();
 	}

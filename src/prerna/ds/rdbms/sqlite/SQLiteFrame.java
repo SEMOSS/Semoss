@@ -19,8 +19,15 @@ import prerna.util.insight.InsightUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class SQLiteFrame extends AbstractRdbmsFrame {
+	
+	private static final Logger classLogger = LogManager.getLogger(SQLiteFrame.class);
 
 	private String fileLocation;
 	private String fileNameToUse;
@@ -112,14 +119,14 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 			stmt = this.conn.createStatement();
 			stmt.executeUpdate(saveScript);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error occurred attempting to cache SQL Frame", e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -159,7 +166,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
