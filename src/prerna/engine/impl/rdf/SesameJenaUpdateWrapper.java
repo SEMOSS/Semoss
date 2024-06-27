@@ -26,7 +26,7 @@
  * 	GNU General Public License for more details.
  *******************************************************************************/
 package prerna.engine.impl.rdf;
-
+import prerna.util.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
@@ -89,7 +89,7 @@ public class SesameJenaUpdateWrapper {
 			engine.insertData(query);
 		} catch (Exception e) {
 			success = false;
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return success;

@@ -7,6 +7,12 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 public class EmailMessage {
 
 	private String from;
@@ -15,6 +21,8 @@ public class EmailMessage {
 	private String body;
 	private boolean bodyIsHTML;
 	private Session session;
+
+	private static final Logger classLogger = LogManager.getLogger(EmailMessage.class);
 
 	/**
 	 * <p>
@@ -80,7 +88,7 @@ public class EmailMessage {
 			}
 			Transport.send(message);
 		} catch (MessagingException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

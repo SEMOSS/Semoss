@@ -22,8 +22,14 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class RiGraph extends AbstractTableDataFrame {
+
+	private static final Logger classLogger = LogManager.getLogger(RiGraph.class);
 
 	public static final String DATA_MAKER_NAME = "RiGraph";
 	
@@ -132,7 +138,7 @@ public class RiGraph extends AbstractTableDataFrame {
 				bufferedWriter.write("\n");
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			cleanUpWriters(writer, bufferedWriter);
 		}
@@ -154,14 +160,14 @@ public class RiGraph extends AbstractTableDataFrame {
 				bufferedWriter.close();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		try {
 			if(writer != null) {
 				writer.close();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

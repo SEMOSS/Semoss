@@ -26,8 +26,15 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class TinkerFrameGraphExporter extends AbstractGraphExporter {
+
+	private static final Logger classLogger = LogManager.getLogger(TinkerFrameGraphExporter.class);
 
 	// the tinker frame we are operating on
 	private TinkerFrame tf;
@@ -75,7 +82,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter {
 			try {
 				this.vertsIt.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			return false;
 		}
@@ -196,7 +203,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter {
 			try {
 				this.edgesIt.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			return false;
 		}

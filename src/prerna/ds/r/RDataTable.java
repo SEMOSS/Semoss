@@ -40,8 +40,14 @@ import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class RDataTable extends AbstractTableDataFrame {
+
+	private static final Logger classLogger = LogManager.getLogger(RDataTable.class);
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
 	
@@ -599,7 +605,7 @@ public class RDataTable extends AbstractTableDataFrame {
 				bw.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			return fileName;
@@ -661,7 +667,7 @@ public class RDataTable extends AbstractTableDataFrame {
 				bw.flush();
 				bw.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			return fileName;

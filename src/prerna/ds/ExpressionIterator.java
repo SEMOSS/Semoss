@@ -10,9 +10,16 @@ import javax.script.ScriptException;
 
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class ExpressionIterator implements ExpressionMapper, Iterator {
 	
+	private static final Logger classLogger = LogManager.getLogger(ExpressionIterator.class);
+
 	protected Iterator results = null;
 	protected String [] columnsUsed = null;
 	String script = null;
@@ -84,7 +91,7 @@ public class ExpressionIterator implements ExpressionMapper, Iterator {
 			
 		} catch (ScriptException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

@@ -14,9 +14,15 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Deprecated
 public class RdbmsQueryBuilder {
+
+	private static final Logger classLogger = LogManager.getLogger(RdbmsQueryBuilder.class);
 
 	public static String escapeForSQLStatement(String s) {
 		if(s == null) {
@@ -497,7 +503,7 @@ public class RdbmsQueryBuilder {
 				FileUtils.forceDelete(file);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		

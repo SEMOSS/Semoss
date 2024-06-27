@@ -52,7 +52,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 							dbFile.getParentFile().mkdirs();
 							dbFile.createNewFile();
 						} catch (IOException e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
