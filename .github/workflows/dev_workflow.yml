@@ -15,14 +15,6 @@ on:
         description: "Maven skip tests (true/false)"
         required: true
         default: "true"
-      RUNJUNIT:
-        description: "Run JUnit"
-        required: true
-        default: "false"
-      SONARPUSH:
-        description: "Sonar Push"
-        required: true
-        default: "false"
 
 env:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
@@ -51,7 +43,7 @@ jobs:
 
   version_info_release:
     runs-on: ubuntu-latest
-    if: github.event.inputs.RELEASE == 'true' && github.event_name == 'workflow_dispatch'
+    if: ${{ env.RELEASE == 'TRUE' }} && github.event_name == 'workflow_dispatch'
     container:
       image: semoss/docker
     steps:
@@ -70,7 +62,7 @@ jobs:
 
   version_commit:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/svn/dev' && (github.event.inputs.RELEASE == 'true' || github.event.inputs.VERSION_COMMIT == 'true')
+    if: github.ref == 'refs/heads/svn/dev' && ${{ env.RELEASE == 'TRUE' }}
     container:
       image: semoss/docker
     steps:
@@ -98,7 +90,7 @@ jobs:
 
   build_dev:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.event.inputs.RELEASE != 'true'
+    if: github.event_name == 'push' && ${{ env.RELEASE != 'TRUE' }}
     container:
       image: semoss/docker
     steps:
@@ -126,7 +118,7 @@ jobs:
 
   build_deploy:
     runs-on: ubuntu-latest
-    if: github.event.inputs.RELEASE == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push')
+    if: ${{ env.RELEASE == 'TRUE' }} && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push')
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -157,7 +149,7 @@ jobs:
 
   build_release:
     runs-on: ubuntu-latest
-    if: github.event.inputs.RELEASE == 'true' && github.event_name == 'workflow_dispatch'
+    if: ${{ env.RELEASE == 'TRUE' }} && github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

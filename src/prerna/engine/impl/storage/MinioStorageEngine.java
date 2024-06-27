@@ -77,8 +77,8 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 //		// these are not real/import access/secret - only for local docker
 //		Properties mockSmss = new Properties();
 //		mockSmss.put(MinioStorageEngine.MINIO_REGION_KEY, "us-east-1");
-//		mockSmss.put(MinioStorageEngine.MINIO_ACCESS_KEY, "aq7eJfuoYwDrtOVeWoGb");
-//		mockSmss.put(MinioStorageEngine.MINIO_SECRET_KEY, "14A9uh4eXwJYvBxBzcY32p4aYufzv6Sn7Ogkq7p2");
+//		mockSmss.put(MinioStorageEngine.MINIO_ACCESS_KEY, "***REMOVED***");
+//		mockSmss.put(MinioStorageEngine.MINIO_SECRET_KEY, "***REMOVED***");
 //		mockSmss.put(MinioStorageEngine.MINIO_ENDPOINT_KEY, "http://localhost:9000");
 //		
 //		MinioStorageEngine engine = new MinioStorageEngine();

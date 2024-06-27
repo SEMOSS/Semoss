@@ -1689,8 +1689,8 @@ public class CentralCloudStorage implements ICloudClient {
 //		Properties coreProp = DIHelper.getInstance().getCoreProp();
 //		coreProp.put("SEMOSS_STORAGE_PROVIDER", "MINIO");
 //		coreProp.put(MinioStorageEngine.MINIO_REGION_KEY, "us-east-1");
-//		coreProp.put(MinioStorageEngine.MINIO_ACCESS_KEY, "aq7eJfuoYwDrtOVeWoGb");
-//		coreProp.put(MinioStorageEngine.MINIO_SECRET_KEY, "14A9uh4eXwJYvBxBzcY32p4aYufzv6Sn7Ogkq7p2");
+//		coreProp.put(MinioStorageEngine.MINIO_ACCESS_KEY, "***REMOVED***");
+//		coreProp.put(MinioStorageEngine.MINIO_SECRET_KEY, "***REMOVED***");
 //		coreProp.put(MinioStorageEngine.MINIO_ENDPOINT_KEY, "http://localhost:9000");
 //		coreProp.put(Constants.ENGINE, "CENTRAL_STORAGE");
 //
