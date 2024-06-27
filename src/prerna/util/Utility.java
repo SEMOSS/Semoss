@@ -3614,6 +3614,11 @@ public final class Utility {
 	    return policy.sanitize(stringToNormalize );
 	}
 	
+	/**
+	 * 
+	 * @param stringToNormalize
+	 * @return
+	 */
 	public static String normalizePath(String stringToNormalize) {
 		if(stringToNormalize == null ) {
 			return stringToNormalize;
@@ -3624,10 +3629,9 @@ public final class Utility {
 		while(stringToNormalize.contains("//")){
 			stringToNormalize=stringToNormalize.replace("//", "/");
 		}
-		
-		String normalizedString = Normalizer.normalize(stringToNormalize,Form.NFKC);
 
-		 normalizedString = FilenameUtils.normalize(normalizedString);
+		String normalizedString = Normalizer.normalize(stringToNormalize, Form.NFKC);
+		normalizedString = FilenameUtils.normalize(normalizedString);
 		if (normalizedString == null) {
 			classLogger.error("File path is null");
 			throw new IllegalArgumentException("The filepath passed in is invalid");
