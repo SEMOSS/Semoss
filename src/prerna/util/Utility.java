@@ -3606,8 +3606,8 @@ public final class Utility {
 	// ex. <script>alert('XSS');</script> is blocked
 	public static String inputSanitizer(String stringToNormalize) {
 		if (stringToNormalize == null) {
-			classLogger.error("input is null");
-			throw new IllegalArgumentException("The filepath passed in is invalid");
+			classLogger.info("input to sanitzer is null, returning null");
+			return stringToNormalize;
 		}
 		
 		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
