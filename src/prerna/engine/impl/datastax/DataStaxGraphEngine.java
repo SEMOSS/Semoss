@@ -22,8 +22,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class DataStaxGraphEngine extends AbstractDatabaseEngine {
 	
+	private static final Logger classLogger = LogManager.getLogger(DataStaxGraphEngine.class);
+
 	private GraphTraversalSource graphTraversalSession;
 	private Map<String, String> typeMap = new HashMap<String, String>();
 	private Map<String, String> nameMap = new HashMap<String, String>();
@@ -56,14 +63,14 @@ public class DataStaxGraphEngine extends AbstractDatabaseEngine {
 				try {
 					this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(nameMapStr != null && !nameMapStr.trim().isEmpty()) {
 				try {
 					this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			this.graphTraversalSession = DseGraph.traversal(dseSession);

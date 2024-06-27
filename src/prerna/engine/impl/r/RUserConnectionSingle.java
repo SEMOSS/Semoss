@@ -1,6 +1,13 @@
 package prerna.engine.impl.r;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class RUserConnectionSingle  extends AbstractRUserConnection  {
+
+	private static final Logger classLogger = LogManager.getLogger(RUserConnectionSingle.class);
 
 	// Host and port
 	private final String host;
@@ -35,7 +42,7 @@ public class RUserConnectionSingle  extends AbstractRUserConnection  {
 		try {
 			stopR();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		initializeConnection();
 		loadDefaultPackages();

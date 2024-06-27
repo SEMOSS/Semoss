@@ -23,8 +23,15 @@ import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class PyTranslator {
+
+	private static final Logger classLogger = LogManager.getLogger(PyTranslator.class);
 
 	// this will start to become the main interfacing class for everything related
 	// to python
@@ -394,7 +401,7 @@ public class PyTranslator {
 					// executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" +
 					// outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
 				} catch (RuntimeException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					error = e; // Save the error so we can report it
 				}
 
@@ -596,7 +603,7 @@ public class PyTranslator {
 					output = FileUtils.readFileToString(outputFile).trim();
 				}					
 			} catch (RuntimeException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				error = e; // Save the error so we can report it
 			}
 

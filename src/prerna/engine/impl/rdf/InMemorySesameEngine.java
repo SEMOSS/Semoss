@@ -121,7 +121,7 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				rc.close();
 				connected = false;
 			} catch (RepositoryException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -150,11 +150,11 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -177,12 +177,12 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			rc.setAutoCommit(false);
 			up.execute();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UpdateExecutionException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}catch (MalformedQueryException e)
 		{
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 	}
@@ -226,11 +226,11 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 
 			return retVec;
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -315,11 +315,11 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				}
 			}
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UnknownTransactionStateException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -366,11 +366,11 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				}
 			}
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UnknownTransactionStateException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -409,10 +409,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 		try {
 			rc.export(writer);
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new RepositoryException("Could not export base relationships from OWL database");
 		} catch (RDFHandlerException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
 	}

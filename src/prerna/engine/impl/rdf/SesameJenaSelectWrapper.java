@@ -148,7 +148,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return var;
 	}
@@ -273,7 +273,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			ex.printStackTrace();
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return thisSt;
 	}
@@ -409,7 +409,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			ex.printStackTrace();
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return retSt;
 	}

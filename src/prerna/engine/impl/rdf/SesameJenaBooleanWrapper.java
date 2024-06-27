@@ -33,6 +33,8 @@ import org.openrdf.query.GraphQueryResult;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
+import prerna.util.Constants;
+
 
 /**
  * This helps insert and delete boolean queries to the database.
@@ -90,7 +92,7 @@ public class SesameJenaBooleanWrapper {
 		try {
 			ret = (boolean) engine.execQuery(query);			
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return ret;
 	}

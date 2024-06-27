@@ -173,7 +173,7 @@ public class GraphDataModel implements IDataMaker {
 			curModel = ModelFactory.createDefaultModel();
 
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		processData(query, engine);
@@ -202,7 +202,7 @@ public class GraphDataModel implements IDataMaker {
 			curModel = ModelFactory.createDefaultModel();
 
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		processData(it, engine);
@@ -264,7 +264,7 @@ public class GraphDataModel implements IDataMaker {
 				genBaseConcepts(baseConceptSelectQuery);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			logger.info("Loaded Orphans");
 
@@ -307,7 +307,7 @@ public class GraphDataModel implements IDataMaker {
 				genBaseGraph(predicateSelectQuery);//subjects2, predicates2, subjects2);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			logger.info("Loaded Graph");
 		}
@@ -321,7 +321,7 @@ public class GraphDataModel implements IDataMaker {
 		try{
 			sjw.execute();	
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}*/
 
 		logger.info("Executed the query");
@@ -439,7 +439,7 @@ public class GraphDataModel implements IDataMaker {
 							logger.info("done with processing hierarchy"+ rc.size());
 						} catch (RepositoryException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					} catch(RuntimeException ex) {
 						logger.error(Constants.STACKTRACE, ex);
@@ -459,7 +459,7 @@ public class GraphDataModel implements IDataMaker {
 						GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 					logger.info("Finished loading SUDOWL");
 				}
@@ -477,7 +477,7 @@ public class GraphDataModel implements IDataMaker {
 							logger.info("DONE:: Loaded Properties" + rc.size());
 						} catch (RepositoryException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					} catch(RuntimeException ex) {
 						logger.error(Constants.STACKTRACE, ex);
@@ -486,7 +486,7 @@ public class GraphDataModel implements IDataMaker {
 				}
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}	
 		modelCounter++;
 	}
@@ -605,7 +605,7 @@ public class GraphDataModel implements IDataMaker {
 				rc.add(subject, predicate, (Literal)newObj);
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		/*jenaModel.add(jenaSt);*/
 		// just so that we can remove it later
@@ -810,7 +810,7 @@ public class GraphDataModel implements IDataMaker {
 			logger.info("modelCounter              " + modelCounter);
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(lastRC);
@@ -1012,7 +1012,7 @@ public class GraphDataModel implements IDataMaker {
 				}
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}	
 	}
 	
@@ -1203,11 +1203,11 @@ public class GraphDataModel implements IDataMaker {
 				rc.setAutoCommit(false);
 				up.execute();
 			} catch (RepositoryException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (MalformedQueryException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (UpdateExecutionException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			delQuery = delQuery+".";
 			//count++;
