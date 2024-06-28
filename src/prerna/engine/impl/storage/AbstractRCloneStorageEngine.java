@@ -129,6 +129,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		try {
 			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "config", "delete", rCloneConfig);
 		} finally {
+			configPath = Utility.normalizePath(configPath);
 			new File(configPath).delete();
 		}
 	}
@@ -592,6 +593,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			rcloneConfigFolder =  Utility.getBaseFolder() 
 					+ FILE_SEPARATOR + Constants.STORAGE_FOLDER + FILE_SEPARATOR + 
 					SmssUtilities.getUniqueName(this.engineName, this.engineId);
+			rcloneConfigFolder = Utility.normalizePath(rcloneConfig);
 			new File(rcloneConfig).mkdirs();
 		}
 		
@@ -612,8 +614,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected static List<String> runAnyProcess(String... command) throws IOException, InterruptedException {
 		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		SecurityManager priorManager = System.getSecurityManager();
+//		System.setSecurityManager(null);
 		try {
 			Process p = null;
 			try {
@@ -632,7 +634,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				}
 			}
 		} finally {
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 	}
 	
@@ -645,8 +647,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected static Map<String, Object> runProcessJsonOutput(String... command) throws IOException, InterruptedException {
 		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		SecurityManager priorManager = System.getSecurityManager();
+//		System.setSecurityManager(null);
 		try {
 			Process p = null;
 			try {
@@ -665,7 +667,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				}
 			}
 		} finally {
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 	}
 	
@@ -678,8 +680,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected static List<Map<String, Object>> runProcessListJsonOutput(String... command) throws IOException, InterruptedException {
 		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		SecurityManager priorManager = System.getSecurityManager();
+//		System.setSecurityManager(null);
 		try {
 			Process p = null;
 			try {
@@ -698,7 +700,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				}
 			}
 		} finally {
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 	}
 	
