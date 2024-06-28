@@ -23,11 +23,6 @@ import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 
 public class PyTranslator {
 
@@ -74,7 +69,7 @@ public class PyTranslator {
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -165,7 +160,7 @@ public class PyTranslator {
 			return y.doubleValue();
 		} else if (x instanceof Double) {
 			return (Double) x;
-		} else if (x instanceof String){
+		} else if (x instanceof String) {
 			return Double.valueOf((String) x);
 		} else {
 			return null;
@@ -226,12 +221,12 @@ public class PyTranslator {
 				logger.error(Constants.STACKTRACE, ex);
 			}
 			logger.info("Completed processing");
-			
+
 			response = this.pt.response;
 		}
-		
+
 		Object scriptResponse = ((Hashtable) response).get(script);
-		if(scriptResponse instanceof SemossPixelException) {
+		if (scriptResponse instanceof SemossPixelException) {
 			throw (SemossPixelException) scriptResponse;
 		}
 	}
@@ -255,13 +250,14 @@ public class PyTranslator {
 		if (!pyTempF.exists()) {
 			pyTempF.mkdirs();
 		}
-		
+
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+			if (this.insight != null) {
+				if (this.insight.getUser() != null) {
+					this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+				}
 			}
 		}
-
 
 		String scriptFileName = Utility.getRandomString(12);
 		String scriptPath = pyTemp + scriptFileName + ".py";
@@ -338,7 +334,7 @@ public class PyTranslator {
 			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
 
-		if(!removePathVariables.isEmpty()) {
+		if (!removePathVariables.isEmpty()) {
 			removePathVariables = "del " + removePathVariables;
 		}
 		// get the custom var String
@@ -427,7 +423,7 @@ public class PyTranslator {
 					if (error != null) {
 						throw error;
 					}
-					
+
 					// Successful case
 					return output;
 				} catch (IOException e) {
@@ -441,7 +437,7 @@ public class PyTranslator {
 				} finally {
 					// Cleanup
 					outputFile.delete();
-					if(!removePathVariables.isEmpty()) {
+					if (!removePathVariables.isEmpty()) {
 						try {
 							this.runEmptyPy(removePathVariables);
 							// this.executeEmptyR("gc();"); // Garbage collection
@@ -462,9 +458,9 @@ public class PyTranslator {
 			String finalScript = convertArrayToString(inscript);
 			finalScript = finalScript.replace("@", "");
 			Hashtable response = executePyDirect(finalScript);
-			
+
 			Object scriptResponse = response.get(finalScript);
-			if(scriptResponse instanceof SemossPixelException) {
+			if (scriptResponse instanceof SemossPixelException) {
 				throw (SemossPixelException) scriptResponse;
 			} else {
 				return response.get(finalScript) + "";
@@ -472,10 +468,8 @@ public class PyTranslator {
 		}
 	}
 
-	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript, Insight in) 
-	{
-		
-		
+	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript, Insight in) {
+
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -518,8 +512,8 @@ public class PyTranslator {
 		} else {
 			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
-		
-		if(!removePathVariables.isEmpty()) {
+
+		if (!removePathVariables.isEmpty()) {
 			removePathVariables = "del " + removePathVariables;
 		}
 
@@ -557,12 +551,11 @@ public class PyTranslator {
 		// execute all the commands for setting variables etc.
 		// Try writing the script to a file
 		ErrorSenderThread est = new ErrorSenderThread();
-		if(in != null)
-		{
+		if (in != null) {
 			est.setInsight(in);
 			est.start();
 			est.setFile(outputPath);
-		}				
+		}
 
 		String output = null;
 		try {
@@ -579,9 +572,10 @@ public class PyTranslator {
 			RuntimeException error = null;
 			try {
 				// Start the error sender thread
-				if(this instanceof TCPPyTranslator && ((TCPPyTranslator)this).getSocketClient() instanceof NativePySocketClient) {
+				if (this instanceof TCPPyTranslator
+						&& ((TCPPyTranslator) this).getSocketClient() instanceof NativePySocketClient) {
 					Object pythonReturnObject = runScript(script, insight);
-					
+
 					if (pythonReturnObject instanceof String) {
 						output = (String) pythonReturnObject;
 					} else {
@@ -590,18 +584,15 @@ public class PyTranslator {
 						} catch (Exception e) {
 							output = pythonReturnObject + "";
 						}
-					}		
-				}
-				else
-				{
-					runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
-									+ outputPath + "\", globals())");
-					if(in != null)
-					{
+					}
+				} else {
+					runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath
+							+ "\", globals())");
+					if (in != null) {
 						est.stopSession();
 					}
 					output = FileUtils.readFileToString(outputFile).trim();
-				}					
+				}
 			} catch (RuntimeException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				error = e; // Save the error so we can report it
@@ -637,16 +628,15 @@ public class PyTranslator {
 				throw new IllegalArgumentException("Failed to run Py script.");
 			} finally {
 				// Cleanup
-				if(outputFile.exists())
-				{
+				if (outputFile.exists()) {
 					try {
-					outputFile.delete();
-					if(!removePathVariables.isEmpty()) {
-						this.runScript(removePathVariables);
-					}
-					// this.executeEmptyR("gc();"); // Garbage collection
+						outputFile.delete();
+						if (!removePathVariables.isEmpty()) {
+							this.runScript(removePathVariables);
+						}
+						// this.executeEmptyR("gc();"); // Garbage collection
 					} catch (Exception e) {
-					logger.warn("Unable to cleanup Py.", e);
+						logger.warn("Unable to cleanup Py.", e);
 					}
 				}
 			}
@@ -753,7 +743,7 @@ public class PyTranslator {
 		}
 
 		Object scriptResponse = ((Hashtable) response).get(script);
-		if(scriptResponse instanceof SemossPixelException) {
+		if (scriptResponse instanceof SemossPixelException) {
 			throw (SemossPixelException) scriptResponse;
 		} else {
 			return scriptResponse;
@@ -782,7 +772,7 @@ public class PyTranslator {
 		}
 
 		Object scriptResponse = ((Hashtable) response).get(script);
-		if(scriptResponse instanceof SemossPixelException) {
+		if (scriptResponse instanceof SemossPixelException) {
 			throw (SemossPixelException) scriptResponse;
 		} else {
 			return scriptResponse;
@@ -792,7 +782,7 @@ public class PyTranslator {
 	protected String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
 		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
-			if(script[lineIndex] != null) {
+			if (script[lineIndex] != null) {
 				retString.append(script[lineIndex]).append("\n");
 			}
 		}
@@ -825,8 +815,9 @@ public class PyTranslator {
 		}
 		return curEncoding;
 	}
-	
-	 /* This method is used to get the column names of a frame
+
+	/*
+	 * This method is used to get the column names of a frame
 	 * 
 	 * @param frameName
 	 */
@@ -836,83 +827,79 @@ public class PyTranslator {
 		String[] colNamesArray = new String[colNames.size()];
 		colNamesArray = colNames.toArray(colNamesArray);
 		return colNamesArray;
-	 }
+	}
 
-//	public static void main(String [] args) {
-//		DIHelper helper = DIHelper.getInstance();
-//		Properties prop = new Properties();
-//		try {
-//			prop.load(new FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
-//		} catch (FileNotFoundException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		helper.setCoreProp(prop);
-//	
-//		PyTranslator py = new PyTranslator();
-//		PyExecutorThread pt = new PyExecutorThread();
-//		pt.start();
-//		py.pt = pt;
-//		String command = "print('Hello World')" + 
-//						  "\n" +
-//						  "print('World Hello')" + 
-//						  "\n" + 
-//						  "a = 2" +
-//						  "\n" +
-//						  "a" +
-//						  "\n" +
-//						  "if (a ==2):" +
-//						  "\n" + 
-//						  "   print('a is 2')";
-//		
-//		
-//		//py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
-//		String output = py.runPyAndReturnOutput(command);
-//		System.out.println("Output >> " + output);
-//	}
+	// public static void main(String [] args) {
+	// DIHelper helper = DIHelper.getInstance();
+	// Properties prop = new Properties();
+	// try {
+	// prop.load(new
+	// FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
+	// } catch (FileNotFoundException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// } catch (IOException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// helper.setCoreProp(prop);
+	//
+	// PyTranslator py = new PyTranslator();
+	// PyExecutorThread pt = new PyExecutorThread();
+	// pt.start();
+	// py.pt = pt;
+	// String command = "print('Hello World')" +
+	// "\n" +
+	// "print('World Hello')" +
+	// "\n" +
+	// "a = 2" +
+	// "\n" +
+	// "a" +
+	// "\n" +
+	// "if (a ==2):" +
+	// "\n" +
+	// " print('a is 2')";
+	//
+	//
+	// //py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
+	// String output = py.runPyAndReturnOutput(command);
+	// System.out.println("Output >> " + output);
+	// }
 
-	
-	public synchronized Object runScript(String script, Insight insight) 
-	{
+	public synchronized Object runScript(String script, Insight insight) {
 		ErrorSenderThread est = null;
 		String payload = script;
-		if(insight != null)
-		{
+		if (insight != null) {
 			est = new ErrorSenderThread();
 			est.setInsight(insight);
-	
+
 			// write the file to create
 			// for now let it be
 			String file = Utility.getRandomString(5);
 			makeTempFolder(insight.getInsightFolder());
-			String pyTemp  = insight.getInsightFolder() + "/Py/Temp";
+			String pyTemp = insight.getInsightFolder() + "/Py/Temp";
 			file = pyTemp + "/" + file;
 			file = file.replace("\\", "/");
-			
+
 			script = script.replace("\"", "'");
 			payload = "smssutil.runwrappereval_return(\"" + script + "\", '" + file + "', '" + file + "', globals())";
 			est.setFile(file);
 			est.start();
 		}
-		
+
 		Object retObject = runScript(payload);
-		
-		if(insight != null)
-		{
+
+		if (insight != null) {
 			est.stopSession();
 		}
-		
+
 		return retObject;
-		
+
 	}
-	
-	public void makeTempFolder(String baseFolder)
-	{
-		String pyTemp  = baseFolder + "/Py/Temp";
-		
+
+	public void makeTempFolder(String baseFolder) {
+		String pyTemp = baseFolder + "/Py/Temp";
+
 		File pyTempF = new File(pyTemp);
 		if (!pyTempF.exists()) {
 			pyTempF.mkdirs();
