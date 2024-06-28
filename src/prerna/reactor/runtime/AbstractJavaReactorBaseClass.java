@@ -305,7 +305,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	 * @param type
 	 */
 	protected void removeNode(String type) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame)
 		{
 			((TinkerFrame)this.dataframe).removeColumn(type);
@@ -315,7 +315,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	/**
@@ -324,7 +324,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	 * @param data
 	 */
 	protected void removeNode(String type, String data) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame) {
 			List<Object> removeList = new Vector<Object>();
 			removeList.add(data);
@@ -335,7 +335,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	/**
@@ -344,7 +344,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	 * @param data
 	 */
 	protected void degree(String type, String data) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame)
 		{
 			Object degree = ((TinkerFrame)this.dataframe).degree(type, data);
@@ -353,7 +353,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	/**
@@ -363,7 +363,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	 */
 	protected void eigen(String type, String data)
 	{
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame)
 		{
 			Object degree = ((TinkerFrame)this.dataframe).eigen(type, data);
@@ -372,7 +372,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	/**
@@ -381,7 +381,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	 * @param data
 	 */
 	protected void isOrphan(String type, String data) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame)
 		{
 			boolean orphan = ((TinkerFrame)this.dataframe).isOrphan(type, data);
@@ -390,7 +390,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}		
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 //	/**
@@ -504,7 +504,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //	}
 
 	protected void runLoopIdentifer(int cycleSize) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame)
 		{
 			String loops = TinkerAlgorithmUtility.runLoopIdentifer((TinkerFrame) this.dataframe, cycleSize);
@@ -513,11 +513,11 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(loops, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	protected void runDisconnectedNodesIdentifier(String type, String instance) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(this.dataframe instanceof TinkerFrame)
 		{
 			String disconnectedNodes = TinkerAlgorithmUtility.runDisconnectedNodesIdentifier((TinkerFrame) this.dataframe, type, instance);
@@ -526,7 +526,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(disconnectedNodes, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 	
 	////////////////////////////////////////////////////////////

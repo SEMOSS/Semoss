@@ -164,7 +164,7 @@ public class MgmtUtil {
 	
 	public static int getPidByPort(int port) {
 		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		System.setSecurityManager(null);
 		File tempFile = new File(Temp_FOLDER + Utility.getRandomString(12) + ".txt");
 		try {
 			if (SystemUtils.IS_OS_WINDOWS) {
@@ -219,7 +219,7 @@ public class MgmtUtil {
 			tempFile.delete();
 			
 			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 		return -1;
 	}

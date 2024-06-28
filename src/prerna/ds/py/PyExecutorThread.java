@@ -20,7 +20,7 @@ public final class PyExecutorThread extends Thread {
 	private static final String CLASS_NAME = PyExecutorThread.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(CLASS_NAME);
 	
-	private static transient SecurityManager defaultManager = System.getSecurityManager();
+//	private static transient SecurityManager defaultManager = System.getSecurityManager();
 
 	private static boolean first = true;
 	private Jep jep = null;
@@ -62,7 +62,7 @@ public final class PyExecutorThread extends Thread {
 					if (this.keepAlive) {
 						ReactorSecurityManager tempManager = new ReactorSecurityManager();
 						tempManager.addClass(CLASS_NAME);
-						System.setSecurityManager(tempManager);
+//						System.setSecurityManager(tempManager);
 
 						for (int cmdLength = 0; command != null && cmdLength < command.length; cmdLength++) {
 							String thisCommand = command[cmdLength];
@@ -127,7 +127,7 @@ public final class PyExecutorThread extends Thread {
 
 						// set back the original security manager
 						tempManager.removeClass(CLASS_NAME);
-						System.setSecurityManager(defaultManager);
+//						System.setSecurityManager(defaultManager);
 					}
 				}
 			} catch (InterruptedException e) {
