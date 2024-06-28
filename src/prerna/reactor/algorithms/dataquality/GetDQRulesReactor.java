@@ -15,6 +15,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class GetDQRulesReactor extends AbstractReactor{
 
@@ -27,6 +28,8 @@ public class GetDQRulesReactor extends AbstractReactor{
 		
 		String fileString = null;
 		try {
+			// depreated function will normalize string to not hit a new scan 
+			fileString = Utility.normalizePath(fileString);
 			fileString = FileUtils.readFileToString(new File(fileLoc));
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
