@@ -15,8 +15,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ImportApiHelper extends WebAPIHelper{
+	private static final Logger classLogger = LogManager.getLogger(ImportApiHelper.class);
 
 	private Map<String, Object> extractObject;	
 
@@ -48,9 +53,9 @@ public class ImportApiHelper extends WebAPIHelper{
 
 			
 		} catch (MalformedURLException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 	}
