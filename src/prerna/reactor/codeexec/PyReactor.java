@@ -21,7 +21,7 @@ import prerna.util.Utility;
 
 public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
 	
-	private static transient SecurityManager defaultManager = System.getSecurityManager();
+//	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = PyReactor.class.getName();
 	// the code that was executed
 	private String code = null;

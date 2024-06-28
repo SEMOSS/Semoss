@@ -34,7 +34,7 @@ import prerna.util.Utility;
 
 public final class RReactor extends AbstractRFrameReactor {
 	
-	private static transient SecurityManager defaultManager = System.getSecurityManager();
+//	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = RReactor.class.getName();
 	
 	@Override
@@ -72,7 +72,7 @@ public final class RReactor extends AbstractRFrameReactor {
 
 		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		tempManager.addClass(CLASS_NAME);
-		System.setSecurityManager(tempManager);
+//		System.setSecurityManager(tempManager);
 		
 		// set the code variable for the ICodeExecution interface
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
@@ -94,7 +94,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		
 		// set back the original security manager
 		tempManager.removeClass(CLASS_NAME);
-		System.setSecurityManager(defaultManager);	
+//		System.setSecurityManager(defaultManager);	
 		
 		if(smartSync) {
 			if(smartSync(rJavaTranslator)) {
