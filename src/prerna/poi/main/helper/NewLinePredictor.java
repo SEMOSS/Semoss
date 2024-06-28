@@ -5,7 +5,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class NewLinePredictor {
+
+	private static final Logger classLogger = LogManager.getLogger(NewLinePredictor.class);
 
 	private static final char CR = '\r';
 	private static final char LF = '\n';
@@ -19,20 +26,20 @@ public class NewLinePredictor {
 			char[] result = predict(reader);
 			return result;
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(reader != null) {
 				try {
 					reader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(freader != null) {
 				try {
 					freader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

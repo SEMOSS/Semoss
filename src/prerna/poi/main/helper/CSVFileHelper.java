@@ -21,9 +21,16 @@ import prerna.date.SemossDate;
 import prerna.om.HeadersException;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
+import prerna.util.Constants;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class CSVFileHelper {
 	
+	private static final Logger classLogger = LogManager.getLogger(CSVFileHelper.class);
+
 	private static final int NUM_ROWS_TO_PREDICT_TYPES = 500;
 	private static final int NUM_EMPTY_ROWS_TO_IGNORE = 10_000;
 
@@ -107,7 +114,7 @@ public class CSVFileHelper {
 			// we need to keep a map of the header to the index
 
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -235,9 +242,9 @@ public class CSVFileHelper {
 				parser.stopParsing();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
