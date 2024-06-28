@@ -107,7 +107,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 * Shift the dataframe into R with a default name
 	 */
 	public void synchronizeToR() {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if(dataframe instanceof TinkerFrame) {
 			synchronizeGraphToR();
 		} else if (dataframe instanceof H2Frame) {
@@ -127,7 +127,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 * @param rVarName
 	 */
 	public void synchronizeToR(String rVarName) {
-		java.lang.System.setSecurityManager(curManager);
+//		java.lang.System.setSecurityManager(curManager);
 		if (dataframe instanceof TinkerFrame) {
 			synchronizeGraphToR(rVarName);
 		} else if (dataframe instanceof H2Frame) {
@@ -662,7 +662,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				this.rJavaTranslator.executeEmptyR("setwd(\"" + curWd + "\")");
 			}
 		}
-		java.lang.System.setSecurityManager(reactorManager);
+//		java.lang.System.setSecurityManager(reactorManager);
 	}
 
 	/**

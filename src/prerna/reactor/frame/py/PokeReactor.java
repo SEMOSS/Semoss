@@ -13,7 +13,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PokeReactor extends AbstractReactor {
 	
-	private static transient SecurityManager defaultManager = System.getSecurityManager();
+//	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = PokeReactor.class.getName();
 	
 	// basically takes the insight and drops a .completed file

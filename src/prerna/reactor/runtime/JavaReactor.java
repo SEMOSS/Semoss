@@ -136,7 +136,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			jR.In();
 			
 			// set the security so we cant send some crazy virus into semoss
-			System.setSecurityManager(tempManager);
+//			System.setSecurityManager(tempManager);
 			// call the process
 			jR.runCompiledCode();
 
@@ -163,7 +163,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 		} finally {
 			tempManager.removeClass(uniqueName);
 			// set back the original security manager
-			System.setSecurityManager(defaultManager);	
+//			System.setSecurityManager(defaultManager);	
 		}
 		
 		return new NounMetadata("no output", PixelDataType.CONST_STRING, PixelOperationType.CODE_EXECUTION);

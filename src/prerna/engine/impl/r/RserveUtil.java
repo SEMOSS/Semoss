@@ -104,8 +104,8 @@ public class RserveUtil {
 	public static Process startR(int port) throws Exception {
 		
 		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		SecurityManager priorManager = System.getSecurityManager();
+//		System.setSecurityManager(null);
 		Process process = null;
 		
 		// Start
@@ -141,7 +141,7 @@ public class RserveUtil {
 		}
 		finally {
 			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 		return process;
 	}
@@ -149,8 +149,8 @@ public class RserveUtil {
 	public static void stopR(int port) throws Exception {
 		
 		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		SecurityManager priorManager = System.getSecurityManager();
+//		System.setSecurityManager(null);
 		
 		// Stop
 		File tempFile = new File(R_FOLDER + Utility.getRandomString(12) + ".txt");
@@ -214,7 +214,7 @@ public class RserveUtil {
 			tempFile.delete();
 			
 			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 	}
 	
@@ -264,8 +264,8 @@ public class RserveUtil {
 	 */
 	public static void endR() throws Exception {
 		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
+//		SecurityManager priorManager = System.getSecurityManager();
+//		System.setSecurityManager(null);
 		
 		// End
 		try {
@@ -280,7 +280,7 @@ public class RserveUtil {
 		} finally {
 			
 			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
+//			System.setSecurityManager(priorManager);
 		}
 	}
 	
