@@ -1,10 +1,16 @@
 package prerna.quartz;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.SchedulerException;
 
+import prerna.util.Constants;
+
 public class ChainedJobListener extends org.quartz.listeners.JobListenerSupport {
+
+	private static final Logger classLogger = LogManager.getLogger(ChainedJobListener.class);
 
 	String name;
 	JobChain jobChain;
@@ -25,7 +31,7 @@ public class ChainedJobListener extends org.quartz.listeners.JobListenerSupport 
 			jobChain.setDataMap(context.getMergedJobDataMap());
 			jobChain.executeElement();
 		} catch (SchedulerException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

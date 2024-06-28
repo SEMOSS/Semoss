@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -17,8 +19,12 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.util.Constants;
 
 public class CheckCriteriaJob implements org.quartz.Job {
+
+	private static final Logger classLogger = LogManager.getLogger(CheckCriteriaJob.class);
+
 	public static final String JSON_STRING = "JsonString";
 
 	public static final String IN_DATA_FRAME_KEY = CommonDataKeys.DATA_FRAME;
@@ -53,18 +59,19 @@ public class CheckCriteriaJob implements org.quartz.Job {
 		// TODO Parameterize
 		IRawSelectWrapper iteratorResults = null;
 		try {
-			iteratorResults = results.query("SELECT " + returnColumn + ", " + compareColumn + " FROM " + results.getName());
+			iteratorResults = results
+					.query("SELECT " + returnColumn + ", " + compareColumn + " FROM " + results.getName());
 			while (iteratorResults.hasNext()) {
 				resultsList.add(iteratorResults.next().getRawValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(iteratorResults != null) {
+			if (iteratorResults != null) {
 				try {
 					iteratorResults.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -99,7 +106,7 @@ public class CheckCriteriaJob implements org.quartz.Job {
 						anomalyList.add(row);
 					}
 				} catch (ParseException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 
