@@ -16,6 +16,7 @@ import org.apache.parquet.schema.Type;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.HeadersException;
+import prerna.util.Constants;
 
 public class ParquetFileHelper {
 	
@@ -206,7 +207,7 @@ public class ParquetFileHelper {
 		        allParquetHeaders = cols;
 			} catch (IllegalArgumentException | IOException e) {
 				classLogger.error(e.toString());
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(reader != null) {
 					try {
