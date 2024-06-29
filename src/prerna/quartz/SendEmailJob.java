@@ -1,5 +1,7 @@
 package prerna.quartz;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -7,8 +9,11 @@ import org.quartz.JobExecutionException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import prerna.rpa.quartz.jobs.mail.EmailMessage;
+import prerna.util.Constants;
 
 public class SendEmailJob implements org.quartz.Job {
+
+	private static final Logger classLogger = LogManager.getLogger(SendEmailJob.class);
 
 	public static final String IN_FROM_KEY = "emailFrom";
 	public static final String IN_TO_KEY = "emailTo";
@@ -35,7 +40,7 @@ public class SendEmailJob implements org.quartz.Job {
 			message.send();
 		} catch (MessagingException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// Store outputs

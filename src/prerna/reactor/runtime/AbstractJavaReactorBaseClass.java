@@ -21,8 +21,8 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	protected Logger logger = null;
 
 	public Console System = new Console();
-	public SecurityManager curManager = null;
-	public SecurityManager reactorManager = null;
+//	public SecurityManager curManager = null;
+//	public SecurityManager reactorManager = null;
 	
 	public List<NounMetadata> nounMetaOutput = new Vector<NounMetadata>();
 	public ITableDataFrame dataframe;
@@ -533,13 +533,13 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	////////////////////////////////////////////////////////////
 	//////////////////// Setter / Getters //////////////////////
 	
-	protected void setCurSecurityManager(SecurityManager curManager) {
-		this.curManager = curManager;
-	}
+//	protected void setCurSecurityManager(SecurityManager curManager) {
+//		this.curManager = curManager;
+//	}
 	
-	protected void setReactorManager(SecurityManager reactorManager) {
-		this.reactorManager = reactorManager;
-	}
+//	protected void setReactorManager(SecurityManager reactorManager) {
+//		this.reactorManager = reactorManager;
+//	}
 	
 	protected void setConsole() {
 		this.System = new Console();

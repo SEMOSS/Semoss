@@ -5,6 +5,8 @@ import static org.quartz.impl.matchers.GroupMatcher.jobGroupEquals;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
@@ -15,7 +17,11 @@ import org.quartz.JobListener;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 
+import prerna.util.Constants;
+
 public class JobChain implements org.quartz.Job {
+
+	private static final Logger classLogger = LogManager.getLogger(JobChain.class);
 
 	private String jobGroup;
 	private JobDataMap dataMap;
@@ -41,7 +47,7 @@ public class JobChain implements org.quartz.Job {
 			scheduler.getListenerManager().addJobListener(chainedJobListener, jobGroupEquals(jobGroup));
 			executeElement();
 		} catch (SchedulerException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -61,7 +67,7 @@ public class JobChain implements org.quartz.Job {
 				offset++;
 			} catch (SchedulerException e) {
 				// TODO what do I want to do with the error here?
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
