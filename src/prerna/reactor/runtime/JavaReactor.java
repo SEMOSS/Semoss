@@ -15,7 +15,7 @@ import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.ReactorSecurityManager;
+//import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -26,44 +26,43 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 
 	private static final String CLASS_NAME = JavaReactor.class.getName();
 	// get the default manager
-	private static transient SecurityManager defaultManager = System.getSecurityManager();
+	// private static transient SecurityManager defaultManager =
+	// System.getSecurityManager();
 	// the code that was executed
 	private String code = null;
-	
-	@Override 
-	public NounMetadata execute()
-	{
+
+	@Override
+	public NounMetadata execute() {
 		String retString = "Java console is now discontinued. Please use mvn directly for performing all java operations";
-		retString = retString  + "Use mvn exec:java -Dexec.mainClass=\"your.company.className\" -Dexec.classpathScope=\"compile(if you want compile scope)\"";
-		retString = retString  + "Or just use java your.company.className";
-		
+		retString = retString
+				+ "Use mvn exec:java -Dexec.mainClass=\"your.company.className\" -Dexec.classpathScope=\"compile(if you want compile scope)\"";
+		retString = retString + "Or just use java your.company.className";
+
 		return new NounMetadata(retString, PixelDataType.CONST_STRING);
 	}
-	
-	
 
-	//@Override
+	// @Override
 	public NounMetadata execute_old() {
-		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			if(Boolean.parseBoolean(disable_terminal)) {
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 			}
 		}
 
-		//check if java terminal is disabled
-		String disable_java_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_JAVA_TERMINAL);
-		if(disable_java_terminal != null && !disable_java_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_java_terminal)) {
-					throw new IllegalArgumentException("Java terminal has been disabled.");
-			 }
+		// check if java terminal is disabled
+		String disable_java_terminal = Utility.getDIHelperProperty(Constants.DISABLE_JAVA_TERMINAL);
+		if (disable_java_terminal != null && !disable_java_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_java_terminal)) {
+				throw new IllegalArgumentException("Java terminal has been disabled.");
+			}
 		}
-		
-		ReactorSecurityManager tempManager = new ReactorSecurityManager();
+
+//		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		String className = "c" + System.currentTimeMillis();
 		String packageName = "t" + System.currentTimeMillis();
 		String uniqueName = packageName + "." + className;
-		tempManager.addClass(uniqueName);
+//		tempManager.addClass(uniqueName);
 
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
@@ -71,17 +70,17 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 		try {
 			ClassPool pool = ClassPool.getDefault();
 			ClassClassPath ccp = new ClassClassPath(this.getClass());
-			pool.insertClassPath(ccp); 
-			pool.insertClassPath(new ClassClassPath(prerna.util.Console.class)); 
+			pool.insertClassPath(ccp);
+			pool.insertClassPath(new ClassClassPath(prerna.util.Console.class));
 
-			//pool.importPackage("java.util");
+			// pool.importPackage("java.util");
 			pool.importPackage("java.sql");
 			pool.importPackage("prerna.sablecc2.om");
 			pool.importPackage("prerna.util");
 			pool.importPackage("org.apache.tinkerpop.gremlin.process.traversal");
 			pool.importPackage("org.apache.tinkerpop.gremlin.structure");
 			// the imports are sitting in the front
-			while(code.contains("import ")) {
+			while (code.contains("import ")) {
 				String importStr = code.substring(code.indexOf("import"), code.indexOf(";") + 1);
 				// remove this from data
 				code = code.replace(importStr, "");
@@ -91,24 +90,25 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 				StringTokenizer importTokens = new StringTokenizer(importStr, "$");
 				String packageStr = "";
 				int tokenCount = importTokens.countTokens();
-				for(int tokenIndex = 1; tokenIndex < tokenCount; tokenIndex++) {
+				for (int tokenIndex = 1; tokenIndex < tokenCount; tokenIndex++) {
 					packageStr = packageStr + importTokens.nextToken();
-					if(tokenIndex + 1 < tokenCount) {
+					if (tokenIndex + 1 < tokenCount) {
 						packageStr = packageStr + ".";
 					}
 				}
 				logger.info("Importing.. [" + packageStr + "]");
 				pool.importPackage(packageStr);
-			}		
+			}
 
-			CtClass cc = pool.makeClass(uniqueName); // the only reason I do this is if the user wants to do something else
-			
+			CtClass cc = pool.makeClass(uniqueName); // the only reason I do this is if the user wants to do something
+														// else
+
 			// the configuration of JRI vs. RServe
 			// is now encapsulated within Abstract + RJavaTranslator
 			cc.setSuperclass(pool.get(AbstractBaseRClass.class.getName()));
 
 			String content = code;
-			if(content.contains("runR")) {
+			if (content.contains("runR")) {
 				content = content.replace("\n", "\\n").replace("\r", "\\r");
 			}
 
@@ -120,7 +120,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			long start = System.currentTimeMillis();
 			cc.addMethod(CtNewMethod.make("public void runCompiledCode() {" + content + ";}", cc));
 			long end = System.currentTimeMillis();
-			logger.debug(">>> Time to compile and add new class ::: " + (end-start) + " ms");
+			logger.debug(">>> Time to compile and add new class ::: " + (end - start) + " ms");
 			Class retClass = cc.toClass();
 
 			// next step is calling it
@@ -131,10 +131,10 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			jR.setLogger(logger);
 			jR.setRJavaTranslator(this.insight.getRJavaTranslator(this.getLogger(jR.getClass().getName())));
 			// pass the managers inside
-			jR.setCurSecurityManager(defaultManager);
-			jR.setReactorManager(tempManager);
+//			jR.setCurSecurityManager(defaultManager);
+//			jR.setReactorManager(tempManager);
 			jR.In();
-			
+
 			// set the security so we cant send some crazy virus into semoss
 //			System.setSecurityManager(tempManager);
 			// call the process
@@ -143,11 +143,11 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			// remove class from pool
 			pool.removeClassPath(ccp);
 			List<NounMetadata> outputs = jR.getNounMetaOutput();
-			if(outputs == null || outputs.isEmpty()) {
+			if (outputs == null || outputs.isEmpty()) {
 				outputs = new ArrayList<>();
-				if(jR.System.out.output != null) {
+				if (jR.System.out.output != null) {
 					outputs.add(new NounMetadata(jR.System.out.output.toString(), PixelDataType.CONST_STRING));
-				} else if(jR.System.err.output != null) {
+				} else if (jR.System.err.output != null) {
 					outputs.add(new NounMetadata(jR.System.err.output.toString(), PixelDataType.CONST_STRING));
 				}
 			}
@@ -157,15 +157,16 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			throw re;
 		} catch (CannotCompileException cce) {
 			logger.error(Constants.STACKTRACE, cce);
-			throw new IllegalArgumentException("Code had syntax errors which could not be compiled for execution: " + cce.getMessage());
+			throw new IllegalArgumentException(
+					"Code had syntax errors which could not be compiled for execution: " + cce.getMessage());
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			tempManager.removeClass(uniqueName);
+//			tempManager.removeClass(uniqueName);
 			// set back the original security manager
 //			System.setSecurityManager(defaultManager);	
 		}
-		
+
 		return new NounMetadata("no output", PixelDataType.CONST_STRING, PixelOperationType.CODE_EXECUTION);
 	}
 
