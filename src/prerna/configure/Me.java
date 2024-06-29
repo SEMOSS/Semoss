@@ -13,6 +13,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -58,11 +60,11 @@ public class Me {
 			//System.out.println("CAUTION!!! MULTIPLE ARGUEMENTS BEING PASSED, MIGHT BE ERROR.. WILL TRY TO RUN WITH FIRST ARGUMENT\n"
 			//		+ "POSSIBLE ISSUE WITH SEMOSS HOME DIRECTORY HAVING SPACES...");
 			System.out.println("First argument passed into method is: " + args[0]);
-			homePath = args[0].replace("\\", "/");
-			rHome = args[1].replace("\\", "/");
-			rLib = args[2].replace("\\", "/");
-			rdll = args[3].replace("\\", "/");
-			jriDll = args[4].replace("\\", "/");
+			homePath = sanitizePath(args[0].replace("\\", "/"));
+			rHome = sanitizePath(args[1].replace("\\", "/"));
+			rLib = sanitizePath(args[2].replace("\\", "/"));
+			rdll = sanitizePath(args[3].replace("\\", "/"));
+			jriDll = sanitizePath(args[4].replace("\\", "/"));
 		}
 		
 		System.out.println("Using home folder: " + homePath);
@@ -115,6 +117,18 @@ public class Me {
 		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
 		System.out.println("------------------------");
 	}
+	
+    private static String sanitizePath(String inputPath) throws InvalidPathException {
+        // Normalize the path to remove any ../ or ./
+        String normalizedPath = Paths.get(inputPath).normalize().toString();
+
+        // Ensure the path does not escape the intended directory
+        if (normalizedPath.contains("..")) {
+            throw new InvalidPathException(inputPath, "Path traversal attempt detected");
+        }
+
+        return normalizedPath.replace("\\", "/");
+    }
 	
 	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
 	{
