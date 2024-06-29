@@ -10,7 +10,7 @@ import jep.JepConfig;
 import jep.JepException;
 import jep.SharedInterpreter;
 import jep.python.PyObject;
-import prerna.sablecc2.ReactorSecurityManager;
+//import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -19,7 +19,7 @@ public final class PyExecutorThread extends Thread {
 
 	private static final String CLASS_NAME = PyExecutorThread.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(CLASS_NAME);
-	
+
 //	private static transient SecurityManager defaultManager = System.getSecurityManager();
 
 	private static boolean first = true;
@@ -33,7 +33,7 @@ public final class PyExecutorThread extends Thread {
 	private volatile boolean keepAlive = true;
 	private volatile boolean ready = false;
 	private Object driverMonitor = null;
-	
+
 	@Override
 	public void run() {
 		// wait to see if process is true
@@ -44,24 +44,23 @@ public final class PyExecutorThread extends Thread {
 		while (this.keepAlive) {
 			try {
 				synchronized (daLock) {
-					
+
 					classLogger.debug("Waiting for next command");
 					ready = true;
-					
-					if(command == null || command.length == 0)
-					{
+
+					if (command == null || command.length == 0) {
 						curState = ThreadState.wait;
 						daLock.wait();
 						response.clear();
 					}
-					
+
 					curState = ThreadState.run;
 					// if someone wakes up
 					// process the command
 					// set the response go back to sleep
 					if (this.keepAlive) {
-						ReactorSecurityManager tempManager = new ReactorSecurityManager();
-						tempManager.addClass(CLASS_NAME);
+//						ReactorSecurityManager tempManager = new ReactorSecurityManager();
+//					tempManager.addClass(CLASS_NAME);
 //						System.setSecurityManager(tempManager);
 
 						for (int cmdLength = 0; command != null && cmdLength < command.length; cmdLength++) {
@@ -76,26 +75,21 @@ public final class PyExecutorThread extends Thread {
 								classLogger.debug("<<<<<<<<<<<");
 								try {
 									thisResponse = jep.getValue(thisCommand);
-								} catch (Exception ex) 
-								{
-									try
-									{
+								} catch (Exception ex) {
+									try {
 										jep.eval(thisCommand);
-									} catch(JepException ex2)
-									{
+									} catch (JepException ex2) {
 										// use the exception as a response if we threw with the callback
-										if(ex2.getCause() instanceof PythonExceptionWrapper) {
+										if (ex2.getCause() instanceof PythonExceptionWrapper) {
 											thisResponse = new SemossPixelException(ex2.getCause().getMessage());
 										} else {
 											ex2.printStackTrace();
 										}
-									} catch(Exception ex2) 
-									{
+									} catch (Exception ex2) {
 										ex2.printStackTrace();
 									}
-								} finally
-								{
-									if(thisResponse == null)
+								} finally {
+									if (thisResponse == null)
 										thisResponse = "";
 									response.put(thisCommand, thisResponse);
 								}
@@ -126,7 +120,7 @@ public final class PyExecutorThread extends Thread {
 						command = null;
 
 						// set back the original security manager
-						tempManager.removeClass(CLASS_NAME);
+//						tempManager.removeClass(CLASS_NAME);
 //						System.setSecurityManager(defaultManager);
 					}
 				}
@@ -135,8 +129,8 @@ public final class PyExecutorThread extends Thread {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
-		if(jep != null) {
+
+		if (jep != null) {
 			try {
 				jep.close();
 			} catch (JepException e) {
@@ -157,47 +151,38 @@ public final class PyExecutorThread extends Thread {
 	public Object getMonitor() {
 		return daLock;
 	}
-	
+
 	public Jep getJep() {
 		try {
 			if (this.jep == null) {
 				// forcing a sleep here
 				/*
-					try {
-						Thread.sleep(20000);
-					}catch(Exception ignored)
-					{
-						
-					}
-				*/
-				
+				 * try { Thread.sleep(20000); }catch(Exception ignored) {
+				 * 
+				 * }
+				 */
+
 				JepConfig aJepConfig = new JepConfig();
 				// this is not longer needed in 3.9.0
 				// https://github.com/ninia/jep/issues/140
-				/*aJepConfig.addSharedModules("pandas", 
-						"numpy",
-						"sys", 
-						"fuzzywuzzy", 
-						"string", 
-						"random", 
-						"datetime", 
-						"annoy",
-						"sklearn",
-						"pulp");*/
+				/*
+				 * aJepConfig.addSharedModules("pandas", "numpy", "sys", "fuzzywuzzy", "string",
+				 * "random", "datetime", "annoy", "sklearn", "pulp");
+				 */
 
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
 				pyBase = Utility.getBaseFolder() + "/" + Constants.PY_BASE_FOLDER;
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
-				
+
 //				try {
 //					aJepConfig.redirectStdout(new FileOutputStream("c:/temp/pyout.out"));
 //				} catch (FileNotFoundException e) {
 //					// TODO Auto-generated catch block
 //					e.printStackTrace();
 //				}
-				
+
 				aJepConfig.setRedirectOutputStreams(true);
 
 				// add the libraries
@@ -206,39 +191,31 @@ public final class PyExecutorThread extends Thread {
 					aJepConfig.addIncludePaths(sitepackages);
 				}
 				initSharedInterpreter(aJepConfig);
-				
+
 				jep = new SharedInterpreter();
 
-				//jep.eval("from jep import redirect_streams");
-				//jep.eval("redirect_streams.setup()");
-				
+				// jep.eval("from jep import redirect_streams");
+				// jep.eval("redirect_streams.setup()");
+
 				// exec(open('c:/users/pkapaleeswaran/workspacej3/SemossDev/py/init.py').read())
 				String execCommand = "exec(open('" + pyBase + "/init.py" + "').read())";
 				jep.eval(execCommand);
-				
+
 				/*
-				jep.eval("import numpy as np");
-				jep.eval("import pandas as pd");
-				jep.eval("import gc as gc");
-				jep.eval("import sys");
-				// workaround for issue with matplotlib.pyplot.plot() not working with python
-				// 3.7.3; sys.argv is assumed to have length > 0
-				// see https://github.com/ninia/jep/issues/187 for details
-				// do it only if the version is there and it is 3.6
-				long major = (Long)jep.getValue("sys.version_info[0]");
-				long minor = (Long)jep.getValue("sys.version_info[1]");
-				//System.err.println("VERSION OF PYTHON IS " + major + "." + minor);
-				if(major >= 3 && minor >= 7)
-				{
-					//System.err.println("VERSION OF PYTHON IS " + major + "." + minor);
-					jep.eval("sys.argv.append('')"); 
-				}
-				jep.eval("from fuzzywuzzy import fuzz");
-				jep.eval("import string");
-				jep.eval("import random");
-				jep.eval("import datetime");
-				// jep.eval("from annoy import AnnoyIndex");
-				*/
+				 * jep.eval("import numpy as np"); jep.eval("import pandas as pd");
+				 * jep.eval("import gc as gc"); jep.eval("import sys"); // workaround for issue
+				 * with matplotlib.pyplot.plot() not working with python // 3.7.3; sys.argv is
+				 * assumed to have length > 0 // see https://github.com/ninia/jep/issues/187 for
+				 * details // do it only if the version is there and it is 3.6 long major =
+				 * (Long)jep.getValue("sys.version_info[0]"); long minor =
+				 * (Long)jep.getValue("sys.version_info[1]");
+				 * //System.err.println("VERSION OF PYTHON IS " + major + "." + minor); if(major
+				 * >= 3 && minor >= 7) { //System.err.println("VERSION OF PYTHON IS " + major +
+				 * "." + minor); jep.eval("sys.argv.append('')"); }
+				 * jep.eval("from fuzzywuzzy import fuzz"); jep.eval("import string");
+				 * jep.eval("import random"); jep.eval("import datetime"); //
+				 * jep.eval("from annoy import AnnoyIndex");
+				 */
 
 				classLogger.debug("Adding Syspath " + pyBase);
 				jep.eval("sys.path.append('" + pyBase + "')");
@@ -247,7 +224,7 @@ public final class PyExecutorThread extends Thread {
 				// these needs to be a better way to do this where we can add other things
 				jep.eval("from clean import PyFrame");
 				jep.eval("import smssutil");
-				
+
 				// include a callback to throw encountered exceptions
 				jep.set("pyExecutorThread", PyExecutorThread.class);
 				jep.eval("smssutil.setExecutorExceptionCallback(pyExecutorThread)");
@@ -257,7 +234,7 @@ public final class PyExecutorThread extends Thread {
 		}
 		return jep;
 	}
-	
+
 	public void killThread() {
 		this.keepAlive = false;
 	}
@@ -280,44 +257,31 @@ public final class PyExecutorThread extends Thread {
 			}
 		}
 	}
-	
+
 	public static class PythonExceptionWrapper extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 		public final PyObject cause;
 
-        public PythonExceptionWrapper(String message, PyObject cause) {
-            super(message);
-            this.cause = cause;
-        }
-    }
-	
+		public PythonExceptionWrapper(String message, PyObject cause) {
+			super(message);
+			this.cause = cause;
+		}
+	}
+
 	public static void throwPython(String message, PyObject cause) {
-        throw new PythonExceptionWrapper(message, cause);
-    }
-	
-	
-	/***** PURELY FOR TESTING PURPOSES
-	 
-	public void makeTheCall(PyTester pt)
-	{
-		try {
-			getJep().eval("print(et.startSession('monkesh'))");
-		} catch (JepException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		throw new PythonExceptionWrapper(message, cause);
 	}
-	
-	public void makeAnotherCall(PyTester pt)
-	{
-		et.setPyTester(pt);
-		try {
-			getJep().eval("print(et.startSession('monkesh'))");
-		} catch (JepException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-	*************************/
+
+	/*****
+	 * PURELY FOR TESTING PURPOSES
+	 * 
+	 * public void makeTheCall(PyTester pt) { try {
+	 * getJep().eval("print(et.startSession('monkesh'))"); } catch (JepException e)
+	 * { // TODO Auto-generated catch block e.printStackTrace(); } }
+	 * 
+	 * public void makeAnotherCall(PyTester pt) { et.setPyTester(pt); try {
+	 * getJep().eval("print(et.startSession('monkesh'))"); } catch (JepException e)
+	 * { // TODO Auto-generated catch block e.printStackTrace(); } }
+	 * 
+	 *************************/
 }
