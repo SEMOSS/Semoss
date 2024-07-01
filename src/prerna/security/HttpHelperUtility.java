@@ -65,6 +65,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
+import jodd.util.URLDecoder;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.util.Constants;
@@ -1140,7 +1141,7 @@ public final class HttpHelperUtility {
 	
 	public static String [] getCodes(String queryStr) {
 	 	String [] retString = new String[2];
-		String[] inputCodes = queryStr.split("&");
+		String[] inputCodes = URLDecoder.decode(queryStr).split("&");
 		for(int inputIndex = 0;inputIndex < inputCodes.length;inputIndex++) {
 			String thisToken = inputCodes[inputIndex];
 			if(thisToken.startsWith("state")) {
