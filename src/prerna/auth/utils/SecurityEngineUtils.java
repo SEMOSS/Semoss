@@ -2167,10 +2167,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = Long.parseLong(limit);
+			long_limit = ((Number) Double.parseDouble(limit)).longValue();
 		}
 		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = Long.parseLong(offset);
+			long_offset = ((Number) Double.parseDouble(offset)).longValue();
 		}
 		qs1.setLimit(long_limit);
 		qs1.setOffSet(long_offset);
@@ -2391,10 +2391,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 //		Long long_limit = -1L;
 //		Long long_offset = -1L;
 //		if(limit != null && !limit.trim().isEmpty()) {
-//			long_limit = Long.parseLong(limit);
+//			long_limit = ((Number) Double.parseDouble(limit)).longValue();
 //		}
 //		if(offset != null && !offset.trim().isEmpty()) {
-//			long_offset = Long.parseLong(offset);
+//			long_offset = ((Number) Double.parseDouble(offset)).longValue();
 //		}
 //		qs.setLimit(long_limit);
 //		qs.setOffSet(long_offset);
@@ -2645,10 +2645,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = Long.parseLong(limit);
+			long_limit = ((Number) Double.parseDouble(limit)).longValue();
 		}
 		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = Long.parseLong(offset);
+			long_offset = ((Number) Double.parseDouble(offset)).longValue();
 		}
 		qs1.setLimit(long_limit);
 		qs1.setOffSet(long_offset);
