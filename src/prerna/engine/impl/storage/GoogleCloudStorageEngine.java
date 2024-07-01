@@ -17,8 +17,8 @@ public class GoogleCloudStorageEngine extends AbstractRCloneStorageEngine {
 	public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
 
 	// specific values - while not final they shouldn't be modified
-	private String REGION = null;
-	private String GCP_SERVICE_ACCOUNT_FILE = null;
+	private transient String REGION = null;
+	private transient String GCP_SERVICE_ACCOUNT_FILE = null;
 	
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);

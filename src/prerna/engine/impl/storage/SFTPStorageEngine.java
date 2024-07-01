@@ -35,8 +35,8 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 
 	private String host = null;
 	private String port = "22";
-	private String username = null;
-	private String password = null;
+	private transient String username = null;
+	private transient String password = null;
 
 	@Override
 	public StorageTypeEnum getStorageType() {

@@ -25,10 +25,10 @@ public class CephStorageEngine extends AbstractRCloneStorageEngine {
 
 	// specific values - while not final they shouldn't be modified
 	// REGION for ceph should be left blank
-	private final String REGION = "";
-	private String ACCESS_KEY = null;
-	private String SECRET_KEY = null;
-	private String ENDPOINT = null;
+	private transient final String REGION = "";
+	private transient String ACCESS_KEY = null;
+	private transient String SECRET_KEY = null;
+	private transient String ENDPOINT = null;
 	
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);

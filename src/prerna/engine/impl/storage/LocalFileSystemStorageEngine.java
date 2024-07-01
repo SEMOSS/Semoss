@@ -24,7 +24,6 @@ public class LocalFileSystemStorageEngine extends AbstractRCloneStorageEngine {
 	@Deprecated
 	public static final String LOCAL_PATH_PREFIX = "LOCAL_PATH_PREFIX";
 
-	
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		this.BUCKET = smssProp.getProperty(PATH_PREFIX);
