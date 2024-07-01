@@ -22,8 +22,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.User;
 import prerna.om.Insight;
@@ -61,7 +63,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	//InputStream is = null;
 	//OutputStream os = null;
 	//SocketClientHandler sch = new SocketClientHandler();
-	private Gson gson = new Gson();
+	private Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	/**
 	 * 
