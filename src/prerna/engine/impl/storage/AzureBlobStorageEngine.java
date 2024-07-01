@@ -42,13 +42,13 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 
 	public static final String AZ_GENERATE_DYNAMIC_SAS = "AZ_GENERATE_DYNAMIC_SAS";
 	
-	private String accountName = null;
-	private String primaryKey = null;
+	private transient String accountName = null;
+	private transient String primaryKey = null;
 	
-	private CloudBlobClient serviceClient = null;
-	private String connectionString = null;
+	private transient CloudBlobClient serviceClient = null;
+	private transient String connectionString = null;
 
-	private boolean generateDynamicSAS = true;
+	private transient boolean generateDynamicSAS = true;
 	
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);

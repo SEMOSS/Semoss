@@ -21,12 +21,12 @@ public class JCIFSStorageEngine extends AbstractStorageEngine {
 	private static final String NETWORK_DOMAIN = "NETWORK_DOMAIN";
 	private static final String PATH_PREFIX = "PATH_PREFIX";
 	
-	private String networkDomain = null;
-	private String networkUsername = null;
-	private String networkPassword = null;
-	private NtlmPasswordAuthentication auth = null;
+	private transient String networkDomain = null;
+	private transient String networkUsername = null;
+	private transient String networkPassword = null;
+	private transient NtlmPasswordAuthentication auth = null;
 	
-	private String pathPrefix = null;
+	private transient String pathPrefix = null;
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
