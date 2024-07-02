@@ -1,6 +1,5 @@
 package prerna.reactor.frame.r.util;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RFactor;
 import org.rosuda.JRI.RVector;
@@ -19,10 +19,13 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+
 
 public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<String, ReentrantLock>();
+	private static final Logger classLogger = LogManager.getLogger(RJavaJriTranslator.class);
 
 	Rengine engine;
 
@@ -142,7 +145,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				this.engine = retEngine;
 				setMemoryLimit();
 			} catch(NullPointerException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				System.out.println("Could not connect to R JRI.  Please make sure paths are accurate");
 				throw new IllegalArgumentException("Could not connect to R JRI.  Please make sure paths are accurate");
 			} catch(ClassNotFoundException e) {
@@ -153,7 +156,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 						+ "4)stringr\n"
 						+ "5)lubridate\n"
 						+ "6)dplyr\n");
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
 						+ "1)splitstackshape\n"
 						+ "2)data.table\n"
@@ -162,7 +165,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 						+ "5)lubridate\n"
 						+ "6)dplyr\n");
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		this.engine = retEngine;
@@ -182,7 +185,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			}
 			return rexp;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -206,7 +209,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			}
 			return rexp;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ICodeExecution;
@@ -39,6 +40,8 @@ import prerna.util.insight.InsightUtility;
 
 public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecution {
 	
+	private static final Logger classLogger = LogManager.getLogger(PyPlotReactor.class);
+
 	private static final String CLASS_NAME = PyPlotReactor.class.getName();
 	// the code that was executed
 	private String code = null;
@@ -186,7 +189,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();		
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		new File(seabornFile).delete();

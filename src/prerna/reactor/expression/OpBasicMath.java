@@ -3,6 +3,9 @@ package prerna.reactor.expression;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -15,8 +18,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 
 public abstract class OpBasicMath extends OpReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(OpBasicMath.class);
 
 	protected String operation;
 	protected boolean returnInteger = true;
@@ -137,7 +143,7 @@ public abstract class OpBasicMath extends OpReactor {
 				throw new IllegalArgumentException("Data query did not return any results for the operation");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 	}

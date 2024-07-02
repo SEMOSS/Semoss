@@ -35,6 +35,8 @@ import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -47,6 +49,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWrapper {
+
+	private static final Logger classLogger = LogManager.getLogger(RDBMSSelectCheater.class);
 
 	private ResultSet rs = null;
 	private Connection conn = null;
@@ -71,7 +75,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 			rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 			setVariables(); //get the variables
 		} catch (Exception e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			ConnectionUtils.closeAllConnections(conn, stmt, rs);
 		}
 	}
@@ -133,7 +137,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				stmt.setPredicate(predicate);				
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return stmt;
 	}
@@ -247,7 +251,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

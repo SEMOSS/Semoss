@@ -12,6 +12,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.BinaryExpression;
@@ -64,7 +67,7 @@ import prerna.query.querystruct.OrderByExpression;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.WhenExpression;
 import prerna.query.querystruct.filters.IQueryFilter;
-
+import prerna.util.Constants;
 
 /*
  * Select > SelectBody > 
@@ -117,7 +120,8 @@ public class SqlParser2 {
 	boolean processCase = false;
 	boolean processAllBinary = false;
 	Stack <Boolean> processParam = new Stack<Boolean>();
-	
+	private static final Logger classLogger = LogManager.getLogger(SqlParser2.class);
+
 
 	public SqlParser2() {
 		this.wrapper.tableAlias = new Hashtable <String, String>();
@@ -1716,7 +1720,7 @@ public class SqlParser2 {
 			newTableColumn = remasterColumns(realTables, tableColumns);
 		} catch (JSQLParserException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return newTableColumn;
@@ -1752,7 +1756,7 @@ public class SqlParser2 {
 					
 		} catch (JSQLParserException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return levelSelectors;

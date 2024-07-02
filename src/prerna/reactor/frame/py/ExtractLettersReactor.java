@@ -3,6 +3,9 @@ package prerna.reactor.frame.py;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
@@ -11,13 +14,16 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
+
 public class ExtractLettersReactor extends AbstractPyFrameReactor {
 
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
+	private static final Logger classLogger = LogManager.getLogger(ExtractLettersReactor.class);
 
 	public ExtractLettersReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
@@ -53,7 +59,7 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 					try {
 						commands.append(wrapperFrameName + ".extract_alpha('" + column + "')\n");
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				} else {
 					throw new IllegalArgumentException("Column type must be string");

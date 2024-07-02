@@ -14,10 +14,12 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+
 public class RJavaTranslatorFactory {
+
+	private static final Logger classLogger = LogManager.getLogger(RJavaTranslatorFactory.class);
 
 	// get the OS type
 	private static String OS = System.getProperty("os.name").toLowerCase();
@@ -97,7 +99,7 @@ public class RJavaTranslatorFactory {
 		try {
 			translatorClass = Class.forName(className);
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		INIT = true;
@@ -130,9 +132,9 @@ public class RJavaTranslatorFactory {
 			newInstance.setLogger(dummyLogger);
 			newInstance.startR();
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -149,9 +151,9 @@ public class RJavaTranslatorFactory {
 				newInstance.setLogger(dummyLogger);
 				newInstance.endR();
 			} catch (InstantiationException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -201,9 +203,9 @@ public class RJavaTranslatorFactory {
 				}
 			}
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return newInstance;
 	}

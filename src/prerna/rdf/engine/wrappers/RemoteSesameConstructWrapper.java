@@ -31,13 +31,19 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Statement;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
+
 public class RemoteSesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
+
+	private static final Logger classLogger = LogManager.getLogger(RemoteSesameConstructWrapper.class);
 
 	transient SesameConstructWrapper remoteWrapperProxy = null;
 	transient IConstructStatement retSt = null;
@@ -83,23 +89,23 @@ public class RemoteSesameConstructWrapper extends AbstractWrapper implements ICo
 						ris.close();
 					}
 				} catch(IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			retSt = null;
 			retBool = false;
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			retSt = null;
 			retBool = false;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			retSt = null;
 			retBool = false;
 		}
