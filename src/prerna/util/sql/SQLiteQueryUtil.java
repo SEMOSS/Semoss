@@ -12,6 +12,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sqlite.Function;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteConfig.Pragma;
@@ -23,9 +25,12 @@ import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SQLiteSqlInterpreter;
 import prerna.sablecc2.om.Join;
+import prerna.util.Constants;
 
 public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	
+	private static final Logger classLogger = LogManager.getLogger(SQLiteQueryUtil.class);
+
 	SQLiteQueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.SQLITE);
@@ -171,10 +176,10 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 					}
 				});
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

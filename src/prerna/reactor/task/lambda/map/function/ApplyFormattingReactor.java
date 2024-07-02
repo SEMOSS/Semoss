@@ -21,8 +21,8 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 public class ApplyFormattingReactor extends TaskBuilderReactor {
 	
 	private Map<String, String> colIndexFormatMap;
-	private DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-	private DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	private static final DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	private static final DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
 	public ApplyFormattingReactor() {
 		this.keysToGet = new String[]{};
@@ -82,9 +82,13 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 				//convert the value to a java Date
 				Date valAsDateTime = null;
 				if (type.equals("DATE")) {
+					synchronized(sdf) {
 					valAsDateTime = sdf.parse(val);
+					}
 				} else if (type.equals("TIMESTAMP")){
+					synchronized(stf) {
 					valAsDateTime = stf.parse(val);
+					}
 				}
 				//format the date per requested format
 				DateFormat df = new SimpleDateFormat(this.colIndexFormatMap.get(key));
@@ -96,6 +100,20 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 		return new HeadersDataRow(headers, values);
 	}
 	
+//	  private synchronized Date parseSDFDate(String date) {
+//		    try {
+//				return sdf.parse(date);
+//			} catch (ParseException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} // OK
+//		  }
+//	
+//
+//	  private synchronized Date parseSTFDate(String date) {
+//		    return stf.parse(date); // OK
+//		  }
+	  
 //	public static void main(String[] args) throws ParseException {		
 ////		String dateColV = "2018-05-31";
 ////		DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");

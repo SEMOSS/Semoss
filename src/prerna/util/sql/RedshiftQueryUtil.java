@@ -5,9 +5,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.util.Constants;
 
 public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
+
+	private static final Logger classLogger = LogManager.getLogger(RedshiftQueryUtil.class);
 
 	RedshiftQueryUtil() {
 		super();
@@ -175,13 +181,13 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 				stmt = con.createStatement();
 				stmt.execute("SET search_path TO " + this.schema + ";");
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}

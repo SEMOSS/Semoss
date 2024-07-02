@@ -2,6 +2,7 @@ package prerna.util.git.reactors;
 
 import java.util.Hashtable;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -14,9 +15,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitCreator;
+
 
 public class InitAppRepo extends GitBaseReactor {
 
@@ -24,6 +27,9 @@ public class InitAppRepo extends GitBaseReactor {
 	 * Synchronize an existing database to a specified remote
 	 */
 
+	private static final Logger classLogger = LogManager.getLogger(InitAppRepo.class);
+
+	
 	public InitAppRepo() {
 		super.keysToGet = new String[]{
 				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
@@ -103,7 +109,7 @@ public class InitAppRepo extends GitBaseReactor {
 			}
 			logger.info("Congratulations! You have successfully created your database " + repository);
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			// open it back up
 			if(syncDatabase) {

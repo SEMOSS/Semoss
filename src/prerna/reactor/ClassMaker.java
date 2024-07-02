@@ -4,6 +4,9 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import javassist.CannotCompileException;
 import javassist.ClassClassPath;
 import javassist.ClassPool;
@@ -11,9 +14,13 @@ import javassist.CtClass;
 import javassist.CtField;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
+
 public class ClassMaker {
+
+	private static final Logger classLogger = LogManager.getLogger(ClassMaker.class);
 
 	ClassPool pool = null;
 	CtClass cc = null;
@@ -54,7 +61,7 @@ public class ClassMaker {
 			interfaceVector[0] = pool.getCtClass(interfaceName);
 			cc.setInterfaces(interfaceVector);
 		} catch (NotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -66,9 +73,9 @@ public class ClassMaker {
 			try {
 				cc.setSuperclass(pool.getCtClass(superClassName));
 			} catch (NotFoundException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (CannotCompileException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			hasSuper = true;
 		}
@@ -80,7 +87,7 @@ public class ClassMaker {
 		try {
 			cc.addMethod(CtNewMethod.make(daMethod, cc));
 		} catch (CannotCompileException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -88,7 +95,7 @@ public class ClassMaker {
 		try {
 			cc.addField(CtField.make(field, cc));
 		} catch (CannotCompileException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -102,7 +109,7 @@ public class ClassMaker {
 		try {
 			return cc.toClass();
 		} catch (CannotCompileException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -114,7 +121,7 @@ public class ClassMaker {
     		DataOutputStream out = new DataOutputStream(new FileOutputStream(fileName));
 			cc.getClassFile().write(out);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 }
