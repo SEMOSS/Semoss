@@ -148,16 +148,16 @@ public class PySingleton {
 					}
 			} catch (NumberFormatException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (InstantiationException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return tcpServer;

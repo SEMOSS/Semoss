@@ -35,15 +35,20 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.algebra.Var;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SPARQLQueryParser extends AbstractQueryParser {
 	
+	private static final Logger classLogger = LogManager.getLogger(SPARQLQueryParser.class);
+
 	private final double GOLDEN_RATIO = 0.618;
 	private Hashtable<String, Double> finalHash;
 	private Hashtable<String, Integer> countHash;
@@ -108,7 +113,7 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 			
 			getURIList(); // populates finalHash, types, and props
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		// calculate weights for all return variables

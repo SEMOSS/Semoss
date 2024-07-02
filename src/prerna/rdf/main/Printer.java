@@ -45,6 +45,8 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.reasoner.ReasonerRegistry;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.GraphQuery;
@@ -62,10 +64,8 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
-import prerna.util.Constants;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.util.Constants;
 /**
  */
 public class Printer {
@@ -251,7 +251,7 @@ public class Printer {
 					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			System.out.println("Jena End" + System.currentTimeMillis());
@@ -400,11 +400,11 @@ public class Printer {
 			tq.setIncludeInferred(true /* includeInferred */);
 			sparqlResults = tq.evaluate();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return sparqlResults;
 	}
@@ -423,11 +423,11 @@ public class Printer {
 						query);
 				res = sagq.evaluate();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return res;	
 	}

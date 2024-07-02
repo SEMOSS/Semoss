@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import prerna.query.parsers.ParamStructDetails.LEVEL;
@@ -19,9 +22,12 @@ import prerna.query.querystruct.GenExpression;
 import prerna.query.querystruct.OperationExpression;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.Constants;
 
 public class GenExpressionWrapper {
 	
+	private static final Logger classLogger = LogManager.getLogger(GenExpressionWrapper.class);
+
 	// keep table alias
 	// this is {alias => table name}
 	public Map<String, String> tableAlias = null;
@@ -1100,7 +1106,7 @@ public class GenExpressionWrapper {
 			retQuery = wrapper.root.printQS(wrapper.root, null) + "";
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retQuery;

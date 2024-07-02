@@ -37,6 +37,8 @@ import org.openrdf.query.QueryEvaluationException;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
+import prerna.util.Constants;
+
 
 public class SesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
@@ -55,7 +57,7 @@ public class SesameConstructWrapper extends AbstractWrapper implements IConstruc
 			thisSt.setPredicate(stmt.getPredicate() + "");
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		return thisSt;
 	}
@@ -75,7 +77,7 @@ public class SesameConstructWrapper extends AbstractWrapper implements IConstruc
 				gqr.close();
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		
 		return retBool;
@@ -86,7 +88,7 @@ public class SesameConstructWrapper extends AbstractWrapper implements IConstruc
 		try {
 			gqr.close();
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 			throw new IOException(e);
 		}
 	}

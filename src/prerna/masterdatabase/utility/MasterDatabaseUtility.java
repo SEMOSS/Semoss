@@ -2889,7 +2889,7 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		Statement stmt = null;
@@ -2928,7 +2928,7 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		Statement stmt = null;
@@ -2972,7 +2972,7 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		Statement stmt = null;

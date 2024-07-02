@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -13,11 +16,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.usertracking.UserTrackerFactory;
 import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollectReactor extends TaskBuilderReactor {
 
@@ -55,7 +55,7 @@ public class CollectReactor extends TaskBuilderReactor {
 					UserTrackerFactory.getInstance().trackQueryData(this.insight, ((BasicIteratorTask) task).getQueryStruct());
 				}
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

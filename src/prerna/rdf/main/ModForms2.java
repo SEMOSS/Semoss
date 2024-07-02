@@ -4,19 +4,21 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.test.TestUtilityMethods;
-import prerna.util.DIHelper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
+
 public class ModForms2 {
+	private static final Logger classLogger = LogManager.getLogger(ModForms2.class);
 
 //	public static void main(String[] args) throws Exception {
 //		TestUtilityMethods.loadDIHelper();
@@ -119,13 +121,13 @@ public class ModForms2 {
 				triplesToRemove.add(new Object[]{row[0], row[1], row[2], true});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(manager != null) {
 				try {
 					manager.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -151,13 +153,13 @@ public class ModForms2 {
 				triplesToRemove.add(new Object[]{sub, pred, obj, false});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(manager != null) {
 				try {
 					manager.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
