@@ -34,6 +34,9 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.BinaryExpression;
@@ -61,8 +64,12 @@ import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperationList;
+import prerna.util.Constants;
+
 
 public class SQLQueryParser extends AbstractQueryParser {
+
+	private static final Logger classLogger = LogManager.getLogger(SQLQueryParser.class);
 
 	public static final String conceptUri = "http://semoss.org/ontologies/Concept/";
 	public static final String propertyUri = "http://semoss.org/ontologies/Relation/Contains/";
@@ -253,7 +260,7 @@ public class SQLQueryParser extends AbstractQueryParser {
 				parseReturnVariables(selectStatement);
 			}
 		} catch (JSQLParserException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return getReturnVariables();

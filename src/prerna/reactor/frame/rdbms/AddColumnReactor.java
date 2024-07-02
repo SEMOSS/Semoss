@@ -1,5 +1,8 @@
 package prerna.reactor.frame.rdbms;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
@@ -7,9 +10,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+
 
 public class AddColumnReactor extends AbstractFrameReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(AddColumnReactor.class);
+
 	/**
 	 * This reactor adds an empty column to the frame The inputs to the reactor are: 
 	 * 1) the name for the new column 
@@ -55,7 +62,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 					metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

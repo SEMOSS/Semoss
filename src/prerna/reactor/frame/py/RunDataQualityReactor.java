@@ -3,6 +3,9 @@ package prerna.reactor.frame.py;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
@@ -11,9 +14,11 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
-
 public class RunDataQualityReactor extends AbstractPyFrameReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RunDataQualityReactor.class);
 
 	private static final String RULE_KEY = "rule";
 	private static final String COLUMNS_KEY = "column";
@@ -77,7 +82,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 		try {
 			newFrame = (PandasFrame) FrameFactory.getFrame(this.insight, "PY", retPyFrameName);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		

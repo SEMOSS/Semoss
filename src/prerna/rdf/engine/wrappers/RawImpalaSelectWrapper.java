@@ -3,14 +3,21 @@ package prerna.rdf.engine.wrappers;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.util.Constants;
+
 
 public class RawImpalaSelectWrapper extends RawRDBMSSelectWrapper {
 	
+	private static final Logger classLogger = LogManager.getLogger(RawImpalaSelectWrapper.class);
+
 	private SelectQueryStruct qs;
 
 	public RawImpalaSelectWrapper() {
@@ -51,7 +58,7 @@ public class RawImpalaSelectWrapper extends RawRDBMSSelectWrapper {
 				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

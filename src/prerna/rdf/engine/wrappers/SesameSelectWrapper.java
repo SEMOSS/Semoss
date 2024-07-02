@@ -64,7 +64,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 				tqr.close();
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		return retBool;
 	}
@@ -80,7 +80,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 			sjss = getSelectFromBinding(bs);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		return sjss;
 	}
@@ -200,7 +200,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 					
 			} catch (QueryEvaluationException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 		return headers;
@@ -217,7 +217,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 					;
 			} catch (QueryEvaluationException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 		return rawHeaders;
@@ -228,7 +228,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		try {
 			tqr.close();
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 			throw new IOException(e);
 		}
 	}

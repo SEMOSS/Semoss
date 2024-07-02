@@ -2,12 +2,16 @@ package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -20,6 +24,8 @@ import prerna.util.usertracking.UserTrackerFactory;
 */
 
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ChangeColumnTypeReactor.class);
 
 	public ChangeColumnTypeReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format"};
@@ -68,7 +74,7 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(convertString);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
 		} else {
@@ -77,7 +83,7 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(update);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
 		}

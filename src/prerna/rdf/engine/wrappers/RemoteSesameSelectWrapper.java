@@ -37,7 +37,9 @@ import org.openrdf.query.BindingSet;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.util.Constants;
 import prerna.util.Utility;
+
 
 public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper {
 
@@ -87,10 +89,10 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 			}
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		return retBool;
 	}
