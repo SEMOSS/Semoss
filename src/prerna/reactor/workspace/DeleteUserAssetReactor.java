@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -14,12 +16,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
+
 
 public class DeleteUserAssetReactor extends AbstractReactor {
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	private static final Logger classLogger = LogManager.getLogger(DeleteUserAssetReactor.class);
 
 	public DeleteUserAssetReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey()};
@@ -61,11 +66,11 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 				FileUtils.deleteDirectory(relativeFile);
 				deleted = true;
 			} catch (IOException e) {
-				e.printStackTrace();
-			}
+				classLogger.error(Constants.STACKTRACE, e);
+				}
 			catch (IllegalArgumentException e) {
-				e.printStackTrace();
-			}
+				classLogger.error(Constants.STACKTRACE, e);
+				}
 		} else{
 			deleted = relativeFile.delete();
 		}

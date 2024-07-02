@@ -4,27 +4,30 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHCommit.File;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentUpdateResponse;
-import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedIterator;
 
 import prerna.om.RemoteItem;
+import prerna.util.Constants;
+
 
 public class GitAssetMaker {
 
 	public static final String assetRepoName = "_ASSETS";
 	
-	
+	private static final Logger classLogger = LogManager.getLogger(GitAssetMaker.class);
+
 	public static List<RemoteItem> listAssets(String assetFolder, String username, String password) throws Exception
 	{
 		List <RemoteItem> retList = new Vector<RemoteItem>();
@@ -99,7 +102,7 @@ public class GitAssetMaker {
 				GitRepoUtils.makeRemoteRepository(gh, loginName, loginName + assetRepoName);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 	}
@@ -118,7 +121,7 @@ public class GitAssetMaker {
 			//resp.getCommit().getS
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}		
 	}
 	
@@ -138,7 +141,7 @@ public class GitAssetMaker {
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}		
 	}
 
@@ -158,7 +161,7 @@ public class GitAssetMaker {
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}		
 	}
 
