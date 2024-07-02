@@ -163,7 +163,7 @@ public class MgmtUtil {
 	}
 	
 	public static int getPidByPort(int port) {
-		SecurityManager priorManager = System.getSecurityManager();
+//		SecurityManager priorManager = System.getSecurityManager();
 //		System.setSecurityManager(null);
 		File tempFile = new File(Temp_FOLDER + Utility.getRandomString(12) + ".txt");
 		try {
