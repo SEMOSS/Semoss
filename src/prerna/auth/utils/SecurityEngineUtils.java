@@ -2115,7 +2115,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {1, null}), PixelDataType.CONST_INT));
 		// favorites only
 		if(favoritesOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", Arrays.asList(new Object[] {1, null}), PixelDataType.CONST_INT));
 		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {

@@ -11,11 +11,17 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
+
 public class GitAssetUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(GitAssetUtils.class);
 
 	// gets all the information on assets
 	// gives the information in 2 chunks
@@ -172,7 +178,7 @@ public class GitAssetUtils {
 				}
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

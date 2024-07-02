@@ -5,13 +5,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.DatabricksSqlInterpreter;
+import prerna.util.Constants;
 
 public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
+
+	private static final Logger classLogger = LogManager.getLogger(DatabricksQueryUtil.class);
 
 	private String httpPath = null;
 	private String uid = null;
@@ -128,7 +134,7 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 			stmt = con.createStatement();
 			stmt.execute("use `"+this.database+"`.`"+this.schema+"`");
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 				try {

@@ -1,12 +1,18 @@
 package prerna.reactor;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class ParallelRunReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ParallelRunReactor.class);
 
 	public ParallelRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PARALLEL_WORKER.getKey()};
@@ -36,13 +42,13 @@ public class ParallelRunReactor extends AbstractReactor {
 			t.start();
 			
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(getError("Cannot Instantiate class " + className));
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(getError("Illegal Access class " + className));
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(getError("Not Found  class " + className));
 		}
 
