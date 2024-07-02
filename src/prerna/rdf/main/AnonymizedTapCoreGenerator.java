@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -12,10 +15,13 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
+
 
 public class AnonymizedTapCoreGenerator {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final Logger classLogger = LogManager.getLogger(AnonymizedTapCoreGenerator.class);
 
 //	public static void main(String[] args) throws Exception {
 //		// adding all the required paths up front here
@@ -255,13 +261,13 @@ public class AnonymizedTapCoreGenerator {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

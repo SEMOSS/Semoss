@@ -8,13 +8,19 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.jena.vocabulary.RDF;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
+
 
 public class MHSGenesisScheduleUpdater {
+
+	private static final Logger classLogger = LogManager.getLogger(MHSGenesisScheduleUpdater.class);
 
 		
 //	public static void main(String[] args) throws Exception {
@@ -83,13 +89,13 @@ public class MHSGenesisScheduleUpdater {
 				deleteRel(engine, uriRow);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -141,13 +147,13 @@ public class MHSGenesisScheduleUpdater {
 				deleteRel(engine, uriRow);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

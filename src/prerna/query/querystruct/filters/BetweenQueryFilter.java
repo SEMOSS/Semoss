@@ -9,13 +9,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.util.Constants;
 
 public class BetweenQueryFilter implements IQueryFilter, Serializable {
+
+	private static final Logger classLogger = LogManager.getLogger(BetweenQueryFilter.class);
 
 	IQuerySelector column = null;
 	Object start = null;
@@ -120,10 +125,10 @@ public class BetweenQueryFilter implements IQueryFilter, Serializable {
 			retExpression = (IQueryFilter)retObject;
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 			
 		return retExpression;

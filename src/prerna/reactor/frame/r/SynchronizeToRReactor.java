@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 
@@ -17,11 +19,8 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.util.Utility;
 public class SynchronizeToRReactor extends AbstractRFrameReactor {
 	protected static final Logger classLogger = LogManager.getLogger(SynchronizeToRReactor.class);
 
@@ -151,7 +150,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			gridFrame.getBuilder().runQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
 					+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");

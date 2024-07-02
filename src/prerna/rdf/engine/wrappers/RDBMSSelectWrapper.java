@@ -36,6 +36,9 @@ import java.sql.Types;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -44,6 +47,8 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 
 public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
+
+	private static final Logger classLogger = LogManager.getLogger(RDBMSSelectWrapper.class);
 
 	private ResultSet rs = null;
 	private Connection conn = null;
@@ -68,7 +73,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 			setVariables(); //get the variables
 		} catch (Exception e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			//in case query times out, close rs object..
 			if(useEngineConnection)
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
@@ -110,7 +115,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return stmt;
 	}
@@ -176,7 +181,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
