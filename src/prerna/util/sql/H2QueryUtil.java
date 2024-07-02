@@ -36,15 +36,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.H2SqlInterpreter;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
+	private static final Logger classLogger = LogManager.getLogger(H2QueryUtil.class);
+
 	private boolean forceFile;
 	
 	H2QueryUtil() {
@@ -155,13 +161,13 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			stmt = con.createStatement();
 			stmt.execute("CREATE AGGREGATE IF NOT EXISTS SMSS_MEDIAN FOR \"prerna.ds.rdbms.h2.H2MedianAggregation\";");
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

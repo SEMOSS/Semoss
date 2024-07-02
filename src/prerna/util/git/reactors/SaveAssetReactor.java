@@ -5,6 +5,8 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -17,6 +19,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SaveAssetReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(SaveAssetReactor.class);
 
 	public SaveAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.CONTENT.getKey(),
@@ -65,7 +69,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		try {
 			FileUtils.writeStringToFile(file, content);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file");
 			SemossPixelException exception = new SemossPixelException(error);
 			exception.setContinueThreadOfExecution(false);
