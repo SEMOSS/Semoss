@@ -217,6 +217,7 @@ public enum PixelOperationType {
 	
 	// HELP
 	HELP,
+	HELP_JSON,
 	
 	// JOB REACTOR
 	JOB_ID,
