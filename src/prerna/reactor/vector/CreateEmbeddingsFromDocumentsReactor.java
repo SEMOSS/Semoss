@@ -162,6 +162,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		if(mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
+		
 		return null;
 	}
 

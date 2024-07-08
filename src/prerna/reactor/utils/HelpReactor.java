@@ -66,6 +66,12 @@ public class HelpReactor extends AbstractReactor {
 			allReactors.append("R Frame Reactors: \n").append(formatOutput(rFrame, isAdmin));
 		}
 		
+		//pyframe
+		TreeSet pyFrame = new TreeSet(ReactorFactory.pandasFrameHash.keySet());
+		if (rFrame.size() > 0) {
+			allReactors.append("Python Frame Reactors: \n").append(formatOutput(rFrame, isAdmin));
+		}
+		
 		//h2
 		TreeSet h2Frame = new TreeSet(ReactorFactory.h2FrameHash.keySet());
 		if (h2Frame.size() > 0) {
