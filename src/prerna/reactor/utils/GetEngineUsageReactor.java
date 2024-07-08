@@ -102,7 +102,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							+ "Storage(storage = \""+engineId+"\")|ListStoragePathDetails(storagePath='/your/storage/path');\r\n"
 							+ "Storage(storage = \""+engineId+"\")|PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
 							+ "Storage(storage = \""+engineId+"\")|PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
-							+ "Storage(storage = \""+engineId+"\")|DeleteFromStorage(storagePath='/your/storage/path');"
+							+ "Storage(storage = \""+engineId+"\")|SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\")|SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
+							+ "Storage(storage = \""+engineId+"\")|DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);"
 					);
 			usage.add(usageMap);
 		}
@@ -112,12 +114,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"How to use in Python",
 					"from gaas_gpt_storage import StorageEngine\r\n" + 
 							"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
-							"storageEngine.list(path = '/your/path/')\r\n" + 
-							"storageEngine.listDetails(path = '/your/path/')\r\n" + 
+							"storageEngine.list(storagePath = '/your/path/')\r\n" + 
+							"storageEngine.listDetails(storagePath = '/your/path/')\r\n" + 
 							"storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" +
 							"storageEngine.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" + 
-							"storageEngine.copyToLocal(localFolderPath= 'your/local/file/path', storageFilePath = 'your/storage/file/path')\r\n" + 
-							"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path')"
+							"storageEngine.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
+							"storageEngine.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')\r\n" + 
+							"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path', leaveFolderStructure=False)"
 					);
 			usage.add(usageMap);
 		}
