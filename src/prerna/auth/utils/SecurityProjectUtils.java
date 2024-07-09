@@ -2286,10 +2286,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		
 		// only show those that are visible
+		// remember, user permissions cast this to int
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {1, null}), PixelDataType.CONST_INT));
 		// favorites only
+		// remember, user permissions cast this to int
 		if(favoritesOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", 1, PixelDataType.CONST_INT));
 		}
 		if(portalsOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
