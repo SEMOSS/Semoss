@@ -59,6 +59,7 @@ import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -2337,8 +2338,9 @@ public final class Utility {
 		String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
 
 		String retString = "a";
+		SecureRandom secureRandom = new SecureRandom();
 		for (int i = 0; i < len; i++) {
-			double num = Math.random() * alpha.length();
+			double num = secureRandom.nextInt(alpha.length());
 			retString = retString + alpha.charAt(new Double(num).intValue());
 		}
 
