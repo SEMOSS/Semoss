@@ -61,7 +61,8 @@ public class ProjectHelper {
 			IProject.PROJECT_TYPE projectType,
 			boolean global,
 			boolean hasPortal, String portalName,
-			String gitProvider, String gitCloneUrl, User user, Logger logger) {
+			String gitProvider, String gitCloneUrl, 
+			User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
 		return generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName, gitProvider, gitCloneUrl, user, logger);
 	}
@@ -82,7 +83,8 @@ public class ProjectHelper {
 			IProject.PROJECT_TYPE projectType,
 			boolean global, 
 			boolean hasPortal, String portalName, 
-			String gitProvider, String gitCloneUrl, User user, Logger logger) {
+			String gitProvider, String gitCloneUrl, 
+			User user, Logger logger) {
 		if(projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
@@ -155,6 +157,8 @@ public class ProjectHelper {
 				for (AuthProvider ap : logins) {
 					SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 				}
+				user.setProject(projectId, projectName);
+				user.addVarMap(projectId);
 			}
 
 			return project;
