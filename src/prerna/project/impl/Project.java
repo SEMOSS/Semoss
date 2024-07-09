@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
@@ -1527,10 +1528,19 @@ public class Project implements IProject {
 	// get the target folder
 	public String getTargetFolder(File pomFile) {
 		String targetFolder = null;
+		
 		try {
 			InputSource is = new InputSource(new FileInputStream(pomFile));
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			// Use this if the JAXP parser accepts it
+			dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			// AND add the following to enforce limits on what the parser is allowed to do
+			dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			dbf.setXIncludeAware(false);
+			dbf.setExpandEntityReferences(false);
+			DocumentBuilder builder = dbf.newDocumentBuilder();
 			
 			org.w3c.dom.Document d = builder.parse(is);
 			
