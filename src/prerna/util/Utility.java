@@ -5684,7 +5684,7 @@ public final class Utility {
 	 * @param urlString
 	 */
 	public static void checkIfValidDomain(String urlString) {
-		String whiteListDomains =  DIHelper.getInstance().getProperty(Constants.WHITE_LIST_DOMAINS);
+		String whiteListDomains =  Utility.getDIHelperProperty(Constants.WHITE_LIST_DOMAINS);
 		if(whiteListDomains == null || (whiteListDomains=whiteListDomains.trim()).isEmpty()) {
 			return;
 		}
