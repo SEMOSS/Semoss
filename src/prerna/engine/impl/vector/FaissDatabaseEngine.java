@@ -510,8 +510,29 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.indexClasses.remove(indexClass);
 			this.indexClassHasDatasetLoaded.remove(indexClass);
 		} else {
-			String script = this.vectorDatabaseSearcher + ".searchers['"+indexClass+"'].createMasterFiles(path_to_files = '" + indexedFilesPath.replace(FILE_SEPARATOR, DIR_SEPARATOR) + "')";
-			this.pyt.runScript(script);
+			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
+	        StringBuilder updateMasterFilesCommand = new StringBuilder();
+	        updateMasterFilesCommand.append(this.vectorDatabaseSearcher)
+	                                .append(".searchers['")
+	                                .append(indexClass)
+	                                .append("']")
+	                                .append(".createMasterFiles(path_to_files = '")
+	                                .append(indexDirectory.getParent().toString().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+	                                .append("')");
+
+	        String script = updateMasterFilesCommand.toString();
+	        classLogger.info("Running >>>" + script);
+	        this.pyt.runScript(script);
+
+	        // Verify index class loaded the dataset
+	        StringBuilder checkForEmptyDatabase = new StringBuilder();
+	        checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
+	                             .append(".searchers['")
+	                             .append(indexClass)
+	                             .append("']")
+	                             .append(".datasetsLoaded()");
+	        boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+	        this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 		}
 		
 		if (ClusterUtil.IS_CLUSTER) {
