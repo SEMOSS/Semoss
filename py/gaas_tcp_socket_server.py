@@ -15,7 +15,6 @@ from gaas_tcp_server_handler import TCPServerHandler
 
 
 class Server(socketserver.ThreadingTCPServer):
-
     def __init__(
         self,
         server_address=None,
@@ -28,10 +27,10 @@ class Server(socketserver.ThreadingTCPServer):
         timeout=15,
         start=False,
         blocking=False,
-        logger_level: str = "INFO"
+        logger_level: str = "INFO",
     ):
-        self.logger = logging.getLogger('SocketServer')
-        self.logger.debug('__init__')
+        self.logger = logging.getLogger("SocketServer")
+        self.logger.debug("__init__")
         self.stop = False
         self.port = port
         self.max_count = max_count
@@ -45,19 +44,21 @@ class Server(socketserver.ThreadingTCPServer):
         self.blocking = blocking
 
         # see if the port was passed through argv
-        if (self.port is None and len(sys.argv) > 0):
+        if self.port is None and len(sys.argv) > 0:
             self.port = sys.argv[0]
 
-        if (self.port is None and len(sys.argv) > 1):
+        if self.port is None and len(sys.argv) > 1:
             self.start = sys.argv[1] == 1
 
         # set the current folder to pick up scripts from
         import sys
+
         sys.path.append(py_folder)
 
-        self.server_address = ('localhost', self.port)
+        self.server_address = ("localhost", self.port)
         socketserver.ThreadingTCPServer.__init__(
-            self, self.server_address, handler_class)
+            self, self.server_address, handler_class
+        )
         # Set up a TCP/IP server
         self.logger.info("Ready to start server")
         # self.socket.timeout = 10
@@ -84,13 +85,13 @@ class Server(socketserver.ThreadingTCPServer):
             self.stop_it()
 
     def server_activate(self):
-        self.logger.debug('server_activate')
+        self.logger.debug("server_activate")
         socketserver.TCPServer.server_activate(self)
         return
 
     def serve_forever(self):
-        self.logger.info(f'waiting for request on port {self.port}')
-        self.logger.info('Handling requests, press <Ctrl-C> to quit')
+        self.logger.info(f"waiting for request on port {self.port}")
+        self.logger.info("Handling requests, press <Ctrl-C> to quit")
         try:
             while not self.stop:
                 if self.max_count > self.cur_count:
@@ -128,33 +129,34 @@ class Server(socketserver.ThreadingTCPServer):
 def parse_args():
     parser = argparse.ArgumentParser(description="Server configuration")
     parser.add_argument("--port", type=int, default=9999, help="Port number")
-    parser.add_argument("--max_count", type=int,  default=1, help="Max count")
-    parser.add_argument("--py_folder", type=str,
-                        default=".", help="Python Folder")
-    parser.add_argument("--insight_folder", type=str,
-                        default=".", help="Insight Folder")
+    parser.add_argument("--max_count", type=int, default=1, help="Max count")
+    parser.add_argument("--py_folder", type=str, default=".", help="Python Folder")
+    parser.add_argument(
+        "--insight_folder", type=str, default=".", help="Insight Folder"
+    )
     parser.add_argument("--prefix", type=str, default="", help="Prefix")
     parser.add_argument("--timeout", type=int, default=15, help="Timeout")
     parser.add_argument("--start", type=bool, default=True, help="Start")
-    parser.add_argument("--logger_level", type=str,
-                        default="INFO", help="The level of the logger")
+    parser.add_argument(
+        "--logger_level", type=str, default="INFO", help="The level of the logger"
+    )
     return parser.parse_args()
+
 
 # python gaas_tcp_socket_server.py --port 8080 --max_count 5 --py_folder /path/to/folder --insight_folder /path/to/insight --prefix some_prefix --timeout 10 --start --debug
 
 
 # C:/Users/ttrankle/AppData/Local/Programs/Python/Python310/python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     args = parse_args()
 
     # Set the logging level based on command line argument
     logger_level_input = args.logger_level.strip().upper()
-    if (logger_level_input == "CRITICAL"):
+    if logger_level_input == "CRITICAL":
         logging_level = logging.CRITICAL
-    elif (logger_level_input == "WARNING"):
+    elif logger_level_input == "WARNING":
         logging_level = logging.WARNING
-    elif (logger_level_input == "INFO"):
+    elif logger_level_input == "INFO":
         logging_level = logging.INFO
     else:
         logging_level = logging.DEBUG
@@ -170,5 +172,5 @@ if __name__ == '__main__':
         insight_folder=args.insight_folder,
         prefix=args.prefix,
         timeout=args.timeout,
-        start=args.start
+        start=args.start,
     )

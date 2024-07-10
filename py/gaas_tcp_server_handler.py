@@ -1,18 +1,10 @@
-from typing import (
-    Dict,
-    List,
-    Any,
-    Optional,
-    Union,
-    Tuple
-)
+from typing import Dict, List, Any, Optional, Union, Tuple
 
 import sys
 import socketserver
 
 import traceback as tb
 import threading
-
 
 import gc as gc
 import sys
@@ -39,23 +31,23 @@ import pandas as pd
 
 import contextlib
 import semoss_console as console
-from threading import current_thread
+
 
 def custom_nan_handler(nan_value: Any) -> Union[Any, str]:
-    '''Custom handler for NaN values'''
+    """Custom handler for NaN values"""
     if math.isnan(nan_value):
         return "NaN"
-    
+
     return nan_value
 
 
-def custom_tostr_handler(value:Any) -> str:
-    '''Custom handler to convert any value to string'''
+def custom_tostr_handler(value: Any) -> str:
+    """Custom handler to convert any value to string"""
     return str(value)
 
 
 def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
-    '''Custom handler to stringify values in pandas DataFrame'''
+    """Custom handler to stringify values in pandas DataFrame"""
     if isinstance(dataframe, pd.DataFrame):
         data_dict = dataframe.to_dict(orient="split")
         for col_name, col_data in data_dict["data"].items():
@@ -63,14 +55,14 @@ def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
                 str(value) if pd.notna(value) else "NaN" for value in col_data
             ]
         return data_dict
-    
+
     return dataframe
 
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
-    '''
+    """
     This class is the request handler for the Native Python Server.
-    
+
     This class is instantiated for each request to be handled.  The
     constructor sets the instance variables request, client_address
     and server, and then calls the handle() method.  To implement a
@@ -82,39 +74,40 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     needs access to per-server information) as self.server.  Since a
     separate instance is created for each request, the handle() method
     can define other arbitrary instance variables.
-    '''
-    
+    """
+
     # Class attribute to hold a singleton instance
     da_server = None
 
     def setup(self):
-        '''
+        """
         This method is responsible for initializing the server before it starts to serve client requests.
-        
-        The method is called automatically when the Server is instantiated, 
+
+        The method is called automatically when the Server is instantiated,
         typically during the creation of the socketserver.ThreadingTCPServer instance, before the server starts listening for client connections.
-        '''
+        """
         self.stop = False
-        
+
         # TODO: These are currently not in use. Check with PK whether or not the are needed
         self.message = None
         self.size = 0
         self.msg_index = 0
         self.residue = None
-        
+
         self.monitor = threading.Condition()
 
         TCPServerHandler.da_server = self
 
-        self.monitors = {}                      # cache where the link between payload id and monitor is kept
-        
+        # cache where the link between payload id and monitor is kept
+        self.monitors = {}
+
         # add the storage
         # LLM
         # DB Proxy here
         self.prefix = self.server.prefix
         self.insight_folder = self.server.insight_folder
         self.log_file = None
-        
+
         # need to set timeout here also
         if self.server.timeout_val > 0:
             self.request.settimeout(self.server.timeout_val)
@@ -127,7 +120,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.log_file = open(
                 f"{self.insight_folder}/log.txt", "a", encoding="utf-8"
             )
-            
+
         print("Ready to start server")
         print(f"Server is {self.server}")
         self.orig_mount_points = {}
@@ -135,7 +128,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.cmd_monitor = threading.Condition()
 
         self.try_jp = False
-        
+
         # experimental
         if self.try_jp:
             jp.handlers.register(float, custom_nan_handler)
@@ -144,17 +137,45 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.serializier = jp
         else:
             self.serializier = json
-            
+
         self.console = console.SemossConsole(
-            socket_handler=self, 
+            socket_handler=self,
         )
-        
+
         # set the thread local
         TCPServerHandler.thread_local = threading.local()
-        
+
+        # Sometimes the debugger is not effective or cannot handle certain troubleshooting scenarios.
+        # This is where you can use the custom_log() method. It writes to the log txt file, ensuring the file exists, creates a new line, adds the message, and flushes the log.
+        # The logs can become very heavy during streamed responses so for some log statements we want to only write them when we are developing locally
+        # I don't have a way of knowing what env we are in so adding a manual dev switch here.
+        # If you use this, be sure to turn it off before committing your code.
+        self.dev_log_switch = False
+
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
         #     exec(define_root_logger_script, globals())
+
+    def custom_dev_logger(self, message):
+        """
+        ONLY WRITES TO LOGS WHEN self.dev_log_switch IS TRUE
+        Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
+        This is very useful when the python debugger cannot handle troubleshooting a threading issue.
+        """
+        if self.log_file is not None and self.dev_log_switch:
+            self.log_file.write("\n")
+            self.log_file.write(message)
+            self.log_file.flush()
+
+    def prod_logger(self, message):
+        """
+        These messages will be logged to the log file in container environments.
+        Write to the log txt file. Ensures file exists, creates new line, adds message and flushes log.
+        """
+        if self.log_file is not None:
+            self.log_file.write("\n")
+            self.log_file.write(message)
+            self.log_file.flush()
 
     def handle(self):
         while not self.stop:
@@ -169,7 +190,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
                 epoc_size = 20
                 epoc = b""
-                
+
                 # Loop until we receive the expected epoc_size bytes
                 while len(epoc) < epoc_size:
                     chunk = self.request.recv(epoc_size - len(epoc))
@@ -192,8 +213,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # print(f"process the data ---- {data.decode('utf-8')}")
                 # payload = data.decode('utf-8')
                 if self.server.blocking:
+                    self.custom_dev_logger("Server is BLOCKING: Getting final output.")
                     self.get_final_output(data, epoc)
                 else:
+                    self.custom_dev_logger(
+                        "Server is NOT BLOCKING: Starting new thread."
+                    )
                     runner = threading.Thread(
                         target=self.get_final_output,
                         kwargs=({"data": data, "epoc": epoc}),
@@ -212,9 +237,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # self.get_final_output(data)
 
     def get_final_output(self, data=None, epoc=None):
-        if self.log_file is not None:
-            self.log_file.write(f"{data}")
-        # print(data)
+        self.prod_logger(f"Getting Final Output for Data === {data}")
+
         payload = ""
         # payload = data
         # if this fails.. there is nothing you can do..
@@ -230,8 +254,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # print(f"PAYLOAD.. {payload}")
             # do payload manipulation here
             # payload = json.loads(payload)
-            #local = threading.local()
-            current_thread().payload = payload
+
+            # SETTING THE PAYLOAD HERE... NO NEED TO PASS IT AROUND WITH PARAMS
+            self.thread_local.payload = payload
+
+            self.custom_dev_logger(
+                f"Payload set for thread {threading.current_thread().name}: {self.thread_local.payload}"
+            )
 
             command_list = payload["payload"]
             command = ""
@@ -257,11 +286,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 self.prefix = output_file
                 if self.prefix is None:
                     print("The prefix is None")
-                else:                      
+                else:
                     print("The prefix is set to value = " + self.prefix)
-                self.send_output(
-                    "prefix set", payload, operation="PYTHON", response=True
-                )
+                self.send_output("prefix set", operation="PYTHON", response=True)
 
             # handle log out
             elif command == "CLOSE_ALL_LOGOUT<o>" and payload["operation"] == "CMD":
@@ -279,20 +306,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
-                self.handle_python(payload, command)
+                self.handle_python(command)
             # this is when it is a response
             elif payload["response"]:
-                self.handle_response(payload)
+                self.handle_response()
             # nothing to do here. Unfortunately this is a py instance so we cannot anything
             elif payload["operation"] == "CMD":
-                self.handle_shell(payload)
+                self.handle_shell()
             else:
                 output = f"This is a python only instance. Command {str(command).encode('utf-8')} is not supported"
                 print(f"{str(command).encode('utf-8')} = {output}")
                 # output = "Response.. " + data.decode("utf-8")
                 self.send_output(
                     output,
-                    payload,
                     operation=payload["operation"],
                     response=True,
                     exception=True,
@@ -309,14 +335,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 condition.notifyAll()
                 condition.release()
             else:
+                # This is really the only instance where we need to set the payload outside of the normal flow
+                self.thread_local.payload = payload
                 self.send_output(
-                    output, payload, operation="PYTHON", response=True, exception=True
+                    output, operation="PYTHON", response=True, exception=True
                 )
 
     def send_output(
         self,
         output,
-        orig_payload,
         operation="STDOUT",
         response=False,
         interim=False,
@@ -333,7 +360,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # print("sending output " + output)
         # make it back into payload just for epoch
         # if this comes with prefix. it is part of the response
-        if self.prefix is not None and self.prefix != "" and str(output).startswith(self.prefix):
+        if (
+            self.prefix is not None
+            and self.prefix != ""
+            and str(output).startswith(self.prefix)
+        ):
             output = output.replace(self.prefix, "")
             operation = "STDOUT"  # orig_payload["operation"]
             response = True
@@ -344,16 +375,23 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             output = str(output).replace("D.O.N.E", "")
             interim = False
 
+        # After switching to thread_local, the operation param won't be None, so we need to check if its a dict and if it is we default to STDOUT
+        operation = (
+            "STDOUT"
+            if isinstance(operation, dict) and "operation" in operation
+            else operation
+        )
+
         payload = {
-            "epoc": orig_payload["epoc"],
+            "epoc": self.thread_local.payload["epoc"],
             "payload": [output],
             "response": response,
             "operation": operation,
             "interim": interim,
         }
 
-        if "insightId" in orig_payload:
-            payload.update({"insightId": orig_payload["insightId"]})
+        if "insightId" in self.thread_local.payload:
+            payload.update({"insightId": self.thread_local.payload["insightId"]})
 
         if exception:
             payload.update(
@@ -382,14 +420,63 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        if self.log_file is not None:
-            self.log_file.write(f"{orig_payload} === {size}")
-            self.log_file.write("\n")
-            self.log_file.write(f"OUTPUT === {payload}")
-            self.log_file.write(f"{list(orig_payload.keys())}")
-            self.log_file.flush()
-            if response and not interim:
+        # When streaming responses, this will cause the log files to become very heavy, so we only want to do this during development. Switch dev_log_switch to True to enable this.
+        if self.log_file is not None and self.dev_log_switch:
+            try:
+                orig_payload_value = (
+                    self.thread_local.payload["payload"][0]
+                    if "payload" in self.thread_local.payload
+                    else "There is no original payload."
+                )
+                new_payload = (
+                    payload["payload"][0]
+                    if "payload" in payload
+                    else "There is no new payload."
+                )
+                orig_payload_insight_id = (
+                    self.thread_local.payload["insightId"]
+                    if "insightId" in self.thread_local.payload
+                    else "There is no insightId in the original payload."
+                )
+                new_payload_insight_id = (
+                    payload["insightId"]
+                    if "insightId" in payload
+                    else "There is no insightId."
+                )
+                prefix_mssg = (
+                    self.prefix if self.prefix is not None else "There is no prefix."
+                )
+
                 self.log_file.write("\n")
+                self.log_file.write(
+                    "---------------------000000-------------------------"
+                )
+                self.log_file.write("\n")
+                self.log_file.write(f"The Prefix is: {prefix_mssg}")
+                self.log_file.write("\n")
+                self.log_file.write(f"The Operation is {operation}")
+                self.log_file.write("\n")
+                self.log_file.write(f"Original Payload: {orig_payload_value}")
+                self.log_file.write("\n")
+                self.log_file.write(
+                    f"Original Payload Insight ID: {orig_payload_insight_id}"
+                )
+                self.log_file.write("\n")
+                self.log_file.write(f"New Payload: {new_payload}")
+                self.log_file.write("\n")
+                self.log_file.write(f"New Payload Insight ID: {new_payload_insight_id}")
+                self.log_file.write("\n")
+                self.log_file.write("\n")
+                self.log_file.write(
+                    "----------------------END_OF_MESSAGE-------------------------"
+                )
+                self.log_file.flush()
+                if response and not interim:
+                    self.log_file.write("\n")
+            except:
+                # I don't want to ever stop if there is an error in this block
+                self.custom_dev_logger("There was an error during logging")
+
         # send it out
         self.request.sendall(ret_array)
 
@@ -417,11 +504,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # pack the message next
         ret_array[4:] = output.encode("utf-8")
 
-        if self.log_file is not None:
-            self.log_file.write(f"REQUEST === {payload}")
-            self.log_file.flush()
-            self.log_file.write("\n")
-            
+        self.custom_dev_logger(f"send_request(): REQUEST === {payload}")
+
         # send it out
         self.request.sendall(ret_array)
 
@@ -455,15 +539,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
-    def handle_python(self, payload, command):
+    def handle_python(self, command):
         is_exception = False
         print(f"Executing command {command.encode('utf-8')}")
 
+        payload = self.thread_local.payload
         # set the payload coming in
         self.console.set_payload(payload=payload)
-        
+
         output = None
-        with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
+        with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
+            self.console
+        ):
             if command.endswith(".py") or command.startswith("smssutil"):
                 try:
                     output = eval(command, globals())
@@ -478,21 +565,20 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             else:
                 # same trick - try to eval if it fails run as exec
                 globals()["core_server"] = self
-                
+
                 output, is_exception = self.execute_and_capture(command)
 
             self.send_output(
-                output if type(output) is not type(None) else "\"\"",
-                payload,
+                output if type(output) is not type(None) else '""',
                 operation=payload["operation"],
                 response=True,
                 exception=is_exception,
             )
-            
+
     def execute_and_capture(self, code) -> Tuple[str, bool]:
         """
         Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
-        
+
         If an exception occures then it will return and exception flag and the traceback string.
 
         Args:
@@ -501,38 +587,38 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         Returns:
             `Tuple[str, Any]`: A tuple containing the captured print statements and the result of the last expression. The first element is a string capturing any output from print statements, and the second element can be of any type, representing the result of the last expression executed. If the last line is not an expression or doesn't produce a result, the second element will be None.
         """
-        
+
         try:
             try:
                 # Split the code into lines
-                lines = code.strip().split('\n')
+                lines = code.strip().split("\n")
                 last_line = lines[-1] if lines else ""
                 preceding_lines = lines[:-1]
-                
+
                 # Create a string to hold preceding lines of code
-                preceding_code = '\n'.join(preceding_lines)
-                
+                preceding_code = "\n".join(preceding_lines)
+
                 # Execute preceding lines
                 if preceding_code:
                     exec(preceding_code, globals())
-                        
+
                 # Evaluate last line (if not empty) and capture the output
-                last_line_output = "\"\""
+                last_line_output = '""'
                 if last_line:
                     try:
                         last_line_output = eval(last_line, globals())
                     except:
                         # Fallback to exec if eval fails, indicating it's not an expression
                         exec(last_line, globals())
-                
+
                 return last_line_output, False
             except Exception:
-                # we failed so try run all the code as is 
+                # we failed so try run all the code as is
                 try:
                     return eval(code, globals()), False
                 except:
                     exec(code, globals())
-                    return "\"\"", False
+                    return '""', False
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -540,22 +626,20 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             full_trace = (
                 full_trace
                 + tb.format_tb(traceback)[1:]
-                + tb.format_exception_only(
-                    type(e), e
-                )
+                + tb.format_exception_only(type(e), e)
             )
-            
+
             return "".join(full_trace), True
 
-    def handle_response(self, payload):
+    def handle_response(self):
+        payload = self.thread_local.payload
         # print("In the response block")
         # this is a response coming back from a request from the java container
+        self.custom_dev_logger(
+            f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
+        )
         if payload["epoc"] in self.monitors:
-            # log this payload
-            if self.log_file is not None:
-                self.log_file.write(f"Payload Response {payload}")
-                self.log_file.write("\n")
-                self.log_file.flush()
+            self.prod_logger(f"handle_response() -- Payload Response: {payload}")
 
             condition = self.monitors[payload["epoc"]]
             self.monitors.update({payload["epoc"]: payload})
@@ -563,7 +647,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
-    def handle_shell(self, payload):
+    def handle_shell(self):
+        payload = self.thread_local.payload
         # get the method name
         try:
             # we can look at changing it to a lower point
@@ -582,7 +667,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.orig_mount_points.update({mount_name: mount_dir})
                     self.cur_mount_points.update({mount_name: mount_dir})
                 self.send_output(
-                    mount_dir, payload, operation=payload["operation"], response=True
+                    mount_dir, operation=payload["operation"], response=True
                 )
 
             if method_name == "removeMount":
@@ -593,7 +678,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.cur_mount_points.pop(mount_name)
                 self.send_output(
                     "Mount point removed",
-                    payload,
                     operation=payload["operation"],
                     response=True,
                 )
@@ -664,9 +748,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 output = insensitive_orig_dir.sub("_", output)
 
                 # send the output
-                self.send_output(
-                    output, payload, operation=payload["operation"], response=True
-                )
+                self.send_output(output, operation=payload["operation"], response=True)
                 # if command == 'ls' or command == 'dir':
                 #  exec_cd(mount_name=mount_name, payload=payload['payload'])
             self.cmd_monitor.release()
@@ -772,5 +854,4 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
 if __name__ == "__main__":
     from gaas_tcp_socket_server import Server
-
     Server(port=9999, start=True)
