@@ -38,6 +38,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.RegressionAnalysisPlaySheet;
+import prerna.util.Constants;
 
 /**
  * This class is used to perform regression calculations.
@@ -145,7 +146,7 @@ public class RegCalculationPerformer implements IAlgorithm{
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		yValues = new double[list.size()];
 		xValues = new double[list.size()][list.get(0).length-2];

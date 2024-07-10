@@ -19,6 +19,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rpa.quartz.CommonDataKeys;
+import prerna.util.Constants;
 
 public class OneColConditionJob implements org.quartz.InterruptableJob {
 
@@ -147,7 +148,7 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 				try {
 					iterator.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -42,6 +42,9 @@ import java.util.Map;
 import javax.swing.JCheckBox;
 import javax.swing.JList;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -55,6 +58,9 @@ import prerna.util.Utility;
  * This class contains functions about services that are used in performing estimation calculations.
  */
 public class EstimationCalculationFunctions {
+	
+	private static final Logger classLogger = LogManager.getLogger(EstimationCalculationFunctions.class);
+	
 	GridFilterData gfd = new GridFilterData();
 	Hashtable yearIdxTable = new Hashtable();
 	Hashtable systemPhaseEstimate = new Hashtable();
@@ -515,7 +521,7 @@ public class EstimationCalculationFunctions {
 		try {
 			scheduledDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH).parse(scheduledDateStr);
 		} catch (ParseException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if (preEndDate!= null && preEndDate.after(scheduledDate))
 		{

@@ -92,7 +92,7 @@ public class CONUSMapExporter {
 			}
 		}
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return systemsInSite;
 	}
@@ -166,7 +166,7 @@ public class CONUSMapExporter {
 					try {
 						((CONUSMapPlaySheet)playSheet).setClosed(true);
 					} catch (PropertyVetoException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}

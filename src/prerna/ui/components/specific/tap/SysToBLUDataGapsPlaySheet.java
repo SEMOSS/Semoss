@@ -51,6 +51,9 @@ import javax.swing.JTabbedPane;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import aurelienribon.ui.css.Style;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IPlaySheet;
@@ -68,6 +71,8 @@ import prerna.util.DIHelper;
  * This is the playsheet used to examine whether a relationship exists between two variables.
  */
 public class SysToBLUDataGapsPlaySheet extends JInternalFrame implements IPlaySheet {
+	
+	private static final Logger classLogger = LogManager.getLogger(SysToBLUDataGapsPlaySheet.class);
 	
 //	//toggles to show the system Functionality and Capability Functionality panels
 //	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
@@ -274,7 +279,7 @@ public class SysToBLUDataGapsPlaySheet extends JInternalFrame implements IPlaySh
 		try {
 			this.setMaximum(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
 				Constants.MAIN_FRAME);

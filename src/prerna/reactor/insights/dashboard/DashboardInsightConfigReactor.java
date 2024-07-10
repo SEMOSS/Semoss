@@ -7,6 +7,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.project.api.IProject;
@@ -16,11 +19,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 @Deprecated
 public class DashboardInsightConfigReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DashboardInsightConfigReactor.class);
 	
 	private static final String CLASS_NAME = DashboardInsightConfigReactor.class.getName();
 	
@@ -115,7 +121,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 		try {
 			decodedText = URLDecoder.decode(s, "UTF-8").replaceAll("\\%20", "+");
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return decodedText;
 	}

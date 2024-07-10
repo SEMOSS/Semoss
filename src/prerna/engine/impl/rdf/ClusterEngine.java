@@ -109,7 +109,7 @@ public class ClusterEngine extends AbstractDatabaseEngine {
 //			try {
 //				this.insightRdbms.insertData(insightBuilderQuery);
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		

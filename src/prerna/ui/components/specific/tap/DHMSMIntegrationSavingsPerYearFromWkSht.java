@@ -63,7 +63,7 @@ public class DHMSMIntegrationSavingsPerYearFromWkSht {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 			} 
 			catch (IOException e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 				throw new IOException("Could not find template for report.");
 			} 
 		}

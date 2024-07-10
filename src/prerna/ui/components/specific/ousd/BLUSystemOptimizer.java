@@ -254,7 +254,7 @@ public class BLUSystemOptimizer extends LPOptimizer{
 //			ps.setupModel();
 //		} catch (LpSolveException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		ps.execute();

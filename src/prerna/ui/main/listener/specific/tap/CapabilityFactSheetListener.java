@@ -64,16 +64,16 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 //			out.append(gson.toJson(allHash));
 //			out.close();
 //		} catch(RuntimeException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}finally{
 //			try{
 //				if(out!=null)
 //					out.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		if(Desktop.isDesktopSupported())
@@ -81,13 +81,13 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 //			try {
 //				Desktop.getDesktop().browse(new URI((DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/index.html").replace("\\", "/")));
 //			} catch (RuntimeException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (URISyntaxException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		

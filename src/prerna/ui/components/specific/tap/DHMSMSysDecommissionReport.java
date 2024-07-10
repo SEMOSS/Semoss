@@ -615,7 +615,7 @@ public class DHMSMSysDecommissionReport {
 			sysDecommissionSheet.setSelected(false);
 			sysDecommissionSheet.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

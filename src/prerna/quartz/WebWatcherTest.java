@@ -54,7 +54,7 @@
 //				try {
 //					Thread.sleep(1000);
 //				} catch (InterruptedException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			} else {
 //				loadingEngine = false;
@@ -158,7 +158,7 @@
 //			scheduler.addJob(jobChain1, true, true);
 //			scheduler.triggerJob(jobChain1.getKey());
 //		} catch (SchedulerException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //

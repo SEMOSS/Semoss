@@ -243,7 +243,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 //			// apply the translation.
 //			tree.apply(translation);
 //		} catch (ParserException | LexerException | IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		Gson gson = new GsonBuilder()

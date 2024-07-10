@@ -57,6 +57,7 @@ import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySetRegionList
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySysBarChartListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 
@@ -156,7 +157,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		try {
 			queryRegions();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 
 		if(regionOrder.isEmpty()) {
@@ -807,7 +808,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		try {
 			queryRegions();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		if(regionOrder.isEmpty()) {
 			Utility.showError("Cannot find regions in TAP Site");

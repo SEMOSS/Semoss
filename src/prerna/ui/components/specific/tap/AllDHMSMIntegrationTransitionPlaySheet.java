@@ -29,12 +29,18 @@ package prerna.ui.components.specific.tap;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ui.components.playsheets.TablePlaySheet;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 @SuppressWarnings("serial")
 public class AllDHMSMIntegrationTransitionPlaySheet extends TablePlaySheet{
 
+	private static final Logger classLogger = LogManager.getLogger(AllDHMSMIntegrationTransitionPlaySheet.class);
+	
 	@Override
 	public void createView() {
 		Utility.showMessage("Success! Created all LPI reports.");
@@ -47,7 +53,7 @@ public class AllDHMSMIntegrationTransitionPlaySheet extends TablePlaySheet{
 			writer = new AllDHMSMIntegrationTransitionCostProcessor();
 			writer.runAllReports();
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			Utility.showError(e.getMessage());
 		}
 	}

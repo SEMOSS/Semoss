@@ -5,6 +5,9 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -18,11 +21,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class JdbcSourceReactor extends AbstractQueryStructReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(JdbcSourceReactor.class);
 	
 	public JdbcSourceReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.CONNECTION_DETAILS.getKey()};
@@ -48,7 +54,7 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
 			queryUtil.enhanceConnection(con);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String driverError = e.getMessage();
 			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
 			errorMessage += driverError;

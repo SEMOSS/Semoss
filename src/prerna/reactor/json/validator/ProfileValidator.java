@@ -8,10 +8,15 @@ import java.util.Date;
 import java.util.Hashtable;
 
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.json.GreedyJsonReactor;
+import prerna.util.Constants;
 
 public class ProfileValidator extends GreedyJsonReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ProfileValidator.class);
 
 	private static final String EFFECTIVE_DATE_KEY = "originalEffectiveDate";
 	private static final String TERMINATION_DATE_KEY = "terminationDate";
@@ -91,7 +96,7 @@ public class ProfileValidator extends GreedyJsonReactor {
 			Date date = formatter.parse(strDate);
 			return date;
 		} catch (ParseException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

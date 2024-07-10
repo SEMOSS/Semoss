@@ -6,17 +6,22 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
 import prerna.ui.components.playsheets.TablePlaySheet;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 
-
+	private static final Logger classLogger = LogManager.getLogger(MedicalDeviceReportPlaySheet.class);
+	
 	//Contains all of the queries
 
 	//Query that draws determines if a system is a "low" system. Returns the system name and the disposition, which will be 'LPI' or 'LPNI'
@@ -94,7 +99,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 			success = writeReport();
 		} catch (IOException e) {
 
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		//gives an output in SEMOSS to show that the output worked and shows the location.

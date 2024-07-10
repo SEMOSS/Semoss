@@ -35,7 +35,7 @@
 //		try{
 //			timeline = OUSDPlaysheetHelper.buildTimeline(this.engine, roadmapName);
 //		}catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		granularBLUMap = timeline.getGranularBLUMap();

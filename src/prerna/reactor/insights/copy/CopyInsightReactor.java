@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -33,6 +35,8 @@ import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.UnsavedInsightAdapter;
 
 public class CopyInsightReactor extends AbstractInsightReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(CopyInsightReactor.class);
 
 	public static final String DROP_INSIGHT = "drop";
 
@@ -83,7 +87,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				// (especially in R/Py when the space is shared)
 				frames = adapter.getFrames();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("An error occurred trying to copy the insight");
 			}
 		}
@@ -127,7 +131,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 							in.getVarStore().put(a, new NounMetadata(newFrame, PixelDataType.FRAME));
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -197,7 +201,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
 			return noun;
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred trying to read the insight copy");
 		}
 	}

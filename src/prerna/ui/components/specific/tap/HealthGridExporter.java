@@ -140,7 +140,7 @@ public class HealthGridExporter {
 //				try {
 //					playSheet.setClosed(true);
 //				} catch (PropertyVetoException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 
 			}

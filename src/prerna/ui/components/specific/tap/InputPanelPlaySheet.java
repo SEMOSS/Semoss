@@ -47,6 +47,9 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.event.InternalFrameEvent;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.TablePlaySheet;
@@ -62,6 +65,8 @@ import prerna.util.DIHelper;
  */
 @SuppressWarnings("serial")
 public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
+	
+	private static final Logger classLogger = LogManager.getLogger(InputPanelPlaySheet.class);
 	
 	//View is split between the ctlScrollPane and displayPanel. 
 	private JScrollPane ctlScrollPane;
@@ -303,7 +308,7 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 		try {
 			this.setMaximum(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
 				Constants.MAIN_FRAME);

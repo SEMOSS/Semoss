@@ -159,23 +159,23 @@
 //				ex.printStackTrace();
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
 //			} catch (InstantiationException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
 //			} catch (IllegalAccessException e) {
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (IllegalArgumentException e) {
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (InvocationTargetException e) {
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (NoSuchMethodException e) {
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (SecurityException e) {
 //				logger.fatal("No such PlaySheet: "+ playSheetClassName);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
 //			playSheet.setQuery(sparql);

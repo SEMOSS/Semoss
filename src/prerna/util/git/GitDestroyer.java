@@ -5,13 +5,19 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 
+import prerna.util.Constants;
+
 public class GitDestroyer {
+	
+	private static final Logger classLogger = LogManager.getLogger(GitDestroyer.class);
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
@@ -27,7 +33,7 @@ public class GitDestroyer {
 			thisGit = Git.open(new File(localRepository));
 			status = thisGit.status().call();
 		} catch (IOException | NoWorkTreeException | GitAPIException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 
@@ -59,7 +65,7 @@ public class GitDestroyer {
 			try {
 				rm.call();
 			} catch (GitAPIException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to remove files to Git directory at " + localRepository);
 			}
 		}
@@ -75,7 +81,7 @@ public class GitDestroyer {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 
@@ -94,7 +100,7 @@ public class GitDestroyer {
 		try {
 			rm.call();
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to remove files to Git directory at " + localRepository);
 		}
 
@@ -109,7 +115,7 @@ public class GitDestroyer {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 
@@ -127,7 +133,7 @@ public class GitDestroyer {
 		try {
 			rm.call();
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to remove files to Git directory at " + localRepository);
 		}
 

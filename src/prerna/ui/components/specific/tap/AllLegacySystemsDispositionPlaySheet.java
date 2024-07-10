@@ -75,7 +75,7 @@ public class AllLegacySystemsDispositionPlaySheet extends TablePlaySheet{
 					runModernizationPropInsert();
 				} catch (IOException e) {
 					Utility.showError(e.getMessage());
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			else{
@@ -99,7 +99,7 @@ public class AllLegacySystemsDispositionPlaySheet extends TablePlaySheet{
 					runModernizationPropInsert();
 				} catch (IOException e) {
 					Utility.showError(e.getMessage());
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -110,7 +110,7 @@ public class AllLegacySystemsDispositionPlaySheet extends TablePlaySheet{
 			processAllReports.processReports();
 		} catch (IOException e) {
 			success = false;
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			Utility.showError(e.getMessage());
 		}
 		

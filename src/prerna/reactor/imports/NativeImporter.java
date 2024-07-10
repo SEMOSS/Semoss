@@ -175,7 +175,7 @@ public class NativeImporter extends AbstractImporter {
 //				cleanUpSelectors(this.qs.getEngineId(), this.qs.getSelectors(), this.qs.getRelations());
 //			} catch (Exception e) {
 //				// we were not successful in parsing :/
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 		} else {
 			if(it != null && (it instanceof IRawSelectWrapper)) {

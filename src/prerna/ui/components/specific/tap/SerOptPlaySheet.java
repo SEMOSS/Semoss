@@ -49,6 +49,9 @@ import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.SerOptBtnListener;
@@ -63,6 +66,8 @@ import prerna.util.DIHelper;
  */
 @SuppressWarnings("serial")
 public class SerOptPlaySheet extends OptPlaySheet{
+	
+	private static final Logger classLogger = LogManager.getLogger(SerOptPlaySheet.class);
 	
 	//param panel components
 	public JTextField yearField, icdSusField, mtnPctgField;
@@ -268,7 +273,7 @@ public class SerOptPlaySheet extends OptPlaySheet{
 				if(releaseNotesTextReader!=null)
 					releaseNotesTextReader.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

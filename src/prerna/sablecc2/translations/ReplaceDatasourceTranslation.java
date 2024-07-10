@@ -249,7 +249,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 ////			// apply the translation.
 ////			tree.apply(translation);
 ////		} catch (ParserException | LexerException | IOException e) {
-////			e.printStackTrace();
+////			classLogger.error(Constants.STACKTRACE, e);
 ////		}
 //		
 //		List<String> sourcePixels = translation.getPixels();
@@ -280,7 +280,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 ////			// apply the translation.
 ////			tree.apply(translation);
 ////		} catch (ParserException | LexerException | IOException e) {
-////			e.printStackTrace();
+////			classLogger.error(Constants.STACKTRACE, e);
 ////		}
 ////		
 ////		sourcePixels = translation.getPixels();
@@ -316,7 +316,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 //			// apply the translation.
 //			tree.apply(translation);
 //		} catch (ParserException | LexerException | IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		sourcePixels = translation.getPixels();

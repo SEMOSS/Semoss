@@ -290,7 +290,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		sTypes = taskItearator.getTypes();
 		headers = taskItearator.getHeaders();
 	} catch (Exception e) {
-		e.printStackTrace();
+		classLogger.error(Constants.STACKTRACE, e);
 		throw new SemossPixelException(e.getMessage());
 	}
 	Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();

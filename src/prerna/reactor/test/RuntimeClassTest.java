@@ -6,14 +6,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ClassMaker;
 import prerna.reactor.PixelPlanner;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class RuntimeClassTest extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(RuntimeClassTest.class);
 
 	List<String> equations = new ArrayList<>();
 	Map<String, Object> variables = new HashMap<>();
@@ -82,7 +88,7 @@ public class RuntimeClassTest extends AbstractReactor {
 			AbstractTestClass newInstance = (AbstractTestClass) newClass.newInstance();
 			return newInstance;
 		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return null;

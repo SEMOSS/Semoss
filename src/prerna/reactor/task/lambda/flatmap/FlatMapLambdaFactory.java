@@ -3,7 +3,14 @@ package prerna.reactor.task.lambda.flatmap;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
+
 public class FlatMapLambdaFactory {
+	
+	private static final Logger classLogger = LogManager.getLogger(FlatMapLambdaFactory.class);
 
 	public static Map<String, Class> flatMapLambdas = new HashMap<String, Class>();
 	
@@ -29,7 +36,7 @@ public class FlatMapLambdaFactory {
 			try {
 				newClass = (IFlatMapLambda) flatMapLambdas.get(transType).newInstance();
 			} catch (InstantiationException | IllegalAccessException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

@@ -110,7 +110,7 @@ public class DataLatencyPlayPopup extends JInternalFrame implements Runnable {
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -278,7 +278,7 @@ public class DataLatencyPlayPopup extends JInternalFrame implements Runnable {
 		try {
 			this.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 }

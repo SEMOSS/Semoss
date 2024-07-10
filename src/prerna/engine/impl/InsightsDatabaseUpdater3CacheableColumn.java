@@ -38,14 +38,14 @@
 //				  tableExists = true;
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			try {
 //				if(rs != null) {
 //					rs.close();
 //				}
 //			} catch(SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		
@@ -62,7 +62,7 @@
 //					try {
 //						insightsRdbms.removeData(dropColQuery);
 //					} catch (SQLException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -72,7 +72,7 @@
 //				try {
 //					insightsRdbms.insertData(UPDATE_QUERY);
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			

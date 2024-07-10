@@ -179,16 +179,16 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 //						File f = new File(fileLoc);
 //						f.delete();
 //					}catch(RuntimeException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					} catch (DocumentException e) {
 //						// TODO Auto-generated catch block
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}finally{
 //						try{
 //							if(fileOut!=null)
 //								fileOut.close();
 //						}catch(IOException e) {
-//							e.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, e);
 //						}
 //					}
 //				} // end if PDF
@@ -200,13 +200,13 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 //				Utility.showMessage("Export successful: " + fileLoc);
 //			}
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}finally{
 //			try{
 //				if(graphicsFileOut!=null)
 //					graphicsFileOut.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 	}

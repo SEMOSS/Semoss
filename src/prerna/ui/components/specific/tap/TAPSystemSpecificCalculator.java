@@ -44,6 +44,9 @@ import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.NewScrollBarUI;
@@ -55,6 +58,9 @@ import prerna.util.DIHelper;
  * Calculates TAP system-specific values and outputs them to GridFilterData.
  */
 public class TAPSystemSpecificCalculator {
+	
+	private static final Logger classLogger = LogManager.getLogger(TAPSystemSpecificCalculator.class);
+	
 	GridFilterData gfd = new GridFilterData();
 	Date startDate = null;
 	Date lastDate = null;
@@ -123,7 +129,7 @@ public class TAPSystemSpecificCalculator {
 			 try {
 					pfCalc.out= new PrintWriter(new BufferedWriter(new FileWriter("output.txt", true)));
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			sdlcTotal = 0.0;
 			dataFedTotal = 0.0;
@@ -296,7 +302,7 @@ public class TAPSystemSpecificCalculator {
 			financialTestSheet.setSelected(false);
 			financialTestSheet.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 }

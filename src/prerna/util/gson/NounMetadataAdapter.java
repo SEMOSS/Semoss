@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -19,9 +22,11 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata> {
 
+	private static final Logger classLogger = LogManager.getLogger(NounMetadataAdapter.class);
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 
 	@Override
@@ -88,7 +93,7 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 							TypeAdapter adapter = GSON.getAdapter(c);
 							objList.add(adapter.read(in));
 						} catch (ClassNotFoundException e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 					// increase the index

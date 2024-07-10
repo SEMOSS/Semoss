@@ -34,6 +34,9 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
@@ -48,6 +51,8 @@ import prerna.util.Utility;
  * Determines business value calculations for a selected database based on hardware and software data
  */
 public class RunBVAloneButtonListener implements IChakraListener{
+	
+	private static final Logger classLogger = LogManager.getLogger(RunBVAloneButtonListener.class);
 
 	/**
 	 * Performs business value calculations when btnRunBVAlone is pressed by the user
@@ -84,7 +89,7 @@ public class RunBVAloneButtonListener implements IChakraListener{
 			bvExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if(bvExists){
 			//display message

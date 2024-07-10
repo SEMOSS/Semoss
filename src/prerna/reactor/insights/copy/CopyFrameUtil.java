@@ -2,6 +2,9 @@ package prerna.reactor.insights.copy;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
@@ -20,8 +23,11 @@ import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class CopyFrameUtil {
+	
+	private static final Logger classLogger = LogManager.getLogger(CopyFrameUtil.class);
 
 	private static final String CLASS_NAME = CopyFrameUtil.class.getName();
 
@@ -107,11 +113,11 @@ public class CopyFrameUtil {
 				importer.insertData(newMetadata);
 			}
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return newFrame;

@@ -69,7 +69,7 @@
 //			alg.setSelectedOptions(selectedOptions);
 //			dataFrame.performAnalyticAction(alg);
 //		} catch(Exception e) {
-//		 	e.printStackTrace();
+//		 	classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		//alg.processTreeString();
 //	}

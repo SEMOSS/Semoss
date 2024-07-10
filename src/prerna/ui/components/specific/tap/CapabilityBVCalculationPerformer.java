@@ -160,7 +160,7 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 

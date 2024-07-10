@@ -7,12 +7,17 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 import org.kohsuke.github.GitHub;
 
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class GitCreator {
+	
+	private static final Logger classLogger = LogManager.getLogger(GitCreator.class);
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
@@ -119,7 +124,7 @@ public class GitCreator {
 			try {
 				FileUtils.copyFileToDirectory(filesToMove[i], versionDir);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -131,7 +136,7 @@ public class GitCreator {
 		try {
 			FileUtils.copyFileToDirectory(smssFile, versionDir);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -159,7 +164,7 @@ public class GitCreator {
 				try {
 					FileUtils.copyFileToDirectory(filesToMove[i], gitDataDir);
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

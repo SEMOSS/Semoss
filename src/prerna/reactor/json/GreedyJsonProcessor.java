@@ -8,7 +8,14 @@ import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
+
 public class GreedyJsonProcessor extends GreedyJsonReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GreedyJsonProcessor.class);
 	
 	// couple of things I need to take care of here
 	// column to json name
@@ -198,7 +205,7 @@ public class GreedyJsonProcessor extends GreedyJsonReactor {
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		if(finalVector != null) // the vector was filled up

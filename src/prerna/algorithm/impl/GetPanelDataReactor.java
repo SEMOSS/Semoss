@@ -30,7 +30,7 @@
 //			Panel panel = (Panel)Class.forName(panelName).newInstance();
 //			return gson.toJson(panel.getData(myStore,this));
 //		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return "";
 //	}

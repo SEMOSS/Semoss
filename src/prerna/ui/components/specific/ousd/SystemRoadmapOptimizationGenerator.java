@@ -124,7 +124,7 @@
 //					//SETS UP THE OPTIMIZATION MODEL
 //					opt.setupModel();
 //				} catch (LpSolveException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //
 //				//EXECUTES THE MODEL

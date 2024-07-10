@@ -110,7 +110,7 @@ public class BasicIteratorTask extends AbstractTask {
 			try {
 				generateIterator();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}
@@ -150,7 +150,7 @@ public class BasicIteratorTask extends AbstractTask {
 				try {
 					generateIterator();
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			}
@@ -173,7 +173,7 @@ public class BasicIteratorTask extends AbstractTask {
 				try {
 					generateIterator();
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			}

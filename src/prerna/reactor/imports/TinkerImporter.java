@@ -11,6 +11,8 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -27,9 +29,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TinkerImporter extends AbstractImporter {
+	
+	private static final Logger classLogger = LogManager.getLogger(TinkerImporter.class);
 
 	private TinkerFrame dataframe;
 	private SelectQueryStruct qs;
@@ -42,7 +47,7 @@ public class TinkerImporter extends AbstractImporter {
 		try {
 			this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					new NounMetadata("Error occurred executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -58,7 +63,7 @@ public class TinkerImporter extends AbstractImporter {
 			try {
 				this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(
 						new NounMetadata("Error occurred executing query before loading into frame", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -37,9 +38,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class MergeFramesReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(MergeFramesReactor.class);
 	
 	private static final String sourceFrame = "source";
 	private static final String targetFrame = "target";
@@ -212,7 +216,7 @@ public class MergeFramesReactor extends AbstractReactor {
 							importer.insertData();
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -235,14 +239,14 @@ public class MergeFramesReactor extends AbstractReactor {
 					((NativeFrame) targetFrame).getQueryStruct().setFrame(targetFrame);
 					mergeFrame = mergeNative(targetFrame, qs, joins);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			} else if(qs != null) {
 				try {
 					mergeFrame = mergeFromQs(targetFrame, qs, joins);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			}
@@ -370,7 +374,7 @@ public class MergeFramesReactor extends AbstractReactor {
 
 						qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(rColumnJoin, "==", values, dataType));
 					} catch(Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
 					}
 				}
@@ -395,7 +399,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		try {
 			it = ImportUtility.generateIterator(qs, frame);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					new NounMetadata("Error occurred executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -412,7 +416,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 		

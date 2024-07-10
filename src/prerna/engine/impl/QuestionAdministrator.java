@@ -141,7 +141,7 @@
 //		try {
 //			insightEngine.insertData(insertQueryBuilder.toString());
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		logger.info("Done adding main part of question... now parameters");
@@ -260,7 +260,7 @@
 //		try {
 //			insightEngine.insertData(query);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		//TODO: need to figure out a better way than to just delete the parameters and readd
@@ -311,7 +311,7 @@
 //		try {
 //			insightEngine.removeData(questionQuery);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -322,7 +322,7 @@
 //		try {
 //			insightEngine.removeData(parameterQuery);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -333,7 +333,7 @@
 //		try {
 //			insightEngine.removeData(parameterQuery);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -350,7 +350,7 @@
 //			try {
 //				insightEngine.insertData(insertQueryBuilder.toString());
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -428,7 +428,7 @@
 //				try {
 //					insightEngine.insertData(paramInsertQueryBuilder.toString());
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -682,7 +682,7 @@
 //		try {
 //			insightEngine.insertData(updateQueryBuilder.toString());
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	

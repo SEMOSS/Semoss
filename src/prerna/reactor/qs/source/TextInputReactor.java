@@ -7,6 +7,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
@@ -17,6 +20,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class TextInputReactor extends AbstractQueryStructReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(TextInputReactor.class);
 
 	//keys to get inputs from pixel command
 	private static final String FILE_INFO = "fileData";
@@ -51,14 +56,14 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 			fw = new FileWriter(file);
 			fw.write(fileInfo);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fw != null) {
 				try {
 					fw.flush();
 					fw.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

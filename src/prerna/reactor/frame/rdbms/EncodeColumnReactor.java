@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
@@ -13,10 +16,13 @@ import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class EncodeColumnReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(EncodeColumnReactor.class);
 
     @Override
     public NounMetadata execute() {
@@ -43,7 +49,7 @@ public class EncodeColumnReactor extends AbstractFrameReactor {
             }
             statement.execute();
         } catch (Exception e) {
-            e.printStackTrace();
+            classLogger.error(Constants.STACKTRACE, e);
         }
         
 		// upon successful execution

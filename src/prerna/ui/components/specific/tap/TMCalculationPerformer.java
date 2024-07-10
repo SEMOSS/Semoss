@@ -89,7 +89,7 @@ public class TMCalculationPerformer implements IAlgorithm{
 			
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		if(TMhash.size()>0)
 		{
@@ -389,21 +389,21 @@ public class TMCalculationPerformer implements IAlgorithm{
 		fileOut.flush();
 
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}finally{
 			try{
 				if(fileOut!=null)
 					fileOut.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try{
 				if(workbook!=null)
 					workbook.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		logger.info("Printed: " +key +" testPrint.xls");
@@ -446,21 +446,21 @@ public class TMCalculationPerformer implements IAlgorithm{
 		fileOut.flush();
 
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}finally{
 			try{
 				if(fileOut!=null)
 					fileOut.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try{
 				if(workbook!=null)
 					workbook.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");

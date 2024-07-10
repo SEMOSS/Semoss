@@ -73,7 +73,7 @@
 //			opt.setupModel();
 //		} catch (LpSolveException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		opt.execute();
 //		List<String> keptSystems = opt.getKeptSystems();

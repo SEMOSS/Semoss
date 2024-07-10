@@ -106,19 +106,19 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 				try {
 					stmt.execute(dropFrameSyntax);
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if (stmt != null) {
 						try {
 							stmt.close();
 						} catch (SQLException e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}*/
 				// close all the other stuff
 		super.close();

@@ -65,7 +65,7 @@ package prerna.reactor.database.upload.neo4j;
 //				}
 //				dbService.shutdown();
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		} else {
 //			// this is if we want to get the metamodel for a remote graph
@@ -115,11 +115,11 @@ package prerna.reactor.database.upload.neo4j;
 //
 //			} catch (ClassNotFoundException e) {
 //				// If org.neo4j.jdbc.bolt.BoltDriver not found
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (SQLException e) {
 //				// From a database access error or if we called on a closed
 //				// connection
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				ConnectionUtils.closeConnection(conn);
 //			}

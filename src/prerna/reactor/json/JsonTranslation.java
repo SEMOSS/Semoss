@@ -16,6 +16,7 @@ import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class JsonTranslation extends LazyJsonTranslation {
 
@@ -141,7 +142,7 @@ public class JsonTranslation extends LazyJsonTranslation {
 	    	try {
 	    		output = curReactor.execute();
 	    	} catch(Exception e) {
-	    		e.printStackTrace();
+	    		LOGGER.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
 	    	this.planner = curReactor.getPixelPlanner();

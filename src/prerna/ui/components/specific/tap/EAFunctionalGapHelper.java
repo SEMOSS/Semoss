@@ -30,14 +30,21 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class EAFunctionalGapHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(EAFunctionalGapHelper.class);
+	
 	Double fgDataSum = 0.0;
 	Double fgBLUSum = 0.0;
 	Double activityDataSum = 0.0;
@@ -385,7 +392,7 @@ public class EAFunctionalGapHelper {
 				fccCost.put(fcc, doubleCost);
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return fccCost;
 	}

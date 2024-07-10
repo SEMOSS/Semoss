@@ -36,7 +36,14 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
+
 public class DHMSMSysDecommissionDataProcessing {
+	
+	private static final Logger classLogger = LogManager.getLogger(DHMSMSysDecommissionDataProcessing.class);
 
 	private Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>> allData = new Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>>();
 	public void setAllData(Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>> allData) {
@@ -93,7 +100,7 @@ public class DHMSMSysDecommissionDataProcessing {
 				yearStart = d.parse(time + "-01-01");
 			} catch (ParseException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			Hashtable<String, ArrayList<Double>> currentDeployedSystemsCost = new Hashtable<String, ArrayList<Double>>();
@@ -247,7 +254,7 @@ public class DHMSMSysDecommissionDataProcessing {
 			endDate = df.parse("12/31/" + String.valueOf(endingYear));
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return endDate; 
 	}

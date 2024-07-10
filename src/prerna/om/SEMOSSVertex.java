@@ -328,7 +328,7 @@ public class SEMOSSVertex{
 //		try {
 ////			propUriHash.put(instanceName, propNameURI);
 //		} catch(Exception e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 		propHash.put("propUriHash", propUriHash);
 		

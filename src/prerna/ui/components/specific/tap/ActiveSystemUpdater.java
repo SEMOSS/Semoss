@@ -127,7 +127,7 @@ public class ActiveSystemUpdater {
 //				if(fWrite!=null)
 //					fWrite.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -265,7 +265,7 @@ public class ActiveSystemUpdater {
 			owlEngine.commit();
 			owlEngine.export();
 		} catch (InterruptedException | IOException e) {
-			//e.printStackTrace();
+			//classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

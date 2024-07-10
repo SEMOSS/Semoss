@@ -4,6 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -11,13 +14,13 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.Insight;
-import prerna.om.InsightStore;
 import prerna.sablecc2.PixelRunner;
-import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.gson.GsonUtility;
 
 public class PixelConsole {
 
+	private static final Logger classLogger = LogManager.getLogger(PixelConsole.class);
 	private static Gson gson = GsonUtility.getDefaultGson();
 	
 //	public static void main(String[] args) throws Exception{
@@ -58,9 +61,9 @@ public class PixelConsole {
 					end = "end";
 				}
 			} catch(RuntimeException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

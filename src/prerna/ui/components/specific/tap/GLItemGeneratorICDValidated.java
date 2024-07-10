@@ -41,6 +41,9 @@ import java.util.Vector;
 import javax.swing.JComboBox;
 import javax.swing.JList;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -55,6 +58,8 @@ import prerna.util.Utility;
  * This class is used to generate items in the GL and is used to update the cost database.
  */
 public class GLItemGeneratorICDValidated {
+	
+	private static final Logger classLogger = LogManager.getLogger(GLItemGeneratorICDValidated.class);
 
 	public Hashtable<String, Vector<String[]>> allDataHash = new Hashtable<String, Vector<String[]>>();
 	public Hashtable<String, Vector<String[]>> genericDProtHash = new Hashtable<String, Vector<String[]>>();
@@ -1427,7 +1432,7 @@ public class GLItemGeneratorICDValidated {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return list;
 	}
@@ -1480,7 +1485,7 @@ public class GLItemGeneratorICDValidated {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return newListItems;
 	}
@@ -1590,7 +1595,7 @@ public class GLItemGeneratorICDValidated {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		Collections.sort(list, new Comparator<Object[]>() {

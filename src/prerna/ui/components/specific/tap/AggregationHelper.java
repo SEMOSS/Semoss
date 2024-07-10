@@ -356,7 +356,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 		catch(NumberFormatException e)
 		{
-			//e.printStackTrace();
+			//classLogger.error(Constants.STACKTRACE, e);
 			this.errorMessage = "Error Processing Sum Double. Please check value of Double. " 
 					+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
@@ -417,7 +417,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 		catch(NumberFormatException e)
 		{
-			//e.printStackTrace();
+			//classLogger.error(Constants.STACKTRACE, e);
 			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
 					+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
@@ -474,7 +474,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 		catch(IllegalArgumentException e)
 		{
-			//e.printStackTrace();
+			//classLogger.error(Constants.STACKTRACE, e);
 			this.errorMessage = "Error Processing Max/Min Date. Please check value of Date. " 
 					+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};

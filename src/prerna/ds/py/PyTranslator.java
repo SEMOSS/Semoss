@@ -837,10 +837,10 @@ public class PyTranslator {
 	// FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
 	// } catch (FileNotFoundException e) {
 	// // TODO Auto-generated catch block
-	// e.printStackTrace();
+	// classLogger.error(Constants.STACKTRACE, e);
 	// } catch (IOException e) {
 	// // TODO Auto-generated catch block
-	// e.printStackTrace();
+	// classLogger.error(Constants.STACKTRACE, e);
 	// }
 	// helper.setCoreProp(prop);
 	//

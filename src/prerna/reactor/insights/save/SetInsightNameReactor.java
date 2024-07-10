@@ -19,6 +19,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -109,7 +110,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " insight name"));
 			} catch (Exception e) {
 				logger.info("Error occurred trying to write to git folder");
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			logger.info("... Could not find existing mosfet file. Ignoring update.");

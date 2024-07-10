@@ -90,7 +90,7 @@ public class OCONUSMapExporter {
 			}
 		}
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return systemsInSite;
 	}
@@ -168,7 +168,7 @@ public class OCONUSMapExporter {
 						try {
 							playSheet.setClosed(true);
 						} catch (PropertyVetoException e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}

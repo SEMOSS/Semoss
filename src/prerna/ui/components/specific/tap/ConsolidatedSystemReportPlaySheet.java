@@ -120,7 +120,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 					runModernizationPropInsert();
 				} catch (IOException e) {
 					Utility.showError(e.getMessage());
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			else{
@@ -144,7 +144,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 					runModernizationPropInsert();
 				} catch (IOException e) {
 					Utility.showError(e.getMessage());
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -156,7 +156,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 			processQuery();
 			DIHelper.getInstance().setLocalProperty(Constants.TECH_MATURITY, TMhash);
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -281,7 +281,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 			}
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

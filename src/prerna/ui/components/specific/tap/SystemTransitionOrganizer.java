@@ -238,7 +238,7 @@ public class SystemTransitionOrganizer {
 		}
 		catch (RuntimeException e)
 		{
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}*/		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

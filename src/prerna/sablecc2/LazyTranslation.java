@@ -480,7 +480,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		try {
         			this.pixelObj.addFrameInput(((ITableDataFrame) prevResult.getValue()).getName());
         		} catch(Exception e) {
-        			e.printStackTrace();
+        			classLogger.error(Constants.STACKTRACE, e);
         		}
         	}
     	}
@@ -1313,7 +1313,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			curReactor.mergeUp();
     			curReactor.updatePlan();
     		} catch(Exception e) {
-    			e.printStackTrace();
+    			classLogger.error(Constants.STACKTRACE, e);
     			throw new IllegalArgumentException(e.getMessage());
     		}
     		// get the parent

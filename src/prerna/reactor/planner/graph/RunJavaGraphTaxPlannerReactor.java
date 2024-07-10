@@ -197,7 +197,7 @@ package prerna.reactor.planner.graph;
 //		try {
 //			yes.writeGraph(fileName);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} 
 //		
 //		long end = System.currentTimeMillis();
@@ -210,7 +210,7 @@ package prerna.reactor.planner.graph;
 //			originalPlanner.g.io(IoCore.graphson()).writeGraph(fileName);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			long endTime = System.currentTimeMillis();
 //			System.out.println("FINISHED WRITING GRAPH: "+(endTime - curTime)+" ms");
@@ -239,7 +239,7 @@ package prerna.reactor.planner.graph;
 //			long endTime = System.currentTimeMillis();
 //			System.out.println("FINISHED READING GRAPH: "+(curTime - endTime)+" ms");
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		long end = System.currentTimeMillis();

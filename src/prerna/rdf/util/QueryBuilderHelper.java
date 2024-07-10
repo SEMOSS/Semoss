@@ -29,6 +29,8 @@ package prerna.rdf.util;
 
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
@@ -51,8 +53,10 @@ import org.openrdf.repository.sail.SailTupleQuery;
 import org.openrdf.repository.sparql.query.SPARQLQueryBindingSet;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.util.Constants;
 
 public class QueryBuilderHelper {
+	private static final Logger classLogger = LogManager.getLogger(QueryBuilderHelper.class);
 	ValueFactory vf = null;
 	RepositoryConnection rc = null;
 	SailRepositoryConnection sc = null;
@@ -266,10 +270,10 @@ public class QueryBuilderHelper {
 			}
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

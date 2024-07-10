@@ -35,6 +35,9 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.impl.DistanceDownstreamInserter;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BooleanProcessor;
@@ -54,6 +57,8 @@ import prerna.util.Utility;
  * software data
  */
 public class InsertDownstreamButtonListener implements IChakraListener {
+	
+	private static final Logger classLogger = LogManager.getLogger(InsertDownstreamButtonListener.class);
 	
 	/**
 	 * Performs business value and technical maturity calculations when btnInsertDownstream is pressed by the user Calls BVCalculationPerformer and
@@ -97,7 +102,7 @@ public class InsertDownstreamButtonListener implements IChakraListener {
 			distanceExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if (distanceExists) {
 			// display message

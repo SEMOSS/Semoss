@@ -172,14 +172,14 @@
 //					logQ.append(";");
 //				}
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} finally {
 //			      if(stmt != null) {
 //		                try {
 //		            stmt.close();
 //		          } catch (SQLException e) {
 //		            // TODO Auto-generated catch block
-//		            e.printStackTrace();
+//		            classLogger.error(Constants.STACKTRACE, e);
 //		          }
 //		        }
 //			}
@@ -235,7 +235,7 @@
 //		try {
 //			f.createNewFile();
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
@@ -250,7 +250,7 @@
 //			// update the builder
 //			builder.setConnectionUrl(serverUrl);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		builder.setDriver("H2_DB");
@@ -264,7 +264,7 @@
 //		try {
 //			this.conn = builder.build();
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -282,7 +282,7 @@
 //		try {
 //			this.conn = builder.build();
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -336,18 +336,18 @@
 //				ps.addBatch();
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(ps != null) {
 //				try {
 //					ps.executeBatch();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				try {
 //					ps.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -361,7 +361,7 @@
 //		try(PreparedStatement statement = this.conn.prepareStatement(q)){
 //			statement.execute();
 //		} catch(SQLException e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -375,20 +375,20 @@
 //				return rs.getLong(1);
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(rs != null) {
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stmt != null) {
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}

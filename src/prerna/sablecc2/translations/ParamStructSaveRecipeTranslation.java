@@ -620,7 +620,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 //				translation.setCurrentPixelId(pixelId);
 //				tree.apply(translation);
 //			} catch (ParserException | LexerException | IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		

@@ -35,7 +35,7 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 //		try {
 //			jsonString = new String(Files.readAllBytes(Paths.get(folderToWatch + "/" + fileName)), "UTF-8");
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			LOGGER.error("Unable to read the file " + fileName);
 //			return;
 //		}
@@ -45,7 +45,7 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 //		try {
 //			json = new JSONObject(jsonString);
 //		} catch (JSONException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			LOGGER.error("Unable to parse json object from " + fileName);
 //			return;
 //		}
@@ -128,10 +128,10 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 //				scheduler.scheduleJob(jobChain, jobTrigger);
 ////				scheduler.triggerJob(jobChain.getKey());
 //			} catch (SchedulerException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (ParseException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			
 //			String actionType = action.getString("actiontype");
@@ -144,7 +144,7 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 //			}
 //			
 //		} catch (JSONException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			LOGGER.error("Unable to find necessary key in " + fileName);
 //			return;
 //		}

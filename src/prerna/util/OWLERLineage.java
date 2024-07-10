@@ -227,7 +227,7 @@
 //		try {
 //			owler.export();
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		owler.getOwlAsString();
@@ -253,7 +253,7 @@
 //			owl = engine.exportBaseEngAsString(true);
 //			System.out.println("OWL.. " + owl);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		return owl;

@@ -405,7 +405,7 @@
 //			}
 //
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -444,9 +444,9 @@
 //		}
 //		in.close();
 //		} catch (FileNotFoundException e) {
-//			// e.printStackTrace();
+//			// classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			// e.printStackTrace();
+//			// classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -523,7 +523,7 @@
 //						csv.append(uniqueName).append(",").append(csvLogicals.toString()).append("\n");
 //						csv.close();
 //					} catch (IOException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
