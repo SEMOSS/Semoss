@@ -120,7 +120,7 @@
 //								ris.close();
 //							}
 //						} catch(IOException e) {
-//							e.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, e);
 //						}
 //					}
 //
@@ -141,10 +141,10 @@
 //			retBool = true;
 //		} catch (ClassNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return retBool;
 //	}

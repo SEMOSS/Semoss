@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -23,8 +24,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class PurgeReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(PurgeReactor.class);
 
 	private static final String CLASS_NAME = PurgeReactor.class.getName();
 	
@@ -123,7 +127,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 				IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 				importer.insertData();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 

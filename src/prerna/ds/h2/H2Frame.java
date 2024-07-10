@@ -805,7 +805,7 @@
 ////		try {
 ////			this.builder.mergeRowsViaIterator(iterator, newHeaders, types, startingHeaders, joinCols);
 ////		} catch (Exception e) {
-////			e.printStackTrace();
+////			classLogger.error(Constants.STACKTRACE, e);
 ////		}
 ////	}
 ////	

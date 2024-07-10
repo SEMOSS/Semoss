@@ -154,7 +154,7 @@ package prerna.reactor.planner.graph;
 //		try {
 //			yes.writeGraph(fileName);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} 
 //		
 //		long end = System.currentTimeMillis();
@@ -180,7 +180,7 @@ package prerna.reactor.planner.graph;
 //		try {
 //			yes.readGraph(this.fileName);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		long end = System.currentTimeMillis();

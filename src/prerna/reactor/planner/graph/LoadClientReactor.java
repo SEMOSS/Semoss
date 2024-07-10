@@ -11,6 +11,7 @@ import prerna.reactor.PixelPlanner;
 import prerna.reactor.planner.AbstractLoadClient;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelUtility;
+import prerna.util.Constants;
 
 public class LoadClientReactor extends AbstractLoadClient {
 
@@ -68,7 +69,7 @@ public class LoadClientReactor extends AbstractLoadClient {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 
 		// grab the planner from the new translation

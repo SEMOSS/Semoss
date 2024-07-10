@@ -235,7 +235,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// fileName + " ********* ");
 		}
 		// catch (IOException e) {
-		// e.printStackTrace();
+		// classLogger.error(Constants.STACKTRACE, e);
 		// }
 		finally {
 			if (this.helper != null) {
@@ -1304,7 +1304,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		// // true
 		// }
 		// } catch (FileNotFoundException e) {
-		// e.printStackTrace();
+		// classLogger.error(Constants.STACKTRACE, e);
 		// }
 	}
 

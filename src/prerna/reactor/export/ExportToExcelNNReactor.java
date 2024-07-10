@@ -308,7 +308,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (IOException e) {
-			//e.printStackTrace();
+			//classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred generating the excel file");
 		} finally {
 			if(driver != null && driver instanceof ChromeDriver) {
@@ -608,10 +608,10 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		//		   fileOut.close();
 		//	} catch (FileNotFoundException e) {
 		//		// TODO Auto-generated catch block
-		//		e.printStackTrace();
+		//		classLogger.error(Constants.STACKTRACE, e);
 		//	} catch (IOException e) {
 		//		// TODO Auto-generated catch block
-		//		e.printStackTrace();
+		//		classLogger.error(Constants.STACKTRACE, e);
 		//	}
 	}
 

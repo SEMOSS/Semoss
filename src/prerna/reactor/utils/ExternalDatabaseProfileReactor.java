@@ -204,7 +204,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 					rs.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(stmt != null) {
@@ -212,7 +212,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 					stmt.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

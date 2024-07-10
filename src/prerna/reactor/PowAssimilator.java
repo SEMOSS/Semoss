@@ -12,6 +12,7 @@ import org.codehaus.plexus.util.StringUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskUtility;
+import prerna.util.Constants;
 
 public class PowAssimilator extends Assimilator {
 
@@ -69,7 +70,7 @@ public class PowAssimilator extends Assimilator {
 				throw new IllegalArgumentException("Error!!! Could not properly evaluate expression = " + this.signature);
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		return noun;
 	}

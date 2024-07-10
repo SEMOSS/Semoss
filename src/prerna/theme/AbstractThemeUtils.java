@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -17,6 +19,8 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractThemeUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractThemeUtils.class);
 
 	static boolean initialized = false;
 	static RDBMSNativeEngine themeDb;
@@ -78,7 +82,7 @@ public abstract class AbstractThemeUtils {
 					try {
 						map.put(headers[i], IOUtils.toString(((java.sql.Clob) values[i]).getAsciiStream()));
 					} catch (IOException | SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error occurred trying to read theme map");
 					}
 				} else {
@@ -98,7 +102,7 @@ public abstract class AbstractThemeUtils {
 				try {
 					obj = IOUtils.toString(((java.sql.Clob) obj).getAsciiStream());
 				} catch (IOException | SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

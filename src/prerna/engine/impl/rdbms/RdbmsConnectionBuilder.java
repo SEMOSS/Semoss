@@ -66,7 +66,7 @@
 //				stmt = this.conn.createStatement();
 //				stmt.execute(createQuery);
 //			} catch(SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				if(stmt != null) {
 //					stmt.close();

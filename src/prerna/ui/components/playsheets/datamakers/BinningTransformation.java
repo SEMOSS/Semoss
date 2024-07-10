@@ -14,6 +14,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.util.Constants;
 
 public class BinningTransformation extends AbstractTransformation {
 
@@ -46,13 +47,13 @@ public class BinningTransformation extends AbstractTransformation {
 			method.invoke(dm, props.get(COLUMN_TO_BIN));
 			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
 		} catch (NoSuchMethodException | SecurityException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		return;
 	}
@@ -91,13 +92,13 @@ public class BinningTransformation extends AbstractTransformation {
 				LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 	}
 

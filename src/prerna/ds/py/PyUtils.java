@@ -334,7 +334,7 @@ public class PyUtils {
 //				FileUtils.deleteDirectory(new File(dir));
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		*/		

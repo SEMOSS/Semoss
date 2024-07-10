@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.rdbms.h2.H2Frame;
@@ -24,10 +27,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AuditDatabaseReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(AuditDatabaseReactor.class);
 
 	public AuditDatabaseReactor() {
 		this.keysToGet = new String[] { 
@@ -189,7 +195,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			}
 			updatePS.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String errorMsg = "An error occurred while retrieving data from the audit database";
 			NounMetadata noun = new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException err = new SemossPixelException(noun);

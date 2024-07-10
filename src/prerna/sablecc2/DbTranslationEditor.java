@@ -101,7 +101,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 //		//			// apply the translation.
 //		//			tree.apply(translation);
 //		//		} catch (ParserException | LexerException | IOException e) {
-//		//			e.printStackTrace();
+//		//			classLogger.error(Constants.STACKTRACE, e);
 //		//		}
 //		//		
 //		//		System.out.println(translation.pixels);
@@ -159,7 +159,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 //					// get the new recipe
 //					newRecipe.addAll(translation.pixels);
 //				} catch (ParserException | LexerException | IOException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			

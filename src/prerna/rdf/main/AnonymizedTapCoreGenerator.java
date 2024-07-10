@@ -164,13 +164,13 @@ public class AnonymizedTapCoreGenerator {
 //				workbook.close();
 //				workbook.dispose();
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				if (fileOut != null) {
 //					try {
 //						fileOut.close();
 //					} catch (IOException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //				if (workbook != null) {
@@ -178,7 +178,7 @@ public class AnonymizedTapCoreGenerator {
 //						workbook.close();
 //						workbook.dispose();
 //					} catch (IOException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}

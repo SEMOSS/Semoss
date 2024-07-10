@@ -6,11 +6,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.twitter.TwitterSearcher;
 import prerna.om.Viewpoint;
+import prerna.util.Constants;
 
 public class TwitterSearchLambda extends AbstractFlatMapLambda {
+	
+	private static final Logger classLogger = LogManager.getLogger(TwitterSearchLambda.class);
 
 	// col index we care about to get lat/long from
 	private int colIndex;
@@ -57,7 +63,7 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 				processView(view, newHeaders, row, retList);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retList;

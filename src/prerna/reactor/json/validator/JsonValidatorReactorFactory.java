@@ -2,9 +2,15 @@ package prerna.reactor.json.validator;
 
 import java.util.Hashtable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.IReactor;
+import prerna.util.Constants;
 
 public class JsonValidatorReactorFactory {
+	
+	private static final Logger classLogger = LogManager.getLogger(JsonValidatorReactorFactory.class);
 
 	protected Hashtable <String, String> viewReactorHash = new Hashtable<String, String>();
 	protected Hashtable <String, String> createReactorHash = new Hashtable<String, String>();
@@ -43,11 +49,11 @@ public class JsonValidatorReactorFactory {
 			try {
 				finalReactor = (IReactor)Class.forName(reactorName).newInstance();
 			} catch (InstantiationException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return finalReactor;

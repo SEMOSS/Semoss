@@ -143,7 +143,7 @@ public class Compiler
 		          try {
 		        	  br.close();
 		          } catch(IOException e) {
-		            e.printStackTrace();
+		            classLogger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}

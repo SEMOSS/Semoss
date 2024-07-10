@@ -4,6 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.query.querystruct.transform.QSRenameColumnConverter;
@@ -13,8 +16,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class RenameColumnReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(RenameColumnReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -45,7 +51,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 			metaData.setAliasToProperty(table + "__" + newColName, newColName);
 			frame.syncHeaders();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);

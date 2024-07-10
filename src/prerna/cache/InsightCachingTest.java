@@ -69,7 +69,7 @@ public class InsightCachingTest {
 //			Insight newIn = InsightCacheUtility.readInsightCache(insightFile, in);
 //			printInsightDetails(newIn);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 	

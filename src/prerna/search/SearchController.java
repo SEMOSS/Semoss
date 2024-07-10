@@ -285,7 +285,7 @@
 //				}
 //			}
 //		} catch (InterruptedException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -406,13 +406,13 @@
 //				ex.printStackTrace();
 //			} catch (CorruptIndexException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (LockObtainFailedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		else {

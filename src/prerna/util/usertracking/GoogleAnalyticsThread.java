@@ -82,7 +82,7 @@
 //		try {
 //			client.execute(post);
 //		} catch (ClientProtocolException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //		}
 //	}

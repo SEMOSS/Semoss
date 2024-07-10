@@ -1,5 +1,8 @@
 package prerna.reactor.frame.rdbms;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
@@ -8,8 +11,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class ToUpperCaseReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ToUpperCaseReactor.class);
 
 	public ToUpperCaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
@@ -46,7 +52,7 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

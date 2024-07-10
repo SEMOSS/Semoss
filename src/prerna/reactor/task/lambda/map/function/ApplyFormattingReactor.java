@@ -105,7 +105,7 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 //				return sdf.parse(date);
 //			} catch (ParseException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} // OK
 //		  }
 //	

@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -23,10 +26,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 
 @Deprecated
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
+	
+	private static final Logger classLogger = LogManager.getLogger(UnsavedInsightAdapter.class);
 
 	private static final String CLASS_NAME = UnsavedInsightAdapter.class.getName();
 
@@ -84,7 +90,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 				try {
 					saveFrame = fObj.getFrame().save(folderDir.getAbsolutePath(), null);
 				} catch(Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					continue;
 				}
 				out.beginObject();
@@ -251,11 +257,11 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 					store.put(varStoreK, fNoun);
 				}
 			} catch (InstantiationException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			in.endObject();

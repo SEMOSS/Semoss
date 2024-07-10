@@ -112,7 +112,7 @@
 //			GitHub gh = GitHub.connectUsingPassword(username, password);
 //			gh.getMyself();	
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			valid = false;
 //		}
 //		return valid;
@@ -197,7 +197,7 @@
 //				
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				valid = false;
 //			}
 //	 }
@@ -255,7 +255,7 @@
 //			
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		return remoteRepos;
@@ -276,7 +276,7 @@
 //				FileUtils.forceDelete(dirFile);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}
@@ -310,7 +310,7 @@
 //			}
 //		} catch (IllegalStateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
 //			throw e;
@@ -358,31 +358,31 @@
 //				thisGit.add().addFilepattern(files[fileIndex]).call();
 //		} catch (NoFilepatternException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoHeadException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoMessageException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (UnmergedPathsException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (ConcurrentRefUpdateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (WrongRepositoryStateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (AbortedByHookException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -398,31 +398,31 @@
 //			thisGit.add().addFilepattern(file).call();
 //		} catch (NoFilepatternException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoHeadException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoMessageException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (UnmergedPathsException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (ConcurrentRefUpdateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (WrongRepositoryStateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (AbortedByHookException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -538,31 +538,31 @@
 //				}
 //			} catch (NoFilepatternException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (NoHeadException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (NoMessageException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (UnmergedPathsException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (ConcurrentRefUpdateException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (WrongRepositoryStateException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (AbortedByHookException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (GitAPIException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //	}
 //	public void wipeFiles(List <String> filesToWipe)
@@ -636,7 +636,7 @@
 //				returnList.add(remoteMap);
 //			}
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		return returnList;
@@ -653,7 +653,7 @@
 //			config.save();
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -665,7 +665,7 @@
 //			config.save();
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -683,34 +683,34 @@
 //			
 //		} catch (WrongRepositoryStateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (InvalidConfigurationException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (InvalidRemoteException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (CanceledException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (RefNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (RefNotAdvertisedException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoHeadException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (TransportException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //	}
@@ -741,40 +741,40 @@
 //			thisGit.close();
 //		} catch (RevisionSyntaxException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoWorkTreeException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (InvalidRemoteException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (TransportException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (AmbiguousObjectException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IncorrectObjectTypeException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (RefAlreadyExistsException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (RefNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (InvalidRefNameException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (CheckoutConflictException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //	}
@@ -796,7 +796,7 @@
 //			//Git.cloneRepository().setURI("https://github.com/" + userName + "/" + remoteRepositoryName).setDirectory(new File(remoteRepositoryName)).setCloneAllBranches(true).call();
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		
@@ -864,10 +864,10 @@
 //			pw.close();
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -883,10 +883,10 @@
 //
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //			
 //		
@@ -918,10 +918,10 @@
 //			}
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -946,10 +946,10 @@
 //			pw.close();
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}
@@ -978,10 +978,10 @@
 //			pw.close();
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -1000,10 +1000,10 @@
 //			pw.close();
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -1047,28 +1047,28 @@
 //			cc.setMessage(getDateMessage("Commited on.. ")).call();
 //		} catch (NoHeadException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoMessageException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (UnmergedPathsException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (ConcurrentRefUpdateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (WrongRepositoryStateException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (AbortedByHookException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}
@@ -1126,7 +1126,7 @@
 //		try {
 //			thisGit = Git.open(new File(localRepository));
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		if(add) {
 //			addSpecificFiles(localRepository, files);
@@ -1135,7 +1135,7 @@
 //		try {
 //			cc.setMessage(getDateMessage("Commited on.. ")).call();
 //		} catch (GitAPIException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -1149,7 +1149,7 @@
 //		try {
 //			thisGit = Git.open(new File(localRepository));
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		AddCommand ac = thisGit.add();
 //		for(String daFile : files) {
@@ -1162,7 +1162,7 @@
 //		try {
 //			ac.call();
 //		} catch (GitAPIException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		thisGit.close();
 //	}
@@ -1200,7 +1200,7 @@
 //				thisGit.close();
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}			
 //	}
 //	
@@ -1216,7 +1216,7 @@
 //			ghr.addCollaborators(collabs);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		//ghr.removeCollaborators(collabs);
 //
@@ -1249,7 +1249,7 @@
 //				userList.add(userMap);
 //			}
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return userList;
 //	}
@@ -1269,7 +1269,7 @@
 //			
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		return collabVector;
@@ -1287,7 +1287,7 @@
 //			ghr.removeCollaborators(collabs);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -1366,13 +1366,13 @@
 //			}
 //		} catch (NoHeadException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return retLog;
 //	}
@@ -1433,10 +1433,10 @@
 //			
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //        
 //        return finalHash;
@@ -1496,7 +1496,7 @@
 //				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		 }		
 //		// I need to change the file to the app name
@@ -1514,7 +1514,7 @@
 //				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		 }
 //	}
@@ -1576,10 +1576,10 @@
 //			}
 //		} catch (FileNotFoundException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		return newFile;
@@ -1600,7 +1600,7 @@
 //				FileUtils.copyFileToDirectory(new File(fileName), new File(targetDir));
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		
@@ -1621,7 +1621,7 @@
 //				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		 }
 //	}
@@ -1634,7 +1634,7 @@
 //			myFile.createNewFile();
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -1772,13 +1772,13 @@
 //			
 //		} catch (NoWorkTreeException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		//getModFiles(dbName, ignore);
 //		return output;
@@ -2090,7 +2090,7 @@
 //			}
 //		} catch (IOException | InterruptedException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return;
 //	}
@@ -2199,10 +2199,10 @@
 //			
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -2234,10 +2234,10 @@
 //					makeLocalRepository(dbName);
 //				} catch (GitAPIException e) {
 //					// TODO Auto-generated catch block
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				} catch (IOException e) {
 //					// TODO Auto-generated catch block
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //
@@ -2296,7 +2296,7 @@
 //				
 //			} catch (IOException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				login = false;
 //			}
 //		}
@@ -2426,11 +2426,11 @@
 //			thisGit = Git.open(new File(location));
 //			status = thisGit.status().call();
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoWorkTreeException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (GitAPIException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		output.addAll(getFiles(dbName, "ADD", status.getAdded().iterator()));

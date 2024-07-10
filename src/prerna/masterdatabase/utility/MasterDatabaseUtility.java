@@ -2717,7 +2717,7 @@ public class MasterDatabaseUtility {
 	//					stmt.close();
 	//				}
 	//			} catch (SQLException e) {
-	//				e.printStackTrace();
+	//				classLogger.error(Constants.STACKTRACE, e);
 	//			}
 	//		}
 	//
@@ -2753,7 +2753,7 @@ public class MasterDatabaseUtility {
 	//				size = rs.getRow();
 	//			}
 	//		} catch (SQLException e) {
-	//			e.printStackTrace();
+	//			classLogger.error(Constants.STACKTRACE, e);
 	//		} finally {
 	//			closeStreams(stmt, rs);
 	//		}
@@ -2786,7 +2786,7 @@ public class MasterDatabaseUtility {
 	//								engine.commitRDBMS();
 	//								return true;
 	//							} catch (Exception e) {
-	//								e.printStackTrace();
+	//								classLogger.error(Constants.STACKTRACE, e);
 	//							}
 	//						}
 	//					}
@@ -2795,7 +2795,7 @@ public class MasterDatabaseUtility {
 	//				return true;
 	//			}
 	//		} catch (SQLException e) {
-	//			e.printStackTrace();
+	//			classLogger.error(Constants.STACKTRACE, e);
 	//		} finally {
 	//			closeStreams(stmt, rs);
 	//		}
@@ -2826,7 +2826,7 @@ public class MasterDatabaseUtility {
 	//				return true;
 	//			}
 	//		} catch (SQLException e) {
-	//			e.printStackTrace();
+	//			classLogger.error(Constants.STACKTRACE, e);
 	//		} finally {
 	//			closeStreams(stmt, null);
 	//		}
@@ -2861,7 +2861,7 @@ public class MasterDatabaseUtility {
 	//				logicalNames.add(logicalName);
 	//			}
 	//		} catch (SQLException e) {
-	//			e.printStackTrace();
+	//			classLogger.error(Constants.STACKTRACE, e);
 	//		} finally {
 	//			closeStreams(stmt, rs);
 	//		}

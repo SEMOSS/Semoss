@@ -120,7 +120,7 @@ public class SqlTranslator {
 //				System.out.println(q);
 //			}
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}

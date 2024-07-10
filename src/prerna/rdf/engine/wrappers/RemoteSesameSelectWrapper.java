@@ -126,10 +126,10 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 				displayVar = (String [])displayStream.readObject();
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}*/
 		}
 		return headers;

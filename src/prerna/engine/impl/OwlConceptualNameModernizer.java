@@ -215,7 +215,7 @@
 //				writer.println("\txmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">");
 //				writer.println("</rdf:RDF>");
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				throw new IOException("Error creating new base OWL file!");
 //			} finally {
 //				if(writer != null) {
@@ -325,7 +325,7 @@
 //				owler.commit();
 //				owler.export();
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			owler.closeOwl();
 //			

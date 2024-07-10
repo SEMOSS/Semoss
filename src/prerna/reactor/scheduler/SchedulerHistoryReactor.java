@@ -3,6 +3,8 @@ package prerna.reactor.scheduler;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.Scheduler;
 
 import prerna.engine.api.IRawSelectWrapper;
@@ -20,9 +22,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SchedulerHistoryReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(SchedulerHistoryReactor.class);
 
 	public SchedulerHistoryReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.SORT.getKey(), 
@@ -95,7 +100,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(schedulerDb, qs);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String message = e.getMessage();
 			if(message == null || message.isEmpty()) {
 				throw new IllegalArgumentException(message);

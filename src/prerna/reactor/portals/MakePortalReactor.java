@@ -77,7 +77,7 @@ public class MakePortalReactor extends AbstractReactor {
 			convertAllTemplates(projectFolder +"/portals", projectValues, portalName);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			// e.printStackTrace();
+			// classLogger.error(Constants.STACKTRACE, e);
 			return NounMetadata.getErrorNounMessage(e.getLocalizedMessage());
 		}
 		

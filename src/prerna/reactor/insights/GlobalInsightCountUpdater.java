@@ -3,9 +3,15 @@ package prerna.reactor.insights;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.util.Constants;
 
 public class GlobalInsightCountUpdater {
+	
+	private static final Logger classLogger = LogManager.getLogger(GlobalInsightCountUpdater.class);
 
 	/*
 	 * Creating a class to manage updating the insight count
@@ -36,13 +42,15 @@ public class GlobalInsightCountUpdater {
 		try {
 			queue.add(new String[]{engineId, id});
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
 }
 
 class CountUpdater implements Runnable {
+	
+	private static final Logger classLogger = LogManager.getLogger(CountUpdater.class);
 
 	protected BlockingQueue<String[]> queue = null;
 
@@ -57,7 +65,7 @@ class CountUpdater implements Runnable {
 				SecurityInsightUtils.updateExecutionCount(update[0], update[1]);
 			}
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 }

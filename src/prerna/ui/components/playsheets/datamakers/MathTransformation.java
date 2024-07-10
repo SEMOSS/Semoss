@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 
 public class MathTransformation extends AbstractTransformation {
 
@@ -152,13 +153,13 @@ public class MathTransformation extends AbstractTransformation {
 				LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 	}
 	

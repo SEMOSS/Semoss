@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -17,9 +19,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class UploadUserFileReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(UploadUserFileReactor.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
@@ -82,7 +87,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 			try {
 				hidden.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		}
@@ -97,7 +102,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 			FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + relativeFilePath + DIR_SEPARATOR + uploadedFile.getName()));
 			ClusterUtil.pushEngine(assetProjectId);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to copy file");
 		}
 

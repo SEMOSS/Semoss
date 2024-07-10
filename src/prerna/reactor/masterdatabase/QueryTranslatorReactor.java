@@ -4,14 +4,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.query.parsers.SqlTranslator;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class QueryTranslatorReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(QueryTranslatorReactor.class);
+	
 	public QueryTranslatorReactor() {
 		this.keysToGet = new String[] { "query", "sourceDB", "targetDB" };
 	}
@@ -35,7 +42,7 @@ public class QueryTranslatorReactor extends AbstractReactor {
 			queries = translator.processQuery(query);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return new NounMetadata(queries, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}

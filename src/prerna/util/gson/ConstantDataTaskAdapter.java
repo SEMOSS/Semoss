@@ -2,6 +2,9 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -9,8 +12,11 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.Constants;
 
 public class ConstantDataTaskAdapter extends AbstractSemossTypeAdapter<ConstantDataTask> {
+	
+	private static final Logger classLogger = LogManager.getLogger(ConstantDataTaskAdapter.class);
 
 	private static final Gson GSON = new Gson();
 
@@ -54,7 +60,7 @@ public class ConstantDataTaskAdapter extends AbstractSemossTypeAdapter<ConstantD
 			outputData = GSON.fromJson(objStr, c);
 			task.setOutputData(outputData);;
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return task;

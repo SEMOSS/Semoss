@@ -263,11 +263,11 @@ public class EmailUtility {
 //			store.close();
 //
 //		} catch (NoSuchProviderException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (MessagingException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //
@@ -309,14 +309,14 @@ public class EmailUtility {
 //			inbox.close(false);
 //			store.close();
 //		} catch (NoSuchProviderException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			System.exit(1);
 //		} catch (MessagingException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			System.exit(2);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}

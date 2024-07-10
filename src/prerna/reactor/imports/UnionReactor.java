@@ -74,7 +74,7 @@ package prerna.reactor.imports;
 //			try {
 //				unionFrame = unionNative(curFrame, frame, qs);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				throw new SemossPixelException(e.getMessage());
 //			}
 //		} 
@@ -87,7 +87,7 @@ package prerna.reactor.imports;
 //				try {
 //					//unionFrame = mergeFromQs(frame, qs, joins);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //					throw new SemossPixelException(e.getMessage());
 //				}
 //			} else {
@@ -96,7 +96,7 @@ package prerna.reactor.imports;
 //					try {
 //						//unionFrame = mergeFromTask(frame, task, joins);
 //					} catch (Exception e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //						throw new SemossPixelException(e.getMessage());
 //					}
 //				} else {
@@ -276,7 +276,7 @@ package prerna.reactor.imports;
 //							
 //							qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(rColumnJoin, "==", values, dataType));
 //						} catch(Exception e) {
-//							e.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, e);
 //							throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
 //						}
 //					}

@@ -4,13 +4,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.reactor.ClassMaker;
 import prerna.sablecc2.om.task.AbstractTaskOperation;
 import prerna.sablecc2.om.task.ITask;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class FilterLambdaReactor extends AbstractLambdaTaskReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(FilterLambdaReactor.class);
 
 	/**
 	 * Abstract lambda class is responsible for getting
@@ -79,9 +85,9 @@ public class FilterLambdaReactor extends AbstractLambdaTaskReactor {
 			this.insight.getTaskStore().addTask(this.task);
 			return;
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		// if we get here
