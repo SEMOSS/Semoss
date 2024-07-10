@@ -7,6 +7,9 @@ import java.io.Writer;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -16,9 +19,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SetInsightThemeReactor extends AbstractInsightReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(SetInsightThemeReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -47,7 +53,7 @@ public class SetInsightThemeReactor extends AbstractInsightReactor {
 			Gson gson = new Gson();
 			gson.toJson(value, writer);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("An error occurred trying to save the insight theme");
 		}
 		

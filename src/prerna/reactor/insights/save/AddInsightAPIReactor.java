@@ -9,6 +9,9 @@ import java.sql.Time;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IRDBMSEngine;
@@ -22,6 +25,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AddInsightAPIReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(AddInsightAPIReactor.class);
 
 	public AddInsightAPIReactor() {
 		
@@ -134,13 +139,13 @@ public class AddInsightAPIReactor extends AbstractReactor {
 			pst.execute();
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return new NounMetadata("Completeled insight API <<" + apiKey + ">>", PixelDataType.CONST_STRING);

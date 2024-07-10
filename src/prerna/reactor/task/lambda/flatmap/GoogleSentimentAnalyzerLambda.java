@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.engine.api.IHeadersDataRow;
@@ -15,8 +18,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class GoogleSentimentAnalyzerLambda extends AbstractFlatMapLambda {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleSentimentAnalyzerLambda.class);
 
 	// col index we care about to get lat/long from
 	private int colIndex;
@@ -57,7 +63,7 @@ public class GoogleSentimentAnalyzerLambda extends AbstractFlatMapLambda {
 				processSentiment(sentiment, newHeaders, row, retList);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retList;

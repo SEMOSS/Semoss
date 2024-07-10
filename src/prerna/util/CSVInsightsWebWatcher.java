@@ -33,7 +33,7 @@
 //		try {
 //			SolrImportUtility.processSolrTextDocument(solrInformationFile);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	

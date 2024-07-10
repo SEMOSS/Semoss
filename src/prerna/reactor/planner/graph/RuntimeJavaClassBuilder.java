@@ -8,13 +8,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.common.collect.Lists;
 
 import prerna.reactor.BaseJavaRuntime;
 import prerna.reactor.ClassMaker;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RuntimeJavaClassBuilder {
+	
+	private static final Logger classLogger = LogManager.getLogger(RuntimeJavaClassBuilder.class);
 
 	private String packageName;
 	private String className;
@@ -402,14 +408,14 @@ public class RuntimeJavaClassBuilder {
 
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(writer != null) {
 			try {
 				writer.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			}
 			if(fw != null) {
@@ -417,7 +423,7 @@ public class RuntimeJavaClassBuilder {
 				fw.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			}
 		}

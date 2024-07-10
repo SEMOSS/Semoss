@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.reactor.IReactor;
@@ -13,8 +16,11 @@ import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class AbstractDatasourceModificationTranslation extends LazyTranslation {
+	
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatasourceModificationTranslation.class);
 
 	// create a variable to keep track of the current mapping of the original expression to the encoded expression
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
@@ -43,7 +49,7 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
     			curReactor.mergeUp();
     			curReactor.updatePlan();
     		} catch(Exception e) {
-    			e.printStackTrace();
+    			classLogger.error(Constants.STACKTRACE, e);
     			throw new IllegalArgumentException(e.getMessage());
     		}
     		

@@ -13,6 +13,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.util.Constants;
 
 /**
  * This reactor is responsible for taking the output of an execution and assigning the result as a variable
@@ -58,7 +59,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 				long end = System.currentTimeMillis();
 				logger.info("Total time to iterate through the result set = " + (end-start) + "ms");
 			} catch (Exception e) {
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 			result = new NounMetadata(flushedOutValue, PixelDataType.FORMATTED_DATA_SET, result.getOpType());

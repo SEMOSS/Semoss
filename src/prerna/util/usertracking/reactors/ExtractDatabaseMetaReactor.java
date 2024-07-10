@@ -3,6 +3,9 @@ package prerna.util.usertracking.reactors;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -13,6 +16,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.usertracking.TrackRequestThread;
@@ -23,6 +27,8 @@ import prerna.util.usertracking.TrackRequestThread;
  *
  */
 public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ExtractDatabaseMetaReactor.class);
 
 	private static final String CLASS_NAME = ExtractDatabaseMetaReactor.class.getName();
 	public static final String DESCRIPTIONS_BOOL = "descriptions";
@@ -57,7 +63,7 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 			try(WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
 				owlEngine.addUniqueCounts(engine);
 			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

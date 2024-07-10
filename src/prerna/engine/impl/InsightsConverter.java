@@ -120,15 +120,15 @@
 //			fo = new FileOutputStream(file);
 //			prop.store(fo, "Temporary Properties file for the RDBMS");
 //		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(fo != null) {
 //				try {
 //					fo.close();
 //				} catch (IOException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -291,18 +291,18 @@
 //			}
 //
 //		} catch(IOException e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally{
 //			try{
 //				reader.close();
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //
 //			try{
 //				fileOut.close();
 //			} catch (IOException e){
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.shared.RawCachedWrapper;
@@ -14,8 +15,12 @@ import prerna.reactor.export.FormatFactory;
 import prerna.reactor.export.IFormatter;
 import prerna.reactor.export.TableFormatter;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.Constants;
 
 public abstract class AbstractTask implements ITask {
+	
+	//logger
+	protected transient static Logger classLogger = LogManager.getLogger(AbstractTask.class);
 
 	protected String id;
 	// this holds the options object for the FE
@@ -30,8 +35,6 @@ public abstract class AbstractTask implements ITask {
 	// this holds the formatter to perform any viz specific transformations
 	// of the data
 	protected transient IFormatter formatter = null;
-	// logger
-	protected transient Logger classLogger;
 	// internal offset
 	protected long internalOffset = 0;
 	// num to collect
@@ -107,7 +110,7 @@ public abstract class AbstractTask implements ITask {
 			try {
 				numRows = TaskUtility.getNumRows(this);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			if(numRows > 0) {
 				collectedData.put("numRows", numRows);

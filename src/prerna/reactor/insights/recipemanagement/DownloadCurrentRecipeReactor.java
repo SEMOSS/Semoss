@@ -70,7 +70,7 @@ public class DownloadCurrentRecipeReactor extends AbstractReactor {
 				try {
 					fw.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.WorkspaceAssetUtils;
@@ -15,10 +18,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class UserDirReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(UserDirReactor.class);
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public UserDirReactor() {
@@ -66,7 +71,7 @@ public class UserDirReactor extends AbstractReactor {
 				try {
 					hidden.createNewFile();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -3604,17 +3604,6 @@ public final class Utility {
 		return message;
 	}
 
-	// this is to remove scripts from being passed
-	// ex. <script>alert('XSS');</script> is blocked
-	public static String inputSanitizer(String stringToNormalize) {
-		if (stringToNormalize == null) {
-			classLogger.info("input to sanitzer is null, returning null");
-			return stringToNormalize;
-		}
-		
-		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
-	    return policy.sanitize(stringToNormalize );
-	}
 	
 	/**
 	 * 

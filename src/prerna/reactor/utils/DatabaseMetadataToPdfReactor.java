@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.Strings;
 import org.xhtmlrenderer.pdf.ITextRenderer;
@@ -37,6 +38,8 @@ import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class DatabaseMetadataToPdfReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DatabaseMetadataToPdfReactor.class);
 
 	private static final String CLASS_NAME = DatabaseMetadataToPdfReactor.class.getName();
 
@@ -178,7 +181,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

@@ -5,6 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IRDBMSEngine;
@@ -18,6 +21,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DisableInsightAPIReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DisableInsightAPIReactor.class);
 
 	public DisableInsightAPIReactor() {
 		
@@ -89,13 +94,13 @@ public class DisableInsightAPIReactor extends AbstractReactor {
 			
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return new NounMetadata("Deleted API Key " + apiKey, PixelDataType.CONST_STRING);

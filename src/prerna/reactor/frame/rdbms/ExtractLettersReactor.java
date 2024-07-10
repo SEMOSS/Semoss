@@ -3,6 +3,9 @@ package prerna.reactor.frame.rdbms;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
@@ -10,8 +13,12 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class ExtractLettersReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ExtractLettersReactor.class);
+	
 	public static final String COLUMNS = "columns";
 	public static final String OVERRIDE = "override";
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
@@ -35,7 +42,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(update);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// create new columns
@@ -50,7 +57,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				// if query runs successfully add new column metadata
 				OwlTemporalEngineMeta metaData = frame.getMetaData();

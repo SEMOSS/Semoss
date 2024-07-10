@@ -2,6 +2,9 @@ package prerna.reactor.panel;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -11,12 +14,15 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.NumberAdapter;
 import prerna.util.gson.SemossDateAdapter;
 
 public class SetPanelStateReactor extends AbstractInsightPanelReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(SetPanelStateReactor.class);
 
 	/*
 	 * This class is complimentary to GetPanelStateReactor
@@ -47,7 +53,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 		try {
 			insightPanel = adapter.fromJson(serialized);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Exeption occurred reading the panel state with error: " + e.getMessage());
 		}
 		this.insight.getInsightPanels().put(insightPanel.getPanelId(), insightPanel);

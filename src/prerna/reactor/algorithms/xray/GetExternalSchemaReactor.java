@@ -117,19 +117,19 @@ package prerna.reactor.algorithms.xray;
 //			con.close();
 //
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (JsonGenerationException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (JsonMappingException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if (con != null) {
 //				try {
 //					con.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}

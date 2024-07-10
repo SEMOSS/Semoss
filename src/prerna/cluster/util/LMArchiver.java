@@ -81,7 +81,7 @@
 //				Files.move(to, from);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}
@@ -96,7 +96,7 @@
 //			return output;
 //		} catch (NoSuchAlgorithmException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return null;
 //	}
@@ -155,7 +155,7 @@
 //			return zipFileName;
 //		} catch (ZipException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return null;
@@ -213,10 +213,10 @@
 //			FileUtils.copyInputStreamToFile(inp, targetFile);
 //		} catch (NoSuchElementException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}		
 //
 //	}

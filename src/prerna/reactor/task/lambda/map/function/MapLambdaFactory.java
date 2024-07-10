@@ -3,6 +3,9 @@ package prerna.reactor.task.lambda.map.function;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.task.lambda.map.IMapLambda;
 import prerna.reactor.task.lambda.map.function.math.PercentLambda;
 import prerna.reactor.task.lambda.map.function.math.RoundLambda;
@@ -12,9 +15,11 @@ import prerna.reactor.task.lambda.map.function.string.RightLambda;
 import prerna.reactor.task.lambda.map.function.string.StrLengthLambda;
 import prerna.reactor.task.lambda.map.function.string.SubstringLambda;
 import prerna.reactor.task.lambda.map.function.string.TrimLambda;
+import prerna.util.Constants;
 
 public class MapLambdaFactory {
 
+	private static final Logger classLogger = LogManager.getLogger(MapLambdaFactory.class);
 	public static Map<String, Class> mapLambdas = new HashMap<String, Class>();
 	
 	static {
@@ -64,7 +69,7 @@ public class MapLambdaFactory {
 			try {
 				newClass = (IMapLambda) mapLambdas.get(transType).newInstance();
 			} catch (InstantiationException | IllegalAccessException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

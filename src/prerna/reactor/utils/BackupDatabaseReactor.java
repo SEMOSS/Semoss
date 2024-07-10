@@ -7,6 +7,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
@@ -19,6 +21,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class BackupDatabaseReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(BackupDatabaseReactor.class);
 
 	public BackupDatabaseReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
@@ -73,7 +77,7 @@ public class BackupDatabaseReactor extends AbstractReactor {
 			try {
 				FileUtils.copyFile(originalFile, newFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Database backup failed! Try again.");
 			}
 		}else {

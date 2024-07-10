@@ -64,7 +64,7 @@ public class TrackRequestThread extends Thread {
 //			}
 		} catch (Exception e) {
 			LOGGER.debug("Error connecting to semoss management server");
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

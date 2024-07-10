@@ -99,7 +99,7 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 				try {
 					fw.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

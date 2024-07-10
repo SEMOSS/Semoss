@@ -76,20 +76,20 @@
 //				throw new IOException("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + this.coreEngine.getEngineId());
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(rs != null) {
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stat != null) {
 //				try {
 //					stat.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -110,7 +110,7 @@
 //			try {
 //				insightsEngine.insertData(alterQuery);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			LOGGER.info("DONE ALTER TABLE");
 //		}
@@ -136,7 +136,7 @@
 //				try {
 //					insightDefinition = clob.getAsciiStream();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //					continue;
 //				}
 //				
@@ -216,7 +216,7 @@
 //				try {
 //					this.insightsEngine.insertData(updateQ.toString());
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //
 //			}
@@ -406,7 +406,7 @@
 //				try {
 //					this.insightsEngine.insertData(updateQ.toString());
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			
@@ -418,7 +418,7 @@
 //				try {
 //					this.insightsEngine.insertData(updateQ);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				return;
 //			}
@@ -430,7 +430,7 @@
 //			try {
 //				this.insightsEngine.insertData(updateQ);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			return;
 //		}

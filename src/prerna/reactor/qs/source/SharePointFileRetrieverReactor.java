@@ -117,7 +117,7 @@ public class SharePointFileRetrieverReactor extends AbstractQueryStructReactor{
 			qs.setAdditionalTypes(additionalDataTypes);
 			return qs;
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}finally {
 			if(target != null) {
 		          try {

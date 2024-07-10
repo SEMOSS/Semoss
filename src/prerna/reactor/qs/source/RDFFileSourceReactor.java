@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -19,9 +21,12 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RDFFileSourceReactor extends AbstractQueryStructReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(RDFFileSourceReactor.class);
 
 	public static final String RDF_TYPE = "rdfType";
 	public static final String BASE_URI = "baseUri";
@@ -72,11 +77,11 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RDFParseException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// set the rc in the in-memory engine

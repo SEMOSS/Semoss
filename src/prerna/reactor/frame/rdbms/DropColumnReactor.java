@@ -2,14 +2,20 @@ package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class DropColumnReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DropColumnReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -44,7 +50,7 @@ public class DropColumnReactor extends AbstractFrameReactor {
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

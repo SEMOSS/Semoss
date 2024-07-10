@@ -6,13 +6,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.reactor.task.lambda.map.MapLambdaReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class TaskUtility {
+	
+	private static final Logger classLogger = LogManager.getLogger(TaskUtility.class);
 
 	private TaskUtility() {
 		
@@ -126,7 +132,7 @@ public class TaskUtility {
 				collect = ((ITask) taskData).collect(false);
 				return TaskUtility.getTaskDataScalarElement(collect);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}

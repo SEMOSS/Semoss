@@ -6,13 +6,19 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AddOperationAliasReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(AddOperationAliasReactor.class);
 
 	/**
 	 * This reactor takes in the name of a reactor and allows the user to assign
@@ -178,7 +184,7 @@ public class AddOperationAliasReactor extends AbstractReactor {
 			pw.write(sb.toString());
 			pw.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

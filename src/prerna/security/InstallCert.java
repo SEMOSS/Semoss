@@ -110,7 +110,7 @@
 //				System.out.println("No errors, certificate is already trusted");
 //				//		    logger.info("No errors, certificate is already trusted");
 //			} catch (SSLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				//			logger.error("StackTrace: ", e);
 //			}
 //
@@ -174,7 +174,7 @@
 //		        	  in.close();
 //		               }
 //		       } catch (IOException e) {
-//		               e.printStackTrace();
+//		               classLogger.error(Constants.STACKTRACE, e);
 //		       }
 //		      
 //		      try {
@@ -182,7 +182,7 @@
 //		        	  socket.close();
 //		               }
 //		       } catch (IOException e) {
-//		               e.printStackTrace();
+//		               classLogger.error(Constants.STACKTRACE, e);
 //		       }
 //		}
 //		//		logger.info(cert);

@@ -37,17 +37,17 @@
 //			}
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (InterruptedException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(bw!=null) {
 //				try {
 //					bw.close();
 //				} catch (IOException e) {
 //					// TODO Auto-generated catch block
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
