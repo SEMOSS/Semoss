@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -20,8 +21,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class CacheNativeFrame extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(CacheNativeFrame.class);
 
 	private static final String CLASS_NAME = CacheNativeFrame.class.getName();
 	private static final String SYNCHRONIZE = "inThread";
@@ -124,7 +128,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			try {
 				it = frame.query(qs);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.insight.addDelayedMessage(getError("Error occurred while caching live query. " + e.getMessage()));
 				return;
 			}
@@ -135,7 +139,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.insight.addDelayedMessage(getError("Error occurred while caching live query. " + e.getMessage()));
 				return;
 			}

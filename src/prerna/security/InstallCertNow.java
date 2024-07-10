@@ -49,6 +49,7 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class InstallCertNow {
@@ -174,7 +175,7 @@ public class InstallCertNow {
 		        in.close();
 		      }
 		    } catch (IOException e) {
-		      e.printStackTrace();
+		      logger.error(Constants.STACKTRACE, e);
 		    }
 
 		    try {
@@ -182,7 +183,7 @@ public class InstallCertNow {
 		        socket.close();
 		      }
 		    } catch (IOException e) {
-		      e.printStackTrace();
+		    	logger.error(Constants.STACKTRACE, e);
 		    }
 		  }
 		}

@@ -13,7 +13,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 
-import com.google.gson.Gson;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
@@ -42,9 +43,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.translations.ImportQueryTranslation;
-import prerna.util.gson.GsonUtility;
+import prerna.util.Constants;
 
 public class ImportParamOptionsReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ImportParamOptionsReactor.class);
 
 	public static final String PARAM_OPTIONS = "PARAM_OPTIONS";
 	
@@ -67,7 +70,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 				// apply the translation.
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -155,7 +158,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					paramList.add(nextStruct);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			// get the filters first

@@ -40,6 +40,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
@@ -146,7 +147,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			}
 		} catch (RuntimeException e) {
 			logger.error("Cannot find engine: TAP_Cost_Data");
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return processedList;

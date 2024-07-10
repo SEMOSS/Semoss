@@ -87,7 +87,7 @@ public class UpdateToEmail {
 //				try {
 //					formEngine.insertData(index);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			
@@ -102,7 +102,7 @@ public class UpdateToEmail {
 //				try {
 //					formEngine.insertData(update);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				
 //				for(String table : tables) {
@@ -110,7 +110,7 @@ public class UpdateToEmail {
 //					try {
 //						formEngine.insertData(update);
 //					} catch (Exception e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -121,7 +121,7 @@ public class UpdateToEmail {
 //				try {
 //					formEngine.insertData(index);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			
@@ -131,19 +131,19 @@ public class UpdateToEmail {
 //				try {
 //					formEngine.removeData(query);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='15157649836';";
 //				try {
 //					formEngine.removeData(query);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='1402072691';";
 //				try {
 //					formEngine.removeData(query);
 //				} catch (Exception e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			System.out.println("Done manual clean up");
@@ -240,7 +240,7 @@ public class UpdateToEmail {
 //			try {
 //				securityDb.insertData(updateQuery);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			
 //			// need to update all the places the user id is used
@@ -248,7 +248,7 @@ public class UpdateToEmail {
 //			try {
 //				securityDb.insertData(updateQuery);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			
 //			// need to update all the places the user id is used
@@ -256,7 +256,7 @@ public class UpdateToEmail {
 //			try {
 //				securityDb.insertData(updateQuery);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		
@@ -273,7 +273,7 @@ public class UpdateToEmail {
 //					try {
 //						securityDb.insertData(delete);
 //					} catch (Exception e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -287,7 +287,7 @@ public class UpdateToEmail {
 //					try {
 //						securityDb.insertData(delete);
 //					} catch (Exception e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}

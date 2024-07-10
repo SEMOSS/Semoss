@@ -50,6 +50,7 @@ import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.om.GraphDataModel;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -414,9 +415,9 @@ public class RDFEngineHelper {
 //					addToJenaModel(st);
 //				}
 			} catch (QueryEvaluationException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (RepositoryException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -446,9 +447,9 @@ public class RDFEngineHelper {
 			try {
 				toRC.remove(((SesameConstructWrapper)sjsc).gqr);
 			} catch (QueryEvaluationException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (RepositoryException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 

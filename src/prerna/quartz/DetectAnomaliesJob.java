@@ -51,7 +51,7 @@
 //			// Store outputs
 //			dataMap.put(OUT_DATA_FRAME_KEY, results);
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //

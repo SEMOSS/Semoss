@@ -7,12 +7,18 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.annotations.BREAKOUT;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Constants;
 
 @BREAKOUT
 public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
+	
+	private static final Logger classLogger = LogManager.getLogger(RoadmapCleanTableComparisonPlaySheet.class);
 
 	String systemOwner;
 	List<String> timelineNames = new ArrayList<String>();
@@ -64,7 +70,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					timelineMap.put(timelineName, timeline);
 					timelines.add(timeline);
 				}catch(ClassNotFoundException | InstantiationException | IllegalAccessException e){
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}else{
@@ -77,7 +83,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					timelineMap.put(timelineName, timeline);
 					timelines.add(timeline);
 				}catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

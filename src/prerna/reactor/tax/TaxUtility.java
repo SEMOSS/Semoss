@@ -7,11 +7,17 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TaxUtility {
+	
+	private static final Logger classLogger = LogManager.getLogger(TaxUtility.class);
 
 	private TaxUtility() {
 
@@ -35,7 +41,7 @@ public class TaxUtility {
 			sql = "SELECT ALIAS_1, HASHCODE FROM OUTPUTCSV WHERE ALIAS_1 " + filterQuery;
 			execAliasToHashCodeQuery(Utility.getDatabase("MinOutput"), sql, aliasHashMap);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return aliasHashMap;
@@ -58,7 +64,7 @@ public class TaxUtility {
 		try {
 			flushRsToMap(rs, aliasHashMap);
 		} catch(SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				stmt.close();
@@ -68,7 +74,7 @@ public class TaxUtility {
 			try {
 				rs.close();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -115,7 +121,7 @@ public class TaxUtility {
 				scenarioRet = rs.getDouble(1);
 			}
 		} catch(SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				stmt.close();
@@ -125,7 +131,7 @@ public class TaxUtility {
 			try {
 				rs.close();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

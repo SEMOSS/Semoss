@@ -394,23 +394,23 @@
 //			ex.printStackTrace();
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
 //		} catch (InstantiationException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
 //		} catch (IllegalAccessException e) {
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (IllegalArgumentException e) {
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (InvocationTargetException e) {
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (NoSuchMethodException e) {
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (SecurityException e) {
 //			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 ////		playSheet.setNames(this.names);
 //		playSheet.setTitle(this.title);

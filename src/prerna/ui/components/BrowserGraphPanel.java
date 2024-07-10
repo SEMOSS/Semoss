@@ -80,7 +80,7 @@ public class BrowserGraphPanel extends JPanel{
 //				TimeUnit.MILLISECONDS.sleep(50);
 //			} catch (InterruptedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		setLayout(new BorderLayout());

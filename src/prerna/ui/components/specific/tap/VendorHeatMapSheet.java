@@ -211,7 +211,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 //				TimeUnit.MILLISECONDS.sleep(50);
 //			} catch (InterruptedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		
@@ -236,7 +236,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 //				TimeUnit.MILLISECONDS.sleep(50);
 //			} catch (InterruptedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		

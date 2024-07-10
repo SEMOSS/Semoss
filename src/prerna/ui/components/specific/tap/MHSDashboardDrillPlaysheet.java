@@ -255,7 +255,7 @@
 //					esList.add((Date) getDateFormat().parse(earlyStart));
 //					lfList.add((Date) getDateFormat().parse(lateFinish));
 //				} catch (ParseException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -661,7 +661,7 @@
 //						try {
 //							ES = (Date) getDateFormat().parse(vertexPlannedStart);
 //						} catch (ParseException e) {
-//							e.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, e);
 //						}
 //					} else {
 //						ES = EF;
@@ -761,7 +761,7 @@
 //						try {
 //							ES = (Date) getDateFormat().parse(vertexActualStart);
 //						} catch (ParseException e) {
-//							e.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, e);
 //						}
 //
 //						// if activity is completed
@@ -774,7 +774,7 @@
 //							try {
 //								EF = (Date) getDateFormat().parse(vertexActualEnd);
 //							} catch (ParseException e) {
-//								e.printStackTrace();
+//								classLogger.error(Constants.STACKTRACE, e);
 //							}
 //							status = "completed";
 //							deviation = "delay";
@@ -786,7 +786,7 @@
 //							try {
 //								plannedCompletedDate = getDateFormat().parse(vertexPlannedCompletion);
 //							} catch (ParseException e) {
-//								e.printStackTrace();
+//								classLogger.error(Constants.STACKTRACE, e);
 //							}
 //							delay = (double) ((EF.getTime() - plannedCompletedDate.getTime()) / (24 * 60 * 60 * 1000));
 //							updateDBquery = "UPDATE SYSTEMACTIVITY SET " + EARLY_START + " = '" + getDateFormat(ES) + "', " + EARLY_FINISH + " = '" + getDateFormat(EF) + "',  KEYSTATUS = '" + status + "', DEVIATION = '" + deviation + "', " + DEVIATION_START + " = '" + getDateFormat(plannedCompletedDate) +  "', " + DEVIATION_FINISH + " = '" + getDateFormat(EF) +  "', " + DELAY + " = '" + delay + "' WHERE SYSTEMACTIVITY = '" + systemActivity + "'";
@@ -810,7 +810,7 @@
 //									ES = plannedStart;
 //								}
 //							} catch (ParseException e) {
-//								e.printStackTrace();
+//								classLogger.error(Constants.STACKTRACE, e);
 //							}
 //						} else {
 //							Date earliestES = getExistingDateValue(systemActivity, EARLY_START);
@@ -925,7 +925,7 @@
 //			try {
 //				ESDate = getDateFormat().parse(ES);
 //			} catch (ParseException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //
 //			Iterator<Edge> earlyFinishIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + EARLY_FINISH);
@@ -986,7 +986,7 @@
 //					try {
 //						date = getDateFormat().parse(EFString);
 //					} catch (ParseException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -1013,7 +1013,7 @@
 //						Date ef = getDateFormat().parse(EFString);
 //						dateList.add(ef);
 //					} catch (ParseException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -1039,7 +1039,7 @@
 //				date = (Date) getDateFormat().parse(stringDate);
 //			}
 //		} catch (ParseException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return date;

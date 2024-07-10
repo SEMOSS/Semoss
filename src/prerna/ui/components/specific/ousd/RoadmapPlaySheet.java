@@ -43,7 +43,7 @@
 //				timeline = OUSDPlaysheetHelper.buildTimeline(engine, roadmapName, owner);
 //			}
 //		}catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		List<Map<String, List<String>>> systemYears = timeline.getTimeData();

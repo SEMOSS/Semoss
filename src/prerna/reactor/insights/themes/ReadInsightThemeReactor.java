@@ -7,6 +7,9 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -14,8 +17,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class ReadInsightThemeReactor extends AbstractInsightReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ReadInsightThemeReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -31,7 +37,7 @@ public class ReadInsightThemeReactor extends AbstractInsightReactor {
 			Gson gson = new Gson();
 			value = gson.fromJson(reader, Map.class);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("An error occurred trying to read the insight theme");
 		}
 		

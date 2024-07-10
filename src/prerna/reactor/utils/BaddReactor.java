@@ -5,6 +5,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -14,6 +17,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class BaddReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(BaddReactor.class);
 	
 	public BaddReactor() {
 		this.keysToGet = new String[]{"fancy", "embed"};
@@ -28,7 +33,7 @@ public class BaddReactor extends AbstractReactor {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		String errorMessage = "";
@@ -51,21 +56,21 @@ public class BaddReactor extends AbstractReactor {
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(engine.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

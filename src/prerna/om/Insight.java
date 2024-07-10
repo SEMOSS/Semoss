@@ -982,7 +982,7 @@ public class Insight implements Serializable {
 //				runner.runPKQL(pkqlString, new H2Frame());
 //			}
 //		} catch(Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
 //		}
 //		this.pixelList.addPixel(pkqlString);
@@ -1006,7 +1006,7 @@ public class Insight implements Serializable {
 //					runner.runPKQL(pkqlString, new H2Frame());
 //				}
 //			} catch(Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //				throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
 //			}
 //			this.pixelList.addPixel(pkqlString);

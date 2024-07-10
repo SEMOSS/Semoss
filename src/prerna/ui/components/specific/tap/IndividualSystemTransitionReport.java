@@ -36,6 +36,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IDatabaseEngine;
@@ -44,6 +46,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
+import prerna.util.Constants;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -54,6 +57,8 @@ import prerna.util.Utility;
 
 @SuppressWarnings("serial")
 public class IndividualSystemTransitionReport extends TablePlaySheet{
+	
+	private static final Logger classLogger = LogManager.getLogger(IndividualSystemTransitionReport.class);
 
 	// list of queries to run
 	private String sysInfoQuery = "SELECT DISTINCT ?Description (COALESCE(?GT, 'Garrison') AS ?GarrisonTheater) (IF(BOUND(?MU),?MU,'TBD') AS ?MHS_Specific) ?Transaction_Count (COALESCE(SUBSTR(STR(?ATO),0,10),'TBD') AS ?ATO_Date) (COALESCE(SUBSTR(STR(?ES),0,10),'TBD') AS ?End_Of_Support) ?Num_Users ?POC WHERE   {   BIND(@SYSTEM@ AS ?System)  {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}   OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> ?MU}}   OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Description> ?Description}}  OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}}   OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Transaction_Count> ?Transaction_Count}}   OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}}   OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/End_of_Support_Date> ?ES}}   OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Number_of_Users> ?Num_Users}}  OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/POC> ?POC}}   }";
@@ -363,7 +368,7 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 				
 				writer.replaceAll("@SYSTEM@",Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")));
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				Utility.showError(e.getMessage());
 			}
 			

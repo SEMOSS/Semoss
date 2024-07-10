@@ -107,7 +107,7 @@ package prerna.reactor.database.upload;
 //			tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName, false);
 //			DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			throw new IllegalArgumentException(e.getMessage());
 //		}
 //		logger.info("Done generating temp smss");
@@ -130,7 +130,7 @@ package prerna.reactor.database.upload;
 //		try {
 //			FileUtils.copyFile(tempSmss, smssFile);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		tempSmss.delete();
 //		

@@ -220,13 +220,13 @@ public class CostDBUpdateListener extends AbstractListener {
 //				if(fileIn!=null)
 //					fileIn.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			try{
 //				if(book!=null)
 //					book.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 			

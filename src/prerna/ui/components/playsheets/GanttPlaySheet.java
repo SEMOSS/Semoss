@@ -92,7 +92,7 @@ public class GanttPlaySheet extends BrowserPlaySheet {
 						date = (String) listElement[j];
 //					} catch (ParseException e) {
 //						// TODO Auto-generated catch block
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 					
 					elementHash.put(colName, date);

@@ -689,10 +689,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// // now I need to get each of this string and then synchronize
 		// } catch (RserveException e) {
 		// // TODO Auto-generated catch block
-		// e.printStackTrace();
+		// classLogger.error(Constants.STACKTRACE, e);
 		// } catch (REXPMismatchException e) {
 		// // TODO Auto-generated catch block
-		// e.printStackTrace();
+		// classLogger.error(Constants.STACKTRACE, e);
 		// }
 	}
 

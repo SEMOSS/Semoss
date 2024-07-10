@@ -77,7 +77,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 		try {
 			this.setMaximum(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -105,7 +105,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 		try {
 			gdm.genBaseGraph(predicateSelectQuery);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -192,7 +192,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 			}
 			catch (RuntimeException e)
 			{
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}*/		
 
 			// get the bindings from it

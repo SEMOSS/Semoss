@@ -1169,7 +1169,7 @@
 //		try {
 //			owler.export();
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		owler.getOwlAsString();
 //		rfse.openFile(owler.getOwlPath(), "RDF/XML", SEMOSS_URI_PREFIX);
@@ -1182,7 +1182,7 @@
 //			owl = engine.exportBaseEngAsString(true);
 //			System.out.println("OWL.. " + owl);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return owl;

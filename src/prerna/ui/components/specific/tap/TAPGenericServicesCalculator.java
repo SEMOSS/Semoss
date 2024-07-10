@@ -40,6 +40,9 @@ import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.NewScrollBarUI;
@@ -51,6 +54,9 @@ import prerna.util.DIHelper;
  * Calculates TAP generic services values and outputs them to GridFilterData.
  */
 public class TAPGenericServicesCalculator {
+	
+	private static final Logger classLogger = LogManager.getLogger(TAPGenericServicesCalculator.class);
+	
 	GridFilterData gfd = new GridFilterData();
 	Date startDate = null;
 	Date lastDate = null;
@@ -242,7 +248,7 @@ public class TAPGenericServicesCalculator {
 			financialTestSheet.setSelected(false);
 			financialTestSheet.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 }

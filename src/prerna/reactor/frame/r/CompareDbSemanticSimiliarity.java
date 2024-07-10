@@ -352,7 +352,7 @@ package prerna.reactor.frame.r;
 //		try {
 //			f.createNewFile();
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		FileWriter writer = null;
@@ -376,7 +376,7 @@ package prerna.reactor.frame.r;
 //			bufferedWriter.write(builder.toString());
 //
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			try {
 //				if (bufferedWriter != null) {
@@ -386,7 +386,7 @@ package prerna.reactor.frame.r;
 //					writer.close();
 //				}
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //

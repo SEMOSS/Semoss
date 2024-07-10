@@ -169,10 +169,10 @@ package prerna.reactor;
 //				runner = (Lambda)myClass.toClass().newInstance();
 //			} catch (InstantiationException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (IllegalAccessException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}	
 //	}

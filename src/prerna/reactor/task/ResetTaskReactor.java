@@ -3,6 +3,9 @@ package prerna.reactor.task;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,8 +14,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.util.Constants;
 
 public class ResetTaskReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ResetTaskReactor.class);
 	
 	public ResetTaskReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK_ID.getKey()};
@@ -25,7 +31,7 @@ public class ResetTaskReactor extends AbstractReactor {
 		try {
 			task.reset();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 		return new NounMetadata(task, PixelDataType.TASK, PixelOperationType.TASK);

@@ -80,7 +80,7 @@ public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 					runModernizationPropInsert();
 				} catch (IOException e) {
 					Utility.showError(e.getMessage());
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			else{
@@ -104,7 +104,7 @@ public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 					runModernizationPropInsert();
 				} catch (IOException e) {
 					Utility.showError(e.getMessage());
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -115,7 +115,7 @@ public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 			writer = new TAPLegacySystemDispositionReportWriter(systemURI);
 			writer.writeToExcel();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			Utility.showError(e.getMessage());
 		}
 	}

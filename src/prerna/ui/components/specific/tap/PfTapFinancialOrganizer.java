@@ -357,7 +357,7 @@ public class PfTapFinancialOrganizer {
 			financialTestSheet.setSelected(false);
 			financialTestSheet.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		table.getRowSorter().toggleSortOrder(3);
 	}

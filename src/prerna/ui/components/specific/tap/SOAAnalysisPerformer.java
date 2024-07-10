@@ -237,7 +237,7 @@ public class SOAAnalysisPerformer implements Runnable {
 		try {
 			newPlaySheet.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		newPlaySheet.updateProgressBar("100%...SOA Interface Removal Complete", 100);

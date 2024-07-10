@@ -83,7 +83,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 //				TimeUnit.MILLISECONDS.sleep(50);
 //			} catch (InterruptedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		setPlaySheet(null);

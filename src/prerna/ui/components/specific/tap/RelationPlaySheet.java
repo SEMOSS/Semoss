@@ -52,6 +52,9 @@ import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import aurelienribon.ui.css.Style;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BrowserGraphPanel;
@@ -71,6 +74,8 @@ import prerna.util.DIHelper;
  */
 @SuppressWarnings("serial")
 public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
+	
+	private static final Logger classLogger = LogManager.getLogger(RelationPlaySheet.class);
 	
 	//toggles to show the system Functionality and Capability Functionality panels
 	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
@@ -337,7 +342,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		try {
 			this.setMaximum(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
 				Constants.MAIN_FRAME);

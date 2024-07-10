@@ -33,6 +33,9 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
@@ -46,6 +49,8 @@ import prerna.util.Utility;
  * Determines technical maturity calculations for a selected database based on hardware and software data
  */
 public class RunTMAloneButtonListener implements IChakraListener {
+	
+	private static final Logger classLogger = LogManager.getLogger(RunTMAloneButtonListener.class);
 
 	/**
 	 * Performs business value calculations when btnRunBVAlone is pressed by the user
@@ -70,7 +75,7 @@ public class RunTMAloneButtonListener implements IChakraListener {
 			distanceExists = proc.processQuery();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if(distanceExists){
 			//display message

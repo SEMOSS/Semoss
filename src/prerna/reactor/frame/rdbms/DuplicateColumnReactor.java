@@ -2,6 +2,9 @@ package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
@@ -10,8 +13,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class DuplicateColumnReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DuplicateColumnReactor.class);
 
 	/**
 	 * This reactor duplicates and existing column and adds it to the frame. The
@@ -63,7 +69,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		try {
 			frame.getBuilder().runQuery(addNewCol);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// update new column with the duplicate data
@@ -71,7 +77,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		try {
 			frame.getBuilder().runQuery(duplicate);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// update meta data

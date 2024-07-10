@@ -142,7 +142,7 @@ public class ImportQueryTranslation extends LazyTranslation {
 //				// apply the translation.
 //				tree.apply(translation);
 //			} catch (ParserException | LexerException | IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		

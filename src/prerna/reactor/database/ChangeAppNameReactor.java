@@ -96,7 +96,7 @@ package prerna.reactor.database;
 //			engine.open(newSmssFile);
 //
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //
 //			// need to delete new files
 //			try {

@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -21,9 +24,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PandasImporter extends AbstractImporter {
+	
+	private static final Logger classLogger = LogManager.getLogger(PandasImporter.class);
 
 	private PandasFrame dataframe;
 	private SelectQueryStruct qs;
@@ -35,7 +41,7 @@ public class PandasImporter extends AbstractImporter {
 		try {
 			this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					new NounMetadata("Error occurred executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -51,7 +57,7 @@ public class PandasImporter extends AbstractImporter {
 			try {
 				this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(
 						new NounMetadata("Error occurred executing query before loading into frame", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));

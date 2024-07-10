@@ -39,6 +39,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 
@@ -87,7 +88,7 @@ public class CapabilityFactSheetPerformer {
 				}
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		if(list.size()==0)
 			list.add(0.0);
@@ -130,7 +131,7 @@ public class CapabilityFactSheetPerformer {
 				list.add(values);
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 //		if(list.isEmpty()) {
 //			ArrayList<Object> values = new ArrayList<Object>();

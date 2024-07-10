@@ -36,6 +36,9 @@ import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -47,6 +50,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class ServiceICDCostAnalyzer {
+	
+	private static final Logger classLogger = LogManager.getLogger(ServiceICDCostAnalyzer.class);
+	
 	ArrayList<String> systems;
 	Hashtable<String, Double> dataSerICDCountHash = new Hashtable<String, Double>();
 	Hashtable<String, Double> serGenericCostHash = new Hashtable<String, Double>();
@@ -291,7 +297,7 @@ public class ServiceICDCostAnalyzer {
 			sysDecommissionSheet.setSelected(false);
 			sysDecommissionSheet.setSelected(true);
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

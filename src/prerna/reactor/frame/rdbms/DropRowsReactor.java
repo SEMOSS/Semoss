@@ -4,6 +4,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -13,8 +16,11 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class DropRowsReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DropRowsReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -73,7 +79,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 		try {
 			frame.getBuilder().runQuery(sqlStatements);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

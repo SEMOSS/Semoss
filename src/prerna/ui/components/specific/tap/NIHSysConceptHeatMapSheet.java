@@ -33,15 +33,21 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
  */
 public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
+	
+	private static final Logger classLogger = LogManager.getLogger(NIHSysConceptHeatMapSheet.class);
 
 	public ArrayList<String> systemNamesList = new ArrayList<String>();
 	String systemKey = "BUSINESS_AREA";
@@ -132,7 +138,7 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 				fullConceptColumnNameMapping.put(conceptTemp, innerHash);
 			}
 		}catch(RuntimeException e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 				
 	}

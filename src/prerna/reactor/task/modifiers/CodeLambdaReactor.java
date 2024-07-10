@@ -2,11 +2,16 @@ package prerna.reactor.task.modifiers;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.task.lambda.map.GenericMapLambda;
 import prerna.reactor.task.lambda.map.MapLambdaReactor;
+import prerna.util.Constants;
 
 public class CodeLambdaReactor extends AbstractLambdaTaskReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(CodeLambdaReactor.class);
 
 	/**
 	 * Abstract lambda class is responsible for getting
@@ -29,7 +34,7 @@ public class CodeLambdaReactor extends AbstractLambdaTaskReactor {
 			lambda.init(code, imports);
 			lambda.setUser(this.insight.getUser());
 		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error with creating generic lambda!");			
 		}
 

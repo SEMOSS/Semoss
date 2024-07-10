@@ -259,7 +259,7 @@
 //			ps.executeBatch(); // insert any remaining records
 //			ps.close();
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		// shift to on disk if number of records is getting large
@@ -286,7 +286,7 @@
 //			// create the prepared statement using the sql query defined
 //			ps = getConnection().prepareStatement(sql);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return ps;
@@ -301,7 +301,7 @@
 //			// create the prepared statement using the sql query defined
 //			ps = getConnection().prepareStatement(sql);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return ps;
@@ -319,7 +319,7 @@
 //			// create the prepared statement using the sql query defined
 //			ps = getConnection().prepareStatement(sql);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return ps;
@@ -348,20 +348,20 @@
 //				return data;
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(rs != null) {
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stmt != null) {
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -499,7 +499,7 @@
 //			String dropColumnQuery = queryUtil.alterTableDropColumn(tableName, columnHeader);
 //			runQuery(dropColumnQuery);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -512,7 +512,7 @@
 //				String dropTableQuery = queryUtil.dropTable(tableName);
 //				runQuery(dropTableQuery);
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			logger.info("DROPPED SQL TABLE ::: " + tableName);
 //		} else {
@@ -553,14 +553,14 @@
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stmt != null) {
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -586,7 +586,7 @@
 //				logger.info("Finished generating indices on SQL Table on column = " + colName);
 //			} catch (Exception e) {
 //				logger.debug("ERROR WITH INDEX !!! " + indexSql);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -607,7 +607,7 @@
 //				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
 //			} catch (Exception e) {
 //				logger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -620,7 +620,7 @@
 //			try {
 //				runQuery(queryUtil.dropIndex(indexName, tableName));
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -633,7 +633,7 @@
 //			try {
 //				runQuery(queryUtil.dropIndex(indexName, tableName));
 //			} catch (Exception e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -682,9 +682,9 @@
 //				// count(*) from voyages");
 //
 //			} catch (ClassNotFoundException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		return this.conn;
@@ -769,11 +769,11 @@
 //			}
 //
 //		} catch (ClassNotFoundException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //
 //		return this.conn;
@@ -856,7 +856,7 @@
 //		try {
 //			this.conn.close();
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -879,20 +879,20 @@
 //				headers.add(header);
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(rs != null) {
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stmt != null) {
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -972,7 +972,7 @@
 //		try {
 //			return getConnection().createStatement().executeQuery(query);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return null;
 //	}
@@ -1008,7 +1008,7 @@
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -1022,7 +1022,7 @@
 //			r = new InputStreamReader(gis);
 //			RunScript.execute(this.conn, r);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			throw new IOException("Error occurred opening cached SQL Frame");
 //		} finally {
 //			try {
@@ -1036,7 +1036,7 @@
 //					r.close();
 //				}
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}
@@ -1058,7 +1058,7 @@
 //				}
 //				server.start();
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		printSchemaTables();
@@ -1091,9 +1091,9 @@
 //				System.out.println("Table name is " + rs.getString(1));
 //
 //		} catch (ClassNotFoundException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //
@@ -1108,20 +1108,20 @@
 //				return rs.getInt(1);
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(rs != null) {
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stmt != null) {
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}
@@ -1172,7 +1172,7 @@
 //
 //				tablePermissions.put(tableName, retString);
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		return tablePermissions.get(tableName);
@@ -1198,13 +1198,13 @@
 //					return false;
 //				}
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				if (rs != null) {
 //					try {
 //						rs.close();
 //					} catch (SQLException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -1223,7 +1223,7 @@
 //		try {
 //			return this.conn.getMetaData();
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		return null;
 //	}
@@ -1238,7 +1238,7 @@
 //		try {
 //			runQuery(query);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 //	
@@ -1252,7 +1252,7 @@
 //				this.conn = getConnection();
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		LinkedHashMap<String, String> dataTypeMap = new LinkedHashMap<String, String>();
@@ -1267,20 +1267,20 @@
 //				dataTypeMap.put(colName, dataType);
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			if(rs != null) {
 //				try {
 //					rs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			if(stmt != null) {
 //				try {
 //					stmt.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //		}

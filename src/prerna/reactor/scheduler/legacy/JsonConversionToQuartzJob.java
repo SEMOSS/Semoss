@@ -139,14 +139,14 @@ package prerna.reactor.scheduler.legacy;
 //								try {
 //									is.close();
 //								} catch (IOException e) {
-//									e.printStackTrace();
+//									classLogger.error(Constants.STACKTRACE, e);
 //								}
 //							}
 //							if(fs != null) {
 //								try {
 //									fs.close();
 //								} catch (IOException e) {
-//									e.printStackTrace();
+//									classLogger.error(Constants.STACKTRACE, e);
 //								}
 //							}
 //						}

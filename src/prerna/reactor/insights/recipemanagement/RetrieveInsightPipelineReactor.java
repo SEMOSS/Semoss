@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -17,9 +20,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(RetrieveInsightPipelineReactor.class);
 
 	public RetrieveInsightPipelineReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
@@ -61,7 +67,7 @@ public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
 				try {
 					reader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

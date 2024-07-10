@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -26,7 +27,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
-
+	
 	private static final String CLASS_NAME = OneDriveFileRetrieverReactor.class.getName();
 
 	public OneDriveFileRetrieverReactor() {
@@ -111,7 +112,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			qs.setColumnTypes(dataTypes);
 			qs.setAdditionalTypes(additionalDataTypes);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}finally {
 			if(target != null) {
 		          try {

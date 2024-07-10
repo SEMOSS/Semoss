@@ -13,6 +13,7 @@ import javassist.NotFoundException;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.JavaExecutable;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Filter implements JavaExecutable {
@@ -125,9 +126,9 @@ public class Filter implements JavaExecutable {
 		} catch (NotFoundException e1) {
 			e1.printStackTrace();
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}

@@ -180,7 +180,7 @@ public final class PyExecutorThread extends Thread {
 //					aJepConfig.redirectStdout(new FileOutputStream("c:/temp/pyout.out"));
 //				} catch (FileNotFoundException e) {
 //					// TODO Auto-generated catch block
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 
 				aJepConfig.setRedirectOutputStreams(true);
@@ -277,11 +277,11 @@ public final class PyExecutorThread extends Thread {
 	 * 
 	 * public void makeTheCall(PyTester pt) { try {
 	 * getJep().eval("print(et.startSession('monkesh'))"); } catch (JepException e)
-	 * { // TODO Auto-generated catch block e.printStackTrace(); } }
+	 * { // TODO Auto-generated catch block classLogger.error(Constants.STACKTRACE, e); } }
 	 * 
 	 * public void makeAnotherCall(PyTester pt) { et.setPyTester(pt); try {
 	 * getJep().eval("print(et.startSession('monkesh'))"); } catch (JepException e)
-	 * { // TODO Auto-generated catch block e.printStackTrace(); } }
+	 * { // TODO Auto-generated catch block classLogger.error(Constants.STACKTRACE, e); } }
 	 * 
 	 *************************/
 }

@@ -175,15 +175,15 @@ public class LegendPanel2 extends JPanel {
 			}
 
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// iterate through the nodes and make modifications

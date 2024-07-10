@@ -607,13 +607,13 @@ public class QueryStruct {
 //			System.err.println("Loading DB " + fileName);
 //			Utility.loadEngine(fileName, prop);
 //		}catch(IOException e){
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}finally{
 //			try{
 //				if(fileIn!=null)
 //					fileIn.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}

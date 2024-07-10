@@ -5,6 +5,9 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -17,6 +20,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ListInsightAPIReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ListInsightAPIReactor.class);
 
 	public ListInsightAPIReactor() {
 		
@@ -75,13 +80,13 @@ public class ListInsightAPIReactor extends AbstractReactor {
 			}
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return new NounMetadata(consumerAPIMap, PixelDataType.MAP);

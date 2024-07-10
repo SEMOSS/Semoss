@@ -173,7 +173,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 						try {
 							field.wait();
 						} catch (InterruptedException e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -274,7 +274,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 									field.wait();
 								}
 							} catch (InterruptedException e) {
-								e.printStackTrace();
+								logger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}

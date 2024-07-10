@@ -13,12 +13,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 
 import prerna.tcp.PayloadStruct;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativePySockTest implements Runnable {
+	
+	private static final Logger classLogger = LogManager.getLogger(NativePySockTest.class);
 
 	InputStream is = null;
 	OutputStream os = null;
@@ -137,7 +143,7 @@ public class NativePySockTest implements Runnable {
 //		ps.payloadClasses = new Class[] {String.class};
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}catch(Exception ignored)
 		{
 			
@@ -181,7 +187,7 @@ public class NativePySockTest implements Runnable {
 			System.err.println(clz);
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		Object obj = this.gson.fromJson("True", Object.class);
@@ -212,11 +218,11 @@ public class NativePySockTest implements Runnable {
 			connected = true;
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			connected = false;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			connected=false;
 		}		
 	}
@@ -459,7 +465,7 @@ public class NativePySockTest implements Runnable {
 			os.write(finalByte);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

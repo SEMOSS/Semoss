@@ -160,7 +160,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 				}
 			} 
 			catch (RuntimeException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			list.add(0,names);
 			hash.put(outputArray.get(ind), list);
@@ -196,7 +196,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 //			}
 //		} 
 //		catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		list.add(0,names);
 //
@@ -241,7 +241,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 			}
 		} 
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		List<String> systemsToInclude = Arrays.asList("AHLTA","AHLTA-M","AHLTA-T","CDR","CHCS","CIS-Essentris","TMDI","TMDS");

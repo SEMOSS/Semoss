@@ -2,6 +2,9 @@ package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
@@ -10,8 +13,11 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class JoinColumnsReactor extends AbstractFrameReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(JoinColumnsReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -75,7 +81,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 				metaData.setDataTypeToProperty(table + "__" + colName, dataType);
 				frame.syncHeaders();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

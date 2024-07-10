@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 
@@ -16,6 +18,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class TestUtilityMethods {
+	
+	private static final Logger classLogger = LogManager.getLogger(TestUtilityMethods.class);
 
 	private TestUtilityMethods() {
 
@@ -41,13 +45,13 @@ public final class TestUtilityMethods {
 			source = new ConfigurationSource(fis);
 			Configurator.initialize(null, source);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -70,7 +74,7 @@ public final class TestUtilityMethods {
 		try {
 			AbstractSecurityUtils.loadSecurityDatabase();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

@@ -104,7 +104,7 @@ public class TaskerGenerationProcessor {
 				list.add(values);
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return list;

@@ -61,20 +61,20 @@
 //			poiReader = new FileInputStream(fileName.replace(";",""));
 //			workbook = new XSSFWorkbook(poiReader);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			throw new IOException("Could not read Microsoft Excel File " + fileName.replace(";",""));
 //		} finally {
 //			try{
 //				if(poiReader!=null)
 //					poiReader.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			try{
 //				if(workbook!=null)
 //					workbook.close();
 //			}catch(IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		XSSFSheet sheet = workbook.getSheet("Data Requirements");

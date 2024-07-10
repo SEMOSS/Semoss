@@ -190,7 +190,7 @@ public class NodeInfoPopup extends JInternalFrame{
 			logger.debug("Added the main pane");
 			
 		} catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 

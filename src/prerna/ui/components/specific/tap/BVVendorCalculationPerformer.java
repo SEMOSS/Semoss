@@ -80,7 +80,7 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 			pro.processQuery();
 			
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -112,7 +112,7 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 			
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

@@ -31,15 +31,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class EAFunctionalGapPlaySheet extends GridPlaySheet {
+	
+	private static final Logger classLogger = LogManager.getLogger(EAFunctionalGapPlaySheet.class);
+	
 	private IDatabaseEngine tapCoreEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	
 	private final String getEHRDataQuery = "SELECT DISTINCT ?data WHERE {{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?system ?provide ?data}} UNION {{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?provide <http://semoss.org/ontologies/Relation/Contains/SOR> 'Yes'}{?system ?provide ?data}}}} BINDINGS ?system {(<http://health.mil/ontologies/Concept/System/AHLTA>)(<http://health.mil/ontologies/Concept/System/CHCS>)(<http://health.mil/ontologies/Concept/System/CIS-Essentris>)}";
@@ -434,7 +441,7 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 				fccCost.put(fcc, doubleCost);
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return fccCost;
 	}

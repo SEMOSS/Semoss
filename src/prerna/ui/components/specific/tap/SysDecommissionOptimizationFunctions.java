@@ -580,7 +580,7 @@ public class SysDecommissionOptimizationFunctions {
 		}
 		catch (RuntimeException e)
 		{
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}		
 		*/
 		

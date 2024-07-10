@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IHeadersDataRow;
@@ -18,6 +21,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class GoogleLatLongLambda extends AbstractMapLambda {
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleLatLongLambda.class);
 
 	// cahing of some results
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -34,7 +39,7 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 			try {
 				mapData = new ObjectMapper().readValue(f, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				// do noting
 			}
 			
@@ -96,7 +101,7 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 //				}
 				
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

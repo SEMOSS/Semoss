@@ -152,7 +152,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		try {
 //			anomalyDetector.detectAnomalies();
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		java.lang.System.setSecurityManager(reactorManager);
 //	}
@@ -213,7 +213,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		try {
 //			anomalyDetector.detectAnomalies();
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		java.lang.System.setSecurityManager(reactorManager);
 //	}
@@ -247,7 +247,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		try {
 //			rRoutine.runRoutine();
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		// Data ID is updated when the frame is synchronized from R
 //
@@ -262,7 +262,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		try {
 //			rRoutine.runRoutine();
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		// Data ID is updated when the frame is synchronized from R
 //
@@ -276,7 +276,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		try {
 //			rRoutine.runRoutine();
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		// Data ID is updated when the frame is synchronized from R
 //
@@ -289,7 +289,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		try {
 //			rRoutine.runRoutine();
 //		} catch (RRoutineException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		// Data ID is updated when the frame is synchronized from R
 //

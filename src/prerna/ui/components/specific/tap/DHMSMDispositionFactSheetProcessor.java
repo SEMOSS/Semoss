@@ -42,6 +42,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.FactSheetProcessor;
+import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -303,7 +304,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 			costWriter.setSysURI(systemURI);
 			writer.writeTransitionCosts(costWriter, systemProbabilityHigh);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			Utility.showError(e.getMessage());
 		}
 		

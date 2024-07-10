@@ -140,7 +140,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 			logger.debug("Added the main pane");
 		}
 		catch (PropertyVetoException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -202,7 +202,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 //				TimeUnit.MILLISECONDS.sleep(50);
 //			} catch (InterruptedException e) {
 //				// TODO Auto-generated catch block
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 		callIt();

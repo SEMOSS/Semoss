@@ -47,7 +47,7 @@ package prerna.reactor.tax;
 //		try {
 //			retStoreVar = storeVariable.getClass().newInstance();
 //		} catch (InstantiationException | IllegalAccessException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		for(PKSLPlanner planner : planners) {
@@ -61,7 +61,7 @@ package prerna.reactor.tax;
 //			try {
 //				newScenarioStore = storeVariable.getClass().newInstance();
 //			} catch (InstantiationException | IllegalAccessException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			
 //			GenRowStruct grs = this.store.getNoun(KEY_NOUN);

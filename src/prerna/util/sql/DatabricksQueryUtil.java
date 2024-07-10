@@ -140,7 +140,7 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

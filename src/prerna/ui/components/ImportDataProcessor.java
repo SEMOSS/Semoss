@@ -616,7 +616,7 @@ public class ImportDataProcessor {
 //		// Do we need this?
 ////			Utility.addToSolrInstanceCore(engine);
 ////		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException e) {
-////			e.printStackTrace();
+////			classLogger.error(Constants.STACKTRACE, e);
 ////			errorMessage = "Loaded data successfully, but error occurred updating instances into solr";
 ////			throw new IOException(errorMessage);
 ////		}
@@ -738,7 +738,7 @@ public class ImportDataProcessor {
 //						if(fileIn!=null)
 //							fileIn.close();
 //					}catch(IOException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			}
@@ -851,7 +851,7 @@ public class ImportDataProcessor {
 //			FileUtils.copyFile(propFile, newProp);
 //			success = true;
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		propFile.delete();
 

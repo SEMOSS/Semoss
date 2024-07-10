@@ -219,7 +219,7 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 					}
 				}
 				// } catch (NullPointerException e) {
-				// e.printStackTrace();
+				// classLogger.error(Constants.STACKTRACE, e);
 				// Utility.showError("FError properties are missing. Please make sure all FErrors have Frequency, Dataweight, and BLUweight.");
 				// throw new Exception();
 				// }

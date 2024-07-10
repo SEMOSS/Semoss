@@ -13,7 +13,7 @@
 //		try {
 //			ClusterUtil.deleteStorage(storageId);
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}		
 //	}
 //

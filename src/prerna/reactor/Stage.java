@@ -4,14 +4,20 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Stage extends Hashtable <String, Hashtable> {
+	
+	private static final Logger classLogger = LogManager.getLogger(Stage.class);
 	
 	// stage can also be broken into more specific bolts but for now
 	
@@ -432,10 +438,10 @@ public class Stage extends Hashtable <String, Hashtable> {
 			runner = (Lambda)(thisClass.toClass().newInstance());
 		} catch (InstantiationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		runner.test();
 		//thisClass.writeClass("C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\Codagen\\Stage" + stageNum + ".java");

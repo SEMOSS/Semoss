@@ -7,6 +7,9 @@ import java.io.PushbackReader;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.lexer.Lexer;
@@ -18,8 +21,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.translations.OptimizeRecipeTranslation;
+import prerna.util.Constants;
 
 public class GetOptimizedRecipeReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GetOptimizedRecipeReactor.class);
 	
 	/**
 	 * This reactor creates an optimized recipe - it removes from the recipe instances of pixels with TaskOptions that are not needed
@@ -85,7 +91,7 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 				// reset translation.encodedToOriginal for each expression
 				translation.encodedToOriginal = new HashMap<String, String>();
 			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run

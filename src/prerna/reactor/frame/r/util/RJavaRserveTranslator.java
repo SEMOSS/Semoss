@@ -681,7 +681,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 //			// clean up other things
 //			System.out.println("R Shutdown!!");
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 	}
 

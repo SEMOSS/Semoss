@@ -98,7 +98,7 @@
 //			try {
 //				hasNext = this.edgeRs.next();
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			if(hasNext) {
 //				// still have more
@@ -107,7 +107,7 @@
 //				try {
 //					this.edgeRs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				// okay, we are done with this one
 //				// got to see if there is another relationship to try
@@ -178,7 +178,7 @@
 //			try {
 //				hasNext = this.nodeRs.next();
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			}
 //			if(hasNext) {
 //				// still have more
@@ -187,7 +187,7 @@
 //				try {
 //					this.nodeRs.close();
 //				} catch (SQLException e) {
-//					e.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e);
 //				}
 //				// okay, we are done with this one
 //				// got to see if there is another vertex to try

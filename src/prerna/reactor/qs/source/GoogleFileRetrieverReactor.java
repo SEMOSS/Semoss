@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -26,6 +27,7 @@ import prerna.util.Utility;
 
 public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 
+	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetrieverReactor.class);
 	private static final String CLASS_NAME = GoogleFileRetrieverReactor.class.getName();
 
 	
@@ -130,7 +132,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			qs.setAdditionalTypes(additionalDataTypes);
 			return qs;
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(target != null) {
 		          try {

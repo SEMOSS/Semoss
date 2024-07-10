@@ -67,10 +67,10 @@
 //			Utility.showMessage("EA properties have been added to TAP_Core_Data!");
 //		} catch (RepositoryException e) {
 //			Utility.showError("Error with generating new DB");
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} catch (RDFHandlerException e) {
 //			Utility.showError("Error with generating new DB");
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 //		// }
 //	}

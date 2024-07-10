@@ -5,11 +5,17 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class ProviderProcessor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(ProviderProcessor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -23,7 +29,7 @@ public class ProviderProcessor extends AbstractReactor {
 //		try {
 //			Class.forName(DRIVER);
 //		} catch (ClassNotFoundException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		}
 		
 		Connection conn = null;
@@ -38,21 +44,21 @@ public class ProviderProcessor extends AbstractReactor {
 			}
 		} 
 //		catch (SQLException e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //		} 
 		finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

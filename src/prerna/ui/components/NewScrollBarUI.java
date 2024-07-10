@@ -41,6 +41,9 @@ import javax.swing.SwingConstants;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -48,6 +51,7 @@ import prerna.util.DIHelper;
  * This class is used to create the scrollbar UI.
  */
 public class NewScrollBarUI extends BasicScrollBarUI {
+	private static final Logger classLogger = LogManager.getLogger(NewScrollBarUI.class);
 	private Image thumb;
 
 	/**
@@ -62,7 +66,7 @@ public class NewScrollBarUI extends BasicScrollBarUI {
 			File picFile = new File(picFileURL);
 			thumb = ImageIO.read(picFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
