@@ -13,7 +13,6 @@ import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,14 +36,11 @@ import io.weaviate.client.v1.schema.model.WeaviateClass;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
@@ -146,12 +142,6 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					  .withClass(emptyClass)
 					  .run();
 		}
-	}
-
-	
-	@Override
-	public VectorDatabaseTypeEnum getVectorDatabaseType() {
-		return VectorDatabaseTypeEnum.WEAVIATE;
 	}
 
 	@Override
@@ -490,109 +480,9 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return retOut;
 	}
 	
-	/**
-	 * 
-	 * @param content
-	 * @param insight
-	 * @return
-	 */
-	private Float[] getEmbeddings(String content, Insight insight) {
-		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-		List <Double> embeddingsResponse = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), getInsight(insight), null).getResponse().get(0);
-		Float [] retFloat = new Float[embeddingsResponse.size()];
-		for(int vecIndex = 0; vecIndex < retFloat.length; vecIndex++) {
-			retFloat[vecIndex] = (Float)embeddingsResponse.get(vecIndex).floatValue();
-		}
-		
-		return retFloat;
-	}
-
 	@Override
-	protected synchronized void startServer(int port) {
-		// already created by another thread
-		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}		
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way than the command
-
-		// execute all the basic commands		
-		// break the commands seperated by ;
-		String [] commands = (TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
-
-		// need to iterate through and potential spin up tables themselves
-
-		// replace the Vars
-		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			String resolvedString = substitutor.replace(commands[commandIndex]);
-			commands[commandIndex] = resolvedString;
-		}
-		
-		if(!this.pyDirectoryBasePath.exists()) {
-			this.pyDirectoryBasePath.mkdirs();
-		}
-		
-		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
-		}
-		
-		String timeout = "30";
-		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						// ignore
-						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
-					}
-				}
-			}
-			
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
-			}
-		}
-
-		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
-		
-		pyt.runEmptyPy(commands);
+	public VectorDatabaseTypeEnum getVectorDatabaseType() {
+		return VectorDatabaseTypeEnum.WEAVIATE;
 	}
 	
 	/////////////////////////////////////////////////////////////////////
