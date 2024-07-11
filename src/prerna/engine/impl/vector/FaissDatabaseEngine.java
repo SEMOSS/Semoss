@@ -25,6 +25,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -42,6 +43,7 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -52,25 +54,26 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	
-	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
-	private static final String faissInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
+	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
+			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
+	private static final String FAISS_INIT_SCRIPT = "import vector_database;"
+			+ "${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
 	
 	protected String vectorDatabaseSearcher = null;
 	
 	private List<String> indexClasses;
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
 	
-	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		
 		// highest directory (first layer inside vector db base folder)
-		this.pyDirectoryBasePath = this.connectionURL + "py" + DIR_SEPARATOR;
-		this.cacheFolder = new File(pyDirectoryBasePath.replace(FILE_SEPARATOR, DIR_SEPARATOR));
-
+		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(this.connectionURL, "schema");
+		this.schemaFolder = new File(engineDir, "schema");
 		if(!this.schemaFolder.exists()) {
 			this.schemaFolder.mkdirs();
 		}
@@ -85,11 +88,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
         }
 		
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-		
 		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 
-	
+	@Override
 	protected synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
@@ -100,7 +102,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			verifyModelProps();
 		}
 		
-		
 		// spin the server
 		// start the client
 		// get the startup command and parameters - at some point we need a better way than the command
@@ -108,7 +109,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// execute all the basic commands		
 		
 		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript+faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
+		String [] commands = (TOKENIZER_INIT_SCRIPT+FAISS_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
@@ -129,8 +130,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			commands[commandIndex] = fillVars(commands[commandIndex]);
 		}
 		
-		if(!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
 		}
 		
 		// check if we have already created a process wrapper
@@ -166,7 +167,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				}
 			}
 			
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
 				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
