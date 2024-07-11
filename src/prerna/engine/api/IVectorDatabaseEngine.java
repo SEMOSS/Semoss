@@ -16,7 +16,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	*/
 	VectorDatabaseTypeEnum getVectorDatabaseType();
 	
-	
 	/**
 	 * This method is used to add documents to a vector database. The engine itself will determine how the the documents are
 	 * processed and the embeddings are created.

@@ -204,34 +204,37 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		}
 		
 		// load the rdf owl db
-		String owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-		if(owlFile == null) {
+		String owlFile = null;
+		String owlPropStr = this.smssProp.getProperty(Constants.OWL);
+		if(owlPropStr == null || (owlPropStr=owlPropStr.trim()).isEmpty()) {
 			// make a new empty owl
-			owlFile = UploadUtilities.generateOwlFile(this.engineId, this.engineName).getAbsolutePath();
-		}
-		else if(owlFile.equalsIgnoreCase("REMAKE")) {
+			owlFile = UploadUtilities.generateOwlFile(getCatalogType(), this.engineId, this.engineName).getAbsolutePath();
+		} else if(owlPropStr.equalsIgnoreCase("REMAKE")) {
 			classLogger.info("Attempting to create new OWL file");
 			// the process of remake will start here
 			// see if the usefile is there
 			File dataF = SmssUtilities.getDataFile(this.smssProp);
 			if(dataF != null && dataF.exists()) {
-				owlFile = UploadUtilities.generateOwlFile(this.engineId, this.engineName).getAbsolutePath();
+				owlFile = UploadUtilities.generateOwlFile(getCatalogType(), this.engineId, this.engineName).getAbsolutePath();
 				setOwlFilePath(owlFile);
 				owlFile = generateOwlFromFlatFile(dataF.getAbsolutePath(), owlFile, FilenameUtils.getName(owlFile));
 			}
+		} else {
+			// if its not one of these special values
+			// then lets grab the owlFile
+			File owlF = SmssUtilities.getOwlFile(this.smssProp);
+			if(owlF == null || !owlF.exists()) {
+				// make a new empty owl
+				owlFile = UploadUtilities.generateOwlFile(owlFile).getAbsolutePath();
+				setOwlFilePath(owlFile);
+			} else {
+				owlFile = owlF.getAbsolutePath();
+				// it exists, just set it
+				classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+				setOwlFilePath(owlFile);
+			}
 		}
-		else if(!(new File(owlFile)).exists()) {
-			// make a new empty owl
-			owlFile = UploadUtilities.generateOwlFile(owlFile).getAbsolutePath();
-			setOwlFilePath(owlFile);
-		}
-		// set the owl file
-		else if(owlFile != null) {
-			owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-			classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
-			setOwlFilePath(owlFile);
-		}
-		
+
 		// load properties object for db
 		File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
 		if (engineProps != null) {

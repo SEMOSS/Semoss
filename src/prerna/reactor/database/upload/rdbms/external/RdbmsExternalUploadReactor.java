@@ -271,7 +271,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, this.databaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

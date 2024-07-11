@@ -1994,7 +1994,10 @@ public final class Utility {
 		try {
 			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
 			engineType = emptyClass.getCatalogType();
-			if(emptyClass instanceof IDatabaseEngine) {
+			// FOR NOW
+			// PGVECTOR IS A DATABASE ENGINE
+			// BUT NO OWL
+			if(emptyClass instanceof IDatabaseEngine && !(emptyClass instanceof IVectorDatabaseEngine)) {
 				syncToLocalMaster = true;
 			}
 		} catch(Exception e) {
