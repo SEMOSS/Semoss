@@ -290,7 +290,7 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 				}
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				try {

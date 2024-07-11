@@ -235,7 +235,7 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 			try {
 				stmt.close();
 			} catch(SQLException e1) {
-				e1.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 		}
 	}

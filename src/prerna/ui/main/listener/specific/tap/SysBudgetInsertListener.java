@@ -33,6 +33,9 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
@@ -48,6 +51,9 @@ import prerna.util.Utility;
  * Inserts sustainment budget property on systems 
  */
 public class SysBudgetInsertListener implements IChakraListener{
+	
+	private static final Logger classLogger = LogManager.getLogger(SysBudgetInsertListener.class);
+
 
 	//TODO: may want user to specify engine name
 	
@@ -76,7 +82,7 @@ public class SysBudgetInsertListener implements IChakraListener{
 				propCheck = boolProc.processQuery();
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 			
 			if(propCheck){

@@ -16,7 +16,7 @@
 //				try {
 //					process(fileNames[fileIdx]);
 //				} catch (RuntimeException ex) {
-//					ex.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, ex);
 //					logger.fatal("CSV Insight Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 //				}
 //			}

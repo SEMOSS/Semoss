@@ -916,7 +916,7 @@
 //			try {
 //				LSDate = getDateFormat().parse(LS);
 //			} catch (ParseException e1) {
-//				e1.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e1);
 //			}
 //
 //			Iterator<Edge> earlyStartIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + EARLY_START);
@@ -934,7 +934,7 @@
 //			try {
 //				EFDate = getDateFormat().parse(EF);
 //			} catch (ParseException e1) {
-//				e1.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e1);
 //			}
 //
 //			Iterator<Edge> lateFinishIterator = vert.edges(Direction.OUT, "TYPE", SYSTEM_ACTIVITY + "+++" + LATE_FINISH);
@@ -943,7 +943,7 @@
 //			try {
 //				LFDate = getDateFormat().parse(LF);
 //			} catch (ParseException e1) {
-//				e1.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e1);
 //			}
 //
 ////			System.out.println("ES VAL:::" + ESDate);

@@ -188,7 +188,7 @@ public final class SysOptUtilityMethods {
 
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				try {

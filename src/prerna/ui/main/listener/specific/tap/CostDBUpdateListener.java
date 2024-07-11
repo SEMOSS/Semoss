@@ -213,7 +213,7 @@ public class CostDBUpdateListener extends AbstractListener {
 //				Utility.showMessage("Your database has been successfully updated!");
 //			}
 //		} catch (RuntimeException | IOException ex) {
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //			Utility.showError("Load has failed. Please make sure the loads sheets in the excel file are \nformatted correctly, and objects match the map file.");
 //		} finally{
 //			try{

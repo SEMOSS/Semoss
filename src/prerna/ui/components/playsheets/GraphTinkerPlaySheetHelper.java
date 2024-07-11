@@ -196,7 +196,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 	// updateProgressBar("100%...Graph Extension Complete", 100);
 	// }catch(RuntimeException ex)
 	// {
-	// ex.printStackTrace();
+	// classLogger.error(Constants.STACKTRACE, ex);
 	// logger.fatal(ex);
 	// }
 	// }

@@ -197,7 +197,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		//			stmt = this.conn.createStatement();
 		//			stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
 		//		} catch (SQLException e1) {
-		//			e1.printStackTrace();
+		//			classLogger.error(Constants.STACKTRACE, e1);
 		//		} finally {
 		//			if(stmt != null) {
 		//				try {

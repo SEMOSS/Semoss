@@ -1,5 +1,8 @@
 package prerna.reactor.database.upload.modifications;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -11,9 +14,12 @@ import prerna.reactor.database.metaeditor.properties.RemoveOwlPropertyReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AddDatabasePropertyReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(AddDatabasePropertyReactor.class);
 
 	public AddDatabasePropertyReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(),
@@ -66,7 +72,7 @@ public class AddDatabasePropertyReactor extends AbstractReactor {
 				owlRemover.setNounStore(this.store);
 				owlRemover.execute();
 			} catch(Exception e2) {
-				e2.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e2);
 			}
 			
 			throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);

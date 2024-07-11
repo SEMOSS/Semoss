@@ -82,7 +82,7 @@ public class ChartControlPanel extends JPanel {
 			Image newimg = img.getScaledInstance(15, 15,  java.awt.Image.SCALE_SMOOTH );
 			btnGraphImageExport.setIcon(new ImageIcon(newimg));
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 		
 		imageExportListener = new ChartImageExportListener();

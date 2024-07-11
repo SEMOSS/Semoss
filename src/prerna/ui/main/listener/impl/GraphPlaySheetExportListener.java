@@ -85,7 +85,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 //			NewplaySheet = (GridPlaySheet)Class.forName("prerna.ui.components.playsheets.GridPlaySheet").getConstructor(null).newInstance(null);
 //		}catch(Exception ex)
 //		{
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //			logger.fatal(ex);
 //		}
 //		playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();

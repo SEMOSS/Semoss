@@ -538,7 +538,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			       }
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(rawIterator != null) {
 				try {
@@ -593,7 +593,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(rawIterator != null) {
 				try {
@@ -648,7 +648,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getName());
 			tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(rawWrapper != null) {
 				try {
@@ -1065,7 +1065,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					//			}
 					//			LOGGER.info("Done iterating through system sustainment data");
 				} catch (Exception e1) {
-					e1.printStackTrace();
+					LOGGER.error(Constants.STACKTRACE, e1);
 				} finally {
 					if(rawWrapper != null) {
 						try {
@@ -1101,7 +1101,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			try {
 				stmt.close();
 			} catch(SQLException e1) {
-				e1.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e1);
 			}
 		}
 	}

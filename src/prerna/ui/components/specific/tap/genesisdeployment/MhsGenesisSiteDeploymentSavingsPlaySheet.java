@@ -364,7 +364,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 			try {
 				stmt.close();
 			} catch(SQLException e1) {
-				e1.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e1);
 			}
 		}
 	}

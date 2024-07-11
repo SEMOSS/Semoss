@@ -168,7 +168,7 @@
 //			zipFile.extractAll(dbFolder);
 //
 //		} catch (Exception ex) {
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //		}
 //	}
 //

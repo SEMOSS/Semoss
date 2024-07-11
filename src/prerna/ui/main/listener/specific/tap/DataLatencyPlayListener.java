@@ -82,7 +82,7 @@ public class DataLatencyPlayListener implements ActionListener{
 			try {
 				ps.dataLatencyPlayPopUp.setSelected(true);
 			} catch (PropertyVetoException e1) {
-				e1.printStackTrace();
+				logger.error(Constants.STACKTRACE, e1);
 			}
 		}
 		else {

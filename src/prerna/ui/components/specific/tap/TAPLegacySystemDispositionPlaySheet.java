@@ -62,7 +62,7 @@ public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 			modernizationPropExists = checkModernizationProp();
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 		}
 		if(!modernizationPropExists) 
 		{

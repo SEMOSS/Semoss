@@ -184,7 +184,7 @@ package prerna.reactor.imports;
 //				throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
 //			} catch (SQLException e1) {
 //				// TODO Auto-generated catch block
-//				e1.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e1);
 //			}
 //		}
 //		

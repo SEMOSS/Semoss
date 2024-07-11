@@ -86,7 +86,7 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 				}
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e1);
 		}
 		// TODO this isn't working for me
 //		boolean isNumeric = frame.isNumeric()[index];
@@ -142,7 +142,7 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 				}
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(iterator != null) {
 				try {

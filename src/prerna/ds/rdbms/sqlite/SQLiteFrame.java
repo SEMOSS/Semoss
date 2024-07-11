@@ -159,7 +159,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 			stmt = this.conn.createStatement();
 			stmt.executeUpdate("restore from '" +  filePath + "'");
 		} catch (SQLException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			if(stmt != null) {

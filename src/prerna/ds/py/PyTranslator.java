@@ -277,7 +277,7 @@ public class PyTranslator {
 
 		} catch (IOException e1) {
 			// System.out.println("Error in writing Py script for execution!");
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			// Cleanup
 			scriptFile.delete();

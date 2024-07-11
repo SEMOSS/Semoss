@@ -134,13 +134,13 @@ public class SocketServerHandler implements Runnable {
 				} catch(InvocationTargetException ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
 					classLogger.info(ex + ps.methodName);
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 				} catch(Exception ex ) {
 					classLogger.error(Constants.STACKTRACE, ex);
 					classLogger.info(ex + ps.methodName);
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 				}
@@ -163,7 +163,7 @@ public class SocketServerHandler implements Runnable {
 					//ps.operation = ps.operation.PYTHON;
 					// remove this item
 				} catch(Exception ex) {
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -204,7 +204,7 @@ public class SocketServerHandler implements Runnable {
 					ps.processed = true;
 				} catch(Exception ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 					//TCPChromeDriverUtility.quit("stop");
@@ -225,7 +225,7 @@ public class SocketServerHandler implements Runnable {
 					insightMap.put(output.getInsightId(), output);
 				} catch(Exception ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 					//TCPChromeDriverUtility.quit("stop");
@@ -277,7 +277,7 @@ public class SocketServerHandler implements Runnable {
 					ps.payloadClasses = new Class[] {NounMetadata.class};
 				} catch(Exception ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 					//TCPChromeDriverUtility.quit("stop");
@@ -304,7 +304,7 @@ public class SocketServerHandler implements Runnable {
 					ps.payloadClasses = new Class [] {String.class};
 				} catch(Exception ex) {
 					classLogger.error(Constants.STACKTRACE, ex);
-					//ex.printStackTrace();
+					//classLogger.error(Constants.STACKTRACE, ex);
 					//System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);						
 					//TCPChromeDriverUtility.quit("stop");
@@ -343,7 +343,7 @@ public class SocketServerHandler implements Runnable {
 				return ps;
 			}
 		} catch(Exception ex) {
-			//ex.printStackTrace();
+			//classLogger.error(Constants.STACKTRACE, ex);
 			classLogger.error(Constants.STACKTRACE, ex);
 			ps.ex = ex.getMessage();
 		}
@@ -942,7 +942,7 @@ public class SocketServerHandler implements Runnable {
 						this.done = true;
 						server.crash.notify();
 					} catch (Exception e1) {
-						e1.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e1);
 						classLogger.error(Constants.STACKTRACE, e1);
 					}
 				}

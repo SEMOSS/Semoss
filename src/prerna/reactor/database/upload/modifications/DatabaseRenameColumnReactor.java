@@ -2,6 +2,9 @@ package prerna.reactor.database.upload.modifications;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -14,6 +17,7 @@ import prerna.reactor.masterdatabase.SyncDatabaseWithLocalMasterReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
@@ -25,6 +29,8 @@ import prerna.util.Utility;
  *
  */
 public class DatabaseRenameColumnReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DatabaseRenameColumnReactor.class);
 
 	public DatabaseRenameColumnReactor() {
 		this.keysToGet = new String[] { 
@@ -82,7 +88,7 @@ public class DatabaseRenameColumnReactor extends AbstractReactor {
 			EngineSyncUtility.clearEngineCache(databaseId);
 			ClusterUtil.pushOwl(databaseId, owlEngine);
 		} catch (IOException | InterruptedException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 
 		NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);

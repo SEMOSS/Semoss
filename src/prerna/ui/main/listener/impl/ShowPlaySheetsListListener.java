@@ -35,15 +35,21 @@ import javax.swing.JList;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
+import prerna.util.Constants;
 
 /**
  * Controls the selection of a play sheet from the list of play sheets.
  */
 public class ShowPlaySheetsListListener implements ListSelectionListener{
+	
+	private static final Logger classLogger = LogManager.getLogger(ShowPlaySheetsListListener.class);
 
 	ButtonMenuDropDown btnMenu;
 	Hashtable<String,String> lookUp;
@@ -88,7 +94,7 @@ public class ShowPlaySheetsListListener implements ListSelectionListener{
 			((JInternalFrame)selectedSheet).setSelected(true);
 		} catch (PropertyVetoException e1) {
 //			logger.error
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 //		QuestionPlaySheetStore.getInstance().setActiveSheet(selectedSheet);
 		InsightStore.getInstance().setActiveInsight(id);

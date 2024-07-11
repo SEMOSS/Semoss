@@ -289,7 +289,7 @@ public class UsaJobsUtil {
 			curFile.write("\n");
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	

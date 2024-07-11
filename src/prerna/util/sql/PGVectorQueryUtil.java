@@ -7,8 +7,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
+	
+	private static final Logger classLogger = LogManager.getLogger(PGVectorQueryUtil.class);
 
 	public PGVectorQueryUtil() {
 		super();
@@ -55,7 +61,7 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 
 		} catch (SQLException e1) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
         
 		String valueString = "";

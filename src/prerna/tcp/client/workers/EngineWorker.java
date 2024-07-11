@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.sun.rowset.CachedRowSetImpl;
 
 import prerna.auth.User;
@@ -16,9 +19,12 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class EngineWorker implements Runnable {
+	
+	private static final Logger classLogger = LogManager.getLogger(EngineWorker.class);
 	
 	// responsible for doing all of the work from an engine's perspective
 	// the server sends information to semoss core to execute something
@@ -77,7 +83,7 @@ public class EngineWorker implements Runnable {
 			
 		}catch(Exception ex)
 		{
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			ps.ex = ex.getLocalizedMessage();
 			ps.response = true;
 		}
