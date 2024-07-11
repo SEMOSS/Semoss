@@ -4121,6 +4121,11 @@ public final class Utility {
 		return timeZone.trim();
 	}
 	
+	public static ZoneId getApplicationZoneIdObj() {
+		return ZoneId.of(getApplicationZoneId());
+
+	}
+	
 	/**
 	 * 
 	 * @return

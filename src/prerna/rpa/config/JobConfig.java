@@ -2,6 +2,10 @@ package prerna.rpa.config;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -16,6 +20,7 @@ import org.quartz.JobDataMap;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
 
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.specific.anthem.ProcessWGSPReportsJobConfig;
@@ -35,6 +40,8 @@ public abstract class JobConfig {
 	// For parsing the dates
 	private static final String DATE_FORMAT = "yyyy-MM-dd";
 	private final SimpleDateFormat dateFormatter = new SimpleDateFormat(DATE_FORMAT); // Non-thread safe, so not static
+	
+	private final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 	
 	protected final JsonObject jobDefinition;
 
@@ -304,7 +311,9 @@ public abstract class JobConfig {
 	}
 	
 	public Date parseDate(String dateString) throws ParseException {
-		return dateFormatter.parse(dateString);
+		LocalDate date = LocalDate.parse(dateString, DATE_FORMATTER);
+		// Making sure instant is at start of the day (00:00:00) so that the date object is just the day and not time 
+		return Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
 	}
 	
 	private boolean bypass(String jsonKey) {
