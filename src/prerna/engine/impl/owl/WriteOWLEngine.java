@@ -2,9 +2,9 @@ package prerna.engine.impl.owl;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,8 +42,8 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 	private static final Logger classLogger = LogManager.getLogger(WriteOWLEngine.class);
 
-	private final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
-
+//	private final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
+	private final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
 	// hashtable of concepts
 	protected Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 	// hashtable of relationships
@@ -1255,8 +1255,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			//adding a time-stamp to the OWL file
 			if(addTimeStamp) {
 				deleteExisitngTimestamp();
-				Calendar cal = Calendar.getInstance();
-				String cleanObj = DATE_FORMATTER.format(cal.getTime());
+				String cleanObj = LocalDateTime.now().format(DATE_FORMATTER);
 				this.baseDataEngine.addStatement(new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseDataEngine.exportDB();
