@@ -47,19 +47,13 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			throw new SemossPixelException("Unable to find engine");
 		}
 		
-		// for FAISS or openSearch, make sure the user has access to the embedder model
-		//if (eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS || eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH || eng.getVectorDatabaseType() == VectorDatabaseTypeEnum.WEAVIATE) 
-		//{
 		String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
-		if(embeddingsEngineId == null || !SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) 
-		{
+		if(embeddingsEngineId == null || !SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
 			throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
 		}
 		
-		
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		int limit = getLimit();
-
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
@@ -67,7 +61,6 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		
 		// add the insightId so Model Engine calls can be made for python
 		paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
-		
 		List<IQueryFilter> filters = getFilters();
 		if (filters != null) {
 			paramMap.put("filters", filters);

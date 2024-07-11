@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -25,6 +27,7 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.Settings;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -137,39 +140,26 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
-	/**
-	 * 
-	 * @param input
-	 * @return
-	 */
-	protected String fillVars(String input) {
-		StringSubstitutor sub = new StringSubstitutor(vars);
-		String resolvedString = sub.replace(input);
-		return resolvedString;
+	@Override
+	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
+			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
+		// TODO Auto-generated method stub
+		// TODO Implement for each engine type and remove from Abstract
 	}
 	
-	/**
-	 * 
-	 * @param insightObj
-	 * @return
-	 */
-	protected Insight getInsight(Object insightObj) {
-		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get((String) insightObj);
-		} else {
-			return (Insight) insightObj;
-		}
+	
+	@Override
+	public void addEmbeddings(File vectorCsvFile, Insight insight) throws Exception {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+		addEmbeddings(vectorCsvTable, insight);
 	}
 	
-	/**
-	 * 
-	 */
-	protected void checkSocketStatus() {
-		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception {
+		// TODO Auto-generated method stub
+		// TODO Implement for each engine type and remove from Abstract
 	}
-
+	
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
@@ -258,9 +248,149 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	/**
 	 * 
-	 * @param lease
 	 */
-	protected abstract void startServer(int lease);
+	protected void checkSocketStatus() {
+		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
+	protected String fillVars(String input) {
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
+	}
+	
+	/**
+	 * This method is meant to be overriden so that we dont need to copy/paste the startServer code for every implementation
+	 * @return
+	 */
+	protected String[] getServerStartCommands() {
+		return (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+	}
+	
+	/**
+	 * 
+	 * @param port
+	 */
+	protected synchronized void startServer(int port) {
+		// already created by another thread
+		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
+		}
+		// check if we have already created a process wrapper
+		if(this.cpw == null) {
+			this.cpw = new ClientProcessWrapper();
+		}
+		
+		String timeout = "30";
+		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+		
+		if(this.cpw.getSocketClient() == null) {
+			boolean debug = false;
+			
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			
+			if(port < 0) {
+				// port has not been forced
+				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch(NumberFormatException e) {
+						// ignore
+						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
+					}
+				}
+			}
+			
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+			try {
+				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			}
+		} else if (!this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown(false);
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
+			}
+		}
+
+		// create the py translator
+		pyt = new TCPPyTranslator();
+		pyt.setSocketClient(this.cpw.getSocketClient());
+		
+		
+		String[] commands = getServerStartCommands();
+		// replace the vars
+		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+			String resolvedString = substitutor.replace(commands[commandIndex]);
+			commands[commandIndex] = resolvedString;
+		}
+		pyt.runEmptyPy(commands);
+		
+		// for debugging...
+		StringBuilder intitPyCommands = new StringBuilder("\n");
+		for (String command : commands) {
+			intitPyCommands.append(command).append("\n");
+		}
+		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " ptyhon process with commands >>> " + intitPyCommands.toString());
+	}
+	
+	/**
+	 * 
+	 * @param insightObj
+	 * @return
+	 */
+	protected Insight getInsight(Object insightObj) {
+		if (insightObj instanceof String) {
+			return InsightStore.getInstance().get((String) insightObj);
+		} else {
+			return (Insight) insightObj;
+		}
+	}
+	
+	/**
+	 * 
+	 * @param content
+	 * @param insight
+	 * @return
+	 */
+	protected Float[] getEmbeddings(String content, Insight insight) {
+		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		List <Double> embeddingsResponse = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), getInsight(insight), null).getResponse().get(0);
+		Float [] retFloat = new Float[embeddingsResponse.size()];
+		for(int vecIndex = 0; vecIndex < retFloat.length; vecIndex++) {
+			retFloat[vecIndex] = (Float)embeddingsResponse.get(vecIndex).floatValue();
+		}
+		
+		return retFloat;
+	}
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -360,26 +490,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
-	}
-	
-	@Override
-	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
-			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
-		// TODO Auto-generated method stub
-		// TODO Implement for each engine type and remove from Abstract
-	}
-	
-	
-	@Override
-	public void addEmbeddings(File vectorCsvFile, Insight insight) throws Exception {
-		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight);
-	}
-	
-	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception {
-		// TODO Auto-generated method stub
-		// TODO Implement for each engine type and remove from Abstract
 	}
 	
 }

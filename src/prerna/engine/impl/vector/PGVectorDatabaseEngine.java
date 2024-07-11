@@ -32,6 +32,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
@@ -198,24 +199,29 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		this.modelPropsLoaded = true;
 	}
 
+	/**
+	 * This method is meant to be overriden so that we dont need to copy/paste the startServer code for every implementation
+	 * @return
+	 */
+	private String[] getServerStartCommands() {
+		return (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+	}
+	
+	/**
+	 * 
+	 * @param port
+	 */
 	private synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
 		}
-		
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way than the command
-		// execute all the basic commands		
-
 		if(!this.pyDirectoryBasePath.exists()) {
 			this.pyDirectoryBasePath.mkdirs();
 		}
-		
 		// check if we have already created a process wrapper
 		if(this.cpw == null) {
 			this.cpw = new ClientProcessWrapper();
@@ -271,24 +277,28 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		pyt = new TCPPyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		// break the commands separated by ;
-		String [] commands = (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
-
-		// need to iterate through and potential spin up tables themselves
-		if (this.indexClasses.size() > 0) {
-			ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
-			commands = modifiedCommands.stream().toArray(String[]::new);
-		}
-
-		// replace the Vars
+		String[] commands = getServerStartCommands();
+		// replace the vars
 		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
 			String resolvedString = substitutor.replace(commands[commandIndex]);
 			commands[commandIndex] = resolvedString;
 		}
 		pyt.runEmptyPy(commands);
+		
+		// for debugging...
+		StringBuilder intitPyCommands = new StringBuilder("\n");
+		for (String command : commands) {
+			intitPyCommands.append(command).append("\n");
+		}
+		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " ptyhon process with commands >>> " + intitPyCommands.toString());
 	}
 
+	/**
+	 * 
+	 * @param table
+	 * @throws SQLException
+	 */
 	private void initSQL(String table) throws SQLException {
 		String createTable = pgVectorQueryUtil.createEmbeddingsTable(table);
 		//creating the default embeddings table
@@ -779,7 +789,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if(this.cpw != null) {
 			this.cpw.shutdown(true);
 		}
-		
 		super.close();
 	}
 	
