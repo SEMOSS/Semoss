@@ -95,7 +95,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 		
 		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyTFolder = new File(Utility.normalizePath(engineDir + "py" + DIR_SEPARATOR));
+		this.pyTFolder = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
 
 		// This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
 		this.schemaFolder = new File(engineDir, "schema");
