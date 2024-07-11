@@ -89,9 +89,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	private boolean engineConnected = false;
 	private boolean datasourceConnected = false;
-	private RdbmsTypeEnum dbType;
-	private HikariDataSource dataSource = null;
-	private Connection engineConn = null;
+	protected RdbmsTypeEnum dbType;
+	protected HikariDataSource dataSource = null;
+	protected Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 
 	public PersistentHash conceptIdHash = null;

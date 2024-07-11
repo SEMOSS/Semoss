@@ -25,6 +25,7 @@ import org.openrdf.sail.SailException;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
@@ -60,7 +61,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, newDatabaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

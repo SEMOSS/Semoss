@@ -2,8 +2,6 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,7 +24,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.pgvector.PGvector;
 
-import au.com.bytecode.opencsv.CSVReader;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
@@ -35,7 +32,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
@@ -49,74 +45,71 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
-import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.PGVectorQueryUtil;
-import prerna.util.sql.RDBMSUtility;
 
 public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
-
+	private static final String DIR_SEPARATOR = "/";
+	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
-
-	protected static final String DIR_SEPARATOR = "/";
-	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');import vector_database;";
+	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
+			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
+			+ "import vector_database;";
 
-	protected String engineDirectoryPath = null;
-	protected int contentLength = 512;
-	protected int contentOverlap = 0;
-	protected String defaultChunkUnit;
-	protected String defaultExtractionMethod;
-	protected String defaultIndexClass;
+	private int contentLength = 512;
+	private int contentOverlap = 0;
+	private String defaultChunkUnit;
+	private String defaultExtractionMethod;
+	private String defaultIndexClass;
 	
-	protected String embedderEngineId = null;
-	protected String keywordGeneratorEngineId = null;
+	private String embedderEngineId = null;
+	private String keywordGeneratorEngineId = null;
 	
-	File schemaFolder;
-
-	List<String> indexClasses;
+	private String vectorTableName = null;
+	private File schemaFolder;
+	private	List<String> indexClasses;
 
 	// python server
-	private String pyDirectoryBasePath;
-	protected TCPPyTranslator pyt = null;
-	private File cacheFolder;
+	private TCPPyTranslator pyt = null;
+	private File pyTFolder;
 	private ClientProcessWrapper cpw = null;
-	
-	String vectorTableName = null;
 	
 	private boolean modelPropsLoaded = false;
 	
 	// string substitute vars
-	Map<String, String> vars = new HashMap<>();
+	private Map<String, String> vars = new HashMap<>();
+
+	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 
 		this.vectorTableName = smssProp.getProperty(PGVECTOR_TABLE_NAME);
-
-		this.engineDirectoryPath = Utility.normalizePath(RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName));
-
+		if(this.vectorTableName == null || (this.vectorTableName=this.vectorTableName.trim()).isEmpty()) {
+			throw new NullPointerException("Must define the vector db table name");
+		}
 		
-		this.pyDirectoryBasePath = Utility.normalizePath(this.engineDirectoryPath + "py" + DIR_SEPARATOR);
-		this.cacheFolder = new File(this.pyDirectoryBasePath);
+		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyTFolder = new File(Utility.normalizePath(engineDir + "py" + DIR_SEPARATOR));
 
-		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(this.engineDirectoryPath, "schema");
+		// This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
+		this.schemaFolder = new File(engineDir, "schema");
 		if(!this.schemaFolder.exists()) {
 			this.schemaFolder.mkdirs();
 		}
-		
-		// third layer - All the separate tables,classes, or searchers that can be added to this db
+
 		this.indexClasses = new ArrayList<>();
 		
 		Connection conn = null;
 		try {
 			conn = getConnection();
 			PGvector.addVectorType(conn);
+			initSQL(this.vectorTableName);
 		} catch(SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -179,11 +172,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
 					
-		modelPropsLoaded = true;
+		this.modelPropsLoaded = true;
 	}
 
 	public synchronized void startServer(int port) {
-		
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -195,27 +187,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		// spin the server
 		// start the client
 		// get the startup command and parameters - at some point we need a better way than the command
-
 		// execute all the basic commands		
 
-		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
-
-		// need to iterate through and potential spin up tables themselves
-		if (this.indexClasses.size() > 0) {
-			ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
-			commands = modifiedCommands.stream().toArray(String[]::new);
-		}
-
-		// replace the Vars
-		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			String resolvedString = substitutor.replace(commands[commandIndex]);
-			commands[commandIndex] = resolvedString;
-		}
-		
-		if(!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
+		if(!this.pyTFolder.exists()) {
+			this.pyTFolder.mkdirs();
 		}
 		
 		// check if we have already created a process wrapper
@@ -251,7 +226,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				}
 			}
 			
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			String serverDirectory = this.pyTFolder.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
 				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
@@ -273,16 +248,44 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		pyt = new TCPPyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
+		// break the commands separated by ;
+		String [] commands = (TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+
+		// need to iterate through and potential spin up tables themselves
+		if (this.indexClasses.size() > 0) {
+			ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
+			commands = modifiedCommands.stream().toArray(String[]::new);
+		}
+
+		// replace the Vars
+		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+			String resolvedString = substitutor.replace(commands[commandIndex]);
+			commands[commandIndex] = resolvedString;
+		}
 		pyt.runEmptyPy(commands);
 	}
 
-	public void initSQL(Connection con, String schema, String table) throws SQLException {
-		//creating embeddings table
-		Statement statement = con.createStatement();
-		PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
-		String sqlQueryString = pgVectorQueryUtil.createEmbeddingsTable(schema,table);
-		classLogger.info(">>>>> " + sqlQueryString);
-		statement.execute(sqlQueryString);
+	private void initSQL(String table) throws SQLException {
+		String createTable = pgVectorQueryUtil.createEmbeddingsTable(table);
+		//creating the default embeddings table
+		Connection conn = null;
+		Statement stmt = null;
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			classLogger.info(">>>>> " + createTable);
+			stmt.execute(createTable);
+		} catch(SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SQLException("Unable to create the table " + table);
+		} finally {
+			if(this.dataSource != null) {
+				ConnectionUtils.closeAllConnections(conn, stmt);
+			} else {
+				ConnectionUtils.closeAllConnections(null, stmt);
+			}
+		}
 	}
 
 	@Override
@@ -455,7 +458,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				
 				// if we were able to extract files, begin embeddings process
 				IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-				String psString = "INSERT INTO " + vectorTableName +" ( embedding, source, modality, divider, part, tokens, content, engineid, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				String psString = "INSERT INTO " 
+						+ this.vectorTableName 
+						+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
+						+ "VALUES (?,?,?,?,?,?,?)";
 				
 				Connection conn = null;
 				try {
@@ -463,7 +469,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					PreparedStatement ps = conn.prepareStatement(psString);
 					for(int i = 0; i < extractedFiles.size(); i++) {
 						File extractedFile = extractedFiles.get(i);
-						CSVTable dataForTable = readCsv(extractedFile);
+						CSVTable dataForTable = CSVTable.initCSVTable(extractedFile);
 						
 						if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
 							IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
@@ -474,15 +480,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						
 						for (CSVRow row: dataForTable.getRows()) {
 							int index = 1;
-							ps.setObject(index++, row.getEmbeddings());
+							ps.setObject(index++, new PGvector(row.getEmbeddings()));
 							ps.setString(index++, row.getSource());
 							ps.setString(index++, row.getModality());
 							ps.setString(index++, row.getDivider());
 							ps.setString(index++, row.getPart());
 							ps.setInt(index++, row.getTokens());
 							ps.setString(index++, row.getContent());
-							ps.setString(index++, this.engineId);
-							ps.setString(index++, row.getKeywords());
 							ps.addBatch();
 						}
 						
@@ -515,29 +519,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 
-	protected CSVTable readCsv(File file) throws IOException {
-		CSVTable pgVectorTable = new CSVTable();
-		try (Reader reader = Files.newBufferedReader(Paths.get(file.getAbsolutePath()))) {
-			try (CSVReader csvReader = new CSVReader(reader)) {
-				String[] line;
-				boolean start = true;
-				Map<String,Integer> headersMap = new HashMap<String, Integer>();
-				while ((line = csvReader.readNext()) != null) {
-					if(start) {
-						for(int i=0;i<line.length;i++) {
-							headersMap.put(line[i],i);
-						}
-						start = false;
-					} else {
-						pgVectorTable.addRow(line[headersMap.get("Source")], line[headersMap.get("Modality")], line[headersMap.get("Divider")], line[headersMap.get("Part")], line[headersMap.get("Tokens")], line[headersMap.get("Content")]);
-					}
-				}
-			}
-		}
-
-		return pgVectorTable;
-	}
-
 	@Override
 	public void removeDocument(List<String> filePaths, Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
@@ -547,14 +528,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
-		String deleteQuery = "DELETE from " + this.vectorTableName + " WHERE \"source\"= ? AND ENGINEID = ?";
-
+		String deleteQuery = "DELETE FROM " + this.vectorTableName + " WHERE SOURCE=?";
 		Connection conn = null;
+		PreparedStatement ps = null;
+		int[] results = null;
 		try {
 			conn = this.getConnection();
-			PreparedStatement ps = conn.prepareStatement(deleteQuery);
+			ps = conn.prepareStatement(deleteQuery);
 			for (String document : filePaths) {
-				
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
 				File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
@@ -566,31 +547,25 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				// remove the results from the db
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, documentName);
-				ps.setString(parameterIndex++, this.engineId);
 				ps.addBatch();
-				
 			}
+			results = ps.executeBatch();
 			
-			int[] results = ps.executeBatch();
-            for(int j=0; j<results.length; j++) {
-                if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-                    throw new SQLException("Error inserting data for row " + j);
-                }
-            }
-            
+			for(int j=0; j<results.length; j++) {
+	            if(results[j] == PreparedStatement.EXECUTE_FAILED) {
+	                throw new IllegalArgumentException("Error inserting data for row " + j);
+	            }
+	        }
+			
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-	
-			ps.close();
-		} catch (IOException | SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			
-			// TODO add error throwing
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
 		}
-
+		
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
@@ -626,18 +601,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {question}), insight, null);
 
 		StringBuilder searchQueryBuilder = new StringBuilder("SELECT ");
-		searchQueryBuilder.append("\"source\" AS \"Source\",")
-						  .append("\"modality\" AS \"Modality\",")
-						  .append("\"divider\" AS \"Divider\",")
-						  .append("\"part\" AS \"Part\",")
-						  .append("\"tokens\" AS \"Tokens\",")
-						  .append("\"content\" AS \"Content\",")
-						  .append("power((\"embedding\" <-> '"+embeddingsResponse.getResponse().get(0)+"'),2) AS \"Score\"")
+		searchQueryBuilder.append("SOURCE AS \"Source\",")
+						  .append("MODALITY AS \"Modality\",")
+						  .append("DIVIDER AS \"Divider\",")
+						  .append("PART AS \"Part\",")
+						  .append("TOKENS AS \"Tokens\",")
+						  .append("CONTENT AS \"Content\",")
+						  .append("POWER((EMBEDDING <-> '"+ embeddingsResponse.getResponse().get(0) + "'),2) AS \"Score\"")
 						  .append(" FROM ")
 						  .append(this.vectorTableName)
-						  .append(" WHERE ENGINEID = '")
-						  .append(this.engineId)
-						  .append("' ORDER BY \"Score\" ASC LIMIT ")
+						  .append(" ORDER BY \"Score\" ASC LIMIT ")
 						  .append(limit);
 		
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
@@ -647,13 +620,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		qs.setQuery(searchQueryBuilder.toString());
 		
 		List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
-		
 		return vectorSearchResults;
 	}
 
 	@Override
-	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) 
-	{
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -702,70 +673,17 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		super.close();
 	}
 	
-	@Override
-	public void delete() throws IOException {
-		//TODO remove embeddings when deleted
-		
-		classLogger.debug("Delete vector engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch(IOException e) {
-			classLogger.warn("Error occurred trying to close the connection");
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		File engineFolder = new File(
-				EngineUtility.getSpecificEngineBaseFolder
-					(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName)
-				);
-		
-		String folderName = engineFolder.getName();
-		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
-
-		if(owlFile != null && owlFile.exists()) {
-			classLogger.info("Deleting owl file " + owlFile.getAbsolutePath());
-			try {
-				FileUtils.forceDelete(owlFile);
-			} catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		//this check is to ensure we are deleting the right folder.
-		classLogger.info("Checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
-			classLogger.info("folder getting deleted is " + engineFolder.getAbsolutePath());
-			try {
-				FileUtils.deleteDirectory(engineFolder);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		classLogger.debug("Deleting smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
-	}
-
-	protected void checkSocketStatus() {
+	private void checkSocketStatus() {
 		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.startServer(-1);
 		}
 	}
 
-	protected Insight getInsight(Object insightObj) {
+	private Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
 			return InsightStore.getInstance().get((String) insightObj);
 		} else {
 			return (Insight) insightObj;
 		}
 	}
-	
 }

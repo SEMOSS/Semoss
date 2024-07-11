@@ -196,12 +196,12 @@ public final class UploadUtilities {
 	 * @param databaseName
 	 * @return
 	 */
-	public static File generateOwlFile(String databaseId, String databaseName) {
-		String owlLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName) + "/";
-		if(databaseName != null) {
-			owlLocation += databaseName;
+	public static File generateOwlFile(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
+		String owlLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName) + "/";
+		if(engineName != null) {
+			owlLocation += engineName;
 		} else {
-			owlLocation += databaseId;
+			owlLocation += engineId;
 		}
 		owlLocation += "_OWL.OWL";
 		

@@ -1,20 +1,23 @@
 package prerna.engine.impl.vector;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.pgvector.PGvector;
-
+import au.com.bytecode.opencsv.CSVReader;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 
 public class CSVTable {
 	
-
-    protected List<CSVRow> rows;
+    public List<CSVRow> rows;
     private IModelEngine keywordEngine = null;
 	private int maxKeywords = 12;
 	private int percentile = 0;
@@ -36,7 +39,7 @@ public class CSVTable {
     public List<String> getAllContent() {
         List<String> contents = new ArrayList<>();
         for (CSVRow row : rows) {
-            contents.add(row.content);
+            contents.add(row.getContent());
         }
         return contents;
     }
@@ -57,7 +60,6 @@ public class CSVTable {
     	List<String> stringsToEmbed = this.getAllContent();
     	
     	if (this.keywordEngine != null) {
-    		
     		Map<String, Object> keywordEngineParams = new HashMap<>();
     		keywordEngineParams.put("max_keywords", maxKeywords);
     		keywordEngineParams.put("percentile", percentile);
@@ -78,9 +80,31 @@ public class CSVTable {
 		EmbeddingsModelEngineResponse output = modelEngine.embeddings(stringsToEmbed, insight, null);
     	
 		List<List<Double>> vectors = output.getResponse();
-
 		for (int i = 0; i < this.rows.size(); i++) {
-			this.rows.get(i).setEmbeddings(new PGvector(vectors.get(i)));
+			this.rows.get(i).setEmbeddings(vectors.get(i));
 		}
+    }
+    
+    public static CSVTable initCSVTable(File file) throws IOException {
+		CSVTable csvTable = new CSVTable();
+		try (Reader reader = Files.newBufferedReader(Paths.get(file.getAbsolutePath()))) {
+			try (CSVReader csvReader = new CSVReader(reader)) {
+				String[] line;
+				boolean start = true;
+				Map<String,Integer> headersMap = new HashMap<String, Integer>();
+				while ((line = csvReader.readNext()) != null) {
+					if(start) {
+						for(int i=0;i<line.length;i++) {
+							headersMap.put(line[i],i);
+						}
+						start = false;
+					} else {
+						csvTable.addRow(line[headersMap.get("Source")], line[headersMap.get("Modality")], line[headersMap.get("Divider")], line[headersMap.get("Part")], line[headersMap.get("Tokens")], line[headersMap.get("Content")]);
+					}
+				}
+			}
+		}
+
+		return csvTable;
     }
 }

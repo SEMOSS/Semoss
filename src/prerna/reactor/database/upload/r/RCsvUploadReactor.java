@@ -8,6 +8,7 @@ import org.apache.commons.io.FileUtils;
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.r.RNativeEngine;
@@ -49,7 +50,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create smss file for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, newDatabaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
 		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.databaseId, newDatabaseName, owlFile, fileName, newHeaders, dataTypesMap, additionalDataTypeMap);
 		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
