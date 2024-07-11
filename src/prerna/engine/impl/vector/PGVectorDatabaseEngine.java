@@ -727,10 +727,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 	
 	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.getVectorDatabaseType().toString();
+	}
+
+	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.PGVECTOR;
 	}
-
+	
 	@Override
 	public void close() throws IOException {
 		if(this.cpw != null) {
