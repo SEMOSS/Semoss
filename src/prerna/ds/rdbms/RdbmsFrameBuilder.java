@@ -33,7 +33,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsFrameBuilder {
 
-	private Logger logger = LogManager.getLogger(RdbmsFrameBuilder.class);
+	private Logger classLogger = LogManager.getLogger(RdbmsFrameBuilder.class);
 
 	protected Connection conn;
 	protected String database;
@@ -78,7 +78,7 @@ public class RdbmsFrameBuilder {
 				runQuery(createTable);
 			}
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 			create = false;
 		}
 
@@ -89,7 +89,7 @@ public class RdbmsFrameBuilder {
 				runQuery(insert);
 			}
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	
@@ -274,22 +274,22 @@ public class RdbmsFrameBuilder {
 
 				// batch commit based on size
 				if (++count % batchSize == 0) {
-					logger.info("Executing batch .... row num = " + count);
+					classLogger.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
 				}
 			}
 
 			if(ps == null) {
 //				throw new EmptyIteratorException("Query returned no data");
-				logger.info("No data was found to import");
+				classLogger.info("No data was found to import");
 			} else {
 				// well, we are done looping through now
-				logger.info("Executing final batch .... row num = " + count);
+				classLogger.info("Executing final batch .... row num = " + count);
 				ps.executeBatch(); // insert any remaining records
 				ps.close();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -307,7 +307,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return ps;
@@ -329,7 +329,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return ps;
@@ -341,7 +341,7 @@ public class RdbmsFrameBuilder {
 		try{
 			ps = this.conn.prepareStatement(sql);
 		}catch(SQLException e){
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return ps;
 	}
@@ -389,16 +389,16 @@ public class RdbmsFrameBuilder {
 					}
 					if(this.queryUtil.allowMultiAddColumn()) {
 						String alterQuery = this.queryUtil.alterTableAddColumns(tableName, newHeaders.toArray(new String[newHeaders.size()]), newTypes.toArray(new String[newTypes.size()]));
-						logger.debug("ALTERING TABLE: " + alterQuery);
+						classLogger.debug("ALTERING TABLE: " + alterQuery);
 						runQuery(alterQuery);
-						logger.debug("DONE ALTER TABLE");
+						classLogger.debug("DONE ALTER TABLE");
 					} else {
 						// must look through all the headers + types
 						for(int i = 0; i < newHeaders.size(); i++) {
 							String alterQuery = this.queryUtil.alterTableAddColumn(tableName, newHeaders.get(i), newTypes.get(i));
-							logger.debug("ALTERING TABLE: " + alterQuery);
+							classLogger.debug("ALTERING TABLE: " + alterQuery);
 							runQuery(alterQuery);
-							logger.debug("DONE ALTER TABLE");
+							classLogger.debug("DONE ALTER TABLE");
 						}
 					}
 					for(String[] tableColIndex : indicesToAdd ) {
@@ -408,13 +408,13 @@ public class RdbmsFrameBuilder {
 			} else {
 				// if table doesn't exist then create one with headers and types
 				String createTable =  queryUtil.createTable(tableName, headers, types);
-				logger.info("Generating SQL table");
-				logger.debug("CREATING TABLE: " + createTable);
+				classLogger.info("Generating SQL table");
+				classLogger.debug("CREATING TABLE: " + createTable);
 				runQuery(createTable);
-				logger.info("Finished generating SQL table");
+				classLogger.info("Finished generating SQL table");
 			}
 		} catch (Exception e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 	}
 	
@@ -432,8 +432,8 @@ public class RdbmsFrameBuilder {
 			long start = System.currentTimeMillis();
 
 			String indexSql = null;
-			logger.info("Generating index on SQL Table on column = " + Utility.cleanLogString(colName));
-			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
+			classLogger.info("Generating index on SQL Table on column = " + Utility.cleanLogString(colName));
+			classLogger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getRandomValues();
 				indexSql = queryUtil.createIndex(indexName, tableName, colName);
@@ -442,11 +442,11 @@ public class RdbmsFrameBuilder {
 				
 				long end = System.currentTimeMillis();
 
-				logger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-				logger.info("Finished generating indices on SQL Table on column = " + Utility.cleanLogString(colName));
+				classLogger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+				classLogger.info("Finished generating indices on SQL Table on column = " + Utility.cleanLogString(colName));
 			} catch (Exception e) {
-				logger.debug("ERROR WITH INDEX !!! " + indexSql);
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.debug("ERROR WITH INDEX !!! " + indexSql);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -454,8 +454,8 @@ public class RdbmsFrameBuilder {
 	public void addColumnIndex(String tableName, String[] colNames) {
 		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (!multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
-			logger.info("Generating index on SQL Table columns = " + StringUtils.join(colNames,", "));
-			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
+			classLogger.info("Generating index on SQL Table columns = " + StringUtils.join(colNames,", "));
+			classLogger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
 			try {
 				long start = System.currentTimeMillis();
 				String indexName = multiColIndexName + "_INDEX_" + getRandomValues();
@@ -463,24 +463,24 @@ public class RdbmsFrameBuilder {
 				runQuery(indexSql);
 				multiColumnIndexMap.put(tableName + "+++" + multiColIndexName, indexName);
 				long end = System.currentTimeMillis();
-				logger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
+				classLogger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+				classLogger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
 			} catch (Exception e) {
-				logger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
 
 	protected void removeColumnIndex(String tableName, String colName) {
 		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
-			logger.info("Removing index on SQL Table column = " + Utility.cleanLogString(colName));
-			logger.debug("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
+			classLogger.info("Removing index on SQL Table column = " + Utility.cleanLogString(colName));
+			classLogger.debug("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -488,12 +488,12 @@ public class RdbmsFrameBuilder {
 	public void removeColumnIndex(String tableName, String[] colNames) {
 		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
-			logger.info("DROPPING INDEX ON TABLE = " + Utility.cleanLogString(tableName) + " ON COLUMNS = " + multiColIndexName);
+			classLogger.info("DROPPING INDEX ON TABLE = " + Utility.cleanLogString(tableName) + " ON COLUMNS = " + multiColIndexName);
 			String indexName = multiColumnIndexMap.remove(tableName +  "+++" + multiColIndexName);
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -530,24 +530,24 @@ public class RdbmsFrameBuilder {
 	 */
 	public void runQuery(String query) throws Exception {
 		long start = System.currentTimeMillis();
-		logger.debug("Running frame query : " + query);
+		classLogger.debug("Running frame query : " + query);
 		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
 			try(Statement statement = this.conn.createStatement()){
 				statement.executeUpdate(query);
 			} catch(SQLException e){
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		} else {
 			try(PreparedStatement statement = this.conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		}
 		long end = System.currentTimeMillis();
-		logger.debug("Time to execute = " + (end-start) + "ms");
+		classLogger.debug("Time to execute = " + (end-start) + "ms");
 	}
 	
 	/**
@@ -579,20 +579,20 @@ public class RdbmsFrameBuilder {
 					return false;
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (rs != null) {
 					try {
 						rs.close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -616,20 +616,20 @@ public class RdbmsFrameBuilder {
 				return rs.getInt(1);
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -654,7 +654,7 @@ public class RdbmsFrameBuilder {
 	 * @param logger
 	 */
 	public void setLogger(Logger logger) {
-		this.logger = logger;
+		this.classLogger = logger;
 	}
 
 }
