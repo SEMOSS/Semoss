@@ -40,6 +40,7 @@ import com.google.gson.internal.LinkedTreeMap;
 
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
@@ -47,6 +48,7 @@ import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -54,31 +56,33 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchRestVectorDatabaseEngine.class);
 
-	private File schemaFolder;
+	protected static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
+	
+	private static final String OPEN_SEARCH_INIT_SCRIPT = "import vector_database;"
+			+ "${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', index_name = '${INDEX_NAME}', tokenizer = cfg_tokenizer, distance_method = '${DISTANCE_METHOD}')";
+	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
+	
+	private String mapping = "{\"settings\":{\"index\":{\"knn\":true}},\"mappings\":{\"properties\":{\"my_vector1\":{\"type\":\"knn_vector\",\"dimension\":1024,\"method\":{\"name\":\"hnsw\",\"space_type\":\"l2\",\"engine\":\"lucene\",\"parameters\":{\"ef_construction\":128,\"m\":24}}}}}}";
+	
 	protected String vectorDatabaseSearcher = null;
 	private List<String> indexClasses;
-	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String openSearchInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', index_name = '${INDEX_NAME}', tokenizer = cfg_tokenizer, distance_method = '${DISTANCE_METHOD}')";
-	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
-	private String mapping = "{\"settings\":{\"index\":{\"knn\":true}},\"mappings\":{\"properties\":{\"my_vector1\":{\"type\":\"knn_vector\",\"dimension\":1024,\"method\":{\"name\":\"hnsw\",\"space_type\":\"l2\",\"engine\":\"lucene\",\"parameters\":{\"ef_construction\":128,\"m\":24}}}}}}";
 	
 	private String indexName = null;
 	private String clusterUrl = null;
 	private String username = null;
 	private String password = null;
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		
 		// highest directory (first layer inside vector db base folder)
-		this.pyDirectoryBasePath = this.connectionURL + "py" + DIR_SEPARATOR;
-		this.cacheFolder = new File(pyDirectoryBasePath.replace(FILE_SEPARATOR, DIR_SEPARATOR));
+		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
 
 		// second layer - This holds all the different "tables". The reason we want this
 		// is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(this.connectionURL, "schema");
+		this.schemaFolder = new File(engineDir, "schema");
 		if (!this.schemaFolder.exists()) {
 			this.schemaFolder.mkdirs();
 		}
@@ -147,7 +151,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 		
 		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript+openSearchInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
+		String [] commands = (tokenizerInitScript+OPEN_SEARCH_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// replace the Vars
 		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
@@ -155,8 +159,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 		
 		// Start and connect to the open search instance
-		if(!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
 		}
 		
 		// check if we have already created a process wrapper
@@ -187,12 +191,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 						debug = true;
 					} catch (NumberFormatException e) {
 						// ignore
-						classLogger
-								.warn("OpenSearch connection " + this.engineName + " has an invalid FORCE_PORT value");
+						classLogger.warn("OpenSearch connection " + this.engineName + " has an invalid FORCE_PORT value");
 					}
 				}
 			}
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
 											// python
 			try {
