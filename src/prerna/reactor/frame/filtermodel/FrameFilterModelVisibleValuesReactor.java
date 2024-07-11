@@ -131,7 +131,7 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 				frameValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(unFilterValuesIt != null) {
 				try {

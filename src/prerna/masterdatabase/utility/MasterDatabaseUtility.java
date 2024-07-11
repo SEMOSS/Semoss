@@ -2685,7 +2685,7 @@ public class MasterDatabaseUtility {
 	//				deleted = true;
 	//			}
 	//		} catch (Exception ex) {
-	//			ex.printStackTrace();
+	//			classLogger.error(Constants.STACKTRACE, ex);
 	//		} finally {
 	//			closeStreams(stmt, null);
 	//		}
@@ -2710,7 +2710,7 @@ public class MasterDatabaseUtility {
 	//				deleted = true;
 	//			}
 	//		} catch (Exception ex) {
-	//			ex.printStackTrace();
+	//			classLogger.error(Constants.STACKTRACE, ex);
 	//		} finally {
 	//			try {
 	//				if (stmt != null) {

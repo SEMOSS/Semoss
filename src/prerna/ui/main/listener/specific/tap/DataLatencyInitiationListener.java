@@ -94,7 +94,7 @@ public class DataLatencyInitiationListener implements ActionListener{
 			try {
 				ps.dataLatencyPopUp.setSelected(true);
 			} catch (PropertyVetoException e1) {
-				e1.printStackTrace();
+				logger.error(Constants.STACKTRACE, e1);
 			}
 		}
 	}

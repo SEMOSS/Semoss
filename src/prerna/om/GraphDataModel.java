@@ -413,7 +413,7 @@ public class GraphDataModel implements IDataMaker {
 				logger.info("done with processing main query" + rc.size());
 			} catch (RepositoryException e1) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				logger.error(Constants.STACKTRACE, e1);
 			}
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
@@ -1005,7 +1005,7 @@ public class GraphDataModel implements IDataMaker {
 //							vertStore.get(sct.getObject()+""));
 //					}catch (Exception ex)
 //					{
-//						ex.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, ex);
 //						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
 //						// ok.. I am going to ignore for now that this is a duplicate edge
 //					}

@@ -120,7 +120,7 @@ public class ActiveSystemUpdater {
 //		}
 //		catch(IOException ex)
 //		{
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //			Utility.showMessage("<html>Error!<br>Existing OWL file not found</html>");
 //		}finally{
 //			try{

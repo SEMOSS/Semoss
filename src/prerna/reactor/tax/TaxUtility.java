@@ -69,7 +69,7 @@ public class TaxUtility {
 			try {
 				stmt.close();
 			} catch (SQLException e1) {
-				e1.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 			try {
 				rs.close();
@@ -126,7 +126,7 @@ public class TaxUtility {
 			try {
 				stmt.close();
 			} catch (SQLException e1) {
-				e1.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 			try {
 				rs.close();

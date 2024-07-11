@@ -65,7 +65,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 //				owlRemover.setNounStore(this.store);
 //				owlRemover.execute();
 //			} catch(Exception e2) {
-//				e2.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e2);
 //			}
 			
 			throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);

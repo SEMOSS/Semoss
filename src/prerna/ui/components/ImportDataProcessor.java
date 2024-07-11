@@ -732,7 +732,7 @@ public class ImportDataProcessor {
 //					reader.importFileWithConnection(options);//seems tricky, might break as only one file is passed at a time during the loop, however, this file is not used anywhere as such..need to find the real use in the workflow.
 //				} catch (Exception ex) {
 //					success = false;
-//					ex.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, ex);
 //				}finally{
 //					try{
 //						if(fileIn!=null)

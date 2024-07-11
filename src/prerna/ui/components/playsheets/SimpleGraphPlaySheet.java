@@ -323,7 +323,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 //							}
 //						}catch (Exception ex)
 //						{
-//							ex.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, ex);
 //							logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
 //							// ok.. I am going to ignore for now that this is a duplicate edge
 //						}

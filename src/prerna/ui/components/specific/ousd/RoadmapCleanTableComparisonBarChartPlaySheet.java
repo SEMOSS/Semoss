@@ -29,7 +29,7 @@
 //		try {
 //			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 //		} catch (ClassNotFoundException ex) {
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //			logger.fatal("No such PlaySheet: "+ playSheetClassName);
 //		} catch (InstantiationException e) {
 //			classLogger.error(Constants.STACKTRACE, e);

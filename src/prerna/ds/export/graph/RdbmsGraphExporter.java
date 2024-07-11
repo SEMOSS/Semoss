@@ -137,7 +137,7 @@
 //			targetVal = this.edgeRs.getObject(2);
 //		} catch (SQLException e1) {
 //			// TODO Auto-generated catch block
-//			e1.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e1);
 //		}
 //		// if we still have a null
 //		if(sourceVal == null) {
@@ -223,7 +223,7 @@
 //			nodeVal = this.nodeRs.getObject(1);
 //		} catch (SQLException e1) {
 //			// TODO Auto-generated catch block
-//			e1.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e1);
 //		}
 //		
 //		// if we still have a null

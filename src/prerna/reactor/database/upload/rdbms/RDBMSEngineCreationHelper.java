@@ -61,7 +61,7 @@ public class RDBMSEngineCreationHelper {
 				meta = con.getMetaData();
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(e.getMessage());
+				throw new IllegalArgumentException("Could not make connection or get metadata.");
 			}
 			
 			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();

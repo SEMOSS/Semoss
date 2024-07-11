@@ -101,7 +101,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		try {
 			modernizationPropExists = checkModernizationProp();
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 		}
 		
 		if(!modernizationPropExists) 

@@ -96,7 +96,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 			zos = ZipUtils.zipFolder(folder, downloadPath);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to zip and download directory", e);
+			throw new IllegalArgumentException("Unable to zip and download directory");
 		} finally {
 			try {
 				if (zos != null) {
@@ -105,7 +105,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 				}
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to zip and download directory", e);
+				throw new IllegalArgumentException("Unable to zip and download directory");
 			}
 		}
 	}

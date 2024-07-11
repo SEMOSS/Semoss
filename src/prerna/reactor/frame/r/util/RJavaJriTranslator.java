@@ -662,7 +662,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 //			System.out.println("Number of rows is " + myObj);
 //		}catch(Exception ex)
 //		{
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //		}
 //		rjt.endR();
 //		

@@ -2374,7 +2374,7 @@ public final class UploadUtilities {
 			// write json to file
 			FileUtils.writeStringToFile(f, json);
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 			return false;
 		}
 		return true;

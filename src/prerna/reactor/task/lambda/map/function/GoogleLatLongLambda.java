@@ -97,7 +97,7 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 //					// write json to file
 //					FileUtils.writeStringToFile(f, gson.toJson(localcache));
 //				} catch (IOException e1) {
-//					e1.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, e1);
 //				}
 				
 			} catch(Exception e) {

@@ -50,7 +50,7 @@ public class SharePointWebDavPullReactor extends AbstractQueryStructReactor{
 		} catch (IOException e1) {
 		
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 		}
 		// get datatypes
 		CSVFileHelper helper = new CSVFileHelper();

@@ -314,7 +314,7 @@ public class RunAlgorithmListener extends AbstractListener {
 //							accuracyArr[i-1] = weka.getAccuracy(); 
 //							precisionArr[i-1] = weka.getPrecision(); 
 //						} catch (Exception ex) {
-//							ex.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, ex);
 //							LOGGER.error("Could not generate accuracy and precision values from WEKA classification");
 //						}
 //					} else {
