@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,14 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters	- Additional parameters the engine might need to process the documents e.g. an insight object
 	 */
 	void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception;
+	
+	/**
+	 * 
+	 * @param vectorCsvFile
+	 * @param insight
+	 * @throws Exception
+	 */
+	void addEmbeddings(File vectorCsvFile, Insight insight) throws Exception;
 	
 	/**
 	 * 

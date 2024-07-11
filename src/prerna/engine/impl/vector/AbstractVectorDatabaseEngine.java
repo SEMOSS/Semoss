@@ -45,14 +45,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected String engineId = null;
 	protected String engineName = null;
-	protected String engineDirectoryPath = null;
 	
 	protected Properties smssProp = null;
 	protected String smssFilePath = null;
 	
 	protected String encoderName = null;
 	protected String encoderType = null;
-	protected String connectionURL = null;
 
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
@@ -66,8 +64,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected ClientProcessWrapper cpw = null;
 	// python server
 	protected TCPPyTranslator pyt = null;
-	protected String pyDirectoryBasePath = null;
-	protected File cacheFolder;
+	protected File pyDirectoryBasePath = null;
+	
 	protected boolean modelPropsLoaded = false;
 	protected File schemaFolder;
 
@@ -85,15 +83,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		setSmssProp(smssProp);
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
-		this.engineDirectoryPath = RDBMSUtility.fillParameterizedFileConnectionUrl("@BaseFolder@/vector/@ENGINE@/", this.engineId, this.engineName);
-		
-		if(this.getVectorDatabaseType() == VectorDatabaseTypeEnum.FAISS 
-				|| this.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH_REST 
-				|| this.getVectorDatabaseType() == VectorDatabaseTypeEnum.OPENSEARCH) {
-			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
-		}
 
 		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
 			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
@@ -111,9 +100,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
-		
 		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
-		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
@@ -348,6 +335,13 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
 		// TODO Auto-generated method stub
 		// TODO Implement for each engine type and remove from Abstract
+	}
+	
+	
+	@Override
+	public void addEmbeddings(File vectorCsvFile, Insight insight) throws Exception {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+		addEmbeddings(vectorCsvTable, insight);
 	}
 	
 	@Override

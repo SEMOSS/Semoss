@@ -51,6 +51,7 @@ import prerna.util.sql.PGVectorQueryUtil;
 public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
+	
 	private static final String DIR_SEPARATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
@@ -77,7 +78,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	// python server
 	private TCPPyTranslator pyt = null;
-	private File pyTFolder;
+	private File pyDirectoryBasePath;
 	private ClientProcessWrapper cpw = null;
 	
 	private boolean modelPropsLoaded = false;
@@ -101,7 +102,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 		
 		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyTFolder = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
 
 		// This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
 		this.schemaFolder = new File(engineDir, "schema");
@@ -188,7 +189,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		this.modelPropsLoaded = true;
 	}
 
-	public synchronized void startServer(int port) {
+	private synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -202,8 +203,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		// get the startup command and parameters - at some point we need a better way than the command
 		// execute all the basic commands		
 
-		if(!this.pyTFolder.exists()) {
-			this.pyTFolder.mkdirs();
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
 		}
 		
 		// check if we have already created a process wrapper
@@ -239,7 +240,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				}
 			}
 			
-			String serverDirectory = this.pyTFolder.getAbsolutePath();
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
 				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
@@ -470,10 +471,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			if (extractedFiles.size() > 0) {
 				try {
 					for(int i = 0; i < extractedFiles.size(); i++) {
-						File extractedFile = extractedFiles.get(i);
-						VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(extractedFile);
-						addEmbeddings(vectorCsvTable, insight);
-						FileUtils.forceDelete(extractedFile);
+						File vectorCsvFile = extractedFiles.get(i);
+						addEmbeddings(vectorCsvFile, insight);
+						FileUtils.forceDelete(vectorCsvFile);
 					}
 				} catch (IOException | SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
@@ -487,6 +487,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+	}
+	
+	@Override
+	public void addEmbeddings(File vectorCsvFile, Insight insight) throws SQLException, IOException {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+		addEmbeddings(vectorCsvTable, insight);
 	}
 	
 	@Override
@@ -611,7 +617,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
-		String deleteQuery = "DELETE FROM " + this.vectorTableName + " WHERE SOURCE=?";
+		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
 		Connection conn = null;
 		PreparedStatement ps = null;
 		int[] results = null;
@@ -670,9 +676,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		String searchFilters = "None";
-		if (parameters.containsKey("filters")) {}
-
+		String searchFilters = null;
+		if (parameters.containsKey("filters")) {
+			
+			
+		}
+		
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {}
 
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey())) {}

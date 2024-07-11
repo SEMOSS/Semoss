@@ -38,15 +38,16 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
-import prerna.util.sql.RDBMSUtility;
 
 public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
@@ -65,7 +66,9 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private IModelEngine embeddingsEngine = null;
 	private int autocut = 1;
 	
-	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');import vector_database;";
+	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
+			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
+			+ "import vector_database;";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -93,15 +96,12 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		connect2Weviate(this.protocol, this.host, this.apiKey);
 		createClass(this.className);
 		
-		this.pyDirectoryBasePath = Utility.normalizePath(this.engineDirectoryPath + "py" + DIR_SEPARATOR);
-		this.cacheFolder = new File(this.pyDirectoryBasePath);
-
-		this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-
-		//this.cacheFolder = new File(pyDirectoryBasePath.replace(FILE_SEPARATOR, DIR_SEPARATOR));
+		// highest directory (first layer inside vector db base folder)
+		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
 
 		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(this.connectionURL, "schema");
+		this.schemaFolder = new File(engineDir, "schema");
 		if(!this.schemaFolder.exists()) {
 			this.schemaFolder.mkdirs();
 		}
@@ -520,8 +520,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public synchronized void startServer(int port) {
-		
+	protected synchronized void startServer(int port) {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
@@ -536,7 +535,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// execute all the basic commands		
 		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
+		String [] commands = (TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
 
@@ -547,8 +546,8 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			commands[commandIndex] = resolvedString;
 		}
 		
-		if(!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
 		}
 		
 		// check if we have already created a process wrapper
@@ -584,7 +583,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				}
 			}
 			
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
 				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
