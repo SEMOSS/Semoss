@@ -1,8 +1,6 @@
 package prerna.engine.impl.vector;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -24,44 +22,12 @@ import prerna.util.Utility;
 public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchVectorDatabaseEngine.class);
-
-	protected String vectorDatabaseSearcher = null;
-
-	private File schemaFolder;
-
-	private List<String> indexClasses;
-	private static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String openSearchInitScript = "import vector_database;${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', username = '${USERNAME}', password = '${PASSWORD}', index_name = '${INDEX_NAME}', hosts = ['${HOSTS}'], distance_method = '${DISTANCE_METHOD}')";
+	private static final String openSearchInitScript = "import vector_database;"
+			+ "${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', username = '${USERNAME}', password = '${PASSWORD}', index_name = '${INDEX_NAME}', hosts = ['${HOSTS}'], distance_method = '${DISTANCE_METHOD}')";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		// highest directory (first layer inside vector db base folder)
-		this.pyDirectoryBasePath = this.connectionURL + "py" + DIR_SEPARATOR;
-		this.cacheFolder = new File(pyDirectoryBasePath.replace(FILE_SEPARATOR, DIR_SEPARATOR));
-
-		// second layer - This holds all the different "tables". The reason we want this
-		// is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(this.connectionURL, "schema");
-		if (!this.schemaFolder.exists()) {
-			this.schemaFolder.mkdirs();
-		}
-		this.smssProp.put(Constants.WORKING_DIR, this.schemaFolder.getAbsolutePath());
-
-		// third layer - All the separate tables,classes, or searchers that can be added
-		// to this db
-		this.indexClasses = new ArrayList<>();
-		for (File file : this.schemaFolder.listFiles()) {
-			if (file.isDirectory() && !file.getName().equals("temp")) {
-				this.indexClasses.add(file.getName());
-			}
-		}
-
-		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
 	protected void verifyModelProps() {
@@ -121,8 +87,8 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 		}
 		
 		// Start and connect to the open search instance
-		if(!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
 		}
 		
 		// check if we have already created a process wrapper
@@ -169,9 +135,8 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 					}
 				}
 			}
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
 				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);

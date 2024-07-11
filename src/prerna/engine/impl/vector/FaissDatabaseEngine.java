@@ -25,7 +25,6 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -43,7 +42,6 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -52,43 +50,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
-	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
+	private static final String FAISS_INIT_SCRIPT = "${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
 	
-	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
-			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
-	private static final String FAISS_INIT_SCRIPT = "import vector_database;"
-			+ "${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
-	
-	protected String vectorDatabaseSearcher = null;
-	
-	private List<String> indexClasses;
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
-		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
-		
-		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(engineDir, "schema");
-		if(!this.schemaFolder.exists()) {
-			this.schemaFolder.mkdirs();
-		}
-		this.smssProp.put(Constants.WORKING_DIR, this.schemaFolder.getAbsolutePath());
-		
-		// third layer - All the separate tables,classes, or searchers that can be added to this db
-		this.indexClasses = new ArrayList<>();
-        for (File file : this.schemaFolder.listFiles()) {
-            if (file.isDirectory() && !file.getName().equals("temp")) {
-            	this.indexClasses.add(file.getName());
-            }
-        }
-		
-		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 
 	@Override
@@ -246,9 +214,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 
-		// File temporaryFileDirectory = (File) parameters.get("temporaryFileDirectory");
-		
-		
 		// first we need to extract the text from the document
 		// TODO change this to json so we never have an encoding issue
 		checkSocketStatus();
