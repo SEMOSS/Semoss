@@ -149,7 +149,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		
 		classLogger.info("Generate new database");
 		classLogger.info("2. Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.newDatabaseId, this.newDatabaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.newDatabaseId, this.newDatabaseName);
 		classLogger.info("2. Complete");
 
 		////////////////////////////////

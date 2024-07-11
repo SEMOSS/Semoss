@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
-
 public class PGVectorQueryUtil extends PostgresQueryUtil {
 
 	public PGVectorQueryUtil() {
@@ -19,9 +18,17 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 		super();
 	}
 
-	public String createEmbeddingsTable(String schema, String table) {
-		return "CREATE TABLE " + schema
-				+ "."+table+"( id SERIAL PRIMARY KEY, embedding vector,source text,modality text, divider text, part text, tokens text, content text );";
+	public String createEmbeddingsTable(String table) {
+		return "CREATE TABLE IF NOT EXISTS "+table+"("
+				+ "ID SERIAL PRIMARY KEY, "
+				+ "EMBEDDING vector, "
+				+ "SOURCE text, "
+				+ "MODALITY text, "
+				+ "DIVIDER text, "
+				+ "PART text, "
+				+ "TOKENS text, "
+				+ "CONTENT text "
+				+ ");";
 	}
 
 	public String addVectorExtension() {

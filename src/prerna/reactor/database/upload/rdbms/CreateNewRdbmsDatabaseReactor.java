@@ -191,7 +191,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		
 		int stepCounter = 1;
 		this.logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, this.databaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
 		this.logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

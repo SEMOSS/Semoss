@@ -1,20 +1,20 @@
 package prerna.engine.impl.vector;
 
-import com.pgvector.PGvector;
+import java.util.List;
 
 public class CSVRow {
 	
-	private PGvector embeddings = null; // This could be a placeholder or identifier for actual embeddings
+	private List<? extends Number> embeddings = null; // This could be a placeholder or identifier for actual embeddings
 	private String source;
 	private String modality;
 	private String divider;
 	private String part;
 	private Integer tokens;
-	public String content;
+	private String content;
 	private String keywords = "";
 
     public CSVRow(String source, String modality, String divider, String part, int tokens, String content) {
-        // Initially, embeddings might not be set
+        // Initially, embedding might not be set
         this.source = source;
         this.modality = modality;
         this.divider = divider;
@@ -24,11 +24,11 @@ public class CSVRow {
     }
 
     // Method to update the embeddings for a row
-    public void setEmbeddings(PGvector embeddings) {
-        this.embeddings = embeddings;
+    public void setEmbeddings(List<? extends Number> list) {
+        this.embeddings = list;
     }
     
-    public PGvector getEmbeddings() {
+    public List<? extends Number> getEmbeddings() {
         return this.embeddings;
     }
     
