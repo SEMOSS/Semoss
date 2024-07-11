@@ -107,9 +107,9 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			if (zipFileExtractionDir.exists()) {
 				FileUtils.forceDelete(zipFileExtractionDir);
 			}
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-			throw new IllegalArgumentException("The following IO error occured: " + ioe.getMessage());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);	

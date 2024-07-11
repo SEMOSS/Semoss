@@ -2,7 +2,7 @@ package prerna.engine.impl.vector;
 
 import java.util.List;
 
-public class CSVRow {
+public class VectorDatabaseCSVRow {
 	
 	private List<? extends Number> embeddings = null; // This could be a placeholder or identifier for actual embeddings
 	private String source;
@@ -11,9 +11,11 @@ public class CSVRow {
 	private String part;
 	private Integer tokens;
 	private String content;
+	
+	// TODO: revisit how this is stored in db
 	private String keywords = "";
 
-    public CSVRow(String source, String modality, String divider, String part, int tokens, String content) {
+    public VectorDatabaseCSVRow(String source, String modality, String divider, String part, int tokens, String content) {
         // Initially, embedding might not be set
         this.source = source;
         this.modality = modality;

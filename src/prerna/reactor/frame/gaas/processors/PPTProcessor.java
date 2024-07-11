@@ -134,7 +134,7 @@ public class PPTProcessor {
 		if(file.exists()) {
 			source = file.getName();
 		}
-		source = Utility.cleanString(source, true);
+//		source = Utility.cleanString(source, true);
 		return source;
 	}
 	

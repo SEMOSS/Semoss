@@ -55,7 +55,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
-	
+	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
+
 	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
 			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
 			+ "import vector_database;";
@@ -70,6 +71,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String keywordGeneratorEngineId = null;
 	
 	private String vectorTableName = null;
+	private String vectorTableMetadataName = null;
 	private File schemaFolder;
 	private	List<String> indexClasses;
 
@@ -92,6 +94,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		this.vectorTableName = smssProp.getProperty(PGVECTOR_TABLE_NAME);
 		if(this.vectorTableName == null || (this.vectorTableName=this.vectorTableName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the vector db table name");
+		}
+		this.vectorTableMetadataName = smssProp.getProperty(PGVECTOR_METADATA_TABLE_NAME);
+		if(this.vectorTableMetadataName == null || (this.vectorTableMetadataName=this.vectorTableMetadataName.trim()).isEmpty()) {
+			this.vectorTableMetadataName = this.vectorTableName + "_METADATA";
 		}
 		
 		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
@@ -289,7 +295,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) {		
+	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {		
 		this.removeDocument(filePaths, parameters);
 
 		String indexClass = this.defaultIndexClass;
@@ -455,59 +461,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 			
 			if (extractedFiles.size() > 0) {
-				
-				// if we were able to extract files, begin embeddings process
-				IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-				String psString = "INSERT INTO " 
-						+ this.vectorTableName 
-						+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
-						+ "VALUES (?,?,?,?,?,?,?)";
-				
-				Connection conn = null;
 				try {
-					conn = this.getConnection();
-					PreparedStatement ps = conn.prepareStatement(psString);
 					for(int i = 0; i < extractedFiles.size(); i++) {
 						File extractedFile = extractedFiles.get(i);
-						CSVTable dataForTable = CSVTable.initCSVTable(extractedFile);
-						
-						if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
-							IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
-							dataForTable.setKeywordEngine(keywordEngine);
-						}
-						
-						dataForTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-						
-						for (CSVRow row: dataForTable.getRows()) {
-							int index = 1;
-							ps.setObject(index++, new PGvector(row.getEmbeddings()));
-							ps.setString(index++, row.getSource());
-							ps.setString(index++, row.getModality());
-							ps.setString(index++, row.getDivider());
-							ps.setString(index++, row.getPart());
-							ps.setInt(index++, row.getTokens());
-							ps.setString(index++, row.getContent());
-							ps.addBatch();
-						}
-						
-						int[] results = ps.executeBatch();
-			            for(int j=0; j<results.length; j++) {
-			                if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-			                    throw new SQLException("Error inserting data for row " + j);
-			                }
-			            }
-			            
-						if (!conn.getAutoCommit()) {
-							conn.commit();
-						}
-						
-						ps.close();
+						VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(extractedFile);
+						addEmbeddings(vectorCsvTable, insight);
 						FileUtils.forceDelete(extractedFile);
 					}
 				} catch (IOException | SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);					
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
 				}
 			}
 		} finally {
@@ -516,6 +479,103 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
+		}
+	}
+	
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws SQLException {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		// if we were able to extract files, begin embeddings process
+		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		String psString = "INSERT INTO " 
+				+ this.vectorTableName 
+				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
+				+ "VALUES (?,?,?,?,?,?,?)";
+		
+		Connection conn = null;
+		PreparedStatement ps = null;
+		try {
+			conn = this.getConnection();
+			ps = conn.prepareStatement(psString);
+				
+//			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
+//				IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
+//				dataForTable.setKeywordEngine(keywordEngine);
+//			}
+				
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+			for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
+				int index = 1;
+				ps.setObject(index++, new PGvector(row.getEmbeddings()));
+				ps.setString(index++, row.getSource());
+				ps.setString(index++, row.getModality());
+				ps.setString(index++, row.getDivider());
+				ps.setString(index++, row.getPart());
+				ps.setInt(index++, row.getTokens());
+				ps.setString(index++, row.getContent());
+				ps.addBatch();
+			}
+			
+			int[] results = ps.executeBatch();
+            for(int j=0; j<results.length; j++) {
+                if(results[j] == PreparedStatement.EXECUTE_FAILED) {
+                    throw new SQLException("Error inserting data for row " + j);
+                }
+            }
+            
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
+		}
+	}
+	
+	@Override
+	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
+			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws SQLException {
+		
+		// just do the insertion
+		
+		String psString = "INSERT INTO " 
+				+ this.vectorTableName 
+				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) "
+				+ "VALUES (?,?,?,?,?,?,?)";
+		
+		Connection conn = null;
+		PreparedStatement ps = null;
+		try {
+			conn = this.getConnection();
+			ps = conn.prepareStatement(psString);
+				
+			int index = 1;
+			ps.setObject(index++, new PGvector(embedding));
+			ps.setString(index++, source);
+			ps.setString(index++, modality);
+			ps.setString(index++, divider);
+			ps.setString(index++, part);
+			ps.setInt(index++, tokens);
+			ps.setString(index++, content);
+			
+			int result = ps.executeUpdate();
+			if(result == PreparedStatement.EXECUTE_FAILED) {
+                throw new SQLException("Error inserting data");
+            }
+	            
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
 		}
 	}
 
