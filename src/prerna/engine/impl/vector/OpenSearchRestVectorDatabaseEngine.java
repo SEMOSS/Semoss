@@ -39,26 +39,18 @@ import com.google.gson.JsonParser;
 import com.google.gson.internal.LinkedTreeMap;
 
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchRestVectorDatabaseEngine.class);
 
-	protected static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
-	
-	private static final String OPEN_SEARCH_INIT_SCRIPT = "import vector_database;"
-			+ "${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', index_name = '${INDEX_NAME}', tokenizer = cfg_tokenizer, distance_method = '${DISTANCE_METHOD}')";
-	private static final String tokenizerInitScript = "from genai_client import get_tokenizer;cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');";
+	private static final String OPEN_SEARCH_INIT_SCRIPT = "${VECTOR_SEARCHER_NAME} = vector_database.OpenSearchConnector(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', index_name = '${INDEX_NAME}', tokenizer = cfg_tokenizer, distance_method = '${DISTANCE_METHOD}')";
 	
 	private String mapping = "{\"settings\":{\"index\":{\"knn\":true}},\"mappings\":{\"properties\":{\"my_vector1\":{\"type\":\"knn_vector\",\"dimension\":1024,\"method\":{\"name\":\"hnsw\",\"space_type\":\"l2\",\"engine\":\"lucene\",\"parameters\":{\"ef_construction\":128,\"m\":24}}}}}}";
 	
@@ -74,135 +66,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		getIndex();
 	}
 
-	/**
-	 * 
-	 */
-	protected void verifyModelProps() {
-		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
-
-		if(this.smssProp.getProperty("INDEX_NAME") != null) { this.indexName = this.smssProp.getProperty("INDEX_NAME");}
-		if(this.smssProp.getProperty("HOSTS") != null) { this.clusterUrl = Utility.decodeURIComponent(this.smssProp.getProperty("HOSTS"));}
-		if(this.smssProp.getProperty(Constants.USERNAME) != null) { this.username = this.smssProp.getProperty(Constants.USERNAME);}
-		if(this.smssProp.getProperty(Constants.PASSWORD) != null) { this.password = Utility.decodeURIComponent(this.smssProp.getProperty(Constants.PASSWORD));}
-		
-		// If embedderEngine does not exist, do not set up the following
-		if(embedderEngineId != null && !embedderEngineId.isEmpty()) {
-			IModelEngine modelEngine = Utility.getModel(embedderEngineId);
-			if (modelEngine == null) {
-				throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
-			}
-
-			Properties modelProperties = modelEngine.getSmssProp();
-			if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
-				throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
-			}
-
-			this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
-			this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
-		}
-		
-		for (Object smssKey : this.smssProp.keySet()) {
-			String key = smssKey.toString();
-			this.vars.put(key, this.smssProp.getProperty(key));
-		}
-		
-		modelPropsLoaded = true;
-	}
-	
-	protected synchronized void startServer(int port) {
-		// already created by another thread
-		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-				
-		if(!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
-		// break the commands seperated by ;
-		String [] commands = (tokenizerInitScript+OPEN_SEARCH_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
-		
-		// replace the Vars
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			commands[commandIndex] = fillVars(commands[commandIndex]);
-		}
-		
-		// Start and connect to the open search instance
-		if(!this.pyDirectoryBasePath.exists()) {
-			this.pyDirectoryBasePath.mkdirs();
-		}
-		
-		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
-		}
-		
-		String timeout = "30";
-		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-		
-		if (this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-					
-			if (port < 0) {
-				// port has not been forced
-				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch (NumberFormatException e) {
-						// ignore
-						classLogger.warn("OpenSearch connection " + this.engineName + " has an invalid FORCE_PORT value");
-					}
-				}
-			}
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-						debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Failed to start TCP Server for OpenSearch Connection  = " + this.engineName);
-			}
-		}
-		
-		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
-	
-		// TODO remove once bug is caught / fixed
-		StringBuilder intitPyCommands = new StringBuilder("\n");
-		for (String command : commands) {
-			intitPyCommands.append(command).append("\n");
-		}		
-		classLogger.info("Initializing OpenSearch Connection with the following py commands >>>" + intitPyCommands.toString());
-		pyt.runEmptyPy(commands);
-	}
-	
 	@Override
-	public VectorDatabaseTypeEnum getVectorDatabaseType() {
-		return VectorDatabaseTypeEnum.OPENSEARCH_REST;
+	protected String[] getServerStartCommands() {
+		return (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT+OPEN_SEARCH_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 	}
-
+	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) {
 		if(!modelPropsLoaded) {
@@ -380,7 +248,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		try {
 			httpClient = HttpClients.createDefault();
 			HttpPut httpPut = new HttpPut(this.clusterUrl + "/" + this.indexName + "/" + "_doc" + "/" + documentName);
-			String encodedPassword = getEncoding();
+			String encodedPassword = getCredsBase64Encoded();
 			httpPut.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
 			httpPut.setEntity(new StringEntity(mappings.toString(), ContentType.APPLICATION_JSON));
 			response = httpClient.execute(httpPut);
@@ -423,7 +291,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			
 	        String url = this.clusterUrl + "/" + this.indexName + "/" + "_doc" + "/" + fileNameSubString;
 			Map<String, String> headersMap = new HashMap<>();
-			headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getEncoding());
+			headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
 			try {
@@ -537,7 +405,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 		
 		Map<String, String> headersMap = new HashMap<>();
-		String encodedPassword = getEncoding();
+		String encodedPassword = getCredsBase64Encoded();
 		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + encodedPassword);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 		headersMap.put(HttpHeaders.ACCEPT, "application/json");
@@ -548,7 +416,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return null;
 	}
 
-	private String getEncoding() {
+	private String getCredsBase64Encoded() {
 		String encoding = Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes());
 		return encoding;
 	}
@@ -622,7 +490,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
         JsonObject jsonObject = JsonParser.parseString(mapping).getAsJsonObject();
         String url = this.clusterUrl + "/" + this.indexName;
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getEncoding());
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		String body = jsonObject.toString();
 		
@@ -641,7 +509,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		
 		String url = this.clusterUrl + "/" + this.indexName;
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getEncoding());
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
 		HttpHelperUtility.headRequest(url, headersMap, null, null, null);
 		return true;
@@ -678,4 +546,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		return fileList;
 	}
 	
+	@Override
+	public VectorDatabaseTypeEnum getVectorDatabaseType() {
+		return VectorDatabaseTypeEnum.OPENSEARCH_REST;
+	}
 }
