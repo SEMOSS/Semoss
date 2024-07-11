@@ -33,7 +33,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 
-	private Logger logger = LogManager.getLogger(AbstractRdbmsFrame.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractRdbmsFrame.class);
 	
 	protected Connection conn = null;
 	protected String database = null;
@@ -60,7 +60,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		try {
 			this.initConnAndBuilder();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error generating new sql frame", e);
 		}
 		this.originalName = this.frameName;
@@ -178,7 +178,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 			try {
 				this.builder.runQuery(dropColumnSql);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			// TODO: make new table not including this column and insert from table
@@ -213,17 +213,17 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(String query) throws Exception {
-		logger.info("Executing query...");
+		classLogger.info("Executing query...");
 		long start = System.currentTimeMillis();
 		RawRDBMSSelectWrapper it = RawRDBMSSelectWrapper.directExecutionViaConnection(this.conn, query, false);
 		long end = System.currentTimeMillis();
-		logger.info("Time to execute query on frame = " + (end-start) + "ms");
+		classLogger.info("Time to execute query on frame = " + (end-start) + "ms");
 		return it;
 	}
 	
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
-		logger.info("Generating SQL query...");
+		classLogger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		if(!this.frameName.equals(this.originalName)) {
 			Map<String, String> transformation = new HashMap<>();
@@ -232,9 +232,9 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		}
 		IQueryInterpreter interp = getQueryInterpreter();
 		interp.setQueryStruct(qs);
-		interp.setLogger(this.logger);
+		interp.setLogger(this.classLogger);
 		String iteratorQuery = interp.composeQuery();
-		logger.info("Done generating SQL query");
+		classLogger.info("Done generating SQL query");
 		return query(iteratorQuery);
 	}
 	
@@ -252,14 +252,14 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 				data.add( Arrays.asList(it.next().getValues()) );
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error executing sql: " + query);
 		} finally {
 			if(it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -276,7 +276,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		try {
 			this.conn.close();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
