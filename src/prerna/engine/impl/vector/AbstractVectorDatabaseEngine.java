@@ -314,9 +314,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
-									getCatalogType(), this.engineId, this.engineName)
-								);
+		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName));
 		if(engineFolder.exists()) {
 			classLogger.info("Delete vector database engine folder " + engineFolder);
 			try {
@@ -344,7 +342,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public boolean holdsFileLocks() {
 		return false;
 	}
-	
 	
 	@Override
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,

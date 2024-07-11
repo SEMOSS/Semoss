@@ -512,8 +512,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //				IModelEngine keywordEngine = Utility.getModel(this.keywordGeneratorEngineId);
 //				dataForTable.setKeywordEngine(keywordEngine);
 //			}
-				
+
+			final int batchSize = 1000;
+			
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+			int count = 0;
 			for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 				int index = 1;
 				ps.setObject(index++, new PGvector(row.getEmbeddings()));
@@ -524,8 +527,21 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				ps.setInt(index++, row.getTokens());
 				ps.setString(index++, row.getContent());
 				ps.addBatch();
+				
+				// batch commit based on size
+				if (++count % batchSize == 0) {
+					classLogger.info("Executing batch .... row num = " + count);
+					int[] results = ps.executeBatch();
+					for(int j=0; j<results.length; j++) {
+						if(results[j] == PreparedStatement.EXECUTE_FAILED) {
+							throw new SQLException("Error inserting data for row " + j);
+						}
+					}
+				}
 			}
 			
+			// well, we are done looping through now
+			classLogger.info("Executing final batch .... row num = " + count);
 			int[] results = ps.executeBatch();
             for(int j=0; j<results.length; j++) {
                 if(results[j] == PreparedStatement.EXECUTE_FAILED) {
