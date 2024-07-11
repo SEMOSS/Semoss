@@ -160,6 +160,19 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 		// grab the connection url
 		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
+		try {
+			// update the query util values
+			// also
+			// if the connection url is not defined
+			// use the query util to construct the connection url from the parts
+			// if this fails ignore, it will through an error when trying to establish the connection
+			String queryUtilConnectionURL = this.queryUtil.setConnectionDetailsFromSMSS(this.smssProp);
+			if(this.connectionURL == null || (this.connectionURL=this.connectionURL.trim()).isEmpty()) {
+				this.connectionURL = queryUtilConnectionURL;
+			}
+		} catch(Exception ignore) {
+			
+		}
 		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
@@ -277,8 +290,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			}
 			
 			// update the query utility values
+			// note the smss values are already added previously
 			this.queryUtil.setConnectionUrl(this.connectionURL);
-			this.queryUtil.setConnectionDetailsFromSMSS(this.smssProp);
 			// if we are connection pooling
 			if(useConnectionPooling) {
 				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);

@@ -85,6 +85,7 @@ public abstract class AbstractSqlQueryUtil {
 	
 	// inputs for connection string builder
 	public static final String CONNECTION_URL = Constants.CONNECTION_URL;
+	@Deprecated
 	public static final String DRIVER_NAME = "dbDriver";
 
 	public static final String HOSTNAME = "hostname";
