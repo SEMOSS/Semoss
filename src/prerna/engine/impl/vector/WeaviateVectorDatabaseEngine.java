@@ -38,14 +38,12 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -62,14 +60,8 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private String apiKey = null;
 	
 	private String className = null;
-	private String embedderEngineId = null;
-	private IModelEngine embeddingsEngine = null;
 	private int autocut = 1;
 	
-	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
-			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
-			+ "import vector_database;";
-
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -95,19 +87,6 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		connect2Weviate(this.protocol, this.host, this.apiKey);
 		createClass(this.className);
-		
-		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
-
-		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(engineDir, "schema");
-		if(!this.schemaFolder.exists()) {
-			this.schemaFolder.mkdirs();
-		}
-		this.smssProp.put(Constants.WORKING_DIR, this.schemaFolder.getAbsolutePath());
-		
-		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
 		
 		String autoCutStr = smssProp.getProperty(AUTOCUT);
 		if(autoCutStr != null && !(autoCutStr=autoCutStr.trim()).isEmpty()) {
@@ -347,6 +326,17 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		// if we were able to extract files, begin embeddings process
+		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		
 		// send all the strings to embed in one shot
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 
@@ -507,14 +497,12 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @return
 	 */
 	private Float[] getEmbeddings(String content, Insight insight) {
-		if (this.embeddingsEngine == null) {
-			this.embeddingsEngine = Utility.getModel(this.embedderEngineId);
-		}
-		
+		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 		List <Double> embeddingsResponse = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), getInsight(insight), null).getResponse().get(0);
 		Float [] retFloat = new Float[embeddingsResponse.size()];
-		for(int vecIndex = 0;vecIndex < retFloat.length;vecIndex++)
+		for(int vecIndex = 0; vecIndex < retFloat.length; vecIndex++) {
 			retFloat[vecIndex] = (Float)embeddingsResponse.get(vecIndex).floatValue();
+		}
 		
 		return retFloat;
 	}
@@ -524,8 +512,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// already created by another thread
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
-		}
-		
+		}		
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}

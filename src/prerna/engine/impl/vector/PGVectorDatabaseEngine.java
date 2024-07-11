@@ -58,10 +58,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
 
-	private static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
-			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
-			+ "import vector_database;";
-
 	private int contentLength = 512;
 	private int contentOverlap = 0;
 	private String defaultChunkUnit;
@@ -147,14 +143,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	protected void verifyModelProps() {
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
 		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
-		if (embedderEngineId == null) {
-			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
-			if (embedderEngineId == null) {
-				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
+		if (this.embedderEngineId == null || (this.embedderEngineId=this.embedderEngineId.trim()).isEmpty()) {
+			
+			// check legacy key....
+			this.embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
+			if (this.embedderEngineId == null || (this.embedderEngineId=this.embedderEngineId.trim()).isEmpty()) {
+				throw new IllegalArgumentException("Must define the embedder engine id for this vector database using " + Constants.EMBEDDER_ENGINE_ID);
 			}
 			
 			this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, embedderEngineId);
@@ -162,12 +163,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		
 		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
 		if (modelEngine == null) {
-			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+			throw new NullPointerException("Could not find the defined embedder engine id for this vector database with value = " + this.embedderEngineId);
 		}
 		
 		Properties modelProperties = modelEngine.getSmssProp();
 		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
-			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+			throw new IllegalArgumentException("Embedder engine exists but does not contain key " + Constants.MODEL);
 		}
 		
 		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
@@ -179,13 +180,21 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// model engine responsible for creating keywords
-		this.keywordGeneratorEngineId = this.smssProp.getProperty(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID);
-				
+		this.keywordGeneratorEngineId = this.smssProp.getProperty(Constants.KEYWORD_ENGINE_ID);
+		if (this.keywordGeneratorEngineId != null && !(this.keywordGeneratorEngineId=this.keywordGeneratorEngineId.trim()).isEmpty()) {
+			// pull the model smss if needed
+			Utility.getModel(this.keywordGeneratorEngineId);
+			this.smssProp.put(Constants.KEYWORD_ENGINE_ID, this.keywordGeneratorEngineId);
+		} else {
+			// add it to the smss prop so the string substitution does not fail
+			this.smssProp.put(Constants.KEYWORD_ENGINE_ID, "");
+		}
+		
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
-					
+		
 		this.modelPropsLoaded = true;
 	}
 
@@ -263,7 +272,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		// break the commands separated by ;
-		String [] commands = (TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+		String [] commands = (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
@@ -497,6 +506,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws SQLException {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}

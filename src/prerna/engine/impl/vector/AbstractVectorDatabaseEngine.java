@@ -19,7 +19,6 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -28,14 +27,17 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.sql.RDBMSUtility;
 
 public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
 	
+	protected static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
+			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
+			+ "import vector_database;";
+	
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
-	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
+	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	public static final String INSIGHT = "insight";
 	
 	public static final String DIR_SEPARATOR = "/";
@@ -55,9 +57,17 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
 	
+	protected boolean modelPropsLoaded = false;
+	protected String embedderEngineId = null;
+	protected String keywordGeneratorEngineId = null;
+	
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
+	
+	// our paradigm for how we store files
 	protected String defaultIndexClass;
+	protected String vectorDatabaseSearcher = null;
+	protected List<String> indexClasses;
 	
 	protected String distanceMethod;
 	
@@ -66,7 +76,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected TCPPyTranslator pyt = null;
 	protected File pyDirectoryBasePath = null;
 	
-	protected boolean modelPropsLoaded = false;
 	protected File schemaFolder;
 
 	// string substitute vars
@@ -105,6 +114,27 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
+		
+		// highest directory (first layer inside vector db base folder)
+		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		
+		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
+		this.schemaFolder = new File(engineDir, "schema");
+		if(!this.schemaFolder.exists()) {
+			this.schemaFolder.mkdirs();
+		}
+		
+		// third layer - All the separate tables,classes, or searchers that can be added to this db
+		this.indexClasses = new ArrayList<>();
+        for (File file : this.schemaFolder.listFiles()) {
+            if (file.isDirectory() && !file.getName().equals("temp")) {
+            	this.indexClasses.add(file.getName());
+            }
+        }
+        
+		this.vectorDatabaseSearcher = Utility.getRandomString(6);
+		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
 	/**
@@ -177,11 +207,13 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected void verifyModelProps() {
 		// This could get moved depending on other vector db needs
 		// This is to get the Model Name and Max Token for an encoder -- we need this to verify chunks aren't getting truncated
-		String embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
-		if (embedderEngineId == null || (embedderEngineId=embedderEngineId.trim()).isEmpty()) {
-			embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
-			if (embedderEngineId == null || (embedderEngineId=embedderEngineId.trim()).isEmpty()) {
-				throw new IllegalArgumentException("Embedder Engine ID is not provided.");
+		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
+		if (this.embedderEngineId == null || (this.embedderEngineId=this.embedderEngineId.trim()).isEmpty()) {
+			
+			// check legacy key....
+			this.embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
+			if (this.embedderEngineId == null || (this.embedderEngineId=this.embedderEngineId.trim()).isEmpty()) {
+				throw new IllegalArgumentException("Must define the embedder engine id for this vector database using " + Constants.EMBEDDER_ENGINE_ID);
 			}
 			
 			this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, embedderEngineId);
@@ -189,12 +221,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		IModelEngine modelEngine = Utility.getModel(embedderEngineId);
 		if (modelEngine == null) {
-			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+			throw new NullPointerException("Could not find the defined embedder engine id for this vector database with value = " + this.embedderEngineId);
 		}
 		
 		Properties modelProperties = modelEngine.getSmssProp();
 		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
-			throw new IllegalArgumentException("Model Engine must be created and contain MODEL");
+			throw new IllegalArgumentException("Embedder engine exists but does not contain key " + Constants.MODEL);
 		}
 		
 		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
@@ -206,14 +238,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// model engine responsible for creating keywords
-		String keywordGeneratorEngineId = this.smssProp.getProperty(KEYWORD_ENGINE_ID);
-		if (keywordGeneratorEngineId != null && !(keywordGeneratorEngineId=keywordGeneratorEngineId.trim()).isEmpty()) {
+		this.keywordGeneratorEngineId = this.smssProp.getProperty(Constants.KEYWORD_ENGINE_ID);
+		if (this.keywordGeneratorEngineId != null && !(this.keywordGeneratorEngineId=this.keywordGeneratorEngineId.trim()).isEmpty()) {
 			// pull the model smss if needed
-			Utility.getModel(keywordGeneratorEngineId);
-			this.smssProp.put(KEYWORD_ENGINE_ID, keywordGeneratorEngineId);
+			Utility.getModel(this.keywordGeneratorEngineId);
+			this.smssProp.put(Constants.KEYWORD_ENGINE_ID, this.keywordGeneratorEngineId);
 		} else {
 			// add it to the smss prop so the string substitution does not fail
-			this.smssProp.put(KEYWORD_ENGINE_ID, "");
+			this.smssProp.put(Constants.KEYWORD_ENGINE_ID, "");
 		}
 		
 		for (Object smssKey : this.smssProp.keySet()) {
@@ -221,7 +253,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
 		
-		modelPropsLoaded = true;
+		this.modelPropsLoaded = true;
 	}
 
 	/**
