@@ -24,9 +24,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.VectorDatabaseTypeEnum;
-import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
@@ -42,7 +40,6 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -58,25 +55,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 	}
-
-	@Override
-	protected synchronized void startServer(int port) {
-		// already created by another thread
-		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
 	
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way than the command
-		
-		// execute all the basic commands		
-		
-		// break the commands seperated by ;
+	@Override
+	protected String[] getServerStartCommands() {
 		String [] commands = (TOKENIZER_INIT_SCRIPT+FAISS_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
@@ -92,90 +73,22 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
 		}
+		
+		return commands;
+	}
 
-		// replace the Vars
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			commands[commandIndex] = fillVars(commands[commandIndex]);
-		}
-		
-		if(!this.pyDirectoryBasePath.exists()) {
-			this.pyDirectoryBasePath.mkdirs();
-		}
-		
-		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
-		}
-		
-		String timeout = "30";
-		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						// ignore
-						classLogger.warn("Faiss Database " + this.engineName + " has an invalid FORCE_PORT value");
-					}
-				}
-			}
-			
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
-			}
-		}
-		
-		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
-	
-		// TODO remove once bug is caught / fixed
-		StringBuilder intitPyCommands = new StringBuilder("\n");
-		for (String command : commands) {
-			intitPyCommands.append(command).append("\n");
-		}
-		
-		classLogger.info("Initializing FAISS db with the following py commands >>>" + intitPyCommands.toString());
-		pyt.runEmptyPy(commands);
-		
-		// check if the index class was able to load in its documents
+	@Override
+	protected synchronized void startServer(int port) {
+		super.startServer(port);
 		
 		if (this.indexClasses.size() > 0) {
 			for (String indexClass : this.indexClasses) {
-				StringBuilder checkForEmptyDatabase = new StringBuilder();
-				checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
-									 .append(".searchers['")
-									 .append(indexClass)
-									 .append("']")
-									 .append(".datasetsLoaded()");
+				StringBuilder checkForEmptyDatabase = new StringBuilder(this.vectorDatabaseSearcher)
+					.append(".searchers['")
+					.append(indexClass)
+					.append("']")
+					.append(".datasetsLoaded()");
+				
 				boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
 				this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 			}
