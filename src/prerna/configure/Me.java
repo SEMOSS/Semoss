@@ -282,11 +282,11 @@ public class Me {
 			}catch (Exception ex)
 			{
 				// do nothing
-				//ex.printStackTrace();
+				//classLogger.error(Constants.STACKTRACE, ex);
 				System.out.println("  Fail");
 				//System.exit(0);
 				found = false;
-				//ex.printStackTrace();
+				//classLogger.error(Constants.STACKTRACE, ex);
 			}finally
 			{
 			}

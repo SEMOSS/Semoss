@@ -111,7 +111,7 @@ public class SQLQueryParser extends AbstractQueryParser {
 				System.err.println("An error occurred, the sql statement you are trying to parse is not parseable " + query);
 			}
 		}  catch (JSQLParserException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 	}
 	

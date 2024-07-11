@@ -270,7 +270,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			logger.error(Constants.STACKTRACE, e);
@@ -406,7 +406,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			}
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			logger.error(Constants.STACKTRACE, e);

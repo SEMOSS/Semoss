@@ -359,7 +359,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     				break;
     				
     			}catch (Exception ex) {
-    				ex.printStackTrace();
+    				classLogger.error(Constants.STACKTRACE, ex);
 //    				killall = true;
 //    				connected=false;
 //    				break;
@@ -506,12 +506,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     		try {
     			os.write(psBytes);
     		} catch(IOException ex) {
-    		ex.printStackTrace();
+    		classLogger.error(Constants.STACKTRACE, ex);
     		//crash();
     		}
     	}catch(Exception ex)
     	{
-    		ex.printStackTrace();
+    		classLogger.error(Constants.STACKTRACE, ex);
     	}
     }
     

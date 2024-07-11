@@ -114,7 +114,7 @@ package prerna.reactor.database;
 //				engine.setPropFile(oldSmssFile);
 //				engine.open(oldSmssFile);
 //			} catch (Exception e1) {
-//				e1.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e1);
 //			}
 //
 //			throw new IllegalArgumentException("Unable to rename app");

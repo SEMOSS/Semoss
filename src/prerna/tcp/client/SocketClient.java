@@ -231,7 +231,7 @@ public class SocketClient implements Runnable, Closeable {
     	try {
     		os.write(psBytes);
     	} catch(IOException ex) {
-    		ex.printStackTrace();
+    		classLogger.error(Constants.STACKTRACE, ex);
     		crash();
     	}
     }

@@ -1,10 +1,5 @@
 package prerna.sablecc2.translations;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,9 +10,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -25,19 +17,13 @@ import prerna.query.querystruct.joins.BasicRelationship;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.PixelPreProcessor;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
-import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DatasourceTranslation extends AbstractDatasourceModificationTranslation {
@@ -88,7 +74,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 						this.currentSourceStatement = null;
 					}
 				} catch(Exception e1) {
-					e1.printStackTrace();
+					logger.error(Constants.STACKTRACE, e1);
 				}
 			}
 			

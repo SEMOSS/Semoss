@@ -250,7 +250,7 @@
 //						try {
 //							this.insightsEngine.insertData(updateQ);
 //						} catch (Exception e1) {
-//							e1.printStackTrace();
+//							classLogger.error(Constants.STACKTRACE, e1);
 //						}
 //						return;
 //					}

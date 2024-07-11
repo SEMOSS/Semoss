@@ -408,7 +408,7 @@ public class NativePySockTest implements Runnable {
 						
 					}catch(Exception ex)
 					{
-						ex.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, ex);
 					}
 				}
 				/////////////////////////////////////////////////////////////////////
@@ -444,7 +444,7 @@ public class NativePySockTest implements Runnable {
 				
 				//System.err.println(ps.operation);
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				stop = true;
 				connected=false;
 				break;

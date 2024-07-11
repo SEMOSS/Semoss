@@ -482,7 +482,7 @@
 //			tx.finish();
 //		} catch (Exception ex) {
 //			System.err.println("Error ");
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //		}
 //	}*/
 //

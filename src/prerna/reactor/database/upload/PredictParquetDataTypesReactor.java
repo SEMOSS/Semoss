@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 
 public class PredictParquetDataTypesReactor extends AbstractReactor {
@@ -58,7 +59,8 @@ public class PredictParquetDataTypesReactor extends AbstractReactor {
 			// TODO Auto-generated catch block
 			logger.error("Unable to read parquet file");
 			logger.error(e.toString());
-			throw new IllegalArgumentException(e);
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to read parquet file");
 		}
 		return new NounMetadata(fileData, PixelDataType.MAP);
 	}

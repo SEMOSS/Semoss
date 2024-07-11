@@ -144,7 +144,7 @@ public class GitFetchUtils {
 			InstallCertNow.please("github.com", null, null);
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 
 		if(attempt < 3)

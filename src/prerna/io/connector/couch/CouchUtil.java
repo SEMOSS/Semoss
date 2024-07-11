@@ -574,7 +574,7 @@ public class CouchUtil {
 			return fileContent;
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new CouchException("Error processing image creation", e);
+			throw new CouchException("Error processing image creation");
 		}
 	}
 	
@@ -681,7 +681,8 @@ public class CouchUtil {
 			classLogger.debug("Successful document creation: " + response.toString());
 			return response;
 		} catch (UnsupportedEncodingException e) {
-			throw new IllegalArgumentException("The document data encoding isn't supported", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("The document data encoding isn't supported");
 		}
 	}
 	
@@ -714,7 +715,8 @@ public class CouchUtil {
 			classLogger.debug("Successfully retrieved documents for selector: " + response.toString());
 			return response;
 		} catch (UnsupportedEncodingException e) {
-			throw new IllegalArgumentException("The selector encoding isn't supported", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("The selector encoding isn't supported");
 		}
 	}
 	
@@ -802,7 +804,8 @@ public class CouchUtil {
 			
 			return new CouchResponse(statusLine.getStatusCode(), responseBody, revision);
 		} catch (IOException e) {
-			throw new CouchException(String.format("Error during CouchDB request. Request URI: %s. Message: %s", request.getURI().toString(), e.getMessage()), e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new CouchException(String.format("Error during CouchDB request. Request URI: %s", request.getURI().toString()));
 		}
 	}
 	

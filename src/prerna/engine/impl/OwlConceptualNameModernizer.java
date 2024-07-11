@@ -197,7 +197,7 @@
 //			try {
 //				FileUtils.copyFile(owlFile, inCaseIMessUpFile);
 //			} catch (IOException e1) {
-//				e1.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e1);
 //				throw new IOException("Cannot save old version of OWL. "
 //						+ "Too risky to overwrite existing one in case automatic routine has errors!");
 //			}

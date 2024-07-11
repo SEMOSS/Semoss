@@ -287,7 +287,8 @@ public final class HttpHelperUtility {
 					bais.reset();
 					FileUtils.copyInputStreamToFile(bais, savedFile);
 				} catch (IOException e) {
-					throw new IllegalArgumentException("Could not read file item.", e);
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Could not read file item.");
 				}
 			} else {
 				FileUtils.copyInputStreamToFile(is, savedFile);
