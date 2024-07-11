@@ -403,7 +403,7 @@
 //				LARQ.setDefaultIndex(larq);
 //			}catch(RuntimeException ex)
 //			{
-//				ex.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, ex);
 //			} catch (CorruptIndexException e) {
 //				// TODO Auto-generated catch block
 //				classLogger.error(Constants.STACKTRACE, e);

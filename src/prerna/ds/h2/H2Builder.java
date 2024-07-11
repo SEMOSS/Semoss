@@ -436,7 +436,7 @@
 //				logger.info("Finished generating SQL table");
 //			}
 //		} catch (Exception e1) {
-//			e1.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e1);
 //		}
 //	}
 //
@@ -460,7 +460,7 @@
 //				runQuery(createTable);
 //			}
 //		} catch (Exception ex) {
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //			create = false;
 //		}
 //
@@ -1002,7 +1002,7 @@
 //			stmt = this.conn.createStatement();
 //			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
 //		} catch (SQLException e1) {
-//			e1.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e1);
 //		} finally {
 //			if(stmt != null) {
 //				try {

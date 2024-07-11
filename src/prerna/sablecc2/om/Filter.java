@@ -122,9 +122,9 @@ public class Filter implements JavaExecutable {
 			FilterEvaluator c = (FilterEvaluator) retClass.newInstance();
 			return c;
 		} catch (CannotCompileException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} catch (NotFoundException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} catch (InstantiationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {

@@ -138,7 +138,7 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 				unFilterValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(unFilterValuesIt != null) {
 				try {

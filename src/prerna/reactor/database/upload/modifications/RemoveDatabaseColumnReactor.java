@@ -1,5 +1,8 @@
 package prerna.reactor.database.upload.modifications;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -11,9 +14,12 @@ import prerna.reactor.database.metaeditor.properties.RemoveOwlPropertyReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RemoveDatabaseColumnReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(RemoveDatabaseColumnReactor.class);
 
 	public RemoveDatabaseColumnReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(),
@@ -64,7 +70,7 @@ public class RemoveDatabaseColumnReactor extends AbstractReactor {
 				owlAdder.setNounStore(this.store);
 				owlAdder.execute();
 			} catch(Exception e2) {
-				e2.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e2);
 			}
 						
 			// an error occurred here, so we need to delete from the OWL

@@ -519,7 +519,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		try {
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable(database, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");

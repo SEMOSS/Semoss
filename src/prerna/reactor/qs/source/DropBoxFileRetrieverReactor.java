@@ -10,6 +10,7 @@ import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -28,7 +29,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
-
+	
 	//private String[] keysToGet;
 	private static final String CLASS_NAME = DropBoxFileRetrieverReactor.class.getName();
 
@@ -100,10 +101,10 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 			FileUtils.copyURLToFile(urlDownload, destination);
 		} catch (MalformedURLException e2) {
 			// TODO Auto-generated catch block
-			e2.printStackTrace();
+			logger.error(Constants.STACKTRACE, e2);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			logger.error(Constants.STACKTRACE, e1);
 		}
 		// get datatypes
 		CSVFileHelper helper = new CSVFileHelper();

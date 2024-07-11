@@ -348,7 +348,7 @@ public class RdbmsImporter extends AbstractImporter {
 //					this.dataframe.getBuilder().runQuery(alterQuery);
 //				} catch (Exception ex) {
 //					// if this messes up... not sure what to do now 
-//					ex.printStackTrace();
+//					classLogger.error(Constants.STACKTRACE, ex);
 //				}
 //			} else {
 //				// continue the message up

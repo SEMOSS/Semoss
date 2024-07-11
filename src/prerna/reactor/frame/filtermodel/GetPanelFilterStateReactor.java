@@ -134,7 +134,7 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 				totalCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(totalCountIt != null) {
 				try {

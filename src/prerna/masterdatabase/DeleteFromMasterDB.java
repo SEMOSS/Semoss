@@ -130,7 +130,7 @@ public class DeleteFromMasterDB {
 //
 //			success = true;
 //		} catch(Exception ex) {
-//			ex.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, ex);
 //		}
 //
 //		return success;

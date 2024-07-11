@@ -328,7 +328,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps = securityDb.bulkInsertPreparedStatement(
 					new String[]{"INSIGHTMETA","PROJECTID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
 		} catch (SQLException e1) {
-			e1.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 		
 		qs = new SelectQueryStruct();

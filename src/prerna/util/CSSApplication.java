@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import aurelienribon.ui.css.Style;
 import aurelienribon.ui.css.StyleException;
 
@@ -34,6 +37,9 @@ import aurelienribon.ui.css.StyleException;
  * This class is used to apply specific CSS functionality in the playsheets and UI.
  */
 public class CSSApplication {
+	
+	private static final Logger classLogger = LogManager.getLogger(CSSApplication.class);
+
 	/**
 	 * Unregisters a target from the engine, assigns CSS classnames to the target, and applies a specified stylesheet to the target.
 	 * @param object Object		Target for CSS to be applied to.
@@ -46,7 +52,7 @@ public class CSSApplication {
 		Style.registerTargetClassName(object, cssLine);
 		Style.apply(object, new Style(getClass().getResource("styles.css")));
 	} catch (StyleException e1) {
-		e1.printStackTrace();
+		classLogger.error(Constants.STACKTRACE, e1);
 		}
 	}
 	
@@ -59,7 +65,7 @@ public class CSSApplication {
 	try {
 		Style.apply(object, new Style(getClass().getResource("styles.css")));
 	} catch (StyleException e1) {
-		e1.printStackTrace();
+		classLogger.error(Constants.STACKTRACE, e1);
 		}
 	}
 }

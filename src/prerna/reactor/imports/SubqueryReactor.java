@@ -1,5 +1,8 @@
 package prerna.reactor.imports;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.om.Insight;
@@ -14,9 +17,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class SubqueryReactor extends AbstractReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(SubqueryReactor.class);
+
 	public SubqueryReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey()};
 	}
@@ -42,7 +48,7 @@ public class SubqueryReactor extends AbstractReactor {
 				mergeFrame = SQLQueryUtils.subQuery(((NativeFrame)curFrame).getQueryStruct(), qs);
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e1);
 			}
 		}
 		
