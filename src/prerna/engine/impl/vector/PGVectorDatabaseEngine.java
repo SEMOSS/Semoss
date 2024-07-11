@@ -123,6 +123,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
 		}
 		
+		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
+			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
+		}
+		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
+			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
+		}
+		
 		this.defaultChunkUnit = "tokens";
 		if (this.smssProp.containsKey(Constants.DEFAULT_CHUNK_UNIT)) {
 			this.defaultChunkUnit = this.smssProp.getProperty(Constants.DEFAULT_CHUNK_UNIT).toLowerCase().trim();
