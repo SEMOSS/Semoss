@@ -902,8 +902,8 @@ public class Constants {
 	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String DEFAULT_CHUNK_UNIT = "DEFAULT_CHUNK_UNIT";
-	public static final String WORKING_DIR = "WORKING_DIR";
 	public static final String EMBEDDER_ENGINE_ID = "EMBEDDER_ENGINE_ID";
+	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
 	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
 	public static final String INDEX_NAME = "INDEX_NAME";

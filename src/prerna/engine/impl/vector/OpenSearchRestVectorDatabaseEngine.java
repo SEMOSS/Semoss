@@ -40,7 +40,6 @@ import com.google.gson.internal.LinkedTreeMap;
 
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.ClientProcessWrapper;
@@ -48,7 +47,6 @@ import prerna.om.Insight;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -64,9 +62,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	
 	private String mapping = "{\"settings\":{\"index\":{\"knn\":true}},\"mappings\":{\"properties\":{\"my_vector1\":{\"type\":\"knn_vector\",\"dimension\":1024,\"method\":{\"name\":\"hnsw\",\"space_type\":\"l2\",\"engine\":\"lucene\",\"parameters\":{\"ef_construction\":128,\"m\":24}}}}}}";
 	
-	protected String vectorDatabaseSearcher = null;
-	private List<String> indexClasses;
-	
 	private String indexName = null;
 	private String clusterUrl = null;
 	private String username = null;
@@ -75,32 +70,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
-		// highest directory (first layer inside vector db base folder)
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
-
-		// second layer - This holds all the different "tables". The reason we want this
-		// is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(engineDir, "schema");
-		if (!this.schemaFolder.exists()) {
-			this.schemaFolder.mkdirs();
-		}
-		this.smssProp.put(Constants.WORKING_DIR, this.schemaFolder.getAbsolutePath());
-
-		// third layer - All the separate tables,classes, or searchers that can be added
-		// to this db
-		this.indexClasses = new ArrayList<>();
-		for (File file : this.schemaFolder.listFiles()) {
-			if (file.isDirectory() && !file.getName().equals("temp")) {
-				this.indexClasses.add(file.getName());
-			}
-		}
-
-		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
-		
 		// Now that the smssprops are loaded and the folders are made we should create or get index to save time later 
 		getIndex();
 	}
