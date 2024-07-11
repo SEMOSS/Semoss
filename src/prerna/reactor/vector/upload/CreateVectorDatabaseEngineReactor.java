@@ -74,10 +74,10 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		
 		// get the reactor inputs
 		String vectorDbName = getVectorDatabaseName();
-		Map<String, String> vectorDbDetails = getVectorDatabaseDetails();
+		Map<String, Object> vectorDbDetails = getVectorDatabaseDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
-		String vectorDbTypeStr = vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
+		String vectorDbTypeStr = (String) vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
 		if(vectorDbTypeStr == null || (vectorDbTypeStr=vectorDbTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
 		}
@@ -91,7 +91,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 		
 		if (!vectorDbDetails.containsKey(Constants.EMBEDDER_ENGINE_NAME)) {
-			String embedderEngineId = vectorDbDetails.getOrDefault(Constants.EMBEDDER_ENGINE_ID, null);
+			String embedderEngineId = (String)vectorDbDetails.getOrDefault(Constants.EMBEDDER_ENGINE_ID, null);
 			if (embedderEngineId == null) {
 				throw new IllegalArgumentException("EMBEDDER_ENGINE_ID must be defined for FAISS database");
 			}
@@ -218,18 +218,18 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getVectorDatabaseDetails() {
+	private Map<String, Object> getVectorDatabaseDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, String>) mapNouns.get(0).getValue();
+				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
 		
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, String>) mapNouns.get(0).getValue();
+			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 		
 		throw new NullPointerException("Must define the properties for the new vector database engine");
