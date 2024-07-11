@@ -58,8 +58,8 @@ public class RDBMSUtility {
 			baseURL = getH2BaseConnectionURL();
 		}
 		
-		String baseFolder = Utility.getBaseFolder();
-		if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
+		String baseFolder = Utility.getBaseFolder().replace('\\', '/');
+		if(baseFolder.endsWith("/")) {
 			baseFolder = baseFolder.substring(0, baseFolder.length()-1);
 		}
 		

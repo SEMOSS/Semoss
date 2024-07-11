@@ -1334,7 +1334,7 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryVectorDatabaseSmss(String databaseId, String databaseName, String vectorDbClassName, Map<String, String> properties) throws IOException {
+	public static File createTemporaryVectorDatabaseSmss(String databaseId, String databaseName, String vectorDbClassName, Map<String, Object> properties) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.VECTOR, databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
