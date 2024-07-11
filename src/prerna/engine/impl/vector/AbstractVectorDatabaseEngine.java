@@ -345,4 +345,18 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return false;
 	}
 	
+	
+	@Override
+	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
+			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
+		// TODO Auto-generated method stub
+		// TODO Implement for each engine type and remove from Abstract
+	}
+	
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception {
+		// TODO Auto-generated method stub
+		// TODO Implement for each engine type and remove from Abstract
+	}
+	
 }
