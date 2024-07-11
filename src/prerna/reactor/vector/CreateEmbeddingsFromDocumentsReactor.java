@@ -76,7 +76,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			Object keywordArgs = paramMap.getOrDefault(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey(), null);
 			if (keywordArgs != null) {
 				// we also need to make sure they have access to the keyword engine id
-				String keywordEngineId = vectorDatabase.getSmssProp().getProperty(AbstractVectorDatabaseEngine.KEYWORD_ENGINE_ID);
+				String keywordEngineId = vectorDatabase.getSmssProp().getProperty(Constants.KEYWORD_ENGINE_ID);
 				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), keywordEngineId)) {
 					throw new IllegalArgumentException("Keyword model " + keywordEngineId + " does not exist or user does not have access to this model");
 				}
