@@ -80,7 +80,8 @@ public class SimilarCatalogReactor extends AbstractReactor {
 		try {
 			script = Files.readAllLines(p).toArray(new String[] {});
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not load python file", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not load python file");
 		}
 		
 		PyTranslator pt = this.insight.getPyTranslator();

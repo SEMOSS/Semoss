@@ -47,7 +47,7 @@ public class PixelSourceReactor extends AbstractReactor {
 			pixel = FileUtils.readFileToString(file);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Issue occurred properly reading file", e);
+			throw new IllegalArgumentException("Issue occurred properly reading file");
 		}
 		
 		if(pixel == null || (pixel = pixel.trim()).isEmpty()) {

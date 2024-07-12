@@ -2,14 +2,20 @@ package prerna.engine.impl.modifications;
 
 import java.sql.SQLException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsModifier implements IEngineModifier {
+	
+	private static final Logger classLogger = LogManager.getLogger(RdbmsModifier.class);
 
 	private RDBMSNativeEngine engine = null;
 	private AbstractSqlQueryUtil queryUtil = null;
@@ -31,7 +37,9 @@ public class RdbmsModifier implements IEngineModifier {
 			try {
 				this.engine.insertData(sqlQuery);
 			} catch (SQLException e) {
-				throw new SQLException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
+				classLogger.error(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);	
+				throw new SQLException("Error occurred to alter the table. See logs for details.");
 			}
 		} else {
 			// we need to make a new temp table with the new column we are adding
@@ -50,7 +58,9 @@ public class RdbmsModifier implements IEngineModifier {
 			try {
 				this.engine.insertData(sqlQuery);
 			} catch (SQLException e) {
-				throw new SQLException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
+				classLogger.error(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);	
+				throw new SQLException("Error occurred to alter the table. See logs for details.");
 			}
 		} else {
 			// we need to make a new temp table with the new column we are adding
@@ -70,7 +80,9 @@ public class RdbmsModifier implements IEngineModifier {
 			try {
 				this.engine.insertData(sqlQuery);
 			} catch (SQLException e) {
-				throw new SQLException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
+				classLogger.error(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);	
+				throw new SQLException("Error occurred to alter the table. See logs for details.");
 			}
 		} else {
 			// we need to make a new temp table without the column we are dropping
@@ -107,7 +119,9 @@ public class RdbmsModifier implements IEngineModifier {
 		try {
 			this.engine.insertData(indexQuery);
 		} catch (SQLException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
+			classLogger.error(e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not add index. See logs for details.");
 		}
 	}
 
@@ -117,7 +131,9 @@ public class RdbmsModifier implements IEngineModifier {
 		try {
 			this.engine.insertData(query);
 		} catch (SQLException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
+			classLogger.error(e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could rename property. See logs for details.");
 		}		
 		
 	}
@@ -128,7 +144,9 @@ public class RdbmsModifier implements IEngineModifier {
 		try {
 			this.engine.insertData(query);
 		} catch (SQLException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
+			classLogger.error(e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not alter table name. See logs for details.");
 		}
 	}
 	
