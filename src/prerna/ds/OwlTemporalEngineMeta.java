@@ -84,8 +84,8 @@ public class OwlTemporalEngineMeta {
 			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
 			myRepository.initialize();
 			rc = myRepository.getConnection();
-		} catch(RuntimeException ignored) {
-			ignored.printStackTrace();
+		} catch(RuntimeException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
