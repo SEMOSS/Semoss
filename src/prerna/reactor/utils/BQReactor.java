@@ -34,7 +34,7 @@ public class BQReactor extends AbstractReactor {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Could not make connection to engine.");
 		}
 		
 		String embed = "";

@@ -39,7 +39,9 @@ public class ExcelUtility {
 			// This is a regular ooxml .xlsx file
 			isEncrypted = false;
 		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
+			classLogger.error(e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not handle file location. See logs for details.");
 		}
 		
 		return isEncrypted;

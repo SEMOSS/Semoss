@@ -338,7 +338,7 @@ public class CouchUtil {
 					imageFile.getContentType(), IOUtils.toByteArray(imageFile.getInputStream()), true);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new CouchException("Error processing upload", e);
+			throw new CouchException("Error processing upload");
 		}
 	}
 	

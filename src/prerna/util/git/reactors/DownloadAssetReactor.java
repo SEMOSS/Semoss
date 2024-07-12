@@ -95,6 +95,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 		try {
 			zos = ZipUtils.zipFolder(folder, downloadPath);
 		} catch (IOException e) {
+			classLogger.error("Error zipping folder <{}> with download path <{}>.", folder, downloadPath);
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to zip and download directory");
 		} finally {
@@ -104,8 +105,9 @@ public class DownloadAssetReactor extends AbstractReactor {
 					zos.close();
 				}
 			} catch (IOException e) {
+				classLogger.error(e.getMessage());
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to zip and download directory");
+				throw new IllegalArgumentException("Could not flush or close Zip Output Stream.");
 			}
 		}
 	}

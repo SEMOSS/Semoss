@@ -74,8 +74,8 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 			else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
 			else if(rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
 			else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
-		} catch(RuntimeException ignored) {
-			ignored.printStackTrace();
+		} catch(RuntimeException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RDFParseException e) {

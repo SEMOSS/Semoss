@@ -2602,8 +2602,9 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
+			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Could not make conneciton to " + engine.getEngineName());
 		}
 		// select logicalname from concept where conceptualname='MovieBudget'
 		// and conceptualname != logicalname
@@ -2889,8 +2890,9 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
+			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Could not make conneciton to " + engine.getEngineName());
 		}
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -2928,8 +2930,9 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
+			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Could not make connection. See logs for details.");
 		}
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -2972,8 +2975,9 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
+			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Could not make connection. See logs for details");
 		}
 		Statement stmt = null;
 		ResultSet rs = null;

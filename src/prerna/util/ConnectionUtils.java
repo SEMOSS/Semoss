@@ -147,8 +147,9 @@ public class ConnectionUtils {
 				conn.commit();
 			}
 		} catch (SQLException e) {
+			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred commiting the transaction to the database. Detailed message = "+ e.getMessage(), e);
+			throw new IllegalArgumentException("An error occurred commiting the transaction to the database. See logs for details.");
 		}
 	}
 

@@ -219,26 +219,23 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				// createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new FileNotFoundException(e.getMessage());
-			} else {
-				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
-			}
+				classLogger.error(e.getMessage());
+			} 
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new IOException(e.getMessage());
-			} else {
-				throw new IOException("Could not read Excel file located at " + fileName);
+				classLogger.error(e.getMessage());
 			}
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new IOException(e.getMessage());
-			} else {
-				throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+				classLogger.error(e.getMessage());
 			}
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		} finally {
 			owlEngine.close();
 			
