@@ -59,7 +59,7 @@ public class UpdateTemplateReactor extends AbstractReactor {
 			FileUtils.moveFile(f, newF);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred moving the template into the template folder", e);
+			throw new IllegalArgumentException("An error occurred moving the template into the template folder. See logs for more details.");
 		}
 		
 		logger.info("Starting to synchronize templates with template directory");
@@ -70,7 +70,7 @@ public class UpdateTemplateReactor extends AbstractReactor {
 			FileUtils.moveFile(newF, f);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred moving the template into the template folder", e);
+			throw new IllegalArgumentException("An error occurred moving the template into the template folder. See logs for more details.");
 		}
 		// write/update to properties file
 		Map<String, String> templateDataMap = TemplateUtility.editTemplate(projectId, templateFile, templateName);

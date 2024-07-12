@@ -492,7 +492,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			System.err.print(e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -639,7 +639,6 @@ public class Me {
 				fileOut.write(lineBreak);
 			}
 		} catch(IOException e){
-			System.err.print(e);
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally{
 			// close the readers

@@ -44,7 +44,13 @@ public class LocalInputFile implements InputFile {
 	}
 	
 	public LocalInputFile(Path path) throws FileNotFoundException {
-		this.input = new RandomAccessFile(path.toFile(), "r");
+		try {
+			this.input = new RandomAccessFile(path.toFile(), "r");
+		} catch (FileNotFoundException e) {
+			classLogger.error("Could not handle file with path: {}", path);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new FileNotFoundException("Could not find file for path. See logs for more details.");
+		}
 	}
 
 	private static int readDirectBuffer(ByteBuffer byteBufr, byte[] tmpBuf, ByteBufReader rdr) throws IOException {
