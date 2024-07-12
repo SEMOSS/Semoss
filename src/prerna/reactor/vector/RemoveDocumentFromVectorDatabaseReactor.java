@@ -47,16 +47,13 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 			eng.removeDocument(fileNames, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			String errorMessage = e.getMessage();
-			
-			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+			throw new IllegalArgumentException("Error occurred attempting to delete the files. Detailed message = "+e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);	
 	}
 
 	/**
-	 * Get inputs
-	 * @return list of engines to delete
+	 * @return list of files to delete
 	 */
 	public List<String> getFiles() {
 		List<String> filePaths = new ArrayList<>();
@@ -79,6 +76,10 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 		return filePaths;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[2]);
         if(mapGrs != null && !mapGrs.isEmpty()) {

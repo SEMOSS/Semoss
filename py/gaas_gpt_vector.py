@@ -12,7 +12,7 @@ class VectorEngine(ServerProxy):
     def __init__(
         self,
         insight_folder: str,
-        engine_id: Optional[str] = None,
+        engine_id: str,
         insight_id: Optional[str] = None,
     ):
         assert engine_id is not None
@@ -54,77 +54,113 @@ class VectorEngine(ServerProxy):
     def removeDocument(
         self,
         file_names: List[str],
-        engine_id: Optional[str] = None,
-        insight_id: Optional[str] = None,
         param_dict: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
     ) -> bool:
-        engine_id, insight_id = self._determine_ids(
-            engine_id=engine_id, insight_id=insight_id
+        """
+        Remove the documents from the vector database
+
+        Args:
+            file_names (`List[str]`):  The names of the files to remove
+            parameterMap (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
+            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+        """
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+
+        pixel = f'RemoveDocumentFromVectorDatabase(engine="{self.engine_id}",fileNames={file_names}{optionalParams});'
+        epoc = super().get_next_epoc()
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
         )
 
-        param_dict["insight"] = insight_id
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
 
-        epoc = super().get_next_epoc()
-        super().call(
-            epoc=epoc,
-            engine_type=VectorEngine.engine_type,
-            engine_id=engine_id,
-            method_name="removeDocument",
-            method_args=[file_names, param_dict],
-            method_arg_types=["java.util.List", "java.util.Map"],
-            insight_id=insight_id,
-        )[0]
-
-        return True
+        return pixelReturn
 
     def nearestNeighbor(
         self,
         search_statement: str,
         limit: Optional[int] = 5,
         param_dict: Optional[Dict] = {},
-        engine_id: Optional[str] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
-        engine_id, insight_id = self._determine_ids(
-            engine_id=engine_id, insight_id=insight_id
+        """
+        Find the most relevant values in the vector database based on a search statement
+
+        Args:
+            search_statement (`str`):  The value being compared against the vector database embeddings
+            limit (`Optional[int]`): Limit for the number of records to return
+            parameterMap (`dict`): A dictionary with optional parameters for nearest neighbor calculation
+            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+        """
+        assert search_statement is not None
+        search_statement = search_statement.strip()
+        assert search_statement != ""
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        optionalLimit = f",limit=[{limit}]" if (limit is not None and limit > 0) else ""
+        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+
+        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optionalParams});'
+        epoc = super().get_next_epoc()
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
         )
 
-        param_dict["insight"] = insight_id
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
 
-        epoc = super().get_next_epoc()
-        return super().call(
-            epoc=epoc,
-            engine_type=VectorEngine.engine_type,
-            engine_id=engine_id,
-            method_name="nearestNeighbor",
-            method_args=[search_statement, limit, param_dict],
-            method_arg_types=["java.lang.String", "java.lang.Number", "java.util.Map"],
-            insight_id=insight_id,
-        )[0]
+        return pixelReturn
 
     def listDocuments(
         self,
-        engine_id: Optional[str] = None,
-        insight_id: Optional[str] = None,
         param_dict: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
     ) -> List[Dict]:
-        engine_id, insight_id = self._determine_ids(
-            engine_id=engine_id, insight_id=insight_id
+        """
+        List the documents in the vector database
+
+        Args:
+            parameterMap (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
+            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+        """
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+
+        pixel = f'ListDocumentsInVectorDatabase(engine="{self.engine_id}"{optionalParams});'
+        epoc = super().get_next_epoc()
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
         )
 
-        assert engine_id is not None
-        epoc = super().get_next_epoc()
-        return super().call(
-            epoc=epoc,
-            engine_type=VectorEngine.engine_type,
-            engine_id=engine_id,
-            method_name="listDocuments",
-            method_args=[param_dict],
-            method_arg_types=["java.util.Map"],
-            insight_id=insight_id,
-        )[0]
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
 
-    def _determine_ids(self, engine_id: str, insight_id: str) -> Tuple[str, str]:
+        return pixelReturn
+
+    def _determine_ids(
+        self, engine_id: Optional[str], insight_id: Optional[str]
+    ) -> Tuple[str, str]:
         if engine_id is None:
             engine_id = self.engine_id
 
