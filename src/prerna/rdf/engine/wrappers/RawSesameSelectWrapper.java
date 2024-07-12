@@ -3,6 +3,9 @@ package prerna.rdf.engine.wrappers;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +40,8 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	private static final Logger classLogger = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
 	
 	private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'");
+	private final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'");
+	
 	private TupleQueryResult tqr = null;
 
 	@Override
@@ -151,10 +156,11 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				// if datetime
 				else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
 					try {
-						Date d = formatter.parse(lVal.calendarValue().toString());
-						SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss");
+						LocalDateTime ldt = LocalDateTime.parse(lVal.calendarValue().toString(), DATE_FORMATTER);
+						Date d = Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+						SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss", ZoneId.of(Utility.getApplicationZoneId()));
 						return date;
-					} catch (ParseException e) {
+					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
 					return null;
