@@ -718,7 +718,8 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				}
 			}
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Error in writing R script for execution.", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error in writing R script for execution.");
 		} finally {
 			// Cleanup
 			if(outputFile != null && outputFile.exists()) {
