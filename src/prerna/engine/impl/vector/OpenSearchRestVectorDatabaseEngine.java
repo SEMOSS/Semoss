@@ -209,6 +209,18 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			}
 		}
 	}
+	
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		
+		// to implement
+		// turn the vector csv table into the payload required
+		
+		throw new IllegalArgumentException("This method is not yet implemented for this engine");
+	}
 
 	/**
 	 * 

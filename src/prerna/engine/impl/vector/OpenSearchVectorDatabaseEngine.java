@@ -62,12 +62,6 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 	}
 	
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		
@@ -77,6 +71,11 @@ public class OpenSearchVectorDatabaseEngine extends AbstractVectorDatabaseEngine
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+		// TODO Auto-generated method stub
 	}
 
 	@Override
