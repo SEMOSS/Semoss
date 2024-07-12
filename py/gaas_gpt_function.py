@@ -7,12 +7,11 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class FunctionEngine(ServerProxy):
     def __init__(self, engine_id: str, insight_id: Optional[str] = None):
+        assert engine_id is not None
         super().__init__()
-
         self.engine_id = engine_id
         self.insight_id = insight_id
-
-        logger.info("FunctionEngine initialized with engine id " + engine_id)
+        print(f"Function Engine {engine_id} is initialized")
 
     def execute(self, parameterMap: dict, insight_id: Optional[str] = None) -> None:
         """

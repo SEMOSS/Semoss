@@ -7,7 +7,7 @@ class DatabaseEngine(ServerProxy):
         super().__init__()
         self.engine_id = engine_id
         self.insight_id = insight_id
-        print(f"Engine {engine_id} is initialized")
+        print(f"Database Engine {engine_id} is initialized")
 
     def execQuery(self, query=None, insight_id=None, return_pandas=True):
         assert query is not None
