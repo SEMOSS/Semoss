@@ -8,7 +8,7 @@ class StorageEngine(ServerProxy):
         super().__init__()
         self.engine_id = engine_id
         self.insight_id = insight_id
-        print("initialized")
+        print(f"Storage Engine {engine_id} is initialized")
 
     def list(self, storagePath=None, insight_id=None):
         """
