@@ -18,6 +18,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyUtils;
@@ -150,6 +152,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	@Override
 	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
 		try {
 			this.removeDocument(filePaths, parameters);
 		} catch(Exception ignore) {
@@ -404,7 +410,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
 		// TODO Auto-generated method stub
-		// TODO Implement for each engine type and remove from Abstract
 	}
 	
 	@Override
@@ -491,6 +496,27 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		this.modelPropsLoaded = true;
+	}
+	
+	@Override
+	public boolean userCanAccessEmbeddingModels(User user) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		if(this.embedderEngineId != null) {
+			if(!SecurityEngineUtils.userCanViewEngine(user, this.embedderEngineId)) {
+				throw new IllegalArgumentException("Embeddings model " + this.embedderEngineId + " does not exist or user does not have access to this model");
+			}
+		}
+		
+		if(this.keywordGeneratorEngineId != null) {
+			if(!SecurityEngineUtils.userCanViewEngine(user, this.keywordGeneratorEngineId)) {
+				throw new IllegalArgumentException("Keyword model " + this.keywordGeneratorEngineId + " does not exist or user does not have access to this model");
+			}
+		}
+		
+		return true;
 	}
 
 	/**
