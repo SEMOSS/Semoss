@@ -143,7 +143,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 			
 		} catch (RuntimeException e) {
 			logger.error(Constants.STACKTRACE, e);
-			logger.fatal(e.getStackTrace());
+			logger.fatal(Constants.STACKTRACE, e);
 		}
 	}
 	

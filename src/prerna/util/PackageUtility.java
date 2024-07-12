@@ -72,7 +72,8 @@ public class PackageUtility {
 		try {
 			resources = classLoader.getResources(scannedPath);
 		} catch (IOException e) {
-			throw new IllegalArgumentException(String.format(BAD_PACKAGE_ERROR, scannedPath, scannedPackage), e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(String.format(BAD_PACKAGE_ERROR, scannedPath, scannedPackage));
 		}
 		final List<Class<?>> classes = new LinkedList<Class<?>>();
 		while (resources.hasMoreElements()) {

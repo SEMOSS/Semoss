@@ -5,7 +5,14 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants;
+
 public class Hasher {
+	
+	private static final Logger classLogger = LogManager.getLogger(Hasher.class);
 
 	private final int truncateLength; // Bytes
 	private final Charset encoding;
@@ -19,9 +26,11 @@ public class Hasher {
 		try {
 			return new Hasher(DEFAULT_ALGORITHM, truncateLength, DEFAULT_ENCODING);
 		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("The default algorithm should always exist.", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalStateException("The default algorithm should always exist.");
 		} catch (UnsupportedEncodingException e) {
-			throw new IllegalStateException("The default encoding should always be supported.", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalStateException("The default encoding should always be supported.");
 		}
 	}
 	

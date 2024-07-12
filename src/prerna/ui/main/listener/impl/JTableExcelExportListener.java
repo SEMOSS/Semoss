@@ -98,7 +98,7 @@ public class JTableExcelExportListener extends AbstractListener {
 			stream.close();
 		} catch(IOException e) {
 			successfulExport = false;
-			System.out.println(e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(stream!=null)

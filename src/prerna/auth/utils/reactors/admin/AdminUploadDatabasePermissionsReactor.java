@@ -97,7 +97,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 			conn.setAutoCommit(false);
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Could not connect to database.");
 		}
 
 		long start = System.currentTimeMillis();

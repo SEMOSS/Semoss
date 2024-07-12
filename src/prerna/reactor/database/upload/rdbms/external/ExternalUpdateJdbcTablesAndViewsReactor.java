@@ -67,7 +67,7 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 				connection = nativeDatabase.getConnection();
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(e.getMessage());
+				throw new IllegalArgumentException("Could not connect to database.");
 			}
 			
 			// keep a list of tables and views

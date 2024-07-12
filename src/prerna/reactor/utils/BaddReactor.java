@@ -34,7 +34,8 @@ public class BaddReactor extends AbstractReactor {
 			conn = engine.makeConnection();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			String engineName = engine.getEngineName() != null ? engine.getEngineName() : "engine";
+			throw new IllegalArgumentException("Could not connect to " + engineName);
 		}
 		String errorMessage = "";
 		Statement stmt = null;

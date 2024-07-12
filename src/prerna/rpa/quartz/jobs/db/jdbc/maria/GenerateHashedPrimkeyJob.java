@@ -19,6 +19,7 @@ import org.quartz.UnableToInterruptJobException;
 import prerna.rpa.RPAUtil;
 import prerna.rpa.db.jdbc.JDBCUtil;
 import prerna.rpa.quartz.CommonDataKeys;
+import prerna.util.Constants;
 
 public class GenerateHashedPrimkeyJob implements org.quartz.InterruptableJob {
 
@@ -196,7 +197,8 @@ public class GenerateHashedPrimkeyJob implements org.quartz.InterruptableJob {
 			if (!interrupted) {
 				String primkeyExceptionMessage = "A SQL exception occurred while generating the hashed primary key for the table " + tableName + ". ";
 				LOGGER.error(jobName + ": " + primkeyExceptionMessage + terminationMessage);
-				throw new JobExecutionException(primkeyExceptionMessage, e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				throw new JobExecutionException(primkeyExceptionMessage);
 			}
 		} finally {
 			closeConnections();

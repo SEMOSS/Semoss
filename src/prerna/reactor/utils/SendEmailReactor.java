@@ -21,6 +21,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.UploadInputUtility;
@@ -78,7 +79,8 @@ public class SendEmailReactor extends AbstractReactor {
 					try {
 						message = FileUtils.readFileToString(messageFile, "UTF-8");
 					} catch (IOException e) {
-						throw new IllegalArgumentException("Error reading message file with message = " + e.getMessage(), e);
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error reading message file. Check logs for details.");
 					}
 				}
 			}
