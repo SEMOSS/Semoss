@@ -54,7 +54,7 @@ def get_text_gen_client(client_type, **kwargs):
     '''
     if (client_type == 'OPEN_AI'):
         is_azure = kwargs.pop('IS_AZURE_OPEN_AI')
-        if is_azure != None and is_azure:
+        if is_azure is not None and is_azure:
             from .text_generation.openai_clients import AzureOpenAiClient
             return AzureOpenAiClient(**kwargs)
         else:
@@ -78,7 +78,7 @@ def get_embedder(embedder_type, **kwargs):
     '''
     if (embedder_type == 'OPEN_AI'):
         is_azure = kwargs.pop('IS_AZURE_OPEN_AI')
-        if is_azure != None and is_azure:
+        if is_azure is not None and is_azure:
             from .embedders.azure_openai_embedder import AzureOpenAiEmbedder
             return AzureOpenAiEmbedder(**kwargs)
         else:
