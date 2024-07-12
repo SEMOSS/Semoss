@@ -46,10 +46,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
-	private String varName = null;
+	protected String varName = null;
 	
 	// string substitute vars
-	Map<String, String> vars = new HashMap<>();
+	protected Map<String, String> vars = new HashMap<>();
 	
 	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
 	
