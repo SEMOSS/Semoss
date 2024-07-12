@@ -31,12 +31,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
+public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromDocumentsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromVectorCSVFileReactor.class);
+	
 	private static final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
 
-	public CreateEmbeddingsFromDocumentsReactor() {
+	public CreateEmbeddingsFromVectorCSVFileReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), "filePaths", ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
 		this.keyRequired = new int[] {1, 1, 0};
 	}
@@ -58,14 +59,14 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-
+		
 		// check user has access to any embedding models as well 
 		// this actually throws an error
 		// but will wrap in if statement just in case
 		if(!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
 			throw new IllegalArgumentException("User does not have access to all the vector database dependent models");
 		}
-		
+
 		// send the insight so it can be used with IModelEngine call
 		paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
 
@@ -87,7 +88,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 
-			vectorDatabase.addDocument(validFiles, paramMap);
+			vectorDatabase.addEmbeddings(validFiles, insight, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
@@ -183,7 +184,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 			while (entry != null) {
 				String filePath = destDirectory + "/" + entry.getName();
-				if (!entry.isDirectory()) {
+				if (!entry.isDirectory() && isSupportedFileType(filePath)) {
 					if(isSupportedFileType(filePath)) {
 						extractFile(zipIn, filePath);
 						validFiles.add(filePath);
@@ -246,35 +247,12 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	private boolean isSupportedFileType(String filePath) {
 		// Find the last index of '.'
 		int dotIndex = filePath.lastIndexOf('.');
-
 		if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
-			// Extract the extension and convert it to lower case
 			String extension = filePath.substring(dotIndex + 1).toLowerCase();
-
-			return extension.equals("pdf") || extension.equals("pptx") || extension.equals("ppt")
-					|| extension.equals("doc") || extension.equals("docx") || extension.equals("txt") || extension.equals("csv");
-		} else {
-			// do a mime type check
-			Tika tika = new Tika();
-			File file = new File(Utility.normalizePath(filePath));
-			try (FileInputStream inputstream = new FileInputStream(file)) {
-				String mimeType = tika.detect(inputstream, new Metadata());
-
-				switch (mimeType) {
-				case "application/pdf":
-				case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": // .docx
-				case "application/vnd.ms-powerpoint": // .ppt
-				case "application/vnd.openxmlformats-officedocument.presentationml.presentation": // .pptx
-				case "text/plain":
-					return true;
-				default:
-					return false;
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.ERROR_MESSAGE, e);
-				return false;
-			}
+			return extension.equals("csv");
 		}
+		
+		return false;
 	}
 
 	/**
