@@ -5,13 +5,18 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.util.Arrays;
 
 import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
+import prerna.util.Constants;
 
 public class ErrorSenderThread extends Thread
 {
+	
+	private static final Logger classLogger = LogManager.getLogger(ErrorSenderThread.class);
 
 	FileInputStream pis = null;
 	String file = null;
@@ -109,15 +114,15 @@ public class ErrorSenderThread extends Thread
 				JobManager.getManager().addStdOut(in.getInsightId(), "Execution complete  ");				
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				processComplete = true;
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				processComplete = true;
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				processComplete = true;
 			}
 		}
