@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringSubstitutor;
@@ -25,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import com.pgvector.PGvector;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
@@ -287,11 +289,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		pyt.runEmptyPy(commands);
 		
 		// for debugging...
-		StringBuilder intitPyCommands = new StringBuilder("\n");
-		for (String command : commands) {
-			intitPyCommands.append(command).append("\n");
-		}
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " ptyhon process with commands >>> " + intitPyCommands.toString());
+		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+							+ " ptyhon process with commands >>> " + String.join("\n", commands));
 	}
 
 	/**
@@ -322,7 +321,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {		
+	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception{
 		this.removeDocument(filePaths, parameters);
 
 		String indexClass = this.defaultIndexClass;
@@ -355,14 +354,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		File tableIndexFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, "indexed_files");
+		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
 			checkSocketStatus();
 
 			File indexDirectory = new File(this.schemaFolder, indexClass);
-			File documentDir = new File(indexDirectory, "documents");
+			File documentDir = new File(indexDirectory, AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 			if(!documentDir.exists()) {
 				documentDir.mkdirs();
 			}
@@ -372,20 +371,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 			}
 
-			if (!tableIndexFolder.exists()) {
-				tableIndexFolder.mkdirs();
+			if (!indexFilesFolder.exists()) {
+				indexFilesFolder.mkdirs();
 			}
 			if (!this.indexClasses.contains(indexClass)) {
-				this.indexClasses.add(indexClass);
+				addIndexClass(indexClass);
 			}
 
-			String columnsToIndex = "";
-			List<File> extractedFiles = new ArrayList<File>();
-			List<String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
+			List<File> extractedFiles = new ArrayList<>();
+			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we can push them to the cloud
 			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 
 			// move the documents from insight into documents folder
-			HashSet<File> fileToExtractFrom = new HashSet<File>();
+			Set<File> fileToExtractFrom = new HashSet<File>();
 			for (String fileName : filePaths) {
 				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
@@ -409,31 +407,39 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 				// add it to the list of files we need to extract text from
 				fileToExtractFrom.add(destinationFile);
+				
+				// add it to the list of files that need to be pushed to the cloud in a new thread
+				filesToCopyToCloud.add(destinationFile.getAbsolutePath());
 			}
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
-				File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
+				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
 					if (extractedFile.exists()) {
 						FileUtils.forceDelete(extractedFile);
 					}
-					if (!document.getName().toLowerCase().endsWith(".csv")) {
-
+					String docLower = document.getName().toLowerCase();
+					
+					if(docLower.endsWith(".csv")) {
+						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect");
+						// copy csv over
+						FileUtils.copyFileToDirectory(document, indexFilesFolder);
+					} else {
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
 						int rowsCreated;
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-							.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-							.append("', target_folder = '")
-							.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
-							.append("', output_file_name = '")
-							.append(extractedFileName)
-							.append("')");
+								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+								.append("', target_folder = '")
+								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
+								.append("', output_file_name = '")
+								.append(extractedFileName)
+								.append("')");
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
 
 							rowsCreated = rows.intValue();
@@ -453,31 +459,20 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 						StringBuilder splitTextCommand = new StringBuilder();
 						splitTextCommand.append("vector_database.split_text(csv_file_location = '")
-						.append(extractedFileName)
-						.append("', chunk_unit = '")
-						.append(chunkUnit)
-						.append("', chunk_size = ")
-						.append(chunkMaxTokenLength)
-						.append(", chunk_overlap = ")
-						.append(tokenOverlapBetweenChunks)
-						.append(", chunking_strategy = ")
-						.append(chunkingStrategy)
-						.append(", cfg_tokenizer = cfg_tokenizer)");
+							.append(extractedFileName)
+							.append("', chunk_unit = '")
+							.append(chunkUnit)
+							.append("', chunk_size = ")
+							.append(chunkMaxTokenLength)
+							.append(", chunk_overlap = ")
+							.append(tokenOverlapBetweenChunks)
+							.append(", chunking_strategy = ")
+							.append(chunkingStrategy)
+							.append(", cfg_tokenizer = cfg_tokenizer)");
 						
 						pyt.runScript(splitTextCommand.toString());
-
-						// this needs to match the column created in the new CSV
-						columnsToIndex = "['Content']"; 
-					} else {
-						// copy csv over
-						FileUtils.copyFileToDirectory(document, tableIndexFolder);
-						if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey())) {
-							columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey()));
-						} else {
-							columnsToIndex = "[]"; // this is so we pass an empty list
-						}
 					}
-					
+
 					// add it to the list of files that need to be pushed to the cloud in a new thread
 					filesToCopyToCloud.add(document.getAbsolutePath());
 					extractedFiles.add(extractedFile);
@@ -488,34 +483,85 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 			
 			if (extractedFiles.size() > 0) {
-				try {
-					for(int i = 0; i < extractedFiles.size(); i++) {
-						File vectorCsvFile = extractedFiles.get(i);
-						addEmbeddings(vectorCsvFile, insight);
-						FileUtils.forceDelete(vectorCsvFile);
-					}
-				} catch (IOException | SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw e;
+				addEmbeddingFiles(extractedFiles, insight, parameters);
+				
+				if (ClusterUtil.IS_CLUSTER) {
+					// push the actual documents over to the cloud
+					Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+					copyFilesToCloudThread.start();
 				}
 			}
 		} finally {
-			try {
-				FileUtils.forceDelete(tableIndexFolder);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+			cleanUpAddDocument(indexFilesFolder);
+		}
+	}
+	
+	protected void addIndexClass(String indexClass) {
+		this.indexClasses.add(indexClass);
+	}
+	
+	protected void cleanUpAddDocument(File indexFilesFolder) {
+		try {
+			FileUtils.forceDelete(indexFilesFolder);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	public String getIndexFilesPath(String indexClass) {
+		throw new IllegalArgumentException("Indexed files are not persisted for PGVector");
+	}
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	public String getDocumentsFilesPath(String indexClass) {
+		if(indexClass == null || (indexClass=indexClass.trim()).isEmpty()) {
+			indexClass = this.defaultIndexClass;
+		}
+		if (!this.indexClasses.contains(indexClass)) {
+			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
+		}
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+	}
+	
+	@Override
+	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		for(String vectorCsvFile : vectorCsvFiles) {
+			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
+			addEmbeddings(vectorCsvTable, insight, parameters);
 		}
 	}
 	
 	@Override
-	public void addEmbeddings(File vectorCsvFile, Insight insight) throws SQLException, IOException {
-		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight);
+	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
+		addEmbeddings(vectorCsvTable, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws SQLException {
+	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		for(File vectorCsvFile : vectorCsvFiles) {
+			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+			addEmbeddings(vectorCsvTable, insight, parameters);
+		}
+	}
+	
+	@Override
+	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+		addEmbeddings(vectorCsvTable, insight, parameters);
+	}
+	
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws SQLException {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}

@@ -4,15 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,11 +32,9 @@ import io.weaviate.client.v1.schema.model.Schema;
 import io.weaviate.client.v1.schema.model.WeaviateClass;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
-import prerna.ds.py.PyUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
-import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -145,177 +140,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey(INDEX_CLASS)) {
-			indexClass = (String) parameters.get(INDEX_CLASS);
-		}
-		
-		int chunkMaxTokenLength = this.contentLength;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
-			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
-		}
-		
-		int tokenOverlapBetweenChunks = this.contentOverlap;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
-			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
-		}
-		
-		String chunkUnit = this.defaultChunkUnit;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
-		}
-		
-		String extractionMethod = this.defaultExtractionMethod;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
-			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
-		}
-		
-		Insight insight = getInsight(parameters.get(INSIGHT));
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
-
-		// File temporaryFileDirectory = (File) parameters.get("temporaryFileDirectory");
-		
-		
-		// first we need to extract the text from the document
-		// TODO change this to json so we never have an encoding issue
-		checkSocketStatus();
-		
-		File indexDirectory = new File(this.schemaFolder, indexClass);
-		File documentDir = new File(indexDirectory, "documents");
-		if(!documentDir.exists()) {
-			documentDir.mkdirs();
-		}
-		
-		boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-		if (!filesAppoved) {
-			throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
-		}
-		
-		File tableIndexFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, "indexed_files");
-		if (!tableIndexFolder.exists()) {
-			tableIndexFolder.mkdirs();
-		}
-		
-		String columnsToIndex = "";
-		List<String> extractedFiles = new ArrayList<String>();
-		List<String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
-		String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
-		
-		// move the documents from insight into documents folder
-		HashSet<File> fileToExtractFrom = new HashSet<File>();
-		for (String fileName : filePaths) {
-			File fileInInsightFolder = new File(Utility.normalizePath(fileName));
-			
-			// Double check that they are files and not directories
-			if (!fileInInsightFolder.isFile()) {
-				continue;
-			}
-			
-			File destinationFile = new File(documentDir, fileInInsightFolder.getName());
-			
-			// Check if the destination file exists, and if so, delete it
-			try {
-				if (destinationFile.exists()) {
-					FileUtils.forceDelete(destinationFile);
-	            }
-				FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
-			}
-			
-			// add it to the list of files we need to extract text from
-			fileToExtractFrom.add(destinationFile);
-			
-			// add it to the list of files that need to be pushed to the cloud in a new thread
-			filesToCopyToCloud.add(destinationFile.getAbsolutePath());
-		}
-		
-		// loop through each document and attempt to extract text
-		for (File document : fileToExtractFrom) {
-			String documentName = FilenameUtils.getBaseName(document.getName());
-			File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-			String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
-			try {
-				if (extractedFile.exists()) {
-					FileUtils.forceDelete(extractedFile);
-				}
-				if (!document.getName().toLowerCase().endsWith(".csv")) {
-					
-					classLogger.info("Extracting text from document " + documentName);
-					// determine which text extraction method to use
-					int rowsCreated;
-					if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
-						rowsCreated = VectorDatabaseUtils.extractTextUsingPython(pyt, document, this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files", extractedFileName);
-					} else {
-						rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-					}
-					
-					// check to see if the file data was extracted
-					if (rowsCreated <= 1) {
-						// no text was extracted so delete the file
-						FileUtils.forceDelete(extractedFile); // delete the csv
-						FileUtils.forceDelete(document); // delete the input file e.g pdf
-						continue;
-					}
-					
-					classLogger.info("Creating chunks from extracted text for " + documentName);
-					
-					VectorDatabaseUtils.createChunksFromTextInPages(pyt, extractedFileName, chunkUnit, chunkMaxTokenLength, tokenOverlapBetweenChunks, chunkingStrategy);
-					
-					// this needs to match the column created in the new CSV
-					columnsToIndex = "['Content']"; 
-				} else {
-					// copy csv over
-					FileUtils.copyFileToDirectory(document, tableIndexFolder);
-					if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey())) {
-						columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey()));
-					} else {
-						columnsToIndex = "[]"; // this is so we pass an empty list
-					}
-				}
-				extractedFiles.add(extractedFileName);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
-			}
-		}
-		
-		// if we were able to extract files, begin embeddings process
-		if (extractedFiles.size() > 0) 
-		{
-			try {
-				// there are a couple of columns that get created
-				// Source	Modality	Divider	Part	Tokens	Content
-				// what we are trying to index is the content column
-				for(int extractedFileIndex = 0; extractedFileIndex < extractedFiles.size(); extractedFileIndex++) 
-				{
-					File extractedFile = new File(extractedFiles.get(extractedFileIndex));
-					VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(extractedFile);
-					addEmbeddings(vectorCsvTable, insight);
-				}
-			} catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			// move things to cloud
-			// nothing to move.. weaviate is sitting in the cloud			
-		}
-		// inform the user that some chunks are too large and they might loose semantic value
-		// Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
-		
-		// once all is done.. close the socket.
-		try {
-			close();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
-	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception {
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -346,45 +171,41 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			for(int vecIndex = 0;vecIndex < vector.length; vecIndex++) {
 				vector[vecIndex] = embedding.get(vecIndex).floatValue();
 			}
-			
+
 			batcher.withObject(WeaviateObject.builder()
 					.className(className)
 					.properties(properties)
 					.vector(vector)
 					.build()
-					);	  					
+					);
 		}
 		batcher.run();
 	}
 	
 	@Override
-	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) 
-	{
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
-
 		// need to get the source names and then delete it based on the names
-		for(int fileIndex = 0;fileIndex < fileNames.size();fileIndex++)
-		{
+		for(int fileIndex = 0;fileIndex < fileNames.size();fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
 			
 			BatchDeleteResponse  result = client.batch().objectsBatchDeleter()
-			  .withClassName(className)
-			  .withWhere(WhereFilter.builder()
-			    .path("source")
-			    .operator(Operator.Equal)
-			    .valueText(fileName)
-			    .build())
-			  .run().getResult();
+					.withClassName(className)
+					.withWhere(WhereFilter.builder()
+							.path("source")
+							.operator(Operator.Equal)
+							.valueText(fileName)
+							.build())
+					.run().getResult();
 			
 			//{'dryRun': False, 'match': {'class': 'Vector_Table', 'where': {'operands': None, 'operator': 'Like', 'path': ['content'], 'valueString': 'interpreted very broadly'}}, 'output': 'minimal', 'results': {'failed': 0, 'limit': 100000, 'matches': 1, 'objects': None, 'successful': 1}}
-			
 			long success = result.getResults().getSuccessful();
-			System.err.println("Deleted File " + fileName + " <> " + (success == 1));
+			classLogger.info("Deleted File " + fileName + " <> " + (success == 1));
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
@@ -408,15 +229,16 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
-		List <Map<String, Object>> retOut = new ArrayList <Map<String, Object>>();
+		List<Map<String, Object>> retOut = new ArrayList<>();
 
 		if(limit == null) {
 			limit = 3;
 		}
 		
 		int cutter = autocut;
-		if(parameters.containsKey(AUTOCUT))
+		if(parameters.containsKey(AUTOCUT)) {
 			cutter = Integer.parseInt(parameters.get(AUTOCUT) + "");
+		}
 		
 		Insight insight = getInsight(parameters.get(INSIGHT));
 		if (insight == null) {
@@ -432,12 +254,12 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Field modality = Field.builder().name("modality").build();
 		
 		Field _additional = Field.builder()
-			      .name("_additional")
-			      .fields(new Field[]{
-			        Field.builder().name("certainty").build(),  // only supported if distance==cosine
-			        Field.builder().name("distance").build()   // always supported
-			      }).build();
-		
+				.name("_additional")
+				.fields(new Field[]{
+						Field.builder().name("certainty").build(),  // only supported if distance==cosine
+						Field.builder().name("distance").build()   // always supported
+				}).build();
+
 		NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
 		
 		GraphQLResponse response = client.graphQL().get().withClassName(className)
@@ -462,8 +284,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		ArrayList outputs = (ArrayList)getMap.get(className);
 
 		// each of the output is another treemap with each of the fields.. yay 
-		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
-		{
+		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++) {
 			LinkedTreeMap thisOutput = (LinkedTreeMap)outputs.get(outputIndex);
 			LinkedTreeMap additional = (LinkedTreeMap)thisOutput.get("_additional");
 			Map <String, Object> outputMap = new HashMap();
@@ -474,7 +295,6 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			outputMap.put("Content", thisOutput.get("content"));
 			outputMap.put("Score", additional.get("certainty"));
 			outputMap.put("Distance", additional.get("distance"));
-			
 			retOut.add(outputMap);
 		}
 		return retOut;
