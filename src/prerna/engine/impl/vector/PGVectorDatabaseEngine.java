@@ -25,6 +25,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.pgvector.PGvector;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
@@ -320,8 +322,18 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 
+	private void checkSocketStatus() {
+		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1);
+		}
+	}
+	
 	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception{
+	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
 		this.removeDocument(filePaths, parameters);
 
 		String indexClass = this.defaultIndexClass;
@@ -838,12 +850,27 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		super.close();
 	}
 	
-	private void checkSocketStatus() {
-		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
+	@Override
+	public boolean userCanAccessEmbeddingModels(User user) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
 		}
+		
+		if(this.embedderEngineId != null) {
+			if(!SecurityEngineUtils.userCanViewEngine(user, this.embedderEngineId)) {
+				throw new IllegalArgumentException("Embeddings model " + this.embedderEngineId + " does not exist or user does not have access to this model");
+			}
+		}
+		
+		if(this.keywordGeneratorEngineId != null) {
+			if(!SecurityEngineUtils.userCanViewEngine(user, this.keywordGeneratorEngineId)) {
+				throw new IllegalArgumentException("Keyword model " + this.keywordGeneratorEngineId + " does not exist or user does not have access to this model");
+			}
+		}
+		
+		return true;
 	}
-
+	
 	private Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
 			return InsightStore.getInstance().get((String) insightObj);
