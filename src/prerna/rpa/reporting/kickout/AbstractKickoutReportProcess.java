@@ -12,6 +12,7 @@ import prerna.rpa.db.jedis.JedisStore;
 import prerna.rpa.hash.Hasher;
 import prerna.rpa.reporting.AbstractReportProcess;
 import prerna.rpa.reporting.ReportProcessingException;
+import prerna.util.Constants;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisDataException;
 
@@ -100,9 +101,11 @@ public abstract class AbstractKickoutReportProcess extends AbstractReportProcess
 			    }
 				LOGGER.info("Inserted data into jedis for " + reportName + ". Total number of records: " + nRecord);
 			} catch (FileNotFoundException e) {
-				throw new ReportProcessingException("Failed to find the report " + reportName + ".", e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				throw new ReportProcessingException("Failed to find the report " + reportName + ".");
 			} catch (IOException e) {
-				throw new ReportProcessingException("An exception occurred while reading lines in " + reportName + ".", e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				throw new ReportProcessingException("An exception occurred while reading lines in " + reportName + ".");
 			}
 						
 	    	// prefix_timestamps {yyyy-MM-dd_HH:mm:ss}

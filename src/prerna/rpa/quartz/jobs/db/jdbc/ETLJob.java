@@ -18,6 +18,7 @@ import org.quartz.UnableToInterruptJobException;
 
 import prerna.rpa.RPAUtil;
 import prerna.rpa.db.jdbc.JDBCUtil;
+import prerna.util.Constants;
 
 public class ETLJob implements org.quartz.InterruptableJob {
 
@@ -143,7 +144,8 @@ public class ETLJob implements org.quartz.InterruptableJob {
 			if (!interrupted) {
 				String fromDatabaseExceptionMessage = "A SQL exception occurred while querying the from-database. ";
 				LOGGER.error(jobName + ": " + fromDatabaseExceptionMessage + terminationMessage);
-				throw new JobExecutionException(fromDatabaseExceptionMessage, e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				throw new JobExecutionException(fromDatabaseExceptionMessage);
 			}
 		} finally {
 			closeFromConnections();
@@ -234,8 +236,9 @@ public class ETLJob implements org.quartz.InterruptableJob {
 			if (!interrupted) {
 				String toDatabaseExceptionMessage = "A SQL exception occurred while refreshing the to-database. ";
 				LOGGER.error(jobName + ": " + toDatabaseExceptionMessage + terminationMessage);
+				LOGGER.error(Constants.STACKTRACE, e);
 				rollback();
-				throw new JobExecutionException(toDatabaseExceptionMessage, e);	
+				throw new JobExecutionException(toDatabaseExceptionMessage);
 			}
 		} finally {
 			closeToConnections();
@@ -251,7 +254,8 @@ public class ETLJob implements org.quartz.InterruptableJob {
 				if (fromConnection != null) fromConnection.close();
 				LOGGER.info(jobName + ": " + "Closed all connections to " + fromConnectionURL + ".");
 			} catch (SQLException e) {
-				LOGGER.error(jobName + ": " + "Failed to close all connections. ", e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				LOGGER.error(jobName + ": " + "Failed to close all connections. ");
 			}
 		}
 	}
@@ -266,7 +270,8 @@ public class ETLJob implements org.quartz.InterruptableJob {
 				if (toConnection != null) toConnection.close();
 				LOGGER.info(jobName + ": " + "Closed all connections to " + toConnectionURL + ".");
 			} catch (SQLException e) {
-				LOGGER.error(jobName + ": " + "Failed to close all connections. ", e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				LOGGER.error(jobName + ": " + "Failed to close all connections. ");
 			}	
 		}
 	}
@@ -278,7 +283,8 @@ public class ETLJob implements org.quartz.InterruptableJob {
 		try {
 			if (toConnection!= null) toConnection.rollback();
 		} catch (SQLException eRollback) {
-			LOGGER.warn(jobName + ": Failed to rollback commits made to the to-database. ", eRollback);
+			LOGGER.error(Constants.STACKTRACE, eRollback);
+			LOGGER.warn(jobName + ": Failed to rollback commits made to the to-database. ");
 		}
 	}
 

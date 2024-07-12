@@ -98,9 +98,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occurred when running R script.", e);
+						logger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Timout occurred when running R script.");
 					} catch (ExecutionException e) {
-						throw new IllegalArgumentException("Failed to run R script.", e);
+						logger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Failed to run R script.");
 					}
 				}
 
@@ -157,9 +159,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occurred when running R script = " + rScript, e);
+						logger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Timout occurred when running R script = " + rScript);
 					} catch (ExecutionException e) {
-						throw new IllegalArgumentException("Failed to run R script = " + rScript, e);
+						logger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Failed to run R script = " + rScript);
 					}
 				}
 			} finally {
@@ -201,9 +205,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						try {
 							return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 						} catch (TimeoutException | InterruptedException e) {
-							throw new IllegalArgumentException("Timout occurred when detaching R.", e);
+							logger.error(Constants.STACKTRACE, e);
+							throw new IllegalArgumentException("Timout occurred when detaching R.");
 						} catch (ExecutionException e) {
-							throw new IllegalArgumentException("Failed to detach R.", e);
+							logger.error(Constants.STACKTRACE, e);
+							throw new IllegalArgumentException("Failed to detach R.");
 						}
 					}
 				} finally {

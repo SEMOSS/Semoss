@@ -189,26 +189,23 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new FileNotFoundException(e.getMessage());
-			} else {
-				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
-			}
+				logger.error(e.getMessage());
+			} 
+			logger.error(Constants.STACKTRACE, e);
+			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new IOException(e.getMessage());
-			} else {
-				throw new IOException("Could not read Excel file located at " + fileName);
+				logger.error(e.getMessage());
 			}
+			logger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new IOException(e.getMessage());
-			} else {
-				throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
-			}
+				logger.error(e.getMessage());
+			} 
+			logger.error(Constants.STACKTRACE, e);
+			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		} finally {
 			if (poiReader != null) {
 				try {

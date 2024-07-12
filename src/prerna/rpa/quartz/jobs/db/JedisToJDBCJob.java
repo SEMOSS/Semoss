@@ -20,6 +20,7 @@ import prerna.rpa.RPAUtil;
 import prerna.rpa.db.jdbc.JDBCUtil;
 import prerna.rpa.db.jedis.JedisStore;
 import prerna.rpa.quartz.CommonDataKeys;
+import prerna.util.Constants;
 import redis.clients.jedis.Jedis;
 
 public class JedisToJDBCJob implements org.quartz.InterruptableJob {
@@ -172,7 +173,8 @@ public class JedisToJDBCJob implements org.quartz.InterruptableJob {
 			if (!interrupted) {
 				String jdbcExceptionMessage = "A SQL exception occurred while loading data from Redis into the given JDBC connection. ";
 				LOGGER.error(jobName + ": " + jdbcExceptionMessage + terminationMessage);
-				throw new JobExecutionException(jdbcExceptionMessage, e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				throw new JobExecutionException(jdbcExceptionMessage);
 			}
 		} finally {
 			closeConnections();

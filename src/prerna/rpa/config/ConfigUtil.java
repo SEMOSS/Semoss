@@ -3,10 +3,16 @@ package prerna.rpa.config;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.rpa.RPAProps;
 import prerna.rpa.RPAUtil;
+import prerna.util.Constants;
 
 public class ConfigUtil {
+	
+	private static final Logger classLogger = LogManager.getLogger(ConfigUtil.class);
 		
 	private ConfigUtil() {
 		throw new IllegalStateException("Utility class");
@@ -28,7 +34,8 @@ public class ConfigUtil {
 			String filePath = RPAProps.getInstance().getProperty(RPAProps.TEXT_DIRECTORY_KEY) + textFileName;
 			return RPAUtil.readStringFromFile(filePath);
 		} catch (IOException e) {
-			throw new ParseConfigException("Failed to read text from the file " + textFileName + ".", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new ParseConfigException("Failed to read text from the file " + textFileName + ".");
 		}
 	}
 	
@@ -38,7 +45,8 @@ public class ConfigUtil {
 			String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
 			return RPAUtil.readStringFromFile(filePath);
 		} catch (IOException e) {
-			throw new ParseConfigException("Failed to read json from the file " + jsonFileName + ".", e);
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new ParseConfigException("Failed to read json from the file " + jsonFileName + ".");
 		}
 	}
 	

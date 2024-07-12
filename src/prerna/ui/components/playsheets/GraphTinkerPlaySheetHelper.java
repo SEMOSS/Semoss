@@ -117,7 +117,7 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 
 			} catch (RuntimeException e) {
 				logger.error(Constants.STACKTRACE, e);
-				logger.fatal(e.getStackTrace());
+				logger.fatal(Constants.STACKTRACE, e);
 			}
 		}
 		this.gps.updateProgressBar("100%...Table Generation Complete", 100);

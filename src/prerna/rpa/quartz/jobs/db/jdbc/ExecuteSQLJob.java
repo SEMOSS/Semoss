@@ -16,6 +16,7 @@ import org.quartz.UnableToInterruptJobException;
 import prerna.rpa.RPAUtil;
 import prerna.rpa.db.jdbc.JDBCUtil;
 import prerna.rpa.quartz.CommonDataKeys;
+import prerna.util.Constants;
 
 public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 	
@@ -93,7 +94,8 @@ public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 			if (!interrupted) {
 				String executeSqlExceptionMessage = "A SQL exception occurred while executing the SQL. ";
 				LOGGER.error(jobName + ": " + executeSqlExceptionMessage + terminationMessage);
-				throw new JobExecutionException(executeSqlExceptionMessage, e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				throw new JobExecutionException(executeSqlExceptionMessage);
 			}
 		} finally {
 			closeConnections();
@@ -113,7 +115,8 @@ public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 				if (connection != null) connection.close();
 				LOGGER.info(jobName + ": " + "Closed all connections to " + connectionURL + ".");
 			} catch (SQLException e) {
-				LOGGER.error(jobName + ": " + "Failed to close all connections. ", e);
+				LOGGER.error(Constants.STACKTRACE, e);
+				LOGGER.error(jobName + ": " + "Failed to close all connections. ");
 			}	
 		}
 	}
