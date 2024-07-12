@@ -1,18 +1,22 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.vector.ChromaVectorDatabaseEngine;
 import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
+import prerna.engine.impl.vector.PineConeVectorDatabaseEngine;
 import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
 
+	CHROMA("CHROMA", ChromaVectorDatabaseEngine.class.getName()),
 	FAISS("FAISS", FaissDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	OPENSEARCH("OPENSEARCH", OpenSearchVectorDatabaseEngine.class.getName()),
 	OPENSEARCH_REST("OPENSEARCH_REST", OpenSearchRestVectorDatabaseEngine.class.getName()),
-	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName());
+	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
+	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName());
 		
 	private String vectorDbName;
 	private String vectorDbClass;
