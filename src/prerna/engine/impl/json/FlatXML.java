@@ -340,28 +340,32 @@ public class FlatXML {
 		return flattenJson;
 	}
 
-	public Map <String, Object> flattenJsonFromFile(String file) throws Exception
-	{
-		InputStream inputStream = new FileInputStream(file);
-		Reader reader = new InputStreamReader(inputStream);
-		//BufferedReader breader = new BufferedReader(reader);
-		
-		//String jsonString = breader.readLine();
-		//System.out.println(jsonString);
+	public Map <String, Object> flattenJsonFromFile(String file) {
+		try {
+			InputStream inputStream = new FileInputStream(file);
+			Reader reader = new InputStreamReader(inputStream);
+			// BufferedReader breader = new BufferedReader(reader);
 
-		//flattenJson(jsonString);
-		// Support Reader as input 
-		JsonFlattener jf = new JsonFlattener(reader);
-		
-		Map<String, Object> flattenJson = jf.flattenAsMap();
-		
-		//System.out.println(">>> " + jf.flatten());
-		
-		//System.out.println(flattenJson);
-		
-		//System.out.println(output);
-		
-		return flattenJson;
+			// String jsonString = breader.readLine();
+			// System.out.println(jsonString);
+
+			// flattenJson(jsonString);
+			// Support Reader as input
+			JsonFlattener jf = new JsonFlattener(reader);
+
+			Map<String, Object> flattenJson = jf.flattenAsMap();
+
+			// System.out.println(">>> " + jf.flatten());
+
+			// System.out.println(flattenJson);
+
+			// System.out.println(output);
+
+			return flattenJson;
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not flatten JSON from File: " + file);
+		}
 	}
 
 	

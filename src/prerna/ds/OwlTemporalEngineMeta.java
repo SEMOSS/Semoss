@@ -113,8 +113,8 @@ public class OwlTemporalEngineMeta {
 			} else {
 				rc.add(file, SEMOSS_BASE, RDFFormat.RDFXML);
 			}
-		} catch(RuntimeException ignored) {
-			ignored.printStackTrace();
+		} catch(RuntimeException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (RDFParseException e) {

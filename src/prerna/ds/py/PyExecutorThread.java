@@ -83,10 +83,10 @@ public final class PyExecutorThread extends Thread {
 										if (ex2.getCause() instanceof PythonExceptionWrapper) {
 											thisResponse = new SemossPixelException(ex2.getCause().getMessage());
 										} else {
-											ex2.printStackTrace();
+											classLogger.error(Constants.STACKTRACE, ex2);
 										}
 									} catch (Exception ex2) {
-										ex2.printStackTrace();
+										classLogger.error(Constants.STACKTRACE, ex2);
 									}
 								} finally {
 									if (thisResponse == null)

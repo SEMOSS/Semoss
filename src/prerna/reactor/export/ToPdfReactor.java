@@ -78,7 +78,9 @@ public class ToPdfReactor extends AbstractReactor {
 			try {
 				htmlToParse = FileUtils.readFileToString(htmlFile, "UTF-8");
 			} catch (IOException e) {
-				throw new IllegalArgumentException("Error reading html file with message = " + e.getMessage(), e);
+				classLogger.error(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error reading html. See logs for details");
 			}
 		} else {
 			htmlToParse = Utility.decodeURIComponent(htmlToParse);
@@ -89,7 +91,9 @@ public class ToPdfReactor extends AbstractReactor {
 			try {
 				htmlToParse = MustacheUtility.compile(htmlToParse, variables);
 			} catch (Exception e) {
-				throw new IllegalArgumentException("Invalid mustache template or variables. Detailed error message = " + e.getMessage(), e);
+				classLogger.error(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Invalid mustache template or variables. See logs for details");
 			}
 			classLogger.error("Exporting final html as: " + htmlToParse);
 		}
@@ -100,7 +104,9 @@ public class ToPdfReactor extends AbstractReactor {
 			try {
 				waitTime = Integer.parseInt(waitTimeStr);
 			} catch(NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+				classLogger.error(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. See logs for details.");
 			}
 		}
 		

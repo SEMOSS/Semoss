@@ -27,9 +27,14 @@
  *******************************************************************************/
 package prerna.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import redis.clients.jedis.Jedis;
 
 public class JedisHash{
+	
+	private static final Logger classLogger = LogManager.getLogger(JedisHash.class);
 
 	public static JedisHash instance = null;
 	private Jedis jedis = null;
@@ -48,7 +53,7 @@ public class JedisHash{
 			}
 		}catch(RuntimeException ignored)
 		{
-			ignored.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ignored);
 		}
 	}
 	
