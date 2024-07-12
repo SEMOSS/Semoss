@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.om.Insight;
 
@@ -130,5 +131,11 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 */
 	String getDocumentsFilesPath(String indexClass);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	boolean userCanAccessEmbeddingModels(User user);
 	
 }
