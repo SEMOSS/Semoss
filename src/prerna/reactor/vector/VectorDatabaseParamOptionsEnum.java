@@ -17,7 +17,8 @@ public enum VectorDatabaseParamOptionsEnum {
 		COLUMNS_TO_RETURN("columnsToReturn",		"A list of column names in the data you want returned in the response"),
 		EXTRACTION_METHOD("extractionMethod",		"The name of the extraction method used to pull data from PDF(s). Options are \"fitz\" or \"default\"."),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
-		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under");
+		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under"),
+		 NAMESPACE("namespace", "Namespace of pinecone vector db");
 	
 	    private final String key;
 	    private final String description;
