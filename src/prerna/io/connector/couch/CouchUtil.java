@@ -280,7 +280,7 @@ public class CouchUtil {
 					contentType, FileUtils.readFileToByteArray(imageFile), true);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new CouchException("Error processing upload", e);
+			throw new CouchException("Error processing upload");
 		}
 	}
 	

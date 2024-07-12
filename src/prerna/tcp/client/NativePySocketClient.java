@@ -354,7 +354,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
     				}
     			}catch (SocketException ex1)
     			{
-    				ex1.printStackTrace();
+    				classLogger.error(Constants.STACKTRACE, ex1);
     				crash();
     				break;
     				
