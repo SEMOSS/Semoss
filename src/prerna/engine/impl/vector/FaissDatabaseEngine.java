@@ -10,13 +10,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,7 +38,6 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
@@ -94,222 +91,148 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 	}
-		
+	
+	protected void addIndexClass(String indexClass) {
+		this.indexClasses.add(indexClass);
+		//TODO: do we really need base path for this?
+		String basePath = this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR;
+		this.pyt.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+ basePath +"')");
+	}
+	
 	@Override
-	public void addDocument(List<String> filePaths, Map <String, Object> parameters) {
+	protected void cleanUpAddDocument(File indexFilesFolder) {
+		// do nothing, we need these files for re-creating the master file index
+//		try {
+//			FileUtils.forceDelete(indexFilesFolder);
+//		} catch (IOException e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//		}
+	}
+	
+	@Override
+	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		// first clean the paths
+		{
+			List<String> temp = new ArrayList<>(vectorCsvFiles.size());
+			for(int i = 0; i < vectorCsvFiles.size(); i++) {
+				temp.add(vectorCsvFiles.get(i).replace(FILE_SEPARATOR, DIR_SEPARATOR));
+			}
+			vectorCsvFiles = temp;
+		}
+		
 		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey(INDEX_CLASS)) {
-			indexClass = (String) parameters.get(INDEX_CLASS);
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
 		}
 		
-		int chunkMaxTokenLength = this.contentLength;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
-			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
+		// assuming only content to index now
+		// yes... the python code is more flexible and allows you to concat multiple values in the csv to encode
+		String columnsToIndex = "['Content']"; 
+		
+		// create dataset
+		StringBuilder addDocumentPyCommand = new StringBuilder();
+		
+		// get the relevant FAISS searcher object in python
+		addDocumentPyCommand.append(vectorDatabaseSearcher)
+							.append(".searchers['")
+							.append(indexClass)
+							.append("']");
+		
+		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
+							.append(String.join("','", vectorCsvFiles))
+							.append("'], insight_id = '")
+							.append(insight.getInsightId())
+							.append("', columns_to_index = ")
+							.append(columnsToIndex);
+		
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_REMOVE.getKey())) {
+			// add the columns based in the vector db query
+			addDocumentPyCommand.append(", ")
+					 			.append("columns_to_remove")
+					 			.append(" = ")
+					 			.append(PyUtils.determineStringType(
+								 parameters.get(
+										 VectorDatabaseParamOptionsEnum.COLUMNS_TO_REMOVE.getKey()
+										 )
+								 ));
 		}
 		
-		int tokenOverlapBetweenChunks = this.contentOverlap;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
-			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
+			// add the columns based in the vector db query
+			addDocumentPyCommand.append(", ")
+					 			.append("keyword_search_params")
+					 			.append(" = ")
+					 			.append(PyUtils.determineStringType(
+								 parameters.get(
+										 VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey()
+										 )
+								 ));
 		}
+											
+		addDocumentPyCommand.append(")");
 		
-		String chunkUnit = this.defaultChunkUnit;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
-		}
+		String script = addDocumentPyCommand.toString();
 		
-		String extractionMethod = this.defaultExtractionMethod;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
-			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
-		}
-		
-		Insight insight = getInsight(parameters.get(INSIGHT));
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
+		classLogger.info("Running >>>" + script);
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
 
-		// first we need to extract the text from the document
-		// TODO change this to json so we never have an encoding issue
-		checkSocketStatus();
-		
-		File indexDirectory = new File(this.schemaFolder, indexClass);
-		File documentDir = new File(indexDirectory, "documents");
-		if(!documentDir.exists()) {
-			documentDir.mkdirs();
+		if (ClusterUtil.IS_CLUSTER) {
+			List<String> filesToCopyToCloud = new ArrayList<String>();
+			// and the newly created csvs
+			filesToCopyToCloud.addAll(vectorCsvFiles);
+			// add all the embeddings files and the datasets
+			filesToCopyToCloud.addAll((List<String>) pythonResponseAfterCreatingFiles.get("createdDocuments"));
+			Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+			copyFilesToCloudThread.start();
 		}
 		
-		boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-		if (!filesAppoved) {
-			throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
+		// verify the index class loaded the dataset
+		StringBuilder checkForEmptyDatabase = new StringBuilder();
+		checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
+							 .append(".searchers['")
+							 .append(indexClass)
+							 .append("']")
+							 .append(".datasetsLoaded()");
+		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
+	}
+	
+	@Override
+	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<String> vectorCsvFiles = new ArrayList<>(1);
+		vectorCsvFiles.add(vectorCsvFile);
+		addEmbeddings(vectorCsvFiles, insight, parameters);
+	}
+	
+	@Override
+	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<String> vectorCsvFilePaths = new ArrayList<>(vectorCsvFiles.size());
+		for(int i = 0; i < vectorCsvFiles.size(); i++) {
+			vectorCsvFilePaths.add(vectorCsvFiles.get(i).getAbsolutePath());
 		}
-		
-		File tableIndexFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, "indexed_files");
-		if (!tableIndexFolder.exists()) {
-			tableIndexFolder.mkdirs();
-		}
-		if (!this.indexClasses.contains(indexClass)) {
-			this.indexClasses.add(indexClass);
-			this.pyt.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+tableIndexFolder.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
-		}
-		
-		String columnsToIndex = "";
-		List<String> extractedFiles = new ArrayList<String>();
-		List<String> filesToCopyToCloud = new ArrayList<String>(); // create a list to store all the net new files so we can push them to the cloud
-		String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
-		
-		// move the documents from insight into documents folder
-		HashSet<File> fileToExtractFrom = new HashSet<File>();
-		for (String fileName : filePaths) {
-			File fileInInsightFolder = new File(Utility.normalizePath(fileName));
-			
-			// Double check that they are files and not directories
-			if (!fileInInsightFolder.isFile()) {
-				continue;
-			}
-			
-			File destinationFile = new File(documentDir, fileInInsightFolder.getName());
-			
-			// Check if the destination file exists, and if so, delete it
-			try {
-				if (destinationFile.exists()) {
-					FileUtils.forceDelete(destinationFile);
-	            }
-				FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
-			}
-			
-			// add it to the list of files we need to extract text from
-			fileToExtractFrom.add(destinationFile);
-			
-			// add it to the list of files that need to be pushed to the cloud in a new thread
-			filesToCopyToCloud.add(destinationFile.getAbsolutePath());
-		}
-		
-		// loop through each document and attempt to extract text
-		for (File document : fileToExtractFrom) {
-			String documentName = FilenameUtils.getBaseName(document.getName());
-			File extractedFile = new File(tableIndexFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-			String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
-			try {
-				if (extractedFile.exists()) {
-					FileUtils.forceDelete(extractedFile);
-				}
-				if (!document.getName().toLowerCase().endsWith(".csv")) {
-					
-					classLogger.info("Extracting text from document " + documentName);
-					// determine which text extraction method to use
-					int rowsCreated;
-					if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
-						rowsCreated = VectorDatabaseUtils.extractTextUsingPython(pyt, document, this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files", extractedFileName);
-					} else {
-						rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-					}
-					
-					// check to see if the file data was extracted
-					if (rowsCreated <= 1) {
-						// no text was extracted so delete the file
-						FileUtils.forceDelete(extractedFile); // delete the csv
-						FileUtils.forceDelete(document); // delete the input file e.g pdf
-						continue;
-					}
-					
-					classLogger.info("Creating chunks from extracted text for " + documentName);
-					
-					VectorDatabaseUtils.createChunksFromTextInPages(pyt, extractedFileName, chunkUnit, chunkMaxTokenLength, tokenOverlapBetweenChunks, chunkingStrategy);
-					
-					// this needs to match the column created in the new CSV
-					columnsToIndex = "['Content']"; 
-				} else {
-					// copy csv over
-					FileUtils.copyFileToDirectory(document, tableIndexFolder);
-					if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey())) {
-						columnsToIndex = PyUtils.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.COLUMNS_TO_INDEX.getKey()));
-					} else {
-						columnsToIndex = "[]"; // this is so we pass an empty list
-					}
-				}
-				extractedFiles.add(extractedFileName);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
-			}
-		}
-		
-		// if we were able to extract files, begin embeddings process
-		if (extractedFiles.size() > 0) {
-			// create dataset
-			StringBuilder addDocumentPyCommand = new StringBuilder();
-			
-			// get the relevant FAISS searcher object in python
-			addDocumentPyCommand.append(vectorDatabaseSearcher)
-								.append(".searchers['")
-								.append(indexClass)
-								.append("']");
-			
-			addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
-								.append(String.join("','", extractedFiles))
-								.append("'], insight_id = '")
-								.append(insight.getInsightId())
-								.append("', columns_to_index = ")
-								.append(columnsToIndex);
-			
-			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_REMOVE.getKey())) {
-				// add the columns based in the vector db query
-				addDocumentPyCommand.append(", ")
-						 			.append("columns_to_remove")
-						 			.append(" = ")
-						 			.append(PyUtils.determineStringType(
-									 parameters.get(
-											 VectorDatabaseParamOptionsEnum.COLUMNS_TO_REMOVE.getKey()
-											 )
-									 ));
-			}
-			
-			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
-				// add the columns based in the vector db query
-				addDocumentPyCommand.append(", ")
-						 			.append("keyword_search_params")
-						 			.append(" = ")
-						 			.append(PyUtils.determineStringType(
-									 parameters.get(
-											 VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey()
-											 )
-									 ));
-			}
-												
-			addDocumentPyCommand.append(")");
-			
-			String script = addDocumentPyCommand.toString();
-			
-			classLogger.info("Running >>>" + script);
-			Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
-
-			if (ClusterUtil.IS_CLUSTER) {
-				// and the newly created csvs
-				filesToCopyToCloud.addAll(extractedFiles);
-				// add all the embeddings files and the datasets
-				filesToCopyToCloud.addAll((List<String>) pythonResponseAfterCreatingFiles.get("createdDocuments"));
-				
-				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-				copyFilesToCloudThread.start();
-			}
-			
-			// verify the index class loaded the dataset
-			StringBuilder checkForEmptyDatabase = new StringBuilder();
-			checkForEmptyDatabase.append(this.vectorDatabaseSearcher)
-								 .append(".searchers['")
-								 .append(indexClass)
-								 .append("']")
-								 .append(".datasetsLoaded()");
-			boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
-			this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
-		}
-		
-		// inform the user that some chunks are too large and they might loose semantic value
-		// Map<String, List<Integer>> needToReturnForWarnings = (Map<String, List<Integer>>) pythonResponseAfterCreatingFiles.get("documentsWithLargerChunks");
+		addEmbeddings(vectorCsvFilePaths, insight, parameters);
+	}
+	
+	@Override
+	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		List<String> vectorCsvFiles = new ArrayList<>(1);
+		vectorCsvFiles.add(vectorCsvFile.getAbsolutePath());
+		addEmbeddings(vectorCsvFiles, insight, parameters);
 	}
 
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		
+		// to implement
+		// write the vector csv table out to a file
+		// and call the addEmbeddingFiles method
+		
+		throw new IllegalArgumentException("This method is not yet implemented for this engine");
+	}
+	
 	@Override
 	public void removeDocument(List<String> filePaths, Map <String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;

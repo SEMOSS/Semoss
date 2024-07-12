@@ -31,19 +31,48 @@ public interface IVectorDatabaseEngine extends IEngine {
 	
 	/**
 	 * 
-	 * @param vectorCsvFile
+	 * @param vectorCsvFiles
 	 * @param insight
+	 * @param parameters
 	 * @throws Exception
 	 */
-	void addEmbeddings(File vectorCsvFile, Insight insight) throws Exception;
+	void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception;
+
+	/**
+	 * 
+	 * @param vectorCsvFilePath
+	 * @param insight
+	 * @param parameters
+	 * @throws Exception
+	 */
+	void addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters) throws Exception;
+	
+	/**
+	 * 
+	 * @param vectorCsvFiles
+	 * @param insight
+	 * @param parameters
+	 * @throws Exception
+	 */
+	void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception;
+	
+	/**
+	 * 
+	 * @param vectorCsvFile
+	 * @param insight
+	 * @param parameters
+	 * @throws Exception
+	 */
+	void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * 
 	 * @param vectorCsvTable
 	 * @param insight
+	 * @param parameters
 	 * @throws Exception
 	 */
-	void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception;
+	void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception;
 	
 	/**
 	 * Insert embeddings directly into the vector database
@@ -88,5 +117,18 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 */
 	List<Map<String, Object>> listDocuments(Map<String, Object> parameters);
 	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	String getIndexFilesPath(String indexClass);
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	String getDocumentsFilesPath(String indexClass);
 	
 }

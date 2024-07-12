@@ -7,15 +7,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
@@ -25,6 +29,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Settings;
@@ -48,6 +53,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	public static final String INDEX_CLASS = "indexClass";
 
+	public static final String DOCUMENTS_FOLDER_NAME = "documents";
+	public static final String INDEXED_FOLDER_NAME = "indexed_files";
+	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -141,21 +149,260 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	}
 	
 	@Override
+	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		try {
+			this.removeDocument(filePaths, parameters);
+		} catch(Exception ignore) {
+			// we are only removing just in case
+			// if something doesn't exist, just ignore the exception
+		}
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+
+		int chunkMaxTokenLength = this.contentLength;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
+			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
+		}
+
+		int tokenOverlapBetweenChunks = this.contentOverlap;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
+			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
+		}
+
+		String chunkUnit = this.defaultChunkUnit;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
+		}
+
+		String extractionMethod = this.defaultExtractionMethod;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
+		}
+		
+		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
+		try {
+			// first we need to extract the text from the document
+			// TODO change this to json so we never have an encoding issue
+			checkSocketStatus();
+
+			File indexDirectory = new File(this.schemaFolder, indexClass);
+			File documentDir = new File(indexDirectory, DOCUMENTS_FOLDER_NAME);
+			if(!documentDir.exists()) {
+				documentDir.mkdirs();
+			}
+
+			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
+			if (!filesAppoved) {
+				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
+			}
+
+			if (!indexFilesFolder.exists()) {
+				indexFilesFolder.mkdirs();
+			}
+			if (!this.indexClasses.contains(indexClass)) {
+				addIndexClass(indexClass);
+			}
+
+			List<File> extractedFiles = new ArrayList<>();
+			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we can push them to the cloud
+			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
+
+			// move the documents from insight into documents folder
+			Set<File> fileToExtractFrom = new HashSet<File>();
+			for (String fileName : filePaths) {
+				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
+
+				// Double check that they are files and not directories
+				if (!fileInInsightFolder.isFile()) {
+					continue;
+				}
+
+				File destinationFile = new File(documentDir, fileInInsightFolder.getName());
+
+				// Check if the destination file exists, and if so, delete it
+				try {
+					if (destinationFile.exists()) {
+						FileUtils.forceDelete(destinationFile);
+					}
+					FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
+				}
+
+				// add it to the list of files we need to extract text from
+				fileToExtractFrom.add(destinationFile);
+				
+				// add it to the list of files that need to be pushed to the cloud in a new thread
+				filesToCopyToCloud.add(destinationFile.getAbsolutePath());
+			}
+			
+			// loop through each document and attempt to extract text
+			for (File document : fileToExtractFrom) {
+				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
+				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
+				try {
+					if (extractedFile.exists()) {
+						FileUtils.forceDelete(extractedFile);
+					}
+					String docLower = document.getName().toLowerCase();
+					
+					if(docLower.endsWith(".csv")) {
+						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect...");
+						// copy csv over
+						FileUtils.copyFileToDirectory(document, indexFilesFolder);
+					} else {
+						classLogger.info("Extracting text from document " + documentName);
+						// determine which text extraction method to use
+						int rowsCreated;
+						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
+							StringBuilder extractTextFromDocScript = new StringBuilder();
+							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+								.append("', target_folder = '")
+								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
+								.append("', output_file_name = '")
+								.append(extractedFileName)
+								.append("')");
+							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
+
+							rowsCreated = rows.intValue();
+						} else {
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+						}
+
+						// check to see if the file data was extracted
+						if (rowsCreated <= 1) {
+							// no text was extracted so delete the file
+							FileUtils.forceDelete(extractedFile); // delete the csv
+							FileUtils.forceDelete(document); // delete the input file e.g pdf
+							continue;
+						}
+
+						classLogger.info("Creating chunks from extracted text for " + documentName);
+
+						StringBuilder splitTextCommand = new StringBuilder();
+						splitTextCommand.append("vector_database.split_text(csv_file_location = '")
+							.append(extractedFileName)
+							.append("', chunk_unit = '")
+							.append(chunkUnit)
+							.append("', chunk_size = ")
+							.append(chunkMaxTokenLength)
+							.append(", chunk_overlap = ")
+							.append(tokenOverlapBetweenChunks)
+							.append(", chunking_strategy = ")
+							.append(chunkingStrategy)
+							.append(", cfg_tokenizer = cfg_tokenizer)");
+						
+						pyt.runScript(splitTextCommand.toString());
+					}
+
+					// add it to the list of files that need to be pushed to the cloud in a new thread
+					filesToCopyToCloud.add(document.getAbsolutePath());
+					extractedFiles.add(extractedFile);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
+				}
+			}
+			
+			if (extractedFiles.size() > 0) {
+				addEmbeddingFiles(extractedFiles, insight, parameters);
+				
+				if (ClusterUtil.IS_CLUSTER) {
+					// push the actual documents over to the cloud
+					Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+					copyFilesToCloudThread.start();
+				}
+			}
+		} finally {
+			cleanUpAddDocument(indexFilesFolder);
+		}
+	}
+	
+	protected void addIndexClass(String indexClass) {
+		this.indexClasses.add(indexClass);
+	}
+	
+	protected void cleanUpAddDocument(File indexFilesFolder) {
+		try {
+			FileUtils.forceDelete(indexFilesFolder);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	@Override
+	public String getIndexFilesPath(String indexClass) {
+		if(indexClass == null || (indexClass=indexClass.trim()).isEmpty()) {
+			indexClass = this.defaultIndexClass;
+		}
+		if (!this.indexClasses.contains(indexClass)) {
+			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
+		}
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + INDEXED_FOLDER_NAME);
+	}
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	@Override
+	public String getDocumentsFilesPath(String indexClass) {
+		if(indexClass == null || (indexClass=indexClass.trim()).isEmpty()) {
+			indexClass = this.defaultIndexClass;
+		}
+		if (!this.indexClasses.contains(indexClass)) {
+			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
+		}
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+	}
+	
+	@Override
+	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		for(String vectorCsvFile : vectorCsvFiles) {
+			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
+			addEmbeddings(vectorCsvTable, insight, parameters);
+		}
+	}
+	
+	@Override
+	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(new File(vectorCsvFile));
+		addEmbeddings(vectorCsvTable, insight, parameters);
+	}
+	
+	@Override
+	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+		for(File vectorCsvFile : vectorCsvFiles) {
+			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+			addEmbeddings(vectorCsvTable, insight, parameters);
+		}
+	}
+	
+	@Override
+	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
+		addEmbeddings(vectorCsvTable, insight, parameters);
+	}
+	
+	@Override
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
-		// TODO Auto-generated method stub
-		// TODO Implement for each engine type and remove from Abstract
-	}
-	
-	
-	@Override
-	public void addEmbeddings(File vectorCsvFile, Insight insight) throws Exception {
-		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
-		addEmbeddings(vectorCsvTable, insight);
-	}
-	
-	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight) throws Exception {
 		// TODO Auto-generated method stub
 		// TODO Implement for each engine type and remove from Abstract
 	}
@@ -167,7 +414,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> fileList = new ArrayList<>();
 
@@ -355,11 +602,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		pyt.runEmptyPy(commands);
 		
 		// for debugging...
-		StringBuilder intitPyCommands = new StringBuilder("\n");
-		for (String command : commands) {
-			intitPyCommands.append(command).append("\n");
-		}
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " ptyhon process with commands >>> " + intitPyCommands.toString());
+		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+							+ " ptyhon process with commands >>> " + String.join("\n", commands));	
 	}
 	
 	/**
