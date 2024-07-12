@@ -245,7 +245,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		Float [] vector = getEmbeddings(searchStatement, insight);
+		Float [] vector = getEmbeddingsFloat(searchStatement, insight);
 
 		Field content = Field.builder().name("content").build();
 		Field source = Field.builder().name("source").build();
