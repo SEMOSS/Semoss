@@ -180,12 +180,18 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
 					"How to use in Pixel",
-					"## Add document(s) that have been uploaded to the insight ##\r\n" + 
+					"## List all the documents the vector database currently comprises of ##\r\n" +
+							"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
+							
+							"\n## Add document(s) that have been uploaded to the insight ##\r\n" + 
 							"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+
+							"\n## Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight ##\r\n" + 
+							"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+
 							"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
 							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5);\r\n" +
-							"\n## List all the documents the vector database currently comprises of ##\r\n" +
-							"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
+							
 							"\n## Remove document(s) from the vector database ##\r\n" +
 							"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
 					);
@@ -197,12 +203,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"How to use in Python",
 					"# import vector engine class and initialize\r\nfrom gaas_gpt_vector import VectorEngine\r\n" + 
 							"vectorEngine = VectorEngine(engine_id = \""+engineId+"\", insight_id = '${i}', insight_folder = '${if}')\r\n" +
-							"\n# Add document(s) that have been uploaded to the insight\r\n" +
-							"vectorEngine.addDocument(file_paths = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])\r\n" + 
-							"\n# Perform a nearest neighbor search on the embedded documents\r\n" +
-							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5)\r\n" + 
+							
 							"\n# List all the documents the vector database currently comprises of\r\n" +
 							"vectorEngine.listDocuments()\r\n" + 
+							
+							"\n# Add document(s) that have been uploaded to the insight\r\n" +
+							"vectorEngine.addDocument(file_paths = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])\r\n" + 
+							
+							"\n# Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight\r\n" +
+							"vectorEngine.addVectorCSVFile(file_paths = ['fileName1.csv', 'fileName2.csv', ..., 'fileNameX.csv'])\r\n" + 
+							
+							"\n# Perform a nearest neighbor search on the embedded documents\r\n" +
+							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5)\r\n" + 
+							
 							"\n# Remove document(s) from the vector database\r\n" +
 							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])"
 					);
@@ -215,12 +228,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"// imports\r\nimport prerna.util.Utility;\r\n" + 
 							"import prerna.engine.api.IVectorDatabaseEngine;\r\n\n" + 
 							"// get the vector engine\r\nIVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(\""+engineId+"\");\r\n" + 
-							"\n// Add document(s) that have been uploaded to the insight\r\n" +
-							"vectorEngine.addDocument(List<String> filePaths, Map <String, Object> parameters);\r\n" + 
-							"\n// Perform a nearest neighbor search on the embedded documents\r\n" +
-							"vectorEngine.nearestNeighbor(String searchStatement, Number limit, Map <String, Object> parameters);\r\n" + 
+							
 							"\n// List all the documents the vector database currently comprises of\r\n" +
 							"vectorEngine.listDocuments(Map<String, Object> parameters)\r\n" + 
+							
+							"\n// Add document(s) that have been uploaded to the insight\r\n" +
+							"vectorEngine.addDocument(List<String> filePaths, Map<String, Object> parameters);\r\n" + 
+							
+							"\n// Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight\r\n" +
+							"vectorEngine.addEmbeddings(List<String> filePaths, Insight insight, Map<String, Object> parameters);\r\n" + 
+							
+							"\n// Perform a nearest neighbor search on the embedded documents\r\n" +
+							"vectorEngine.nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters);\r\n" + 
+							
 							"\n// Remove document(s) from the vector database\r\n" +
 							"vectorEngine.removeDocument(List<String> fileNames, Map <String, Object> parameters);"
 					);

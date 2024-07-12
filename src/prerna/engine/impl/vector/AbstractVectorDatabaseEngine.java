@@ -192,7 +192,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
-		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
+		File indexFilesDir = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
@@ -209,8 +209,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
 			}
 
-			if (!indexFilesFolder.exists()) {
-				indexFilesFolder.mkdirs();
+			if (!indexFilesDir.exists()) {
+				indexFilesDir.mkdirs();
 			}
 			if (!this.indexClasses.contains(indexClass)) {
 				addIndexClass(indexClass);
@@ -237,7 +237,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					if (destinationFile.exists()) {
 						FileUtils.forceDelete(destinationFile);
 					}
-					FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
+					FileUtils.copyFileToDirectory(fileInInsightFolder, documentDir, true);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
@@ -253,7 +253,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
 				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
-				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
+				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
 					if (extractedFile.exists()) {
@@ -264,7 +264,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					if(docLower.endsWith(".csv")) {
 						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect...");
 						// copy csv over
-						FileUtils.copyFileToDirectory(document, indexFilesFolder);
+						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
@@ -330,7 +330,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				}
 			}
 		} finally {
-			cleanUpAddDocument(indexFilesFolder);
+			cleanUpAddDocument(indexFilesDir);
 		}
 	}
 	
