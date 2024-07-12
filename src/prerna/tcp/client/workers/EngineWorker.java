@@ -125,10 +125,10 @@ public class EngineWorker implements Runnable {
 			//LOGGER.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
     }
@@ -158,7 +158,7 @@ public class EngineWorker implements Runnable {
 					output.put(key, impl);
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
     		}
     		else if(obj instanceof Serializable)

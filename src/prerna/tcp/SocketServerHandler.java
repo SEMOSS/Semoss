@@ -460,7 +460,7 @@ public class SocketServerHandler implements Runnable {
 						// the main input is available on incoming
 					} catch (InterruptedException e) 
 					{
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
@@ -611,10 +611,10 @@ public class SocketServerHandler implements Runnable {
 			}
 			classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
@@ -658,10 +658,10 @@ public class SocketServerHandler implements Runnable {
 			}
 			classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
@@ -703,10 +703,10 @@ public class SocketServerHandler implements Runnable {
 			}
 			//classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
@@ -741,7 +741,7 @@ public class SocketServerHandler implements Runnable {
 			}
 			classLogger.info("Found the method " + retMethod);
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
@@ -828,7 +828,7 @@ public class SocketServerHandler implements Runnable {
 					// sleep until we get the py
 					Thread.sleep(200);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			classLogger.info("PyThread Started");
@@ -932,7 +932,7 @@ public class SocketServerHandler implements Runnable {
 					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
 				}				
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				classLogger.error(Constants.STACKTRACE, e);
 //				System.err.println("Client socket has been closed !");
 				synchronized(server.crash)
