@@ -255,7 +255,7 @@ public abstract class AbstractSqlQueryUtil {
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SQLException(e.getMessage());
+			throw new SQLException("Could not get connection.");
 		}
 
 		return conn;

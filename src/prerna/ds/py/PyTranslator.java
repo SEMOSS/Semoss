@@ -447,7 +447,8 @@ public class PyTranslator {
 					}
 				}
 			} catch (IOException e) {
-				throw new IllegalArgumentException("Error in writing Py script for execution.", e);
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error in writing Py script for execution.");
 			} finally {
 
 				// Cleanup
@@ -641,7 +642,8 @@ public class PyTranslator {
 				}
 			}
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Error in writing Py script for execution.", e);
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error in writing Py script for execution.");
 		} finally {
 
 			// Cleanup

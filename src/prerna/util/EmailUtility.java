@@ -124,7 +124,7 @@ public class EmailUtility {
 						attachmentBodyPart.attachFile(new File(filePath));
 					} catch (IOException e) {
 						logger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Error adding attachment", e);
+						throw new IllegalArgumentException("Error adding attachment");
 					}
 					attachmentBodyPart.setFileName(new File(filePath).getName());
 					multipart.addBodyPart(attachmentBodyPart);

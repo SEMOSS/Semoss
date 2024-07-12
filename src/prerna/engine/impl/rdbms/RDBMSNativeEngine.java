@@ -676,7 +676,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Error closing the connection to the database", e);
+			throw new IOException("Error closing the connection to the database");
 		}
 	}
 

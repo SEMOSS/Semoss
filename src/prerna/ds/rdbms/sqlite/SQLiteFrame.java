@@ -120,7 +120,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 			stmt.executeUpdate(saveScript);
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Error occurred attempting to cache SQL Frame", e);
+			throw new IOException("Error occurred attempting to cache SQL Frame");
 		} finally {
 			if(stmt != null) {
 				try {

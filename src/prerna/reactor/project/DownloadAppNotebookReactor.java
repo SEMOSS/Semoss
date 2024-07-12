@@ -59,7 +59,7 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 				zos = ZipUtils.zipFolder(f.getParent(), download.getAbsolutePath());
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to zip and download the notebooks", e);
+				throw new IllegalArgumentException("Unable to zip and download the notebooks");
 			} finally {
 				try {
 					if (zos != null) {
@@ -68,7 +68,7 @@ public class DownloadAppNotebookReactor extends AbstractReactor {
 					}
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to zip and download the notebooks", e);
+					throw new IllegalArgumentException("Unable to zip and download the notebooks");
 				}
 			}
 		}

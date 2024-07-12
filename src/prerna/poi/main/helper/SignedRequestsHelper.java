@@ -18,13 +18,20 @@ import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.codec.binary.Base64; 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.util.Constants; 
  
 /** 
  * This class contains the logic for signing requests 
  * to the Amazon Product Advertising API. 
  */ 
-public class SignedRequestsHelper { 
+public class SignedRequestsHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(SignedRequestsHelper.class);
+	
     /**
      * All strings are handled as UTF-8 
      */ 
@@ -158,7 +165,8 @@ public class SignedRequestsHelper {
             Base64 encoder = new Base64(76,new byte[0]); 
             signature = new String(encoder.encode(rawHmac)); 
         } catch (UnsupportedEncodingException e) { 
-            throw new RuntimeException(UTF8_CHARSET + " is unsupported!", e); 
+        	classLogger.error(Constants.STACKTRACE, e);
+            throw new RuntimeException(UTF8_CHARSET + " is unsupported!"); 
         } 
         return signature; 
     } 
