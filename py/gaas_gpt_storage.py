@@ -3,7 +3,7 @@ from gaas_server_proxy import ServerProxy
 
 class StorageEngine(ServerProxy):
     
-    def __init__(self, engine_id=None, insight_id=None):
+    def __init__(self, engine_id=str, insight_id=None):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id

@@ -25,31 +25,72 @@ class VectorEngine(ServerProxy):
     def addDocument(
         self,
         file_paths: List[str],
-        engine_id: Optional[str] = None,
-        insight_id: Optional[str] = None,
         param_dict: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
     ) -> bool:
-        engine_id, insight_id = self._determine_ids(
-            engine_id=engine_id, insight_id=insight_id
-        )
+        """
+        Add the documents into the vector database
 
-        param_dict["insight"] = insight_id
+        Args:
+            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 
+            param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
+            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+        """
+        assert file_paths is not None
+        if insight_id is None:
+            insight_id = self.insight_id
 
-        # get the file paths
-        file_paths = self.get_files(file_paths=file_paths)
+        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
 
+        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
         epoc = super().get_next_epoc()
-        super().call(
+
+        pixelReturn = super().callReactor(
             epoc=epoc,
-            engine_type=VectorEngine.engine_type,
-            engine_id=engine_id,
-            method_name="addDocument",
-            method_args=[file_paths, param_dict],
-            method_arg_types=["java.util.List", "java.util.Map"],
+            pixel=pixel,
             insight_id=insight_id,
         )
 
-        return True
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+    
+    def addVectorCSVFile(
+        self,
+        file_paths: List[str],
+        param_dict: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Add the documents into the vector database
+
+        Args:
+            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 
+            param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
+            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+        """
+        assert file_paths is not None
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+
+        pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
+        epoc = super().get_next_epoc()
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn    
 
     def removeDocument(
         self,
@@ -62,9 +103,10 @@ class VectorEngine(ServerProxy):
 
         Args:
             file_names (`List[str]`):  The names of the files to remove
-            parameterMap (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
+            param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
+        assert file_names is not None
         if insight_id is None:
             insight_id = self.insight_id
 
@@ -98,7 +140,7 @@ class VectorEngine(ServerProxy):
         Args:
             search_statement (`str`):  The value being compared against the vector database embeddings
             limit (`Optional[int]`): Limit for the number of records to return
-            parameterMap (`dict`): A dictionary with optional parameters for nearest neighbor calculation
+            param_dict (`dict`): A dictionary with optional parameters for nearest neighbor calculation
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
         assert search_statement is not None
@@ -135,7 +177,7 @@ class VectorEngine(ServerProxy):
         List the documents in the vector database
 
         Args:
-            parameterMap (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
+            param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
         if insight_id is None:

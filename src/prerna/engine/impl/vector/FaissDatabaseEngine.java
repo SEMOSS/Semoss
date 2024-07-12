@@ -10,9 +10,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +40,7 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
@@ -111,18 +114,87 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	
 	@Override
 	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
-		// first clean the paths
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		checkSocketStatus();
+		
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+		if (!this.indexClasses.contains(indexClass)) {
+			addIndexClass(indexClass);
+		}
+		
+		File indexDirectory = new File(this.schemaFolder, indexClass);
+		File documentDir = new File(indexDirectory, DOCUMENTS_FOLDER_NAME);
+		File indexFilesDir = new File(indexDirectory, INDEXED_FOLDER_NAME);
+		if(!documentDir.exists()) {
+			documentDir.mkdirs();
+		}
+		if(!indexFilesDir.exists()) {
+			indexFilesDir.mkdirs();
+		}
+
+		// track files to push to cloud
+		Set<String> filesToCopyToCloud = new HashSet<String>();
+		
+		// check that the vectorCsvFiles are in the current engine folder
+		// if not, move them
+		for (int i = 0; i < vectorCsvFiles.size(); i++) {
+			String vectorCsvFile = vectorCsvFiles.get(i);
+			File vectorF = new File(Utility.normalizePath(vectorCsvFile));
+			// double check that they are files and not directories
+			if (!vectorF.isFile()) {
+				continue;
+			}
+			
+			if(!vectorF.getCanonicalPath().contains(documentDir.getCanonicalPath()+FILE_SEPARATOR)) {
+				File documentDestinationFile = new File(documentDir, vectorF.getName());
+				// check if the destination file exists, and if so, delete it
+				try {
+					if (documentDestinationFile.exists()) {
+						FileUtils.forceDelete(documentDestinationFile);
+					}
+					FileUtils.copyFileToDirectory(vectorF, documentDir, true);
+					
+					// store to move to cloud
+					filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove previously created file for " + documentDestinationFile.getName() + " or move it to the document directory");
+				}
+			}
+			if(!vectorF.getCanonicalPath().contains(indexFilesDir.getCanonicalPath()+FILE_SEPARATOR)) {
+				File indexDestinationFile = new File(indexFilesDir, vectorF.getName());
+				// check if the destination file exists, and if so, delete it
+				try {
+					if (indexDestinationFile.exists()) {
+						FileUtils.forceDelete(indexDestinationFile);
+					}
+					FileUtils.copyFileToDirectory(vectorF, indexFilesDir, true);
+					
+					// store to move to cloud
+					filesToCopyToCloud.add(indexDestinationFile.getAbsolutePath());
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove previously created file for " + indexDestinationFile.getName() + " or move it to the document directory");
+				}
+				
+				// also update the reference to this folder
+				vectorCsvFiles.set(i, indexDestinationFile.getAbsolutePath());
+			}
+		}
+		
+		// now clean the paths for python
 		{
 			List<String> temp = new ArrayList<>(vectorCsvFiles.size());
 			for(int i = 0; i < vectorCsvFiles.size(); i++) {
 				temp.add(vectorCsvFiles.get(i).replace(FILE_SEPARATOR, DIR_SEPARATOR));
 			}
 			vectorCsvFiles = temp;
-		}
-		
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
 		}
 		
 		// assuming only content to index now
@@ -177,10 +249,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
 
 		if (ClusterUtil.IS_CLUSTER) {
-			List<String> filesToCopyToCloud = new ArrayList<String>();
-			// and the newly created csvs
+			// this should already be handled, but just in case...
 			filesToCopyToCloud.addAll(vectorCsvFiles);
-			// add all the embeddings files and the datasets
+			// and the return files (dataset/vector)
 			filesToCopyToCloud.addAll((List<String>) pythonResponseAfterCreatingFiles.get("createdDocuments"));
 			Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
 			copyFilesToCloudThread.start();
