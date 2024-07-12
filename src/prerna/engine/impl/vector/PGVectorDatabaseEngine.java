@@ -798,33 +798,41 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		StringBuilder searchQueryBuilder = new StringBuilder("SELECT DISTINCT SOURCE AS \"fileName\" FROM ").append(this.vectorTableName);
+		
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setEngine(this);
+		qs.setEngineId(this.engineId);
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);		
+		qs.setQuery(searchQueryBuilder.toString());
+		
+		List<Map<String, Object>> sourcesInPostgresDb = QueryExecutionUtility.flushRsToMap(this, qs);
+		
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
+		if(documentsDir.exists() && documentsDir.isDirectory()) {
+			for(Map<String, Object> fileInPostgresDb : sourcesInPostgresDb) {
+				String fileName = (String) fileInPostgresDb.get("fileName");
+				
+				File thisF = new File(documentsDir, fileName);
+				if(thisF.exists() && thisF.isFile()) {
+					long fileSizeInBytes = thisF.length();
+					double fileSizeInMB = (double) fileSizeInBytes / (1024);
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					String lastModified = dateFormat.format(new Date(thisF.lastModified()));
 
-		List<Map<String, Object>> fileList = new ArrayList<>();
-
-		File[] files = documentsDir.listFiles();
-		if (files != null) {
-			for (File file : files) {
-				String fileName = file.getName();
-				long fileSizeInBytes = file.length();
-				double fileSizeInMB = (double) fileSizeInBytes / (1024);
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String lastModified = dateFormat.format(new Date(file.lastModified()));
-
-				Map<String, Object> fileInfo = new HashMap<>();
-				fileInfo.put("fileName", fileName);
-				fileInfo.put("fileSize", fileSizeInMB);
-				fileInfo.put("lastModified", lastModified);
-				fileList.add(fileInfo);
+					// add file size and last modified into the map
+					fileInPostgresDb.put("fileSize", fileSizeInMB);
+					fileInPostgresDb.put("lastModified", lastModified);
+				}
 			}
-		} 
+		}
 
-		return fileList;
+		return sourcesInPostgresDb;
 	}
 	
 	@Override
