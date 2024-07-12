@@ -3,6 +3,7 @@ package prerna.reactor.export.pdf;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -13,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -39,6 +42,8 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.jsoup.nodes.Attributes;
 
+import prerna.util.Constants;
+
 
 
 /**
@@ -48,6 +53,8 @@ import org.jsoup.nodes.Attributes;
  * 
  */
 public final class PDFUtility {
+	
+	private static final Logger classLogger = LogManager.getLogger(PDFUtility.class);
 
 	/**
 	 * Create PDDocument
@@ -792,9 +799,10 @@ public final class PDFUtility {
 	/**
 	 * 
 	 * Add files in a directory as attachments to an existing PDF
+	 * @throws IOException 
 	 * 
 	 */
-	public static void attachFiles(PDDocument document, File filedir) throws IOException {
+	public static void attachFiles(PDDocument document, File filedir) throws IOException  {
 	      PDEmbeddedFilesNameTreeNode efTree = new PDEmbeddedFilesNameTreeNode();
 		  Collection<File> files = FileUtils.listFiles(filedir, null, true);
 		  InputStream is;
@@ -803,20 +811,26 @@ public final class PDFUtility {
 		  Map efMap = new HashMap();
 		  List<PDEmbeddedFile> filesToEmbed = new ArrayList<>();
 
-		  for(File file2 : files){
-			  fs = new PDComplexFileSpecification();
-			  fs.setFile(file2.getName());
-			  is = new FileInputStream(file2.getAbsolutePath());
-			  ef = new PDEmbeddedFile(document, is );
-			  filesToEmbed.add(ef);
-			  
-			  //set some of the attributes of the embedded file
-			  ef.setSubtype( "test/plain" );
-			  ef.setCreationDate( new GregorianCalendar() );
-			  fs.setEmbeddedFile( ef );
-			  
-			  efMap.put( file2.getName(), fs );
-		  }
+			for (File file2 : files) {
+				fs = new PDComplexFileSpecification();
+				fs.setFile(file2.getName());
+				try {
+					is = new FileInputStream(file2.getAbsolutePath());
+				} catch (FileNotFoundException e) {
+					classLogger.error("Error finding file with path: {}", file2.getAbsolutePath());
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new FileNotFoundException("Could not find file. See logs for more details.");
+				}
+				ef = new PDEmbeddedFile(document, is);
+				filesToEmbed.add(ef);
+
+				// set some of the attributes of the embedded file
+				ef.setSubtype("test/plain");
+				ef.setCreationDate(new GregorianCalendar());
+				fs.setEmbeddedFile(ef);
+
+				efMap.put(file2.getName(), fs);
+			}
 		  
 		  efTree.setNames( efMap );
 		  PDDocumentNameDictionary names = new PDDocumentNameDictionary( document.getDocumentCatalog() );
