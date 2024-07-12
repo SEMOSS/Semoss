@@ -34,7 +34,6 @@ import prerna.util.Utility;
 public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromVectorCSVFileReactor.class);
-	
 	private static final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
 
 	public CreateEmbeddingsFromVectorCSVFileReactor() {
