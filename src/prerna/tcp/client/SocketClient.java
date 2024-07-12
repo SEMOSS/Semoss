@@ -201,7 +201,7 @@ public class SocketClient implements Runnable, Closeable {
 					}catch (InterruptedException e) 
 					{
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 					/*
 					// trigger after 400 milliseconds
