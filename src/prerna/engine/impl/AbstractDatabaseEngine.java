@@ -225,7 +225,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 			File owlF = SmssUtilities.getOwlFile(this.smssProp);
 			if(owlF == null || !owlF.exists()) {
 				// make a new empty owl
-				owlFile = UploadUtilities.generateOwlFile(owlFile).getAbsolutePath();
+				owlFile = UploadUtilities.generateOwlFile(getCatalogType(), this.engineId, this.engineName).getAbsolutePath();
 				setOwlFilePath(owlFile);
 			} else {
 				owlFile = owlF.getAbsolutePath();

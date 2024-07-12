@@ -104,6 +104,15 @@ public class AddToMasterDB {
      * @return
      */
     public boolean registerEngineLocal(Properties prop, String engineId) {
+        // we want to load in the OWL for the engine we want to synchronize into the
+        // the local master
+        // get the owl relative path from the base folder to get the full path
+        String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
+        if(!new File(owlFile).exists()) {
+        	classLogger.warn("Attempting to load engine " + engineId + " into the local master but the OWL File does not exist");
+        	return false;
+        }
+        
         // grab the local master engine
     	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
         // establish the connection
@@ -122,12 +131,6 @@ public class AddToMasterDB {
             if(engineName == null) {
             	engineName = engineId;
             }
-            
-            // we want to load in the OWL for the engine we want to synchronize into the
-            // the local master
-            // get the owl relative path from the base folder to get the full path
-            String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
-
             // owl is stored as RDF/XML file
     		rfse = new RDFFileSesameEngine();
     		rfse.setBasic(true);
