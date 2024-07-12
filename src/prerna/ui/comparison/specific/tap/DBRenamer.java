@@ -197,7 +197,7 @@ public class DBRenamer {
 							"old" + smssName.substring(0, smssName.indexOf(".")));
 					Files.write(path, content.getBytes(charset));
 				} catch (IOException exception) {
-					logger.error(Arrays.toString(exception.getStackTrace()));
+					logger.error(Constants.STACKTRACE, exception);
 				}
 				File smssFile = new File(normalizedSmssDirectory);
 				smssFile.renameTo(new File(Utility.normalizePath(
