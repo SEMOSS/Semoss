@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
@@ -142,7 +143,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			classLogger.warn("Calling creation of rclone without passing in the container name to generate a SAS");
 		}
 		String rcloneConfig = Utility.getRandomString(10);
-		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", accountName, "key", primaryKey);
+		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "account", accountName, "key", primaryKey);
 		return rcloneConfig;
 	}
 	
@@ -151,9 +152,9 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		
 		if(this.generateDynamicSAS) {
 			String sasUrl = getDynamicSAS(containerName);
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
 		} else {
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", accountName, "key", primaryKey);
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "account", accountName, "key", primaryKey);
 		}
 		
 		return rcloneConfig;
@@ -211,7 +212,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //			if(!rClonePath.startsWith("\"")) {
 //				rClonePath = "\""+rClonePath+"\"";
 //			}
-			List<String> results = runRcloneFastListProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+			List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 			return results;
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -244,7 +245,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //			if(!rClonePath.startsWith("\"")) {
 //				rClonePath = "\""+rClonePath+"\"";
 //			}
-			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, "rclone", "lsjson", rClonePath, "--max-depth=1");
+			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, RCLONE, "lsjson", rClonePath, "--max-depth=1");
 			return results;
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -254,7 +255,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 	}
 	
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig) throws IOException, InterruptedException {
+	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig, Map<String, Object> metadata) throws IOException, InterruptedException {
 		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig(getContainerFromPath(storagePath));
@@ -285,7 +286,25 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //			if(!localPath.startsWith("\"")) {
 //				localPath = "\""+localPath+"\"";
 //			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", localPath, rClonePath);
+			
+			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			values.add(RCLONE);
+			values.add("sync");
+			values.add(localPath);
+			values.add(rClonePath);
+			values.add("--metadata");
+			
+			if(metadata != null && !metadata.isEmpty()) {
+				for(String key : metadata.keySet()) {
+					Object value = metadata.get(key);
+					
+					values.add("--metadata-set");
+					// wrap around in quotes just in case ...
+					values.add("\""+key+"\"=\""+value+"\"");
+				}
+			}
+
+			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[]{}));
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -326,7 +345,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //			if(!localPath.startsWith("\"")) {
 //				localPath = "\""+localPath+"\"";
 //			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rClonePath, localPath);
+			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", rClonePath, localPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -335,7 +354,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 	}
 	
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig, Map<String, Object> metadata) throws IOException, InterruptedException {
 		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig(getContainerFromPath(storageFolderPath));
@@ -366,7 +385,25 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //			if(!localFilePath.startsWith("\"")) {
 //				localFilePath = "\""+localFilePath+"\"";
 //			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", localFilePath, rClonePath);
+			
+			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			values.add(RCLONE);
+			values.add("copy");
+			values.add(localFilePath);
+			values.add(rClonePath);
+			values.add("--metadata");
+			
+			if(metadata != null && !metadata.isEmpty()) {
+				for(String key : metadata.keySet()) {
+					Object value = metadata.get(key);
+					
+					values.add("--metadata-set");
+					// wrap around in quotes just in case ...
+					values.add("\""+key+"\"=\""+value+"\"");
+				}
+			}
+			
+			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[]{}));
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -406,7 +443,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //			if(!localFolderPath.startsWith("\"")) {
 //				localFolderPath = "\""+localFolderPath+"\"";
 //			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
+			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", rClonePath, localFolderPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -441,15 +478,15 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			
 			if(leaveFolderStructure) {
 				// always do delete
-				runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+				runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
 			} else {
 				// we can only do purge on a folder
 				// so need to check
-				List<String> results = runRcloneFastListProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+				List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 				if(results.size() == 1 && !results.get(0).endsWith("/")) {
-					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
 				} else {
-					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
+					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
 				}
 			}
 		} finally {
@@ -484,7 +521,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //				rClonePath = "\""+rClonePath+"\"";
 //			}
 			
-			runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
+			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);

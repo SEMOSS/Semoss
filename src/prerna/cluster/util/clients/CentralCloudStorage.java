@@ -362,8 +362,8 @@ public class CentralCloudStorage implements ICloudClient {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localEngineFolder, cloudEngineFolder, sharedRCloneConfig);
-			centralStorageEngine.copyToStorage(localSmssFilePath, cloudSmssFolder, sharedRCloneConfig);
+			centralStorageEngine.syncLocalToStorage(localEngineFolder, cloudEngineFolder, sharedRCloneConfig, null);
+			centralStorageEngine.copyToStorage(localSmssFilePath, cloudSmssFolder, sharedRCloneConfig, null);
 		} finally {
 			try {
 				// Re-open the engine
@@ -515,7 +515,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Engine " + aliasAndEngineId + " is locked");
 		try {
-			centralStorageEngine.copyToStorage(localSmssFilePath, cloudSmssFolder);
+			centralStorageEngine.copyToStorage(localSmssFilePath, cloudSmssFolder, null);
 		} finally {
 			lock.unlock();
 			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
@@ -590,7 +590,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String cloudImageFolder = getCloudEngineImageBucket(engineType);
 		String localImagesFolderPath = EngineUtility.getLocalEngineImageDirectory(engineType);
 		String fileToPush = localImagesFolderPath + "/" + fileName;
-		centralStorageEngine.copyToStorage(fileToPush, cloudImageFolder);
+		centralStorageEngine.copyToStorage(fileToPush, cloudImageFolder, null);
 	}
 	
 	@Override
@@ -663,7 +663,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Engine " + aliasAndEngineId + " is locked");
 		try {
 			classLogger.info("Pushing folder local=" + localFilePath + " to from remote=" + cloudStorageFolderPath);
-			centralStorageEngine.copyToStorage(localFilePath, cloudStorageFolderPath);
+			centralStorageEngine.copyToStorage(localFilePath, cloudStorageFolderPath, null);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -785,7 +785,7 @@ public class CentralCloudStorage implements ICloudClient {
 				dbFiles = getH2File(localDatabaseFolder);
 			}
 			for (String dbFileName : dbFiles) {
-				centralStorageEngine.copyToStorage(localDatabaseFolder+"/"+dbFileName, storageDatabaseFolder);
+				centralStorageEngine.copyToStorage(localDatabaseFolder+"/"+dbFileName, storageDatabaseFolder, null);
 			}
 		} finally {
 			try {
@@ -894,9 +894,9 @@ public class CentralCloudStorage implements ICloudClient {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig, null);
 			if(hasPositionFile) {
-				centralStorageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig);
+				centralStorageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig, null);
 			}
 		} finally {
 			if(sharedRCloneConfig != null) {
@@ -1014,8 +1014,8 @@ public class CentralCloudStorage implements ICloudClient {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localProjectFolder, storageProjectFolder, sharedRCloneConfig);
-			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+			centralStorageEngine.syncLocalToStorage(localProjectFolder, storageProjectFolder, sharedRCloneConfig, null);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig, null);
 		} finally {
 			try {
 				// Re-open the project
@@ -1120,7 +1120,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
-			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, null);
 		} finally {
 			lock.unlock();
 			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
@@ -1229,7 +1229,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			project.getInsightDatabase().close();
-			centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder);
+			centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder, null);
 		}  finally {
 			try {
 				//open the insight db
@@ -1289,7 +1289,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			classLogger.info("Pushing folder from local=" + localAbsoluteFilePath + " to remote=" + storageProjectFolderPath);
-			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageProjectFolderPath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageProjectFolderPath, null);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -1359,7 +1359,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
 		classLogger.info("Pushing insight from local=" + Utility.cleanLogString(localInsightFolderPath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
-		centralStorageEngine.syncLocalToStorage(localInsightFolderPath, storageInsightFolder);
+		centralStorageEngine.syncLocalToStorage(localInsightFolderPath, storageInsightFolder, null);
 		classLogger.debug("Done pushing insight from local=" + Utility.cleanLogString(localInsightFolderPath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 	}
 
@@ -1410,7 +1410,7 @@ public class CentralCloudStorage implements ICloudClient {
 			if(newImageFileName != null) {
 				String localInsightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
 				classLogger.info("Pushing insight image from local=" + Utility.cleanLogString(localInsightImageFilePath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
-				centralStorageEngine.copyToStorage(localInsightImageFilePath, storageInsightFolder, sharedRCloneConfig);
+				centralStorageEngine.copyToStorage(localInsightImageFilePath, storageInsightFolder, sharedRCloneConfig, null);
 				classLogger.debug("Done pushing insight image from local=" + Utility.cleanLogString(localInsightImageFilePath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 			} else {
 				classLogger.info("No new insight image to add to remote");
@@ -1527,8 +1527,8 @@ public class CentralCloudStorage implements ICloudClient {
 			if(centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localUserAssetWorkspaceFolder, storageUserAssetWorkspaceFolder, sharedRCloneConfig);
-			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+			centralStorageEngine.syncLocalToStorage(localUserAssetWorkspaceFolder, storageUserAssetWorkspaceFolder, sharedRCloneConfig, null);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig, null);
 		} finally {
 			try {
 				// Re-open the project

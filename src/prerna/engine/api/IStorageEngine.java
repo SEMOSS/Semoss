@@ -43,11 +43,12 @@ public interface IStorageEngine extends IEngine {
 	
 	/**
 	 * 
-	 * @param localFilePath
+	 * @param localPath
 	 * @param storagePath
+	 * @param metadata
 	 * @throws Exception
 	 */
-	void syncLocalToStorage(String localPath, String storagePath) throws Exception;
+	void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception;
 	
 	/**
 	 * 
@@ -61,9 +62,10 @@ public interface IStorageEngine extends IEngine {
 	 * 
 	 * @param localFilePath
 	 * @param storageFolderPath
+	 * @param metadata
 	 * @throws Exception
 	 */
-	void copyToStorage(String localFilePath, String storageFolderPath) throws Exception;
+	void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
 	
 	/**
 	 * 
