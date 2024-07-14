@@ -126,7 +126,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 	
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath) throws Exception {
+	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
@@ -138,7 +138,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath) throws Exception {
+	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception {
 		if(localFilePath == null || localFilePath.isEmpty()) {
 			throw new NullPointerException("Must define the local location of the file to push");
 		}
