@@ -80,8 +80,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath) throws IOException, InterruptedException {
-		syncLocalToStorage(localPath, storagePath, null);
+	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws IOException, InterruptedException {
+		syncLocalToStorage(localPath, storagePath, null, metadata);
 	}
 
 	@Override
@@ -90,8 +90,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath) throws IOException, InterruptedException {
-		copyToStorage(localFilePath, storageFolderPath, null);
+	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws IOException, InterruptedException {
+		copyToStorage(localFilePath, storageFolderPath, null, metadata);
 	}
 
 	@Override
@@ -110,8 +110,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure)
-			throws IOException, InterruptedException {
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws IOException, InterruptedException {
 		deleteFromStorage(storagePath, leaveFolderStructure, null);
 	}
 
@@ -216,7 +215,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig)
+	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig, Map<String, Object> metadata)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -251,7 +250,25 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //			if(!localPath.startsWith("'")) {
 //				localPath = "'"+localPath+"'";
 //			}
-			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", localPath, rClonePath);
+			
+			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			values.add(RCLONE);
+			values.add("sync");
+			values.add(localPath);
+			values.add(rClonePath);
+			values.add("--metadata");
+			
+			if(metadata != null && !metadata.isEmpty()) {
+				for(String key : metadata.keySet()) {
+					Object value = metadata.get(key);
+					
+					values.add("--metadata-set");
+					// wrap around in quotes just in case ...
+					values.add("\""+key+"\"=\""+value+"\"");
+				}
+			}
+			
+			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[]{}));
 		} finally {
 			if (delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -305,7 +322,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig)
+	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig, Map<String, Object> metadata)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -340,7 +357,25 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //			if(!localFilePath.startsWith("'")) {
 //				localFilePath = "'"+localFilePath+"'";
 //			}
-			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", localFilePath, rClonePath);
+			
+			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			values.add(RCLONE);
+			values.add("copy");
+			values.add(localFilePath);
+			values.add(rClonePath);
+			values.add("--metadata");
+			
+			if(metadata != null && !metadata.isEmpty()) {
+				for(String key : metadata.keySet()) {
+					Object value = metadata.get(key);
+					
+					values.add("--metadata-set");
+					// wrap around in quotes just in case ...
+					values.add("\""+key+"\"=\""+value+"\"");
+				}
+			}
+			
+			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[]{}));
 		} finally {
 			if (delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
