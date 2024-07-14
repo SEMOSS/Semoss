@@ -2,6 +2,7 @@ package prerna.reactor.storage;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +24,7 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 	
 	public SyncLocalToStorageReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.METADATA.getKey()};
 	}
 	
 	@Override
@@ -40,8 +41,9 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 		
+		Map<String, Object> metadata = getMetadata();
 		try {
-			storage.syncLocalToStorage(fileLocation, storageFolderPath);
+			storage.syncLocalToStorage(fileLocation, storageFolderPath, metadata);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -62,5 +64,20 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 		
 		throw new NullPointerException("No storage engine defined");
 	}
+	
+	private Map<String, Object> getMetadata() {
+        GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METADATA.getKey());
+        if(mapGrs != null && !mapGrs.isEmpty()) {
+            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+            if(mapInputs != null && !mapInputs.isEmpty()) {
+                return (Map<String, Object>) mapInputs.get(0).getValue();
+            }
+        }
+        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+        if(mapInputs != null && !mapInputs.isEmpty()) {
+            return (Map<String, Object>) mapInputs.get(0).getValue();
+        }
+        return null;
+    }
 
 }

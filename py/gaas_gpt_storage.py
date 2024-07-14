@@ -1,8 +1,8 @@
 from gaas_server_proxy import ServerProxy
+from typing import Dict, Optional
 
 
 class StorageEngine(ServerProxy):
-    
     def __init__(self, engine_id=str, insight_id=None):
         assert engine_id is not None
         super().__init__()
@@ -10,7 +10,7 @@ class StorageEngine(ServerProxy):
         self.insight_id = insight_id
         print(f"Storage Engine {engine_id} is initialized")
 
-    def list(self, storagePath=None, insight_id=None):
+    def list(self, storagePath: str = None, insight_id: Optional[str] = None):
         """
         This method is responsible for listing the files in the storage engine
 
@@ -28,7 +28,9 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         epoc = super().get_next_epoc()
-        pixel = f'Storage("{self.engine_id}")|ListStoragePath(storagePath="{storagePath}");'
+        pixel = (
+            f'Storage("{self.engine_id}")|ListStoragePath(storagePath="{storagePath}");'
+        )
         pixelReturn = super().callReactor(
             epoc=epoc,
             pixel=pixel,
@@ -41,7 +43,7 @@ class StorageEngine(ServerProxy):
 
         return pixelReturn
 
-    def listDetails(self, storagePath=None, insight_id=None):
+    def listDetails(self, storagePath: str = None, insight_id: Optional[str] = None):
         """
         This method is responsible for listing the files in the storage engine
 
@@ -72,7 +74,14 @@ class StorageEngine(ServerProxy):
 
         return pixelReturn
 
-    def syncLocalToStorage(self, storagePath=None, localPath=None, space=None, insight_id=None):
+    def syncLocalToStorage(
+        self,
+        storagePath: str = None,
+        localPath: str = None,
+        space: Optional[str] = None,
+        metadata: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
+    ):
         """
         This method is responsible for syncing from insight/project/user space to cloud storage
 
@@ -92,9 +101,10 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         spaceStr = f',space="{space}"' if space is not None else ""
+        metadataStr = f",metadata=[{metadata}]" if metadata is not None else ""
 
         epoc = super().get_next_epoc()
-        pixel = f'Storage("{self.engine_id}")|SyncLocalToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr});'
+        pixel = f'Storage("{self.engine_id}")|SyncLocalToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr}{metadataStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
             pixel=pixel,
@@ -107,7 +117,13 @@ class StorageEngine(ServerProxy):
 
         return pixelReturn
 
-    def syncStorageToLocal(self, storagePath=None, localPath=None, space=None, insight_id=None):
+    def syncStorageToLocal(
+        self,
+        storagePath: str = None,
+        localPath: str = None,
+        space: Optional[str] = None,
+        insight_id: Optional[str] = None,
+    ):
         """
         This method is responsible for syncing from cloud storage into the insight/project/user space
 
@@ -142,7 +158,13 @@ class StorageEngine(ServerProxy):
 
         return pixelReturn
 
-    def copyToLocal(self, storagePath=None, localPath=None, space=None, insight_id=None):
+    def copyToLocal(
+        self,
+        storagePath: str = None,
+        localPath: str = None,
+        space: Optional[str] = None,
+        insight_id: Optional[str] = None,
+    ):
         """
         This method is responsible for copying from cloud storage into the insight/project/user space
 
@@ -176,10 +198,17 @@ class StorageEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
-    
-    def copyToStorage(self, storagePath=None, localPath=None, space=None, insight_id=None):
+
+    def copyToStorage(
+        self,
+        storagePath: str = None,
+        localPath: str = None,
+        space: Optional[str] = None,
+        metadata: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
+    ):
         """
-        This method is responsible for copying from insight/project/user space to cloud storage 
+        This method is responsible for copying from insight/project/user space to cloud storage
 
         Args:
             storagePath (`str`): The path in the storage engine to push into
@@ -197,9 +226,10 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         spaceStr = f',space="{space}"' if space is not None else ""
+        metadataStr = f",metadata=[{metadata}]" if metadata is not None else ""
 
         epoc = super().get_next_epoc()
-        pixel = f'Storage("{self.engine_id}")|PushToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr});'
+        pixel = f'Storage("{self.engine_id}")|PushToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr}{metadataStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
             pixel=pixel,
@@ -211,9 +241,13 @@ class StorageEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
-    
 
-    def deleteFromStorage(self, storagePath=None, leaveFolderStructure: bool = False, insight_id=None):
+    def deleteFromStorage(
+        self,
+        storagePath: str = None,
+        leaveFolderStructure: bool = False,
+        insight_id: Optional[str] = None,
+    ):
         """
         This method is responsible for deleting from a storage
 

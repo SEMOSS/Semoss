@@ -58,10 +58,11 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @param localPath
 	 * @param storagePath
 	 * @param rCloneConfig
+	 * @param metadata
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig) throws IOException, InterruptedException;
+	void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig, Map<String, Object> metadata) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -78,10 +79,11 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @param localFilePath
 	 * @param storageFolderPath
 	 * @param rCloneConfig
+	 * @param metadata
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException;
+	void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig, Map<String, Object> metadata) throws IOException, InterruptedException;
 	
 	/**
 	 * Copy (without deleting) the file to a local location

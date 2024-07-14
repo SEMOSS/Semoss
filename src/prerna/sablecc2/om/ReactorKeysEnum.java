@@ -128,6 +128,7 @@ public enum ReactorKeysEnum {
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
+	METADATA("metadata", 										"Additional metadata"),
 	METAMODEL("metamodel", 										"The metamodel map for a database."),
 	METAMODEL_ADDITIONS("metamodelAdd", 						"Basic metamodel containing {tableName:{columnName:columnType}} for a database"),
 	METAMODEL_DELETIONS("metamodelDelete", 						"Basic metamodel containing {tableName:[column1Name, column2Name]} for database columns to be deleted."),
