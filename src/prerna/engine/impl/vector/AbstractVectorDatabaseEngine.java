@@ -617,7 +617,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		pyt = new TCPPyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		
+		// this is engine specific... or can be
 		String[] commands = getServerStartCommands();
 		// replace the vars
 		StringSubstitutor substitutor = new StringSubstitutor(this.vars);

@@ -150,6 +150,33 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	/**
 	 * 
+	 * @param table
+	 * @throws SQLException
+	 */
+	private void initSQL(String table) throws SQLException {
+		String createTable = pgVectorQueryUtil.createEmbeddingsTable(table);
+		//creating the default embeddings table
+		Connection conn = null;
+		Statement stmt = null;
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			classLogger.info(">>>>> " + createTable);
+			stmt.execute(createTable);
+		} catch(SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SQLException("Unable to create the table " + table);
+		} finally {
+			if(this.dataSource != null) {
+				ConnectionUtils.closeAllConnections(conn, stmt);
+			} else {
+				ConnectionUtils.closeAllConnections(null, stmt);
+			}
+		}
+	}
+	
+	/**
+	 * 
 	 */
 	protected void verifyModelProps() {
 		// This could get moved depending on other vector db needs
@@ -201,347 +228,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 		
 		this.modelPropsLoaded = true;
-	}
-
-	/**
-	 * This method is meant to be overriden so that we dont need to copy/paste the startServer code for every implementation
-	 * @return
-	 */
-	private String[] getServerStartCommands() {
-		return (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
-	}
-	
-	/**
-	 * 
-	 * @param port
-	 */
-	private synchronized void startServer(int port) {
-		// already created by another thread
-		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		if(!this.pyDirectoryBasePath.exists()) {
-			this.pyDirectoryBasePath.mkdirs();
-		}
-		// check if we have already created a process wrapper
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
-		}
-		
-		String timeout = "30";
-		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-		
-		if(this.cpw.getSocketClient() == null) {
-			boolean debug = false;
-			
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-			
-			if(port < 0) {
-				// port has not been forced
-				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch(NumberFormatException e) {
-						// ignore
-						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
-					}
-				}
-			}
-			
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
-			try {
-				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
-			}
-		} else if (!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
-			try {
-				this.cpw.reconnect();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
-			}
-		}
-
-		// create the py translator
-		pyt = new TCPPyTranslator();
-		pyt.setSocketClient(this.cpw.getSocketClient());
-		
-		String[] commands = getServerStartCommands();
-		// replace the vars
-		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			String resolvedString = substitutor.replace(commands[commandIndex]);
-			commands[commandIndex] = resolvedString;
-		}
-		pyt.runEmptyPy(commands);
-		
-		// for debugging...
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-							+ " ptyhon process with commands >>> " + String.join("\n", commands));
-	}
-
-	/**
-	 * 
-	 * @param table
-	 * @throws SQLException
-	 */
-	private void initSQL(String table) throws SQLException {
-		String createTable = pgVectorQueryUtil.createEmbeddingsTable(table);
-		//creating the default embeddings table
-		Connection conn = null;
-		Statement stmt = null;
-		try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-			classLogger.info(">>>>> " + createTable);
-			stmt.execute(createTable);
-		} catch(SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SQLException("Unable to create the table " + table);
-		} finally {
-			if(this.dataSource != null) {
-				ConnectionUtils.closeAllConnections(conn, stmt);
-			} else {
-				ConnectionUtils.closeAllConnections(null, stmt);
-			}
-		}
-	}
-
-	private void checkSocketStatus() {
-		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
-	}
-	
-	@Override
-	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
-		this.removeDocument(filePaths, parameters);
-
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
-		}
-
-		int chunkMaxTokenLength = this.contentLength;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
-			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
-		}
-
-		int tokenOverlapBetweenChunks = this.contentOverlap;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
-			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
-		}
-
-		String chunkUnit = this.defaultChunkUnit;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
-		}
-
-		String extractionMethod = this.defaultExtractionMethod;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
-		}
-		
-		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
-		
-		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
-		try {
-			// first we need to extract the text from the document
-			// TODO change this to json so we never have an encoding issue
-			checkSocketStatus();
-
-			File indexDirectory = new File(this.schemaFolder, indexClass);
-			File documentDir = new File(indexDirectory, AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
-			if(!documentDir.exists()) {
-				documentDir.mkdirs();
-			}
-
-			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
-			if (!filesAppoved) {
-				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
-			}
-
-			if (!indexFilesFolder.exists()) {
-				indexFilesFolder.mkdirs();
-			}
-			if (!this.indexClasses.contains(indexClass)) {
-				addIndexClass(indexClass);
-			}
-
-			List<File> extractedFiles = new ArrayList<>();
-			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we can push them to the cloud
-			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
-
-			// move the documents from insight into documents folder
-			Set<File> fileToExtractFrom = new HashSet<File>();
-			for (String fileName : filePaths) {
-				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
-
-				// Double check that they are files and not directories
-				if (!fileInInsightFolder.isFile()) {
-					continue;
-				}
-
-				File destinationFile = new File(documentDir, fileInInsightFolder.getName());
-
-				// Check if the destination file exists, and if so, delete it
-				try {
-					if (destinationFile.exists()) {
-						FileUtils.forceDelete(destinationFile);
-					}
-					FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
-				}
-
-				// add it to the list of files we need to extract text from
-				fileToExtractFrom.add(destinationFile);
-				
-				// add it to the list of files that need to be pushed to the cloud in a new thread
-				filesToCopyToCloud.add(destinationFile.getAbsolutePath());
-			}
-			
-			// loop through each document and attempt to extract text
-			for (File document : fileToExtractFrom) {
-				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
-				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
-				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
-				try {
-					if (extractedFile.exists()) {
-						FileUtils.forceDelete(extractedFile);
-					}
-					String docLower = document.getName().toLowerCase();
-					
-					if(docLower.endsWith(".csv")) {
-						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect");
-						// copy csv over
-						FileUtils.copyFileToDirectory(document, indexFilesFolder);
-					} else {
-						classLogger.info("Extracting text from document " + documentName);
-						// determine which text extraction method to use
-						int rowsCreated;
-						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
-							StringBuilder extractTextFromDocScript = new StringBuilder();
-							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-								.append("', target_folder = '")
-								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
-								.append("', output_file_name = '")
-								.append(extractedFileName)
-								.append("')");
-							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
-
-							rowsCreated = rows.intValue();
-						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-						}
-
-						// check to see if the file data was extracted
-						if (rowsCreated <= 1) {
-							// no text was extracted so delete the file
-							FileUtils.forceDelete(extractedFile); // delete the csv
-							FileUtils.forceDelete(document); // delete the input file e.g pdf
-							continue;
-						}
-
-						classLogger.info("Creating chunks from extracted text for " + documentName);
-
-						StringBuilder splitTextCommand = new StringBuilder();
-						splitTextCommand.append("vector_database.split_text(csv_file_location = '")
-							.append(extractedFileName)
-							.append("', chunk_unit = '")
-							.append(chunkUnit)
-							.append("', chunk_size = ")
-							.append(chunkMaxTokenLength)
-							.append(", chunk_overlap = ")
-							.append(tokenOverlapBetweenChunks)
-							.append(", chunking_strategy = ")
-							.append(chunkingStrategy)
-							.append(", cfg_tokenizer = cfg_tokenizer)");
-						
-						pyt.runScript(splitTextCommand.toString());
-					}
-
-					// add it to the list of files that need to be pushed to the cloud in a new thread
-					filesToCopyToCloud.add(document.getAbsolutePath());
-					extractedFiles.add(extractedFile);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
-				}
-			}
-			
-			if (extractedFiles.size() > 0) {
-				addEmbeddingFiles(extractedFiles, insight, parameters);
-				
-				if (ClusterUtil.IS_CLUSTER) {
-					// push the actual documents over to the cloud
-					Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-					copyFilesToCloudThread.start();
-				}
-			}
-		} finally {
-			cleanUpAddDocument(indexFilesFolder);
-		}
-	}
-	
-	protected void addIndexClass(String indexClass) {
-		this.indexClasses.add(indexClass);
-	}
-	
-	protected void cleanUpAddDocument(File indexFilesFolder) {
-		try {
-			FileUtils.forceDelete(indexFilesFolder);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
-	/**
-	 * 
-	 * @param indexClass
-	 * @return
-	 */
-	public String getIndexFilesPath(String indexClass) {
-		throw new IllegalArgumentException("Indexed files are not persisted for PGVector");
-	}
-	
-	/**
-	 * 
-	 * @param indexClass
-	 * @return
-	 */
-	public String getDocumentsFilesPath(String indexClass) {
-		if(indexClass == null || (indexClass=indexClass.trim()).isEmpty()) {
-			indexClass = this.defaultIndexClass;
-		}
-		if (!this.indexClasses.contains(indexClass)) {
-			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
-		}
-		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	}
 	
 	@Override
@@ -856,6 +542,330 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			this.cpw.shutdown(true);
 		}
 		super.close();
+	}
+	
+	//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Methods below should really be an exact match to the same method names
+	 * 
+	 */
+
+	/**
+	 * This method is meant to be overriden so that we dont need to copy/paste the startServer code for every implementation
+	 * @return
+	 */
+	private String[] getServerStartCommands() {
+		return (AbstractVectorDatabaseEngine.TOKENIZER_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
+	}
+	
+	/**
+	 * 
+	 * @param port
+	 */
+	private synchronized void startServer(int port) {
+		// already created by another thread
+		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		if(!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
+		}
+		// check if we have already created a process wrapper
+		if(this.cpw == null) {
+			this.cpw = new ClientProcessWrapper();
+		}
+		
+		String timeout = "30";
+		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+		
+		if(this.cpw.getSocketClient() == null) {
+			boolean debug = false;
+			
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			
+			if(port < 0) {
+				// port has not been forced
+				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch(NumberFormatException e) {
+						// ignore
+						classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
+					}
+				}
+			}
+			
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+			try {
+				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to connect to server for faiss databse.");
+			}
+		} else if (!this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown(false);
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Faiss Database = " + this.engineName);
+			}
+		}
+
+		// create the py translator
+		pyt = new TCPPyTranslator();
+		pyt.setSocketClient(this.cpw.getSocketClient());
+		
+		String[] commands = getServerStartCommands();
+		// replace the vars
+		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+			String resolvedString = substitutor.replace(commands[commandIndex]);
+			commands[commandIndex] = resolvedString;
+		}
+		pyt.runEmptyPy(commands);
+		
+		// for debugging...
+		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+							+ " ptyhon process with commands >>> " + String.join("\n", commands));
+	}
+
+	private void checkSocketStatus() {
+		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1);
+		}
+	}
+	
+	@Override
+	public void addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		this.removeDocument(filePaths, parameters);
+
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+
+		int chunkMaxTokenLength = this.contentLength;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey())) {
+			chunkMaxTokenLength = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_LENGTH.getKey());
+		}
+
+		int tokenOverlapBetweenChunks = this.contentOverlap;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey())) {
+			tokenOverlapBetweenChunks = (int) parameters.get(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey());
+		}
+
+		String chunkUnit = this.defaultChunkUnit;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
+		}
+
+		String extractionMethod = this.defaultExtractionMethod;
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
+			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
+		}
+		
+		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
+		try {
+			// first we need to extract the text from the document
+			// TODO change this to json so we never have an encoding issue
+			checkSocketStatus();
+
+			File indexDirectory = new File(this.schemaFolder, indexClass);
+			File documentDir = new File(indexDirectory, AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+			if(!documentDir.exists()) {
+				documentDir.mkdirs();
+			}
+
+			boolean filesAppoved = VectorDatabaseUtils.verifyFileTypes(filePaths, new ArrayList<>(Arrays.asList(documentDir.list())));
+			if (!filesAppoved) {
+				throw new IllegalArgumentException("Currently unable to mix csv with non-csv file types.");
+			}
+
+			if (!indexFilesFolder.exists()) {
+				indexFilesFolder.mkdirs();
+			}
+			if (!this.indexClasses.contains(indexClass)) {
+				addIndexClass(indexClass);
+			}
+
+			List<File> extractedFiles = new ArrayList<>();
+			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we can push them to the cloud
+			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
+
+			// move the documents from insight into documents folder
+			Set<File> fileToExtractFrom = new HashSet<File>();
+			for (String fileName : filePaths) {
+				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
+
+				// Double check that they are files and not directories
+				if (!fileInInsightFolder.isFile()) {
+					continue;
+				}
+
+				File destinationFile = new File(documentDir, fileInInsightFolder.getName());
+
+				// Check if the destination file exists, and if so, delete it
+				try {
+					if (destinationFile.exists()) {
+						FileUtils.forceDelete(destinationFile);
+					}
+					FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
+				}
+
+				// add it to the list of files we need to extract text from
+				fileToExtractFrom.add(destinationFile);
+				
+				// add it to the list of files that need to be pushed to the cloud in a new thread
+				filesToCopyToCloud.add(destinationFile.getAbsolutePath());
+			}
+			
+			// loop through each document and attempt to extract text
+			for (File document : fileToExtractFrom) {
+				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				File extractedFile = new File(indexFilesFolder.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
+				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
+				try {
+					if (extractedFile.exists()) {
+						FileUtils.forceDelete(extractedFile);
+					}
+					String docLower = document.getName().toLowerCase();
+					
+					if(docLower.endsWith(".csv")) {
+						classLogger.info("You are attempting to load in a structured table for " + documentName + ". Hopefully the structure is the right format we expect");
+						// copy csv over
+						FileUtils.copyFileToDirectory(document, indexFilesFolder);
+					} else {
+						classLogger.info("Extracting text from document " + documentName);
+						// determine which text extraction method to use
+						int rowsCreated;
+						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
+							StringBuilder extractTextFromDocScript = new StringBuilder();
+							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+								.append("', target_folder = '")
+								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
+								.append("', output_file_name = '")
+								.append(extractedFileName)
+								.append("')");
+							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
+
+							rowsCreated = rows.intValue();
+						} else {
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+						}
+
+						// check to see if the file data was extracted
+						if (rowsCreated <= 1) {
+							// no text was extracted so delete the file
+							FileUtils.forceDelete(extractedFile); // delete the csv
+							FileUtils.forceDelete(document); // delete the input file e.g pdf
+							continue;
+						}
+
+						classLogger.info("Creating chunks from extracted text for " + documentName);
+
+						StringBuilder splitTextCommand = new StringBuilder();
+						splitTextCommand.append("vector_database.split_text(csv_file_location = '")
+							.append(extractedFileName)
+							.append("', chunk_unit = '")
+							.append(chunkUnit)
+							.append("', chunk_size = ")
+							.append(chunkMaxTokenLength)
+							.append(", chunk_overlap = ")
+							.append(tokenOverlapBetweenChunks)
+							.append(", chunking_strategy = ")
+							.append(chunkingStrategy)
+							.append(", cfg_tokenizer = cfg_tokenizer)");
+						
+						pyt.runScript(splitTextCommand.toString());
+					}
+
+					// add it to the list of files that need to be pushed to the cloud in a new thread
+					filesToCopyToCloud.add(document.getAbsolutePath());
+					extractedFiles.add(extractedFile);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
+				}
+			}
+			
+			if (extractedFiles.size() > 0) {
+				addEmbeddingFiles(extractedFiles, insight, parameters);
+				
+				if (ClusterUtil.IS_CLUSTER) {
+					// push the actual documents over to the cloud
+					Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+					copyFilesToCloudThread.start();
+				}
+			}
+		} finally {
+			cleanUpAddDocument(indexFilesFolder);
+		}
+	}
+	
+	protected void addIndexClass(String indexClass) {
+		this.indexClasses.add(indexClass);
+	}
+	
+	protected void cleanUpAddDocument(File indexFilesFolder) {
+		try {
+			FileUtils.forceDelete(indexFilesFolder);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	public String getIndexFilesPath(String indexClass) {
+		throw new IllegalArgumentException("Indexed files are not persisted for PGVector");
+	}
+	
+	/**
+	 * 
+	 * @param indexClass
+	 * @return
+	 */
+	public String getDocumentsFilesPath(String indexClass) {
+		if(indexClass == null || (indexClass=indexClass.trim()).isEmpty()) {
+			indexClass = this.defaultIndexClass;
+		}
+		if (!this.indexClasses.contains(indexClass)) {
+			throw new IllegalArgumentException("Unable to retieve document csv from a directory that does not exist");
+		}
+		return Utility.normalizePath(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	}
 	
 	@Override
