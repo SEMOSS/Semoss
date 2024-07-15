@@ -652,6 +652,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	 * @return
 	 */
 	protected Float[] getEmbeddingsFloat(String content, Insight insight) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 		List <Double> embeddingsResponse = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), getInsight(insight), null).getResponse().get(0);
 		Float [] retFloat = new Float[embeddingsResponse.size()];
@@ -669,6 +672,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	 * @return
 	 */
 	protected List<Double> getEmbeddingsDouble(String content, Insight insight) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 		List<Double> embeddingsResponse = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), getInsight(insight), null).getResponse().get(0);
 		return embeddingsResponse;

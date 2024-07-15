@@ -2,7 +2,6 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,24 +31,19 @@ import prerna.util.Utility;
 public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
-	
 	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
 	private String url = null;
 	private String apiKey = null;
+
 	private String className = null;
 	private String collectionID = null;
-
 	private String apiAdd = "/add";
+	// private String apiUpsert = "/upsert";
 	private String apiDelete = "/delete";
 	private String apiQuery = "/query";
-
-	@Override
-	public VectorDatabaseTypeEnum getVectorDatabaseType() {
-		return VectorDatabaseTypeEnum.CHROMA;
-	}
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -59,14 +53,11 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (!this.url.endsWith("/")) {
 			this.url += "/";
 		}
-		this.apiKey = smssProp.getProperty("API_KEY");
+		this.apiKey = smssProp.getProperty(Constants.API_KEY);
 		this.className = smssProp.getProperty(CHROMA_CLASSNAME);
-		this.distanceMethod = smssProp.getProperty(DISTANCE_METHOD);
 
 		// create or fetch collection Id from the Chroma DB
 		this.collectionID = createCollection(this.className);
-
-		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
 	}
 
 	/**
@@ -80,10 +71,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		collectionName = collectionName.replaceAll(" ", "_");
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, null, null, null, null);
-		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse, 
+		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse,
 				new TypeToken<List<Map<String, Object>>>() {}.getType());
-		
-		System.out.println(responseListMap);
+//		System.out.println(responseListMap);
 		for (Map<String, Object> responseMap : responseListMap) {
 			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
 				return (String) responseMap.get("id");
@@ -95,13 +85,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Map<String, String> collectionNameToCreate = new HashMap<>();
 		collectionNameToCreate.put("name", collectionName);
 		String body = gson.toJson(collectionNameToCreate);
-		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, null, body,
-				ContentType.APPLICATION_JSON, null, null, null);
-		Type maptype = new TypeToken<Map<String, Object>>() {
-		}.getType();
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, maptype);
+		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, null, body, ContentType.APPLICATION_JSON, null, null, null);
+		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		return (String) responseMap.get("id");
-
 	}
 
 	@Override
@@ -146,7 +132,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			ids.add(currentRowID);
 			embeddings.add(vectorEmbeddings);
 			metadatas.add(properties);
-
 		}
 
 		vectors.put("ids", ids);
@@ -154,7 +139,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		vectors.put("metadatas", metadatas);
 
 		String body = new Gson().toJson(vectors);
-		System.out.println(body);
+//		System.out.println(body);
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
@@ -192,7 +177,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			fileNamesForDelete.put("where", sourceProperty);
 
 			String body = new Gson().toJson(fileNamesForDelete);
-			System.out.println(body);
+//			System.out.println(body);
 
 			Map<String, String> headersMap = new HashMap<>();
 			if (this.apiKey != null && !this.apiKey.isEmpty()) {
@@ -226,11 +211,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
 		}
-
 	}
 
 	@Override
 	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
 		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -243,16 +231,15 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 
-		Float[] vector = getEmbeddingsFloat(searchStatement, insight);
+		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
 		Map<String, Object> query = new HashMap<>();
-		List<Float[]> queryEmbeddings = new ArrayList<>();
+		List<List<Double>> queryEmbeddings = new ArrayList<>();
 		queryEmbeddings.add(vector); // this is done to put a list of embeddings inside another list otherwise the
 										// API throws error.
 		// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
 		query.put("query_texts", searchStatement);
 		query.put("n_results", limit);
 		query.put("query_embeddings", queryEmbeddings);
-		//query.put("include", Arrays.asList("embeddings", "documents", "metadatas", "distances"));
 		String body = gson.toJson(query);
 
 		Map<String, String> headersMap = new HashMap<>();
@@ -270,6 +257,11 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		retOut.add(responseMap);
 
 		return retOut;
+	}
+	
+	@Override
+	public VectorDatabaseTypeEnum getVectorDatabaseType() {
+		return VectorDatabaseTypeEnum.CHROMA;
 	}
 
 }
