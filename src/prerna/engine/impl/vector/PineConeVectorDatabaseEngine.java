@@ -2,7 +2,6 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +24,6 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
-import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -34,25 +32,18 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LoggerFactory.getLogger(PineConeVectorDatabaseEngine.class);
 
-	private static final String HASH = "#";
-	private static final String PREFIX = "&prefix=";
-	
-	private static final String LIST_QUERY = "/vectors/list?namespace=";
-	private static final String API_QUERY = "/query";
-	private static final String API_UPSERT = "/vectors/upsert";
-	private static final String API_DELETE = "/vectors/delete";
-	
-	private static final String API_KY= "Api-Key";
-	private static final String NAMESPACE = "NAMESPACE";
-
+	private String hostname = null;
 	private String apiKey = null;
 	private String defaultNamespace = null;
-	private String hostname = null;
 
-	@Override
-	public VectorDatabaseTypeEnum getVectorDatabaseType() {
-		return VectorDatabaseTypeEnum.PINECONE;
-	}
+	public String NAMESPACE = "NAMESPACE";
+	public String API_UPSERT = "/vectors/upsert";
+	public String API_DELETE = "/vectors/delete";
+	public String API_QUERY = "/query";
+	public String API_KY= "Api-Key";
+	public String LIST_QUERY = "/vectors/list?namespace=";
+	public String HASH = "#";
+	public String PREFIX = "&prefix=";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -65,6 +56,69 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		this.hostname = smssProp.getProperty(Constants.HOSTNAME);
 		this.defaultNamespace = this.smssProp.getProperty(NAMESPACE);
+	}
+	
+	@Override
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		// if we were able to extract files, begin embeddings process
+		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
+		
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		// Sample URL:
+		// "https://docs-quickstart-index3-fiarr5p.svc.aped-4627-b74a.pinecone.io/vectors/upsert";
+		String url = this.hostname + API_UPSERT;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(API_KY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		Map<String, Object> vectorsMap = new HashMap<>();
+		List<Map<String, Object>> vectors = new ArrayList<>();
+		vectorsMap.put("namespace", this.defaultNamespace);
+
+		// loop through and make the giant json
+		int fileCounter = 0;
+		String previousFileName = null;
+
+		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
+			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
+			Map<String, Object> properties = new HashMap<>();
+			properties.put("Source", row.getSource());
+			properties.put("Modality", row.getModality());
+			properties.put("Divider", row.getDivider());
+			properties.put("Part", row.getPart());
+			properties.put("Tokens", row.getTokens());
+			properties.put("Content", row.getContent());
+
+			List<Double> vector = getEmbeddingsDouble(row.getContent(), insight);
+
+			if (row.getSource().equals(previousFileName)) {
+				fileCounter = 0;
+			}
+
+			Map<String, Object> thisMap = new HashMap<>();
+			thisMap.put("id", row.getSource().replaceAll(" ", "_") + "-" + fileCounter++);
+			thisMap.put("values", vector);
+			thisMap.put("metadata", properties);
+			vectors.add(thisMap);
+		}
+
+		vectorsMap.put("vectors", vectors);
+		String body = new Gson().toJson(vectorsMap);
+//		System.out.println(body);
+
+		HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 	}
 
 	@Override
@@ -89,10 +143,8 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
 			String idListResponse = HttpHelperUtility.getRequest(urlforIDList, headersMap, null, null, null);
-			Type type = new TypeToken<Map<String, Object>>() {
-			}.getType();
-			Map<String, Object> responseMap = gson.fromJson(idListResponse, type);
-			System.out.println(responseMap);
+			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
+//			System.out.println(responseMap);
 
 			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
 			List<String> idsToBeDeleted = new ArrayList<String>();
@@ -105,7 +157,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			fileNamesForDelete.put("namespace", this.defaultNamespace);
 
 			String body = gson.toJson(fileNamesForDelete);
-			System.out.println(body);
+//			System.out.println(body);
 
 			HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null,
 					null);
@@ -123,7 +175,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
@@ -132,11 +183,17 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			deleteFilesFromCloudThread.start();
 		}
 	}
-
+	
 	@Override
 	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		
 		String url = this.hostname + API_QUERY;
 		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
+		
+		List<Map<String, Object>> matchesOut = new ArrayList<Map<String, Object>>();
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		if (limit == null) {
@@ -172,73 +229,32 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				ContentType.APPLICATION_JSON, null, null, null);
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+	
+		for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
+			Map<String, Object> outputMap = new HashMap();
+			outputMap.put("matches", responseMap.get("matches"));
 
-		retOut.add(responseMap);
+			matchesOut.add(outputMap);
+		}
+
+		for (int i = 0; i < matchesOut.size(); i++) {
+			List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut.get(i).get("matches");
+			Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
+			Map<String, Object> idMap = new HashMap<String, Object>();
+			idMap.put("id", matches.get(i).get("id"));
+			Map<String, Object> scoreMap = new HashMap<String, Object>();
+			scoreMap.put("score", matches.get(i).get("score"));
+			retOut.add(idMap);
+			retOut.add(scoreMap);
+			retOut.add(metadataMap);
+		}
 
 		return retOut;
 	}
-
+	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
-
-		// if we were able to extract files, begin embeddings process
-		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-
-		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-
-		// Sample URL:
-		// "https://docs-quickstart-index3-fiarr5p.svc.aped-4627-b74a.pinecone.io/vectors/upsert";
-		String url = this.hostname + API_UPSERT;
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put("Api-Key", this.apiKey);
-		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-
-		Map<String, Object> vectorsMap = new HashMap<>();
-		List<Map<String, Object>> vectors = new ArrayList<>();
-		String namespace = this.defaultNamespace;
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.NAMESPACE.getKey())) {
-			namespace = (String) parameters.get(VectorDatabaseParamOptionsEnum.NAMESPACE.getKey());
-		}
-		vectorsMap.put("namespace", namespace);
-
-		// loop through and make the giant json
-		int fileCounter = 0;
-		String previousFileName = null;
-
-		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
-			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
-			Map<String, Object> properties = new HashMap<>();
-			properties.put("Source", row.getSource());
-			properties.put("Modality", row.getModality());
-			properties.put("Divider", row.getDivider());
-			properties.put("Part", row.getPart());
-			properties.put("Tokens", row.getTokens());
-			properties.put("Content", row.getContent());
-
-			List<Double> vector = getEmbeddingsDouble(row.getContent(), insight);
-			if (row.getSource().equals(previousFileName)) {
-				fileCounter = 0;
-			}
-
-			Map<String, Object> thisMap = new HashMap<>();
-			thisMap.put("id", row.getSource().replaceAll(" ", "_") + "-" + fileCounter++);
-			thisMap.put("values", vector);
-			thisMap.put("metadata", properties);
-			vectors.add(thisMap);
-		}
-
-		vectorsMap.put("vectors", vectors);
-		String body = new Gson().toJson(vectorsMap);
-		System.out.println(body);
-
-		HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+	public VectorDatabaseTypeEnum getVectorDatabaseType() {
+		return VectorDatabaseTypeEnum.PINECONE;
 	}
+
 }
