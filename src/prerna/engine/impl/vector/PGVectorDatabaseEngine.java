@@ -434,10 +434,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			verifyModelProps();
 		}
 		
-		if (this.embedderEngineId == null) {
-			throw new IllegalArgumentException("Please fedine the embeding model in the database smss");
-		}
-		
 		Insight insight = getInsight(parameters.remove(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
