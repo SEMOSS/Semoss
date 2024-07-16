@@ -74,7 +74,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		try {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// Sample URL:
 		// "https://docs-quickstart-index3-fiarr5p.svc.aped-4627-b74a.pinecone.io/vectors/upsert";
