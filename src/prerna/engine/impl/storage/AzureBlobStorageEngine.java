@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -288,6 +289,11 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //				localPath = "\""+localPath+"\"";
 //			}
 			
+			// Initialize metadata to an empty map if it is null
+            if (metadata == null) {
+                metadata = new HashMap<>();
+            }
+			
 			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
 			values.add(RCLONE);
 			values.add("sync");
@@ -295,7 +301,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			values.add(rClonePath);
 			values.add("--metadata");
 			
-			if(metadata != null && !metadata.isEmpty()) {
+			if(!metadata.isEmpty()) {
 				for(String key : metadata.keySet()) {
 					Object value = metadata.get(key);
 					
@@ -387,6 +393,11 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //				localFilePath = "\""+localFilePath+"\"";
 //			}
 			
+			// Initialize metadata to an empty map if it is null
+            if (metadata == null) {
+                metadata = new HashMap<>();
+            }
+			
 			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
 			values.add(RCLONE);
 			values.add("copy");
@@ -394,7 +405,8 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			values.add(rClonePath);
 			values.add("--metadata");
 			
-			if(metadata != null && !metadata.isEmpty()) {
+			
+			if(!metadata.isEmpty()) {
 				for(String key : metadata.keySet()) {
 					Object value = metadata.get(key);
 					

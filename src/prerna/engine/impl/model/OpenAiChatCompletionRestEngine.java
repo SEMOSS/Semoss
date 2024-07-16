@@ -197,6 +197,9 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 				Integer newMaxTokens = (Integer) maxTokens;
 				if (newMaxTokens + messages.getMessagesTokenCount() > this.maxTokens) {
 					newMaxTokens -= messages.getMessagesTokenCount();
+					if(newMaxTokens<1) {
+						newMaxTokens=1;
+					}
 					bodyMap.put("max_tokens", newMaxTokens);
 				}
 			}
@@ -206,7 +209,12 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			
 			AskModelEngineResponse askResponse = AskModelEngineResponse.fromMap(modelEngineResponseMap);
 			
-			Integer tokens = getCountTokenScript(insight.getPyTranslator(), messages.getTokenizerVarName(), askResponse.getResponse());
+			Integer tokens = null;
+			try {
+					tokens = getCountTokenScript(insight.getPyTranslator(), messages.getTokenizerVarName(), askResponse.getResponse());
+			} catch(Exception e) {
+				classLogger.info("Unable to count tokens for OpenAI Rest Engine. Likely due to chat history being disabled");
+			}
 			messages.addModelResponse(askResponse.getResponse(), tokens);
 			
 			askResponse.setNumberOfTokensInPrompt(promptTokens);
@@ -265,6 +273,21 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			}
 		} else {
 			conversationChain = new ConversationChain();
+//			String tokenizerVarName = Utility.getRandomString(6);
+//			conversationChain.setTokenizerVarName(tokenizerVarName);
+//			
+//			// add the model tokenizer to users py process
+//			insight.getPyTranslator().runScript(tokenizerImportScript);
+//			
+//			StringBuilder createVarScript = new StringBuilder(tokenizerVarName);
+//			createVarScript.append(" = ")
+//						   .append("OpenAiTokenizer('")
+//						   .append(this.modelName)
+//						   .append("', ")
+//						   .append(this.maxTokens)
+//						   .append(")");
+//			
+//			insight.getPyTranslator().runScript(createVarScript.toString());
 		}
 				
 		if (context != null) {
@@ -279,6 +302,8 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 	}
 	
 	private Integer getCountTokenScript(PyTranslator pyt, String tokenizerVarName, String message) {
+		
+
 		StringBuilder countTokenScript = new StringBuilder(tokenizerVarName);
 		countTokenScript.append(".count_tokens(")
 					    .append(PyUtils.determineStringType(message))
