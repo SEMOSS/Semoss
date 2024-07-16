@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -153,15 +154,24 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			if(!vectorF.getCanonicalPath().contains(documentDir.getCanonicalPath()+FILE_SEPARATOR)) {
 				File documentDestinationFile = new File(documentDir, vectorF.getName());
-				// check if the destination file exists, and if so, delete it
+				// check if the destination file exists, and if so, delete it 
 				try {
 					if (documentDestinationFile.exists()) {
 						FileUtils.forceDelete(documentDestinationFile);
 					}
-					FileUtils.copyFileToDirectory(vectorF, documentDir, true);
 					
-					// store to move to cloud
-					filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
+					//only copy the csv if there is not already a file there with the same name
+		             String baseName = FilenameUtils.getBaseName(vectorF.getName());
+
+		             // Check if a file with the same base name but different extension exists
+		             boolean fileWithSameBaseNameExists = Arrays.stream(documentDir.listFiles())
+		                     .anyMatch(file -> FilenameUtils.getBaseName(file.getName()).equals(baseName));
+		             if(!fileWithSameBaseNameExists) {
+		            	 FileUtils.copyFileToDirectory(vectorF, documentDir, true);
+						// store to move to cloud
+						filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
+		             }
+
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to remove previously created file for " + documentDestinationFile.getName() + " or move it to the document directory");
