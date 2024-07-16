@@ -122,12 +122,13 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
                         String line;
                         
                         while ((line = reader.readLine()) != null) {
+//                        	System.out.println("My line is = " + line);
                         	responseAssimilator.append(line);
                             JobManager.getManager().addPartialOut(jobId, line);
                         }
                         
                         // return the combined outputs
-                        return responseAssimilator;
+                        responseData = responseAssimilator.toString();
                     } catch (Exception e) {
             	        classLogger.error(Constants.STACKTRACE, e);
             	        throw new IllegalArgumentException("There was an error processing the response from " + url);
