@@ -41,17 +41,16 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	
-	private String engineId = null;
-	private String engineName = null;
+	protected String engineId = null;
+	protected String engineName = null;
 	private String engineDirectoryPath = null;
 
 	protected Properties smssProp = null;
-	private String smssFilePath = null;
+	protected String smssFilePath = null;
 	
-	private boolean keepConversationHistory = false;
-	private boolean keepInputOutput = false;
-	
-	private boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+	protected boolean keepConversationHistory = false;
+	protected boolean keepInputOutput = false;
+	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {

@@ -274,13 +274,15 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	    					// try to convert it into a full object
 	    					// need to check if it is primitive before converting
 	    					// try to convert it into a full object
-	    					try
-	    					{
-		    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
-		    					ps.payload[0] = obj;
-	    					}catch(Exception ignored)
-	    					{
-	    						
+	    					try {
+	    						if(ps.payload[0] != null) { 
+			    					if(ps.payload[0] instanceof String) {
+		    							Object obj = gson.fromJson((String)ps.payload[0], Object.class);
+				    					ps.payload[0] = obj;
+			    					}
+	    						}
+	    					} catch(Exception ignored) {
+	    						classLogger.warn("Ignoring unable to gson.fromJson() of " + ps.payload[0]);
 	    					}
 	    					// put it in response
 	    					responseMap.put(ps.epoc, ps);
