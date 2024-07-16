@@ -20,13 +20,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.JsonSyntaxException;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -56,7 +57,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 	
 	private Map<String, ConversationChain> conversationHisotry = new Hashtable<>();
 	
-	Gson gson = new GsonBuilder()
+	private Gson gson = new GsonBuilder()
 			.excludeFieldsWithoutExposeAnnotation()
 		    .registerTypeAdapter(ConversationChain.class, new ConversationChainSerializer())
 		    .create();
@@ -86,9 +87,9 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		}
 		
 		try {
-		    this.maxTokens = Integer.parseInt(maxTokens);
+		    this.maxTokens = ((Number) Double.parseDouble(maxTokens)).intValue();
 		} catch (NumberFormatException e) {
-		    throw new IllegalArgumentException("Invalid format for " + Constants.MAX_TOKENS + ". It should be an integer.");
+			throw new IllegalArgumentException("Invalid " + Constants.MAX_TOKENS + " input for engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 		
 		if(this.smssProp.getProperty(PROVIDER) != null && !(this.smssProp.getProperty(PROVIDER).trim().isEmpty())) {

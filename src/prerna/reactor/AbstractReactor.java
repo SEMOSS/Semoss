@@ -637,13 +637,25 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	/**
-	 * Get the session id set in the job
+	 * Get the session id for the insight
 	 * @return
 	 */
 	protected String getRouteId() {
 		NounMetadata route = planner.getVariable(JobReactor.ROUTE_KEY);
 		if(route != null) {
 			return route.getValue() +"";
+		}
+		return ThreadStore.getRouteId();
+	}
+	
+	/**
+	 * Get the job id for this pixel execution
+	 * @return
+	 */
+	protected String getJobId() {
+		NounMetadata job = planner.getVariable(JobReactor.JOB_KEY);
+		if(job != null) {
+			return job.getValue() +"";
 		}
 		return ThreadStore.getRouteId();
 	}

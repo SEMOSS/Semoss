@@ -15,6 +15,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -49,7 +50,27 @@ public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 		}
 		
 		this.headersMap = new HashMap<>();
-	}	
+		
+		String maxTokensStr = this.smssProp.getProperty(Constants.MAX_TOKENS);
+		if(maxTokensStr != null && !(maxTokensStr=maxTokensStr.trim()).isEmpty()) {
+			try {
+				this.maxTokens = ((Number) Double.parseDouble(maxTokensStr)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.error("Invalid maxTokens input for engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		String maxInputTokensStr = this.smssProp.getProperty(Constants.MAX_INPUT_TOKENS);
+		if(maxInputTokensStr != null && !(maxInputTokensStr=maxInputTokensStr.trim()).isEmpty()) {
+			try {
+				this.maxInputTokens = ((Number) Double.parseDouble(maxInputTokensStr)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.error("Invalid maxInputTokens input for engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
 
 	@Override
 	public AskModelEngineResponse askCall (
@@ -76,7 +97,6 @@ public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 		boolean stream = Boolean.parseBoolean(hyperParameters.remove("stream") + "");
 		stream = true;
 		bodyMap.put("stream", stream);
-		
 		bodyMap.put("parameters", this.adjustHyperParameters(hyperParameters));
 
 		IModelEngineResponseHandler modelResponse = postRequestStringBody(this.endpoint, this.headersMap, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, 
