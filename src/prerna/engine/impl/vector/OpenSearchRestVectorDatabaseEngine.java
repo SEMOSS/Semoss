@@ -563,6 +563,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
-		return VectorDatabaseTypeEnum.OPENSEARCH;
+		return VectorDatabaseTypeEnum.OPEN_SEARCH;
 	}
 }
