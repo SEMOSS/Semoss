@@ -1,20 +1,4 @@
 name: CI
-
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       VERSION:
-#         description: "VERSION"
-#         required: true
-#         default: "4.3.0"
-#       RELEASE:
-#         description: "Release (true/false)"
-#         required: true
-#         default: "false"
-#       SKIP_TESTS:
-#         description: "Maven skip tests (true/false)"
-#         required: true
-#         default: "true"
 on:
   push:
     branches:
@@ -41,7 +25,7 @@ jobs:
   #   if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push') }}
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  #       uses: actions/checkout@v4
   #     - name: Version information
   #       run: |
   #         echo datetime=$(date "+%Y-%m-%d %H:%M:%S") > ver.txt
@@ -60,7 +44,7 @@ jobs:
   #     image: semoss/docker
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  #       uses: actions/checkout@v4
   #     - name: Version information
   #       run: |
   #         echo datetime=$(date "+%Y-%m-%d %H:%M:%S") > ver.txt
@@ -79,7 +63,7 @@ jobs:
   #     image: semoss/docker
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  #       uses: actions/checkout@v4
   #     - name: List files
   #       run: ls
   #     - name: Show version file
@@ -107,7 +91,7 @@ jobs:
       image: semoss/docker
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       # - name: Setup Java
       #   uses: actions/setup-java@v2
       #   with:
@@ -122,18 +106,18 @@ jobs:
         run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
-          path: target/surefire-reports
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
+      #     path: target/surefire-reports
 
   build_deploy:
     runs-on: self-hosted
     if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' &&  github.ref == 'refs/head/dev' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       # - name: Setup Java
       #   uses: actions/setup-java@v2
       #   with:
@@ -148,7 +132,7 @@ jobs:
       - name: Import GPG key
         run: gpg2 --batch --import <(echo "${{ secrets.GPG_PRIVATE_KEY }}")
       - name: Refresh keys
-        run: | 
+        run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
           gpg2 --refresh-key
           gpg --list-keys
@@ -167,7 +151,7 @@ jobs:
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       # - name: Setup Java
       #   uses: actions/setup-java@v2
       #   with:
@@ -182,7 +166,7 @@ jobs:
       - name: Import GPG key
         run: gpg2 --batch --import <(echo "${{ secrets.GPG_PRIVATE_KEY }}")
       - name: Refresh keys
-        run: | 
+        run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
           gpg2 --refresh-key
           gpg --list-keys
