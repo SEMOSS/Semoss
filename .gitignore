@@ -29,3 +29,6 @@ replay_pid*
 # local h2 databases
 *.mv.db
 
+# Eclipse
+.settings/
+.project
