@@ -30,6 +30,9 @@ replay_pid*
 .settings/
 .project
 
+# JDT-specific
+.classpath
+
 # vscode
 .vscode/
 
