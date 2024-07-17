@@ -108,16 +108,15 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			vectorDbDetails.put(Constants.INDEX_CLASSES, "default");
 		}
 		
-		if(vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH 
-				|| vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH_REST) {
-			if(vectorDbDetails.get(Constants.USERNAME) == null) { throw new IllegalArgumentException("Username is not provided."); }
-			if(vectorDbDetails.get(Constants.PASSWORD) == null) { throw new IllegalArgumentException("Password is not provided."); }
-			if(vectorDbDetails.get(Constants.HOSTS) == null) { throw new IllegalArgumentException("HOSTS is not provided."); }
-			if(vectorDbDetails.get(Constants.INDEX_NAME) == null) { throw new IllegalArgumentException("INDEX_NAME is not provided."); }
+		if(vectorDbType == VectorDatabaseTypeEnum.OPENSEARCH) {
+			if(vectorDbDetails.get(Constants.USERNAME) == null) { throw new IllegalArgumentException(Constants.USERNAME + " is not provided."); }
+			if(vectorDbDetails.get(Constants.PASSWORD) == null) { throw new IllegalArgumentException(Constants.PASSWORD + " is not provided."); }
+			if(vectorDbDetails.get(Constants.HOSTNAME) == null) { throw new IllegalArgumentException(Constants.HOSTNAME + " is not provided."); }
+			if(vectorDbDetails.get(Constants.INDEX_NAME) == null) { throw new IllegalArgumentException(Constants.INDEX_NAME + " is not provided."); }
 		}
 		if(vectorDbType == VectorDatabaseTypeEnum.WEAVIATE) {
-			if(vectorDbDetails.get(Constants.API_KEY) == null) { throw new IllegalArgumentException("Username is not provided."); }
-			if(vectorDbDetails.get(Constants.HOSTNAME) == null) { throw new IllegalArgumentException("Password is not provided."); }
+			if(vectorDbDetails.get(Constants.API_KEY) == null) { throw new IllegalArgumentException(Constants.API_KEY + " is not provided."); }
+			if(vectorDbDetails.get(Constants.HOSTNAME) == null) { throw new IllegalArgumentException(Constants.HOSTNAME + " is not provided."); }
 		}
 
 		// not doing any checks right now for weaviate
