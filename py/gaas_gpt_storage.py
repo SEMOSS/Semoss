@@ -89,6 +89,7 @@ class StorageEngine(ServerProxy):
             storagePath (`str`): The path in the storage engine to sync into
             localPath (`str`): The path in the application to sync from (insight, project, user space)
             space (`str`): The space to use. None = current insight. Can be the project id or 'user' for the user specific space
+            metadata (`Optional[Dict]`): Define custom metadata associated with the files being moved to storage. Only available if the underlying storage system supports custom metadata.
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
@@ -214,6 +215,7 @@ class StorageEngine(ServerProxy):
             storagePath (`str`): The path in the storage engine to push into
             localPath (`str`): The path in the application we are pushing to cloud storage (insight, project, user space)
             space (`str`): The space to use. None = current insight. Can be the project id or 'user' for the user specific space
+            metadata (`Optional[Dict]`): Define custom metadata associated with the files being moved to storage. Only available if the underlying storage system supports custom metadata.
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
