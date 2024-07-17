@@ -32,18 +32,18 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LoggerFactory.getLogger(PineConeVectorDatabaseEngine.class);
 
+	private final String NAMESPACE = "NAMESPACE";
+	private final String API_UPSERT = "/vectors/upsert";
+	private final String API_DELETE = "/vectors/delete";
+	private final String API_QUERY = "/query";
+	private final String API_KY= "Api-Key";
+	private final String LIST_QUERY = "/vectors/list?namespace=";
+	private final String HASH = "#";
+	private final String PREFIX = "&prefix=";
+	
 	private String hostname = null;
 	private String apiKey = null;
 	private String defaultNamespace = null;
-
-	public String NAMESPACE = "NAMESPACE";
-	public String API_UPSERT = "/vectors/upsert";
-	public String API_DELETE = "/vectors/delete";
-	public String API_QUERY = "/query";
-	public String API_KY= "Api-Key";
-	public String LIST_QUERY = "/vectors/list?namespace=";
-	public String HASH = "#";
-	public String PREFIX = "&prefix=";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
