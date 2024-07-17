@@ -684,7 +684,6 @@ public class Constants {
 
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
-	public static final String PY_WORKER_CP = "PY_WORKER_CP";
 	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
 	
