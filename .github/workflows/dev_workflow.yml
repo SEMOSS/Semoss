@@ -117,6 +117,8 @@ jobs:
   build_deploy:
     runs-on: self-hosted
     if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' }}
+    container:
+      image: semoss/docker
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -151,6 +153,8 @@ jobs:
   build_release:
     runs-on: self-hosted
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
+    container:
+      image: semoss/docker
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
