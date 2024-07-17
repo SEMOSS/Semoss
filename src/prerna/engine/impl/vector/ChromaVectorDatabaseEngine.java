@@ -31,19 +31,19 @@ import prerna.util.Utility;
 public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
+	
 	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
+	private final String API_ADD = "/add";
+	private final String API_DELETE = "/delete";
+	private final String API_QUERY = "/query";
+	
 	private String url = null;
 	private String apiKey = null;
-
 	private String className = null;
 	private String collectionID = null;
-	private String apiAdd = "/add";
-	// private String apiUpsert = "/upsert";
-	private String apiDelete = "/delete";
-	private String apiQuery = "/query";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -149,7 +149,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			headersMap = null;
 		}
 
-		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + apiAdd, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, 
+				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 	}
 
 	@Override
@@ -187,7 +188,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				headersMap = null;
 			}
 
-			String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + apiDelete,
+			String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_DELETE,
 					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 			String documentName = Paths.get(fileName).getFileName().toString();
@@ -250,7 +251,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			headersMap = null;
 		}
 
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + apiQuery,
+		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());

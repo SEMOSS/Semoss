@@ -72,11 +72,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		
-		this.clusterUrl = this.smssProp.getProperty("HOSTS"); //TODO: switch to hostname
-		this.username = this.smssProp.getProperty("USERNAME");
-		this.password = this.smssProp.getProperty("PASSWORD");
+		this.clusterUrl = this.smssProp.getProperty(Constants.HOSTNAME);
+		this.username = this.smssProp.getProperty(Constants.USERNAME);
+		this.password = this.smssProp.getProperty(Constants.PASSWORD);
 		
-		this.indexName = this.smssProp.getProperty("INDEX_NAME");
+		this.indexName = this.smssProp.getProperty(Constants.INDEX_NAME);
 		String customEmbeddingsName = this.smssProp.getProperty(EMBEDDINGS_COLUMN);
 		if(customEmbeddingsName != null && !(customEmbeddingsName=customEmbeddingsName.trim()).isEmpty()) {
 			this.embeddings = customEmbeddingsName;

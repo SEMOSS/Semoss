@@ -40,7 +40,6 @@ import prerna.util.Utility;
 
 public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 	
-	//TODO decide what we want logged
 	private static final Logger classLogger = LogManager.getLogger(OpenAiChatCompletionRestEngine.class);
 
 	private static final String PROVIDER = "PROVIDER";
@@ -108,7 +107,6 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 	
 	@Override
 	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
-		
 		String insightId = insight.getInsightId();
 		
 		Map<String, Object> bodyMap = new HashMap<>();
@@ -121,9 +119,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		} else {
 			stream = Boolean.parseBoolean(streamResponse + "");
 		}
-		
 		bodyMap.put("stream", stream);
-		
 		
 		parameters = this.adjustHyperParameters(parameters);
 		bodyMap.putAll(parameters);
@@ -211,7 +207,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			
 			Integer tokens = null;
 			try {
-					tokens = getCountTokenScript(insight.getPyTranslator(), messages.getTokenizerVarName(), askResponse.getResponse());
+				tokens = getCountTokenScript(insight.getPyTranslator(), messages.getTokenizerVarName(), askResponse.getResponse());
 			} catch(Exception e) {
 				classLogger.info("Unable to count tokens for OpenAI Rest Engine. Likely due to chat history being disabled");
 			}
