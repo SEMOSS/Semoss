@@ -67,7 +67,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.IReactor;
 import prerna.reactor.InsightCustomReactorCompilator;
 import prerna.reactor.export.IFormatter;
-import prerna.reactor.frame.py.PySingleton;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.frame.r.util.TCPRTranslator;
@@ -732,14 +731,7 @@ public class Insight implements Serializable {
 				// do this so that the netty client is initialized
 				//getPyTranslator();
 				// now set the netty client
-				if(this.user != null)
-				{
-					((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getSocketClient(true) );
-				}
-				else
-				{
-					((TCPRTranslator)this.rJavaTranslator).setClient( PySingleton.getTCPServer() );
-				}
+				((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getSocketClient(true) );
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
 			}
@@ -1600,31 +1592,20 @@ public class Insight implements Serializable {
 	}
 	
 	public PyTranslator getPyTranslator() {
-		// this is really where I need to pull from user
-		// I need to recreate since i make the translator specific to 
-		if(user != null) {
-			this.pyt = user.getPyTranslator();
-		} else {
-			// there is no user
-			this.pyt = PySingleton.getTranslator();			
-		}		
-		
+		this.pyt = user.getPyTranslator();
 		if(this.pyt == null) {
-			this.pyt = user.getPyTranslator();
-			if(this.pyt == null) {
-				throw new NullPointerException("Could not create python translator");
-			}
-			// need to recreate the translator
-			if(this.pyt instanceof TCPPyTranslator) {
-				SocketClient nc1 = ((TCPPyTranslator)pyt).getSocketClient();
-				this.pyt = new TCPPyTranslator();
-				((TCPPyTranslator) this.pyt).setSocketClient(nc1);
-			} else if(this.pyt instanceof PyTranslator) {
-				this.jepThread = pyt.getPy();
-				this.pyt = new PyTranslator();
-				this.pyt.setPy(this.jepThread);
-				this.jepThread = pyt.getPy();
-			}
+			throw new NullPointerException("Could not create python translator");
+		}
+		// need to recreate the translator
+		if(this.pyt instanceof TCPPyTranslator) {
+			SocketClient nc1 = ((TCPPyTranslator)pyt).getSocketClient();
+			this.pyt = new TCPPyTranslator();
+			((TCPPyTranslator) this.pyt).setSocketClient(nc1);
+		} else if(this.pyt instanceof PyTranslator) {
+			this.jepThread = pyt.getPy();
+			this.pyt = new PyTranslator();
+			this.pyt.setPy(this.jepThread);
+			this.jepThread = pyt.getPy();
 		}
 		this.pyt.setInsight(this);
 		return this.pyt;
