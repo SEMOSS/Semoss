@@ -12,7 +12,7 @@ public enum VectorDatabaseTypeEnum {
 	CHROMA("CHROMA", ChromaVectorDatabaseEngine.class.getName()),
 	FAISS("FAISS", FaissDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
-	OPENSEARCH("OPENSEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
+	OPEN_SEARCH("OPEN_SEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
 	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName());
 		
