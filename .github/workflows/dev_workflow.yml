@@ -14,6 +14,8 @@ env:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
   MAVEN_CLI_OPTS: "-s ./settings.xml --batch-mode"
   DOCKER_DRIVER: overlay2
+  GPG_PASS_PHRASE: ${{ secrets.GPG_PASS_PHRASE }}
+  RELEASE: ${{ vars.RELEASE }}
   MAVEN_REPO_TOKEN: ${{ vars.MAVEN_REPO_TOKEN }}
   MAVEN_REPO_TOKEN_PASS: ${{ vars.MAVEN_REPO_TOKEN_PASS }}
 
