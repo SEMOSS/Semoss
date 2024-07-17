@@ -134,7 +134,7 @@ jobs:
           apt-get install -y openjfx
           apt-get install -y gnupg2
       - name: Import GPG key
-        run: gpg2 --batch --import <(echo "${{ secrets.GPG_PRIVATE_KEY }}")
+        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg2 --batch --import
       - name: Refresh keys
         run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
@@ -170,7 +170,7 @@ jobs:
           apt-get install -y openjfx
           apt-get install -y gnupg2
       - name: Import GPG key
-        run: gpg2 --batch --import <(echo "${{ secrets.GPG_PRIVATE_KEY }}")
+        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg2 --batch --import
       - name: Refresh keys
         run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
