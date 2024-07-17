@@ -127,8 +127,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
-import org.owasp.html.PolicyFactory;
-import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;

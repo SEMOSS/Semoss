@@ -22,6 +22,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import javax.net.ssl.HostnameVerifier;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
@@ -61,6 +63,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
@@ -520,6 +523,7 @@ public final class HttpHelperUtility {
 	}
 	
 	/**
+	 * Return the headers from the request only
 	 * 
 	 * @param url
 	 * @param headersMap
@@ -529,7 +533,7 @@ public final class HttpHelperUtility {
 	 * @return
 	 */
 	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
-        String responseData = null;
+		String responseData = null;
 		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
@@ -546,7 +550,14 @@ public final class HttpHelperUtility {
 			int statusCode = response.getStatusLine().getStatusCode();
 			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
-                responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+            	List<Map<String, String>> headersArray = new ArrayList<>();
+            	Header[] allHeaders = response.getAllHeaders();
+            	for(Header h : allHeaders) {
+            		Map<String, String> headerMap = new HashMap<>();
+            		headerMap.put(h.getName(), h.getValue());
+            		headersArray.add(headerMap);
+            	}
+                responseData = new Gson().toJson(headersArray);
             } else {
                 responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
     			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
