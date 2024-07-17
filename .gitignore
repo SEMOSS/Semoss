@@ -26,9 +26,30 @@ target/
 hs_err_pid*
 replay_pid*
 
-# local h2 databases
-*.mv.db
-
 # Eclipse
 .settings/
 .project
+
+# vscode
+.vscode/
+
+# Python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# mac OS
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# local engines
+project/**
+db/**
+model/**
+function/**
+storage/**
+vector/**
+*.mv.db
