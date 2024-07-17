@@ -116,7 +116,7 @@ jobs:
 
   build_deploy:
     runs-on: self-hosted
-    if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' &&  github.ref == 'refs/head/dev' }}
+    if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
