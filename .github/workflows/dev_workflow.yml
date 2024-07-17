@@ -18,11 +18,11 @@ name: CI
 on:
   push:
     branches:
-      - svn/dev
+      - dev
       - main
   pull_request:
     branches:
-      - svn/dev
+      - dev
       - main
   workflow_dispatch:
 
@@ -34,92 +34,92 @@ env:
   MAVEN_REPO_TOKEN_PASS: ${{ vars.MAVEN_REPO_TOKEN_PASS }}
 
 jobs:
-  version_info_deploy:
-    runs-on: ubuntu-latest
-    container:
-      image: semoss/docker
-    if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push') }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Version information
-        run: |
-          echo datetime=$(date "+%Y-%m-%d %H:%M:%S") > ver.txt
-          echo version=${{ vars.VERSION }}-SNAPSHOT >> ver.txt
-          cat ver.txt
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ver.txt
-          path: ver.txt
+  # version_info_deploy:
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: semoss/docker
+  #   if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push') }}
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Version information
+  #       run: |
+  #         echo datetime=$(date "+%Y-%m-%d %H:%M:%S") > ver.txt
+  #         echo version=${{ vars.VERSION }}-SNAPSHOT >> ver.txt
+  #         cat ver.txt
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: ver.txt
+  #         path: ver.txt
 
-  version_info_release:
-    runs-on: ubuntu-latest
-    if: ${{ vars.RELEASE != 'TRUE' }} && github.event_name == 'workflow_dispatch'
-    container:
-      image: semoss/docker
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Version information
-        run: |
-          echo datetime=$(date "+%Y-%m-%d %H:%M:%S") > ver.txt
-          echo version=${{ vars.VERSION }} >> ver.txt
-          cat ver.txt
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ver.txt
-          path: ver.txt
+  # version_info_release:
+  #   runs-on: ubuntu-latest
+  #   if: ${{ vars.RELEASE != 'TRUE' }} && github.event_name == 'workflow_dispatch'
+  #   container:
+  #     image: semoss/docker
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Version information
+  #       run: |
+  #         echo datetime=$(date "+%Y-%m-%d %H:%M:%S") > ver.txt
+  #         echo version=${{ vars.VERSION }} >> ver.txt
+  #         cat ver.txt
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: ver.txt
+  #         path: ver.txt
 
-  version_commit:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/svn/dev' && ${{ vars.RELEASE == 'TRUE' }}
-    container:
-      image: semoss/docker
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: List files
-        run: ls
-      - name: Show version file
-        run: cat ver.txt
-      - name: Setup subversion
-        run: |
-          sudo apt-get --allow-releaseinfo-change update -y
-          sudo apt-get update -y
-          sudo apt-get install -y subversion
-      - name: Commit version to SVN
-        run: |
-          svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} checkout svn://107.170.10.188:3690/Semoss/dev SemossVer --depth empty
-          cd semossVer
-          svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} up ver.txt
-          cp -rf ../ver.txt ver.txt
-          svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} status -u
-          svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} commit -m "VERSION"
-          cd ..
-          rm -rf semossVer
+  # version_commit:
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/svn/dev' && ${{ vars.RELEASE == 'TRUE' }}
+  #   container:
+  #     image: semoss/docker
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: List files
+  #       run: ls
+  #     - name: Show version file
+  #       run: cat ver.txt
+  #     - name: Setup subversion
+  #       run: |
+  #         sudo apt-get --allow-releaseinfo-change update -y
+  #         sudo apt-get update -y
+  #         sudo apt-get install -y subversion
+  #     - name: Commit version to SVN
+  #       run: |
+  #         svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} checkout svn:///Semoss/dev SemossVer --depth empty
+  #         cd semossVer
+  #         svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} up ver.txt
+  #         cp -rf ../ver.txt ver.txt
+  #         svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} status -u
+  #         svn --username ${{ secrets.SVN_USER }} --password ${{ secrets.SVN_PASS }} commit -m "VERSION"
+  #         cd ..
+  #         rm -rf semossVer
 
   build_dev:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && ${{ vars.RELEASE != 'TRUE' }}
+    runs-on: self-hosted
+    if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name =='push' || github.event_name =='pull_request')  }}
     container:
       image: semoss/docker
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: "adopt"
-          java-version: "11"
+      # - name: Setup Java
+      #   uses: actions/setup-java@v2
+      #   with:
+      #     distribution: "adopt"
+      #     java-version: "11"
       - name: Install dependencies
         run: |
-          sudo apt-get --allow-releaseinfo-change update -y
-          sudo apt-get update -y
-          sudo apt-get install -y openjfx
+          apt-get --allow-releaseinfo-change update -y
+          apt-get update -y
+          apt-get install -y openjfx
       - name: Build with Maven
-        run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ github.event.inputs.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+        run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       - name: Upload artifact
@@ -129,28 +129,31 @@ jobs:
           path: target/surefire-reports
 
   build_deploy:
-    runs-on: ubuntu-latest
-    if: ${{ vars.RELEASE == 'TRUE' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push') }}
+    runs-on: self-hosted
+    if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' &&  github.ref == 'refs/head/dev' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: "adopt"
-          java-version: "11"
+      # - name: Setup Java
+      #   uses: actions/setup-java@v2
+      #   with:
+      #     distribution: "adopt"
+      #     java-version: "11"
       - name: Install dependencies
         run: |
-          sudo apt-get --allow-releaseinfo-change update -y
-          sudo apt-get update -y
-          sudo apt-get install -y openjfx
-          sudo apt-get install -y gnupg2
+          apt-get --allow-releaseinfo-change update -y
+          apt-get update -y
+          apt-get install -y openjfx
+          apt-get install -y gnupg2
       - name: Import GPG key
         run: gpg2 --batch --import <(echo "${{ secrets.GPG_PRIVATE_KEY }}")
-      - name: List keys
-        run: gpg --list-keys
+      - name: Refresh keys
+        run: | 
+          echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+          gpg2 --refresh-key
+          gpg --list-keys
       - name: Deploy with Maven
-        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ github.event.inputs.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       # - name: Upload artifact
@@ -160,28 +163,31 @@ jobs:
       #     path: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
 
   build_release:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: "adopt"
-          java-version: "11"
+      # - name: Setup Java
+      #   uses: actions/setup-java@v2
+      #   with:
+      #     distribution: "adopt"
+      #     java-version: "11"
       - name: Install dependencies
         run: |
-          sudo apt-get --allow-releaseinfo-change update -y
-          sudo apt-get update -y
-          sudo apt-get install -y openjfx
-          sudo apt-get install -y gnupg2
+          apt-get --allow-releaseinfo-change update -y
+          apt-get update -y
+          apt-get install -y openjfx
+          apt-get install -y gnupg2
       - name: Import GPG key
         run: gpg2 --batch --import <(echo "${{ secrets.GPG_PRIVATE_KEY }}")
-      - name: List keys
-        run: gpg --list-keys
+      - name: Refresh keys
+        run: | 
+          echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+          gpg2 --refresh-key
+          gpg --list-keys
       - name: Deploy with Maven
-        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ github.event.inputs.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}
+        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       # - name: Upload artifact
