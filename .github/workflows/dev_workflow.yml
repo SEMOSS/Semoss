@@ -108,11 +108,11 @@ jobs:
         run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: semoss-jar
-          path: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: semoss-jar
+      #     path: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
 
   build_deploy:
     runs-on: self-hosted
