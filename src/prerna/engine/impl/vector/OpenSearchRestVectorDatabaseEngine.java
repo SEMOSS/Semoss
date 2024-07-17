@@ -40,6 +40,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	
 	private static final Logger classLogger = LogManager.getLogger(OpenSearchRestVectorDatabaseEngine.class);
 
+	public static final String INDEX_NAME = "INDEX_NAME";
+
 	private static final String TEXT_DATATYPE = "text";
 	private static final String KEYWORD_DATATYPE = "keyword";
 	private static final String INT_DATATYPE = "integer";
@@ -76,7 +78,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		this.username = this.smssProp.getProperty(Constants.USERNAME);
 		this.password = this.smssProp.getProperty(Constants.PASSWORD);
 		
-		this.indexName = this.smssProp.getProperty(Constants.INDEX_NAME);
+		this.indexName = this.smssProp.getProperty(INDEX_NAME);
 		String customEmbeddingsName = this.smssProp.getProperty(EMBEDDINGS_COLUMN);
 		if(customEmbeddingsName != null && !(customEmbeddingsName=customEmbeddingsName.trim()).isEmpty()) {
 			this.embeddings = customEmbeddingsName;
