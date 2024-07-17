@@ -20,6 +20,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -112,7 +113,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			if(vectorDbDetails.get(Constants.USERNAME) == null) { throw new IllegalArgumentException(Constants.USERNAME + " is not provided."); }
 			if(vectorDbDetails.get(Constants.PASSWORD) == null) { throw new IllegalArgumentException(Constants.PASSWORD + " is not provided."); }
 			if(vectorDbDetails.get(Constants.HOSTNAME) == null) { throw new IllegalArgumentException(Constants.HOSTNAME + " is not provided."); }
-			if(vectorDbDetails.get(Constants.INDEX_NAME) == null) { throw new IllegalArgumentException(Constants.INDEX_NAME + " is not provided."); }
+			if(vectorDbDetails.get(OpenSearchRestVectorDatabaseEngine.INDEX_NAME) == null) { throw new IllegalArgumentException(OpenSearchRestVectorDatabaseEngine.INDEX_NAME + " is not provided."); }
 		}
 		if(vectorDbType == VectorDatabaseTypeEnum.WEAVIATE) {
 			if(vectorDbDetails.get(Constants.API_KEY) == null) { throw new IllegalArgumentException(Constants.API_KEY + " is not provided."); }
