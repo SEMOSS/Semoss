@@ -64,7 +64,7 @@ class VectorEngine(ServerProxy):
         insight_id: Optional[str] = None,
     ) -> bool:
         """
-        Add the documents into the vector database
+        Add the vector csv file format documents into the vector database
 
         Args:
             file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 

@@ -376,12 +376,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public void removeDocument(List<String> filePaths, Map<String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
-
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
 		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
@@ -391,10 +391,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		try {
 			conn = this.getConnection();
 			ps = conn.prepareStatement(deleteQuery);
-			for (String document : filePaths) {
+			for (String document : fileNames) {
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
-				File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
+				File documentFile = new File(DOCUMENT_FOLDER, documentName);
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
@@ -429,7 +429,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String question, Number limit, Map<String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
 		if (!this.modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -453,20 +453,22 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);
-		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {question}), insight, null);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
 
 		StringBuilder searchQueryBuilder = new StringBuilder("SELECT ");
-		searchQueryBuilder.append("SOURCE AS \"Source\",")
-						  .append("MODALITY AS \"Modality\",")
-						  .append("DIVIDER AS \"Divider\",")
-						  .append("PART AS \"Part\",")
-						  .append("TOKENS AS \"Tokens\",")
-						  .append("CONTENT AS \"Content\",")
+		searchQueryBuilder.append("SOURCE AS \""+VectorDatabaseCSVTable.SOURCE+"\",")
+						  .append("MODALITY AS \""+VectorDatabaseCSVTable.MODALITY+"\",")
+						  .append("DIVIDER AS \""+VectorDatabaseCSVTable.DIVIDER+"\",")
+						  .append("PART AS \""+VectorDatabaseCSVTable.PART+"\",")
+						  .append("TOKENS AS \""+VectorDatabaseCSVTable.TOKENS+"\",")
+						  .append("CONTENT AS \""+VectorDatabaseCSVTable.CONTENT+"\",")
 						  .append("POWER((EMBEDDING <-> '"+ embeddingsResponse.getResponse().get(0) + "'),2) AS \"Score\"")
 						  .append(" FROM ")
 						  .append(this.vectorTableName)
-						  .append(" ORDER BY \"Score\" ASC LIMIT ")
-						  .append(limit);
+						  .append(" ORDER BY \"Score\" ASC ");
+		if(limit != null) {
+			searchQueryBuilder.append("LIMIT ").append(limit);
+		}
 		
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setEngine(this);
@@ -495,7 +497,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents");
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(Map<String, Object> fileInPostgresDb : sourcesInPostgresDb) {
 				String fileName = (String) fileInPostgresDb.get("fileName");
