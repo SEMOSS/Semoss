@@ -17,6 +17,13 @@ import prerna.om.Insight;
 
 public class VectorDatabaseCSVTable {
 	
+	public static final String SOURCE = "Source";
+	public static final String MODALITY = "Modality";
+	public static final String DIVIDER = "Divider";
+	public static final String PART = "Part";
+	public static final String TOKENS = "Tokens";
+	public static final String CONTENT = "Content";
+	
     public List<VectorDatabaseCSVRow> rows;
     private IModelEngine keywordEngine = null;
 	private int maxKeywords = 12;
@@ -99,7 +106,14 @@ public class VectorDatabaseCSVTable {
 						}
 						start = false;
 					} else {
-						csvTable.addRow(line[headersMap.get("Source")], line[headersMap.get("Modality")], line[headersMap.get("Divider")], line[headersMap.get("Part")], line[headersMap.get("Tokens")], line[headersMap.get("Content")]);
+						csvTable.addRow(
+								line[headersMap.get(SOURCE)], 
+								line[headersMap.get(MODALITY)], 
+								line[headersMap.get(DIVIDER)], 
+								line[headersMap.get(PART)], 
+								line[headersMap.get(TOKENS)], 
+								line[headersMap.get(CONTENT)]
+							);
 					}
 				}
 			}

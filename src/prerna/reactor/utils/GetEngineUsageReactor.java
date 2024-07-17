@@ -187,7 +187,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"CreateEmbeddingsFromDocuments (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
 
 							"\n## Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight ##\r\n" + 
-							"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);\r\n" +
+							"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.csv\", \"fileName2.csv\", ..., \"fileNameX.csv\"]);\r\n" +
 
 							"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
 							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5);\r\n" +

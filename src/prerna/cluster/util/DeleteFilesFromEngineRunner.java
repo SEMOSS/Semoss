@@ -1,5 +1,7 @@
 package prerna.cluster.util;
 
+import java.io.File;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,7 +26,10 @@ public class DeleteFilesFromEngineRunner implements Runnable {
 	public void run() {
 		for (int i = 0; i < this.FILE_PATHS.length; i++) {
 			try {
-				ClusterUtil.deleteEngineCloudFile(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
+				File f = new File(FILE_PATHS[i]);
+				if(f.exists()) {
+					ClusterUtil.deleteEngineCloudFile(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
+				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}	
