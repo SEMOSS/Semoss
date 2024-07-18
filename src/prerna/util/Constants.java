@@ -690,11 +690,6 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 
-	//if spark is enabled
-	public static final String SPARK = "SPARK";
-	public static final String USE_SPARK = "USE_SPARK";
-	public static final String SPARK_DATASTORE = "SPARK_DATASTORE";
-
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
