@@ -30,11 +30,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.rpa.config.ConfigurableJob;
-import prerna.rpa.config.IllegalConfigException;
-import prerna.rpa.config.JobConfig;
 import prerna.rpa.config.JobConfigKeys;
-import prerna.rpa.config.ParseConfigException;
 import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -145,12 +141,6 @@ public class ScheduleJobReactor extends AbstractReactor {
 				}
 			}
 
-			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
-					cronExpression, cronTimeZone, 
-					recipe, recipeParameters,
-					triggerOnLoad, uiState, providerInfo.toString());
-
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
@@ -159,8 +149,11 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			try {
-				scheduleJob(jsonObject);
-			} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
+				scheduleJob(jobKey, jobId, jobName, jobGroup, 
+						cronExpression, cronTimeZone, 
+						recipe, recipeParameters,
+						triggerOnLoad, uiState, providerInfo.toString());
+			} catch (SchedulerException e) {
 				throw new RuntimeException("Failed to schedule the job", e);
 			}
 			
@@ -176,6 +169,12 @@ public class ScheduleJobReactor extends AbstractReactor {
 					recipe, recipeParameters, 
 					"Default", triggerOnLoad, uiState, jobTags);
 
+			// TODO: DO I NEED TO RETURN THIS OBJECT? SHOULD WE MODIFY IT?
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
+					cronExpression, cronTimeZone, 
+					recipe, recipeParameters,
+					triggerOnLoad, uiState, providerInfo.toString());
+						
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			String jsonConfig = gson.toJson(jsonObject);
@@ -204,33 +203,32 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 	/**
 	 * 
-	 * @param jsonObject
+	 * @param jobId
+	 * @param jobName
+	 * @param jobGroup
+	 * @param cronExpression
+	 * @param cronTimeZone
+	 * @param recipe
+	 * @param recipeParameters
+	 * @param triggerOnLoad
+	 * @param uiState
+	 * @param providerInfo
 	 * @return
 	 * @throws ParseConfigException
 	 * @throws IllegalConfigException
 	 * @throws SchedulerException
 	 */
-	protected JobKey scheduleJob(JsonObject jsonObject) throws ParseConfigException, IllegalConfigException, SchedulerException {
-		// Get the job's properties
-		JobConfig jobConfig = JobConfig.initialize(jsonObject);
+	protected JobKey scheduleJob(JobKey jobKey, String jobId, String jobName, String jobGroup, 
+			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
+			boolean triggerOnLoad, String uiState, String providerInfo) throws SchedulerException {
+		JobDataMap jobDataMap = getJobDataMap(jobId, jobName, jobGroup, 
+				cronExpression, cronTimeZone, recipe, recipeParameters, 
+				triggerOnLoad, uiState, providerInfo);
+				
 		Class<? extends Job> jobClass = RunPixelJobFromDB.class;
-		String jobId = jobConfig.getJobId();
-		String jobName = jobConfig.getJobName();
-		String jobGroup = jobConfig.getJobGroup();
-		String cronExpression = jobConfig.getCronExpression();
-		TimeZone cronTimeZone = TimeZone.getTimeZone(jobConfig.getTimeZone());
-
-		// Get the job's data map
-		JobDataMap jobDataMap;
-		try {
-			jobDataMap = jobConfig.getJobDataMap();
-		} catch (ParseConfigException | IllegalConfigException e) {
-			classLogger.error("Failed to parse job data map for " + Utility.cleanLogString(jobName) + ".");
-			throw e;
-		}
 
 		// Schedule the job
-		JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
+		JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobKey).usingJobData(jobDataMap).storeDurably().build();
 		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
 				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
 				.inTimeZone(cronTimeZone)).build();
@@ -238,12 +236,46 @@ public class ScheduleJobReactor extends AbstractReactor {
 		scheduler.scheduleJob(job, trigger);
 
 		classLogger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: " + Utility.cleanLogString(cronExpression) + ".");
-
+		
 		// Return the job key
 		return job.getKey();
 	}
-
+	
 	/**
+	 * 
+	 * @param jobId
+	 * @param jobName
+	 * @param jobGroup
+	 * @param cronExpression
+	 * @param cronTimeZone
+	 * @param recipe
+	 * @param recipeParameters
+	 * @param triggerOnLoad
+	 * @param uiState
+	 * @param providerInfo
+	 * @return
+	 */
+	public static JobDataMap getJobDataMap(String jobId, String jobName, String jobGroup, 
+			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
+			boolean triggerOnLoad, String uiState, String providerInfo) {
+		JobDataMap jobDataMap = new JobDataMap();
+		jobDataMap.put(providerInfo, triggerOnLoad);
+		jobDataMap.put(JobConfigKeys.JOB_ID, jobId);
+		jobDataMap.put(JobConfigKeys.JOB_NAME, jobName);
+		jobDataMap.put(JobConfigKeys.JOB_GROUP, jobGroup);
+		jobDataMap.put(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
+		jobDataMap.put(JobConfigKeys.JOB_CRON_TIMEZONE, cronTimeZone.getID());
+		jobDataMap.put(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
+		jobDataMap.put(JobConfigKeys.UI_STATE, uiState);
+		jobDataMap.put(JobConfigKeys.JOB_CLASS_NAME, "RunPixelJob");
+		jobDataMap.put(JobConfigKeys.PIXEL, recipe);
+		jobDataMap.put(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
+		jobDataMap.put(JobConfigKeys.USER_ACCESS, providerInfo);
+		return jobDataMap;
+	}
+	
+	/**
+	 * TODO: DO I NEED TO RETURN THIS MAP ? 
 	 * 
 	 * @param jobId
 	 * @param jobName
@@ -271,7 +303,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, providerInfo);
 
 		// need this for the job config
-		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
+		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, "RunPixelJob");
 		jsonObject.addProperty(JobConfigKeys.PIXEL, recipe);
 		jsonObject.addProperty(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
 		return jsonObject;

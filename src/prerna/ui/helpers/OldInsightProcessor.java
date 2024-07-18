@@ -9,7 +9,6 @@ import javax.swing.JDesktopPane;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -43,7 +42,7 @@ public class OldInsightProcessor implements Runnable{
 			// we do not want to build out playsheets on the BE 
 			// just keep the view separate
 			if(playSheet != null) {
-				tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
+				tableDataAlign = playSheet.getDataTableAlign();
 				insight.setDataTableAlign(tableDataAlign);
 			}
 		}
@@ -119,8 +118,8 @@ public class OldInsightProcessor implements Runnable{
 		createData();
 		IPlaySheet playSheet = insight.getPlaySheet();
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
-		if(playSheet instanceof AbstractPlaySheet && !(tableDataAlign == null || tableDataAlign.isEmpty())) {
-			((AbstractPlaySheet)playSheet).setTableDataAlign(tableDataAlign);
+		if(!(tableDataAlign == null || tableDataAlign.isEmpty())) {
+			playSheet.setTableDataAlign(tableDataAlign);
 		}
 		preparePlaySheet(playSheet, insight);
 

@@ -57,7 +57,7 @@ public interface IPlaySheet extends Runnable{
 	 * @see #overlayView()
 	 */
 	@Deprecated
-	public void setQuery(String query);
+	void setQuery(String query);
 	
 	/**
 	 * Gets the latest query set to the play sheet.  <p> If multiple queries have been set to the specific play sheet through
@@ -66,7 +66,7 @@ public interface IPlaySheet extends Runnable{
 	 * @see #extendView()
 	 * @see #overlayView()
 	 * @return the SPARQL query previously set to this play sheet */
-//	public String getQuery();
+//	String getQuery();
 
 	/**
 	 * Sets the JDesktopPane to display the play sheet on. <p> This must be set before calling functions like 
@@ -74,7 +74,7 @@ public interface IPlaySheet extends Runnable{
 	 * function.
 	 * @param pane the desktop pane that the play sheet is to be displayed on
 	 */
-	public void setJDesktopPane(JComponent pane);
+	void setJDesktopPane(JComponent pane);
 	
 	/**
 	 * Sets the identification code for the question associated with the play sheet.  The question ID is what can be used in 
@@ -82,7 +82,7 @@ public interface IPlaySheet extends Runnable{
 	 * as the question String and play sheet class that the question is to be run on.
 	 * @param id representation of the question as laid out in the specified engine's question file
 	 */
-	public void setQuestionID(String id);
+	void setQuestionID(String id);
 
 	/**
 	 * Returns the question identification code that has been set to the play sheet. The question identification code can be used
@@ -92,7 +92,7 @@ public interface IPlaySheet extends Runnable{
 	 * recent question ID associated with it.
 	
 	 * @return questionID the identification code of the question associated with the play sheet */
-	public String getQuestionID();
+	String getQuestionID();
 	
 	/**
 	 * This is the function that is used to create the first view 
@@ -104,7 +104,7 @@ public interface IPlaySheet extends Runnable{
 	 * <p>This is the function called by the PlaysheetCreateRunner.  PlaysheetCreateRunner is the runner used whenever a play 
 	 * sheet is to first be created, most notably in ProcessQueryListener.
 	 */
-	public void createView();
+	void createView();
 
 	/**
 	 * Recreates the visualizer and the repaints the play sheet without recreating the model or pulling anything 
@@ -114,7 +114,7 @@ public interface IPlaySheet extends Runnable{
 	 * <p>This function takes into account the nodes that have been filtered either through FilterData or Hide Nodes so that these 
 	 * do not get included in the recreation of the visualization.
 	 */
-	public void refineView();
+	void refineView();
 
 	/**
 	 * This function is very similar to {@link #extendView()}.  Its adds additional data to the model already associated with 
@@ -124,7 +124,7 @@ public interface IPlaySheet extends Runnable{
 	 *  model.
 	 *  <p>This function is used by PlaysheetOverlayRunner which is called when the Overlay button is selected.
 	 */
-	public void overlayView();
+	void overlayView();
 
 	/**
 	 * Removes from the play sheet's current model everything that was returned from the query the last time the 
@@ -151,7 +151,7 @@ public interface IPlaySheet extends Runnable{
 	 * @param engine the active engine for the play sheet to run its query against.
 	 */
 	@Deprecated
-	public void setRDFEngine(IDatabaseEngine engine);
+	void setRDFEngine(IDatabaseEngine engine);
 
 	/**
 	 * Gets the RDF engine for the play sheet to run its query against.  Can be any of the active engines, all of which are 
@@ -165,34 +165,37 @@ public interface IPlaySheet extends Runnable{
 	 * Sets the title of the play sheet.  The title is displayed as the text on top of the internal frame that is the play sheet.
 	 * @param title representative name for the play sheet.  Often a concatenation of the question ID and question text
 	 */
-	public void setTitle(String title);
+	void setTitle(String title);
 	
 	// gets the title
 	/**
 	 * Gets the title of the play sheet.  The title is displayed as the text on top of the internal frame that is the play sheet.
 	 * @param title representative name for the play sheet.  Often a concatenation of the question ID and question text
 	 */
-	public String getTitle();
+	String getTitle();
 		
 	
 	// Interim call to create the data
 	@Deprecated
-	public void createData();
-	public void setDataMaker(IDataMaker data);
-	public IDataMaker getDataMaker();
+	void createData();
+	void setDataMaker(IDataMaker data);
+	IDataMaker getDataMaker();
 	
 	// get the data
 //	public Object getData();
 	
 	// Interim call to run analytics
-	public void runAnalytics();
+	void runAnalytics();
 
 	// this is for custom methods called from the front end
-	public Object doMethod(String methodName, Map argHash);
+	Object doMethod(String methodName, Map argHash);
 
-	public void processQueryData();
+	void processQueryData();
 	
 	// 
-	public IDataMaker getDefaultDataMaker();
+	IDataMaker getDefaultDataMaker();
+	
+	 Map<String, String> getDataTableAlign();
+	 void setTableDataAlign(Map<String, String> tableDataAlign);
 		
 }
