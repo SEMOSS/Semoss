@@ -29,7 +29,6 @@ import org.quartz.UnableToInterruptJobException;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.JobConfigKeys;
-import prerna.rpa.quartz.CommonDataKeys;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -39,7 +38,6 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	private static final Logger logger = LogManager.getLogger(RunPixelJobFromDB.class);
 
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	public static final String OUT_INSIGHT_ID_KEY = CommonDataKeys.INSIGHT_ID;
 
 	private static boolean FETCH_CSRF = false;
 	
@@ -48,9 +46,10 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
-		JobDataMap dataMap = context.getMergedJobDataMap();
 		jobId = context.getJobDetail().getKey().getName();
 		jobGroup = context.getJobDetail().getKey().getGroup();
+		
+		JobDataMap dataMap = context.getMergedJobDataMap();
 		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
 		String pixelParameters = dataMap.getString(JobConfigKeys.PIXEL_PARAMETERS);
 		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));

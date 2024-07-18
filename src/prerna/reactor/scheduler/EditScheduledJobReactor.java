@@ -25,9 +25,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.rpa.config.IllegalConfigException;
-import prerna.rpa.config.JobConfig;
-import prerna.rpa.config.ParseConfigException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -133,13 +130,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				}
 			}
 
-			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
-					cronExpression, cronTimeZone, 
-					recipe, recipeParameters,
-					triggerOnLoad, uiState, providerInfo.toString());
-			JobConfig jobConfig = JobConfig.initialize(jsonObject);
-
+			
 			// the id does not change
 			// but technically the group does change at the moment
 			JobKey jobKey = JobKey.jobKey(jobId, curJobGroup);
@@ -153,8 +144,11 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				JobDetail currentJobDetail = scheduler.getJobDetail(jobKey);
 				JobDataMap currentJobDataMap = currentJobDetail.getJobDataMap();
 				currentJobDataMap.clear();
+				JobDataMap newJobDataMap = getJobDataMap(jobId, jobName, jobGroup, 
+						cronExpression, cronTimeZone, recipe, recipeParameters, 
+						triggerOnLoad, uiState, providerInfo.toString());
 				// add the new job data map into the job detail
-				currentJobDataMap.putAll(jobConfig.getJobDataMap());
+				currentJobDataMap.putAll(newJobDataMap);
 				// add back the updated job detail
 				scheduler.addJob(currentJobDetail, true);
 				
@@ -177,7 +171,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				if (scheduler.checkExists(jobKey)) {
 					scheduler.rescheduleJob(triggerKey, trigger);
 				}
-			} catch (SchedulerException | ParseConfigException | IllegalConfigException e) {
+			} catch (SchedulerException e) {
 				throw new RuntimeException("Failed to schedule the job", e);
 			}
 
@@ -186,6 +180,11 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				triggerJobNow(jobKey);
 			}
 
+			// TODO: DO I NEED TO RETURN THIS OBJECT? SHOULD WE MODIFY IT?
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
+					cronExpression, cronTimeZone, 
+					recipe, recipeParameters,
+					triggerOnLoad, uiState, providerInfo.toString());
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			String jsonConfig = gson.toJson(jsonObject);
