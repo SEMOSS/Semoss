@@ -1,6 +1,5 @@
 package prerna.reactor.scheduler;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -16,10 +15,6 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -34,7 +29,7 @@ import prerna.util.Utility;
 
 public class EditScheduledJobReactor extends ScheduleJobReactor {
 
-	private static final Logger logger = LogManager.getLogger(EditScheduledJobReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EditScheduledJobReactor.class);
 
 	// Inputs
 	private static final String CURRENT_JOB_NAME = "curJobName";
@@ -53,12 +48,9 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		if(Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
-		Map<String, String> quartzJobMetadata = null;
-		String userId = null;
-
 		organizeKeys();
 
+		String userId = null;
 		// Get inputs
 		String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
@@ -72,7 +64,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		try {
 			cronTimeZone = TimeZone.getTimeZone(cronTz);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
 		
@@ -108,8 +100,13 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 		// existing name/group
 		String curJobName = this.keyValue.get(CURRENT_JOB_NAME);
+		if(curJobName == null) {
+			curJobName = jobName;
+		}
 		String curJobGroup = this.keyValue.get(CURRENT_JOB_GROUP);
-
+		if(curJobGroup == null) {
+			curJobGroup = jobGroup;
+		}
 		try {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
@@ -136,7 +133,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			JobKey jobKey = JobKey.jobKey(jobId, curJobGroup);
 			// if job does not exist throw error
 			if (!scheduler.checkExists(jobKey)) {
-				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
+				classLogger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 			}
 			
@@ -180,23 +177,16 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				triggerJobNow(jobKey);
 			}
 
-			// TODO: DO I NEED TO RETURN THIS OBJECT? SHOULD WE MODIFY IT?
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, 
 					cronExpression, cronTimeZone, 
 					recipe, recipeParameters,
 					triggerOnLoad, uiState, providerInfo.toString());
-			// Pretty-print version of the json
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			String jsonConfig = gson.toJson(jsonObject);
-
-			// Save metadata into a map and return
-			quartzJobMetadata = new HashMap<>();
-			quartzJobMetadata.put(JSON_CONFIG, jsonConfig);
+						
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
+			throw new IllegalArgumentException("Unable to schedule the job. Error message = " + se.getMessage());
 		}
-
-		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 	}
 
 }

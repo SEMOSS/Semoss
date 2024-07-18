@@ -20,10 +20,6 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -66,12 +62,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 		if(Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
-		Map<String, String> quartzJobMetadata = null;
-		String userId = null;
-
 		organizeKeys();
 
+		String userId = null;
 		// Get inputs
         String jobId = UUID.randomUUID().toString();
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
@@ -169,24 +162,16 @@ public class ScheduleJobReactor extends AbstractReactor {
 					recipe, recipeParameters, 
 					"Default", triggerOnLoad, uiState, jobTags);
 
-			// TODO: DO I NEED TO RETURN THIS OBJECT? SHOULD WE MODIFY IT?
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, 
 					cronExpression, cronTimeZone, 
 					recipe, recipeParameters,
 					triggerOnLoad, uiState, providerInfo.toString());
 						
-			// Pretty-print version of the json
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			String jsonConfig = gson.toJson(jsonObject);
-
-			// Save metadata into a map and return
-			quartzJobMetadata = new HashMap<>();
-			quartzJobMetadata.put(JSON_CONFIG, jsonConfig);
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {
 			classLogger.error(Constants.STACKTRACE, se);
+			throw new IllegalArgumentException("Unable to schedule the job. Error message = " + se.getMessage());
 		}
-
-		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 	}
 
 	////////////////// Helper Methods ////////////////////////
@@ -289,24 +274,21 @@ public class ScheduleJobReactor extends AbstractReactor {
 	 * @param providerInfo
 	 * @return
 	 */
-	public static JsonObject createJsonObject(String jobId, String jobName, String jobGroup, 
+	public static Map<String, Object> createRetMap(String jobId, String jobName, String jobGroup, 
 			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
 			boolean triggerOnLoad, String uiState, String providerInfo) {
-		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty(JobConfigKeys.JOB_ID, jobId);
-		jsonObject.addProperty(JobConfigKeys.JOB_NAME, jobName);
-		jsonObject.addProperty(JobConfigKeys.JOB_GROUP, jobGroup);
-		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
-		jsonObject.addProperty(JobConfigKeys.JOB_CRON_TIMEZONE, cronTimeZone.getID());
-		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
-		jsonObject.addProperty(JobConfigKeys.UI_STATE, uiState);
-		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, providerInfo);
-
-		// need this for the job config
-		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, "RunPixelJob");
-		jsonObject.addProperty(JobConfigKeys.PIXEL, recipe);
-		jsonObject.addProperty(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
-		return jsonObject;
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put(JobConfigKeys.JOB_ID, jobId);
+		retMap.put(JobConfigKeys.JOB_NAME, jobName);
+		retMap.put(JobConfigKeys.JOB_GROUP, jobGroup);
+		retMap.put(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
+		retMap.put(JobConfigKeys.JOB_CRON_TIMEZONE, cronTimeZone.getID());
+		retMap.put(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
+		retMap.put(JobConfigKeys.UI_STATE, uiState);
+		retMap.put(JobConfigKeys.JOB_CLASS_NAME, "RunPixelJob");
+		retMap.put(JobConfigKeys.PIXEL, recipe);
+		retMap.put(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
+		return retMap;
 	}
 
 	protected boolean getTriggerOnLoad() {
