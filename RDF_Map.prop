@@ -126,8 +126,8 @@ LOG_ENCODING false
 #SEMOSS logo used for exporting files
 EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss\\images\\embed\\semoss_logo.png
 
-#SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith_Dev
-SCHEDULER_ENDPOINT	http://localhost:8080/Monolith_Dev
+#SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
+SCHEDULER_ENDPOINT	http://localhost:8080/Monolith
 SCHEDULER_KEYSTORE
 SCHEDULER_KEYSTORE_PASSWORD
 SCHEDULER_CERTIFICATE_PASSWORD
