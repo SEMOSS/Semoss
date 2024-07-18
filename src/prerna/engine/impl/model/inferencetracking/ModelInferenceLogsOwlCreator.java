@@ -39,7 +39,6 @@ public class ModelInferenceLogsOwlCreator {
 	
 	private IRDBMSEngine modelInferenceDb;
 	
-	
 	public ModelInferenceLogsOwlCreator(IRDBMSEngine modelInferenceDb) {
 		this.modelInferenceDb = modelInferenceDb;
 		createColumnsAndTypes(this.modelInferenceDb.getQueryUtil());
@@ -72,7 +71,7 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("USER_NAME", "VARCHAR(255)"),
 				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-				Pair.with("IS_ACTIVE",BOOLEAN_DATATYPE_NAME),
+				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("PROJECT_ID", "VARCHAR(50)"),
 				Pair.with("PROJECT_NAME", "VARCHAR(255)"),
