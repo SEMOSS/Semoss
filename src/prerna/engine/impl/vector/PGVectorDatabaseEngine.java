@@ -545,6 +545,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	@Override
 	public void close() throws IOException {
+		this.modelPropsLoaded = false;
 		if(this.cpw != null) {
 			this.cpw.shutdown(true);
 		}

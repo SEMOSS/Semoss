@@ -786,6 +786,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	@Override
 	public void close() throws IOException {
+		this.modelPropsLoaded = false;
 		if(this.cpw != null) {
 			this.cpw.shutdown(true);
 		}
