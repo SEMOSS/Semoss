@@ -6,7 +6,6 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
@@ -52,7 +51,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId + " does not exist or user does not have access to this model");
 		}
 		
-		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+		String searchStatement = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		int limit = getLimit();
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
@@ -60,13 +59,12 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		}
 		
 		// add the insightId so Model Engine calls can be made for python
-		paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
 		List<IQueryFilter> filters = getFilters();
 		if (filters != null) {
 			paramMap.put("filters", filters);
 		}
 		
-		Object output = eng.nearestNeighbor(question, limit, paramMap);
+		Object output = eng.nearestNeighbor(this.insight, searchStatement, limit, paramMap);
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);	
 	}
 	

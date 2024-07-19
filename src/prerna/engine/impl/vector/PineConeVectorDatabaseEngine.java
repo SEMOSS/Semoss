@@ -185,40 +185,30 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		if (limit == null) {
+			limit = 3;
+		}
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
 		
+		Gson gson = new Gson();
+		
 		String url = this.hostname + API_QUERY;
 		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
-		
 		List<Map<String, Object>> matchesOut = new ArrayList<Map<String, Object>>();
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-		if (limit == null) {
-			limit = 3;
-		}
-
-		Insight insight = getInsight(parameters.get(INSIGHT));
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
-
-		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
 
 		Map<String, Object> query = new HashMap<>();
-		List<Double> queryEmbeddings = new ArrayList<>();
-		for (int i = 0; i < vector.size(); i++) {
-			queryEmbeddings.add(vector.get(i)); // this is done to put a list of embeddings inside another list
-												// otherwise the API throws error.
-		}
+		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
 		query.put("topK", limit);
 		query.put("includeMetadata", true);
 		query.put("includeValues", true);
 		query.put("namespace", this.defaultNamespace);
-		query.put("vector", queryEmbeddings);
-
+		query.put("vector", vector);
 		String body = gson.toJson(query);
 
 		Map<String, String> headersMap = new HashMap<>();
@@ -233,7 +223,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
 			Map<String, Object> outputMap = new HashMap();
 			outputMap.put("matches", responseMap.get("matches"));
-
 			matchesOut.add(outputMap);
 		}
 

@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -17,12 +18,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.pgvector.PGvector;
 
 import prerna.auth.User;
@@ -38,6 +42,7 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -89,6 +94,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
+	// maintain details in the log database
+	protected boolean keepInputOutput = false;
+	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -131,6 +140,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
+		
+		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 		
 		this.defaultChunkUnit = "tokens";
 		if (this.smssProp.containsKey(Constants.DEFAULT_CHUNK_UNIT)) {
@@ -428,15 +439,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 
-	@Override
-	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
-		if (!this.modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
-		Insight insight = getInsight(parameters.remove(AbstractVectorDatabaseEngine.INSIGHT));
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		if (!this.modelPropsLoaded) {
+			verifyModelProps();
 		}
 		
 		String searchFilters = null;
@@ -551,6 +560,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 * Methods below should really be an exact match to the same method names
 	 * 
 	 */
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean keepInputOutput() {
+		return this.keepInputOutput;
+	}
 
 	/**
 	 * This method is meant to be overriden so that we dont need to copy/paste the startServer code for every implementation
@@ -828,6 +845,38 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		} finally {
 			cleanUpAddDocument(indexFilesFolder);
 		}
+	}
+	
+	@Override
+	public List<Map<String, Object>> nearestNeighbor(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters) {
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		List<Map<String, Object>> vectorSearchResponse = nearestNeighborCall(insight, searchStatement, limit, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+
+		if (inferenceLogsEnbaled) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/UUID.randomUUID().toString(), 
+					/*messageMethod*/"nearestNeighbor", 
+					/*engine*/this, 
+					/*insight*/insight,
+					/*context*/null, 
+					/*prompt*/searchStatement,
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/gson.toJson(vectorSearchResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+					));
+			inferenceRecorder.start();
+		}
+
+		return vectorSearchResponse;
 	}
 	
 	protected void addIndexClass(String indexClass) {

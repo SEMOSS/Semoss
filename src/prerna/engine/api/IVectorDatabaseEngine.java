@@ -102,12 +102,13 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * Perform a nearest neighbor or semantic search against a vector database. The searchStatement will be 
 	 * converted to a vector using the same embedding model utilized to create the document(s) embeddings.
 	 * 
+	 * @param insight
 	 * @param searchStatement
 	 * @param limit
 	 * @param parameters
 	 * @return
 	 */
-	List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters);
+	List<Map<String, Object>> nearestNeighbor(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters);
 	
 	/**
 	 * List the set of documents a vector database is made from. At a minimum the file names should be returned but 

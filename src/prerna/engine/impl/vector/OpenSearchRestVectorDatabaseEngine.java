@@ -237,14 +237,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
-		if (!this.modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
-		Insight insight = getInsight(parameters.remove(AbstractVectorDatabaseEngine.INSIGHT));
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		if (!this.modelPropsLoaded) {
+			verifyModelProps();
 		}
 		
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);

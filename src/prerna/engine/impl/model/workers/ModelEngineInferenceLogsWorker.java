@@ -3,12 +3,15 @@ package prerna.engine.impl.model.workers;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
+import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.job.JobReactor;
@@ -21,7 +24,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	
 	private String messageId;
 	private String messageMethod;
-    private AbstractModelEngine engine;
+    private IEngine engine;
     private Insight insight;
     private String context;
     private String prompt;
@@ -35,7 +38,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     public ModelEngineInferenceLogsWorker(
 		String messageId, 
 		String messageMethod, 
-		AbstractModelEngine engine,
+		IEngine engine,
 		Insight insight, 
 	   	String context,
 	   	String prompt,
@@ -62,6 +65,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 
     @Override
     public void run() {
+    	String agentType = engine.getCatalogSubType(engine.getSmssProp());
+    	
     	String sessionId = null;
 		if (insight.getVarStore().containsKey(JobReactor.SESSION_KEY)) {
 			sessionId = (String) insight.getVarStore().get(JobReactor.SESSION_KEY).getValue();
@@ -97,7 +102,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 				
 		if (prompt == null) {
-			prompt = new Gson().toJson(fullPrompt);
+			prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(fullPrompt);
 		} else {
 			prompt = prompt.replace("'", "\'");
 		}
@@ -109,7 +114,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		// TODO this needs to be moved to wherever we "publish" a new LLM/agent
 		if (!ModelInferenceLogsUtils.doModelIsRegistered(engine.getEngineId())) {
 			ModelInferenceLogsUtils.doCreateNewAgent(engine.getEngineId(), engine.getEngineName(), null, 
-					engine.getModelType().toString(), user.getPrimaryLoginToken().getId());
+					agentType, user.getPrimaryLoginToken().getId());
 		}
 		
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
@@ -124,7 +129,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null, 
 				userId,
 				userName,
-				engine.getModelType().toString(), 
+				agentType, 
 				true, 
 				projectId, 
 				projectName, 
@@ -136,8 +141,18 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			// set the context for the room / insight
 			ModelInferenceLogsUtils.setRoomContext(insightId, userId, userName);
 		}
-				
-		if(engine.keepInputOutput()) {
+		
+		boolean keepInputOutput = false;
+		// TODO: ADD TO INTERFACE SO NOT DOING THIS DUMB CASTING
+		if(engine instanceof AbstractModelEngine) {
+			keepInputOutput = ((AbstractModelEngine) engine).keepInputOutput();
+		} else if(engine instanceof AbstractVectorDatabaseEngine) {
+			keepInputOutput = ((AbstractVectorDatabaseEngine) engine).keepInputOutput();
+		} else if(engine instanceof PGVectorDatabaseEngine) {
+			keepInputOutput = ((PGVectorDatabaseEngine) engine).keepInputOutput();
+		}
+		
+		if(keepInputOutput) {
 			ModelInferenceLogsUtils.doRecordMessage(
 				messageId, 
 				INPUT,

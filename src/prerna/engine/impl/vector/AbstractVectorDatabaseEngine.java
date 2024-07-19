@@ -3,6 +3,7 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -12,11 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -28,6 +33,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -47,7 +53,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			+ "import vector_database;";
 	
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
-	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	public static final String INSIGHT = "insight";
 	
 	public static final String DIR_SEPARATOR = "/";
@@ -79,11 +84,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	
 	// our paradigm for how we store files
 	protected String defaultIndexClass;
-	protected String vectorDatabaseSearcher = null;
 	protected List<String> indexClasses;
 	
 	protected String distanceMethod;
 	
+	// maintain details in the log database
+	protected boolean keepInputOutput = false;
+	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+
 	protected ClientProcessWrapper cpw = null;
 	// python server
 	protected TCPPyTranslator pyt = null;
@@ -112,7 +120,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
-		
+
+		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
+
 		this.defaultChunkUnit = "tokens";
 		if (this.smssProp.containsKey(Constants.DEFAULT_CHUNK_UNIT)) {
 			this.defaultChunkUnit = this.smssProp.getProperty(Constants.DEFAULT_CHUNK_UNIT).toLowerCase().trim();
@@ -145,9 +155,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             	this.indexClasses.add(file.getName());
             }
         }
-        
-		this.vectorDatabaseSearcher = Utility.getRandomString(6);
-		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
 	@Override
@@ -410,6 +417,40 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
 		// TODO Auto-generated method stub
+	}
+
+	protected abstract List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters);
+	
+	@Override
+	public List<Map<String, Object>> nearestNeighbor(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters) {
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		List<Map<String, Object>> vectorSearchResponse = nearestNeighborCall(insight, searchStatement, limit, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+
+		if (inferenceLogsEnbaled) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/UUID.randomUUID().toString(), 
+					/*messageMethod*/"nearestNeighbor", 
+					/*engine*/this, 
+					/*insight*/insight,
+					/*context*/null, 
+					/*prompt*/searchStatement,
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/gson.toJson(vectorSearchResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+					));
+			inferenceRecorder.start();
+		}
+
+		return vectorSearchResponse;
 	}
 	
 	@Override
@@ -678,6 +719,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 		List<Double> embeddingsResponse = embeddingsEngine.embeddings(Arrays.asList(new String[] {content}), getInsight(insight), null).getResponse().get(0);
 		return embeddingsResponse;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean keepInputOutput() {
+		return this.keepInputOutput;
 	}
 
 	@Override

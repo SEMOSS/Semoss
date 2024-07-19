@@ -43,7 +43,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	protected String engineId = null;
 	protected String engineName = null;
-	private String engineDirectoryPath = null;
 
 	protected Properties smssProp = null;
 	protected String smssFilePath = null;
@@ -64,8 +63,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 				
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
-
 		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 				
@@ -206,14 +203,18 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 */
 	protected abstract Object modelCall(Object input, Insight insight, Map <String, Object> parameters);
 	
-	protected String getModelEngineBaseFolder() {
-		return this.engineDirectoryPath;
-	}
-	
+	/**
+	 * 
+	 * @return
+	 */
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public boolean keepInputOutput() {
 		return this.keepInputOutput;
 	}

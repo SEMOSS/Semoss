@@ -215,28 +215,27 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
-		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-		if (limit == null) {
-			limit = 3;
-		}
-
-		Insight insight = getInsight(parameters.get(INSIGHT));
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		if (limit == null) {
+			limit = 3;
+		}
+		
+		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
+		Gson gson = new Gson();
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
 		Map<String, Object> query = new HashMap<>();
 		List<List<Double>> queryEmbeddings = new ArrayList<>();
-		queryEmbeddings.add(vector); // this is done to put a list of embeddings inside another list otherwise the
-										// API throws error.
+		// this is done to put a list of embeddings inside another list otherwise the
+		// API throws error.
+		queryEmbeddings.add(vector); 
+										
 		// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
 		query.put("query_texts", searchStatement);
 		query.put("n_results", limit);
@@ -256,7 +255,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		retOut.add(responseMap);
-
 		return retOut;
 	}
 	

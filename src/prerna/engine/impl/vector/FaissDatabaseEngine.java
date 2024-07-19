@@ -48,13 +48,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 	
+	public static final String VECTOR_SEARCHER_NAME = "VECTOR_SEARCHER_NAME";
 	private static final String FAISS_INIT_SCRIPT = "${VECTOR_SEARCHER_NAME} = vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}')";
 	
 	private HashMap<String, Boolean> indexClassHasDatasetLoaded = new HashMap<String, Boolean>();
-	
+	private String vectorDatabaseSearcher = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		
+		this.vectorDatabaseSearcher = Utility.getRandomString(6);
+		this.smssProp.put(VECTOR_SEARCHER_NAME, this.vectorDatabaseSearcher);
 	}
 	
 	@Override
@@ -426,20 +431,16 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String question, Number limit, Map <String, Object> parameters) {
-		
-		checkSocketStatus();
-				
-		Insight insight = getInsight(parameters.get(INSIGHT));
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String question, Number limit, Map <String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		
+		checkSocketStatus();
+		String indexClass = this.defaultIndexClass;
 		insight.getVarStore().put(LATEST_VECTOR_SEARCH_STATEMENT, new NounMetadata(question, PixelDataType.CONST_STRING));
 		
 		StringBuilder callMaker = new StringBuilder();
-		
-		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey(INDEX_CLASS)) {
 			Object indexClassObj = parameters.get(INDEX_CLASS);
 			if (indexClassObj instanceof String) {

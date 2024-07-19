@@ -178,6 +178,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	private void setPrefix() {
 		this.prefix = this.cpw.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
@@ -272,7 +275,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		String pythonListAsString = PyUtils.determineStringType(stringsToEmbed);
 		
 		StringBuilder callMaker = new StringBuilder();
-
 		callMaker.append(varName)
 				 .append(".embeddings(strings_to_embed = ")
 				 .append(pythonListAsString);
@@ -280,13 +282,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.prefix != null) {
 			callMaker.append(", prefix='").append(this.prefix).append("'");
 		}
-		
 		callMaker.append(")");
 		
 		Object responseObject = pyt.runScript(callMaker.toString(), insight);
-		
 		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
- 		
 		return embeddingsResponse;
 	}
 
@@ -295,21 +294,14 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		checkSocketStatus();
 				
 		StringBuilder callMaker = new StringBuilder(varName);
-		
 		String inputAsString = PyUtils.determineStringType(input);
-		callMaker.append(".model(input = ")
-				 .append(inputAsString);
-				 
+		callMaker.append(".model(input = ").append(inputAsString);
 		if (parameters != null && !parameters.isEmpty()) {
-			callMaker.append(", **")
-					 .append(PyUtils.determineStringType(parameters));
+			callMaker.append(", **").append(PyUtils.determineStringType(parameters));
 		}
-
 		callMaker.append(")");
 		
 		Object output = pyt.runScript(callMaker.toString(), insight);
-
-
 		return output;
 	}
 
@@ -320,6 +312,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	private void createCacheFolder() {
 		String engineId = this.getEngineId();
 		
@@ -337,12 +332,23 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 	}
 
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
 	private String fillVars(String input) {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
 	}
 	
+	/**
+	 * 
+	 * @param insightId
+	 * @param userId
+	 * @return
+	 */
 	protected String getConversationHistoryFromInferenceLogs(String insightId, String userId){
 		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, insightId, "ASC");
 		if (convoHistoryFromDb.size() > 0) {
@@ -376,6 +382,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param keepConvoHisotry
+	 * @return
+	 */
 	protected String getConversationHistory(String userId, String insightId, boolean keepConvoHisotry){
 		if (keepConvoHisotry){
 			if (chatHistory.containsKey(insightId)) {
@@ -410,11 +423,4 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		return null;
 	}
 	
-	public String getWorkingDirectoryName() {
-		return this.workingDirectory;
-	}
-	
-	public String getWorkingDirectoryBasePath() {
-		return this.workingDirectoryBasePath;
-	}
 }

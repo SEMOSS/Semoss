@@ -228,22 +228,19 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters) {
-		List<Map<String, Object>> retOut = new ArrayList<>();
-
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
 		if(limit == null) {
 			limit = 3;
 		}
-		
 		int cutter = autocut;
 		if(parameters.containsKey(AUTOCUT)) {
 			cutter = Integer.parseInt(parameters.get(AUTOCUT) + "");
 		}
 		
-		Insight insight = getInsight(parameters.get(INSIGHT));
-		if (insight == null) {
-			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-		}
+		List<Map<String, Object>> retOut = new ArrayList<>();
 		
 		Float [] vector = getEmbeddingsFloat(searchStatement, insight);
 
