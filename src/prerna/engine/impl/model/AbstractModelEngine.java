@@ -73,6 +73,18 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 	}
 
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
+	 * @param question
+	 * @param fullPrompt
+	 * @param context
+	 * @param insight
+	 * @param hyperParameters
+	 * @return
+	 */
+	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
+
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {		
 		if(parameters == null) {
@@ -89,18 +101,18 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					askModelResponse.getMessageId(), 
-					"ask", 
-					this, 
-					insight,
-					context, 
-					question,
-					fullPrompt,
-					askModelResponse.getNumberOfTokensInPrompt(),
-					inputTime, 
-					askModelResponse.getResponse(),
-					askModelResponse.getNumberOfTokensInResponse(),
-					outputTime
+					/*messageId*/askModelResponse.getMessageId(), 
+					/*messageMethod*/"ask", 
+					/*engine*/this, 
+					/*insight*/insight,
+					/*context*/context, 
+					/*prompt*/question,
+					/*fullPrompt*/fullPrompt,
+					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/askModelResponse.getResponse(),
+					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
@@ -109,18 +121,14 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 	
 	/**
-	 * This is an abstract method that all subclasses should implement to handle text generation inference with
-	 * the model engine.
+	 * This is an abstract method for the implementation class such that tracking occurs
 	 * 
-	 * @param question
-	 * @param fullPrompt
-	 * @param context
+	 * @param stringsToEmbed
 	 * @param insight
 	 * @param parameters
 	 * @return
 	 */
-	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
-	
+	protected abstract EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 
 	@Override
 	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters) {		
@@ -135,18 +143,18 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					messageId, 
-					"embeddings", 
-					this, 
-					insight, 
-					null,
-					null,
-					stringsToEmbed,
-					embeddingsResponse.getNumberOfTokensInPrompt(),
-					inputTime, 
-					"",
-					embeddingsResponse.getNumberOfTokensInResponse(),
-					outputTime
+					/*messageId*/messageId, 
+					/*messageMethod*/"embeddings", 
+					/*engine*/this, 
+					/*insight*/insight, 
+					/*context*/null,
+					/*prompt*/null,
+					/*fullPrompt*/stringsToEmbed,
+					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/"",
+					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
@@ -155,14 +163,14 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 	
 	/**
-	 * This is an abstract handles how a given class will the create embeddings.
+	 * This is an abstract method for the implementation class such that tracking occurs
 	 * 
-	 * @param stringsToEmbed
+	 * @param input
 	 * @param insight
 	 * @param parameters
 	 * @return
 	 */
-	protected abstract EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
+	protected abstract Object modelCall(Object input, Insight insight, Map <String, Object> parameters);
 	
 	@Override
 	public Object model(Object input, Insight insight, Map <String, Object> parameters) {		
@@ -173,35 +181,24 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					messageId,
-					"model", 
-					this,
-					insight,
-					null,
-					input + "",
-					null,
-					null,
-					inputTime, 
-					PyUtils.determineStringType(modelCallResponse),
-					null,
-					outputTime
+					/*messageId*/messageId,
+					/*messageMethod*/"model", 
+					/*engine*/this,
+					/*insight*/insight,
+					/*context*/null,
+					/*prompt*/input + "",
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/PyUtils.determineStringType(modelCallResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
  				
 		return modelCallResponse;
 	}
-	
-	/**
-	 * This is method handles a given classes model implementation.
-	 * The model method implemented could perform any unique operation associated to the given model engine.
-	 * 
-	 * @param input
-	 * @param insight
-	 * @param parameters
-	 * @return
-	 */
-	protected abstract Object modelCall(Object input, Insight insight, Map <String, Object> parameters);
 	
 	/**
 	 * 

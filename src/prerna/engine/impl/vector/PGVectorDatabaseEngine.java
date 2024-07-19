@@ -271,12 +271,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws SQLException {
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		
+		if (!modelPropsLoaded) {
+			verifyModelProps();
 		}
 		
 		// if we were able to extract files, begin embeddings process

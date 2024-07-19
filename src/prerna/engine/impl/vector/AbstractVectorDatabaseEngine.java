@@ -419,6 +419,15 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		// TODO Auto-generated method stub
 	}
 
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
+	 * @param insight
+	 * @param searchStatement
+	 * @param limit
+	 * @param parameters
+	 * @return
+	 */
 	protected abstract List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters);
 	
 	@Override
