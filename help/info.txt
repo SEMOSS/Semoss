@@ -10,3 +10,4 @@ Features Added:
 - Updated CSV and property file formats
 - Added functionality to loading sheet ingestion to define subclassing
 - Added automation of OWL file generation containing base relationships
+- Made PR per Neel's request
