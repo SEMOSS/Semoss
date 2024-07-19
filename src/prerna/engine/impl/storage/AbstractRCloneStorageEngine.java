@@ -9,6 +9,7 @@ import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -251,14 +252,19 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //				localPath = "'"+localPath+"'";
 //			}
 			
-			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			// Initialize metadata to an empty map if it is null
+            if (metadata == null) {
+                metadata = new HashMap<>();
+            }
+			
+			List<String> values = new ArrayList<>(metadata.keySet().size()*2+5);
 			values.add(RCLONE);
 			values.add("sync");
 			values.add(localPath);
 			values.add(rClonePath);
 			values.add("--metadata");
 			
-			if(metadata != null && !metadata.isEmpty()) {
+			if(!metadata.isEmpty()) {
 				for(String key : metadata.keySet()) {
 					Object value = metadata.get(key);
 					
@@ -358,14 +364,19 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //				localFilePath = "'"+localFilePath+"'";
 //			}
 			
-			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			// Initialize metadata to an empty map if it is null
+            if (metadata == null) {
+                metadata = new HashMap<>();
+            }
+			
+			List<String> values = new ArrayList<>(metadata.keySet().size()*2+5);
 			values.add(RCLONE);
 			values.add("copy");
 			values.add(localFilePath);
 			values.add(rClonePath);
 			values.add("--metadata");
 			
-			if(metadata != null && !metadata.isEmpty()) {
+			if(!metadata.isEmpty()) {
 				for(String key : metadata.keySet()) {
 					Object value = metadata.get(key);
 					

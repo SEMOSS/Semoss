@@ -294,7 +294,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
                 metadata = new HashMap<>();
             }
 			
-			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			List<String> values = new ArrayList<>(metadata.keySet().size()*2+5);
 			values.add(RCLONE);
 			values.add("sync");
 			values.add(localPath);
@@ -398,13 +398,12 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
                 metadata = new HashMap<>();
             }
 			
-			List<String> values = new ArrayList<>(metadata.keySet().size()+4);
+			List<String> values = new ArrayList<>(metadata.keySet().size()*2+5);
 			values.add(RCLONE);
 			values.add("copy");
 			values.add(localFilePath);
 			values.add(rClonePath);
 			values.add("--metadata");
-			
 			
 			if(!metadata.isEmpty()) {
 				for(String key : metadata.keySet()) {
