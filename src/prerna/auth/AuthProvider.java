@@ -20,6 +20,7 @@ public enum AuthProvider implements Serializable {
 	FORGEROCK,
 	SAML,
 	ADFS,
+	OKTA,
 
 	// using ldap
 	ACTIVE_DIRECTORY,
