@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -88,26 +89,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
 		}
-		
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way than the command
-		
-		// execute all the basic commands
-		String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
-		
-		// break the commands seperated by ;
-		String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-		
-		// replace the Vars
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			commands[commandIndex] = fillVars(commands[commandIndex]);
-		}
-		
 		if(this.workingDirectoryBasePath == null) {
 			this.createCacheFolder();
 		}
-		
 		// check if we have already created a process wrapper
 		if(this.cpw == null) {
 			this.cpw = new ClientProcessWrapper();
@@ -117,7 +101,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
-		
 		if(this.cpw.getSocketClient() == null) {
 			boolean debug = false;
 			
@@ -163,8 +146,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		pyt = new TCPPyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
+		
+		// execute all the basic commands
+		String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
+		// break the commands seperated by ;
+		String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+		// replace the Vars
+		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+			commands[commandIndex] = fillVars(commands[commandIndex]);
+		}
 		pyt.runEmptyPy(commands);
-
+		// for debugging...
+		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+							+ " ptyhon process with commands >>> " + String.join("\n", commands));	
+		
 		// run a prefix command
 		setPrefix();
 	}
@@ -186,7 +181,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] {"prefix", this.prefix};
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		
 		this.cpw.getSocketClient().executeCommand(prefixPayload);
 	}
 	
