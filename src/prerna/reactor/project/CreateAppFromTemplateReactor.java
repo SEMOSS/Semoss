@@ -1,12 +1,14 @@
 package prerna.reactor.project;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.maven.shared.utils.io.FileUtils;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -72,16 +74,31 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		String templateProjectAssetFolder = AssetUtility.getProjectAssetFolder(projectTemplateId);
 		String newProjectAssetFolder = AssetUtility.getProjectAssetFolder(newProject.getProjectId());
 		
-		try {
-			FileUtils.copyDirectory(new File(templateProjectAssetFolder), new File(newProjectAssetFolder));
-			if (ClusterUtil.IS_CLUSTER) {
-				logger.info("Syncing project for cloud backup");
-				ClusterUtil.pushProjectFolder(newProject, newProjectAssetFolder);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("New project was created but could not transfer over the assets from the template. Errror = " + e.getMessage());
-		}
+		Path sourceDir = Paths.get(templateProjectAssetFolder);
+        Path destinationDir = Paths.get(newProjectAssetFolder);
+        
+        try {
+        	Files.walk(sourceDir)
+        	.forEach(sourcePath -> {
+        		try {
+        			Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
+        			if(sourcePath.toFile().isFile()) {
+        				targetPath.toFile().getParentFile().mkdirs();
+        				Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        			}
+        		} catch (IOException ex) {
+        			classLogger.warn("Error with moving file from template");
+        			classLogger.error(Constants.STACKTRACE, ex);
+        		}
+        	});
+        	if (ClusterUtil.IS_CLUSTER) {
+        		logger.info("Syncing project for cloud backup");
+        		ClusterUtil.pushProjectFolder(newProject, newProjectAssetFolder);
+        	}
+        } catch (IOException e) {
+        	classLogger.error(Constants.STACKTRACE, e);
+        	throw new IllegalArgumentException("New project was created but could not transfer over the assets from the template. Errror = " + e.getMessage());
+        }
 		
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), newProject.getProjectId());
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
