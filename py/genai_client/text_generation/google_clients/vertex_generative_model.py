@@ -56,20 +56,22 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
             
         
         # convert history to Content class
-        history = []
+        historyChat = []
         if context != None:
-            history.append(Content(role = 'user', parts=[Part.from_text(context)]))
+            # There is no context with gemini models. This is mocking the context set up.
+            historyChat.append(Content(role = 'user', parts=[Part.from_text(context)]))
+            historyChat.append(Content(role = 'model', parts=[Part.from_text("Understood.")]))
             
         try:
-            history.extend(
+            historyChat.extend(
                 [Content(role = msg.get('author', msg['role']), parts=[Part.from_text(msg['content'])]) for msg in history]
             )
         except KeyError:
             raise KeyError("Unable to determine author of the message. No 'author' or 'role' provided.")
-        
+
         # begin the convo
         chat = self.client.start_chat(
-            history = history
+            history = historyChat
         )
               
         # convert ask inputs to vertex ai params
