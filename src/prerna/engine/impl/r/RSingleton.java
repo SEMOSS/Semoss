@@ -19,16 +19,18 @@ import prerna.util.Utility;
 
 public class RSingleton {
 	
-	private static final Logger logger = LogManager.getLogger(RSingleton.class);
+	private static final Logger classLogger = LogManager.getLogger(RSingleton.class);
 
 	private static RConnection rcon = null;
-	static int port = 6311;
+	
 	public static final String R_HOME = "R_HOME";
+	public static final String R_LIBS = "R_LIBS";
 	public static final String R_PORTS = "R_PORTS";
+	private static final String RSERVE_LOC = "/Rserve/libs/x64/Rserve";
+	
+	static int port = 6311;
 	static Hashtable <Integer, RConnection> portToCon = new Hashtable<Integer, RConnection>(); // RServe is not allowing me to inspect the port so I have to do this.. sorry
 	
-	private static final String DIR_SEPERATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
 	private RSingleton() {
 		
 	}
@@ -59,54 +61,50 @@ public class RSingleton {
 	
 	public static void startRServe(int port) {
 		try {
-			String rHome = System.getenv("R_HOME");
-			logger.info("R_HOME env is is " + rHome);
-			
-			// If R_HOME doesn't exist, then check RDF_Map
+			String rHome = System.getenv(R_HOME);
+			String rLibs = System.getenv(R_LIBS);
+			classLogger.info("R_HOME env is is " + rHome);
+			classLogger.info("R_LIBS env is is " + rLibs);
+
+			// If R_HOME / R_LIBS doesn't exist, then check RDF_Map
 			if(rHome == null || rHome.isEmpty()) {
 				rHome = Utility.getDIHelperProperty(R_HOME);
 			}
+			if(rLibs == null || rLibs.isEmpty()) {
+				rLibs = Utility.getDIHelperProperty(R_LIBS);
+			}
 			
-			rHome = rHome.replace("\\", DIR_SEPERATOR);
+			rHome = rHome.replace("\\", "/");
+			rLibs = rLibs.replace("\\", "/");
 
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
 				throw new IllegalArgumentException("rHome does not exist or is not a directory");
 			}
-
-			rHome = rHome + DIR_SEPERATOR + "bin" + DIR_SEPERATOR + "R";
-			if(SystemUtils.IS_OS_WINDOWS) {
-				rHome = rHome.replace(DIR_SEPERATOR, "\\\\");
+			if(rLibs == null) {
+				rLibs = rHome + "/library";
 			}
-			
-			logger.info("R_HOME for process is " + rHome);
+			rHome = rHome + "/bin/R";
+			classLogger.info("R_HOME for process is " + rHome);
 			
 			ProcessBuilder pb;
-
 			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
+				pb = new ProcessBuilder(rHome, "CMD", rLibs+RSERVE_LOC, "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
 			} else {
 				pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
 			}
 			
 			Process process = pb.start();
 
-			logger.info("Waiting 1 second to allow Rserve to finish starting up...");
+			classLogger.info("Waiting 1 second to allow Rserve to finish starting up...");
 			try {
 				process.waitFor(1, TimeUnit.SECONDS);
 			} catch (InterruptedException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-			logger.info("Started RServe process");
-
-			//ProcessBuilder pb = new ProcessBuilder("\"" + rHome + "\"", "-e", "\"library(Rserve);Rserve(FALSE,args='--vanilla --RS-port" + port + "');flush.console <- function(...) {return;}; options(error=function() NULL)\"", "--vanilla");
-			//Process p = pb.start();
-			//p.destroy();
-			//Runtime.getRuntime().exec(" \"" + rHome + "\" -e \"library(Rserve);Rserve(FALSE,args='--vanilla --RS-port" + port + "');flush.console <- function(...) {return;}; options(error=function() NULL)\" --vanilla");
-			//System.out.println("R Started.. going to end");
-			//Runtime.getRuntime().exec(" \"C:\\Program Files\\R\\R-3.3.0\\bin\\R.exe\" -e \"library(Rserve); library(RSclient); rsc <- RSconnect(port = 6311); RSshutdown(rsc)\" --vanilla");
+			classLogger.info("Started RServe process");
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -117,24 +115,22 @@ public class RSingleton {
 	public static void stopRServe(int port) {
 		try {
 			String rHome = System.getenv("R_HOME");
-			rHome = rHome.replace("\\", DIR_SEPERATOR);
+			if(rHome == null || rHome.isEmpty()) {
+				rHome = Utility.getDIHelperProperty(R_HOME);
+			}
+			rHome = rHome.replace("\\", "/");
 
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
 				throw new IllegalArgumentException("rHome does not exist or is not a directory");
 			}
+			rHome = rHome + "/bin/R";
+			classLogger.info("R_HOME for process is " + rHome);
 			
-			rHome = rHome + DIR_SEPERATOR + "bin" + DIR_SEPERATOR + "R";
-			if(SystemUtils.IS_OS_WINDOWS) {
-				rHome = rHome.replace(DIR_SEPERATOR, "\\\\");
-			}
-			logger.info("R_HOME for process is " + rHome);
-
-//			Runtime.getRuntime().exec(" \"" + rHome+ "\" -e \"library(Rserve);library(RSclient); rsc<-RSconnect(port=" + port + ");RSshutdown(rsc) --vanilla");
 			ProcessBuilder pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);library(RSclient);rsc<-RSconnect(port=" + port + ");RSshutdown(rsc)", "--vanilla");
 			Process process = pb.start();
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -144,12 +140,12 @@ public class RSingleton {
 		if(portToCon.containsKey(port)) {
 			rcon = portToCon.get(port);
 		} else {
-			logger.info("Making a master connection now on port " + port);
+			classLogger.info("Making a master connection now on port " + port);
 			try {
 				rcon = new RConnection(host, port);
 				portToCon.put(port, rcon);
 			} catch(Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
+				classLogger.error(Constants.STACKTRACE, ex);
 				// try to start again and see if that works
 				startRServe(port);
 				try {
@@ -157,13 +153,13 @@ public class RSingleton {
 					portToCon.put(port, rcon);
 					RSingleton.port = port;
 				} catch (RserveException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		
 		if(rcon == null) {
-			logger.info("Generating master connection on port " + port + " is null");
+			classLogger.info("Generating master connection on port " + port + " is null");
 		}
 
 		return rcon;
@@ -227,15 +223,15 @@ public class RSingleton {
 	
 	private static boolean isPortOpen(int port) {
 		boolean isOpen = false;
-		logger.info("Trying to see if port " + port + " is open for Rserve.");
+		classLogger.info("Trying to see if port " + port + " is open for Rserve.");
 		try {
 			ServerSocket s = new ServerSocket(port);
 			s.close();
-			logger.info("Success! Port: " + port);
+			classLogger.info("Success! Port: " + port);
 			isOpen = true;
 		} catch (Exception ex) {
 			// Port isn't open, notify and move on
-			logger.info("Port " + port + " is unavailable.");
+			classLogger.info("Port " + port + " is unavailable.");
 		}
 		
 		return isOpen;
@@ -244,15 +240,15 @@ public class RSingleton {
 	private static boolean isRServe(int port) {
 		// try to see if this port is already running RServe
 		boolean isRserve = false;
-		logger.info("Trying to see if port " + port + " is already running Rserve.");
+		classLogger.info("Trying to see if port " + port + " is already running Rserve.");
 		try {
 			rcon = new RConnection("127.0.0.1", port);
 			portToCon.put(port, rcon);
-			logger.info("Success! RServe: " + port);
+			classLogger.info("Success! RServe: " + port);
 			isRserve = true;
 		} catch (Exception ex) {
 			// Port isn't open, notify and move on
-			logger.info("Port " + port + " is unavailable.");
+			classLogger.info("Port " + port + " is unavailable.");
 		}
 		
 		return isRserve;

@@ -1274,26 +1274,31 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.rosuda.REngine</groupId>
-			<artifactId>Rserve</artifactId>
-			<version>1.8.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>org.rosuda</groupId>
+			<artifactId>JRI</artifactId>
+			<version>1.0-11</version>
 		</dependency>
 		<dependency>
-			<groupId>org.rosuda.REngine</groupId>
+			<groupId>org.rosuda</groupId>
+			<artifactId>JRIEngine</artifactId>
+			<version>1.0-11</version>
+		</dependency>
+		<dependency>
+			<groupId>org.rosuda</groupId>
 			<artifactId>REngine</artifactId>
-			<version>2.1.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
+			<version>1.0-11</version>
+		</dependency>
+		<!--
+		<dependency>
+			<groupId>org.rosuda</groupId>
+			<artifactId>Rserve</artifactId>
+			<version>1.8-13</version>
+		</dependency>-->
+		<!-- https://mvnrepository.com/artifact/org.rosuda.REngine/Rserve -->
+		<dependency>
+		    <groupId>org.rosuda.REngine</groupId>
+		    <artifactId>Rserve</artifactId>
+		    <version>1.8.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-repository-sail -->
 		<dependency>
@@ -1352,11 +1357,6 @@
 		    <groupId>us.fatehi</groupId>
 		    <artifactId>schemacrawler</artifactId>
 		    <version>16.21.2</version>
-		</dependency>
-		<dependency>
-			<groupId>org.rosuda</groupId>
-			<artifactId>JRI</artifactId>
-			<version>0.5.6</version>
 		</dependency>
 		<!-- required for JAWS Java API for WordNet Searching -->
 		<dependency>
