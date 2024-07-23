@@ -1233,17 +1233,6 @@
 			</exclusions>
 		</dependency>
 		-->
-		<dependency>
-			<groupId>aurelionribon.ui</groupId>
-			<artifactId>css-engine-swing-api</artifactId>
-			<version>1.0.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<!-- 
 		<dependency>
 			<groupId>com.teamdev.jxbrowser</groupId>
