@@ -1,7 +1,6 @@
 package prerna.reactor.task.lambda.flatmap;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -33,7 +32,7 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 		// add new headers
 		String[] newHeaders = new String[]{"review", "author", "retweet_count"};
 		
-		Hashtable params = new Hashtable();
+		Map<String, Object> params = new HashMap<>();
 		params.put("q", value.toString().replace("_", " "));
 		params.put("lang", "en");
 		if(this.params.containsKey("output"))

@@ -1,7 +1,6 @@
 package prerna.reactor.task.lambda.flatmap;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -36,8 +35,8 @@ public class GoogleEntityAnalyzerLambda extends AbstractFlatMapLambda {
 			return new Vector<IHeadersDataRow>();
 		}
 		// grab the column index we want to use as the address
-		Hashtable params = new Hashtable();
-		Hashtable docParam = new Hashtable();
+		Map<String, Object> params = new HashMap<>();
+		Map<String, Object> docParam = new HashMap<>();
 		docParam.put("type", "PLAIN_TEXT");
 		docParam.put("language", "EN");
 		docParam.put("content", value.toString().replace("_", " "));

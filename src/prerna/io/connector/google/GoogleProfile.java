@@ -1,6 +1,7 @@
 package prerna.io.connector.google;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -16,14 +17,14 @@ public class GoogleProfile implements IConnectorIOp{
 	private static String jsonPattern = "[name, gender, locale, email, sub]";
 	
 	@Override
-	public String execute(User user, Hashtable params) {
+	public String execute(User user, Map<String, Object> params) {
 		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
 		return fillAccessToken(googToken, params);
 	}
 	
-	public static String fillAccessToken(AccessToken googToken, Hashtable params) {
+	public static String fillAccessToken(AccessToken googToken, Map<String, Object> params) {
 		if(params == null) {
-			params = new Hashtable();
+			params = new HashMap<>();
 		}
 		
 		String accessToken = googToken.getAccess_token();

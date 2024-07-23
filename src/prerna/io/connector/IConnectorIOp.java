@@ -1,6 +1,6 @@
 package prerna.io.connector;
 
-import java.util.Hashtable;
+import java.util.Map;
 
 import prerna.auth.User;
 
@@ -22,6 +22,6 @@ public interface IConnectorIOp {
 	
 	// delete the content of the item 
 	
-	public Object execute(User user, Hashtable params);
+	public Object execute(User user, Map<String, Object> params);
 
 }

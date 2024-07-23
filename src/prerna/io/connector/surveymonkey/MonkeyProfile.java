@@ -1,6 +1,7 @@
 package prerna.io.connector.surveymonkey;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -17,14 +18,14 @@ public class MonkeyProfile implements IConnectorIOp{
 	private static String jsonPattern = "{id: id, email: email, username: username, first_name: first_name, last_name: last_name}.[id, email, username, join(' ', [first_name, last_name])]";
 	
 	@Override
-	public String execute(User user, Hashtable params) {
+	public String execute(User user, Map<String, Object> params) {
 		AccessToken acToken = user.getAccessToken(AuthProvider.SURVEYMONKEY);
 		return fillAccessToken(acToken, params);
 	}
 	
-	public static String fillAccessToken(AccessToken acToken, Hashtable params) {
+	public static String fillAccessToken(AccessToken acToken, Map<String, Object> params) {
 		if(params == null) {
-			params = new Hashtable();
+			params = new HashMap<>();
 		}
 		
 		String accessToken = acToken.getAccess_token();

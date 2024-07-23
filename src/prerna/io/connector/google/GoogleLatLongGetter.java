@@ -1,6 +1,7 @@
 package prerna.io.connector.google;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AppTokens;
@@ -25,10 +26,9 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 	String jsonPattern = "results[*].geometry.location.[lat, lng][]";
 	
 	@Override
-	public Object execute(User user, Hashtable params) 
-	{
+	public Object execute(User user, Map params) {
 		if(params == null) {
-			params = new Hashtable();
+			params = new HashMap();
 		}
 
 		AccessToken googToken = null;

@@ -1,6 +1,7 @@
 package prerna.io.connector.google;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -18,11 +19,12 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 	String jsonPattern = "sentences[].{sentence: text.content, magnitude: sentiment.magnitude, score:sentiment.score}";
 	
 	@Override
-	public Object execute(User user, Hashtable params) {
+	public Object execute(User user, Map<String, Object> params) {
 		// if no input, unsure what you will get...
 		if(params == null) {
-			params = new Hashtable();
+			params = new HashMap<>();
 		}
+		
 		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
 		String accessToken = googToken.getAccess_token();
 		
