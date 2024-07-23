@@ -38,7 +38,10 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		Map<String, Object> connectionDetails = getConDetails();
 		
-		String driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
+		String driver = (String) connectionDetails.get(Constants.RDBMS_TYPE);
+		if(driver == null) {
+			driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
+		}
 		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
 		
