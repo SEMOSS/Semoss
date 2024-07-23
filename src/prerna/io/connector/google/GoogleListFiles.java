@@ -1,7 +1,8 @@
 package prerna.io.connector.google;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -33,10 +34,10 @@ public class GoogleListFiles implements IConnectorIOp{
 	String url_str = "https://www.googleapis.com/drive/v3/files";
 
 	@Override
-	public Object execute(User user, Hashtable params) {
-		
-		if(params == null)
-			params = new Hashtable();
+	public Object execute(User user, Map<String, Object> params) {
+		if(params == null) {
+			params = new HashMap<>();
+		}
 		
 		// TODO Auto-generated method stub
 		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
@@ -50,9 +51,6 @@ public class GoogleListFiles implements IConnectorIOp{
 		
 		// fill the bean with the return
 		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-
-		
-		// TODO Auto-generated method stub
 		return fileList;
 	}
 

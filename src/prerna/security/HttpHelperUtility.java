@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.net.ssl.HostnameVerifier;
 
@@ -861,16 +862,15 @@ public final class HttpHelperUtility {
 	}
 
 	// makes the call to every resource going forward with the specified keys as get
-	public static String makeGetCall(String urlStr, String accessToken, Hashtable params, boolean auth) {
+	public static String makeGetCall(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
 		String retString = null;
 		// fill the params on the get since it is not null
 		if(params != null) {
 			StringBuffer urlBuf = new StringBuffer(urlStr);
 			urlBuf.append("?");
-			Enumeration keys = params.keys();
 			boolean first = true;
-			while(keys.hasMoreElements()) {
-				Object key = keys.nextElement() +"";
+			Set<String> keys = params.keySet();
+			for(String key : keys) {
 				Object value = params.get(key);
 				if(!first) {
 					urlBuf.append("&");
@@ -881,7 +881,81 @@ public final class HttpHelperUtility {
 				} catch (UnsupportedEncodingException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
+				first = false;
+			}
+			urlStr = urlBuf.toString();
+		}
+		
+		BufferedReader br = null;
+		InputStreamReader isr = null;
+		try {
+			HttpURLConnection con = null;
+			URL url = new URL(urlStr);
+		    con = ( HttpURLConnection )url.openConnection();
+		    con.setDoInput(true);
+		    con.setDoOutput(true);
+		    con.setUseCaches(false);
+		    con.setRequestMethod("GET");
+		    con.setRequestProperty("User-Agent", "SEMOSS");
+		    if(auth) {
+		    	con.setRequestProperty("Authorization","Bearer " + accessToken);
+		    }
+		    con.setRequestProperty("Accept","application/json"); // I added this line.
+		    con.connect();
+
+		    isr = new InputStreamReader(con.getInputStream(), "UTF-8");
+		    br = new BufferedReader(isr);
+		    StringBuilder str = new StringBuilder();
+		    String line;
+		    while((line = br.readLine()) != null){
+		        str.append(line);
+		    }
+		    retString = str.toString();
+		    classLogger.info("Return from " + urlStr + " = " + retString);
+		} catch (MalformedURLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(br != null) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(isr != null) {
+				try {
+					isr.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return retString;
+	}
+
+	// makes the call to every resource going forward with the specified keys as get
+	public static BufferedReader getHttpStream(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
+		// fill the params on the get since it is not null
+		// fill the params on the get since it is not null
+		if(params != null) {
+			StringBuffer urlBuf = new StringBuffer(urlStr);
+			urlBuf.append("?");
+			boolean first = true;
+			Set<String> keys = params.keySet();
+			for(String key : keys) {
+				Object value = params.get(key);
+				if(!first) {
+					urlBuf.append("&");
+				}
 				
+				try {
+					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
+				} catch (UnsupportedEncodingException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 				first = false;
 			}
 			urlStr = urlBuf.toString();
@@ -899,63 +973,6 @@ public final class HttpHelperUtility {
 		    if(auth) {
 		    	con.setRequestProperty("Authorization","Bearer " + accessToken);
 		    }
-		    con.setRequestProperty("Accept","application/json"); // I added this line.
-		    con.connect();
-
-		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() , "UTF-8"));
-		    StringBuilder str = new StringBuilder();
-		    String line;
-		    while((line = br.readLine()) != null){
-		        str.append(line);
-		    }
-		    retString = str.toString();
-		    System.out.println(retString);	
-		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		return retString;
-	}
-
-	// makes the call to every resource going forward with the specified keys as get
-	public static BufferedReader getHttpStream(String url_str, String accessToken, Hashtable params, boolean auth) {
-		// fill the params on the get since it is not null
-		if(params != null) {
-			StringBuffer urlBuf = new StringBuffer(url_str);
-			urlBuf.append("?");
-			Enumeration keys = params.keys();
-			boolean first = true;
-			while(keys.hasMoreElements()) {
-				Object key = keys.nextElement() +"";
-				Object value = params.get(key);
-				if(!first) {
-					urlBuf.append("&");
-				}
-				
-				try {
-					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				
-				first = false;
-			}
-			url_str = urlBuf.toString();
-		}
-		
-		try {
-			HttpURLConnection con = null;
-			URL url = new URL(url_str);
-		    con = ( HttpURLConnection )url.openConnection();
-		    con.setDoInput(true);
-		    con.setDoOutput(true);
-		    con.setUseCaches(false);
-		    con.setRequestMethod("GET");
-		    con.setRequestProperty("User-Agent", "SEMOSS");
-		    if(auth)
-		    	con.setRequestProperty("Authorization","Bearer " + accessToken);
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
 

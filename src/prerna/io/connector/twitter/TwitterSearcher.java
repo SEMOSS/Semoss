@@ -1,6 +1,7 @@
 package prerna.io.connector.twitter;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AppTokens;
@@ -33,9 +34,9 @@ public class TwitterSearcher implements IConnectorIOp{
 	// max_id, since_id - low level control in terms of the id to get
 
 	@Override
-	public Object execute(User user, Hashtable params) {
+	public Object execute(User user, Map<String, Object> params) {
 		if(params == null) {
-			params = new Hashtable();
+			params = new HashMap<>();
 		}
 		
 		AccessToken twitToken = null;

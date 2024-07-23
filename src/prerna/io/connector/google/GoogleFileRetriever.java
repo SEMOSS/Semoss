@@ -5,27 +5,22 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Hashtable;
-
-import prerna.auth.User;
-import prerna.io.connector.IConnectorIOp;
-import prerna.security.HttpHelperUtility;
-
-import prerna.util.Constants;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
+import prerna.io.connector.IConnectorIOp;
+import prerna.security.HttpHelperUtility;
+import prerna.util.Constants;
 
 public class GoogleFileRetriever implements IConnectorIOp{
 	
 	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
-
 	
 	@Override
-	public Object execute(User user, Hashtable params) {
-		
-		
+	public Object execute(User user, Map<String, Object> params) {
 		String fileName = (String)params.remove("target");
 		BufferedWriter target  = null;
 		try {

@@ -1,6 +1,7 @@
 package prerna.io.connector.ms;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -16,14 +17,14 @@ public class MSProfile implements IConnectorIOp{
 	private static String jsonPattern = "[displayName,id,mail]";
 	
 	@Override
-	public String execute(User user, Hashtable params) {
+	public String execute(User user, Map<String, Object> params) {
 		AccessToken acToken = user.getAccessToken(AuthProvider.MS);
 		return fillAccessToken(acToken, params);
 	}
 	
-	public static String fillAccessToken(AccessToken acToken, Hashtable params) {
+	public static String fillAccessToken(AccessToken acToken, Map<String, Object> params) {
 		if(params == null) {
-			params = new Hashtable();
+			params = new HashMap<>();
 		}
 		
 		String accessToken = acToken.getAccess_token();
