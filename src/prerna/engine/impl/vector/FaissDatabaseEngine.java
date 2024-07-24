@@ -67,16 +67,15 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String [] commands = (TOKENIZER_INIT_SCRIPT+FAISS_INIT_SCRIPT).split(PyUtils.PY_COMMAND_SEPARATOR);
 		
 		// need to iterate through and potential spin up tables themselves
-		if (this.indexClasses.size() > 0) {
+	    if (this.indexClasses.size() > 0) {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
-			for (String indexClass : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
-				modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
-				if (fileToCheck.exists()) {
-			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add("${"+VECTOR_SEARCHER_NAME+"}.searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
-		        }
-			}
+	        for (String indexClass : this.indexClasses) {
+	            File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "master_dataset_vectors.pkl");
+	            modifiedCommands.add("${" + VECTOR_SEARCHER_NAME + "}.create_searcher(searcher_name = '" + indexClass + "', base_path = '" + fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + "')");
+	            if (fileToCheck.exists()) {
+	                modifiedCommands.add("${" + VECTOR_SEARCHER_NAME + "}.searchers['" + indexClass + "'].load_dataset_and_vectors('" + fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + "' + 'master_dataset_vectors.pkl')");
+	            }
+	        }
             commands = modifiedCommands.stream().toArray(String[]::new);
 		}
 		
@@ -93,7 +92,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					.append(".searchers['")
 					.append(indexClass)
 					.append("']")
-					.append(".datasetsLoaded()");
+					.append(".datasets_loaded()");
 				
 				boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
 				this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
@@ -225,7 +224,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							.append(indexClass)
 							.append("']");
 		
-		addDocumentPyCommand.append(".addDocumet(documentFileLocation = ['")
+		addDocumentPyCommand.append(".add_document(documentFileLocation = ['")
 							.append(String.join("','", vectorCsvFiles))
 							.append("'], insight_id = '")
 							.append(insight.getInsightId())
@@ -278,7 +277,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append(".searchers['")
 							 .append(indexClass)
 							 .append("']")
-							 .append(".datasetsLoaded()");
+							 .append(".datasets_loaded()");
 		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
 		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 	}
@@ -337,7 +336,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Path indexDirectory = Paths.get(indexedFilesPath);
 		for (String document : filePaths) {
 			String documentName = document.split("\\.")[0];
-	        String[] fileNamesToDelete = {documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv"};
+			String[] fileNamesToDelete = {documentName + "_dataset_vectors.pkl", documentName + ".csv"};
 
 	        // Create a filter for the file names
 	        DirectoryStream.Filter<Path> fileNameFilters = entry -> {
@@ -385,8 +384,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				File indexClassDirectory = new File(indexedFolder.getParent());
 				
 				// remove the master dataset and vector files
-				filesToRemoveFromCloud.add(new File(indexClassDirectory, "dataset.pkl").getAbsolutePath());
-				filesToRemoveFromCloud.add(new File(indexClassDirectory, "vectors.pkl").getAbsolutePath());
+				filesToRemoveFromCloud.add(new File(indexClassDirectory, "master_dataset_vectors.pkl").getAbsolutePath());
 				
 				// delete the entire folder
 				FileUtils.forceDelete(indexClassDirectory);
@@ -401,12 +399,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
 	        StringBuilder updateMasterFilesCommand = new StringBuilder();
 	        updateMasterFilesCommand.append(this.vectorDatabaseSearcher)
-	                                .append(".searchers['")
-	                                .append(indexClass)
-	                                .append("']")
-	                                .append(".createMasterFiles(path_to_files = '")
-	                                .append(indexDirectory.getParent().toString().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-	                                .append("')");
+						            .append(".searchers['")
+						            .append(indexClass)
+						            .append("']")
+						            .append(".create_master_file(path_to_files = '")
+						            .append(indexDirectory.getParent().toString().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+						            .append("')");
 
 	        String script = updateMasterFilesCommand.toString();
 	        classLogger.info("Running >>>" + script);
@@ -418,7 +416,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	                             .append(".searchers['")
 	                             .append(indexClass)
 	                             .append("']")
-	                             .append(".datasetsLoaded()");
+	                             .append(".datasets_loaded()");
 	        boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
 	        this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 		}
@@ -585,7 +583,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append(".searchers['")
 							 .append(indexClass)
 							 .append("']")
-							 .append(".datasetsLoaded()");
+							 .append(".datasets_loaded()");
 		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
 		this.indexClassHasDatasetLoaded.put(indexClass, datasetsLoaded);
 		
