@@ -1353,11 +1353,13 @@
 		    <version>2.11.5</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/us.fatehi/schemacrawler -->
+		<!--
 		<dependency>
 		    <groupId>us.fatehi</groupId>
 		    <artifactId>schemacrawler</artifactId>
 		    <version>16.21.2</version>
 		</dependency>
+		-->
 		<!-- required for JAWS Java API for WordNet Searching -->
 		<dependency>
 			<groupId>net.sf.extjwnl</groupId>
