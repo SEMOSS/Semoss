@@ -409,22 +409,44 @@
 					<groupId>org.eclipse.jetty</groupId>
 					<artifactId>jetty-server</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-util</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-io</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-http</artifactId>
-			<version>9.2.30.v20200428</version>
+			<version>9.4.55.v20240627</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-client</artifactId>
-			<version>9.2.30.v20200428</version>
+			<version>9.4.55.v20240627</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>9.2.30.v20200428</version>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-util</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-io</artifactId>
+			<version>9.4.55.v20240627</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -1984,7 +2006,7 @@
 		<dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.8.3</version>
+            <version>3.8.4</version>
             <exclusions>
 				<exclusion>
 					<groupId>log4j</groupId>
