@@ -1912,6 +1912,10 @@
 					<groupId>org.bouncycastle</groupId>
 					<artifactId>bcpkix-jdk14</artifactId>
 				</exclusion>	
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcprov-jdk14</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
