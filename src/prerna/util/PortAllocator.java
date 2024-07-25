@@ -24,16 +24,16 @@ public class PortAllocator {
 		int lowPort = 5355;
 		int highPort = lowPort + 10_000;
 
-		if (DIHelper.getInstance().getProperty("LOW_PORT") != null) {
+		if (Utility.getDIHelperProperty("LOW_PORT") != null) {
 			try {
-				lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
+				lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT"));
 			} catch (Exception ignore) {
 			}
 			;
 		}
-		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null) {
+		if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
 			try {
-				highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
+				highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT"));
 			} catch (Exception ignore) {
 			}
 			;
