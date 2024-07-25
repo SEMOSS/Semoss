@@ -1016,6 +1016,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>net.sf.jung</groupId>
 			<artifactId>jung-api</artifactId>
@@ -1049,6 +1050,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/log4j/log4j>
 		<dependency>
 		    <groupId>log4j</groupId>
