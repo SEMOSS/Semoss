@@ -1600,7 +1600,7 @@ public abstract class AbstractSecurityUtils {
 			}
 	
 			// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
-			List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
+			List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS, Constants.PROMPT_METAKEYS);
 			for(String tableName : metaKeyTableNames) {
 				// all have the same columns and default values
 				colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES"};
@@ -1688,6 +1688,98 @@ public abstract class AbstractSecurityUtils {
 				if(!queryUtil.tableExists(conn, "API_KEY", database, schema)) {
 					// make the table
 					securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
+				}
+			}
+			
+			// PROMPT STUFF
+			colNames = new String[] { "ID", "TITLE", "CONTEXT", "CREATED_BY", "DATE_CREATED", "IS_PUBLIC" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "VARCHAR(255)",
+					TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "PROMPT", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PROMPT", colNames, types));
+				}
+			}
+
+			colNames = new String[] { "ID", "PROMPT_ID", "INDEX", "KEY", "DISPLAY", "TYPE",
+					"IS_HIDDEN_PHRASE_INPUT_TOKEN", "LINKED_INPUT_TOKEN" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_INPUT", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "PROMPT_INPUT", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PROMPT_INPUT", colNames, types));
+				}
+			}
+
+			colNames = new String[] { "ID", "PROMPT_ID", "PROMPT_INPUT_ID", "TYPE", "META", "VALUE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_VARIABLE", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "PROMPT_VARIBALE", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("PROMPT_VARIABLE", colNames, types));
+				}
+			}
+
+			// PROMPTMETA
+			// check if column exists
+			colNames = new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("PROMPTMETA", colNames, types);
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "PROMPTMETA", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("PROMPTMETA", colNames, types);
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
+
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("PROMPTMETA_PROMPT_ID_INDEX", "PROMPTMETA", "PROMPT_ID");
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if (!queryUtil.indexExists(securityDb, "PROMPTMETA_PROMPT_ID_INDEX", "PROMPTMETA", database, schema)) {
+					String sql = queryUtil.createIndex("PROMPTMETA_PROMPT_ID_INDEX", "PROMPTMETA", "PROMPT_ID");
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
+
+			// PROMPTPERMISSION
+			boolean PROMPTPERMISSION = queryUtil.tableExists(conn, "PROMPTPERMISSION", database, schema);
+			colNames = new String[] { "PROMPT_ID", "USERID", "FAVORITE", "DATEADDED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, false, null };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROMPTPERMISSION", colNames, types,
+						defaultValues);
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "PROMPTPERMISSION", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("PROMPTPERMISSION", colNames, types);
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
 				}
 			}
 	

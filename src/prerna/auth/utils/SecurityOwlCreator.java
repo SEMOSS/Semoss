@@ -54,6 +54,14 @@ public class SecurityOwlCreator {
 		
 		// trusted token security
 		conceptsRequired.add("TOKEN");
+		
+		// prompts
+		conceptsRequired.add("PROMPT");
+		conceptsRequired.add("PROMPT_INPUT");
+		conceptsRequired.add("PROMPT_VARIABLE");
+		conceptsRequired.add(Constants.PROMPT_METAKEYS);
+		conceptsRequired.add("PROMPTMETA");
+		conceptsRequired.add("PROMPTPERMISSION");
 	}
 	
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -508,8 +516,51 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
-		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
-		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
+		// PROMPT
+		owler.addConcept("PROMPT", null, null);
+		owler.addProp("PROMPT", "ID", "VARCHAR(255)");
+		owler.addProp("PROMPT", "TITLE", "VARCHAR(255)");
+		owler.addProp("PROMPT", "CONTEXT", "CLOB");
+		owler.addProp("PROMPT", "CONTEXT", "CLOB");
+		owler.addProp("PROMPT", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("PROMPT", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("PROMPT", "IS_PUBLIC", "BOOLEAN");
+
+		// PROMPTMETA
+		owler.addConcept("PROMPTMETA", null, null);
+		owler.addProp("PROMPTMETA", "PROMPT_ID", "VARCHAR(255)");
+		owler.addProp("PROMPTMETA", "METAKEY", "VARCHAR(255)");
+		owler.addProp("PROMPTMETA", "METAVALUE", "CLOB");
+		owler.addProp("PROMPTMETA", "METAORDER", "INT");
+
+		// PROMPTPERMISSION
+		owler.addConcept("PROMPTPERMISSION", null, null);
+		owler.addProp("PROMPTPERMISSION", "PROMPT_ID", "VARCHAR(255)");
+		owler.addProp("PROMPTPERMISSION", "USERID", "VARCHAR(255)");
+		owler.addProp("PROMPTPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("PROMPTPERMISSION", "DATEADDED", "TIMESTAMP");
+
+		owler.addConcept("PROMPT_INPUT", null, null);
+		owler.addProp("PROMPT_INPUT", "ID", "VARCHAR(255)");
+		owler.addProp("PROMPT_INPUT", "PROMPT_ID", "VARCHAR(255)");
+		owler.addProp("PROMPT_INPUT", "INDEX", "INT");
+		owler.addProp("PROMPT_INPUT", "KEY", "VARCHAR(255)");
+		owler.addProp("PROMPT_INPUT", "DISPLAY", "VARCHAR(255)");
+		owler.addProp("PROMPT_INPUT", "TYPE", "VARCHAR(255)");
+		owler.addProp("PROMPT_INPUT", "IS_HIDDEN_PHRASE_INPUT_TOKEN", "BOOLEAN");
+		owler.addProp("PROMPT_INPUT", "LINKED_INPUT_TOKEN", "VARCHAR(255)");
+
+		owler.addConcept("PROMPT_VARIABLE", null, null);
+		owler.addProp("PROMPT_VARIABLE", "ID", "VARCHAR(255)");
+		owler.addProp("PROMPT_VARIABLE", "PROMPT_ID", "VARCHAR(255)");
+		owler.addProp("PROMPT_VARIABLE", "PROMPT_INPUT_ID", "VARCHAR(255)");
+		owler.addProp("PROMPT_VARIABLE", "TYPE", "VARCHAR(255)");
+		owler.addProp("PROMPT_VARIABLE", "META", "VARCHAR(255)");
+		owler.addProp("PROMPT_VARIABLE", "VALUE", "VARCHAR(255)");
+
+		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS, PROMPTMETAKEYS"
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
+				Constants.INSIGHT_METAKEYS, Constants.PROMPT_METAKEYS);
 		for(String tableName : metaKeyTableNames) {
 			// all have the same columns and default values
 			owler.addConcept(tableName, null, null);

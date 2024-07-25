@@ -46,6 +46,7 @@ public class ApiSemossTestEngineUtils {
 	private static List<String> CORE_DBS = null;
 	
 	private static List<String> CURRENT_NAMES = new ArrayList<>();
+	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
 	
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
@@ -213,7 +214,9 @@ public class ApiSemossTestEngineUtils {
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
-				st.addBatch("DELETE FROM " + x);
+				if (!DO_NOT_CLEAR_LIST.contains(x)) {
+					st.addBatch("DELETE FROM " + x);
+				}
 			}
 			st.executeBatch();
 			
