@@ -2169,12 +2169,20 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.samba.jcifs/jcifs -->
-	<dependency>
-	    <groupId>org.samba.jcifs</groupId>
-	    <artifactId>jcifs</artifactId>
-	    <version>1.3.14-kohsuke-1</version>
-	</dependency>
-		
+		<dependency>
+		    <groupId>org.samba.jcifs</groupId>
+		    <artifactId>jcifs</artifactId>
+		    <version>1.3.14-kohsuke-1</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+		    <artifactId>owasp-java-html-sanitizer</artifactId>
+		    <version>20240325.1</version>
+		</dependency>	
+	
+	
+	
+	
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
@@ -2197,10 +2205,6 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>
-		<dependency>
-		    <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
-		    <artifactId>owasp-java-html-sanitizer</artifactId>
-		    <version>20240325.1</version>
-		</dependency>
+		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
