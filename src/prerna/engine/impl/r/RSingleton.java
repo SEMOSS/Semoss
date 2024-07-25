@@ -1,7 +1,6 @@
 package prerna.engine.impl.r;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,6 +14,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.util.Constants;
+import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
 public class RSingleton {
@@ -25,14 +25,13 @@ public class RSingleton {
 	
 	public static final String R_HOME = "R_HOME";
 	public static final String R_LIBS = "R_LIBS";
-	public static final String R_PORTS = "R_PORTS";
 	private static final String RSERVE_LOC = "/Rserve/libs/x64/Rserve";
 	
-	static int port = 6311;
+	static int port = -1;
 	static Hashtable <Integer, RConnection> portToCon = new Hashtable<Integer, RConnection>(); // RServe is not allowing me to inspect the port so I have to do this.. sorry
 	
 	private RSingleton() {
-		
+		port = PortAllocator.getInstance().getNextAvailablePort();
 	}
 	
 	/**
@@ -41,7 +40,7 @@ public class RSingleton {
 	 */
 	public static RConnection getConnection() {
 		if(rcon == null) {
-			int port = getPortForRserve();
+			int port = PortAllocator.getInstance().getNextAvailablePort();
 			return getConnection("127.0.0.1", port);
 		}
 		return rcon;
@@ -89,9 +88,9 @@ public class RSingleton {
 			
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder(rHome, "CMD", rLibs+RSERVE_LOC, "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
+				pb = new ProcessBuilder(rHome, "CMD", rLibs+RSERVE_LOC, "--vanilla", "--RS-port", port + "");
 			} else {
-				pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
+				pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
 			}
 			
 			Process process = pb.start();
@@ -165,78 +164,13 @@ public class RSingleton {
 		return rcon;
 	}
 	
-	private static int getPortForRserve() {
-		int port = 6311;
-		int count = 0;
-	
-		// need to also see if this is already running RServe and if so get that sorted out
-		String portsForR = Utility.getDIHelperProperty(R_PORTS);
-		if(portsForR != null && !portsForR.isEmpty()) {
-			if(portsForR.contains("-")) { // If a range is specified: start-end
-				String[] portRange = portsForR.trim().replace(" ", "").split("-");
-				int startPort = Integer.parseInt(portRange[0]);
-				int endPort = Integer.parseInt(portRange[1]);
-				while(startPort <= endPort) {
-					if(isRServe(startPort)) {
-						// great - already running rserve
-						port = startPort;
-						break;
-					}
-					if(isPortOpen(startPort)) {
-						port = startPort;
-						break;
-					} else {
-						startPort++;
-					}
-				}
-			} else if(portsForR.contains(",")) { // If multiple individual ports are specified: p1,p2,p3
-				String[] portsToTry = portsForR.trim().replace(" ", "").split(",");
-				for(int i = 0; i < portsToTry.length; i++) {
-					int currPort = Integer.parseInt(portsToTry[i]);
-					if(isRServe(currPort))
-					{
-						// great - already running rserve
-						port = currPort;
-						break;
-					}
-					if(isPortOpen(currPort)) {
-						port = currPort;
-						break;
-					}
-				}
-			} else { // Just one port specified
-				int onePort = Integer.parseInt(portsForR);
-				if(isPortOpen(onePort)) {
-					port = onePort;
-				}
-			}
-		} else { // No port(s) specified so try 5 ports to see if we can find one that's open
-			for( ; count < 5; port++, count++) {
-				if(isPortOpen(port)) {
-					break;
-				}
-			}
-		}
-		
-		return port;
-	}
-	
-	private static boolean isPortOpen(int port) {
-		boolean isOpen = false;
-		classLogger.info("Trying to see if port " + port + " is open for Rserve.");
-		try {
-			ServerSocket s = new ServerSocket(port);
-			s.close();
-			classLogger.info("Success! Port: " + port);
-			isOpen = true;
-		} catch (Exception ex) {
-			// Port isn't open, notify and move on
-			classLogger.info("Port " + port + " is unavailable.");
-		}
-		
-		return isOpen;
-	}
-	
+	/**
+	 * KEEP THIS EVEN THOUGH NOT USED
+	 * INCASE WE WNAT TO EVENTUALLY LOOK AT ALL THE PORTS IN PORT ALLOCATOR 
+	 * AND ATTEMPT TO USE THAT IF ITS AN RSERVE
+	 * @param port
+	 * @return
+	 */
 	private static boolean isRServe(int port) {
 		// try to see if this port is already running RServe
 		boolean isRserve = false;
