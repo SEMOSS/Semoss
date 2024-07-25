@@ -43,14 +43,6 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
-import edu.uci.ics.jung.algorithms.layout.CircleLayout;
-import edu.uci.ics.jung.algorithms.layout.FRLayout;
-import edu.uci.ics.jung.algorithms.layout.ISOMLayout;
-import edu.uci.ics.jung.algorithms.layout.KKLayout;
-import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
-import edu.uci.ics.jung.algorithms.layout.SpringLayout;
-import edu.uci.ics.jung.algorithms.layout.TreeLayout;
 import prerna.engine.api.IDatabaseEngine;
 
 /**
@@ -171,15 +163,18 @@ public final class DIHelper {
 				helper.localProp.put(Constants.LIGHT_GRAY, lightGray);
 				helper.localProp.put(Constants.CYAN, cyan);
 	
+				/*
+				 * MOVED TO GraphPlaySheet
+				 */
 				// put all the layouts as well
-				helper.localProp.put(Constants.FR, FRLayout.class);
-				helper.localProp.put(Constants.KK, KKLayout.class);
-				helper.localProp.put(Constants.ISO, ISOMLayout.class);
-				helper.localProp.put(Constants.SPRING, SpringLayout.class);
-				helper.localProp.put(Constants.CIRCLE_LAYOUT, CircleLayout.class);
-				helper.localProp.put(Constants.RADIAL_TREE_LAYOUT, RadialTreeLayout.class);
-				helper.localProp.put(Constants.TREE_LAYOUT, TreeLayout.class);
-				helper.localProp.put(Constants.BALLOON_LAYOUT, BalloonLayout.class);
+//				helper.localProp.put(Constants.FR, FRLayout.class);
+//				helper.localProp.put(Constants.KK, KKLayout.class);
+//				helper.localProp.put(Constants.ISO, ISOMLayout.class);
+//				helper.localProp.put(Constants.SPRING, SpringLayout.class);
+//				helper.localProp.put(Constants.CIRCLE_LAYOUT, CircleLayout.class);
+//				helper.localProp.put(Constants.RADIAL_TREE_LAYOUT, RadialTreeLayout.class);
+//				helper.localProp.put(Constants.TREE_LAYOUT, TreeLayout.class);
+//				helper.localProp.put(Constants.BALLOON_LAYOUT, BalloonLayout.class);
 			}
 		}
 		
@@ -468,8 +463,9 @@ public final class DIHelper {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
-				if(fileIn!=null)
+				if(fileIn != null) {
 					fileIn.close();
+				}
 			} catch(IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
