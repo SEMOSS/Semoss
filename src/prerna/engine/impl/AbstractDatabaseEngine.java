@@ -182,7 +182,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
-			Map<String, String> engineSecrets = secretStore.getDatabaseSecrets(this.engineName, this.engineId);
+			Map<String, String> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
 			if(engineSecrets != null && !engineSecrets.isEmpty()) {
 				this.smssProp.putAll(engineSecrets);
 			}

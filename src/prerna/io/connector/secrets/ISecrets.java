@@ -2,6 +2,8 @@ package prerna.io.connector.secrets;
 
 import java.util.Map;
 
+import prerna.engine.api.IEngine;
+
 public interface ISecrets {
 
 	String HASHICORP_VAULT = "VAULT";
@@ -10,107 +12,82 @@ public interface ISecrets {
 	String SALT = "salt";
 	
 	/**
-	 * Get the secrets associated with a project
-	 * @param projectName
-	 * @param projectId
+	 * 
+	 * @param eType
+	 * @param engineId
+	 * @param engineName
 	 * @return
 	 */
-	Map<String, String> getProjectSecrets(String projectName, String projectId);
-	
-	/**
-	 * Get the secrets associated with a database
-	 * @param databaseName
-	 * @param databaseId
-	 * @return
-	 */
-	Map<String, String> getDatabaseSecrets(String databaseName, String databaseId);
+	Map<String, String> getEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName);
 	
 	/**
 	 * Get the secrets associated with an insight
-	 * @param insightId
-	 * @param projectName
 	 * @param projectId
+	 * @param projectName
+	 * @param insightId
 	 * @return
 	 */
-	Map<String, String> getInsightSecrets(String insightId, String projectName, String projectId);
+	Map<String, String> getInsightSecrets(String projectId, String projectName, String insightId);
 
 	/**
 	 * Get the insight encryption key
-	 * @param insightId
-	 * @param projectName
 	 * @param projectId
+	 * @param projectName
+	 * @param insightId
 	 * @return
 	 */
-	Map<String, Object> getInsightEncryptionSecrets(String insightId, String projectName, String projectId);
+	Map<String, Object> getInsightEncryptionSecrets(String projectId, String projectName, String insightId);
 	
 	/**
-	 * Write a secret key-value pair for a database
-	 * @param databaseName
-	 * @param databaseId
+	 * Write a secret key-value pair for an engine
+	 * @param eType
+	 * @param engineId
+	 * @param engineName
 	 * @param key
 	 * @param value
 	 * @return
 	 */
-	boolean writeDatabaseSecret(String databaseName, String databaseId, String key, Object value);
+	boolean writeEngineSecret(IEngine.CATALOG_TYPE eType, String engineId, String engineName, String key, Object value);
 
 	/**
-	 * Write a set of secret key-value pairs for a database
-	 * @param databaseName
-	 * @param databaseId
+	 * Write a set of secret key-value pairs for an engine
+	 * @param eType
+	 * @param engineId
+	 * @param engineName
 	 * @param nameValuePairs
 	 * @return
 	 */
-	boolean writeDatabaseSecrets(String databaseName, String databaseId, Map<String, Object> nameValuePairs);
-
-	/**
-	 * Write a secret key-value pair for a project
-	 * @param projectName
-	 * @param projectId
-	 * @param key
-	 * @param value
-	 * @return
-	 */
-	boolean writeProjectSecret(String projectName, String projectId, String key, Object value);
-
-	/**
-	 * Write a set of secret key-value pairs for a project
-	 * @param projectName
-	 * @param projectId
-	 * @param key
-	 * @param value
-	 * @return
-	 */
-	boolean writeProjectSecrets(String projectName, String projectId, Map<String, Object> nameValuePairs);
+	boolean writeEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName, Map<String, Object> nameValuePairs);
 
 	/**
 	 * Write a secret key-value pair for a insight
-	 * @param insightId
-	 * @param projectName
 	 * @param projectId
+	 * @param projectName
+	 * @param insightId
 	 * @param key
 	 * @param value
 	 * @return
 	 */
-	boolean writeInsightSecret(String insightId, String projectName, String projectId, String key, Object value);
+	boolean writeInsightSecret(String projectId, String projectName, String insightId, String key, Object value);
 
 	/**
 	 * Write a set of secret key-value pairs for a insight
-	 * @param insightId
-	 * @param projectName
 	 * @param projectId
+	 * @param projectName
+	 * @param insightId
 	 * @param nameValuePairs
 	 * @return
 	 */
-	boolean writeInsightSecrets(String insightId, String projectName, String projectId, Map<String, Object> nameValuePairs);
+	boolean writeInsightSecrets(String projectId, String projectName, String insightId, Map<String, Object> nameValuePairs);
 
 	/**
 	 * Write the secret for the insight encryption
-	 * @param insightId
-	 * @param projectName
 	 * @param projectId
+	 * @param projectName
+	 * @param insightId
 	 * @param nameValuePairs
 	 * @return
 	 */
-	boolean writeInsightEncryptionSecrets(String insightId, String projectName, String projectId, Map<String, Object> nameValuePairs);
+	boolean writeInsightEncryptionSecrets(String projectId, String projectName, String insightId, Map<String, Object> nameValuePairs);
 
 }
