@@ -6,10 +6,22 @@ import prerna.engine.api.IEngine;
 
 public interface ISecrets {
 
+	String SECRETS_DB_PATH = "SECRETS_DB_PATH";
+	String SECRETS_STORAGE_PATH = "SECRETS_STORAGE_PATH";
+	String SECRETS_MODEL_PATH = "SECRETS_MODEL_PATH";
+	String SECRETS_VECTOR_PATH = "SECRETS_VECTOR_PATH";
+	String SECRETS_FUNCTION_PATH = "SECRETS_FUNCTION_PATH";
+	String SECRETS_PROJECT_PATH = "SECRETS_PROJECT_PATH";
+	String SECRETS_VENV_PATH = "SECRETS_VENV_PATH";
+	
+	String INSIGHT_ENCRYPTION_NAME = "encrypt";
+	
+	String AZURE_KEYVAULT = "AZURE_KEYVAULT";
 	String HASHICORP_VAULT = "VAULT";
 	String IV = "iv";
 	String SECRET = "secret";
 	String SALT = "salt";
+	
 	
 	/**
 	 * 

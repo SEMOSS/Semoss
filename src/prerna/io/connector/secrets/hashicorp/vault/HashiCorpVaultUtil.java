@@ -31,31 +31,19 @@ import com.google.gson.JsonObject;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.io.connector.secrets.AbstractSecrets;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.security.HttpHelperUtility;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class HashiCorpVaultUtil implements ISecrets {
+public class HashiCorpVaultUtil extends AbstractSecrets {
 
 	private static final Logger classLogger = LogManager.getLogger(HashiCorpVaultUtil.class);
 
 	private static final String VAULT_ADDR = "VAULT_ADDR";
 	private static final String VAULT_TOKEN = "VAULT_TOKEN";
 	private static final String VAULT_TOKEN_HEADER_KEY = "X-Vault-Token";
-	
-	// root url for db and projects
-	private static final String VAULT_DB_PATH = "VAULT_DB_PATH";
-	private static final String VAULT_STORAGE_PATH = "VAULT_STORAGE_PATH";
-	private static final String VAULT_MODEL_PATH = "VAULT_MODEL_PATH";
-	private static final String VAULT_VECTOR_PATH = "VAULT_VECTOR_PATH";
-	private static final String VAULT_FUNCTION_PATH = "VAULT_FUNCTION_PATH";
-	private static final String VAULT_PROJECT_PATH = "VAULT_PROJECT_PATH";
-	private static final String VAULT_VENV_PATH = "VAULT_VENV_PATH";
-	
-	private static final String INSIGHT_ENCRYPTION_PATH = "/encrypt";
 	
 	private static HashiCorpVaultUtil instance;
 	
@@ -108,42 +96,6 @@ public class HashiCorpVaultUtil implements ISecrets {
 	}
 	
 	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private String getBaseForEngine(IEngine.CATALOG_TYPE type) {
-		String inputName = getInputNameForEngine(type);
-		return getInput(inputName);
-	}
-	
-	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private String getInputNameForEngine(IEngine.CATALOG_TYPE type) {
-		if(IEngine.CATALOG_TYPE.DATABASE == type) {
-			return VAULT_DB_PATH;
-		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
-			return VAULT_STORAGE_PATH;
-		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
-			return VAULT_MODEL_PATH;
-		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
-			return VAULT_VECTOR_PATH;
-		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
-			return VAULT_FUNCTION_PATH;
-		} else if(IEngine.CATALOG_TYPE.VENV == type) {
-			return VAULT_VENV_PATH;
-		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
-			return VAULT_PROJECT_PATH;
-		}
-		
-		throw new IllegalArgumentException("Unhandled engine type = " + type);
-
-	}
-	
-	/**
 	 * Get the full path for the insight secrets
 	 * @param projectPath
 	 * @param insightId
@@ -151,20 +103,6 @@ public class HashiCorpVaultUtil implements ISecrets {
 	 */
 	private String getInsightPath(String projectPath, String insightId) {
 		return getPathForEngine(IEngine.CATALOG_TYPE.PROJECT, projectPath) + "/" + insightId;
-	}
-	
-	/**
-	 * General method to grab input from environment variable or RDF_Map
-	 * @param key
-	 * @return
-	 */
-	private String getInput(String key) {
-		String value = System.getenv(key);
-		if(value == null || value.isEmpty()) {
-			value = DIHelper.getInstance().getProperty(key);
-		}
-
-		return value;
 	}
 	
 	@Override
@@ -198,7 +136,7 @@ public class HashiCorpVaultUtil implements ISecrets {
 		String secretPath = SmssUtilities.getUniqueName(projectName, projectId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
-			com.bettercloud.vault.json.JsonObject jsonObject = this.vault.logical().read(getInsightPath(secretPath, insightId + INSIGHT_ENCRYPTION_PATH)).getDataObject();
+			com.bettercloud.vault.json.JsonObject jsonObject = this.vault.logical().read(getInsightPath(secretPath, insightId + "/" + ISecrets.INSIGHT_ENCRYPTION_NAME)).getDataObject();
 			String secret = jsonObject.getString(ISecrets.SECRET);
 			String salt = jsonObject.getString(ISecrets.SALT);
 			Iterator<JsonValue> ivIterator = jsonObject.get(ISecrets.IV).asArray().iterator();
@@ -270,7 +208,7 @@ public class HashiCorpVaultUtil implements ISecrets {
 		}
 		nameValuePairs.put(ISecrets.IV, jsonArray);
 		try {
-			this.vault.logical().write(getInsightPath(secretPath, insightId + INSIGHT_ENCRYPTION_PATH), nameValuePairs);
+			this.vault.logical().write(getInsightPath(secretPath, insightId + "/" + ISecrets.INSIGHT_ENCRYPTION_NAME), nameValuePairs);
 			return true;
 		} catch (VaultException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -329,18 +267,17 @@ public class HashiCorpVaultUtil implements ISecrets {
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
-	
-	public static void main(String[] args) throws VaultException, ParseException, IOException {
-		TestUtilityMethods.loadDIHelper();
-		
-		HashiCorpVaultUtil instance = HashiCorpVaultUtil.getInstance();
-		instance.createEngineSecretEngine(IEngine.CATALOG_TYPE.DATABASE);
-		
-		Map<String, Object> nameValuePairs = new HashMap<>();
-		nameValuePairs.put("PASSWORD","password");
-		instance.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", "test-name", nameValuePairs);
-		Map<String, String> dbSecrets = instance.getEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", "test-name");
-		System.out.println(dbSecrets);
-	}
+//	public static void main(String[] args) throws VaultException, ParseException, IOException {
+//		TestUtilityMethods.loadDIHelper();
+//		
+//		HashiCorpVaultUtil instance = HashiCorpVaultUtil.getInstance();
+//		instance.createEngineSecretEngine(IEngine.CATALOG_TYPE.DATABASE);
+//		
+//		Map<String, Object> nameValuePairs = new HashMap<>();
+//		nameValuePairs.put("PASSWORD","password");
+//		instance.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", "test-name", nameValuePairs);
+//		Map<String, String> dbSecrets = instance.getEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, "fe5e2c23-59e6-42ae-939d-b2ca9699f38c", "test-name");
+//		System.out.println(dbSecrets);
+//	}
 
 }
