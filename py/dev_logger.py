@@ -8,7 +8,7 @@ class DevLogger:
     If you provide an alternate log path, it will use that instead. This should be an absolute path to your txt file.
     '''
 
-    def __init__(self, url=None, log_path="C:/workspace/Semoss_Dev/py/log.txt", alt_log_path=None, override_url=False):
+    def __init__(self, url=None, log_path="C:/workspace/Semoss/py/log.txt", alt_log_path=None, override_url=False):
         self.log_file = None
         self.log_path = log_path if alt_log_path is None else alt_log_path
         self.url = url
@@ -16,7 +16,7 @@ class DevLogger:
         self.setup_logger()
 
     def setup_logger(self):
-        if self.url == 'http://localhost:9090/Monolith_Dev/api' or self.override_url is True:
+        if self.url == 'http://localhost:9090/Monolith/api' or self.override_url is True:
             log_dir = os.path.dirname(self.log_path)
             if log_dir and not os.path.exists(log_dir):
                 os.makedirs(log_dir)

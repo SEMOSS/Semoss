@@ -3,7 +3,9 @@ from typing import (
     Any
 )
 
-# register all the clients in the init 
+# register all the clients in the init
+
+
 def __getattr__(name: str) -> Any:
     if name == "AzureOpenAiClient":
         from .text_generation.openai_clients import AzureOpenAiClient
@@ -20,7 +22,10 @@ def __getattr__(name: str) -> Any:
     elif name == "VertexClient":
         from .text_generation.google_clients.vertex_controller import VertexAiClientController as VertexClient
         return VertexClient
-    
+    elif name == "ImageGenClient":
+        from .image_generation.imagegen_client import ImageGenClient
+        return ImageGenClient
+
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
         return LocalEmbedder
@@ -36,7 +41,7 @@ def __getattr__(name: str) -> Any:
     elif name == "VertexAiEmbedder":
         from .embedders.vertex_embedder import VertexAiEmbedder
         return VertexAiEmbedder
-    
+
     elif name == "OpenAiTokenizer":
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
         return OpenAiTokenizer
@@ -46,8 +51,8 @@ def __getattr__(name: str) -> Any:
 
     else:
         raise AttributeError(f"Could not find: {name}")
-    
-    
+
+
 def get_text_gen_client(client_type, **kwargs):
     '''
     Utility method to  get the appropriate client based on the Model Engine
@@ -71,7 +76,8 @@ def get_text_gen_client(client_type, **kwargs):
         return VertexClient(**kwargs)
     else:
         raise ValueError('Client type has not been defined.')
-    
+
+
 def get_embedder(embedder_type, **kwargs):
     '''
     Utility method to  get the appropriate embedder based on the Model Engine
@@ -96,27 +102,30 @@ def get_embedder(embedder_type, **kwargs):
     else:
         raise ValueError('Embedder type has not been defined.')
 
-def get_tokenizer(tokenizer_type:str, tokenizer_name, max_tokens):
+
+def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
     '''
     Utility method to  get the appropriate tokenizer based on the Model Engine
     '''
     if (tokenizer_type == 'EMBEDDED') or (tokenizer_type == 'TEXT_GENERATION'):
         from .tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-        return HuggingfaceTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
+        return HuggingfaceTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
     elif (tokenizer_type == 'OPEN_AI'):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
-        return OpenAiTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
-    #putting this for now, need to implement vertex tokenizer. this will fall back to cl100k_base
+        return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
+    # putting this for now, need to implement vertex tokenizer. this will fall back to cl100k_base
     elif (tokenizer_type == 'VERTEX'):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
-        return OpenAiTokenizer(encoder_name = tokenizer_name, max_tokens = max_tokens)
+        return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
     else:
         raise ValueError('Tokenizer type has not been defined.')
+
 
 __all__ = [
     'AzureOpenAiClient',
     'OpenAiClient',
     'TextGenClient',
+    'ImageGenClient',
     'BedrockClient',
     'VertexClient',
     'LocalEmbedder',
