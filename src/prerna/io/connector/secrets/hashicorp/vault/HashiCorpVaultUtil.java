@@ -88,11 +88,11 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	/**
 	 * 
 	 * @param eType
-	 * @param engineNameAndId
+	 * @param enginePath
 	 * @return
 	 */
-	private String getPathForEngine(IEngine.CATALOG_TYPE eType, String engineNameAndId) {
-		return getBaseForEngine(eType) + "/" + engineNameAndId;
+	private String getPathForEngine(IEngine.CATALOG_TYPE eType, String enginePath) {
+		return getBaseForEngine(eType) + "/" + enginePath;
 	}
 	
 	/**
@@ -106,11 +106,11 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	}
 	
 	@Override
-	public Map<String, String> getEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName) {
+	public Map<String, Object> getEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName) {
 		String secretPath = SmssUtilities.getUniqueName(engineName, engineId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
-			return this.vault.logical().read(getPathForEngine(eType, secretPath)).getData();
+			return new HashMap<String, Object>(this.vault.logical().read(getPathForEngine(eType, secretPath)).getData());
 		} catch (VaultException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -119,11 +119,11 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	}
 	
 	@Override
-	public Map<String, String> getInsightSecrets(String projectId, String projectName, String insightId) {
+	public Map<String, Object> getInsightSecrets(String projectId, String projectName, String insightId) {
 		String secretPath = SmssUtilities.getUniqueName(projectName, projectId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
-			return this.vault.logical().read(getInsightPath(secretPath, insightId)).getData();
+			return new HashMap<String, Object>(this.vault.logical().read(getInsightPath(secretPath, insightId)).getData());
 		} catch (VaultException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}

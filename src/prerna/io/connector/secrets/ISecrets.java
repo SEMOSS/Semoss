@@ -14,10 +14,10 @@ public interface ISecrets {
 	String SECRETS_PROJECT_PATH = "SECRETS_PROJECT_PATH";
 	String SECRETS_VENV_PATH = "SECRETS_VENV_PATH";
 	
-	String INSIGHT_ENCRYPTION_NAME = "encrypt";
+	String INSIGHT_ENCRYPTION_NAME = "insightencrypt";
 	
 	String AZURE_KEYVAULT = "AZURE_KEYVAULT";
-	String HASHICORP_VAULT = "VAULT";
+	String HASHICORP_VAULT = "HASHICORP_VAULT";
 	String IV = "iv";
 	String SECRET = "secret";
 	String SALT = "salt";
@@ -30,7 +30,7 @@ public interface ISecrets {
 	 * @param engineName
 	 * @return
 	 */
-	Map<String, String> getEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName);
+	Map<String, Object> getEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName);
 	
 	/**
 	 * Get the secrets associated with an insight
@@ -39,7 +39,7 @@ public interface ISecrets {
 	 * @param insightId
 	 * @return
 	 */
-	Map<String, String> getInsightSecrets(String projectId, String projectName, String insightId);
+	Map<String, Object> getInsightSecrets(String projectId, String projectName, String insightId);
 
 	/**
 	 * Get the insight encryption key
