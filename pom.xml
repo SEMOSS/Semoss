@@ -1209,6 +1209,12 @@
 		    <groupId>net.sf.cssbox</groupId>
 		    <artifactId>jstyleparser</artifactId>
 		    <version>4.0.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
@@ -1434,11 +1440,13 @@
 		</dependency>
 		-->
 		<!-- required for JAWS Java API for WordNet Searching -->
+		<!--
 		<dependency>
 			<groupId>net.sf.extjwnl</groupId>
 			<artifactId>extjwnl</artifactId>
 			<version>1.9.2</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
