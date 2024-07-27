@@ -1209,6 +1209,12 @@
 		    <groupId>net.sf.cssbox</groupId>
 		    <artifactId>jstyleparser</artifactId>
 		    <version>4.0.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
@@ -1434,11 +1440,13 @@
 		</dependency>
 		-->
 		<!-- required for JAWS Java API for WordNet Searching -->
+		<!--
 		<dependency>
 			<groupId>net.sf.extjwnl</groupId>
 			<artifactId>extjwnl</artifactId>
 			<version>1.9.2</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
@@ -1804,11 +1812,18 @@
 			<artifactId>freemarker</artifactId>
 			<version>2.3.20</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-identity -->
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-storage</artifactId>
-			<version>8.0.0</version>
-			<exclusions>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-identity</artifactId>
+		    <version>1.12.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-security-keyvault-secrets</artifactId>
+		    <version>4.8.4</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
@@ -1816,9 +1831,9 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.dbunit</groupId>
-			<artifactId>dbunit</artifactId>
-			<version>2.6.0</version>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>azure-storage</artifactId>
+			<version>8.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>

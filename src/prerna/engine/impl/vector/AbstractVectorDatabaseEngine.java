@@ -34,6 +34,8 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -114,6 +116,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if(secretStore != null) {
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
+			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+				this.smssProp.putAll(engineSecrets);
+			}
+		}
+		
 		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
 			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
 		}
