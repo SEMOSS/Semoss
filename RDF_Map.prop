@@ -156,10 +156,29 @@ PIVOT_COL_MAX	100
 
 #Secrets
 SECRET_STORE_ENABLED	false
-SECRET_STORE_TYPE		VAULT
-VAULT_DB_PATH			semoss_db
-VAULT_PROJECT_PATH		semoss_project
+#HASHICORP_VAULT or AZURE_KEYVAULT
+SECRET_STORE_TYPE		
+#Base Paths For Resources
+SECRETS_DB_PATH			semoss-db
+SECRETS_STORAGE_PATH	semoss-storage
+SECRETS_MODEL_PATH		semoss-model
+SECRETS_VECTOR_PATH		semoss-vector
+SECRETS_FUNCTION_PATH 	semoss-function
+SECRETS_PROJECT_PATH	semoss-project
+SECRETS_VENV_PATH		semoss-venv
+
+#Hashicorp Vault
+VAULT_ADDR				
 VAULT_TOKEN				
+
+#Azure KeyVault
+#Note SECRET_*_PATH can only be contain alphanumeric and dashes
+#ClientSecretCredential if passing in client/secret/tenant
+AZURE_AUTHENTICATE_MODE	
+AZURE_KEYVAULT_NAME	
+AZURE_CLIENT_ID	
+AZURE_CLIENT_SECRET	
+AZURE_TENANT_ID 		
 
 #Virus Scanning
 VIRUS_SCANNING_ENABLED 	false
