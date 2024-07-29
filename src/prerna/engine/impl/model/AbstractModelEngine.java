@@ -20,6 +20,8 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -62,7 +64,15 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		setSmssProp(smssProp);
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-				
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if(secretStore != null) {
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
+			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+				this.smssProp.putAll(engineSecrets);
+			}
+		}
+		
 		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 				
