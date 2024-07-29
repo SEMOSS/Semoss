@@ -20,7 +20,7 @@ class ImageGenClient(AbstractImageGenerationClient):
     def generate_image(
         self,
         prompt: str,
-        output_dir: str = "../../images",
+        output_dir: str,
         file_name: str = "generated_image",
         consistency_decoder: Optional[bool] = False,
         negative_prompt: Optional[str] = None,
@@ -30,11 +30,8 @@ class ImageGenClient(AbstractImageGenerationClient):
         width: Optional[int] = 512,
         seed: Optional[int] = None
     ) -> dict:
-        # Getting the absolute path of this file
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.abspath(os.path.join(base_dir, output_dir))
 
-        # Create an Images directory in py if it doesn't exist
+        # Create the directory if it does not exist
         os.makedirs(output_dir, exist_ok=True)
 
         # If using DALL-E 3 Consistency Decoder.. This takes a long time..
@@ -99,10 +96,9 @@ class ImageGenClient(AbstractImageGenerationClient):
 
     def ask_call(
         self,
-        question: str,
-        output_dir: str = "../../images",
+        prompt: str,
+        output_dir: str,
         file_name: str = "generated_image",
-        prefix: Optional[str] = "",
         consistency_decoder: Optional[bool] = False,
         negative_prompt: Optional[str] = None,
         guidance_scale: Optional[float] = 7.5,
@@ -111,11 +107,8 @@ class ImageGenClient(AbstractImageGenerationClient):
         width: Optional[int] = 512,
         seed: Optional[int] = None
     ) -> dict:
-        # Getting the absolute path of this file
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.abspath(os.path.join(base_dir, output_dir))
 
-        # Create an Images directory in py if it doesn't exist
+        # Create the directory if it does not exist
         os.makedirs(output_dir, exist_ok=True)
 
         # If using DALL-E 3 Consistency Decoder.. This takes a long time..
@@ -137,7 +130,7 @@ class ImageGenClient(AbstractImageGenerationClient):
 
         # Move inputs to the same device as model
         inputs = {
-            "prompt": question,
+            "prompt": prompt,
             "negative_prompt": negative_prompt,
             "guidance_scale": guidance_scale,
             "num_inference_steps": int(num_inference_steps),
@@ -163,11 +156,10 @@ class ImageGenClient(AbstractImageGenerationClient):
         image.save(file_path)
 
         response = {
-            "response": file_path,
             "file_path": file_path,
             "generation_time": int(generation_time),
             "seed": str(seed),
-            "prompt": question,
+            "prompt": prompt,
             "negative_prompt": negative_prompt,
             "guidance_scale": guidance_scale,
             "num_inference_steps": int(num_inference_steps),

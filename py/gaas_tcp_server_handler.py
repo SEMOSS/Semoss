@@ -150,7 +150,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # The logs can become very heavy during streamed responses so for some log statements we want to only write them when we are developing locally
         # I don't have a way of knowing what env we are in so adding a manual dev switch here.
         # If you use this, be sure to turn it off before committing your code.
-        self.dev_log_switch = True
+        self.dev_log_switch = False
 
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):

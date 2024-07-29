@@ -36,6 +36,8 @@ class ImageEngine(ServerProxy):
         self,
         prompt: str,
         file_name: Optional[str] = "my_generated_image",
+        space: Optional[str] = "insight",
+        file_path: Optional[str] = "/images",
         insight_id: Optional[str] = None,
         param_dict: Optional[Dict] = {}
     ) -> str:
@@ -44,13 +46,29 @@ class ImageEngine(ServerProxy):
 
         epoc = super().get_next_epoc()
 
+        pixel = f'SpaceFinder(filePath="{file_path}", space="{space}");'
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            full_file_path = pixelReturn[0]["pixelReturn"][0]["output"]
+
+        param_dict["output_dir"] = full_file_path
+
         return super().call(
             epoc=epoc,
             engine_type='Model',
             engine_id=self.engine_id,
             method_name='askCall',
             method_args=[prompt, file_name, insight_id, param_dict],
-            method_arg_types=['java.lang.String',
-                              'java.lang.String', 'prerna.om.Insight', 'java.util.Map'],
+            method_arg_types=[
+                'java.lang.String',
+                'java.lang.String',
+                'prerna.om.Insight',
+                'java.util.Map'
+            ],
             insight_id=insight_id
         )
