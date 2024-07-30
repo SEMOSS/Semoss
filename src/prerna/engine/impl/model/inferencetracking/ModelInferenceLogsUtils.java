@@ -205,12 +205,19 @@ public class ModelInferenceLogsUtils {
 	
 	
 	/**
-	 * USAGE HELPER FUNCTIONS 
-	 * @return 
+	 * USAGE HELPER FUNCTIONS  
 	 * 
 	 */
 	
+	/**
+	 * Function returns the number of unique calls (Inputs) per a model 
+	 * 
+	 * @param engineId
+	 * @return
+	 */
 	public static Map<String, Object> getEngineUsageFromModelInferenceLogs(String engineId) {
+		//TODO - Figure out what exactly we mean by usage cause i have no idea 
+		// TODO - take in limit and offset 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.setAlias("Unique_Calls");
@@ -221,6 +228,32 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+	}
+	
+	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
+		//TODO - Figure out what exactly we mean by usage cause i have no idea 
+		// TODO - take in limit and offset 
+		// First get a list of insightIDs from Room 
+		List<String> insightIdList = getInsightIdListPerProject(projectId);
+		// Second query against message to find number of unique calls? Not sure what we are tracking from projects just yet 
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Unique_Calls");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightIdList));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+	}
+	
+	public static List<String> getInsightIdListPerProject(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
+		return insightIdList;
 	}
 	
 	

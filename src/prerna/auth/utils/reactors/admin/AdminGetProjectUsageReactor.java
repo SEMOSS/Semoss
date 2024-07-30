@@ -1,8 +1,12 @@
 package prerna.auth.utils.reactors.admin;
 
+import java.util.Map;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -25,9 +29,8 @@ public class AdminGetProjectUsageReactor extends AbstractReactor {
 		if(projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
-		
-		
-		return null;
+		Map<String, Object> retMap = ModelInferenceLogsUtils.getProjectUsageFromModelInferenceLogs(projectId);
+		return new NounMetadata(retMap, PixelDataType.MAP);
 	}
 
 }
