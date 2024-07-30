@@ -72,7 +72,7 @@ class OpenAiTokenizer(AbstractTokenizer):
 
     def get_tokens_ids(self, input: Union[List[Dict], str]) -> List[int]:
         if isinstance(input, list):
-            input = " ".join([message["content"] for message in input])
+            input = " ".join([message.get("content") or message.get("text") for message in input if "content" in message or "text" in message])
         elif isinstance(input, dict):
             input = input["content"]
 
@@ -91,5 +91,5 @@ class OpenAiTokenizer(AbstractTokenizer):
     def get_max_input_token_length(self) -> int:
         return self.max_input_tokens
 
-    def decode_token_ids(self, input: List[int]) -> str:
+    def decode_token_ids(self, input:List[int]) -> str:
         return self.tokenizer.decode(input)

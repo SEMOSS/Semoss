@@ -397,8 +397,77 @@
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-http</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-client</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-server</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-util</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-io</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-webapp</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.codehaus.jettison</groupId>
+					<artifactId>jettison</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-http</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-client</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-util</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-io</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-webapp</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jettison</groupId>
+			<artifactId>jettison</artifactId>
+			<version>1.5.4</version>
+		</dependency>
+		-->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
@@ -410,6 +479,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections15</artifactId>
@@ -421,6 +491,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- REMOVING - GPL -->
 		<!-- 
 		<dependency>
@@ -934,6 +1005,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--	
 		<dependency>
 			<groupId>net.sf.jung</groupId>
 			<artifactId>jung-algorithms</artifactId>
@@ -978,6 +1050,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/log4j/log4j>
 		<dependency>
 		    <groupId>log4j</groupId>
@@ -1136,6 +1209,12 @@
 		    <groupId>net.sf.cssbox</groupId>
 		    <artifactId>jstyleparser</artifactId>
 		    <version>4.0.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
@@ -1353,17 +1432,21 @@
 		    <version>2.11.5</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/us.fatehi/schemacrawler -->
+		<!--
 		<dependency>
 		    <groupId>us.fatehi</groupId>
 		    <artifactId>schemacrawler</artifactId>
 		    <version>16.21.2</version>
 		</dependency>
+		-->
 		<!-- required for JAWS Java API for WordNet Searching -->
+		<!--
 		<dependency>
 			<groupId>net.sf.extjwnl</groupId>
 			<artifactId>extjwnl</artifactId>
 			<version>1.9.2</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
@@ -1505,11 +1588,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
--->
+-->	
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
-			<artifactId>thrift</artifactId>
-			<version>0.9.0</version>
+			<artifactId>libthrift</artifactId>
+			<version>0.14.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1729,11 +1812,18 @@
 			<artifactId>freemarker</artifactId>
 			<version>2.3.20</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-identity -->
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-storage</artifactId>
-			<version>8.0.0</version>
-			<exclusions>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-identity</artifactId>
+		    <version>1.12.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-security-keyvault-secrets</artifactId>
+		    <version>4.8.4</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
@@ -1741,9 +1831,9 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.dbunit</groupId>
-			<artifactId>dbunit</artifactId>
-			<version>2.6.0</version>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>azure-storage</artifactId>
+			<version>8.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1840,6 +1930,16 @@
 			<groupId>org.xhtmlrenderer</groupId>
 			<artifactId>flying-saucer-pdf</artifactId>
 			<version>9.1.22</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcpkix-jdk14</artifactId>
+				</exclusion>	
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcprov-jdk14</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>de.ruedigermoeller</groupId>
@@ -1957,7 +2057,7 @@
 		<dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.8.3</version>
+            <version>3.8.4</version>
             <exclusions>
 				<exclusion>
 					<groupId>log4j</groupId>
@@ -2046,7 +2146,7 @@
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<version>1.13.1</version>
+			<version>1.14.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common -->
 	    <dependency>
@@ -2084,12 +2184,20 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.samba.jcifs/jcifs -->
-	<dependency>
-	    <groupId>org.samba.jcifs</groupId>
-	    <artifactId>jcifs</artifactId>
-	    <version>1.3.14-kohsuke-1</version>
-	</dependency>
-		
+		<dependency>
+		    <groupId>org.samba.jcifs</groupId>
+		    <artifactId>jcifs</artifactId>
+		    <version>1.3.14-kohsuke-1</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+		    <artifactId>owasp-java-html-sanitizer</artifactId>
+		    <version>20240325.1</version>
+		</dependency>	
+	
+	
+	
+	
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
@@ -2112,10 +2220,6 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>
-		<dependency>
-		    <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
-		    <artifactId>owasp-java-html-sanitizer</artifactId>
-		    <version>20240325.1</version>
-		</dependency>
+		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>

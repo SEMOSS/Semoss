@@ -34,7 +34,7 @@ public class SecretsUtility {
 		
 	}
 	
-	public static Cipher generateCipherForInsight(String insightId, String projectName, String projectId) {
+	public static Cipher generateCipherForInsight(String projectId, String projectName, String insightId) {
 		ISecrets secretsEngine = SecretsFactory.getSecretConnector();
 		if(secretsEngine == null) {
 			throw new InsightEncryptionException("Encryption services have not been enabled on this instance. Caching will not occur for this insight");
@@ -67,21 +67,21 @@ public class SecretsUtility {
 		cacheData.put(ISecrets.SECRET, secret);
 		cacheData.put(ISecrets.SALT, salt);
 		cacheData.put(ISecrets.IV, iv);
-		secretsEngine.writeInsightEncryptionSecrets(insightId, projectName, projectId, cacheData);
+		secretsEngine.writeInsightEncryptionSecrets(projectId, projectName, insightId, cacheData);
 		return cipher;
 	}
 	
 	public static Cipher retrieveCipherForInsight(Insight in) {
-		return retrieveCipherForInsight(in.getRdbmsId(), in.getProjectName(), in.getProjectId());
+		return retrieveCipherForInsight(in.getProjectId(), in.getProjectName(), in.getRdbmsId());
 	}
 	
-	public static Cipher retrieveCipherForInsight(String insightId, String projectName, String projectId) {
+	public static Cipher retrieveCipherForInsight(String projectId, String projectName, String insightId) {
 		ISecrets secretsEngine = SecretsFactory.getSecretConnector();
 		if(secretsEngine == null) {
 			throw new InsightEncryptionException("Encryption services have not been enabled on this instance. Cannot retrieve details to decrypt the insight");
 		}
 		
-		Map<String, Object> cacheData = secretsEngine.getInsightEncryptionSecrets(insightId, projectName, projectId);
+		Map<String, Object> cacheData = secretsEngine.getInsightEncryptionSecrets(projectId, projectName, insightId);
 		String secret = (String) cacheData.get(ISecrets.SECRET);
 		String salt = (String) cacheData.get(ISecrets.SALT);
 		byte[] iv = (byte[]) cacheData.get(ISecrets.IV);
