@@ -32,7 +32,7 @@ public class GetProjectPortalDetailsReactor extends AbstractReactor {
 		
 		// make sure valid id for user
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId) && !isAdmin) {
+		if(!SecurityProjectUtils.userCanViewProject(user, projectId) && !isAdmin) {
 			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
