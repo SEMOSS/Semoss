@@ -3,6 +3,8 @@ package prerna.reactor.project;
 import java.util.HashMap;
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -22,14 +24,15 @@ public class GetProjectPortalDetailsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		
+		User user = this.insight.getUser();
+		boolean isAdmin = (SecurityAdminUtils.getInstance(user)) != null;
 		if(projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
 		// make sure valid id for user
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId) && !isAdmin) {
 			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
