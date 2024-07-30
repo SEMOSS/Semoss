@@ -1900,7 +1900,7 @@
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.12.481</version>
+			<version>1.12.763</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
 		<dependency>
