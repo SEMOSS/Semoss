@@ -202,6 +202,28 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
+	
+	
+	/**
+	 * USAGE HELPER FUNCTIONS 
+	 * @return 
+	 * 
+	 */
+	
+	public static Map<String, Object> getEngineUsageFromModelInferenceLogs(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Unique_Calls");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+	}
+	
+	
 	public static void doCreateNewUser(User user) {
 		String query = "INSERT INTO USERS (USER_ID, USERNAME, EMAIL) VALUES (?, ?, ?)";
 		PreparedStatement ps = null;
