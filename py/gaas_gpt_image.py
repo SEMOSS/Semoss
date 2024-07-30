@@ -35,7 +35,6 @@ class ImageEngine(ServerProxy):
     def generate_image(
         self,
         prompt: str,
-        file_name: Optional[str] = "my_generated_image",
         space: Optional[str] = "insight",
         file_path: Optional[str] = "/images",
         insight_id: Optional[str] = None,
@@ -62,10 +61,9 @@ class ImageEngine(ServerProxy):
             epoc=epoc,
             engine_type='Model',
             engine_id=self.engine_id,
-            method_name='askCall',
-            method_args=[prompt, file_name, insight_id, param_dict],
+            method_name='generateImage',
+            method_args=[prompt, insight_id, param_dict],
             method_arg_types=[
-                'java.lang.String',
                 'java.lang.String',
                 'prerna.om.Insight',
                 'java.util.Map'

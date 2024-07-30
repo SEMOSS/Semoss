@@ -37,6 +37,7 @@ replay_pid*
 .vscode/
 
 # Python
+py/log.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

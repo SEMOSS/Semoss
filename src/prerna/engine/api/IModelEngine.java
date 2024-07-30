@@ -5,6 +5,7 @@ import java.util.Map;
 
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.ImageModelEngineResponse;
 import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {

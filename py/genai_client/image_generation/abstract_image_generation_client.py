@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class AbstractImageGenerationClient(ABC):
@@ -9,11 +9,4 @@ class AbstractImageGenerationClient(ABC):
     # update this to return the response object
     @abstractmethod
     def generate_image(self, *args: Any) -> str:
-        pass
-
-    def ask(self, *args: Any, **kwargs: Any) -> Dict:
-        return self.ask_call(*args, **kwargs)
-
-    @abstractmethod
-    def ask_call(self, *args: Any, **kwargs: Any):
         pass

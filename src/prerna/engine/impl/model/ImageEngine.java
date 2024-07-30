@@ -5,28 +5,26 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.engine.impl.model.responses.ImageModelEngineResponse;
+import prerna.engine.api.IImageEngine;
 
 import prerna.engine.api.ModelTypeEnum;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 
-public class ImageEngine extends AbstractPythonModelEngine {
+public class ImageEngine extends AbstractPythonModelEngine implements IImageEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(ImageEngine.class);
 	
-
-
 	/**
 	 * 	This method is responsible for building the Python script to generate an image.
 	 *  This method overloads the askCall() method from AbstractPythonModelEngine
 	 * 
 	 * @param prompt The description of the requested image.
-	 * @param file_name The file name to use when saving the image.
 	 * @param insight Current insight.
 	 * @return A string representation of the response from the python script execution,
 	 *         or an error message if the image generation fails.
 	 */
-	public ImageModelEngineResponse askCall(String prompt, String file_name, Insight insight, Map<String, Object> parameters) {
+	public ImageModelEngineResponse generateImage(String prompt, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
 		
 		validateInputs(prompt, parameters);
@@ -35,9 +33,7 @@ public class ImageEngine extends AbstractPythonModelEngine {
 
 		StringBuilder callMaker = new StringBuilder(varName + ".generate_image(");
 		
-		callMaker.append("prompt").append("=").append(PyUtils.determineStringType(prompt)).append(",");
-
-		callMaker.append("file_name").append("=").append(PyUtils.determineStringType(file_name));
+		callMaker.append("prompt").append("=").append(PyUtils.determineStringType(prompt));
 		
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();
