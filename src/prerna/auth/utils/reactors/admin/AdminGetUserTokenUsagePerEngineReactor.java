@@ -1,6 +1,5 @@
 package prerna.auth.utils.reactors.admin;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,11 +12,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminGetEngineUsageReactor extends AbstractReactor {
+public class AdminGetUserTokenUsagePerEngineReactor extends AbstractReactor {
 
-	
-	public AdminGetEngineUsageReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+	public AdminGetUserTokenUsagePerEngineReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
 	}
 	
 	@Override
@@ -33,14 +31,12 @@ public class AdminGetEngineUsageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		Map<String, Object> retMap = new HashMap<>();
-		List<Map<String, Object>> overAllInfoForEngineList = ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs(engineId);
-		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId);
-		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId);
-		retMap.put("OVERALL_USUAGE", overAllInfoForEngineList);
-		retMap.put("TOKEN_USAGE_PER_PROJECT", tokenUsagePerProjectList);
-		retMap.put("TOKEN_USAGE_PER_USER", tokenUsagePerUserList);
-		return new NounMetadata(retMap, PixelDataType.FORMATTED_DATA_SET);
-	}
+		String limit = this.keyValue.get(this.keysToGet[1]);
+		String offset = this.keyValue.get(this.keysToGet[2]);	
+		String dateFilter = this.keyValue.get(ReactorKeysEnum.DATE_FILTER.getKey());
+		
+		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId, limit, offset, dateFilter);
 
+		return new NounMetadata(tokenUsagePerUserList, PixelDataType.FORMATTED_DATA_SET);
+	}
 }
