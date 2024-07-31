@@ -14,7 +14,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetEngineUsagePerProjectReactor extends AbstractReactor {
 	
 	public GetEngineUsagePerProjectReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),};
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
 	}
 
 	@Override
