@@ -1,4 +1,4 @@
-package prerna.auth.utils.reactors.admin;
+package prerna.engine.impl.model.inferencetracking;
 
 import java.util.List;
 import java.util.Map;
@@ -6,18 +6,17 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminGetUserTokenUsagePerEngineReactor extends AbstractReactor {
-
-	public AdminGetUserTokenUsagePerEngineReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
-	}
+public class GetEngineUsagePerProjectReactor extends AbstractReactor {
 	
+	public GetEngineUsagePerProjectReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),};
+	}
+
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
@@ -35,8 +34,9 @@ public class AdminGetUserTokenUsagePerEngineReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[2]);	
 		String dateFilter = this.keyValue.get(ReactorKeysEnum.DATE_FILTER.getKey());
 		
-		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId, limit, offset, dateFilter);
+		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId, limit, offset, dateFilter);
 
-		return new NounMetadata(tokenUsagePerUserList, PixelDataType.FORMATTED_DATA_SET);
+		return new NounMetadata(tokenUsagePerProjectList, PixelDataType.FORMATTED_DATA_SET);
 	}
+
 }

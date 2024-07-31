@@ -11,9 +11,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetUserTokenUsagePerEngineReactor extends AbstractReactor {
+public class GetEngineUsagePerUserReactor extends AbstractReactor {
 	
-	public GetUserTokenUsagePerEngineReactor() {
+	public GetEngineUsagePerUserReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),};
 	}
 

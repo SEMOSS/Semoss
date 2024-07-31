@@ -1,4 +1,4 @@
-package prerna.engine.impl.model.inferencetracking;
+package prerna.auth.utils.reactors.admin;
 
 import java.util.List;
 import java.util.Map;
@@ -6,17 +6,18 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetProjectUsagePerEngineReactor extends AbstractReactor {
-	
-	public GetProjectUsagePerEngineReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),};
-	}
+public class AdminGetEngineUsagePerProjectReactor extends AbstractReactor {
 
+	public AdminGetEngineUsagePerProjectReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();

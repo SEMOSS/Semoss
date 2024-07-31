@@ -12,9 +12,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminGetProjectUsagePerEngineReactor extends AbstractReactor {
+public class AdminGetEngineUsagePerUserReactor extends AbstractReactor {
 
-	public AdminGetProjectUsagePerEngineReactor() {
+	public AdminGetEngineUsagePerUserReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
 	}
 	
@@ -35,9 +35,8 @@ public class AdminGetProjectUsagePerEngineReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[2]);	
 		String dateFilter = this.keyValue.get(ReactorKeysEnum.DATE_FILTER.getKey());
 		
-		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId, limit, offset, dateFilter);
+		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId, limit, offset, dateFilter);
 
-		return new NounMetadata(tokenUsagePerProjectList, PixelDataType.FORMATTED_DATA_SET);
+		return new NounMetadata(tokenUsagePerUserList, PixelDataType.FORMATTED_DATA_SET);
 	}
-
 }
