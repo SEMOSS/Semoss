@@ -52,6 +52,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String DELETE_BY_QUERY_ENDPOINT = "/_delete_by_query";
 
 	private static final String EMBEDDINGS_COLUMN = "EMBEDDINGS_COLUMN";
+	private static final String DIMENSION_SIZE = "DIMENSION_SIZE";
+	private static final String METHOD_NAME = "METHOD_NAME";
+	private static final String SPACE_TYPE = "SPACE_TYPE";
+	private static final String INDEX_ENGINE = "INDEX_ENGINE";
+	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
+	private static final String M_VALUE = "M_VALUE";
 	private static final String ADDITIONAL_MAPPINGS = "ADDITIONAL_MAPPINGS";
 
 	private String clusterUrl = null;
@@ -83,6 +89,46 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		if(customEmbeddingsName != null && !(customEmbeddingsName=customEmbeddingsName.trim()).isEmpty()) {
 			this.embeddings = customEmbeddingsName;
 		}
+		String dimensionInput = this.smssProp.getProperty(DIMENSION_SIZE);
+		if(dimensionInput != null && !(dimensionInput=dimensionInput.trim()).isEmpty()) {
+			try {
+				this.dimension = ((Number) Double.parseDouble(dimensionInput)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.warn("Invalid string value for dimension '"+dimensionInput+"'. Must be an integer value");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
+		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
+			this.methodName = methodNameInput;
+		}
+		String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
+		if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
+			this.spaceType = spaceTypeInput;
+		}
+		String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
+		if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
+			this.indexEngine = indexEngineInput;
+		}
+		String efConstructionInput = this.smssProp.getProperty(EF_CONSTRUCTION);
+		if(efConstructionInput != null && !(efConstructionInput=efConstructionInput.trim()).isEmpty()) {
+			try {
+				this.efConstruction = ((Number) Double.parseDouble(efConstructionInput)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.warn("Invalid string value for ef construction '"+efConstructionInput+"'. Must be an integer value");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		String mValueInput = this.smssProp.getProperty(M_VALUE);
+		if(mValueInput != null && !(mValueInput=mValueInput.trim()).isEmpty()) {
+			try {
+				this.m = ((Number) Double.parseDouble(mValueInput)).intValue();
+			} catch(NumberFormatException e) {
+				classLogger.warn("Invalid string value for m value '"+mValueInput+"'. Must be an integer value");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
 		String additionalMappingsStr = this.smssProp.getProperty(ADDITIONAL_MAPPINGS);
 		if(additionalMappingsStr != null && !(additionalMappingsStr=additionalMappingsStr.trim()).isEmpty()) {
 			this.otherPropsToType = new Gson().fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {}.getType());
@@ -96,7 +142,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
-		// TODO: all inputs to be parameterized
 		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
 		updateIndexMapping(this.indexName, this.otherPropsToType);		
 	}
