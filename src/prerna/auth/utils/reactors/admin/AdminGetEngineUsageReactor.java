@@ -1,5 +1,7 @@
 package prerna.auth.utils.reactors.admin;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
@@ -31,8 +33,14 @@ public class AdminGetEngineUsageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		Map<String, Object> retMap = ModelInferenceLogsUtils.getEngineUsageFromModelInferenceLogs(engineId);
-		return new NounMetadata(retMap, PixelDataType.MAP);
+		Map<String, Object> retMap = new HashMap<>();
+		List<Map<String, Object>> overAllInfoForEngineList = ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs(engineId);
+		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId);
+		List<Map<String, Object>> tokenUsagePerUserList = ModelInferenceLogsUtils.getUserUsagePerEngine(engineId);
+		retMap.put("OVERALL_USUAGE", overAllInfoForEngineList);
+		retMap.put("TOKEN_USAGE_PER_PROJECT", tokenUsagePerProjectList);
+		retMap.put("TOKEN_USAGE_PER_USER", tokenUsagePerUserList);
+		return new NounMetadata(retMap, PixelDataType.FORMATTED_DATA_SET);
 	}
 
 }

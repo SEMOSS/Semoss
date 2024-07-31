@@ -48,6 +48,11 @@ public class ModelInferenceLogsUtils {
 	
 	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 	
+	// Constants for Table 
+	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
+	private static final String AGENT_TABLE_NAME = "AGENT__";
+	private static final String ROOM_TABLE_NAME = "ROOM__";
+	
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
 	
@@ -215,19 +220,74 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public static Map<String, Object> getEngineUsageFromModelInferenceLogs(String engineId) {
+	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId) {
 		//TODO - Figure out what exactly we mean by usage cause i have no idea 
 		// TODO - take in limit and offset 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		QueryFunctionSelector newSelector = new QueryFunctionSelector();
-		newSelector.setAlias("Unique_Calls");
-		newSelector.setFunction(QueryFunctionHelper.COUNT);
-		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+		
+		// Might reuse later 
+//		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+//		newSelector.setAlias("Unique_Calls");
+//		newSelector.setFunction(QueryFunctionHelper.COUNT);
+//		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
 
-		qs.addSelector(newSelector);
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * Returns a list of total tokens used per project for engineId passed in 
+	 * @param engineId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
+		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
+		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
+		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(countNumberRequestSelector);
+		
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
 	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
