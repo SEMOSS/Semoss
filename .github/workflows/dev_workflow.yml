@@ -164,7 +164,7 @@ jobs:
           JAR_FILE=$(ls target/*.jar | head -n 1)
           curl -v -u "$NEXUS_USERNAME:$NEUXS_PASSWORD" \
            --upload-file "$JAR_FILE" \
-           "http://artifact.semoss.org/repository/semoss-hosted-repo/${{ vars.VERSION }}-SNAPSHOT/$(basename $JAR_FILE)"
+           "https://artifact.semoss.org/repository/semoss-hosted-repo/${{ vars.VERSION }}-SNAPSHOT/$(basename $JAR_FILE)"
 
   build_release:
     runs-on: self-hosted
