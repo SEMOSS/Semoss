@@ -15,7 +15,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class AdminGetEngineUsagePerProjectReactor extends AbstractReactor {
 
 	public AdminGetEngineUsagePerProjectReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey()};
 	}
 	
 	@Override
@@ -33,9 +33,10 @@ public class AdminGetEngineUsagePerProjectReactor extends AbstractReactor {
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);	
-		String dateFilter = this.keyValue.get(ReactorKeysEnum.DATE_FILTER.getKey());
+		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
 		
-		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId, limit, offset, dateFilter);
+		List<Map<String, Object>> tokenUsagePerProjectList = ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(engineId, limit, offset, startDate, endDate);
 
 		return new NounMetadata(tokenUsagePerProjectList, PixelDataType.FORMATTED_DATA_SET);
 	}

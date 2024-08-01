@@ -28,6 +28,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -223,7 +224,7 @@ public class ModelInferenceLogsUtils {
 	 * @param dateFilter 
 	 * @return
 	 */
-	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String dateFilter) {
+	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String startDate, String endDate) {
 	
 		SelectQueryStruct qs = new SelectQueryStruct();
 		
@@ -237,20 +238,12 @@ public class ModelInferenceLogsUtils {
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
-		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
-		}
+		addStartDateEndDateFitler(qs, startDate, endDate);
+//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
+//		}
 		
-		Long long_limit = -1L;
-		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = ((Number) Double.parseDouble(limit)).longValue();
-		}
-		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = ((Number) Double.parseDouble(offset)).longValue();
-		}
-		qs.setLimit(long_limit);
-		qs.setOffSet(long_offset);
+		addLimitAndOffSet(qs, limit, offset);
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
@@ -262,7 +255,7 @@ public class ModelInferenceLogsUtils {
 	 * @param limit 
 	 * @return
 	 */
-	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String dateFilter) {
+	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 		
@@ -281,10 +274,22 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
-		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
-		}
+		addStartDateEndDateFitler(qs, startDate, endDate);
+//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
+//		}
 		
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * @param qs
+	 * @param limit
+	 * @param offset
+	 */
+	private static void addLimitAndOffSet(SelectQueryStruct qs, String limit, String offset) {
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
@@ -295,11 +300,18 @@ public class ModelInferenceLogsUtils {
 		}
 		qs.setLimit(long_limit);
 		qs.setOffSet(long_offset);
-		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
-	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset, String dateFilter) {
+	/**
+	 * 
+	 * @param engineId
+	 * @param limit
+	 * @param offset
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset, String startDate, String endDate) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
@@ -311,25 +323,33 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(sumTokenSelector);
 		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
-		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
-		}
+		addStartDateEndDateFitler(qs, startDate, endDate);
+//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
+//		}
 		
-		Long long_limit = -1L;
-		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = ((Number) Double.parseDouble(limit)).longValue();
-		}
-		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = ((Number) Double.parseDouble(offset)).longValue();
-		}
-		qs.setLimit(long_limit);
-		qs.setOffSet(long_offset);
+		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
+	/**
+	 * 
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String startDate, String endDate) {
+		if((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();	
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", startDate));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+		
+	}
+
 	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
 		//TODO - Figure out what exactly we mean by usage cause i have no idea 
 		// TODO - take in limit and offset 

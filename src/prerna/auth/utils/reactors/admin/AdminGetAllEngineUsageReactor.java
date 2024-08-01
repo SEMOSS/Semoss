@@ -16,7 +16,7 @@ public class AdminGetAllEngineUsageReactor extends AbstractReactor {
 
 	
 	public AdminGetAllEngineUsageReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.DATE_FILTER.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey()};
 	}
 	
 	@Override
@@ -34,9 +34,10 @@ public class AdminGetAllEngineUsageReactor extends AbstractReactor {
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
-		String dateFilter = this.keyValue.get(ReactorKeysEnum.DATE_FILTER.getKey());
+		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
 		
-		List<Map<String, Object>> overAllInfoForEngineList = ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs(engineId, limit, offset, dateFilter);
+		List<Map<String, Object>> overAllInfoForEngineList = ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs(engineId, limit, offset, startDate, endDate);
 
 		return new NounMetadata(overAllInfoForEngineList, PixelDataType.FORMATTED_DATA_SET);
 	}
