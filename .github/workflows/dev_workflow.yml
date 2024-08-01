@@ -142,11 +142,14 @@ jobs:
           gpg --list-keys
       - name: Deploy with Maven
         run: |
-          if [[ github.ref_name != 'dev' && github.ref_name != 'main' ]]
+          REF_NAME=$( echo $GITHUB_REF | sed 's|refs/heads/||')
+          if [[ "$REF_NAME" != 'dev' && "$REF_NAME" != 'main' ]]
             mvn clean install
-          elif [[ github.ref_name == 'dev' && github.ref_name == 'main' ]]
+          elif [[ "$REF_NAME" == 'dev' && "$REF_NAME" == 'main' ]]
             mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
           fi
+        env:
+          GITHUB_REF: ${{ github.ref }}
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       - name: Upload JAR to Nexus
@@ -154,12 +157,13 @@ jobs:
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEUXS_PASSWORD: ${{secrets.NEUXS_PASSWORD }}
+          GITHUB_REF: ${{ github.ref }}
         run: |
+          REF_NAME=$( echo $GITHUB_REF | sed 's|refs/heads/||')
           JAR_FILE=$(ls target/*.jar | head -n 1)
           curl -v -u "$NEXUS_USERNAME:$NEUXS_PASSWORD" \
            --upload-file "$JAR_FILE" \
-           "https://artifact.semoss.org/repository/semoss-hosted-repo/${{ vars.VERSION }}-SNAPSHOT/$(basename $JAR_FILE)"
-
+           "https://artifact.semoss.org/repository/semoss-hosted-repo/$REF_NAME/$(basename $JAR_FILE)"
   build_release:
     runs-on: self-hosted
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
