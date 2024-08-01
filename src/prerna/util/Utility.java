@@ -5035,116 +5035,152 @@ public final class Utility {
 		return thisProcess;
 	}
 
+	public static void createVirtualEnv(String venvPath) throws IOException, InterruptedException {
+	    ProcessBuilder pb = new ProcessBuilder("python", "-m", "venv", venvPath);
+	    pb.redirectErrorStream(true);
+	    Process process = pb.start();
+	    
+	    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+	        String line;
+	        while ((line = reader.readLine()) != null) {
+	            System.out.println(line);
+	        }
+	    }
+	    
+	    int exitCode = process.waitFor();
+	    if (exitCode != 0) {
+	        throw new IOException("Failed to create virtual environment, exit code: " + exitCode);
+	    }
+	}
+
+	// This is the method that is being used to start our Py server. I don't know when we would ever use startTCPServerNativePyChroot(), startTCPServer() or startTCPServerChroot(). These may very well be legacy now.
 	public static Object [] startTCPServerNativePy(String insightFolder, String port, String py, String timeout, String loggerLevel) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		// do I need this insight folder anymore ?
+	String prefix = "";
+	Process thisProcess = null;
+	// Our insight cache folder
+	String finalDir = insightFolder.replace("\\", "/");
+	try {
 		
-		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
-		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
-		String prefix = "";
-		Process thisProcess = null;
-		String finalDir = insightFolder.replace("\\", "/");
-
+		// If the path to our main python distribution was not passed through the params we search for it using the RDF Map
+		if (py == null || py.isEmpty()) {
+			py = System.getenv(Settings.PYTHONHOME);
+			if(py == null) {
+				py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+			}
+			// Can we get rid of these now? 
+			if(py == null) {
+				System.getenv(Settings.PY_HOME);
+			}
+			if (py == null) {
+				py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+			}
+			if(py == null) {
+				throw new NullPointerException("Must define python home");
+			}
+		}
+		
+		// Appending the executable file based on the OS
+		if (SystemUtils.IS_OS_WINDOWS) {
+			py = py + "/python.exe";
+		} else {
+			py = py + "/bin/python3";
+		}
+		
+		py = py.replace("\\", "/");
+		classLogger.info("The main python executable being used is: " + py);
+		
+		// Path to our virtual environment inside our insight cache folder 
+		String userVenvPath = finalDir + "/venv";
+		classLogger.info("The user venv path is: " + userVenvPath);
 		try {
-			
-			// only try to find the base python if one was not passed in
-			if (py == null || py.isEmpty()) {
-				py = System.getenv(Settings.PYTHONHOME);
-				if(py == null) {
-					py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
-				}
-				if(py == null) {
-					System.getenv(Settings.PY_HOME);
-				}
-				if (py == null) {
-					py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
-				}
-				if(py == null) {
-					throw new NullPointerException("Must define python home");
-				}
-			}
-			
-			// append the executable
-			if (SystemUtils.IS_OS_WINDOWS) {
-				py = py + "/python.exe";
-			} else {
-				py = py + "/bin/python3";
-			}
-			
-			py = py.replace("\\", "/");
-			
-			classLogger.info("The python executable being used is: " + py);
-
-			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
-			pyBase = pyBase.replace("\\", "/");
-			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
-
-			prefix = Utility.getRandomString(5);
-			prefix = "p_"+ prefix;
-			
-			String outputFile = finalDir + "/console.txt";
-			
-			String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-				
-			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
-			}
-			
-			// do I need this ?
-			//String[] starterFile = writeStarterFile(commands, finalDir);
-			ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
-			Process p = pb.start();
-			try {
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			if (!p.isAlive()) {
-				// if it crashed here, then the outputFile will contain the error. Read file and send error back
-				// it should not contain anything else since we are trying to start the server here
-	        	BufferedReader reader = new BufferedReader(new FileReader(outputFile));
-				StringBuilder errorMsg = new StringBuilder();
-	            String line;
-	            while ((line = reader.readLine()) != null ) {
-	                // get the runtime error
-	            	if (line.startsWith("Traceback")) {
-	            		errorMsg.append(line).append("\n");
-	            		while ((line = reader.readLine()) != null ) {
-	            			errorMsg.append(line).append("\n");
-	            		}
-	            	}
-	            }
-	            reader.close();
-	            if (!errorMsg.toString().isEmpty())
-	            	throw new IllegalStateException(errorMsg.toString());
-			}
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			createVirtualEnv(userVenvPath);
+		} catch (InterruptedException ie) {
+			classLogger.info("FAILED TO CREATE USER VIRTUAL ENV!");
+			classLogger.error(Constants.STACKTRACE, ie);
 		}
 
-		return new Object[] {thisProcess, prefix};
+		// Path to our BE Python directory
+		String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+		pyBase = pyBase.replace("\\", "/");
+		String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
+
+		prefix = Utility.getRandomString(5);
+		prefix = "p_"+ prefix;
+		
+		String outputFile = finalDir + "/console.txt";
+		
+        // Path to our main Python distribution sitepackages directory
+        String mainLibPath = Utility.getDIHelperProperty("PYTHON_SITEPACKAGES");
+        mainLibPath = mainLibPath.replace("\\", "/");
+        // Path to our new virtual environment sitepackage directory
+        String userLibPath = userVenvPath + "\\Lib\\site-packages";
+        userLibPath = userLibPath.replace("\\", "/");
+
+        // Combining the paths from our main python distribution and our virtual env so we can pull libraries from both
+        String combinedPythonPath = mainLibPath + ";" + userLibPath;
+        classLogger.info("The combined python path is: " + combinedPythonPath);
+		
+		String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			
+		// need to make sure we are not windows cause ulimit will not work
+		if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+			String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+			StringBuilder sb = new StringBuilder();
+			for (String str : commands) {
+				sb.append(str).append(" ");
+			}
+			sb.substring(0, sb.length() - 1);
+			commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+		}
+		
+		// do I need this ?
+		//String[] starterFile = writeStarterFile(commands, finalDir);
+		ProcessBuilder pb = new ProcessBuilder(commands);
+		ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+		pb.redirectError(redirector);
+		pb.redirectOutput(redirector);
+		pb.environment().put("PYTHONPATH", combinedPythonPath);
+		Process p = pb.start();
+		try {
+			p.waitFor(500, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException ie) {
+			Thread.currentThread().interrupt();
+			classLogger.error(Constants.STACKTRACE, ie);
+		}
+		classLogger.info("came out of the waiting for process");
+		if (!p.isAlive()) {
+			// if it crashed here, then the outputFile will contain the error. Read file and send error back
+			// it should not contain anything else since we are trying to start the server here
+        	BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+			StringBuilder errorMsg = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null ) {
+                // get the runtime error
+            	if (line.startsWith("Traceback")) {
+            		errorMsg.append(line).append("\n");
+            		while ((line = reader.readLine()) != null ) {
+            			errorMsg.append(line).append("\n");
+            		}
+            	}
+            }
+            reader.close();
+            if (!errorMsg.toString().isEmpty())
+            	throw new IllegalStateException(errorMsg.toString());
+		}
+		thisProcess = p;
+
+		// System.out.println("Process started with .. " + p.exitValue());
+		// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
+		// + " " + argList);
+		// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
+		// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+		// thisProcess = pb.start();
+	} catch (IOException ioe) {
+		classLogger.error(Constants.STACKTRACE, ioe);
 	}
+
+	return new Object[] {thisProcess, prefix};
+}
 	
 	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String timeout, String loggerLevel ) {
 		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os

@@ -7,6 +7,18 @@ PROJECT_WATCHER	ProjectWatcher
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
+PYTHONHOME C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch
+PYTHON_SITEPACKAGES C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch\\Lib
+
+TCP_WORKER prerna.tcp.SocketServer
+TCP_CLIENT prerna.tcp.client.NativePySocketClient
+NATIVE_PY_SERVER true
+
+# CHROOT_ENABLE true
+# CHROOT_DIR C:\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-clone
+CHROOT_DIR
+CHROOT_ENABLE
+
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
 SMSSWebWatcher_EXT	.smss
@@ -63,9 +75,9 @@ ENCRYPT_SMSS false
 
 #USE SOCKET FOR RUNNING R/PYTHON IN SEPARATE PROCESS
 NETTY_R false
-NETTY_PYTHON false
+NETTY_PYTHON true
 
-USE_PYTHON false
+USE_PYTHON true
 PY_WORKER prerna.pyserve.FileBasedPyWorker
 LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
 USE_PY_FILE	TRUE 
