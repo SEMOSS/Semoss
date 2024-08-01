@@ -8,12 +8,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -177,7 +177,7 @@ public class ModelInferenceLogsUtils {
 			qs.setEngine(modelInferenceLogsDb);
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
-			List<IQuerySelector> selectors = new Vector<>(
+			List<IQuerySelector> selectors = new ArrayList<>(
 					Arrays.asList(
 							new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"), 
 							new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"), 
@@ -185,7 +185,7 @@ public class ModelInferenceLogsUtils {
 							)
 					);
 
-			List<Object> values = new Vector<>(Arrays.asList(feedbackText, new SemossDate(LocalDateTime.now()), rating));
+			List<Object> values = new ArrayList<>(Arrays.asList(feedbackText, new SemossDate(Utility.getCurrentZonedDateTimeUTC()), rating));
 
 			qs.setSelectors(selectors);
 			qs.setValues(values);
@@ -436,8 +436,8 @@ public class ModelInferenceLogsUtils {
 			
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
-			List<IQuerySelector> selectors = new Vector<>();
-			List<Object> values = new Vector<>();
+			List<IQuerySelector> selectors = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
 			selectors.add(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
 			values.add(context);
 			qs.setSelectors(selectors);
@@ -615,8 +615,8 @@ public class ModelInferenceLogsUtils {
 			qs.setEngine(modelInferenceLogsDb);
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-			List<IQuerySelector> selectors = new Vector<>();
-			List<Object> values = new Vector<>();
+			List<IQuerySelector> selectors = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
 			selectors.add(new QueryColumnSelector("ROOM__IS_ACTIVE"));
 			values.add(false);
 			qs.setSelectors(selectors);
@@ -648,8 +648,8 @@ public class ModelInferenceLogsUtils {
             qs.setEngine(modelInferenceLogsDb);
             qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
             qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-            List<IQuerySelector> selectors = new Vector<>();
-            List<Object> values = new Vector<>();
+            List<IQuerySelector> selectors = new ArrayList<>();
+            List<Object> values = new ArrayList<>();
             selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
             values.add(roomName);
             qs.setSelectors(selectors);
