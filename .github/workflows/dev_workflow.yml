@@ -141,14 +141,30 @@ jobs:
           gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
-        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+        run: |
+          if [[ github.ref_name != 'dev' && github.ref_name != 'main' ]]
+            mvn clean install
+          elif [[ github.ref_name == 'dev' && github.ref_name == 'main' ]]
+            mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+          fi
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: target/surefire-reports
-      #     path: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
+      - name: Upload artifact
+        if: github.ref_name != 'dev' && github.ref_name != 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: semoss-jar
+          path: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
+      - name: Upload JAR to Nexus
+        if: github.ref_name != 'dev' && github.ref_name != 'main'
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEUXS_PASSWORD: ${{secrets.NEUXS_PASSWORD }}
+        run: |
+          JAR_FILE=$(ls target/*.jar | head -n 1)
+          curl -v -u "$NEXUS_USERNAME:$NEUXS_PASSWORD" \
+           --upload-file "$JAR_FILE" \
+           "http://artifact.semoss.org/repository/semoss-hosted-repo/${{ vars.VERSION }}-SNAPSHOT/$(basename $JAR_FILE)"
 
   build_release:
     runs-on: self-hosted
