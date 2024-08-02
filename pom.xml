@@ -1903,11 +1903,13 @@
 			<version>1.12.763</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
+		<!--
 		<dependency>
 		    <groupId>me.xdrop</groupId>
 		    <artifactId>fuzzywuzzy</artifactId>
 		    <version>1.4.0</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>io.github.classgraph</groupId>
 			<artifactId>classgraph</artifactId>

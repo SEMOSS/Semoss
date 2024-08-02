@@ -17,8 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
-import me.xdrop.fuzzywuzzy.FuzzySearch;
-import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.aws.s3.PushAssetToS3Reactor;
 import prerna.aws.s3.S3FileRetrieverReactor;
@@ -1427,40 +1425,6 @@ public class ReactorFactory {
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
 	}
 	
-	public static List recommend(String reactorName)
-	{
-
-		//List <ExtractedResult> resList = FuzzySearch.extractTop(data, list, 3);
-		// run reduction loop
-		int weight = 100;
-		List <ExtractedResult> resList = null;
-		
-		List <String> retList = new ArrayList();
-		do
-		{
-			resList = FuzzySearch.extractAll(reactorName, nmList, weight);
-			weight = weight -1;
-			System.out.print(weight);
-		}while (resList.size() == 0 && weight > 50);
-		
-		
-		for(int listIndex = 0;listIndex < resList.size();listIndex++)
-		{
-			ExtractedResult thisRes = resList.get(listIndex);
-			int index = thisRes.getIndex();
-			Class retClass = classList.get(index);
-			System.out.println(thisRes.getString() + "<>" + thisRes.getScore());
-			System.out.println("Class >>  " + retClass);
-			if(!Modifier.isAbstract( retClass.getModifiers() ))
-			{
-				retList.add(thisRes.getString());
-			}
-		}
-		
-		return retList;
-	}
-
-
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
 	}
