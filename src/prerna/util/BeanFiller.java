@@ -3,9 +3,10 @@ package prerna.util;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,8 +16,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class BeanFiller {
 
@@ -47,14 +46,10 @@ public class BeanFiller {
 	}
 
 	// fills a single bean
-	public static Object fillFromJson(String json, String jsonPattern, String [] beanProps, Object bean)
-	{
+	public static Object fillFromJson(String json, String jsonPattern, String [] beanProps, Object bean) {
 		// make the class
-		
 		Object retObject = null;
-		
 		try {
-			
 			Expression<JsonNode> expression = jmespath.compile(jsonPattern);
 
 			//AccessToken tok = mapper.readValue(json, AccessToken.class);
@@ -63,7 +58,7 @@ public class BeanFiller {
 			
 			if((result instanceof ArrayNode) && result.get(0) instanceof ObjectNode) {
 				// this is a multiple value
-				List <Object> retList = new Vector();
+				List<Object> retList = new ArrayList<>();
 				for(int resIndex = 0; resIndex < result.size(); resIndex++) {
 					// I should possibly create a new instance everytime as well
 					Object newBean = bean.getClass().newInstance();
