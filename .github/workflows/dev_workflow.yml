@@ -141,6 +141,7 @@ jobs:
           gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
+        shell: bash
         run: |
           REF_NAME=$( echo $GITHUB_REF | sed 's|refs/heads/||')
           if [[ "$REF_NAME" != 'dev' && "$REF_NAME" != 'main' ]]; then
