@@ -1418,11 +1418,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency-->
+		<!--
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
 			<version>2.11.7</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
 		<dependency>
 			<groupId>org.javassist</groupId>
@@ -1430,11 +1432,13 @@
 			<version>3.20.0-GA</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.lingala.zip4j/zip4j -->
+		<!--
 		<dependency>
 		    <groupId>net.lingala.zip4j</groupId>
 		    <artifactId>zip4j</artifactId>
 		    <version>2.11.5</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/us.fatehi/schemacrawler -->
 		<!--
 		<dependency>
@@ -1650,23 +1654,15 @@
 		    <version>2.16.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
-		<!--
 		<dependency>
 		    <groupId>com.amazon.redshift</groupId>
 		    <artifactId>redshift-jdbc42</artifactId>
 		    <version>2.1.0.29</version>
 		</dependency>
-		-->
 		<dependency>
 		    <groupId>io.trino</groupId>
 		    <artifactId>trino-jdbc</artifactId>
 		    <version>439</version>
-		</dependency>
-		<!-- NODE -->
-		<dependency>
-			<groupId>com.eclipsesource.j2v8</groupId>
-			<artifactId>j2v8_win32_x86_64</artifactId>
-			<version>4.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>black.ninia</groupId>
@@ -1694,11 +1690,13 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.squareup/javapoet -->
+		<!--
 		<dependency>
 			<groupId>com.squareup</groupId>
 			<artifactId>javapoet</artifactId>
 			<version>1.2.0</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.github.wnameless.json/json-flattener -->
 		<dependency>
 		    <groupId>com.github.wnameless.json</groupId>
