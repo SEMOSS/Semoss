@@ -21,6 +21,7 @@ import prerna.util.Constants;
 import prerna.util.MountHelper;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
+import prerna.util.PythonUtils;
 
 public class ClientProcessWrapper {
 
@@ -107,7 +108,7 @@ public class ClientProcessWrapper {
 						// write the log4j file in the server directory
 						Utility.writeLogConfigurationFile(this.serverDirectory);
 											
-						Object[] ret = Utility.startTCPServerNativePy(this.serverDirectory, this.port+"", this.venvPath, this.timeout, this.loggerLevel);
+						Object[] ret = PythonUtils.startTCPServerNativePy(this.serverDirectory, this.port+"", this.venvPath, this.timeout, this.loggerLevel);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					}

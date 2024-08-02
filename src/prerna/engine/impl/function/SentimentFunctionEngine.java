@@ -22,6 +22,7 @@ import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
+import prerna.util.PythonUtils;
 
 public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 
@@ -132,7 +133,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		
 		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout, loggerLevel);
+		Object [] outputs = PythonUtils.startTCPServerNativePy(this.workingDirectoryBasePath, port, venvPath, timeout, loggerLevel);
 		this.p = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
