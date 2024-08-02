@@ -145,7 +145,7 @@ jobs:
         run: |
           REF_NAME=$( echo $GITHUB_REF | sed 's|refs/heads/||')
           if [[ "$REF_NAME" != 'dev' && "$REF_NAME" != 'main' ]]; then
-            mvn clean install
+            mvn clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }}
           elif [[ "$REF_NAME" == 'dev' || "$REF_NAME" == 'main' ]]; then
             mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
           fi
