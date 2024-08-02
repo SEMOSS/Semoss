@@ -1738,11 +1738,13 @@
 			<version>0.6.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/au.com.bytecode/opencsv -->
+		<!--
 		<dependency>
 			<groupId>au.com.bytecode</groupId>
 			<artifactId>opencsv</artifactId>
 			<version>2.4</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.jodd/jodd-core -->
 		<dependency>
 			<groupId>org.jodd</groupId>
