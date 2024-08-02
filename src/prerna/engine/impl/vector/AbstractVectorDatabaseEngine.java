@@ -201,7 +201,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 		String extractionMethod = this.defaultExtractionMethod;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
+			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
 		
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
@@ -335,6 +335,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to remove old or create new text extraction file for " + documentName);
 				}
+				
+				// add image extraction and text
 			}
 			
 			if (extractedFiles.size() > 0) {
