@@ -9,16 +9,16 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.util.Utility;
+import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 
 public class TextFileProcessor {
 	
 	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
 
 	private String filePath = null;
-	private CSVWriter writer = null;
+	private VectorDatabaseCSVWriter writer = null;
 	
-	public TextFileProcessor(String filePath, CSVWriter writer) {
+	public TextFileProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		this.filePath = filePath;
 		this.writer = writer;
 	}

@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.gaas.chat.MooseChatReactor;
 import prerna.reactor.frame.gaas.ner.FillFormReactor;
-import prerna.reactor.frame.gaas.qa.QueryQAModelReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -29,9 +28,9 @@ public class MooseReactor extends AbstractGaasBaseReactor {
 		this.keyRequired = new int[] {1, 0};
 		
 		commandReactorMap.put("text2sql", NLPQuery3Reactor.class);
-		commandReactorMap.put("docqa", QueryQAModelReactor.class);
+//		commandReactorMap.put("docqa", QueryQAModelReactor.class);
 		commandReactorMap.put("chat", MooseChatReactor.class);
-		commandReactorMap.put("lfqa", QueryQAModelReactor.class);
+//		commandReactorMap.put("lfqa", QueryQAModelReactor.class);
 		commandReactorMap.put("fillform", FillFormReactor.class);
 		commandReactorMap.put("text2viz", NLPQuery3Reactor.class); // need to replace this
 	}
