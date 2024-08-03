@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.univocity.parsers.csv.CsvFormat;
@@ -20,12 +21,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.om.HeadersException;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+import prerna.util.Utility;
 
 public class CSVFileHelper {
 	
@@ -109,10 +106,6 @@ public class CSVFileHelper {
 			sourceFile = new FileReader(file);
 			parser.beginParsing(sourceFile);
 			collectHeaders();
-
-			// since files can be dumb and contain multiple indices
-			// we need to keep a map of the header to the index
-
 		} catch (FileNotFoundException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}

@@ -23,7 +23,7 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 				+ "MODALITY TEXT, "
 				+ "DIVIDER TEXT, "
 				+ "PART TEXT, "
-				+ "TOKENS TEXT, "
+				+ "TOKENS INTEGER, "
 				+ "CONTENT TEXT "
 				+ ");";
 	}

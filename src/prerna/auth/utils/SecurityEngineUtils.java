@@ -1690,7 +1690,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return 
 	 */
-	public static List<Map<String, Object>> getEngineUsersNoCredentials(User user, String engineId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getEngineUsersNoCredentials(User user, String engineId, String searchTerm, long limit, long offset) throws IllegalAccessException {
 		/*
 		 * Security check to make sure that the user can view the application provided. 
 		 */
@@ -1710,7 +1710,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		//Filter for sub-query
+		// filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
@@ -1718,6 +1718,20 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",engineId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
