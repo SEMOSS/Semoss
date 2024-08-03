@@ -120,6 +120,7 @@ public enum ReactorKeysEnum {
 	LAMBDA("lambda", 											"Name of the lambda transformtion to perform"),				
 	LANGUAGE("language",                    	                "Language in which this expression needs to be interpreted"),
 	LAYOUT_KEY("layout", 										"The layout of the insight, used as a tag"),
+	LIBRARY("library",                                          "The Python library to add to the user venv"),
 	LIMIT("limit", 												"Limit to add for the query results"),
 	LOGICAL_NAME("logicalNames", 								"Column alias to be added to the master database"),
 	MAINTAIN_COLUMNS("maintainCols", 							"Any additional columns to keep in the frame"),

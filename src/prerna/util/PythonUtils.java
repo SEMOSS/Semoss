@@ -161,6 +161,8 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.git.GitAssetUtils;
+import prerna.om.Insight;
+import prerna.ds.py.PyTranslator;
 /**
  * The PythonUtilities class contains functions related to the Python logic in SEMOSS.
  * Eventually should combine this with prerna.ds.py.PyUtils but we need to flush out legacy logic from that file.
@@ -170,7 +172,19 @@ import prerna.util.git.GitAssetUtils;
 public final class PythonUtils {
 	
 	private static final Logger classLogger = LogManager.getLogger(PythonUtils.class);
+	
+	public static String getUserVenvPath(Insight insight) {
+		String venvPath = insight.getUser().tempInsightDir;
+		if (venvPath != null && !venvPath.isEmpty()) {
+			return venvPath = Utility.normalizePath(venvPath + "/venv");
+			
+		} else {
+			classLogger.error("The Py server directory is not valid. Python may not be instantiated yet");
+			return null;
+		}
+	}
 
+	// This method creates a Python virtual environment to a given path
 	public static void createVirtualEnv(String venvPath) throws IOException, InterruptedException {
 	    ProcessBuilder pb = new ProcessBuilder("python", "-m", "venv", venvPath);
 	    pb.redirectErrorStream(true);
@@ -227,7 +241,7 @@ public final class PythonUtils {
 		
 		// Path to our virtual environment inside our insight cache folder 
 		String userVenvPath = finalDir + "/venv";
-		classLogger.info("The user venv path is: " + userVenvPath);
+
 		try {
 			createVirtualEnv(userVenvPath);
 		} catch (InterruptedException ie) {
