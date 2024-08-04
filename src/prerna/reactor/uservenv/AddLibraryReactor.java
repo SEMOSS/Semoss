@@ -12,6 +12,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.om.UserVenv;
 import prerna.util.Constants;
+import prerna.util.PythonUtils;
 
 public class AddLibraryReactor extends AbstractReactor {
 	
@@ -27,12 +28,21 @@ public class AddLibraryReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+        try {
+            PythonUtils.verifyPyCapabilities();
+        } catch (IllegalArgumentException e) {
+            String errorMsg = "Python capabilities verification failed: " + e.getMessage();
+            classLogger.error(Constants.STACKTRACE, e);
+            return new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+        }
+        
+        // Make sure an instance of Python is being served
+        this.insight.getPyTranslator();
+		
 		organizeKeys();
 		String library = this.keyValue.get(this.keysToGet[0]);
 		String libInstallResult = "";
 		UserVenv userVenv = this.insight.getUser().getUserVenv();
-		
-		// TODO: Check the socket status
 		
 		try {
 		    libInstallResult = userVenv.installLibrary(this.insight, library);

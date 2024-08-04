@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.om.UserVenv;
 import prerna.util.Constants;
+import prerna.util.PythonUtils;
 
 public class ListLibrariesReactor extends AbstractReactor {
 	
@@ -19,10 +20,19 @@ public class ListLibrariesReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+        try {
+            PythonUtils.verifyPyCapabilities();
+        } catch (IllegalArgumentException e) {
+            String errorMsg = "Python capabilities verification failed: " + e.getMessage();
+            classLogger.error(Constants.STACKTRACE, e);
+            return new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+        }
+        
+        // Make sure an instance of Python is being served
+        this.insight.getPyTranslator();
+		
 		List<UserVenv.LibraryInfo> pipListResult;
 		UserVenv userVenv = this.insight.getUser().getUserVenv();
-		
-		// TODO: Check the socket status
 		
 		try {
 			pipListResult = userVenv.pipList();

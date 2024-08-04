@@ -13,6 +13,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.base.Strings;
 
+import prerna.ds.py.PyUtils;
+
 /**
  * The PythonUtilities class contains functions related to the Python logic in SEMOSS.
  * Eventually should combine this with prerna.ds.py.PyUtils but we need to flush out legacy logic from that file.
@@ -138,5 +140,28 @@ public final class PythonUtils {
 	}
 
 	return new Object[] {thisProcess, prefix};
-}
+	}
+	
+	// Various checks to make sure the user is setup to run Python
+	public static void verifyPyCapabilities() {
+	    String disable_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+
+	    if (disable_terminal != null && !disable_terminal.isEmpty()) {
+	        if (Boolean.parseBoolean(disable_terminal)) {
+	            throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+	        }
+	    }
+
+	    if (!PyUtils.pyEnabled()) {
+	        throw new IllegalArgumentException("Python is not enabled to use the following command");
+	    }
+
+	    // Check if py terminal is disabled
+	    String disable_py_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_PY_TERMINAL);
+	    if (disable_py_terminal != null && !disable_py_terminal.isEmpty()) {
+	        if (Boolean.parseBoolean(disable_py_terminal)) {
+	            throw new IllegalArgumentException("Python terminal has been disabled.");
+	        }
+	    }
+	}
 }

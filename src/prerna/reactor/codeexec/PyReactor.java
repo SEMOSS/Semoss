@@ -16,8 +16,10 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PythonUtils;
 import prerna.util.Settings;
 import prerna.util.Utility;
+import prerna.util.PythonUtils;
 
 public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
 	
@@ -28,27 +30,13 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 
 	@Override
 	public NounMetadata execute() {
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
-		boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
-				&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
-
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			if(Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
-		}
-		
-		if(!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is not enabled to use the following command");
-		}
-		
-		//check if py terminal is disabled
-		String disable_py_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_PY_TERMINAL);
-		if(disable_py_terminal != null && !disable_py_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_py_terminal)) {
-					throw new IllegalArgumentException("Python terminal has been disabled.");
-			 }
-		}
+        try {
+            PythonUtils.verifyPyCapabilities();
+        } catch (IllegalArgumentException e) {
+            String errorMsg = "Python capabilities verification failed: " + e.getMessage();
+            return new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+        }
+        
 		Logger logger = getLogger(CLASS_NAME);
 
 		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
