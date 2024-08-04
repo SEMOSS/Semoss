@@ -98,7 +98,7 @@ public class UserVenv implements Serializable {
         }
     }
     
-    public static final String[] getPipInstallCmd(String library) {
+    public static final String[] getInstallCmd(String library) {
         if (SystemUtils.IS_OS_WINDOWS) {
         	return new String[]{"cmd", "/c", "pip", "install", library};
         } else {
@@ -106,12 +106,20 @@ public class UserVenv implements Serializable {
         }
     }
     
-    // Combining the activation and installation commands to be used in one process builder
-    public static final String[] getFullCommand(String activationCommand, String[] installCommand) {
+    public static final String[] getUninstallCmd(String library) {
         if (SystemUtils.IS_OS_WINDOWS) {
-            return new String[]{"cmd", "/c", activationCommand + " && " + String.join(" ", installCommand)};
+            return new String[]{"cmd", "/c", "pip", "uninstall", "-y", library};
         } else {
-        	return new String[] {"/bin/bash", "-c", ". " + activationCommand + " && " + String.join(" ", installCommand)};
+            return new String[]{"/bin/bash", "-c", "pip uninstall -y " + library};
+        }
+    }
+    
+    // Combining the activation and a secondary command to be used in process builder
+    public static final String[] getFullCommand(String activationCommand, String[] secondaryCommand) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return new String[]{"cmd", "/c", activationCommand + " && " + String.join(" ", secondaryCommand)};
+        } else {
+        	return new String[] {"/bin/bash", "-c", ". " + activationCommand + " && " + String.join(" ", secondaryCommand)};
         }
     }
     
@@ -124,10 +132,10 @@ public class UserVenv implements Serializable {
         }
     }
     
-    public String installLibrary(Insight insight, String library) throws IOException, InterruptedException {
+    public String installLibrary(String library) throws IOException, InterruptedException {
         String venvPath = this.venvPath;
         String activationCommand = getVenvActivationCmd(venvPath);
-        String[] installCommand = getPipInstallCmd(library);
+        String[] installCommand = getInstallCmd(library);
         
         // Combine activation and installation command
         String[] combinedCommand = getFullCommand(activationCommand, installCommand); 
@@ -153,6 +161,34 @@ public class UserVenv implements Serializable {
         }
     }
     
+    public String removeLibrary(String library) throws IOException, InterruptedException {
+    	String venvPath = this.venvPath;
+    	String activationCommand = getVenvActivationCmd(venvPath);
+    	String[] uninstallCommand = getUninstallCmd(library);
+    	
+    	// Combine activation command and uninstall command
+    	String[] combinedCommand = getFullCommand(activationCommand, uninstallCommand);
+    	
+        ProcessBuilder pb = new ProcessBuilder(combinedCommand[0], combinedCommand[1], combinedCommand[2]);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode == 0) {
+            return "Successfully uninstalled library: " + library;
+        } else {
+            output.append("Failed to uninstall library ").append(library).append(", exit code: ").append(exitCode);
+            return output.toString();
+        }
+    }
 
     public static List<LibraryInfo> parsePipList(String pipListOutput) {
         Gson gson = new Gson();

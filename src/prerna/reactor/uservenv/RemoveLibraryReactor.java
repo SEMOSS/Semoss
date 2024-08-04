@@ -14,16 +14,15 @@ import prerna.om.UserVenv;
 import prerna.util.Constants;
 import prerna.util.PythonUtils;
 
-public class AddLibraryReactor extends AbstractReactor {
+public class RemoveLibraryReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(AddLibraryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoveLibraryReactor.class);
 	
-	public AddLibraryReactor() {
+	public RemoveLibraryReactor() {
 		this.keysToGet = new String[] {
-				ReactorKeysEnum.LIBRARY.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+				ReactorKeysEnum.LIBRARY.getKey()
 		};
-		this.keyRequired = new int[] {1, 0};
+		this.keyRequired = new int[] {1};
 	}
 	
 	@Override
@@ -38,22 +37,22 @@ public class AddLibraryReactor extends AbstractReactor {
         
         // Make sure an instance of Python is being served
         this.insight.getPyTranslator();
-		
+        
 		organizeKeys();
 		String library = this.keyValue.get(this.keysToGet[0]);
-		String libInstallResult = "";
+		String libUninstallResult = "";
 		UserVenv userVenv = this.insight.getUser().getUserVenv();
 		
 		try {
-		    libInstallResult = userVenv.installLibrary(library);
+			libUninstallResult = userVenv.removeLibrary(library);
 		} catch (InterruptedException ie) {
-		    libInstallResult = "There was a problem installing " + library;
+			libUninstallResult = "There was a problem uninstalling " + library;
 		    classLogger.error(Constants.STACKTRACE, ie);
 		} catch (IOException ioe) {
-		    libInstallResult = "There was a problem installing " + library;
+			libUninstallResult = "There was a problem uninstalling " + library;
 		    classLogger.error(Constants.STACKTRACE, ioe);
 		}
 		
-		return new NounMetadata(libInstallResult , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata(libUninstallResult , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 }
