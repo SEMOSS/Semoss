@@ -1,12 +1,13 @@
 package prerna.engine.impl.r;
 
+import prerna.util.PortAllocator;
+
 public class RUserConnectionDedicated extends AbstractRUserConnection {
 	
 	// Host and port
 	private final String host;
 	private static final String DEFAULT_HOST = "127.0.0.1";
-	private int port = 6311;
-	private static final int PORT_MAX = 65535;
+	private int port = -1;
 	
 	// TODO >>>timb: R - this constructor is never used, so the host is not really configurable right now (later)
 	public RUserConnectionDedicated(String rDataFile, String host) {
@@ -29,9 +30,8 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	
 	private void init() {
 		try {
-			setPort();
+			port = PortAllocator.getInstance().getNextAvailablePort();
 			process = RserveUtil.startR(port);
-			
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Failed to initialize R.", e);
 		}
@@ -50,7 +50,7 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 			stopR();
 		} catch (Exception e) {
 			// If an error occurs stopping R, then grab a new port to run on
-			setPort();
+			port = PortAllocator.getInstance().getNextAvailablePort();
 		}
 		
 		// Try to start R and establish a new connection to it
@@ -78,19 +78,8 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	public void cancelExecution() throws Exception {
 		// TODO >>>timb: R - need to complete cancellation here (later)
 	}
-	
-	////////////////////////////////////////
-	// Port management
-	////////////////////////////////////////
-	private void setPort() {
-		while (!RserveUtil.isPortAvailable(port)) {
-			port++;
-			if (port > PORT_MAX) throw new IllegalArgumentException("No more ports are available."); 
-		}
-	}
-	
-	public int getPort()
-	{
+
+	public int getPort() {
 		return port;
 	}
 	
