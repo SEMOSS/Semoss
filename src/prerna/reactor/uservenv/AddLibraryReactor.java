@@ -1,29 +1,17 @@
 package prerna.reactor.uservenv;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.lang.reflect.Field;
 import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.PythonUtils;
-import prerna.util.UploadInputUtility;
-import prerna.util.Utility;
-import prerna.om.Insight;
-import prerna.auth.User;
-import prerna.util.DIHelper;
+import prerna.om.UserVenv;
 import prerna.util.Constants;
-import prerna.util.PythonUtils;
 
 public class AddLibraryReactor extends AbstractReactor {
 	
@@ -42,9 +30,10 @@ public class AddLibraryReactor extends AbstractReactor {
 		organizeKeys();
 		String library = this.keyValue.get(this.keysToGet[0]);
 		String libInstallResult = "";
+		UserVenv userVenv = this.insight.getUser().getUserVenv();
 		
 		try {
-		    libInstallResult = PythonUtils.installLibrary(this.insight, library);
+		    libInstallResult = userVenv.installLibrary(this.insight, library);
 		} catch (InterruptedException ie) {
 		    libInstallResult = "There was a problem installing " + library;
 		    classLogger.error(Constants.STACKTRACE, ie);
@@ -55,5 +44,4 @@ public class AddLibraryReactor extends AbstractReactor {
 		
 		return new NounMetadata(libInstallResult , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
-	
 }

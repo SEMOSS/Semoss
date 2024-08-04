@@ -43,7 +43,7 @@ import prerna.util.MountHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.Utility;
-import prerna.om.Insight;
+import prerna.om.UserVenv;
 
 public class User implements Serializable {
 
@@ -117,6 +117,7 @@ public class User implements Serializable {
 	// This is the path to the temporary insight server directory used to run python and virtual envs
 	// EX: C:\workspace\Semoss\InsightCache\a653411963489424001
 	public String tempInsightDir = "";
+	public UserVenv userVenv;
 	
 	public User() {
 		// transient objects should be defined in the constructor
@@ -624,6 +625,14 @@ public class User implements Serializable {
 	}
 	
 	/////////////////////////////////////////////////////
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public UserVenv getUserVenv() {
+		return this.userVenv;
+	}
 
 	/**
 	 * 
@@ -1100,6 +1109,8 @@ public class User implements Serializable {
 				try {
 					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
 					this.setTempInsightDir(serverDirectoryPath.toString());
+					this.userVenv = new UserVenv(serverDirectoryPath.toString());
+					
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Could not create directory to launch project process");
