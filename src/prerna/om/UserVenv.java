@@ -4,6 +4,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import java.lang.reflect.Type;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
+import java.io.StringReader;
+import com.google.gson.reflect.TypeToken;
 
 import org.apache.commons.lang.SystemUtils;
 
@@ -105,6 +115,15 @@ public class UserVenv implements Serializable {
         }
     }
     
+    public static final String[] getListCommand(String venvPath) {
+        String activationCommand = getVenvActivationCmd(venvPath);
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return new String[]{"cmd", "/c", activationCommand + " && pip list --format=json"};
+        } else {
+            return new String[]{"/bin/bash", "-c", ". " + activationCommand + " && pip list --format=json"};
+        }
+    }
+    
     public String installLibrary(Insight insight, String library) throws IOException, InterruptedException {
         String venvPath = this.venvPath;
         String activationCommand = getVenvActivationCmd(venvPath);
@@ -133,4 +152,74 @@ public class UserVenv implements Serializable {
             return output.toString();
         }
     }
+    
+
+    public static List<LibraryInfo> parsePipList(String pipListOutput) {
+        Gson gson = new Gson();
+        JsonReader reader = new JsonReader(new StringReader(pipListOutput));
+        reader.setLenient(true); // Set lenient mode
+
+        try {
+            Type libraryListType = new TypeToken<List<LibraryInfo>>(){}.getType();
+            return gson.fromJson(reader, libraryListType);
+        } catch (JsonSyntaxException e) {
+            e.printStackTrace();
+            return new ArrayList<>(); // Return an empty list on failure
+        }
+    }
+
+    // List the installed libraries in the user venv
+    public List<LibraryInfo> pipList() throws IOException, InterruptedException {
+        String[] listCommand = getListCommand(this.venvPath);
+        ProcessBuilder pb = new ProcessBuilder(listCommand);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode == 0) {
+            return parsePipList(output.toString());
+        } else {
+            throw new IOException("Failed to list pip packages, exit code: " + exitCode);
+        }
+    }
+
+    public static class LibraryInfo {
+        private String name;
+        private String version;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public void setVersion(String version) {
+            this.version = version;
+        }
+
+        @Override
+        public String toString() {
+            return "LibraryInfo{" +
+                    "name='" + name + '\'' +
+                    ", version='" + version + '\'' +
+                    '}';
+        }
+    }
 }
+
+
+

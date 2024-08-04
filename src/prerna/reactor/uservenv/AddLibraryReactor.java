@@ -32,6 +32,8 @@ public class AddLibraryReactor extends AbstractReactor {
 		String libInstallResult = "";
 		UserVenv userVenv = this.insight.getUser().getUserVenv();
 		
+		// TODO: Check the socket status
+		
 		try {
 		    libInstallResult = userVenv.installLibrary(this.insight, library);
 		} catch (InterruptedException ie) {
