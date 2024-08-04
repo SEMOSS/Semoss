@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.lang.reflect.Field;
+import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,10 +41,19 @@ public class AddLibraryReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String library = this.keyValue.get(this.keysToGet[0]);
+		String libInstallResult = "";
 		
-		String venvPath = PythonUtils.getUserVenvPath(this.insight);
+		try {
+		    libInstallResult = PythonUtils.installLibrary(this.insight, library);
+		} catch (InterruptedException ie) {
+		    libInstallResult = "There was a problem installing " + library;
+		    classLogger.error(Constants.STACKTRACE, ie);
+		} catch (IOException ioe) {
+		    libInstallResult = "There was a problem installing " + library;
+		    classLogger.error(Constants.STACKTRACE, ioe);
+		}
 		
-		return new NounMetadata(venvPath , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata(libInstallResult , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 	
 }

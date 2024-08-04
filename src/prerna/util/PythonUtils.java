@@ -183,10 +183,74 @@ public final class PythonUtils {
 			return null;
 		}
 	}
+	
+	public static String[] getVenvCreationCmd() {
+	    if (SystemUtils.IS_OS_WINDOWS) {
+	        return new String[]{"python", "-m", "venv"};
+	    } else {
+	        return new String[]{"python3", "-m", "venv"};
+	    }
+	}
+	
+    public static String getVenvActivationCmd(String venvPath) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return venvPath + "\\Scripts\\activate";
+        } else {
+            return venvPath + "/bin/activate";
+        }
+    }
+    
+    public static String[] getPipInstallCmd(String library) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+        	return new String[]{"cmd", "/c", "pip", "install", library};
+        } else {
+        	return new String[]{"/bin/bash", "-c", "pip install " + library};
+        }
+    }
+    
+    // Combining the activation and installation commands to be used in one process builder
+    public static String[] getFullCommand(String activationCommand, String[] installCommand) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return new String[]{"cmd", "/c", activationCommand + " && " + String.join(" ", installCommand)};
+        } else {
+        	return new String[] {"/bin/bash", "-c", ". " + activationCommand + " && " + String.join(" ", installCommand)};
+        }
+    }
+    
+    public static String installLibrary(Insight insight, String library) throws IOException, InterruptedException {
+        String venvPath = getUserVenvPath(insight);
+        String activationCommand = getVenvActivationCmd(venvPath);
+        String[] installCommand = getPipInstallCmd(library);
+        
+        // Combine activation and installation command
+        String[] combinedCommand = getFullCommand(activationCommand, installCommand); 
+
+        ProcessBuilder pb = new ProcessBuilder(combinedCommand[0], combinedCommand[1], combinedCommand[2]);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode == 0) {
+            return "Successfully installed library: " + library;
+        } else {
+            output.append("Failed to install library ").append(library).append(", exit code: ").append(exitCode);
+            return output.toString();
+        }
+    }
+
 
 	// This method creates a Python virtual environment to a given path
 	public static void createVirtualEnv(String venvPath) throws IOException, InterruptedException {
-	    ProcessBuilder pb = new ProcessBuilder("python", "-m", "venv", venvPath);
+		String[] creationCommand = getVenvCreationCmd();
+	    ProcessBuilder pb = new ProcessBuilder(creationCommand[0], creationCommand[1], creationCommand[2], venvPath);
 	    pb.redirectErrorStream(true);
 	    Process process = pb.start();
 	    
