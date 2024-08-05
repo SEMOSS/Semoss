@@ -53,6 +53,7 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
+//import prerna.web.services.util.WebUtility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
@@ -2210,7 +2211,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 	    for(Map<String,String> i:requests){
-	    	existingUserIds.add(i.get("userid"));
+	    	String userId=Utility.inputSanitizer(i.get("userid"));
+	    	
+	    	existingUserIds.add(userId);
 	    }
 			    
 		// get user permissions to edit
