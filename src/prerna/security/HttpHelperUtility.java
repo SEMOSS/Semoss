@@ -1172,7 +1172,7 @@ public final class HttpHelperUtility {
 	 	String [] retString = new String[2];
 		String[] inputCodes = URLDecoder.decode(queryStr).split("&");
 		for(int inputIndex = 0;inputIndex < inputCodes.length;inputIndex++) {
-			String thisToken = inputCodes[inputIndex];
+			String thisToken = Utility.inputSanitizer(inputCodes[inputIndex]);
 			if(thisToken.startsWith("state")) {
 				retString[1] = thisToken.replaceAll("state=", "");
 			}

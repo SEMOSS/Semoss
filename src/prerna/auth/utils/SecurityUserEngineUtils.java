@@ -11,6 +11,8 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+
+
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -24,6 +26,9 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
+
+
 
 class SecurityUserEngineUtils extends AbstractSecurityUtils {
 
@@ -203,10 +208,10 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	public static boolean userCanViewEngine(User user, String engineId) {
 		// Check to see if permission has expired
 		try {
-			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
+			boolean isExpired = enginePermissionIsExpired(Utility.inputSanitizer(User.getSingleLogginName(user)), engineId);
 			// If permission is expired remove permission
 			if (isExpired) {
-				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
+				SecurityEngineUtils.removeExpiredEngineUser(Utility.inputSanitizer(User.getSingleLogginName(user)), engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
