@@ -40,6 +40,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.web.services.util.WebUtility;
 
 public abstract class AbstractSecurityUtils {
 
@@ -2205,7 +2206,7 @@ public abstract class AbstractSecurityUtils {
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider thisLogin : logins) {
-				filters.add(user.getAccessToken(thisLogin).getId());
+				filters.add(Utility.inputSanitizer(user.getAccessToken(thisLogin).getId()));
 			}
 		}
 

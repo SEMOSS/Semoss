@@ -127,6 +127,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
+import org.owasp.esapi.codecs.MySQLCodec;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
@@ -225,6 +228,25 @@ public final class Utility {
 
 		return paramHash;
 	}
+	
+	/**
+	 * This is to remove scripts from being passed
+	 * 
+	 * @param stringToNormalize
+	 * @return
+	 */
+	public static String inputSanitizer(String stringToNormalize) {
+		if (stringToNormalize == null) {
+			classLogger.debug("input to sanitzer is null, returning null");
+			return stringToNormalize;
+		}
+
+		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS).and(Sanitizers.BLOCKS).and(Sanitizers.STYLES)
+				.and(Sanitizers.IMAGES).and(Sanitizers.TABLES);
+		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		return ESAPI.encoder().encodeForSQL(mySQLCodec, policy.sanitize(stringToNormalize));
+	}
+
 
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
