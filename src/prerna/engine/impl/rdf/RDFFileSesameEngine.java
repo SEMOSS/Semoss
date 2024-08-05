@@ -71,8 +71,6 @@ import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -241,13 +239,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 			while(sparqlResults.hasNext()) {
 				Value val = sparqlResults.next().getValue(Constants.ENTITY);
 				Object next = null;
-				if (val instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) val).getDatatype() != null) {
-					try {
-						next = ((BigdataLiteralImpl)val).doubleValue();
-					} catch(NumberFormatException ex) {
-						next = ((BigdataLiteralImpl) val).getLabel();
-					}
-				} else if(val instanceof Literal){
+				if(val instanceof Literal){
 					next = ((Literal)val).getLabel();
 				} else {
 					next = "" + val;
