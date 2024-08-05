@@ -240,7 +240,21 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 				Value val = sparqlResults.next().getValue(Constants.ENTITY);
 				Object next = null;
 				if(val instanceof Literal){
-					next = ((Literal)val).getLabel();
+					Literal literal = ((Literal)val);
+					URI dataType = literal.getDatatype();
+					if(dataType.getLocalName().equals("double")) {
+						next = literal.doubleValue();
+					} else if(dataType.getLocalName().equals("float")) {
+				        next = literal.floatValue();
+					} else if(dataType.getLocalName().equalsIgnoreCase("boolean")) {
+				        next = literal.booleanValue();
+					} else if(dataType.getLocalName().equalsIgnoreCase("dateTime")) {
+						next = Date.from(literal.calendarValue().toGregorianCalendar().toInstant());
+					} else if(dataType.getLocalName().equalsIgnoreCase("date")) {
+						next = Date.from(literal.calendarValue().toGregorianCalendar().toInstant());
+					} else {
+						next = ((Literal)val).getLabel();
+					}
 				} else {
 					next = "" + val;
 				}

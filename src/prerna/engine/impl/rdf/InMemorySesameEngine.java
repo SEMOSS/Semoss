@@ -63,8 +63,6 @@ import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
@@ -209,14 +207,22 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			while(sparqlResults.hasNext()) {
 				Value val = sparqlResults.next().getValue(Constants.ENTITY);
 				Object next = null;
-				if (val instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) val).getDatatype() != null) {
-					try {
-						next = ((BigdataLiteralImpl)val).doubleValue();
-					} catch(NumberFormatException ex) {
-						next = ((BigdataLiteralImpl) val).getLabel();
+				if(val instanceof Literal){
+					Literal literal = ((Literal)val);
+					URI dataType = literal.getDatatype();
+					if(dataType.getLocalName().equals("double")) {
+						next = literal.doubleValue();
+					} else if(dataType.getLocalName().equals("float")) {
+				        next = literal.floatValue();
+					} else if(dataType.getLocalName().equalsIgnoreCase("boolean")) {
+				        next = literal.booleanValue();
+					} else if(dataType.getLocalName().equalsIgnoreCase("dateTime")) {
+						next = Date.from(literal.calendarValue().toGregorianCalendar().toInstant());
+					} else if(dataType.getLocalName().equalsIgnoreCase("date")) {
+						next = Date.from(literal.calendarValue().toGregorianCalendar().toInstant());
+					} else {
+						next = ((Literal)val).getLabel();
 					}
-				} else if(val instanceof Literal){
-					next = ((Literal)val).getLabel();
 				} else {
 					next = "" + val;
 				}
