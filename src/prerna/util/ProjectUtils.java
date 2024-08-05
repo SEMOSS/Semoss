@@ -179,7 +179,7 @@ public class ProjectUtils {
 			retMap.put(AbstractSqlQueryUtil.USERNAME, "sa");
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
-			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;query_cache_size=24;cache_size=32768");
 		}
 		
 		// regardless of OS, connection url is always /
@@ -252,7 +252,7 @@ public class ProjectUtils {
 			retMap.put(AbstractSqlQueryUtil.USERNAME, "sa");
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
-			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;query_cache_size=24;cache_size=32768");
 		}
 		
 		// regardless of OS, connection url is always /

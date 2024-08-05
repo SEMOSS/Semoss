@@ -143,7 +143,7 @@ public class InsertReactor extends AbstractReactor {
 		// only need for cloud
 		if(ClusterUtil.IS_CLUSTER && database != null) {
 			RdbmsTypeEnum eType = database.getQueryUtil().getDbType();
-			if(eType == RdbmsTypeEnum.H2_DB || eType == RdbmsTypeEnum.SQLITE) {
+			if(eType == RdbmsTypeEnum.H2_DB|| eType == RdbmsTypeEnum.H2_V2_DB  || eType == RdbmsTypeEnum.SQLITE) {
 				insertFileEngine(database, queryUtil, initial, valueCombinations, selectors, userId);
 				NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 				String customSuccessMessage = getCustomSuccessMessage();

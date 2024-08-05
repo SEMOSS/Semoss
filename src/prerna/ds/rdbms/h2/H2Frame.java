@@ -80,7 +80,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	}
 
 	protected void initConnAndBuilder() throws Exception {
-		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
+		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_V2_DB);
 
 		String sessionId = ThreadStore.getSessionId();
 		String insightId = ThreadStore.getInsightId();
@@ -113,10 +113,10 @@ public class H2Frame extends AbstractRdbmsFrame {
 		// build the connection url
 		Map<String, Object> connDetails = new HashMap<>();
 		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
-		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0");
+		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "CACHE_SIZE=65536;LOCK_MODE=1;");
 		String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 		// get the connection
-		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl,  "sa", "");
+		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_V2_DB, connectionUrl,  "sa", "");
 		// set the builder
 		this.builder = new RdbmsFrameBuilder(this.conn, this.database, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);

@@ -134,7 +134,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		// get the dbType from the input or from the driver itself
 		this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(this.driver);
 		if(this.dbType == null) {
-			this.dbType = RdbmsTypeEnum.H2_DB;
+			this.dbType = RdbmsTypeEnum.H2_V2_DB;
 		}
 		// make the query util first
 		// since this will help with getting the correct keys for the connection
@@ -719,7 +719,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	protected void shutdown() {
 		// shift to grabing from query util
-		if(this.dbType == RdbmsTypeEnum.H2_DB) {
+		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.H2_V2_DB) {
 			Connection conn = null;
 			Statement stmt = null;
 			try {
@@ -795,7 +795,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
 		try {
 			close();
-			if(this.dbType == RdbmsTypeEnum.H2_DB) {
+			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.H2_V2_DB) {
 				String path = EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName);
 				DeleteDbFiles.execute(path, "database", false);
 			}
@@ -1018,7 +1018,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		
 		// will assume all h2 are file locks (might not be the case but 99% of the time...)
 		// and then sqlite is always file based
-		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.H2_V2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 			return true;
 		}
 		

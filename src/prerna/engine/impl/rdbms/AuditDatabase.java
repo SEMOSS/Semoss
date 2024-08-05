@@ -76,7 +76,7 @@ public class AuditDatabase {
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 
 		String fileLocation = dbFolder + DIR_SEPARATOR + "audit_log_database";
-		if (rdbmsType == RdbmsTypeEnum.H2_DB) {
+		if (rdbmsType == RdbmsTypeEnum.H2_DB || rdbmsType == RdbmsTypeEnum.H2_V2_DB) {
 			File f = new File(fileLocation + ".mv.db");
 			if (!f.exists()) {
 				try {

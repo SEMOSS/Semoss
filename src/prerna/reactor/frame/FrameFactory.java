@@ -136,15 +136,15 @@ public class FrameFactory {
 		DEFAULT_FRAME_TYPE = DIHelper.getInstance().getProperty(Constants.DEFAULT_FRAME_TYPE);
 		String defaultGridType = DIHelper.getInstance().getProperty(Constants.DEFAULT_GRID_TYPE);
 		if(defaultGridType == null || defaultGridType.isEmpty()) {
-			defaultGridType = "H2_DB";
+			defaultGridType = "H2_V2_DB";
 		}
 		try {
 			RDBMS_TYPE = RdbmsTypeEnum.valueOf(defaultGridType);
 		} catch(Exception e) {
 			logger.error("Error occurred trying to set the default grid type for the application. Defaulting to h2");
 			logger.error(Constants.STACKTRACE, e);
-			defaultGridType = "H2_DB";
-			RDBMS_TYPE = RdbmsTypeEnum.H2_DB;
+			defaultGridType = "H2_V2_DB";
+			RDBMS_TYPE = RdbmsTypeEnum.H2_V2_DB;
 		}
 		
 		if(DEFAULT_FRAME_TYPE == null) {

@@ -752,7 +752,7 @@ public class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException {
 		if (dbType != RdbmsTypeEnum.SQLITE
-				&& dbType != RdbmsTypeEnum.H2_DB) {
+				&& dbType != RdbmsTypeEnum.H2_DB && dbType != RdbmsTypeEnum.H2_V2_DB) {
 			throw new IllegalArgumentException("Unallowed database type. Must be either SQLITE or H2");
 		}
 		
@@ -781,7 +781,7 @@ public class CentralCloudStorage implements ICloudClient {
 			List<String> dbFiles = null;
 			if (dbType == RdbmsTypeEnum.SQLITE) {
 				dbFiles = getSqlLiteFile(localDatabaseFolder);
-			} else if (dbType == RdbmsTypeEnum.H2_DB) {
+			} else if (dbType == RdbmsTypeEnum.H2_DB || dbType == RdbmsTypeEnum.H2_V2_DB) {
 				dbFiles = getH2File(localDatabaseFolder);
 			}
 			for (String dbFileName : dbFiles) {
@@ -803,7 +803,7 @@ public class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
 		if (rdbmsType != RdbmsTypeEnum.SQLITE
-				&& rdbmsType != RdbmsTypeEnum.H2_DB) {
+				&& rdbmsType != RdbmsTypeEnum.H2_DB && rdbmsType != RdbmsTypeEnum.H2_V2_DB) {
 			throw new IllegalArgumentException("Unallowed database type. Must be either SQLITE or H2");
 		}
 		
@@ -838,7 +838,7 @@ public class CentralCloudStorage implements ICloudClient {
 			for(String cloudF : cloudFiles) {
 				if(rdbmsType == RdbmsTypeEnum.SQLITE && cloudF.endsWith(".sqlite")) {
 					filesToPull.add(cloudF);	
-				} else if(rdbmsType == RdbmsTypeEnum.H2_DB && cloudF.endsWith(".mv.db")) {
+				} else if((rdbmsType == RdbmsTypeEnum.H2_DB || rdbmsType == RdbmsTypeEnum.H2_V2_DB) && cloudF.endsWith(".mv.db")) {
 					filesToPull.add(cloudF);	
 				}
 			}
@@ -1615,10 +1615,10 @@ public class CentralCloudStorage implements ICloudClient {
 	protected String getInsightDB(IProject project, String specificProjectFolder) {
 		RdbmsTypeEnum insightDbType = project.getInsightDatabase().getDbType();
 		String insightDbName = null;
-		if (insightDbType == RdbmsTypeEnum.H2_DB) {
-			insightDbName = "insights_database.mv.db";
-		} else {
+		if (insightDbType == RdbmsTypeEnum.SQLITE) {
 			insightDbName = "insights_database.sqlite";
+		} else {
+			insightDbName = "insights_database.mv.db";
 		}
 		File dir = new File(specificProjectFolder);
 		for (File file : dir.listFiles()) {

@@ -85,7 +85,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// but everything needs to be the physical schema
 	protected transient IDatabaseEngine engine; 
 	protected transient ITableDataFrame frame;
-	protected AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
+	protected AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_V2_DB);
 
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator

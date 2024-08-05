@@ -42,11 +42,11 @@ public class RDBMSUtility {
 	
 	public static String getH2BaseConnectionURL() {
 		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@" + Constants.ENGINE + "@"
-				+ DIR_SEPARATOR + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+				+ DIR_SEPARATOR + "database;query_timeout=180000;query_cache_size=24;cache_size=32768";
 	}
 
 	public static String getH2BaseConnectionURL2() {
-		return "jdbc:h2:nio:" + "@database@;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		return "jdbc:h2:nio:" + "@database@;query_timeout=180000;query_cache_size=24;cache_size=32768";
 	}
 
 	public static String fillParameterizedFileConnectionUrl(String baseURL, String engineId, String engineName) {

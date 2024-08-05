@@ -31,8 +31,8 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 		insightSmssProp.put(Constants.CONNECTION_URL, connectionUrl);
 		insightSmssProp.put(Constants.USERNAME, "sa");
 		insightSmssProp.put(Constants.PASSWORD, "");
-		insightSmssProp.put(Constants.DRIVER, RdbmsTypeEnum.H2_DB.getDriver());
-		insightSmssProp.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.getLabel());
+		insightSmssProp.put(Constants.DRIVER, RdbmsTypeEnum.H2_V2_DB.getDriver());
+		insightSmssProp.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_V2_DB.getLabel());
 		insightSmssProp.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setBasic(true);
