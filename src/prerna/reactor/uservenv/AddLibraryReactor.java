@@ -43,11 +43,9 @@ public class AddLibraryReactor extends AbstractReactor {
 
 		
 		String library = this.keyValue.get(this.keysToGet[0]);
-		String version;
-		if (this.keysToGet[1] != null && !this.keysToGet[1].isEmpty()) {
+		String version = "";
+		if (this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) {
 			version = this.keyValue.get(this.keysToGet[1]);
-		} else {
-			version = "";
 		}
 		
 		String libInstallResult = "";
