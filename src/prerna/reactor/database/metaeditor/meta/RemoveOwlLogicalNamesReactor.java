@@ -1,11 +1,11 @@
 package prerna.reactor.database.metaeditor.meta;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import cern.colt.Arrays;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
