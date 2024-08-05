@@ -20,7 +20,7 @@ public class RemoveLibraryReactor extends AbstractReactor {
 	
 	public RemoveLibraryReactor() {
 		this.keysToGet = new String[] {
-				ReactorKeysEnum.LIBRARY.getKey()
+				ReactorKeysEnum.NAME.getKey()
 		};
 		this.keyRequired = new int[] {1};
 	}

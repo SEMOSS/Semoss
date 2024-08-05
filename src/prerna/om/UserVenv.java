@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Map;
 import java.lang.reflect.Type;
 
 import com.google.gson.Gson;
@@ -132,7 +132,11 @@ public class UserVenv implements Serializable {
         }
     }
     
-    public String installLibrary(String library) throws IOException, InterruptedException {
+    public String installLibrary(String library, String version) throws IOException, InterruptedException {
+        if (!version.isEmpty()) {
+        	library = library + "==" + version;
+        }
+        
         String venvPath = this.venvPath;
         String activationCommand = getVenvActivationCmd(venvPath);
         String[] installCommand = getInstallCmd(library);

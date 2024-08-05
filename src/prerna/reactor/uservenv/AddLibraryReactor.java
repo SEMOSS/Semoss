@@ -20,8 +20,8 @@ public class AddLibraryReactor extends AbstractReactor {
 	
 	public AddLibraryReactor() {
 		this.keysToGet = new String[] {
-				ReactorKeysEnum.LIBRARY.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+				ReactorKeysEnum.NAME.getKey(),
+				ReactorKeysEnum.VERSION.getKey()
 		};
 		this.keyRequired = new int[] {1, 0};
 	}
@@ -40,12 +40,21 @@ public class AddLibraryReactor extends AbstractReactor {
         this.insight.getPyTranslator();
 		
 		organizeKeys();
+
+		
 		String library = this.keyValue.get(this.keysToGet[0]);
+		String version;
+		if (this.keysToGet[1] != null && !this.keysToGet[1].isEmpty()) {
+			version = this.keyValue.get(this.keysToGet[1]);
+		} else {
+			version = "";
+		}
+		
 		String libInstallResult = "";
 		UserVenv userVenv = this.insight.getUser().getUserVenv();
 		
 		try {
-		    libInstallResult = userVenv.installLibrary(library);
+		    libInstallResult = userVenv.installLibrary(library, version);
 		} catch (InterruptedException ie) {
 		    libInstallResult = "There was a problem installing " + library;
 		    classLogger.error(Constants.STACKTRACE, ie);
@@ -56,4 +65,5 @@ public class AddLibraryReactor extends AbstractReactor {
 		
 		return new NounMetadata(libInstallResult , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
+	
 }
