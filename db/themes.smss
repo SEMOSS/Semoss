@@ -3,7 +3,7 @@ ENGINE	themes
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
 OWL	db/themes/themes_OWL.OWL
 
-RDBMS_TYPE	H2_DB
+RDBMS_TYPE	H2_V2_DB
 DATABASE	
 SCHEMA	PUBLIC
 DRIVER org.h2.Driver

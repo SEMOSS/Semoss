@@ -3,7 +3,7 @@ ENGINE	ModelInferenceLogsDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
 OWL	db/ModelInferenceLogsDatabase/ModelInferenceLogsDatabase_OWL.OWL
 
-RDBMS_TYPE	H2_DB
+RDBMS_TYPE	H2_V2_DB
 DATABASE
 SCHEMA PUBLIC
 DRIVER	org.h2.Driver

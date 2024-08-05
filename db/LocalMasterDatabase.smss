@@ -3,13 +3,13 @@ ENGINE	LocalMasterDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
 OWL	db/LocalMasterDatabase/MasterDatabase_OWL.OWL
 
-RDBMS_TYPE	H2_DB
+RDBMS_TYPE	H2_V2_DB
 DATABASE	
 SCHEMA	PUBLIC
 DRIVER org.h2.Driver
 USERNAME        sa
 PASSWORD        abcd
-CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;query_cache_size=24;cache_size=32768
 USE_CONNECTION_POOLING	false
 
 DATABASE_ZONEID UTC
