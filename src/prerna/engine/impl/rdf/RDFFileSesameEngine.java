@@ -495,7 +495,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 	@Deprecated
 	//TODO: need to combine this with commit()
 	public void exportDB() throws Exception {
-		classLogger.info("Exporting database");
+		classLogger.info("Exporting database " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		RDFXMLWriter rdfWriter = null;
 		try (OutputStreamWriter writer = new OutputStreamWriter(
 				new FileOutputStream(Utility.normalizePath(filePath)), StandardCharsets.UTF_8)){
