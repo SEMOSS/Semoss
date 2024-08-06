@@ -52,5 +52,6 @@ public interface ISesameRdfEngine extends IDatabaseEngine {
 	void infer() throws Exception;
 	
 	@Deprecated
+	// TODO: replace and set this within the commit
 	void exportDB() throws Exception;
 }
