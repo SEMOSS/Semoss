@@ -379,12 +379,15 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-runtime -->
+		<!--
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-runtime</artifactId>
 			<version>2.1.4</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-core -->
+		<!--
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-core</artifactId>
@@ -452,6 +455,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!--
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
