@@ -57,28 +57,17 @@ public final class PythonUtils {
 		classLogger.info("The main python executable being used is: " + py);
 		
 		// Path to our virtual environment inside our insight cache folder 
-		String userVenvPath = finalDir + "/venv";
+		String userVenvPath = Utility.normalizePath(finalDir + "\\venv\\Lib\\site-packages");
+		classLogger.info("The userVenvPath is: " + userVenvPath);
 
 		// Path to our BE Python directory
-		String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
-		pyBase = pyBase.replace("\\", "/");
-		String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
+		String pyBase = Utility.normalizePath(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER);
+		String gaasServer = Utility.normalizePath(pyBase + "/gaas_tcp_socket_server.py");
 
 		prefix = Utility.getRandomString(5);
 		prefix = "p_"+ prefix;
 		
-		String outputFile = finalDir + "/console.txt";
-		
-        // Path to our main Python distribution sitepackages directory
-        String mainLibPath = Utility.getDIHelperProperty("PYTHON_SITEPACKAGES");
-        mainLibPath = mainLibPath.replace("\\", "/");
-        // Path to our new virtual environment sitepackages directory
-        String userLibPath = userVenvPath + "\\Lib\\site-packages";
-        userLibPath = userLibPath.replace("\\", "/");
-
-        // Combining the paths from our main python distribution and our virtual env so we can pull libraries from both
-        String combinedPythonPath = mainLibPath + ";" + userLibPath;
-        classLogger.info("The combined python path is: " + combinedPythonPath);
+		String outputFile = Utility.normalizePath(finalDir + "\\console.txt");
 		
 		String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 			
@@ -93,13 +82,11 @@ public final class PythonUtils {
 			commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 		}
 		
-		// do I need this ?
-		//String[] starterFile = writeStarterFile(commands, finalDir);
 		ProcessBuilder pb = new ProcessBuilder(commands);
 		ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 		pb.redirectError(redirector);
 		pb.redirectOutput(redirector);
-		pb.environment().put("PYTHONPATH", combinedPythonPath);
+		pb.environment().put("PYTHONPATH", userVenvPath);
 		Process p = pb.start();
 		try {
 			p.waitFor(500, TimeUnit.MILLISECONDS);

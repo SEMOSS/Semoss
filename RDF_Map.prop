@@ -8,7 +8,6 @@ INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
 PYTHONHOME C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch
-PYTHON_SITEPACKAGES C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch\\Lib
 
 TCP_WORKER prerna.tcp.SocketServer
 TCP_CLIENT prerna.tcp.client.NativePySocketClient
