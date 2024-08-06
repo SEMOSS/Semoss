@@ -17,8 +17,8 @@ import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
+import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class DocProcessor {
 
@@ -28,9 +28,9 @@ public class DocProcessor {
 	// For every slide get the text shapes
 	// index it into a csv
 	private String filePath = null;
-	private CSVWriter writer = null;
+	private VectorDatabaseCSVWriter writer = null;
 
-	public DocProcessor(String filePath, CSVWriter writer) {
+	public DocProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		this.filePath = filePath;
 		this.writer = writer;
 	}

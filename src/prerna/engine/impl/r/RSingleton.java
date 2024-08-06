@@ -25,7 +25,7 @@ public class RSingleton {
 	
 	public static final String R_HOME = "R_HOME";
 	public static final String R_LIBS = "R_LIBS";
-	private static final String RSERVE_LOC = "/Rserve/libs/x64/Rserve";
+	public static final String RSERVE_LOC = "/Rserve/libs/x64/Rserve";
 	
 	static int port = -1;
 	static Hashtable <Integer, RConnection> portToCon = new Hashtable<Integer, RConnection>(); // RServe is not allowing me to inspect the port so I have to do this.. sorry
