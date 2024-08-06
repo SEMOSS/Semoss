@@ -41,6 +41,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
+
 public abstract class AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractSecurityUtils.class);
@@ -2297,7 +2298,7 @@ public abstract class AbstractSecurityUtils {
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider thisLogin : logins) {
-				filters.add(user.getAccessToken(thisLogin).getId());
+				filters.add(Utility.inputSanitizer(user.getAccessToken(thisLogin).getId()));
 			}
 		}
 

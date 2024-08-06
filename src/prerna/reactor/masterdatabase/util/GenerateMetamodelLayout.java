@@ -91,7 +91,7 @@ public class GenerateMetamodelLayout {
 			Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph, fixedRectangles);
 	
 			long endTimer = System.currentTimeMillis();
-			System.out.println("Compute time = " + (endTimer - startTimer) + " ms");
+			classLogger.info("Compute time = " + (endTimer - startTimer) + " ms");
 	
 			// now write the file
 			String baseFolder = owlF.getParent();

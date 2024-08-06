@@ -15,6 +15,7 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.ISesameRdfEngine;
 import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
@@ -227,15 +228,9 @@ public class RdfUploadReactorUtility {
 		classLogger.info("Starting to delete all triples from database " + engine.getEngineName() + "_" + engine.getEngineId());
 		// null is equiv. to a wildcard for removeStatements method
 		// so it matches any subject, predicate, object
-		if(engine instanceof BigDataEngine) {
+		if(engine instanceof ISesameRdfEngine) {
 			try {
-				((BigDataEngine) engine).getSc().removeStatements(null, null, null);
-			} catch (SailException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else if(engine instanceof RDFFileSesameEngine) {
-			try {
-				((RDFFileSesameEngine) engine).getSc().removeStatements(null, null, null);
+				((ISesameRdfEngine) engine).getSc().removeStatements(null, null, null);
 			} catch (SailException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}

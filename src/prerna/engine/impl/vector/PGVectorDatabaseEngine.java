@@ -126,7 +126,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		try {
 			conn = getConnection();
 			PGvector.addVectorType(conn);
-			initSQL(this.vectorTableName);
+			initSQL(this.vectorTableName, this.vectorTableMetadataName);
 		} catch(SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -164,19 +164,31 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 * @param table
 	 * @throws SQLException
 	 */
-	private void initSQL(String table) throws SQLException {
-		String createTable = pgVectorQueryUtil.createEmbeddingsTable(table);
+	private void initSQL(String table, String metadataTable) throws SQLException {
+		String createMainTable = pgVectorQueryUtil.createEmbeddingsTable(table);
+		String createMetaTable = pgVectorQueryUtil.createEmbeddingsMetadataTable(metadataTable);
+		execCreateStatement(createMainTable);
+		execCreateStatement(createMetaTable);
+	}
+	
+	/**
+	 * 
+	 * @param createQuery
+	 * @throws SQLException
+	 */
+	private void execCreateStatement(String createQuery) throws SQLException {
 		//creating the default embeddings table
 		Connection conn = null;
 		Statement stmt = null;
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
-			classLogger.info(">>>>> " + createTable);
-			stmt.execute(createTable);
+			classLogger.info("Executing create table for " 
+					+ SmssUtilities.getUniqueName(this.engineName, this.engineId) + " = " + createQuery);
+			stmt.execute(createQuery);
 		} catch(SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SQLException("Unable to create the table " + table);
+			throw new SQLException("Unable to create the table " + createQuery);
 		} finally {
 			if(this.dataSource != null) {
 				ConnectionUtils.closeAllConnections(conn, stmt);

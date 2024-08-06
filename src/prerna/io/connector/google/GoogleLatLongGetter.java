@@ -21,7 +21,6 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 	String url = "https://maps.googleapis.com/maps/api/geocode/json" ;
 	
 	// name of the object to return
-	String objectName = "prerna.auth.User2"; // it will fill this object and return the data
 	String [] beanProps = {"latitude", "longitude"}; // add is done when you have a list
 	String jsonPattern = "results[*].geometry.location.[lat, lng][]";
 	
