@@ -5,6 +5,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.SystemUtils;
@@ -56,8 +60,6 @@ public final class PythonUtils {
 		py = py.replace("\\", "/");
 		classLogger.info("The main python executable being used is: " + py);
 		
-		// Path to our virtual environment inside our insight cache folder 
-		String userVenvPath = finalDir + "/venv";
 
 		// Path to our BE Python directory
 		String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
@@ -69,19 +71,33 @@ public final class PythonUtils {
 		
 		String outputFile = finalDir + "/console.txt";
 		
-        // Path to our main Python distribution sitepackages directory
+        String userBasePath = finalDir + "/user_base";
+
+        // Ensure the user base directory exists
+        Path userBaseDir = Paths.get(userBasePath);
+        if (!Files.exists(userBaseDir)) {
+            Files.createDirectories(userBaseDir);
+        }
         String mainLibPath = Utility.getDIHelperProperty("PYTHON_SITEPACKAGES");
         mainLibPath = mainLibPath.replace("\\", "/");
-        // Path to our new virtual environment sitepackages directory
-        String userLibPath = userVenvPath + "\\Lib\\site-packages";
+        String userLibPath = userBasePath + "\\Lib";
         userLibPath = userLibPath.replace("\\", "/");
-
-        // Combining the paths from our main python distribution and our virtual env so we can pull libraries from both
+        
         String combinedPythonPath = mainLibPath + ";" + userLibPath;
         classLogger.info("The combined python path is: " + combinedPythonPath);
 		
-		String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-			
+        String[] commands = new String[] {
+                py, 
+                gaasServer, 
+                "--port", port, 
+                "--max_count", "1", 
+                "--py_folder", combinedPythonPath,
+                "--insight_folder", finalDir, 
+                "--prefix", prefix, 
+                "--timeout", timeout, 
+                "--logger_level" , loggerLevel
+            };
+        
 		// need to make sure we are not windows cause ulimit will not work
 		if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 			String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -93,13 +109,15 @@ public final class PythonUtils {
 			commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 		}
 		
-		// do I need this ?
-		//String[] starterFile = writeStarterFile(commands, finalDir);
 		ProcessBuilder pb = new ProcessBuilder(commands);
 		ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 		pb.redirectError(redirector);
 		pb.redirectOutput(redirector);
-		pb.environment().put("PYTHONPATH", combinedPythonPath);
+
+
+        
+        pb.environment().put("PYTHONPATH", combinedPythonPath);
+		pb.environment().put("PYTHONUSERBASE", userBasePath);
 		Process p = pb.start();
 		try {
 			p.waitFor(500, TimeUnit.MILLISECONDS);
@@ -129,12 +147,7 @@ public final class PythonUtils {
 		}
 		thisProcess = p;
 
-		// System.out.println("Process started with .. " + p.exitValue());
-		// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-		// + " " + argList);
-		// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-		// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-		// thisProcess = pb.start();
+
 	} catch (IOException ioe) {
 		classLogger.error(Constants.STACKTRACE, ioe);
 	}

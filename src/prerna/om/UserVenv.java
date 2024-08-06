@@ -20,8 +20,10 @@ import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
+
 
 public class UserVenv implements Serializable {
 	private static final Logger classLogger = LogManager.getLogger(UserVenv.class);
@@ -31,55 +33,29 @@ public class UserVenv implements Serializable {
 	// EX: C:/workspace/Semoss/InsightCache/a653411963489424001
 	public String tempInsightDir = "";
 	public String venvPath = "";
+	public String executablePath = "";
+	public String userbasePath = "";
 	public String[] pipList = {};
 	
 	public UserVenv(String tempInsightDir) {
-		String[] idAndPaths = this.extractIdAndCreatePaths(tempInsightDir);
-		this.userVenvId = idAndPaths[0];
-		this.tempInsightDir = idAndPaths[1];
-		this.venvPath = idAndPaths[2];
-		
-		try {
-			createVirtualEnv(idAndPaths[2]);
-		} catch (InterruptedException ie) {
-			classLogger.info("FAILED TO CREATE USER VIRTUAL ENV!");
-			classLogger.error(Constants.STACKTRACE, ie);
-		} catch (IOException ioe) {
-	        classLogger.info("FAILED TO CREATE USER VIRTUAL ENV DUE TO I/O ERROR!");
-	        classLogger.error(Constants.STACKTRACE, ioe);
-	    }
-		
-	}
-	
-	// Extract the id and create the normalized paths for the constructor
-	private String[] extractIdAndCreatePaths(String tempInsightDir) {
 		String normalizedPath = Utility.normalizePath(tempInsightDir);
 		int lastIndex = normalizedPath.lastIndexOf("/");
 		
 		String extractedId = normalizedPath.substring(lastIndex + 1);
 		String venvPath = normalizedPath + "/venv";
+
+		this.userVenvId = extractedId;
+		this.tempInsightDir = normalizedPath;
+		this.venvPath = venvPath;
 		
-		return new String[] {extractedId, normalizedPath, venvPath};
-	}
-	
-	// This method creates a Python virtual environment to a given path
-	public static void createVirtualEnv(String venvPath) throws IOException, InterruptedException {
-		String[] creationCommand = getVenvCreationCmd();
-	    ProcessBuilder pb = new ProcessBuilder(creationCommand[0], creationCommand[1], creationCommand[2], venvPath);
-	    pb.redirectErrorStream(true);
-	    Process process = pb.start();
-	    
-	    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-	        String line;
-	        while ((line = reader.readLine()) != null) {
-	            System.out.println(line);
-	        }
-	    }
-	    
-	    int exitCode = process.waitFor();
-	    if (exitCode != 0) {
-	        throw new IOException("Failed to create virtual environment, exit code: " + exitCode);
-	    }
+		String pythonHomeDir = PyUtils.getPythonHomeDir();
+		if (SystemUtils.IS_OS_WINDOWS) {
+			this.executablePath = Utility.normalizePath(pythonHomeDir) + "/python.exe";
+		} else {
+			this.executablePath = pythonHomeDir + "/bin/python3";
+		}
+		this.userbasePath = normalizedPath + "/user_base";
+		
 	}
 	
 	public static final String[] getVenvCreationCmd() {
@@ -98,14 +74,28 @@ public class UserVenv implements Serializable {
         }
     }
     
-    public static final String[] getInstallCmd(String library) {
+//    public final String[] getInstallCmd(String library) {
+//        if (SystemUtils.IS_OS_WINDOWS) {
+//            return new String[]{"cmd", "/c", this.executablePath, "-m", "pip", "install", "--target", this.userbasePath + "/Lib", library};
+//        } else {
+//            return new String[]{"/bin/bash", "-c", this.executablePath + " -m pip install --target " + this.userbasePath + "/Lib/site-packages " + library};
+//        }
+//    }
+    
+    public final String[] getInstallCmd(String library) {
         if (SystemUtils.IS_OS_WINDOWS) {
-        	return new String[]{"cmd", "/c", "pip", "install", library};
+            // Construct the full path to site-packages
+            String sitePackagesPath = this.userbasePath + "\\Lib";
+            return new String[]{"cmd", "/c", this.executablePath, "-m", "pip", "install", "--no-cache-dir",  // Disable cache to ensure fresh install
+                    "-t", sitePackagesPath, // Use -t to specify target directory directly
+                    library}; 
         } else {
-        	return new String[]{"/bin/bash", "-c", "pip install " + library};
+            // Existing Linux/macOS command should work 
+            return new String[]{"/bin/bash", "-c", this.executablePath + " -m pip install --target " + this.userbasePath + "/Lib/site-packages " + library};
         }
     }
-    
+
+
     public static final String[] getUninstallCmd(String library) {
         if (SystemUtils.IS_OS_WINDOWS) {
             return new String[]{"cmd", "/c", "pip", "uninstall", "-y", library};
@@ -137,14 +127,10 @@ public class UserVenv implements Serializable {
         	library = library + "==" + version;
         }
         
-        String venvPath = this.venvPath;
-        String activationCommand = getVenvActivationCmd(venvPath);
         String[] installCommand = getInstallCmd(library);
         
-        // Combine activation and installation command
-        String[] combinedCommand = getFullCommand(activationCommand, installCommand); 
 
-        ProcessBuilder pb = new ProcessBuilder(combinedCommand[0], combinedCommand[1], combinedCommand[2]);
+        ProcessBuilder pb = new ProcessBuilder(installCommand);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
