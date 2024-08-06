@@ -6,8 +6,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -58,7 +56,10 @@ public class AdminExecQueryReactor extends AbstractReactor {
 				if(engine == null) {
 					throw new NullPointerException("No engine passed in to execute the query");
 				}
-				if (!(engine instanceof BigDataEngine || engine instanceof RDBMSNativeEngine)) {
+				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
+						) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 			} else {
