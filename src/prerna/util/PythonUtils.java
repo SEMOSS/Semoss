@@ -80,8 +80,8 @@ public final class PythonUtils {
         }
         String mainLibPath = Utility.getDIHelperProperty("PYTHON_SITEPACKAGES");
         mainLibPath = mainLibPath.replace("\\", "/");
-        String userLibPath = userBasePath + "\\Lib";
-        userLibPath = userLibPath.replace("\\", "/");
+        String userLibPath = userBasePath + "\\Lib\\site-packages";
+        userLibPath = userLibPath.replace("/", "\\");
         
         String combinedPythonPath = mainLibPath + ";" + userLibPath;
         classLogger.info("The combined python path is: " + combinedPythonPath);
@@ -91,7 +91,7 @@ public final class PythonUtils {
                 gaasServer, 
                 "--port", port, 
                 "--max_count", "1", 
-                "--py_folder", combinedPythonPath,
+                "--py_folder", pyBase,
                 "--insight_folder", finalDir, 
                 "--prefix", prefix, 
                 "--timeout", timeout, 
@@ -116,8 +116,9 @@ public final class PythonUtils {
 
 
         
-        pb.environment().put("PYTHONPATH", combinedPythonPath);
-		pb.environment().put("PYTHONUSERBASE", userBasePath);
+//        pb.environment().put("PYTHONPATH", combinedPythonPath);
+//		pb.environment().put("PYTHONPATH", userLibPath);
+//		pb.environment().put("PYTHONUSERBASE", userBasePath);
 		Process p = pb.start();
 		try {
 			p.waitFor(500, TimeUnit.MILLISECONDS);

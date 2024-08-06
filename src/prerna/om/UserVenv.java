@@ -1,6 +1,7 @@
 package prerna.om;
 
 import java.io.BufferedReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -27,35 +28,64 @@ import prerna.util.Utility;
 
 public class UserVenv implements Serializable {
 	private static final Logger classLogger = LogManager.getLogger(UserVenv.class);
+	// EX: a3369751167853578692
+	public String userbaseId = "";
 	
-	public String userVenvId = "";
-	// This is the path to the temporary insight server directory used to run python and virtual envs
-	// EX: C:/workspace/Semoss/InsightCache/a653411963489424001
+	// EX: C:\\workspace\\Semoss\\InsightCache\\a3369751167853578692
 	public String tempInsightDir = "";
-	public String venvPath = "";
-	public String executablePath = "";
+	
+	// EX: C:\\workspace\\Semoss\\InsightCache\\a3369751167853578692\\user_base\\Lib\\site-packages
 	public String userbasePath = "";
+	
+	// EX: C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch\\python.exe
+	public String executablePath = "";
+	
+	// EX: C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch\\Lib\\site-packages\\user_packages.pth
+	public String pthFilePath = "";
+	
+	
 	public String[] pipList = {};
 	
-	public UserVenv(String tempInsightDir) {
-		String normalizedPath = Utility.normalizePath(tempInsightDir);
-		int lastIndex = normalizedPath.lastIndexOf("/");
-		
-		String extractedId = normalizedPath.substring(lastIndex + 1);
-		String venvPath = normalizedPath + "/venv";
+	
+	public String venvPath = "";
 
-		this.userVenvId = extractedId;
-		this.tempInsightDir = normalizedPath;
+
+	public UserVenv(String tempInsightDir) {
+		String tempInsightDirectory = Utility.normalizePath(tempInsightDir);
+		this.tempInsightDir = tempInsightDirectory;
+		int lastIndex = tempInsightDirectory.lastIndexOf("/");
+		
+		// Pull out the ID based on the random insight cache folder id
+		this.userbaseId = tempInsightDirectory.substring(lastIndex + 1);
+		
+		// REMOVE
+		String venvPath = tempInsightDirectory + "/venv";
 		this.venvPath = venvPath;
 		
-		String pythonHomeDir = PyUtils.getPythonHomeDir();
-		if (SystemUtils.IS_OS_WINDOWS) {
-			this.executablePath = Utility.normalizePath(pythonHomeDir) + "/python.exe";
-		} else {
-			this.executablePath = pythonHomeDir + "/bin/python3";
-		}
-		this.userbasePath = normalizedPath + "/user_base";
 		
+		String pythonHomeDir = PyUtils.getPythonHomeDir();
+		
+		if (SystemUtils.IS_OS_WINDOWS) {
+			this.executablePath = Utility.normalizePath(pythonHomeDir + "\\python.exe");
+		} else {
+			this.executablePath = Utility.normalizePath(pythonHomeDir + "/bin/python3");
+		}
+		
+		
+		String userbasePath = Utility.normalizePath(tempInsightDirectory + "\\user_base\\Lib\\site-packages");
+		this.userbasePath = userbasePath;
+		
+		String pthFilePath = Utility.normalizePath(pythonHomeDir + "\\Lib\\site-packages\\user_packages.pth");
+		this.pthFilePath = pthFilePath;
+		
+
+		// Creating the user_packages.pth file in the Python home site-packages directory 
+		// This file points to the site-packages directory in the insight cache
+//        try (FileWriter fileWriter = new FileWriter(pthFilePath, true)) {
+//            fileWriter.write(userbasePath + "\n");
+//        } catch (IOException e) {
+//            classLogger.error("Failed to write to user_packages.pth file", e);
+//        }
 	}
 	
 	public static final String[] getVenvCreationCmd() {
@@ -85,7 +115,7 @@ public class UserVenv implements Serializable {
     public final String[] getInstallCmd(String library) {
         if (SystemUtils.IS_OS_WINDOWS) {
             // Construct the full path to site-packages
-            String sitePackagesPath = this.userbasePath + "\\Lib";
+            String sitePackagesPath = this.userbasePath + "\\Lib\\site-packages";
             return new String[]{"cmd", "/c", this.executablePath, "-m", "pip", "install", "--no-cache-dir",  // Disable cache to ensure fresh install
                     "-t", sitePackagesPath, // Use -t to specify target directory directly
                     library}; 
@@ -144,6 +174,7 @@ public class UserVenv implements Serializable {
 
         int exitCode = process.waitFor();
         if (exitCode == 0) {
+//        	updateUserSitePackagesPath();
             return "Successfully installed library: " + library;
         } else {
             output.append("Failed to install library ").append(library).append(", exit code: ").append(exitCode);
