@@ -72,6 +72,7 @@ import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.ISesameRdfEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
@@ -80,11 +81,11 @@ import prerna.util.Utility;
 /**
  * References the RDF source and uses the Sesame API to query a database stored in an RDF file
  */
-public class RDFFileSesameEngine extends AbstractDatabaseEngine {
+public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesameRdfEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RDFFileSesameEngine.class);
 
-	RepositoryConnection rc = null;
+	private RepositoryConnection rc = null;
 	private SailConnection sc = null;
 	private ValueFactory vf = null;
 	
@@ -142,7 +143,7 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		if(this.filePath != null) {
 			File file = new File(Utility.normalizePath(filePath));
 			if(!(file.exists() && file.isFile())) {
-				throw new IOException("Calling open for RDFFileSesameEngine with file path set but file does not exist");
+				classLogger.warn("Calling open for RDFFileSesameEngine with file path set but file does not exist");
 			} else {
 				if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
 				else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
@@ -242,7 +243,9 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 				if(val instanceof Literal){
 					Literal literal = ((Literal)val);
 					URI dataType = literal.getDatatype();
-					if(dataType.getLocalName().equals("double")) {
+					if(dataType.getLocalName().equals("integer")) {
+						next = literal.intValue();
+					} else if(dataType.getLocalName().equals("double")) {
 						next = literal.doubleValue();
 					} else if(dataType.getLocalName().equals("float")) {
 				        next = literal.floatValue();
@@ -505,44 +508,6 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		}
 	}
 	
-	/**
-	 * Method getRc.  Gets the repository connection.
-
-	 * @return RepositoryConnection - The repository connection. */
-	public RepositoryConnection getRc() {
-		return rc;
-	}
-
-	public void setRC(RepositoryConnection rc) {
-		this.rc = rc;
-
-	}
-	/**
-	 * Method getRc.  Gets the repository connection.
-
-	 * @return RepositoryConnection - The repository connection. */
-	public SailConnection getSC() {
-		return sc;
-	}
-	/**
-	 * Method getRc.  Gets the repository connection.
-
-	 * @return RepositoryConnection - The repository connection. */
-	public void setSC(SailConnection sc) {
-		this.sc = sc;
-	}
-	/**
-	 * Method getRc.  Gets the repository connection.
-
-	 * @return RepositoryConnection - The repository connection. */
-	public void setVF(ValueFactory vf) {
-		this.vf = vf;
-	}
-
-	public ValueFactory getVF() {
-		return this.vf;
-	}
-
 	public void setFilePath(String filePath){
 		this.filePath = filePath;
 	}
@@ -572,11 +537,39 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		}
 	}
 
-	/**
-	 * Method to get the SC
-	 * @return
-	 */
-	SailConnection getSc() {
+	@Override
+	public void infer() {
+		// do nothing
+	}
+	
+	@Override
+	public RepositoryConnection getRc() {
+		return this.rc;
+	}
+
+	@Override
+	public void setRc(RepositoryConnection rc) {
+		this.rc = rc;
+	}
+
+	@Override
+	public void setSc(SailConnection sc) {
+		this.sc = sc;
+	}
+	
+	@Override
+	public SailConnection getSc() {
 		return this.sc;
+	}
+
+
+	@Override
+	public ValueFactory getVf() {
+		return this.vf;
+	}
+
+	@Override
+	public void setVf(ValueFactory vf) {
+		this.vf = vf;
 	}
 }

@@ -145,6 +145,10 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				if(QueryEvaluationUtil.isStringLiteral(lVal)){
 					return lVal.getLabel();
 				}
+				// if int
+				else if(lValDataType.getLocalName().equalsIgnoreCase("integer")) {
+					return new Integer(lVal.intValue());
+				}
 				// if double
 				else if(lValDataType.getLocalName().equalsIgnoreCase("double")) {
 					return new Double(lVal.doubleValue());

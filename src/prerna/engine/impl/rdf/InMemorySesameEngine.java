@@ -210,7 +210,9 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				if(val instanceof Literal){
 					Literal literal = ((Literal)val);
 					URI dataType = literal.getDatatype();
-					if(dataType.getLocalName().equals("double")) {
+					if(dataType.getLocalName().equals("integer")) {
+						next = literal.intValue();
+					} else if(dataType.getLocalName().equals("double")) {
 						next = literal.doubleValue();
 					} else if(dataType.getLocalName().equals("float")) {
 				        next = literal.floatValue();
