@@ -107,6 +107,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		// commit the created database
 		this.database.commit();
 		((ISesameRdfEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).exportDB();
 	}
 
 	public void addToExistingDatabase(String filePath) throws Exception {
@@ -131,6 +132,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		// commit the created database
 		this.database.commit();
 		((ISesameRdfEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 	}
 

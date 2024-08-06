@@ -49,6 +49,8 @@ public interface ISesameRdfEngine extends IDatabaseEngine {
 	
 	void setVf(ValueFactory vf);
 
-	void infer();
+	void infer() throws Exception;
 	
+	@Deprecated
+	void exportDB() throws Exception;
 }

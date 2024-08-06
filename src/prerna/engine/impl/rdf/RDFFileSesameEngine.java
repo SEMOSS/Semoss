@@ -28,8 +28,10 @@
 package prerna.engine.impl.rdf;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -489,22 +491,16 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 	 * @throws RDFHandlerException 
 	 * @throws RepositoryException 
 	 */
+	@Override
+	@Deprecated
+	//TODO: need to combine this with commit()
 	public void exportDB() throws Exception {
 		classLogger.info("Exporting database");
-		FileWriter writer = null;
 		RDFXMLWriter rdfWriter = null;
-		try{
-			writer = new FileWriter(Utility.normalizePath(filePath));
+		try (OutputStreamWriter writer = new OutputStreamWriter(
+				new FileOutputStream(Utility.normalizePath(filePath)), StandardCharsets.UTF_8)){
 			rdfWriter = new RDFXMLWriter(writer);
 			rc.export(rdfWriter);
-		} finally {
-			if(writer != null) {
-				try{
-					writer.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 	

@@ -115,6 +115,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		// commit the created database
 		this.database.commit();
 		((ISesameRdfEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -172,6 +173,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		// commit the created database
 		this.database.commit();
 		((ISesameRdfEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
