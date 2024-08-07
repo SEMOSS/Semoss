@@ -1,7 +1,9 @@
 package prerna.om;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -170,7 +172,6 @@ public class UserVenv implements Serializable {
     }
     
     public String installFromRequirements(String requirementsPath) throws IOException, InterruptedException {
-    
     	String venvPath = this.venvPath;
         String activationCommand = getVenvActivationCmd(venvPath);
         String[] installCommand = getInstallFromRequirementsCmd(requirementsPath);
@@ -198,11 +199,30 @@ public class UserVenv implements Serializable {
             output.append("Failed to install from requirements.txt").append(", exit code: ").append(exitCode);
             return output.toString();
         }
-        
     }
     
+    public String createRequirementsFile(String filePath) throws IOException, InterruptedException {
+        if (!filePath.endsWith("requirements.txt")) {
+            if (filePath.endsWith("/")) {
+                filePath += "requirements.txt";
+            } else {
+                filePath += "/requirements.txt";
+            }
+        }
+        
+        File requirementsFile = new File(filePath);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(requirementsFile))) {
+            for (LibraryInfo lib : this.libList) {
+                writer.write(lib.getName() + "==" + lib.getVersion());
+                writer.newLine();
+            }
+        }
+        
+        return "Successfully created requirements file at: " + filePath;
+    }
+
+    
     public String removeLibrary(String library) throws IOException, InterruptedException {
-    	
     	if (library == "pip" || library == "setuptools") {
     		return "Please do not remove " + library + " as this library is required.";
     	}

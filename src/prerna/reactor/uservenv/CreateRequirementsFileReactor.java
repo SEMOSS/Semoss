@@ -17,19 +17,19 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.om.UserVenv;
 
-public class InstallFromRequirementsReactor extends AbstractReactor {
+public class CreateRequirementsFileReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(InstallFromRequirementsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateRequirementsFileReactor.class);
 	
-    public InstallFromRequirementsReactor() {
+    public CreateRequirementsFileReactor() {
         this.keysToGet = new String[] {ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
     }
-    
+
     @Override
     public NounMetadata execute() {
-        organizeKeys();
-        String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-        
+    	organizeKeys();
+    	String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+    	
         try {
             PythonUtils.verifyPyCapabilities();
         } catch (IllegalArgumentException e) {
@@ -43,17 +43,17 @@ public class InstallFromRequirementsReactor extends AbstractReactor {
         
         UserVenv userVenv = this.insight.getUser().getUserVenv();
         
-        String installResults;
+        String creationResults;
         
 		try {
-			installResults = userVenv.installFromRequirements(fileLocation);
+			creationResults = userVenv.createRequirementsFile(fileLocation);
 		} catch (InterruptedException ie) {
-			installResults = ie.getMessage();
+			creationResults = ie.getMessage();
 		    classLogger.error(Constants.STACKTRACE, ie);
 		} catch (IOException ioe) {
-			installResults = ioe.getLocalizedMessage();
+			creationResults = ioe.getLocalizedMessage();
 		    classLogger.error(Constants.STACKTRACE, ioe);
 		}
-        return new NounMetadata(installResults, PixelDataType.CONST_STRING);
+		return new NounMetadata(creationResults, PixelDataType.CONST_STRING);
     }
 }
