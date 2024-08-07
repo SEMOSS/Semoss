@@ -25,22 +25,24 @@ import prerna.util.Utility;
 
 public class UserVenv implements Serializable {
 	private static final Logger classLogger = LogManager.getLogger(UserVenv.class);
-	
+	// EX: a4461281385086976069
 	public String userVenvId = "";
-	// This is the path to the temporary insight server directory used to run python and virtual envs
-	// EX: C:/workspace/Semoss/InsightCache/a653411963489424001
+	// EX: C:\\workspace\\Semoss\\InsightCache\\a4461281385086976069
 	public String tempInsightDir = "";
+	// EX: C:\\workspace\\Semoss\\InsightCache\\a4461281385086976069\\venv
 	public String venvPath = "";
+	// EX: [{"name": "ephem", "version": "4.1.5"}, {"name": "pip", "version": "23.2.1"}, {"name": "setuptools", "version": "65.5.0"}]
 	public String[] pipList = {};
 	
 	public UserVenv(String tempInsightDir) {
-		String[] idAndPaths = this.extractIdAndCreatePaths(tempInsightDir);
-		this.userVenvId = idAndPaths[0];
-		this.tempInsightDir = idAndPaths[1];
-		this.venvPath = idAndPaths[2];
-		
+		String temporaryInsightDir = Utility.normalizePath(tempInsightDir);
+		int lastIndex = temporaryInsightDir.lastIndexOf("/");
+		this.tempInsightDir = temporaryInsightDir;
+		this.userVenvId = temporaryInsightDir.substring(lastIndex + 1);
+		String venvPath = Utility.normalizePath(temporaryInsightDir + "\\venv");
+		this.venvPath = venvPath;
 		try {
-			createVirtualEnv(idAndPaths[2]);
+			createVirtualEnv(venvPath);
 		} catch (InterruptedException ie) {
 			classLogger.info("FAILED TO CREATE USER VIRTUAL ENV!");
 			classLogger.error(Constants.STACKTRACE, ie);
@@ -49,17 +51,6 @@ public class UserVenv implements Serializable {
 	        classLogger.error(Constants.STACKTRACE, ioe);
 	    }
 		
-	}
-	
-	// Extract the id and create the normalized paths for the constructor
-	private String[] extractIdAndCreatePaths(String tempInsightDir) {
-		String normalizedPath = Utility.normalizePath(tempInsightDir);
-		int lastIndex = normalizedPath.lastIndexOf("/");
-		
-		String extractedId = normalizedPath.substring(lastIndex + 1);
-		String venvPath = normalizedPath + "/venv";
-		
-		return new String[] {extractedId, normalizedPath, venvPath};
 	}
 	
 	// This method creates a Python virtual environment to a given path
@@ -204,7 +195,7 @@ public class UserVenv implements Serializable {
             return gson.fromJson(reader, libraryListType);
         } catch (JsonSyntaxException e) {
             e.printStackTrace();
-            return new ArrayList<>(); // Return an empty list on failure
+            return new ArrayList<>();
         }
     }
 
@@ -255,6 +246,7 @@ public class UserVenv implements Serializable {
         public String toString() {
             return "LibraryInfo{" +
                     "name='" + name + '\'' +
+                    
                     ", version='" + version + '\'' +
                     '}';
         }
