@@ -13,11 +13,6 @@ TCP_WORKER prerna.tcp.SocketServer
 TCP_CLIENT prerna.tcp.client.NativePySocketClient
 NATIVE_PY_SERVER true
 
-# CHROOT_ENABLE true
-# CHROOT_DIR C:\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-clone
-CHROOT_DIR
-CHROOT_ENABLE
-
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
 SMSSWebWatcher_EXT	.smss

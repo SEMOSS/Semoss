@@ -54,10 +54,10 @@ public class AddLibraryReactor extends AbstractReactor {
 		try {
 		    libInstallResult = userVenv.installLibrary(library, version);
 		} catch (InterruptedException ie) {
-		    libInstallResult = "There was a problem installing " + library;
+		    libInstallResult = "There was a problem installing " + library + ie.getMessage();
 		    classLogger.error(Constants.STACKTRACE, ie);
 		} catch (IOException ioe) {
-		    libInstallResult = "There was a problem installing " + library;
+		    libInstallResult = "There was a problem installing " + library + ioe.getMessage();
 		    classLogger.error(Constants.STACKTRACE, ioe);
 		}
 		

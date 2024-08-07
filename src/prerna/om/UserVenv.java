@@ -99,6 +99,15 @@ public class UserVenv implements Serializable {
         }
     }
     
+    public static final String[] getInstallFromRequirementsCmd(String requirementsPath) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return new String[]{"cmd", "/c", "pip", "install", "-r", requirementsPath};
+        } else {
+            return new String[]{"/bin/bash", "-c", "pip install -r " + requirementsPath};
+        }
+    }
+
+    
     public static final String[] getUninstallCmd(String library) {
         if (SystemUtils.IS_OS_WINDOWS) {
             return new String[]{"cmd", "/c", "pip", "uninstall", "-y", library};
@@ -158,6 +167,38 @@ public class UserVenv implements Serializable {
             output.append("Failed to install library ").append(library).append(", exit code: ").append(exitCode);
             return output.toString();
         }
+    }
+    
+    public String installFromRequirements(String requirementsPath) throws IOException, InterruptedException {
+    
+    	String venvPath = this.venvPath;
+        String activationCommand = getVenvActivationCmd(venvPath);
+        String[] installCommand = getInstallFromRequirementsCmd(requirementsPath);
+        
+        String[] combinedCommand = getFullCommand(activationCommand, installCommand);
+        
+        ProcessBuilder pb = new ProcessBuilder(combinedCommand);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+        
+        venvUpdateHook();
+
+        int exitCode = process.waitFor();
+        if (exitCode == 0) {
+            return "Successfully installed from requirements.txt";
+        } else {
+            output.append("Failed to install from requirements.txt").append(", exit code: ").append(exitCode);
+            return output.toString();
+        }
+        
     }
     
     public String removeLibrary(String library) throws IOException, InterruptedException {
