@@ -1,12 +1,12 @@
 package prerna.om;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.lang.reflect.Type;
 
 import com.google.gson.Gson;
@@ -32,7 +32,9 @@ public class UserVenv implements Serializable {
 	// EX: C:\\workspace\\Semoss\\InsightCache\\a4461281385086976069\\venv
 	public String venvPath = "";
 	// EX: [{"name": "ephem", "version": "4.1.5"}, {"name": "pip", "version": "23.2.1"}, {"name": "setuptools", "version": "65.5.0"}]
-	public String[] pipList = {};
+	public List<LibraryInfo> libList;
+	
+	public Integer sitepackgeDirSize = 0;
 	
 	public UserVenv(String tempInsightDir) {
 		String temporaryInsightDir = Utility.normalizePath(tempInsightDir);
@@ -55,8 +57,8 @@ public class UserVenv implements Serializable {
 	
 	// This method creates a Python virtual environment to a given path
 	public static void createVirtualEnv(String venvPath) throws IOException, InterruptedException {
-		String[] creationCommand = getVenvCreationCmd();
-	    ProcessBuilder pb = new ProcessBuilder(creationCommand[0], creationCommand[1], creationCommand[2], venvPath);
+		String[] creationCommand = getVenvCreationCmd(venvPath);
+	    ProcessBuilder pb = new ProcessBuilder(creationCommand);
 	    pb.redirectErrorStream(true);
 	    Process process = pb.start();
 	    
@@ -73,11 +75,11 @@ public class UserVenv implements Serializable {
 	    }
 	}
 	
-	public static final String[] getVenvCreationCmd() {
+	public static final String[] getVenvCreationCmd(String venvPath) {
 	    if (SystemUtils.IS_OS_WINDOWS) {
-	        return new String[]{"python", "-m", "venv"};
+	        return new String[]{"python", "-m", "venv", venvPath};
 	    } else {
-	        return new String[]{"python3", "-m", "venv"};
+	        return new String[]{"python3", "-m", "venv", venvPath};
 	    }
 	}
 	
@@ -135,7 +137,7 @@ public class UserVenv implements Serializable {
         // Combine activation and installation command
         String[] combinedCommand = getFullCommand(activationCommand, installCommand); 
 
-        ProcessBuilder pb = new ProcessBuilder(combinedCommand[0], combinedCommand[1], combinedCommand[2]);
+        ProcessBuilder pb = new ProcessBuilder(combinedCommand);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
@@ -146,6 +148,8 @@ public class UserVenv implements Serializable {
                 output.append(line).append("\n");
             }
         }
+        
+        venvUpdateHook();
 
         int exitCode = process.waitFor();
         if (exitCode == 0) {
@@ -157,6 +161,11 @@ public class UserVenv implements Serializable {
     }
     
     public String removeLibrary(String library) throws IOException, InterruptedException {
+    	
+    	if (library == "pip" || library == "setuptools") {
+    		return "Please do not remove " + library + " as this library is required.";
+    	}
+    	
     	String venvPath = this.venvPath;
     	String activationCommand = getVenvActivationCmd(venvPath);
     	String[] uninstallCommand = getUninstallCmd(library);
@@ -164,7 +173,7 @@ public class UserVenv implements Serializable {
     	// Combine activation command and uninstall command
     	String[] combinedCommand = getFullCommand(activationCommand, uninstallCommand);
     	
-        ProcessBuilder pb = new ProcessBuilder(combinedCommand[0], combinedCommand[1], combinedCommand[2]);
+        ProcessBuilder pb = new ProcessBuilder(combinedCommand);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
@@ -175,6 +184,8 @@ public class UserVenv implements Serializable {
                 output.append(line).append("\n");
             }
         }
+        
+        venvUpdateHook();
 
         int exitCode = process.waitFor();
         if (exitCode == 0) {
@@ -188,7 +199,7 @@ public class UserVenv implements Serializable {
     public static List<LibraryInfo> parsePipList(String pipListOutput) {
         Gson gson = new Gson();
         JsonReader reader = new JsonReader(new StringReader(pipListOutput));
-        reader.setLenient(true); // Set lenient mode
+        reader.setLenient(true);
 
         try {
             Type libraryListType = new TypeToken<List<LibraryInfo>>(){}.getType();
@@ -221,7 +232,49 @@ public class UserVenv implements Serializable {
             throw new IOException("Failed to list pip packages, exit code: " + exitCode);
         }
     }
+    
+    public static long getDirectorySize(File directory) {
+        long size = 0;
+        if (directory.isDirectory()) {
+            for (File file : directory.listFiles()) {
+                if (file.isFile()) {
+                    size += file.length();
+                } else if (file.isDirectory()) {
+                    size += getDirectorySize(file);
+                }
+            }
+        }
+        return size;
+    }
 
+    // Get the size of the site-packages directory in MB
+    public int getSitePackagesSize() {
+        String sitePackagesPath = Utility.normalizePath(this.venvPath + "\\Lib\\site-packages");
+        File sitePackagesDir = new File(sitePackagesPath);
+        long sizeInBytes = getDirectorySize(sitePackagesDir);
+        
+        // Convert bytes to MB and round
+        int sizeInMB = (int) Math.round(sizeInBytes / (1024.0 * 1024.0));
+        return sizeInMB; 
+    }
+    
+    // Update the site package directory size and current library list in a hook
+    public void venvUpdateHook() {
+    	this.sitepackgeDirSize = this.getSitePackagesSize();
+    	try {
+    	this.libList = this.pipList();
+    	} catch(IOException io) {
+    		classLogger.error(Constants.STACKTRACE, io);
+    	} catch(InterruptedException ie) {
+    		classLogger.error(Constants.STACKTRACE, ie);
+    	}
+    }
+    
+    public List<LibraryInfo> getLibraryList(){
+    	return this.libList;
+    }
+
+    // This is a data structure for how we store the libraries list
     public static class LibraryInfo {
         private String name;
         private String version;
