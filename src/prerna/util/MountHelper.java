@@ -11,6 +11,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -183,6 +184,8 @@ public class MountHelper {
 
 	// mount directory
 	private void mountDir(String srcDir, String tgtDir, boolean sudo, boolean readOnly) {
+		srcDir = Utility.normalizePath(srcDir);
+		tgtDir = Utility.normalizePath(tgtDir);
 		try {
 			ProcessBuilder pb = null;
 			if (readOnly) {
