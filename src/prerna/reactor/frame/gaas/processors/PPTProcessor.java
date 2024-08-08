@@ -15,8 +15,8 @@ import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xslf.usermodel.XSLFTextParagraph;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
 
+import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class PPTProcessor {
 
@@ -26,14 +26,14 @@ public class PPTProcessor {
 	// For every slide get the text shapes
 	// index it into a csv
 	private String filePath = null;
-	private CSVWriter writer = null;
+	private VectorDatabaseCSVWriter writer = null;
 	
 	/**
 	 * 
 	 * @param filePath
 	 * @param writer
 	 */
-	public PPTProcessor(String filePath, CSVWriter writer) {
+	public PPTProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		this.filePath = filePath;
 		this.writer = writer;
 	}

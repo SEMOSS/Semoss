@@ -26,8 +26,9 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISesameRdfEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.reactor.database.upload.AbstractUploadFileReactor;
@@ -59,20 +60,24 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			e.setContinueThreadOfExecution(false);
 			throw e;
 		}
+		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
+		// need instance to write to smss
+		this.database = RDFDefaultDatabaseTypeFactory.getDefaultSesameEngine();
+
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.databaseId, newDatabaseName, owlFile);
+		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.database, this.databaseId, newDatabaseName, owlFile, baseUri);
 		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
-		this.database = new BigDataEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
 		this.database.open(this.tempSmss.getAbsolutePath());
@@ -91,7 +96,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
-		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
 		
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		owlEngine.addCustomBaseURI(baseUri);
@@ -102,7 +106,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		owlEngine.close();
 		// commit the created database
 		this.database.commit();
-		((BigDataEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).exportDB();
 	}
 
 	public void addToExistingDatabase(String filePath) throws Exception {
@@ -113,7 +118,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			throw e;
 		}
 		int stepCounter = 1;
-		if (!(this.database instanceof BigDataEngine)) {
+		if (!(this.database instanceof ISesameRdfEngine)) {
 			throw new IllegalArgumentException("Invalid database type");
 		}
 
@@ -126,7 +131,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		owlEngine.close();
 		// commit the created database
 		this.database.commit();
-		((BigDataEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).infer();
+		((ISesameRdfEngine) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 	}
 

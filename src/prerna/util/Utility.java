@@ -44,6 +44,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -61,6 +62,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.text.NumberFormat;
@@ -127,6 +129,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
+import org.owasp.esapi.codecs.MySQLCodec;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
@@ -134,8 +139,6 @@ import org.xeustechnologies.jcl.JclObjectFactory;
 import com.google.common.base.Strings;
 import com.google.common.net.InternetDomainName;
 import com.google.gson.GsonBuilder;
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -225,7 +228,42 @@ public final class Utility {
 
 		return paramHash;
 	}
+	
+	/**
+	 * This is to remove scripts from being passed
+	 * 
+	 * @param stringToNormalize
+	 * @return
+	 */
+	public static String inputSanitizer(String stringToNormalize) {
+		if (stringToNormalize == null) {
+			classLogger.debug("input to sanitzer is null, returning null");
+			return stringToNormalize;
+		}
 
+		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS).and(Sanitizers.BLOCKS).and(Sanitizers.STYLES)
+				.and(Sanitizers.IMAGES).and(Sanitizers.TABLES);
+		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		return ESAPI.encoder().encodeForSQL(mySQLCodec, policy.sanitize(stringToNormalize));
+	}
+
+
+	/**
+	 * This is to remove sql injection from strings
+	 * 
+	 * @param stringToNormalize
+	 * @return
+	 */
+	public static String inputSQLSanitizer(String stringToNormalize) {
+		if (stringToNormalize == null) {
+			classLogger.debug("input to sanitzer is null, returning null");
+			return stringToNormalize;
+		}
+
+		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
+	}
+	
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with

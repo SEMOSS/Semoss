@@ -2,18 +2,17 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import au.com.bytecode.opencsv.CSVReader;
+import prerna.algorithm.api.SemossDataType;
+import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
+import prerna.query.querystruct.CsvQueryStruct;
 
 public class VectorDatabaseCSVTable {
 	
@@ -33,7 +32,7 @@ public class VectorDatabaseCSVTable {
         this.rows = new ArrayList<>();
     }
 
-    public void addRow(String source, String modality, String divider, String part, int tokens, String content) {
+    public void addRow(String source, String modality, String divider, String part, Number tokens, String content) {
     	VectorDatabaseCSVRow newRow = new VectorDatabaseCSVRow(source, modality, divider, part, tokens, content);
         this.rows.add(newRow);
     }
@@ -94,30 +93,35 @@ public class VectorDatabaseCSVTable {
     
     public static VectorDatabaseCSVTable initCSVTable(File file) throws IOException {
     	VectorDatabaseCSVTable csvTable = new VectorDatabaseCSVTable();
-		try (Reader reader = Files.newBufferedReader(Paths.get(file.getAbsolutePath()))) {
-			try (CSVReader csvReader = new CSVReader(reader)) {
-				String[] line;
-				boolean start = true;
-				Map<String,Integer> headersMap = new HashMap<String, Integer>();
-				while ((line = csvReader.readNext()) != null) {
-					if(start) {
-						for(int i=0;i<line.length;i++) {
-							headersMap.put(line[i],i);
-						}
-						start = false;
-					} else {
-						csvTable.addRow(
-								line[headersMap.get(SOURCE)], 
-								line[headersMap.get(MODALITY)], 
-								line[headersMap.get(DIVIDER)], 
-								line[headersMap.get(PART)], 
-								line[headersMap.get(TOKENS)], 
-								line[headersMap.get(CONTENT)]
-							);
-					}
-				}
-			}
-		}
+    	
+    	final String STR_VALUE = SemossDataType.STRING.toString();
+    	final String INT_VALUE = SemossDataType.INT.toString();
+    	
+    	CsvQueryStruct qs = new CsvQueryStruct();
+    	qs.setDelimiter(',');
+    	qs.setFilePath(file.getAbsolutePath());
+    	qs.setSelectorsAndTypes(new String[] {SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT}, 
+    			new String[] {STR_VALUE, STR_VALUE, STR_VALUE, STR_VALUE, INT_VALUE, STR_VALUE});
+    	
+    	CsvFileIterator csvIt = null;
+    	try {
+    		csvIt = new CsvFileIterator(qs);
+        	while(csvIt.hasNext()) {
+        		Object[] row = csvIt.next().getValues();
+        		csvTable.addRow(
+        				(String) row[0],
+        				(String) row[1],
+        				(String) row[2],
+        				(String) row[3],
+        				(Number) row[4],
+        				(String) row[5]
+    				);
+        	}
+    	} finally {
+    		if(csvIt != null) {
+    			csvIt.close();
+    		}
+    	}
 
 		return csvTable;
     }

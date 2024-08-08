@@ -138,7 +138,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	public void createEmptyOWLFile() throws Exception {
 		this.baseDataEngine.close();
 		this.baseDataEngine.deleteFile();
-		UploadUtilities.generateOwlFile(this.baseDataEngine.getFilePath());
+		UploadUtilities.generateEmptyRDFXMLFile(this.baseDataEngine.getFilePath());
 		this.baseDataEngine.reloadFile();
 		// clear out the values in the maps
 		this.loadDatabaseValues();

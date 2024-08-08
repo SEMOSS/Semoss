@@ -1,8 +1,6 @@
 package prerna.engine.impl.r;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,28 +31,33 @@ public class RserveUtil {
 
 	private static final String R_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
 	private static final String R_DATA_EXT = ".RData";
-	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	// R binary location
 	private static String rBin;
+	private static String rLibs;
 	static {
-		String rHomeEnv = System.getenv("R_HOME");
+		String rHomeEnv = System.getenv(RSingleton.R_HOME);
 		if(rHomeEnv != null && !rHomeEnv.isEmpty()) {
-			String rHome = rHomeEnv.replace("\\", FS);
+			String rHome = rHomeEnv.replace("\\", "/");
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
 				throw new IllegalArgumentException("R_HOME does not exist or is not a directory");
 			}
-			rBin = rHome + FS + "bin" + FS + "R";
-			if (SystemUtils.IS_OS_WINDOWS) rBin = rBin.replace(FS, "\\\\");
+			rBin = rHome + "/bin/R";
+			rBin = rBin.replace("\\", "/");
 		} else {
 			rBin = "R"; // Just hope its in the path
 		}
+
+		String rLibEnv = System.getenv(RSingleton.R_LIBS);
+		if(rLibEnv == null || rLibEnv.isEmpty()) {
+			rLibEnv = Utility.getDIHelperProperty(RSingleton.R_LIBS);
+		}
+		if(rLibEnv == null) {
+			rLibEnv = "";
+		}
+		rLibs = rLibEnv;
 	}
-	
-	private static final int PORT_MIN = 6311;
-	private static final int PORT_MAX = 65535;
-	
 	
 	//////////////////////////////////////////////////////////////////////
 	// Rserve properties
@@ -102,61 +105,43 @@ public class RserveUtil {
 	// Start and stop
 	//////////////////////////////////////////////////////////////////////
 	public static Process startR(int port) throws Exception {
-		
-		// Need to allow this process to execute the below commands
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
 		Process process = null;
-		
 		// Start
 		try {
-			String baseFolder = Utility.getDIHelperProperty("BaseFolder");
-
-			File output = new File(baseFolder + FS + "Rserve.output.log");
-			File error = new File(baseFolder + FS + "Rserve.error.log");
+			String baseFolder = Utility.getBaseFolder();
+			File output = new File(baseFolder + "/Rserve.output.log");
+			File error = new File(baseFolder + "/Rserve.error.log");
 
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder(rBin, "-e",
-						"\"library(Rserve);" +
-						"Rserve(FALSE," + port + ",args='--vanilla option(error=function() NULL)')\"");
+				pb = new ProcessBuilder(rBin, "CMD", rLibs+RSingleton.RSERVE_LOC, "--vanilla", "--RS-port", port + "");
 			} else if(!(Strings.isNullOrEmpty(Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT")))){
 				String ulimit = Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT");
 				pb = new ProcessBuilder("/bin/bash", "-c","ulimit -v " + ulimit + " && " + rBin+" CMD Rserve --vanilla --RS-port " + port);
 				List<String> coms = pb.command();
 				classLogger.info(Arrays.toString(coms.toArray()));
-
 			} else {
-				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
+				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
 			}
+			
 			pb.redirectOutput(output);
 			pb.redirectError(error);
 			process = pb.start();
 			process.waitFor(7L, TimeUnit.SECONDS);
-			System.out.println(" >> " + MgmtUtil.getProcessID(process));
+			classLogger.info("R starting Rserve on process id >> " + MgmtUtil.getProcessID(process));
 			MgmtUtil.printChild(MgmtUtil.getProcessID(process));
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
-		finally {
-			// Restore the prior security manager
-//			System.setSecurityManager(priorManager);
-		}
 		return process;
 	}
 	
 	public static void stopR(int port) throws Exception {
-		
-		// Need to allow this process to execute the below commands
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
-		
 		// Stop
 		File tempFile = new File(R_FOLDER + Utility.getRandomString(12) + ".txt");
 		try {
 			if (SystemUtils.IS_OS_WINDOWS) {
-
 				// Dump the output of netstat to a file
 				ProcessBuilder pbNetstat = new ProcessBuilder("netstat", "-ano");
 				pbNetstat.redirectOutput(tempFile);
@@ -187,7 +172,6 @@ public class RserveUtil {
 				}
 
 			} else {
-					
 				// Dump the output of lsof to a file
 				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
 				pbLsof.redirectOutput(tempFile);
@@ -212,9 +196,6 @@ public class RserveUtil {
 			}
 		} finally {
 			tempFile.delete();
-			
-			// Restore the prior security manager
-//			System.setSecurityManager(priorManager);
 		}
 	}
 	
@@ -235,26 +216,6 @@ public class RserveUtil {
 	}
 	
 	
-	//////////////////////////////////////////////////////////////////////
-	// Ports
-	//////////////////////////////////////////////////////////////////////
-	public static int getOpenPort() {
-		int port = PORT_MIN;
-		while (!isPortAvailable(port)) {
-			port++;
-			if (port > PORT_MAX) throw new IllegalArgumentException("No more ports are available."); 
-		}
-		return port;
-	}
-	
-	public static boolean isPortAvailable(int port) {
-		try (ServerSocket s = new ServerSocket(port)) {
-			return true;
-		} catch (IOException e) {
-			return false;
-		}
-	}
-		
 	//////////////////////////////////////////////////////////////////////
 	// End All R
 	//////////////////////////////////////////////////////////////////////
