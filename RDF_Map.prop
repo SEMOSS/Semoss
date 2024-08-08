@@ -7,12 +7,6 @@ PROJECT_WATCHER	ProjectWatcher
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
-PYTHONHOME C:\\Users\\rweiler\\AppData\\Local\\anaconda3\\envs\\semoss-pytorch
-
-TCP_WORKER prerna.tcp.SocketServer
-TCP_CLIENT prerna.tcp.client.NativePySocketClient
-NATIVE_PY_SERVER true
-
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
 SMSSWebWatcher_EXT	.smss
