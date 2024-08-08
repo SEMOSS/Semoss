@@ -72,7 +72,8 @@ class OpenAiTokenizer(AbstractTokenizer):
 
     def get_tokens_ids(self, input: Union[List[Dict], str]) -> List[int]:
         if isinstance(input, list):
-            input = " ".join([message["content"] for message in input])
+            input = " ".join([message.get("content") or message.get(
+                "text") for message in input if "content" in message or "text" in message])
         elif isinstance(input, dict):
             input = input["content"]
 

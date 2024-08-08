@@ -134,7 +134,7 @@ public class InsightCacheUtility {
 		boolean encrypt = insight.isCacheEncrypt();
 		Cipher cipher = null;
 		if(encrypt) {
-			cipher = SecretsUtility.generateCipherForInsight(rdbmsId, projectName, projectId);
+			cipher = SecretsUtility.generateCipherForInsight(projectId, projectName, rdbmsId);
 		}
 
 		String folderDir = getInsightCacheFolderPath(insight, parameters);

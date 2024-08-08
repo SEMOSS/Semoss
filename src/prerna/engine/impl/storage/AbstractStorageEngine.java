@@ -2,6 +2,7 @@ package prerna.engine.impl.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
@@ -12,6 +13,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
@@ -47,6 +50,14 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 		this.smssProp = smssProp;
 		this.engineId = smssProp.getProperty(Constants.ENGINE);
 		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
+		
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if(secretStore != null) {
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
+			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+				this.smssProp.putAll(engineSecrets);
+			}
+		}
 	}
 	
 	@Override

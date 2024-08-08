@@ -8,8 +8,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
+import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class PDFProcessor {
 
@@ -19,9 +19,9 @@ public class PDFProcessor {
 	// For every slide get the text shapes
 	// index it into a csv
 	private String filePath = null;
-	private CSVWriter writer = null;
+	private VectorDatabaseCSVWriter writer = null;
 
-	public PDFProcessor(String filePath, CSVWriter writer) {
+	public PDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		this.filePath = filePath;
 		this.writer = writer;
 	}

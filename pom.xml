@@ -308,6 +308,19 @@
 			<artifactId>semoss-jdbc</artifactId>
 			<version>0.0.1</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat-catalina -->
+		<!-- this is the primary tomcat specific jar -->
+		<dependency>
+		    <groupId>org.apache.tomcat</groupId>
+		    <artifactId>tomcat-catalina</artifactId>
+		    <version>9.0.88</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.1.0</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- 
 		<dependency>
 			<groupId>jdk.tools</groupId>
@@ -366,12 +379,15 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-runtime -->
+		<!--
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-runtime</artifactId>
 			<version>2.1.4</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-core -->
+		<!--
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-core</artifactId>
@@ -397,7 +413,103 @@
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-http</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-client</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-server</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-util</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-io</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-webapp</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.codehaus.jettison</groupId>
+					<artifactId>jettison</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.openrdf.sesame</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>javax.servlet</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
+		</dependency>
+		-->
+		<!--
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-http</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-client</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-util</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-io</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-webapp</artifactId>
+			<version>9.4.55.v20240627</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jettison</groupId>
+			<artifactId>jettison</artifactId>
+			<version>1.5.4</version>
+		</dependency>
+		-->
+		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
+		<dependency>
+		    <groupId>org.openrdf.sesame</groupId>
+		    <artifactId>sesame-runtime</artifactId>
+		    <version>2.7.12</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-rio-rdfxml -->
+		<dependency>
+		    <groupId>org.openrdf.sesame</groupId>
+		    <artifactId>sesame-rio-rdfxml</artifactId>
+		    <version>2.7.12</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-queryresultio-sparqljson -->
+		<dependency>
+		    <groupId>org.openrdf.sesame</groupId>
+		    <artifactId>sesame-queryresultio-sparqljson</artifactId>
+		    <version>2.7.12</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -410,6 +522,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections15</artifactId>
@@ -421,6 +534,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- REMOVING - GPL -->
 		<!-- 
 		<dependency>
@@ -673,7 +787,7 @@
 		<dependency>
 		    <groupId>com.github.spullara.mustache.java</groupId>
 		    <artifactId>compiler</artifactId>
-		    <version>0.9.11</version>
+		    <version>0.9.14</version>
 		</dependency>
 		<dependency>
 			<groupId>com.h2database</groupId>
@@ -686,7 +800,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- cleanup -->
+		<!-- 
 		<dependency>
 			<groupId>com.github.stephenc.high-scale-lib</groupId>
 			<artifactId>high-scale-lib</artifactId>
@@ -698,6 +812,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
@@ -720,6 +835,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>com.ibm.icu</groupId>
 			<artifactId>icu4j</artifactId>
@@ -731,6 +847,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- REMOVING - AGPL -->
 		<!-- 
 		<dependency>
@@ -771,7 +888,7 @@
 		<dependency>
 			<groupId>redis.clients</groupId>
 			<artifactId>jedis</artifactId>
-			<version>5.1.0</version>
+			<version>5.1.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.code.gson</groupId>
@@ -780,6 +897,10 @@
 				<exclusion>
 					<groupId>org.json</groupId>
 					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -841,6 +962,17 @@
 		    <artifactId>jena-shaded-guava</artifactId>
 		    <version>3.17.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.thrift</groupId>
+			<artifactId>libthrift</artifactId>
+			<version>0.14.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		<!-- cleanup -->
 		<!-- 
 		<dependency>
@@ -876,6 +1008,7 @@
 			</exclusions>
 		</dependency>
 		-->
+		<!--
 		<dependency>
 			<groupId>org.jgrapht</groupId>
 			<artifactId>jgrapht-core</artifactId>
@@ -898,6 +1031,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- REMOVING - GPL -->
 		<!-- 
 		<dependency>
@@ -915,7 +1049,7 @@
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
-			<version>1.14.3</version>
+			<version>1.18.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -934,6 +1068,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--	
 		<dependency>
 			<groupId>net.sf.jung</groupId>
 			<artifactId>jung-algorithms</artifactId>
@@ -978,6 +1113,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/log4j/log4j>
 		<dependency>
 		    <groupId>log4j</groupId>
@@ -1023,17 +1159,6 @@
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
 			<version>2.17.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mapdb</groupId>
-			<artifactId>mapdb</artifactId>
-			<version>2.0-alpha3</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
@@ -1136,7 +1261,14 @@
 		    <groupId>net.sf.cssbox</groupId>
 		    <artifactId>jstyleparser</artifactId>
 		    <version>4.0.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
+		<!-- 
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
 			<artifactId>stanford-corenlp</artifactId>
@@ -1148,6 +1280,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- 
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
@@ -1195,6 +1328,7 @@
 			<artifactId>jna-platform</artifactId>
 			<version>5.8.0</version>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
 			<artifactId>weka</artifactId>
@@ -1206,6 +1340,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
@@ -1335,11 +1470,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency-->
+		<!--
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
 			<version>2.11.7</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
 		<dependency>
 			<groupId>org.javassist</groupId>
@@ -1347,23 +1484,29 @@
 			<version>3.20.0-GA</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.lingala.zip4j/zip4j -->
+		<!--
 		<dependency>
 		    <groupId>net.lingala.zip4j</groupId>
 		    <artifactId>zip4j</artifactId>
 		    <version>2.11.5</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/us.fatehi/schemacrawler -->
+		<!--
 		<dependency>
 		    <groupId>us.fatehi</groupId>
 		    <artifactId>schemacrawler</artifactId>
 		    <version>16.21.2</version>
 		</dependency>
+		-->
 		<!-- required for JAWS Java API for WordNet Searching -->
+		<!--
 		<dependency>
 			<groupId>net.sf.extjwnl</groupId>
 			<artifactId>extjwnl</artifactId>
 			<version>1.9.2</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
@@ -1447,11 +1590,13 @@
 		</dependency>
 		-->
 		<!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on -->
+		<!--
 		<dependency>
 		    <groupId>org.bouncycastle</groupId>
 		    <artifactId>bcpkix-jdk15on</artifactId>
 		    <version>1.70</version>
 		</dependency>
+		-->
 		<!-- neo4j jdbc driver used for remote neo4j engine -->
 		<dependency>
 			<groupId>org.neo4j.driver</groupId>
@@ -1493,7 +1638,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-<!--
+		<!--
 		<dependency>
 			<groupId>com.cloudera</groupId>
 			<artifactId>impala4</artifactId>
@@ -1505,18 +1650,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
--->
-		<dependency>
-			<groupId>org.apache.thrift</groupId>
-			<artifactId>thrift</artifactId>
-			<version>0.9.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+		-->	
 		<!--
 		<dependency>
 			<groupId>org.apache.hive</groupId>
@@ -1563,23 +1697,15 @@
 		    <version>2.16.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
-		<!--
 		<dependency>
 		    <groupId>com.amazon.redshift</groupId>
 		    <artifactId>redshift-jdbc42</artifactId>
 		    <version>2.1.0.29</version>
 		</dependency>
-		-->
 		<dependency>
 		    <groupId>io.trino</groupId>
 		    <artifactId>trino-jdbc</artifactId>
 		    <version>439</version>
-		</dependency>
-		<!-- NODE -->
-		<dependency>
-			<groupId>com.eclipsesource.j2v8</groupId>
-			<artifactId>j2v8_win32_x86_64</artifactId>
-			<version>4.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>black.ninia</groupId>
@@ -1592,26 +1718,28 @@
 			<artifactId>dse-java-driver-graph</artifactId>
 			<version>1.9.0</version>
 			<exclusions>
-				<exclusion>  <!-- declare the exclusion here -->
+				<exclusion>  
 					<groupId>io.netty</groupId>
 					<artifactId>netty</artifactId>
 				</exclusion>
-				<exclusion>  <!-- declare the exclusion here -->
+				<exclusion>  
 					<groupId>io.netty</groupId>
 					<artifactId>netty-all</artifactId>
 				</exclusion>
-				<exclusion>  <!-- declare the exclusion here -->
+				<exclusion> 
 					<groupId>io.netty</groupId>
 					<artifactId>netty-handler</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.squareup/javapoet -->
+		<!--
 		<dependency>
 			<groupId>com.squareup</groupId>
 			<artifactId>javapoet</artifactId>
 			<version>1.2.0</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.github.wnameless.json/json-flattener -->
 		<dependency>
 		    <groupId>com.github.wnameless.json</groupId>
@@ -1653,11 +1781,13 @@
 			<version>0.6.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/au.com.bytecode/opencsv -->
+		<!--
 		<dependency>
 			<groupId>au.com.bytecode</groupId>
 			<artifactId>opencsv</artifactId>
 			<version>2.4</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.jodd/jodd-core -->
 		<dependency>
 			<groupId>org.jodd</groupId>
@@ -1715,7 +1845,18 @@
 					<groupId>net.java.dev.jna</groupId>
 					<artifactId>jna-platform</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okio</groupId>
+					<artifactId>okio</artifactId>
+				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- including updated okio from exclusion above -->
+		<!-- https://mvnrepository.com/artifact/com.squareup.okio/okio -->
+		<dependency>
+		    <groupId>com.squareup.okio</groupId>
+		    <artifactId>okio</artifactId>
+		    <version>1.17.6</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api -->
 		<dependency>
@@ -1729,11 +1870,18 @@
 			<artifactId>freemarker</artifactId>
 			<version>2.3.20</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-identity -->
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-storage</artifactId>
-			<version>8.0.0</version>
-			<exclusions>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-identity</artifactId>
+		    <version>1.12.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-security-keyvault-secrets</artifactId>
+		    <version>4.8.4</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
@@ -1741,9 +1889,9 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.dbunit</groupId>
-			<artifactId>dbunit</artifactId>
-			<version>2.6.0</version>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>azure-storage</artifactId>
+			<version>8.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1805,23 +1953,26 @@
 		<dependency>
 		    <groupId>com.clickhouse</groupId>
 		    <artifactId>clickhouse-jdbc</artifactId>
-		    <version>0.6.0-patch1</version>
+		    <version>0.6.3</version>
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.12.481</version>
+			<version>1.12.763</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
+		<!--
 		<dependency>
 		    <groupId>me.xdrop</groupId>
 		    <artifactId>fuzzywuzzy</artifactId>
 		    <version>1.4.0</version>
 		</dependency>
+		-->
+		<!-- https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
 		<dependency>
-			<groupId>io.github.classgraph</groupId>
-			<artifactId>classgraph</artifactId>
-			<version>4.8.27</version>
+		    <groupId>io.github.classgraph</groupId>
+		    <artifactId>classgraph</artifactId>
+		    <version>4.8.174</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-core -->
 		<dependency>
@@ -1839,7 +1990,17 @@
 		<dependency>
 			<groupId>org.xhtmlrenderer</groupId>
 			<artifactId>flying-saucer-pdf</artifactId>
-			<version>9.1.22</version>
+			<version>9.4.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcpkix-jdk14</artifactId>
+				</exclusion>	
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcprov-jdk14</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>de.ruedigermoeller</groupId>
@@ -1867,8 +2028,19 @@
 					<groupId>junit</groupId>
 					<artifactId>junit</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.jfree</groupId>
+					<artifactId>jfreechart</artifactId>
+				</exclusion>
 			</exclusions>
 			<version>2.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.jfree/jfreechart -->
+		<!-- patch update and excluded from graphstream algo that used org.jfree:jfreechart:jar:1.0.14-->
+		<dependency>
+		    <groupId>org.jfree</groupId>
+		    <artifactId>jfreechart</artifactId>
+		    <version>1.0.19</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.owasp.esapi/esapi -->
 		<dependency>
@@ -1957,7 +2129,7 @@
 		<dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.8.3</version>
+            <version>3.8.4</version>
             <exclusions>
 				<exclusion>
 					<groupId>log4j</groupId>
@@ -2022,7 +2194,7 @@
 		<dependency>
 		  <groupId>com.databricks</groupId>
 		  <artifactId>databricks-jdbc</artifactId>
-		  <version>2.6.33</version>
+		  <version>2.6.38</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.hierynomus/sshj -->
 		<dependency>
@@ -2046,7 +2218,7 @@
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<version>1.13.1</version>
+			<version>1.14.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common -->
 	    <dependency>
@@ -2084,12 +2256,19 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.samba.jcifs/jcifs -->
-	<dependency>
-	    <groupId>org.samba.jcifs</groupId>
-	    <artifactId>jcifs</artifactId>
-	    <version>1.3.14-kohsuke-1</version>
-	</dependency>
-		
+		<dependency>
+		    <groupId>org.samba.jcifs</groupId>
+		    <artifactId>jcifs</artifactId>
+		    <version>1.3.14-kohsuke-1</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+		    <artifactId>owasp-java-html-sanitizer</artifactId>
+		    <version>20240325.1</version>
+		</dependency>	
+	
+	
+	
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
@@ -2112,10 +2291,6 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>
-		<dependency>
-		    <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
-		    <artifactId>owasp-java-html-sanitizer</artifactId>
-		    <version>20240325.1</version>
-		</dependency>
+		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>

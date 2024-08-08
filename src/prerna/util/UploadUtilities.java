@@ -43,7 +43,6 @@ import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.MosfetFile;
@@ -205,7 +204,7 @@ public final class UploadUtilities {
 		}
 		owlLocation += "_OWL.OWL";
 		
-		return generateOwlFile(owlLocation);
+		return generateEmptyRDFXMLFile(owlLocation);
 	}
 	
 	/**
@@ -213,7 +212,7 @@ public final class UploadUtilities {
 	 * @param owlLocation
 	 * @return
 	 */
-	public static File generateOwlFile(String owlLocation) {
+	public static File generateEmptyRDFXMLFile(String owlLocation) {
 		File owlFile = new File(owlLocation);
 		
 		FileWriter writer = null;
@@ -560,13 +559,15 @@ public final class UploadUtilities {
 	/**
 	 * Create a temporary smss file for a rdf database
 	 * 
+	 * @param thisEngine
 	 * @param databaseId
 	 * @param databaseName
 	 * @param owlFile
+	 * @param baseUri
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRdfSmss(String databaseId, String databaseName, File owlFile) throws IOException {
+	public static File createTemporaryRdfSmss(IEngine thisEngine, String databaseId, String databaseName, File owlFile, String baseUri) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -591,22 +592,30 @@ public final class UploadUtilities {
 			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 
-			String dbClassName = BigDataEngine.class.getName();
+			String dbClassName = thisEngine.getClass().getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-			// get additional RDF default properties
-			String defaultDBPropName = "db" + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
-			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + databaseName + ".jnl";
-			jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
-			String rdfDefaultProps = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + defaultDBPropName;
-			
-			fileRead = new FileReader(rdfDefaultProps);
-			bufferedReader = new BufferedReader(fileRead);
-			String currentLine;
-			while ((currentLine = bufferedReader.readLine()) != null) {
-				if (currentLine.contains("@FileName@")) {
-					currentLine = currentLine.replace("@FileName@", jnlName);
+			bufferedWriter.write(newLine);
+			bufferedWriter.write(Constants.RDF_FILE_BASE_URI + tab + baseUri + newLine);
+
+			if(dbClassName.endsWith("BigDataEngine")) {
+				// get additional RDF default properties
+				String defaultDBPropName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
+				String jnlName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + databaseName + ".jnl";
+				jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
+				String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
+				
+				fileRead = new FileReader(rdfDefaultProps);
+				bufferedReader = new BufferedReader(fileRead);
+				String currentLine;
+				while ((currentLine = bufferedReader.readLine()) != null) {
+					if (currentLine.contains("@FileName@")) {
+						currentLine = currentLine.replace("@FileName@", jnlName);
+					}
+					bufferedWriter.write(currentLine + newLine);
 				}
-				bufferedWriter.write(currentLine + "\n");
+			} else {
+				bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName+".xml" + newLine);
+				bufferedWriter.write(Constants.RDF_FILE_TYPE + tab + "RDF/XML" + newLine);
 			}
 
 		} catch (IOException e) {

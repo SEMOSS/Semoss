@@ -15,13 +15,13 @@ public class VectorDatabaseCSVRow {
 	// TODO: revisit how this is stored in db
 	private String keywords = "";
 
-    public VectorDatabaseCSVRow(String source, String modality, String divider, String part, int tokens, String content) {
+    public VectorDatabaseCSVRow(String source, String modality, String divider, String part, Number tokens, String content) {
         // Initially, embedding might not be set
         this.source = source;
         this.modality = modality;
         this.divider = divider;
         this.part = part;
-        this.tokens = tokens;
+        this.tokens = tokens.intValue();
         this.content = content;
     }
 
