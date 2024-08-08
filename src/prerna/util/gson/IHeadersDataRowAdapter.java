@@ -7,7 +7,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
-import java.util.Date;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
@@ -16,9 +15,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import cern.colt.Arrays;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.om.HeadersDataRow;
 
 public class IHeadersDataRowAdapter extends AbstractSemossTypeAdapter<IHeadersDataRow> {
 	

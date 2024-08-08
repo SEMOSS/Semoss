@@ -154,7 +154,7 @@ public class SmssUtilities {
 	/*
 	 * RDF specific methods
 	 */
-
+	
 	/**
 	 * Get the JNL location
 	 * @param prop
@@ -182,12 +182,9 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.RDF_FILE_NAME) == null) {
 			return null;
 		}
-		String baseFolder = Utility.getBaseFolder();
-		String rdfFileLoc = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.RDF_FILE_NAME);
-		String engineId = prop.getProperty(Constants.ENGINE);
-		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-
-		return new File(Utility.normalizePath(rdfFileLoc.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
+		String engineFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, getUniqueName(prop));
+		String rdfFileLoc = engineFolder + DIR_SEPARATOR + prop.getProperty(Constants.RDF_FILE_NAME);
+		return new File(Utility.normalizePath(rdfFileLoc));
 	}
 
 	//////////////////////////////////////////////////////////////

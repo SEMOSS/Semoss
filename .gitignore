@@ -50,6 +50,7 @@ __pycache__/
 
 # local engines
 project/**
+user/**
 db/**
 model/**
 function/**

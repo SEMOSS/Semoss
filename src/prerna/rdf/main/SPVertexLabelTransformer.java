@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.main;
 
-import org.apache.commons.collections15.Transformer;
+import org.apache.commons.collections4.Transformer;
 
 import prerna.om.DBCMVertex;
 import prerna.util.Constants;

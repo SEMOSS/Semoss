@@ -183,6 +183,8 @@ public class MountHelper {
 
 	// mount directory
 	private void mountDir(String srcDir, String tgtDir, boolean sudo, boolean readOnly) {
+		srcDir = Utility.normalizePath(srcDir);
+		tgtDir = Utility.normalizePath(tgtDir);
 		try {
 			ProcessBuilder pb = null;
 			if (readOnly) {

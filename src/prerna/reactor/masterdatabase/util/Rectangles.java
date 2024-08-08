@@ -8,8 +8,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class Rectangles {
 
+	private static final Logger classLogger = LogManager.getLogger(Rectangles.class);
+	
     /**The map of rectangles holding x and y coordinates*/
     private Map<String, Rectangle2D> rectanglesToDraw;
 
@@ -79,7 +84,7 @@ public class Rectangles {
 
             numIterations++;
         }
-        System.out.println("That took " + numIterations+ " iterations.");
+        classLogger.info("Decluttering metamodel page took " + numIterations+ " iterations.");
 
         return rectanglesToDraw;
     }

@@ -162,31 +162,23 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		// grab the main properties
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-		String dbZoneIdStr = this.smssProp.getProperty(Constants.DATABASE_ZONEID);
-		if(dbZoneIdStr != null && !(dbZoneIdStr=dbZoneIdStr.trim()).isEmpty()) {
-			try {
-				this.databaseZoneId = ZoneId.of(dbZoneIdStr);
-			} catch(Exception e) {
-				classLogger.warn("Could not determine the database zone id from string input = " + dbZoneIdStr + " for engine " 
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			classLogger.warn("Please consider adding a default database zome id for engine " + 
-					SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		}
 		if(this.isBasic) {
+			// still try to set the db zone id...
+			setDatabaseZoneId();
 			// if this is a basic database, we dont care about the OWL or any other SMSS values
 			return;
 		}
 		
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
-			Map<String, String> engineSecrets = secretStore.getDatabaseSecrets(this.engineName, this.engineId);
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
 			if(engineSecrets != null && !engineSecrets.isEmpty()) {
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
+		
+		// try to set the db zone id if defined
+		setDatabaseZoneId();
 		
 		// do the piece of encrypting here
 		boolean encryptFile = false;
@@ -239,6 +231,25 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
 		if (engineProps != null) {
 			this.generalEngineProp = Utility.loadProperties(engineProps.getAbsolutePath());
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	protected void setDatabaseZoneId() {
+		String dbZoneIdStr = this.smssProp.getProperty(Constants.DATABASE_ZONEID);
+		if(dbZoneIdStr != null && !(dbZoneIdStr=dbZoneIdStr.trim()).isEmpty()) {
+			try {
+				this.databaseZoneId = ZoneId.of(dbZoneIdStr);
+			} catch(Exception e) {
+				classLogger.warn("Could not determine the database zone id from string input = " + dbZoneIdStr + " for engine " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.warn("Please consider adding a default database zome id for engine " + 
+					SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 	}
 	

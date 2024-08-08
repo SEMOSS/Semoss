@@ -2,6 +2,7 @@ package prerna.engine.impl.model.workers;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 
 import com.google.gson.GsonBuilder;
 
@@ -102,7 +103,16 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 				
 		if (prompt == null) {
-			prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(fullPrompt);
+			if(fullPrompt instanceof Collection && ((Collection) fullPrompt).size() == 1) {
+				Object promptObj = ((Collection) fullPrompt).iterator().next();
+				if(promptObj instanceof String) {
+					prompt = (String) promptObj;
+				} else {
+					prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(promptObj);
+				}
+			} else {
+				prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(fullPrompt);
+			}
 		} else {
 			prompt = prompt.replace("'", "\'");
 		}
@@ -118,11 +128,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 		
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(insightId)) {
-			String roomName = null;
-			if (this.messageMethod.equals("ask")) {
-				roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-			}
-		
+			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			ModelInferenceLogsUtils.doCreateNewConversation(
 				insightId, 
 				roomName, 

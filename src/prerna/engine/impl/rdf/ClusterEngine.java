@@ -87,7 +87,7 @@ public class ClusterEngine extends AbstractDatabaseEngine {
 		if(con != null)
 		{
 			try {
-				baseDataEngine.rc.add(con.getStatements(null, null, null, true));				
+				baseDataEngine.getRc().add(con.getStatements(null, null, null, true));				
 			}catch(RepositoryException ex)
 			{
 				logger.debug(ex);
