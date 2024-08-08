@@ -24,9 +24,9 @@ public abstract class AbstractBaseSemossApiTests {
 			classLogger.error("ERROR");
 			classLogger.fatal("FATAL");
 			classLogger.info("Log check end");
-			
+
 			ApiSemossTestSetupUtils.ensureTestFolderStructure();
-			
+
 			ApiSemossTestPropsUtils.loadDIHelper();
 
 			// moved this to the before because its hard to delete databases before each
@@ -55,16 +55,20 @@ public abstract class AbstractBaseSemossApiTests {
 	public void beforeEachTest() throws Exception {
 		ApiSemossTestEngineUtils.checkDatabasePropMapping();
 
-		ApiSemossTestEngineUtils.clearNonCoreDBs();
+		// do we want a clean database
+		if (clearAllDatabasesBetweenTests) {
+			ApiSemossTestEngineUtils.clearNonCoreDBs();
+			ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
+		}
+
+		// do we want a clean email server
+		if (clearAllEmailsBetweenTests) {
+			ApiSemossTestEmailUtils.deleteAllEmails();
+		}
 
 		ApiSemossTestProjectUtils.clearNonCoreProjects();
 
-		// do we want a clean database
-		ApiSemossTestEngineUtils.deleteAllDataAndAddUser();
 		ApiSemossTestUserUtils.setDefaultTestUser();
-
-		// do we want a clean email server
-		ApiSemossTestEmailUtils.deleteAllEmails();
 
 		ApiSemossTestInsightUtils.clearInsightCacheDifferently();
 	}

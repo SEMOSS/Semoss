@@ -30,7 +30,7 @@ public class SecurityDbProjectTests extends AbstractBaseSemossApiTests {
 	
 	@Override
 	@BeforeEach
-	public void beforeEachTest() {
+	public void beforeEachTest() throws Exception {
 		this.clearAllDatabasesBetweenTests = false;
 		super.beforeEachTest();
 	}
