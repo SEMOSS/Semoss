@@ -1,4 +1,4 @@
-package prerna.engine.impl.model;
+package prerna.reactor.model;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +17,7 @@ import prerna.util.Utility;
 
 /*
  * Image("6154866e-4h22-898j-q33b-47v6w9g55re4", "Dogs playing poker.", space="6d143c32-9a2e-415c-88ba-a739475bab3b", filePath="/images") 
- */
+*/
 
 public class ImageReactor extends AbstractReactor {
 	
