@@ -10,6 +10,7 @@ import prerna.engine.api.IImageEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
+import prerna.util.UploadInputUtility;
 
 public class ImageEngine extends AbstractPythonModelEngine implements IImageEngine {
 	
@@ -17,7 +18,6 @@ public class ImageEngine extends AbstractPythonModelEngine implements IImageEngi
 	
 	/**
 	 * 	This method is responsible for building the Python script to generate an image.
-	 *  This method overloads the askCall() method from AbstractPythonModelEngine
 	 * 
 	 * @param prompt The description of the requested image.
 	 * @param insight Current insight.
@@ -34,6 +34,28 @@ public class ImageEngine extends AbstractPythonModelEngine implements IImageEngi
 		StringBuilder callMaker = new StringBuilder(varName + ".generate_image(");
 		
 		callMaker.append("prompt").append("=").append(PyUtils.determineStringType(prompt));
+		
+		String outputDir = "";
+		String space = "";
+		String filePath = "";
+		
+		if (parameters != null) {
+			if (parameters.containsKey("filePath")) {
+				filePath = (String) parameters.get("filePath");
+			}
+			if (parameters.containsKey("space")) {
+				space = (String) parameters.get("space");
+			} else {
+				space = "insight";
+			}
+		}
+		
+		outputDir = UploadInputUtility.getFilePath(insight, filePath, space);
+		
+		parameters.remove("filePath");
+		parameters.remove("space");
+		parameters.put("output_dir", outputDir);
+		
 		
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();

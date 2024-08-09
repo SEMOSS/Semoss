@@ -45,17 +45,8 @@ class ImageEngine(ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'SpaceFinder(filePath="{file_path}", space="{space}");'
-        pixelReturn = super().callReactor(
-            epoc=epoc,
-            pixel=pixel,
-            insight_id=insight_id
-        )
-
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            full_file_path = pixelReturn[0]["pixelReturn"][0]["output"]
-
-        param_dict["output_dir"] = full_file_path
+        param_dict["space"] = space
+        param_dict["filePath"] = file_path
 
         return super().call(
             epoc=epoc,
