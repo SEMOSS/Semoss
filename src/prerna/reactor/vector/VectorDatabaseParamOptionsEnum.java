@@ -16,6 +16,8 @@ public enum VectorDatabaseParamOptionsEnum {
 		COLUMNS_TO_REMOVE("columnsToRemove",		"A list of column names in the data that you dont want to store in the database"),
 		COLUMNS_TO_RETURN("columnsToReturn",		"A list of column names in the data you want returned in the response"),
 		EXTRACTION_METHOD("extractionMethod",		"The name of the extraction method used to pull data from PDF(s). Options are \"fitz\" or \"default\"."),
+		EMBED_IMAGES("embedImages",					"Boolean flag to determine whether image summaries should be processed and stored in the embeddings."),
+		IMAGE_ENGINE_ID("imageEngineId",			"Indicates the engine ID of the model used for image processing"),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
 		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under"),
 		 NAMESPACE("namespace", "Namespace of pinecone vector db");
@@ -81,6 +83,8 @@ public enum VectorDatabaseParamOptionsEnum {
 	            	map.put(VectorDatabaseParamOptionsEnum.CONTENT_OVERLAP.getKey(), OPTIONAL);
 	            	map.put(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey(), OPTIONAL);
 	            	map.put(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey(), OPTIONAL);
+	            	map.put(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey(), OPTIONAL);
+	            	map.put(VectorDatabaseParamOptionsEnum.IMAGE_ENGINE_ID.getKey(), OPTIONAL);
 	                break;
 	            default:
 	                throw new IllegalArgumentException("Vector database type is undefined for " + option);

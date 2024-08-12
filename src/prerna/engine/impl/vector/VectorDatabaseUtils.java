@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
@@ -40,7 +41,7 @@ public class VectorDatabaseUtils {
      * @return
      * @throws IOException
      */
-    public static Map<String, Object> convertFilesToCSV(String csvFileName, File file) throws IOException {
+    public static Map<String, Object> convertFilesToCSV(String csvFileName, File file, String embedImages) throws IOException {
         VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
         Map<String, Object> result = new HashMap<>();
         Map<String, String> imageMap = new HashMap<>();
@@ -95,10 +96,17 @@ public class VectorDatabaseUtils {
                 {
                     
                     // add an if statement whether want to do images or not
-                    ImagePDFProcessor pdf = new ImagePDFProcessor(file.getAbsolutePath(), writer);
-                    pdf.process();
-                    imageMap = pdf.getImageMap();
-                    processedList.add(file.getAbsolutePath());
+                	if (Objects.equals(embedImages, "True")) {
+                        ImagePDFProcessor pdf = new ImagePDFProcessor(file.getAbsolutePath(), writer);
+                        pdf.process();
+                        imageMap = pdf.getImageMap();
+                        processedList.add(file.getAbsolutePath());
+                	} else {
+                        PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
+                        pdf.process();
+                        processedList.add(file.getAbsolutePath());
+                	}
+
                 }
                 else if(mimeType.equalsIgnoreCase("text/plain"))
                 {

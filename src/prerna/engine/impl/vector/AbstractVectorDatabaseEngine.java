@@ -87,6 +87,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
     protected String defaultChunkUnit;
     protected String defaultExtractionMethod;
     
+    protected String embedImages;
+    protected String imageEngineId;
+    
     // our paradigm for how we store files
     protected String defaultIndexClass;
     protected List<String> indexClasses;
@@ -151,6 +154,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
         }
         
+        // 2 smss properties for image handling
+        if (this.smssProp.containsKey(Constants.EMBED_IMAGES)) {
+        	this.embedImages = this.smssProp.getProperty(Constants.EMBED_IMAGES);
+        }
+        if (this.smssProp.containsKey(Constants.IMAGE_ENGINE_ID)) {
+        	this.imageEngineId = this.smssProp.getProperty(Constants.IMAGE_ENGINE_ID);
+        }
+        
         // highest directory (first layer inside vector db base folder)
         String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
         this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
@@ -205,6 +216,16 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
         String extractionMethod = this.defaultExtractionMethod;
         if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
             extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
+        }
+        
+        String embedImages = this.embedImages;
+        if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey())) {
+            embedImages = (String) parameters.get(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey());
+        }
+        
+        String imageEngineId = this.imageEngineId;
+        if (parameters.containsKey(VectorDatabaseParamOptionsEnum.IMAGE_ENGINE_ID.getKey())) {
+            imageEngineId = (String) parameters.get(VectorDatabaseParamOptionsEnum.IMAGE_ENGINE_ID.getKey());
         }
         
         Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
@@ -289,26 +310,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
                         classLogger.info("Extracting text from document " + documentName);
                         // determine which text extraction method to use
                         int rowsCreated;
-                        Map<String, String> imageMap = new HashMap<>();
-                        if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
-                            StringBuilder extractTextFromDocScript = new StringBuilder();
-                            extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-                                .append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-                                .append("', target_folder = '")
-                                .append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
-                                .append("', output_file_name = '")
-                                .append(extractedFileName)
-                                .append("')");
-                            Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
 
-                            rowsCreated = rows.intValue();
-                        } else {
-                            Map<String, Object> result = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-                            
-                            rowsCreated = (int) result.get("rowsInCSV");
-                            imageMap = (Map<String, String>) result.get("imageMap");
-                        }
-                        
+                        Map<String, Object> result = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document, embedImages);
+                        rowsCreated = (int) result.get("rowsInCSV");
+
                         // check to see if the file data was extracted
                         if (rowsCreated <= 1) {
                             // no text was extracted so delete the file
@@ -317,8 +322,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
                             continue;
                         }
                         
-                        // replace with images here
-                        replaceImageKeysInCsv(extractedFileName, imageMap, insight);
+                    	if (Objects.equals(embedImages, "True")) {
+                            Map<String, String> imageMap = new HashMap<>();
+                        	imageMap = (Map<String, String>) result.get("imageMap");
+                        	replaceImageKeysInCsv(extractedFileName, imageMap, imageEngineId, insight);
+                        }
                         
                         classLogger.info("Creating chunks from extracted text for " + documentName);
 
@@ -375,14 +383,13 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
         }
     }
     
-    private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, Insight insight) throws IOException {
+    private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, String imageEngineId, Insight insight) throws IOException {
         List<String> lines = Files.readAllLines(Paths.get(csvFilePath));
         
-        String llmEngineId = "4acbe913-df40-4ac0-b28a-daa5ad91b172";
-        IModelEngine llmEngine = Utility.getModel(llmEngineId);
+        IModelEngine llmEngine = Utility.getModel(imageEngineId);
         
         Map<String, String> outputMap = new HashMap<>();
-        int counter = 0;
+        int counter = 1;
         int numImages = imageMap.size();
         
         for (Map.Entry<String, String> entry : imageMap.entrySet()) {           
