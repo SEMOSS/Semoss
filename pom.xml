@@ -1186,11 +1186,13 @@
 		</dependency>
 		-->
 		<!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+		<!--
 		<dependency>
 		    <groupId>com.mysql</groupId>
 		    <artifactId>mysql-connector-j</artifactId>
 		    <version>8.3.0</version>
 		</dependency>
+		-->
 		<!-- 
 		<dependency>
 			<groupId>io.netty</groupId>
@@ -1845,7 +1847,18 @@
 					<groupId>net.java.dev.jna</groupId>
 					<artifactId>jna-platform</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okio</groupId>
+					<artifactId>okio</artifactId>
+				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- including updated okio from exclusion above -->
+		<!-- https://mvnrepository.com/artifact/com.squareup.okio/okio -->
+		<dependency>
+		    <groupId>com.squareup.okio</groupId>
+		    <artifactId>okio</artifactId>
+		    <version>1.17.6</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api -->
 		<dependency>
