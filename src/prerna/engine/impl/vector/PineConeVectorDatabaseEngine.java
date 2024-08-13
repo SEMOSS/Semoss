@@ -195,51 +195,140 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		
-		Gson gson = new Gson();
-		
-		String url = this.hostname + API_QUERY;
-		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
-		List<Map<String, Object>> matchesOut = new ArrayList<Map<String, Object>>();
 
-		Map<String, Object> query = new HashMap<>();
-		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
-		query.put("topK", limit);
-		query.put("includeMetadata", true);
-		query.put("includeValues", true);
-		query.put("namespace", this.defaultNamespace);
-		query.put("vector", vector);
-		String body = gson.toJson(query);
+			String url = this.hostname + API_QUERY;
+			List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
 
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(API_KY, this.apiKey);
-		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+			List<Map<String, Map<String, Object>>> matchesOut = new ArrayList<Map<String, Map<String, Object>>>();
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body,
-				ContentType.APPLICATION_JSON, null, null, null);
+			List<Map<String, Object>> matchesOut1 = new ArrayList<Map<String, Object>>();
 
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-	
-		for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
-			Map<String, Object> outputMap = new HashMap();
-			outputMap.put("matches", responseMap.get("matches"));
-			matchesOut.add(outputMap);
+			List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
+
+			Map<String, Object> query = new HashMap<>();
+			List<Double> queryEmbeddings = new ArrayList<>();
+			for (int i = 0; i < vector.size(); i++) {
+				queryEmbeddings.add(vector.get(i)); // this is done to put a list of embeddings inside another list
+													// otherwise the API throws error.
+			}
+
+			if (!(parameters.containsKey("fileName"))) {
+
+				query.put("topK", limit);
+				query.put("includeMetadata", true);
+				query.put("includeValues", true);
+				query.put("namespace", this.defaultNamespace);
+				query.put("vector", queryEmbeddings);
+
+				String body = gson.toJson(query);
+
+				Map<String, String> headersMap = new HashMap<>();
+				headersMap.put(API_KY, this.apiKey);
+				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+				String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body,
+						ContentType.APPLICATION_JSON, null, null, null);
+
+				Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse,
+						new TypeToken<Map<String, Object>>() {
+						}.getType());
+
+				for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
+					Map<String, Object> outputMap = new HashMap();
+					outputMap.put("matches", responseMap.get("matches"));
+
+					matchesOut1.add(outputMap);
+				}
+
+				for (int i = 0; i < matchesOut1.size(); i++) {
+					Map<String,Object> resultMap = new HashMap<>();
+					
+					List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut1.get(i).get("matches");
+					Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
+					Map<String, Object> idMap = new HashMap<String, Object>();
+					idMap.put("id", matches.get(i).get("id"));
+					Map<String, Object> scoreMap = new HashMap<String, Object>();
+					scoreMap.put("score", matches.get(i).get("score"));
+					
+					resultMap.put("id", matches.get(i).get("id"));
+					resultMap.put("score", matches.get(i).get("score"));
+					resultMap.put("metadata", metadataMap);
+					retOut.add(resultMap);
+				}
+			}
+
+			if (parameters.containsKey("fileName")) {
+
+				String filename = parameters.get("fileName").toString();
+
+				System.out.println(filename);
+
+				List<String> allFiles = (List<String>) parameters.get("fileName");
+				List<String> fileList = new ArrayList<String>();
+
+				Map<String, Object> idMap = new HashMap<String, Object>();
+
+				for (String file : allFiles) {
+					String fileName = file.replaceAll(" ", "_");
+					fileList.add(fileName);
+
+				}
+
+				Map<String, Object> InMap = new HashMap<>();
+				InMap.put("$in", fileList);
+
+
+				Map<String, Object> source = new HashMap<>();
+				source.put("Source", InMap);
+
+				query.put("topK", limit);
+				query.put("includeMetadata", true);
+				query.put("includeValues", true);
+				query.put("namespace", this.defaultNamespace);
+				query.put("vector", queryEmbeddings);
+				query.put("filter", source);
+
+				String body = gson.toJson(query);
+
+				Map<String, String> headersMap = new HashMap<>();
+				headersMap.put(API_KY, this.apiKey);
+				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+				String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body,
+						ContentType.APPLICATION_JSON, null, null, null);
+
+				Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse,
+						new TypeToken<Map<String, Object>>() {
+						}.getType());
+
+				for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
+					Map<String, Object> outputMap2 = new HashMap();
+					outputMap2.put("matches", responseMap.get("matches"));
+
+					matchesOut1.add(outputMap2);
+				}
+
+				for (int i = 0; i < matchesOut1.size(); i++) {
+					
+					Map<String,Object> resultMap = new HashMap<>();
+					List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut1.get(i).get("matches");
+					Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
+					Map<String, Object> idMap2 = new HashMap<String, Object>();
+					idMap2.put("id", matches.get(i).get("id"));
+					Map<String, Object> scoreMap = new HashMap<String, Object>();
+					scoreMap.put("score", matches.get(i).get("score"));
+					
+					resultMap.put("id", matches.get(i).get("id"));
+					resultMap.put("score", matches.get(i).get("score"));
+					resultMap.put("metadata", metadataMap);
+					retOut.add(resultMap);
+				}
+			}
+
+			return retOut;
+
 		}
-
-		for (int i = 0; i < matchesOut.size(); i++) {
-			List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut.get(i).get("matches");
-			Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
-			Map<String, Object> idMap = new HashMap<String, Object>();
-			idMap.put("id", matches.get(i).get("id"));
-			Map<String, Object> scoreMap = new HashMap<String, Object>();
-			scoreMap.put("score", matches.get(i).get("score"));
-			retOut.add(idMap);
-			retOut.add(scoreMap);
-			retOut.add(metadataMap);
-		}
-
-		return retOut;
-	}
 	
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {

@@ -104,6 +104,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
 	
+	private String ocrEngineId = null;
+	
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
@@ -165,6 +167,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             	this.indexClasses.add(file.getName());
             }
         }
+        
+        if (this.smssProp.containsKey("OCRENGINEID")) {
+			this.ocrEngineId = smssProp.getProperty("OCRENGINEID");
+			}
 	}
 	
 	@Override
@@ -299,7 +305,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 							rowsCreated = rows.intValue();
 						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document,ocrEngineId);
 						}
 
 						// check to see if the file data was extracted

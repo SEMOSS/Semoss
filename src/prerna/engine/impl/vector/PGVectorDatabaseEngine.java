@@ -98,6 +98,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 	
+	private String ocrEngineId = null;
+	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -157,6 +159,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
+		
+		if (this.smssProp.containsKey("OCRENGINEID")) {
+			this.ocrEngineId = smssProp.getProperty("OCRENGINEID");
+			}
 	}
 	
 	/**
@@ -808,7 +814,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 							rowsCreated = rows.intValue();
 						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document,ocrEngineId);
 						}
 
 						// check to see if the file data was extracted

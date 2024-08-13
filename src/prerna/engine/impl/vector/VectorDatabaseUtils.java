@@ -39,7 +39,7 @@ public class VectorDatabaseUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
+	public static int convertFilesToCSV(String csvFileName, File file,String ocrEngineId) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 		try {
 			classLogger.info("Starting file conversions ");
@@ -90,7 +90,7 @@ public class VectorDatabaseUtils {
 				else if(mimeType.equalsIgnoreCase("application/pdf"))
 				{
 					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
-					pdf.process();
+					pdf.process(ocrEngineId);
 					processedList.add(file.getAbsolutePath());
 				}
 				else if(mimeType.equalsIgnoreCase("text/plain"))

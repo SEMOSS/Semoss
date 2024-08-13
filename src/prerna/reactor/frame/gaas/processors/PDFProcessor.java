@@ -2,14 +2,20 @@ package prerna.reactor.frame.gaas.processors;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class PDFProcessor {
 
@@ -29,7 +35,7 @@ public class PDFProcessor {
 	/**
 	 * 
 	 */
-	public void process() {
+	public void process(String ocrEngineId) {
 		PDDocument pdDoc = null;
 		try {
 			File f = new File(this.filePath);
@@ -37,13 +43,39 @@ public class PDFProcessor {
 			PDFTextStripper pdfStripper = new PDFTextStripper();
 			pdDoc = PDDocument.load(f);
 			int totalPages = pdDoc.getNumberOfPages();
-			for(int pageIndex = 1;pageIndex <= totalPages;pageIndex++)
-			{
-				pdfStripper.setStartPage(pageIndex);
-				pdfStripper.setEndPage(pageIndex);
-				String parsedText = pdfStripper.getText(pdDoc);
-				writer.writeRow(source, pageIndex+"", parsedText, "");
-			}
+			PDFRenderer pdfRenderer = new PDFRenderer(pdDoc);
+			
+			if (pdfRenderer.renderImage(0) != null && (ocrEngineId != null)) {
+
+				// Call OCRFunction
+
+				IFunctionEngine functionEngine = Utility.getFunctionEngine(ocrEngineId);
+				System.out.println("FunctionName:" + functionEngine.getEngineName());
+				if (functionEngine == null) {
+					throw new IllegalArgumentException("Unable to find engine");
+				}
+				Map<String, Object> map = new HashMap<>();
+				map.put("filePath", this.filePath);
+				Object parsedText = functionEngine.execute(map);
+				System.out.println("parsedData*********" + parsedText);
+				List<String> result = (List<String>) parsedText;
+
+				for (int pageIndex = 0; pageIndex < result.size(); pageIndex++) {
+					pdfStripper.setStartPage(pageIndex);
+					pdfStripper.setEndPage(pageIndex);
+					System.out.println(result.get(pageIndex) + ":" + pageIndex);
+					writer.writeRow(source, pageIndex + "", result.get(pageIndex), "");
+
+				}
+
+			} else
+				for (int pageIndex2 = 1; pageIndex2 <= totalPages; pageIndex2++) {
+					pdfStripper.setStartPage(pageIndex2);
+					pdfStripper.setEndPage(pageIndex2);
+					String parsedText = pdfStripper.getText(pdDoc);
+					System.out.println(pageIndex2 + ": " + parsedText);
+					writer.writeRow(source, pageIndex2 + "", parsedText, "");
+				}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
