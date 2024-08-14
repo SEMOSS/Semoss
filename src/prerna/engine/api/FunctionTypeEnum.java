@@ -1,12 +1,14 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.function.AWS_TEXTRACTFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
 
 public enum FunctionTypeEnum {
 
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
-	REST("REST", RESTFunctionEngine.class.getName());
+	REST("REST", RESTFunctionEngine.class.getName()),
+	AWS_TEXTRACT("AWS_TEXTRACT", AWS_TEXTRACTFunctionEngine.class.getName());
 	
 	private String functionName;
 	private String functionClass;
