@@ -2292,7 +2292,12 @@
 		    <artifactId>testcontainers</artifactId>
 		    <version>1.19.6</version>
 		    <scope>test</scope>
-		</dependency>
+		</dependency>				
+	    <dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-textract</artifactId>
+			<version>1.12.764</version> 
+		</dependency>			
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
