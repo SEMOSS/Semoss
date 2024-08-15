@@ -14,13 +14,13 @@ The following instructions assume that you are using Visual Studio Code as your 
     - In the root of the py folder, create a new directory called .vscode
     - Inside the .vscode directory, create a new file called settings.json
     - Add the following code to the settings.json file inside of the main brackets:
-        ```json
+    ```json
     "[python]": {
         "editor.formatOnType": true,
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true
       },
-        ```
+    ```
     - Save the settings.json file
 
 3. *Update your User Settings (optional)*
@@ -28,11 +28,11 @@ The following instructions assume that you are using Visual Studio Code as your 
     - Open the Command Palette by pressing `Ctrl+Shift+P`
     - Type "Preferences: Open User Settings (JSON)" and select it from the dropdown
     - Add the following code to the settings.json file:
-        ```json
+    ```json
     "[python]": {
         "editor.formatOnType": true,
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true
       },
-        ```
+    ```
     - Save the settings.json file
