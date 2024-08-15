@@ -44,6 +44,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -61,6 +62,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.text.NumberFormat;
@@ -137,8 +139,6 @@ import org.xeustechnologies.jcl.JclObjectFactory;
 import com.google.common.base.Strings;
 import com.google.common.net.InternetDomainName;
 import com.google.gson.GsonBuilder;
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -248,6 +248,22 @@ public final class Utility {
 	}
 
 
+	/**
+	 * This is to remove sql injection from strings
+	 * 
+	 * @param stringToNormalize
+	 * @return
+	 */
+	public static String inputSQLSanitizer(String stringToNormalize) {
+		if (stringToNormalize == null) {
+			classLogger.debug("input to sanitzer is null, returning null");
+			return stringToNormalize;
+		}
+
+		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
+	}
+	
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with

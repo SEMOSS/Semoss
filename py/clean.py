@@ -1,4 +1,3 @@
-from fuzzywuzzy import fuzz
 import string
 import pandas as pd
 import random
@@ -71,6 +70,7 @@ class PyFrame:
             print('cant fall back. In the latest')
 
     def calcRatio(self, actual_col, predicted_col):
+        from fuzzywuzzy import fuzz
         result = []
         # actual_col = actual_col.unique
         # predicted_col = predicted_col.unique

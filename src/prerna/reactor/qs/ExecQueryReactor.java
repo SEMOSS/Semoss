@@ -9,9 +9,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -60,7 +58,10 @@ public class ExecQueryReactor extends AbstractReactor {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
-				if (!(engine instanceof BigDataEngine || engine instanceof IRDBMSEngine)) {
+				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
+						) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 

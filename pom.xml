@@ -308,6 +308,19 @@
 			<artifactId>semoss-jdbc</artifactId>
 			<version>0.0.1</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat-catalina -->
+		<!-- this is the primary tomcat specific jar -->
+		<dependency>
+		    <groupId>org.apache.tomcat</groupId>
+		    <artifactId>tomcat-catalina</artifactId>
+		    <version>9.0.88</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.1.0</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- 
 		<dependency>
 			<groupId>jdk.tools</groupId>
@@ -366,12 +379,15 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-runtime -->
+		<!--
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-runtime</artifactId>
 			<version>2.1.4</version>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-core -->
+		<!--
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-core</artifactId>
@@ -429,8 +445,17 @@
 					<groupId>org.codehaus.jettison</groupId>
 					<artifactId>jettison</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.openrdf.sesame</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>javax.servlet</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!--
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
@@ -468,6 +493,24 @@
 			<version>1.5.4</version>
 		</dependency>
 		-->
+		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
+		<dependency>
+		    <groupId>org.openrdf.sesame</groupId>
+		    <artifactId>sesame-runtime</artifactId>
+		    <version>2.7.12</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-rio-rdfxml -->
+		<dependency>
+		    <groupId>org.openrdf.sesame</groupId>
+		    <artifactId>sesame-rio-rdfxml</artifactId>
+		    <version>2.7.12</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-queryresultio-sparqljson -->
+		<dependency>
+		    <groupId>org.openrdf.sesame</groupId>
+		    <artifactId>sesame-queryresultio-sparqljson</artifactId>
+		    <version>2.7.12</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
@@ -1143,11 +1186,13 @@
 		</dependency>
 		-->
 		<!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+		<!--
 		<dependency>
 		    <groupId>com.mysql</groupId>
 		    <artifactId>mysql-connector-j</artifactId>
 		    <version>8.3.0</version>
 		</dependency>
+		-->
 		<!-- 
 		<dependency>
 			<groupId>io.netty</groupId>
@@ -1802,7 +1847,18 @@
 					<groupId>net.java.dev.jna</groupId>
 					<artifactId>jna-platform</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okio</groupId>
+					<artifactId>okio</artifactId>
+				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- including updated okio from exclusion above -->
+		<!-- https://mvnrepository.com/artifact/com.squareup.okio/okio -->
+		<dependency>
+		    <groupId>com.squareup.okio</groupId>
+		    <artifactId>okio</artifactId>
+		    <version>1.17.6</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api -->
 		<dependency>
@@ -2212,7 +2268,6 @@
 		    <artifactId>owasp-java-html-sanitizer</artifactId>
 		    <version>20240325.1</version>
 		</dependency>	
-	
 	
 	
 	
