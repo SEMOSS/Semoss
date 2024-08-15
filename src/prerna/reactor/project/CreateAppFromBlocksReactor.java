@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,6 +12,8 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
@@ -24,6 +27,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
 
 public class CreateAppFromBlocksReactor extends AbstractReactor {
@@ -62,9 +66,10 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide the blocks JSON");
 		}
 		
+		User user = this.insight.getUser();
 		// Create new project
 		IProject newProject = ProjectHelper.generateNewProject(newProjectName, IProject.PROJECT_TYPE.BLOCKS, global, true, portalName, 
-				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
+				gitProvider, gitCloneUrl, user, logger);
 		
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(newProject.getProjectId());
 		File blocksJsonFile = new File(portalsFolder+"/"+IProject.BLOCK_FILE_NAME);
@@ -75,10 +80,18 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 			throw new IllegalArgumentException("New project was created but could not write the blocks json to the project folder. Errror = " + e.getMessage());
 		}
 		
-		String newProjectAssetFolder = AssetUtility.getProjectAssetFolder(newProject.getProjectId());
+		// add file to git
+		List<String> files = new Vector<>();
+		files.add(blocksJsonFile.getAbsolutePath());
+		String projectVersionFolder = AssetUtility.getProjectVersionFolder(newProject.getProjectName(), newProject.getProjectId());
+		GitRepoUtils.addSpecificFiles(projectVersionFolder, files);
+		// commit it
+		GitRepoUtils.commitAddedFiles(projectVersionFolder, "Initial creation of project", user);
+		
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Syncing project for cloud backup");
-			ClusterUtil.pushProjectFolder(newProject, newProjectAssetFolder);
+			ClusterUtil.pushProjectFolder(newProject, projectVersionFolder);
+			SecurityProjectUtils.setPortalPublish(user, newProject.getProjectId());
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), newProject.getProjectId());
