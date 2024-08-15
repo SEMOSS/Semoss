@@ -108,7 +108,7 @@
 	</fileSets>
 	<files>
 		<file>
-			<source>license.txt</source>
+			<source>LICENSE</source>
 		</file>
 		<file>
 			<source>log4j2.properties</source>
