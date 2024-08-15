@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ModelKeysEnum(Enum):
     api_key = "api_key", "API key being used for the specific model inference"
     api_base = "api_base", "The base URL for the model inference"
