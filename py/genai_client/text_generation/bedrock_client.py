@@ -314,6 +314,8 @@ class BedrockClient(AbstractTextGenerationClient):
                     )
                 elif self.modelId == "amazon.titan-text-express-v1":
                     prompt_content = kwargs[FULL_PROMPT]
+                elif self.modelId == "meta.llama3-8b-instruct-v1:0":
+                    prompt_content = ("<|begin_of_text|><|start_header_id|>user<|end_header_id|>{" + kwargs[FULL_PROMPT] + "}<|eot_id|><|start_header_id|>assistant<|end_header_id|>")
 
             model_engine_response.prompt_tokens = self.tokenizer.count_tokens(
                 prompt_content
