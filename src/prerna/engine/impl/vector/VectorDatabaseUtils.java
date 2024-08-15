@@ -34,6 +34,95 @@ public class VectorDatabaseUtils {
     private static final String DIR_SEPARATOR = "/";
     private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
     
+    
+	/**
+	 * 
+	 * @param csvFileName
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
+	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
+		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
+		try {
+			classLogger.info("Starting file conversions ");
+			List <String> processedList = new ArrayList<String>();
+	
+			// pick up the files and convert them to CSV
+			classLogger.info("Processing file : " + file.getName());
+			
+			// process this file
+			String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
+			String mimeType = null;
+			
+			//using tika for mime type check since it is more consistent across env + rhel OS and macOS
+			Tika tika = new Tika();
+	
+			try (FileInputStream inputstream = new FileInputStream(file)) {
+				mimeType = tika.detect(inputstream, new Metadata());
+			} catch (IOException e) {
+				classLogger.error(Constants.ERROR_MESSAGE, e);
+	        }
+			
+			if(mimeType != null) {
+				classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
+				if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+						|| (
+								mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
+								&& (filetype.equals("doc") || filetype.equals("docx")) 
+								)
+						)
+				{
+					// document
+					DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
+					dp.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+						|| (
+								mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
+								&& (filetype.equals("ppt") || filetype.equals("pptx")) 
+								)
+						)
+				{
+					// powerpoint
+					PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
+					pp.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else if(mimeType.equalsIgnoreCase("application/pdf"))
+				{
+					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
+					pdf.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else if(mimeType.equalsIgnoreCase("text/plain"))
+				{
+					TextFileProcessor text = new TextFileProcessor(file.getAbsolutePath(), writer);
+					text.process();
+					processedList.add(file.getAbsolutePath());
+				}
+				else
+				{
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+				}
+				classLogger.info("Completed Processing file : " + file.getAbsolutePath());
+			
+			}
+		} finally {
+			writer.close();
+		}
+		
+		return writer.getRowsInCsv();
+	}
+	
+	
     /**
      * 
      * @param csvFileName
@@ -41,7 +130,7 @@ public class VectorDatabaseUtils {
      * @return
      * @throws IOException
      */
-    public static Map<String, Object> convertFilesToCSV(String csvFileName, File file, String embedImages) throws IOException {
+    public static Map<String, Object> convertFilesToCSV(String csvFileName, File file, boolean embedImages) throws IOException {
         VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
         Map<String, Object> result = new HashMap<>();
         Map<String, String> imageMap = new HashMap<>();
@@ -96,7 +185,7 @@ public class VectorDatabaseUtils {
                 {
                     
                     // add an if statement whether want to do images or not
-                	if (Objects.equals(embedImages, "True")) {
+                	if (embedImages) {
                         ImagePDFProcessor pdf = new ImagePDFProcessor(file.getAbsolutePath(), writer);
                         pdf.process();
                         imageMap = pdf.getImageMap();

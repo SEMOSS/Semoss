@@ -87,7 +87,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
     protected String defaultChunkUnit;
     protected String defaultExtractionMethod;
     
-    protected String embedImages;
+    protected boolean embedImages = false;
     protected String imageEngineId;
     
     // our paradigm for how we store files
@@ -156,7 +156,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
         
         // 2 smss properties for image handling
         if (this.smssProp.containsKey(Constants.EMBED_IMAGES)) {
-        	this.embedImages = this.smssProp.getProperty(Constants.EMBED_IMAGES);
+        	this.embedImages =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.EMBED_IMAGES));
         }
         if (this.smssProp.containsKey(Constants.IMAGE_ENGINE_ID)) {
         	this.imageEngineId = this.smssProp.getProperty(Constants.IMAGE_ENGINE_ID);
@@ -218,9 +218,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
         }
         
-        String embedImages = this.embedImages;
+        boolean embedImages = this.embedImages;
         if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey())) {
-            embedImages = (String) parameters.get(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey());
+            embedImages = Boolean.parseBoolean( (String) parameters.get(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey()));
         }
         
         String imageEngineId = this.imageEngineId;
@@ -322,7 +322,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
                             continue;
                         }
                         
-                    	if (Objects.equals(embedImages, "True")) {
+                    	if (embedImages) {
                             Map<String, String> imageMap = new HashMap<>();
                         	imageMap = (Map<String, String>) result.get("imageMap");
                         	replaceImageKeysInCsv(extractedFileName, imageMap, imageEngineId, insight);

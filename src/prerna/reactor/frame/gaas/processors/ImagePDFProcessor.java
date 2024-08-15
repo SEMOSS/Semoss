@@ -10,7 +10,6 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.text.PDFTextStripper;
 
-import com.mysql.cj.x.protobuf.MysqlxExpr.Operator;
 
 // added for images
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
@@ -32,7 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.Iterator;
 
-
+import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -42,10 +41,10 @@ public class ImagePDFProcessor {
     private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
 
     private String filePath = null;
-    private CSVWriter writer = null;
+    private VectorDatabaseCSVWriter writer = null;
     private Map<String, String> imageMap;
 
-    public ImagePDFProcessor(String filePath, CSVWriter writer) {
+    public ImagePDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
         this.filePath = filePath;
         this.writer = writer;
         this.imageMap = new HashMap<>();
