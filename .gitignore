@@ -58,3 +58,6 @@ storage/**
 vector/**
 *.mv.db
 InsightCache/
+
+# Python local log file
+py/log.txt
