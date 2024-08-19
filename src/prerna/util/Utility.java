@@ -160,6 +160,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ISpeechEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IReactorEngine;
 import prerna.engine.api.ISelectStatement;
@@ -2567,6 +2568,8 @@ public final class Utility {
 			return getFunctionEngine(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
+		} else if (IEngine.CATALOG_TYPE.SPEECH == type) {
+			return getSpeechEngine(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
@@ -2749,6 +2752,25 @@ public final class Utility {
 	 */
 	public static IStorageEngine getStorage(String engineId, boolean pullIfNeeded) {
 		return (IStorageEngine) baseGetEngine(engineId, pullIfNeeded);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static ISpeechEngine getSpeechEngine(String engineId) {
+		return getSpeechEngine(engineId, true);
+	}
+
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static ISpeechEngine getSpeechEngine(String engineId, boolean pullIfNeeded) {
+		return (ISpeechEngine) baseGetEngine(engineId, true);
 	}
 
 	/**

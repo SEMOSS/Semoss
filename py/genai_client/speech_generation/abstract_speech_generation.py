@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class AbstractSpeechGenerationClient(ABC):
+class AbstractSpeechGenClient(ABC):
     def __init__(self, **kwargs):
         pass
 
