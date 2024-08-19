@@ -49,6 +49,11 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	
 	protected String varName = null;
 	
+	// Getter method to access varName in ImageEngine
+    protected String getVarName() {
+        return varName;
+    }
+	
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
 	
