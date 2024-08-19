@@ -15,7 +15,6 @@ import prerna.util.UploadInputUtility;
 import prerna.engine.api.ISpeechEngine;
 
 
-
 public class SpeechEngine extends AbstractPythonModelEngine implements ISpeechEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(SpeechEngine.class);
@@ -52,6 +51,12 @@ public class SpeechEngine extends AbstractPythonModelEngine implements ISpeechEn
 		parameters.remove("speakerFilePath");
 		parameters.remove("speakerSpace");
 		parameters.put("speaker_file_path", speakerPath);
+		
+		String model = "";
+		if (parameters.containsKey("model")) {
+			model = (String) parameters.get("model");
+			parameters.put("model", model);
+		}
 		
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();

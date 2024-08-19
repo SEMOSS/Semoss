@@ -6,7 +6,6 @@ class AbstractSpeechGenClient(ABC):
     def __init__(self, **kwargs):
         pass
 
-    # update this to return the response object
     @abstractmethod
     def generate_speech(self, *args: Any) -> str:
         pass
