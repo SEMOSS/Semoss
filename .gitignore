@@ -67,3 +67,4 @@ testfolder/model/**
 testfolder/storage/**
 testfolder/vector/**
 testfolder/InsightCache/
+testfolder/mailpit/mailpit.log
