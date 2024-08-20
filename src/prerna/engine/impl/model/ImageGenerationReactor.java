@@ -42,6 +42,7 @@ public class ImageGenerationReactor extends AbstractReactor {
 		String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		
 		Map<String, Object> paramMap = getMap();
+		
 		IImageEngine eng = Utility.getImageEngine(engineId);
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
@@ -64,7 +65,7 @@ public class ImageGenerationReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
+        GenRowStruct mapGrs = this.store.getNoun("paramValues");
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {

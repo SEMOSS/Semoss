@@ -4,15 +4,25 @@ import torch
 from typing import Optional
 from diffusers import PixArtAlphaPipeline
 from .abstract_image_generation_client import AbstractImageGenerationClient
+from io import BytesIO
+import base64
+from PIL import Image
 
 
 class ImageGenClient(AbstractImageGenerationClient):
-    def __init__(self, model_name: str = "PixArt-alpha/PixArt-XL-2-1024-MS", device: str = "cuda:0", **kwargs):
+    def __init__(
+        self,
+        model_name: str = "PixArt-alpha/PixArt-XL-2-1024-MS",
+        device: str = "cuda:0",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        self.device = torch.device(
-            device if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         self.pipe = PixArtAlphaPipeline.from_pretrained(
-            model_name, torch_dtype=torch.float16, use_safetensors=True)
+            model_name,
+            torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
+            use_safetensors=True,
+        )
         self.pipe.to(self.device)
         # Enable memory optimizations
         self.pipe.enable_model_cpu_offload()
@@ -28,7 +38,7 @@ class ImageGenClient(AbstractImageGenerationClient):
         num_inference_steps: Optional[int] = 50,
         height: Optional[int] = 512,
         width: Optional[int] = 512,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
     ) -> dict:
 
         # Create the directory if it does not exist
@@ -39,13 +49,15 @@ class ImageGenClient(AbstractImageGenerationClient):
         # by ensuring high quality coherent outputs
         if consistency_decoder:
             from diffusers import ConsistencyDecoderVAE
+
             self.pipe.vae = ConsistencyDecoderVAE.from_pretrained(
-                "openai/consistency-decoder", torch_dtype=torch.float16)
+                "openai/consistency-decoder", torch_dtype=torch.float16
+            )
             self.pipe.vae.to(self.device)
 
         # If seed is not provided by user, generate a random seed.. This is normal seed process
         # else we use the seed provided by the user
-        if seed is not None:
+        if seed is not None and seed > 0:
             generator = torch.Generator(device=self.device).manual_seed(seed)
         else:
             generator = torch.Generator(device=self.device)
@@ -66,19 +78,31 @@ class ImageGenClient(AbstractImageGenerationClient):
 
         start_time = datetime.datetime.now()
         outputs = self.pipe(
-            **{k: v.to(self.device) if torch.is_tensor(v) else v for k, v in inputs.items()})
+            **{
+                k: v.to(self.device) if torch.is_tensor(v) else v
+                for k, v in inputs.items()
+            }
+        )
         end_time = datetime.datetime.now()
         generation_time = (end_time - start_time).total_seconds()
 
         image = outputs.images[0]
         # Avoid using the same file name for multiple images
-        unique_identifier = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        file_path = os.path.join(
-            output_dir, f"{file_name}-{unique_identifier}.png")
+        unique_identifier = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_path = os.path.join(output_dir, f"{file_name}-{unique_identifier}.png")
 
         image.save(file_path)
 
+        # Converting image to base64
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        base64_str = base64.b64encode(buffered.getvalue()).decode()
+
+        if base64_str is None or base64_str == "":
+            base64_str = "THERE WAS A PROBLEM"
+
         response = {
+            "base64Image": base64_str,
             "file_path": file_path,
             "generation_time": int(generation_time),
             "seed": str(seed),
@@ -89,7 +113,9 @@ class ImageGenClient(AbstractImageGenerationClient):
             "height": int(height),
             "width": int(width),
             "model_name": self.pipe.name_or_path,
-            "vae_model_name": "openai/consistency-decoder" if consistency_decoder else "default",
+            "vae_model_name": (
+                "openai/consistency-decoder" if consistency_decoder else "default"
+            ),
         }
 
         return response

@@ -8,6 +8,7 @@ public abstract class AbstractImageModelEngineResponse<T> implements Serializabl
 
     private static final long serialVersionUID = 1L;
 
+    public static final String BASE64_IMAGE = "base64Image";
     public static final String FILE_PATH = "file_path";
     public static final String GENERATION_TIME = "generation_time";
     public static final String SEED = "seed";
@@ -20,12 +21,13 @@ public abstract class AbstractImageModelEngineResponse<T> implements Serializabl
     public static final String MODEL_NAME = "model_name";
     public static final String VAE_MODEL_NAME = "vae_model_name";
 
+    private String base64Image;
     private String file_path;
     private Integer generation_time;
     private String seed;
     private String prompt;
     private String negative_prompt;
-    private Double guidance_scale;
+    private Number guidance_scale;
     private Integer num_inference_steps;
     private Integer height;
     private Integer width;
@@ -33,18 +35,20 @@ public abstract class AbstractImageModelEngineResponse<T> implements Serializabl
     private String vae_model_name;
 
     public AbstractImageModelEngineResponse(
+    		String base64Image,
     		String file_path, 
     		Integer generation_time, 
     		String seed, 
     		String prompt, 
     		String negative_prompt, 
-    		Double guidance_scale, 
+    		Number guidance_scale, 
     		Integer num_inference_steps, 
     		Integer height, 
     		Integer width, 
     		String model_name, 
     		String vae_model_name
     		) {
+    	this.base64Image = base64Image;
         this.file_path = file_path;
         this.generation_time = generation_time;
         this.seed = seed;
@@ -56,6 +60,10 @@ public abstract class AbstractImageModelEngineResponse<T> implements Serializabl
         this.width = width;
         this.model_name = model_name;
         this.vae_model_name = vae_model_name;
+    }
+    
+    public String getBase64Image() {
+    	return base64Image;
     }
 
     public String getFilePath() {
@@ -98,7 +106,7 @@ public abstract class AbstractImageModelEngineResponse<T> implements Serializabl
         this.negative_prompt = negativePrompt;
     }
 
-    public Double getGuidanceScale() {
+    public Number getGuidanceScale() {
         return guidance_scale;
     }
 
@@ -148,6 +156,7 @@ public abstract class AbstractImageModelEngineResponse<T> implements Serializabl
 
     public Map<String, Object> toMap() {
         Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put(BASE64_IMAGE, this.base64Image);
         responseMap.put(FILE_PATH, this.file_path);
         responseMap.put(GENERATION_TIME, this.generation_time);
         responseMap.put(SEED, this.seed);
