@@ -91,6 +91,10 @@ public class RdbmsUploadReactorUtility {
 		int size = types.length;
 		String[] sqlTypes = new String[size + 1];
 		String[] newHeaders = new String[size + 1];
+		
+		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
+		AbstractSqlQueryUtil util = rdbms.getQueryUtil();
+		String bdtn = util.getBooleanDataTypeName();
 
 		newHeaders[0] = uniqueRowId;
 		sqlTypes[0] = "IDENTITY";
@@ -106,7 +110,9 @@ public class RdbmsUploadReactorUtility {
 			} else if (sType == SemossDataType.DATE) {
 				sqlTypes[i + 1] = "DATE";
 			} else if (sType == SemossDataType.TIMESTAMP) {
-				sqlTypes[i + 1] = "TIMESTAMP ";
+				sqlTypes[i + 1] = "TIMESTAMP";
+			} else if (sType == SemossDataType.BOOLEAN) {
+				sqlTypes[i + 1] = bdtn;
 			}
 		}
 		

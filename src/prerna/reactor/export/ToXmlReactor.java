@@ -80,7 +80,7 @@ public class ToXmlReactor extends AbstractExportTxtReactor {
 
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
 				PixelOperationType.FILE_DOWNLOAD);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the xml file"));
 		return retNoun;
 	}
 
