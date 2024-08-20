@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -295,8 +295,10 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		List<String> v1 = new ArrayList<>();
 		vals.add(v1);
 
-		LocalDate ld = LocalDate.of(2024, 1, 1);
-		v1.add(ld.atStartOfDay().toString());
+		LocalDateTime ld = LocalDateTime.of(2024, 1, 1, 1, 1, 1);
+		v1.add(ld.toString());
+		
+		adt.put("cone", "uuuu-MM-dd'T'HH:mm:ss");
 
 		String engine = ApiSemossTestEngineUtils.addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
 
@@ -321,7 +323,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 
 		List<String> lines = new ArrayList<>();
 		lines.add("<DataTable>");
-		lines.add("<TEST><cone>2024-01-01</cone></TEST>");
+		lines.add("<TEST><cone>2024-01-01 00:01:01</cone></TEST>");
 		lines.add("</DataTable>");
 
 		for (int i = 0; i < lines.size(); i++) {
