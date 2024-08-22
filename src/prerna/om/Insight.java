@@ -1570,21 +1570,8 @@ public class Insight implements Serializable {
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 	
-	public void setPy(PyExecutorThread jepThread) {
-		
-		this.jepThread = jepThread;
-		// need to do the check here
-		if(this.pyt == null)
-		{
-			pyt = new PyTranslator();
-			pyt.setInsight(this);
-			pyt.setPy(jepThread);
-		}
-	}
-	
 	public void setPyTranslator(PyTranslator pyt)
 	{
-		//if(this.pyt == null)
 		this.pyt = pyt;
 		if (pyt != null) {
 			pyt.setInsight(this);

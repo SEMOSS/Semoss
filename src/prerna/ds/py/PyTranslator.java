@@ -39,7 +39,7 @@ public class PyTranslator {
 
 	Logger logger = null;
 
-	PyExecutorThread pt = null;
+	private PyExecutorThread pt = null;
 	public static String curEncoding = null;
 	public static String NO_OUTPUT = "<e>";
 	public static String NEED_OUTPUT = "<o>";
