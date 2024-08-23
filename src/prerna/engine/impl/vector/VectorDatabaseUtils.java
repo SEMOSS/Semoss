@@ -21,6 +21,7 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
+import prerna.reactor.frame.gaas.processors.ImageDocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.ImagePDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
@@ -164,10 +165,17 @@ public class VectorDatabaseUtils {
                                 )
                         )
                 {
-                    // document
-                    DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
-                    dp.process();
+                    if (embedImages) {
+                    	ImageDocProcessor idp = new ImageDocProcessor(file.getAbsolutePath(), writer, true);
+                    	idp.process();
+                    	imageMap = idp.getImageMap();
+                    } else {                	
+	                    DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
+	                    dp.process();
+	                    
+                    }
                     processedList.add(file.getAbsolutePath());
+                    
                 }
                 else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
                         || (
