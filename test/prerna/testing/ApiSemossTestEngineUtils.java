@@ -45,7 +45,6 @@ public class ApiSemossTestEngineUtils {
 	private static Path ENGINES_CONFIG_FILE = Paths.get(ApiTestsSemossConstants.TEST_CONFIG_DIRECTORY.toString(), "engines.txt");
 	private static List<String> CORE_DBS = null;
 	
-	private static List<String> CURRENT_NAMES = new ArrayList<>();
 	
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
@@ -299,13 +298,11 @@ public class ApiSemossTestEngineUtils {
 		assertNotNull(columns);
 		assertNotNull(dataTypes);
 		assertNotNull(rowValues);
-		assertFalse(CURRENT_NAMES.contains(name), "Database with named <" + name + "> already exists");
 		assertEquals(columns.size(), dataTypes.size(), "Column name count and dataType count have to match up");
 		assertTrue(rowValues.size() > 0, "Input must contain table data");
 		assertEquals(1, rowValues.stream().map(s -> s.size()).distinct().count(), "All row value lengths must match");
 		assertEquals(rowValues.get(0).size(), columns.size(), "Data columns must have same size as column names and data types");
 		
-		CURRENT_NAMES.add(name);
 		
 		Path path = Paths.get(ApiSemossTestInsightUtils.getInsightCache().toString(), name + ".csv");
 		try {

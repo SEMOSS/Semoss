@@ -18,8 +18,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelBlock;
@@ -659,6 +659,13 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 							ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(dTime));
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
+						}
+					} else if (type == SemossDataType.BOOLEAN) {
+						Boolean dBool = Boolean.valueOf(value+"");
+						if (dBool != null) {
+							ps.setBoolean(colIndex + 1, dBool);
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.BOOLEAN);
 						}
 					}
 				}
