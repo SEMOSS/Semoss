@@ -302,7 +302,7 @@ public class CSVFileHelper {
 				String val = row[0];
 				// ignore empty values
 				// we will account for a certain amount of empty values
-				if(val.isEmpty() || val.equalsIgnoreCase("null")) {
+				if(val == null || val.isEmpty() || val.equalsIgnoreCase("null")) {
 					emptyCounter++;
 					// if we are over our empty limit
 					// nothing to do
