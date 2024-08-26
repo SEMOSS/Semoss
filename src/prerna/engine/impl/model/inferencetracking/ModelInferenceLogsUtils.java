@@ -38,6 +38,7 @@ import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -748,4 +749,28 @@ public class ModelInferenceLogsUtils {
 			stmt.execute(sql);
 		}
 	}
+
+	public static void removeFeedback(String messageId) {
+		if (!feedbackExists(messageId)) {
+			throw new SemossPixelException("No feedback found for the given messageId to remove.");
+		}
+		deleteFeedbackEntry(messageId);
+	}
+
+	private static void deleteFeedbackEntry(String messageId) {
+		String deleteQuery = "DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?";
+
+		try (Connection conn = connectToInferenceLogs(); PreparedStatement ps = conn.prepareStatement(deleteQuery)) {
+			ps.setString(1, messageId);
+			int affectedRows = ps.executeUpdate();
+			if (affectedRows == 0) {
+				classLogger.warn(
+						"No changes made while attempting to delete feedback for MESSAGE_ID: {}. Please verify the state of the feedback.",
+						messageId);
+			}
+		} catch (SQLException e) {
+			classLogger.error("Error deleting feedback entry for MESSAGE_ID: {} - {}", messageId, e.getMessage());
+		}
+	}
+
 }
