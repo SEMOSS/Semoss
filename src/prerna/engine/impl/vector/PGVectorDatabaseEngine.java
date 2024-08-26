@@ -53,7 +53,7 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
@@ -552,12 +552,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			verifyModelProps();
 		}
 		
-		GenRowFilters filters = new GenRowFilters();
+		List<IQueryFilter> filters = null;
+		List<IQueryFilter> metaFilters = null;
 		if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
-			Map<String, Object> tableFilters = (Map<String, Object>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
-			for(String columnName : tableFilters.keySet()) {
-				filters.addFilters(SimpleQueryFilter.makeColToValFilter(this.vectorTableName+"__"+columnName, "==", tableFilters.get(columnName)));
-			}
+			filters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
+		}
+		if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+			metaFilters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
 		}
 		
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {}
@@ -571,7 +572,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
 
 		final String tablePrefix = this.vectorTableName+"__";
-		final String metaTablePrefix = this.vectorTableMetadataName+"__";
+//		final String metaTablePrefix = this.vectorTableMetadataName+"__";
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(tablePrefix+"SOURCE",VectorDatabaseCSVTable.SOURCE));
@@ -583,8 +584,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING <-> '"+ embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
 		qs.addSelector(new QueryColumnSelector(tablePrefix+"SOURCE"));
 		qs.addOrderBy("Score", "ASC");
-		if(!filters.isEmpty()) {
-			qs.setExplicitFilters(filters);
+		if(filters != null && !filters.isEmpty()) {
+			qs.addExplicitFilter(new GenRowFilters(filters), true);
+		}
+		if(metaFilters != null && !metaFilters.isEmpty()) {
+			// also need the join
+			qs.addRelation(this.vectorTableName, this.vectorTableMetadataName, "inner.join");
+			qs.addExplicitFilter(new GenRowFilters(metaFilters), true);
 		}
 		if(limit != null) {
 			qs.setLimit(limit.longValue());
