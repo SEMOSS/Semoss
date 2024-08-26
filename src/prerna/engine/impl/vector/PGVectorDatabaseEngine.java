@@ -46,6 +46,7 @@ import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVRow;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
+import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -282,12 +283,32 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 			addEmbeddings(vectorCsvTable, insight, parameters);
 		}
+		
+		if(parameters != null && parameters.containsKey(AbstractVectorDatabaseEngine.METADATA)) {
+			Map<String, Map<String, Object>> metadata = (Map<String, Map<String, Object>>) parameters.get(AbstractVectorDatabaseEngine.METADATA);
+			if(!metadata.isEmpty()) {
+				String tempMetadataFile = insight.getInsightFolder()+"/metadata"+Utility.getRandomString(6)+".csv";
+				VectorDatabaseMetadataCSVWriter writer = new VectorDatabaseMetadataCSVWriter(tempMetadataFile);
+				writer.bulkWriteRow(metadata);
+				addMetadata(VectorDatabaseMetadataCSVTable.initCSVTable(new File(tempMetadataFile)));
+			}
+		}
 	}
 	
 	@Override
 	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 		addEmbeddings(vectorCsvTable, insight, parameters);
+		
+		if(parameters != null && parameters.containsKey(AbstractVectorDatabaseEngine.METADATA)) {
+			Map<String, Map<String, Object>> metadata = (Map<String, Map<String, Object>>) parameters.get(AbstractVectorDatabaseEngine.METADATA);
+			if(!metadata.isEmpty()) {
+				String tempMetadataFile = insight.getInsightFolder()+"/metadata"+Utility.getRandomString(6)+".csv";
+				VectorDatabaseMetadataCSVWriter writer = new VectorDatabaseMetadataCSVWriter(tempMetadataFile);
+				writer.bulkWriteRow(metadata);
+				addMetadata(VectorDatabaseMetadataCSVTable.initCSVTable(new File(tempMetadataFile)));
+			}
+		}
 	}
 	
 	@Override
@@ -555,9 +576,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		List<IQueryFilter> filters = null;
 		List<IQueryFilter> metaFilters = null;
 		if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+			//TODO: add tablename translation
 			filters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
 		}
 		if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+			//TODO: add tablename translation
 			metaFilters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
 		}
 		
