@@ -6,19 +6,18 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class RdbmsUploadReactorUtility {
 
@@ -92,10 +91,12 @@ public class RdbmsUploadReactorUtility {
 		String[] sqlTypes = new String[size + 1];
 		String[] newHeaders = new String[size + 1];
 		
-		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
-		AbstractSqlQueryUtil util = rdbms.getQueryUtil();
-		String bdtn = util.getBooleanDataTypeName();
-
+		IRDBMSEngine rdbmsEng = (IRDBMSEngine) engine;
+		AbstractSqlQueryUtil queryUtil = rdbmsEng.getQueryUtil();
+		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+		final String NUMERIC_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+		
 		newHeaders[0] = uniqueRowId;
 		sqlTypes[0] = "IDENTITY";
 		for (int i = 0; i < size; i++) {
@@ -106,18 +107,16 @@ public class RdbmsUploadReactorUtility {
 			} else if (sType == SemossDataType.INT) {
 				sqlTypes[i + 1] = "INT";
 			} else if (sType == SemossDataType.DOUBLE) {
-				sqlTypes[i + 1] = "DOUBLE";
+				sqlTypes[i + 1] = NUMERIC_DATATYPE_NAME;
 			} else if (sType == SemossDataType.DATE) {
 				sqlTypes[i + 1] = "DATE";
 			} else if (sType == SemossDataType.TIMESTAMP) {
-				sqlTypes[i + 1] = "TIMESTAMP";
+				sqlTypes[i + 1] = TIMESTAMP_DATATYPE_NAME;
 			} else if (sType == SemossDataType.BOOLEAN) {
-				sqlTypes[i + 1] = bdtn;
+				sqlTypes[i + 1] = BOOLEAN_DATATYPE_NAME;
 			}
 		}
 		
-		IRDBMSEngine rdbmsEng = (IRDBMSEngine) engine;
-		AbstractSqlQueryUtil queryUtil = rdbmsEng.getQueryUtil();
 		Connection conn = null;
 		Statement stmt = null;
 		try {
