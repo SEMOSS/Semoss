@@ -59,14 +59,5 @@ vector/**
 *.mv.db
 InsightCache/
 
-#test folder
-testfolder/RDF_Map.prop
-testfolder/mailpit/mailpit.log
-testfolder/project/**
-testfolder/user/**
-testfolder/db/**
-testfolder/model/**
-testfolder/function/**
-testfolder/storage/**
-testfolder/vector/**
-testfolder/InsightCache/
+# Python local log file
+py/log.txt
