@@ -813,11 +813,13 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		filterBuilder.append(thisComparator);
 		
 		// ugh... this is gross
-		if(rightComp.getValue() instanceof Collection && !needToClose) {
+		/*if(rightComp.getValue() instanceof Collection && !needToClose) {
 			filterBuilder.append("isin(").append(PyUtils.determineStringType(rightComp.getValue())).append(")");
 		} else {
 			filterBuilder.append(PyUtils.determineStringType(rightComp.getValue()));
-		}
+		}*/
+
+		filterBuilder.append(PyUtils.determineStringType(rightComp.getValue()))
 		
 		if (needToClose) {
 			filterBuilder.append(")");
