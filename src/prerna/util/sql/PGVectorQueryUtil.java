@@ -7,6 +7,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
+import prerna.engine.impl.vector.VectorDatabaseCSVTable;
+import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.util.Constants;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
@@ -58,26 +60,27 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 			
 			writer.addConcept(embeddingsTable);
 			writer.addProp(embeddingsTable, "ID", "IDENTITY");
-			writer.addProp(embeddingsTable, "SOURCE", "TEXT");
-			writer.addProp(embeddingsTable, "MODALITY", "TEXT");
-			writer.addProp(embeddingsTable, "DIVIDER", "TEXT");
-			writer.addProp(embeddingsTable, "PART", "TEXT");
-			writer.addProp(embeddingsTable, "TOKENS", "INTEGER");
-			writer.addProp(embeddingsTable, "CONTENT", "TEXT");
+			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.SOURCE, "TEXT");
+			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.MODALITY, "TEXT");
+			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.DIVIDER, "TEXT");
+			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.PART, "TEXT");
+			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.TOKENS, "INTEGER");
+			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.CONTENT, "TEXT");
 			writer.addProp(embeddingsTable, "EMBEDDING", "VECTOR");
 
 			writer.addConcept(metadataTable);
 			writer.addProp(metadataTable, "ID", "IDENTITY");
-			writer.addProp(metadataTable, "SOURCE", "TEXT");
-			writer.addProp(metadataTable, "ATTRIBUTE", "TEXT");
-			writer.addProp(metadataTable, "STR_VALUE", "TEXT");
-			writer.addProp(metadataTable, "INT_VALUE", "INTEGER");
-			writer.addProp(metadataTable, "NUM_VALUE", "NUMERIC(18,4)");
-			writer.addProp(metadataTable, "BOOL_VALUE", "BOOLEAN");
-			writer.addProp(metadataTable, "DATE_VAL", "DATE");
-			writer.addProp(metadataTable, "TIMESTAMP_VAL", "TIMESTAMP");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.SOURCE, "TEXT");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.ATTRIBUTE, "TEXT");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.STR_VALUE, "TEXT");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.INT_VALUE, "INTEGER");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.NUM_VALUE, "NUMERIC(18,4)");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.BOOL_VALUE, "BOOLEAN");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.DATE_VAL, "DATE");
+			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.TIMESTAMP_VAL, "TIMESTAMP");
 
-			writer.addRelation(embeddingsTable, metadataTable, embeddingsTable+".SOURCE."+metadataTable+".SOURCE");
+			writer.addRelation(embeddingsTable, metadataTable, 
+					embeddingsTable+"."+VectorDatabaseCSVTable.SOURCE+"."+metadataTable+"."+VectorDatabaseMetadataCSVTable.SOURCE);
 			
 			writer.commit();
 			writer.export();
