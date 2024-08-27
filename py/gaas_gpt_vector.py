@@ -32,7 +32,7 @@ class VectorEngine(ServerProxy):
         Add the documents into the vector database
 
         Args:
-            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 
+            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
@@ -40,7 +40,9 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
         pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
         epoc = super().get_next_epoc()
@@ -56,7 +58,7 @@ class VectorEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
-    
+
     def addVectorCSVFile(
         self,
         file_paths: List[str],
@@ -67,7 +69,7 @@ class VectorEngine(ServerProxy):
         Add the vector csv file format documents into the vector database
 
         Args:
-            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 
+            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
@@ -75,7 +77,9 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
         pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
         epoc = super().get_next_epoc()
@@ -90,7 +94,7 @@ class VectorEngine(ServerProxy):
             output = pixelReturn[0]["pixelReturn"][0]
             return output["output"]
 
-        return pixelReturn    
+        return pixelReturn
 
     def removeDocument(
         self,
@@ -110,7 +114,9 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
         pixel = f'RemoveDocumentFromVectorDatabase(engine="{self.engine_id}",fileNames={file_names}{optionalParams});'
         epoc = super().get_next_epoc()
@@ -151,7 +157,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalLimit = f",limit=[{limit}]" if (limit is not None and limit > 0) else ""
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
         pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optionalParams});'
         epoc = super().get_next_epoc()
@@ -183,9 +191,13 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
-        pixel = f'ListDocumentsInVectorDatabase(engine="{self.engine_id}"{optionalParams});'
+        pixel = (
+            f'ListDocumentsInVectorDatabase(engine="{self.engine_id}"{optionalParams});'
+        )
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(

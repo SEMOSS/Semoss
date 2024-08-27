@@ -1,4 +1,4 @@
 from .openai_controller import (
-    OpenAiClientController as OpenAiClient, 
-    AzureOpenAiClientController as AzureOpenAiClient
+    OpenAiClientController as OpenAiClient,
+    AzureOpenAiClientController as AzureOpenAiClient,
 )

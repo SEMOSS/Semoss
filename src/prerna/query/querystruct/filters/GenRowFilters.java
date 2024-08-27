@@ -34,6 +34,10 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 	public GenRowFilters() {
 		
 	}
+	
+	public GenRowFilters(List<IQueryFilter> initFilters) {
+		addFilters(initFilters);
+	}
 
 	public List<IQueryFilter> getFilters() {
 		return this.filterVec;
