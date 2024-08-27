@@ -812,7 +812,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		filterBuilder.append(thisComparator);
 
-		filterBuilder.append(PyUtils.determineStringType(rightComp.getValue()))
+		filterBuilder.append(PyUtils.determineStringType(rightComp.getValue()));
 		
 		if (needToClose) {
 			filterBuilder.append(")");
