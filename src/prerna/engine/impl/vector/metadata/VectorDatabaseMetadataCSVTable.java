@@ -8,11 +8,12 @@ import java.util.List;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.query.querystruct.CsvQueryStruct;
 
 public class VectorDatabaseMetadataCSVTable {
 	
-	public static final String SOURCE = "Source";
+	public static final String SOURCE = VectorDatabaseCSVTable.SOURCE;
 	public static final String ATTRIBUTE = "Attribute";
 	public static final String STR_VALUE = "Str_Value";
 	public static final String INT_VALUE = "Int_Value";
