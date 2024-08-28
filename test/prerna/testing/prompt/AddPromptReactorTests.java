@@ -17,8 +17,10 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 	public void addOnePromptTest() {
 		String title = "Test-Title";
 		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
+		
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
@@ -29,15 +31,17 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 			
 		String title = "Test-Title";
 		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
 		
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 		
 		// Changing vars for prompt 2 
 		title = "Test-Title-2";
 		context = "Translate the {{question}} int {{language}}";
 		tags = Arrays.asList("World", "Travel");
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		intent = "Test Prompt Intent 2";
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 		
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
@@ -49,15 +53,17 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 			
 		String title = "Test-Title";
 		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
 		
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 		
 		// Changing vars for prompt 2 
 		title = "Test-Title-2";
 		context = "Translate the {{question}} int {{language}}";
 		tags = Arrays.asList("World", "Travel");
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		intent = "second intent";
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 		
 		List<String> metaTagsFilters = Arrays.asList("World");
 		NounMetadata listPrompts = PromptTestUtils.listPrompts(metaTagsFilters);
@@ -69,8 +75,9 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 	public void addPromptValidationTest() {
 		String title = "Test-Title";
 		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());

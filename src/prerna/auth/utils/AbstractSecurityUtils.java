@@ -1693,8 +1693,8 @@ public abstract class AbstractSecurityUtils {
 			}
 			
 			// PROMPT STUFF
-			colNames = new String[] { "ID", "TITLE", "CONTEXT", "CREATED_BY", "DATE_CREATED", "IS_PUBLIC" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "VARCHAR(255)",
+			colNames = new String[] { "ID", "TITLE", "CONTEXT", "VERSION", "INTENT", "CREATED_BY", "DATE_CREATED", "IS_LATEST" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT", "VARCHAR(255)",  "VARCHAR(255)",
 					TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 			if (allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT", colNames, types));
@@ -1706,32 +1706,33 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			colNames = new String[] { "ID", "PROMPT_ID", "INDEX", "KEY", "DISPLAY", "TYPE",
-					"IS_HIDDEN_PHRASE_INPUT_TOKEN", "LINKED_INPUT_TOKEN" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)" };
-			if (allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_INPUT", colNames, types));
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "PROMPT_INPUT", database, schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable("PROMPT_INPUT", colNames, types));
-				}
-			}
-
-			colNames = new String[] { "ID", "PROMPT_ID", "PROMPT_INPUT_ID", "TYPE", "META", "VALUE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)" };
-			if (allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_VARIABLE", colNames, types));
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "PROMPT_VARIBALE", database, schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable("PROMPT_VARIABLE", colNames, types));
-				}
-			}
+			// TODO Remove after second push? 
+//			colNames = new String[] { "ID", "PROMPT_ID", "INDEX", "KEY", "DISPLAY", "TYPE",
+//					"IS_HIDDEN_PHRASE_INPUT_TOKEN", "LINKED_INPUT_TOKEN" };
+//			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)",
+//					"VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)" };
+//			if (allowIfExistsTable) {
+//				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_INPUT", colNames, types));
+//			} else {
+//				// see if table exists
+//				if (!queryUtil.tableExists(conn, "PROMPT_INPUT", database, schema)) {
+//					// make the table
+//					securityDb.insertData(queryUtil.createTable("PROMPT_INPUT", colNames, types));
+//				}
+//			}
+//
+//			colNames = new String[] { "ID", "PROMPT_ID", "PROMPT_INPUT_ID", "TYPE", "META", "VALUE" };
+//			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+//					"VARCHAR(255)" };
+//			if (allowIfExistsTable) {
+//				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_VARIABLE", colNames, types));
+//			} else {
+//				// see if table exists
+//				if (!queryUtil.tableExists(conn, "PROMPT_VARIBALE", database, schema)) {
+//					// make the table
+//					securityDb.insertData(queryUtil.createTable("PROMPT_VARIABLE", colNames, types));
+//				}
+//			}
 
 			// PROMPTMETA
 			// check if column exists
@@ -1765,24 +1766,24 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// PROMPTPERMISSION
-			boolean PROMPTPERMISSION = queryUtil.tableExists(conn, "PROMPTPERMISSION", database, schema);
-			colNames = new String[] { "PROMPT_ID", "USERID", "FAVORITE", "DATEADDED" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, false, null };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROMPTPERMISSION", colNames, types,
-						defaultValues);
-				classLogger.info("Running sql " + sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "PROMPTPERMISSION", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("PROMPTPERMISSION", colNames, types);
-					classLogger.info("Running sql " + sql);
-					securityDb.insertData(sql);
-				}
-			}
+//			boolean PROMPTPERMISSION = queryUtil.tableExists(conn, "PROMPTPERMISSION", database, schema);
+//			colNames = new String[] { "PROMPT_ID", "USERID", "FAVORITE", "DATEADDED" };
+//			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+//			defaultValues = new Object[] { null, null, false, null };
+//			if (allowIfExistsTable) {
+//				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROMPTPERMISSION", colNames, types,
+//						defaultValues);
+//				classLogger.info("Running sql " + sql);
+//				securityDb.insertData(sql);
+//			} else {
+//				// see if table exists
+//				if (!queryUtil.tableExists(conn, "PROMPTPERMISSION", database, schema)) {
+//					// make the table
+//					String sql = queryUtil.createTable("PROMPTPERMISSION", colNames, types);
+//					classLogger.info("Running sql " + sql);
+//					securityDb.insertData(sql);
+//				}
+//			}
 	
 			if(!conn.getAutoCommit()) {
 				conn.commit();

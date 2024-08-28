@@ -16,9 +16,10 @@ public class CheckPromptTitleReactorTests extends AbstractBaseSemossApiTests {
 	public void titleExsitsTest() {
 		String title = "Test-Title";
 		String context = "Translate {{question}}";
+		String intent = "Test Prompt";
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
 		
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 		
 		boolean titleExsits = PromptTestUtils.checkPromptTitle(title);
 		assertTrue(titleExsits);
@@ -30,9 +31,10 @@ public class CheckPromptTitleReactorTests extends AbstractBaseSemossApiTests {
 	public void titleDoesNotExsitsTest() {
 		String title = "Test-Title";
 		String context = "Translate {{question}}";
-		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
+		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
+		String intent = "Test Prompt";
 		
-		PromptTestUtils.addPrompt(title, context, tags, true, true);
+		PromptTestUtils.addPrompt(title, context, intent, tags);
 		
 		// Changing vars for prompt 2 
 		title = "Test-Title-2";
