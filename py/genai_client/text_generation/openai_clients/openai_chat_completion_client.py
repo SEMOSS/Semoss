@@ -1,5 +1,4 @@
-from typing import Optional, Union, List, Dict, Any, Tuple
-import numpy as np
+from typing import List, Dict, Tuple
 
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import FULL_PROMPT, AskModelEngineResponse
@@ -149,10 +148,12 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
-        specific_tokenizer=self.tokenizer._get_tokenizer(self.model_name)
-        if(hasattr(specific_tokenizer, "apply_chat_template") ):
+        specific_tokenizer = self.tokenizer._get_tokenizer(self.model_name)
+        if hasattr(specific_tokenizer, "apply_chat_template"):
             # there is a apply chat template available for this model - transformers tokenizer
-            prompt = specific_tokenizer.apply_chat_template(prompt_payload, tokenize=False)
+            prompt = specific_tokenizer.apply_chat_template(
+                prompt_payload, tokenize=False
+            )
             # use the models tokenizer to get the number of tokens in the prompt
             prompt_tokens = self.tokenizer.get_tokens_ids(prompt)
             num_token_in_prompt = len(prompt_tokens)
@@ -162,7 +163,6 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             num_token_in_prompt = self.tokenizer.count_tokens(prompt_payload)
 
         max_prompt_tokens = self.tokenizer.get_max_input_token_length()
-
 
         if max_prompt_tokens != None:
             max_tokens = max_prompt_tokens

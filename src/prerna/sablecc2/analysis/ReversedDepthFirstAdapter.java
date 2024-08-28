@@ -2775,6 +2775,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outANestedMapValues(node);
     }
 
+    public void inAMapOperationValues(AMapOperationValues node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapOperationValues(AMapOperationValues node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapOperationValues(AMapOperationValues node)
+    {
+        inAMapOperationValues(node);
+        if(node.getOperation() != null)
+        {
+            node.getOperation().apply(this);
+        }
+        outAMapOperationValues(node);
+    }
+
     public void inAMapList(AMapList node)
     {
         defaultIn(node);

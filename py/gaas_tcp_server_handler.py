@@ -895,4 +895,5 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
 if __name__ == "__main__":
     from gaas_tcp_socket_server import Server
+
     Server(port=9999, start=True)

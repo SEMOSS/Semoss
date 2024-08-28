@@ -302,13 +302,11 @@ public class ApiSemossTestEngineUtils {
 		assertNotNull(columns);
 		assertNotNull(dataTypes);
 		assertNotNull(rowValues);
-		assertFalse(CURRENT_NAMES.contains(name), "Database with named <" + name + "> already exists");
 		assertEquals(columns.size(), dataTypes.size(), "Column name count and dataType count have to match up");
 		assertTrue(rowValues.size() > 0, "Input must contain table data");
 		assertEquals(1, rowValues.stream().map(s -> s.size()).distinct().count(), "All row value lengths must match");
 		assertEquals(rowValues.get(0).size(), columns.size(), "Data columns must have same size as column names and data types");
 		
-		CURRENT_NAMES.add(name);
 		
 		Path path = Paths.get(ApiSemossTestInsightUtils.getInsightCache().toString(), name + ".csv");
 		try {
