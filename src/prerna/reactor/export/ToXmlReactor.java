@@ -161,8 +161,8 @@ public class ToXmlReactor extends AbstractExportTxtReactor {
 					String currTable = null;
 					for (; i < size; i++) {
 						String[] rowHeaderInfo = headerInfo.get(i).get("header").toString().split("__");
-						String tab = rowHeaderInfo[0];
-						String col = rowHeaderInfo[1];
+						String tab = rowHeaderInfo[0];  
+						String col = rowHeaderInfo[1]; 
 						if (!tab.equals(currTable)) {
 							if (currTable != null) {
 								builder.append("</").append(currTable).append(">");
@@ -184,7 +184,11 @@ public class ToXmlReactor extends AbstractExportTxtReactor {
 						builder.append("</").append(col).append(">");
 					}
 
-					builder.append("</").append(currTable).append(">").append("\n");
+					if (noTable) {
+						builder.append("\n");
+					} else {
+						builder.append("</").append(currTable).append(">").append("\n");
+					}
 					// write row to file
 					bufferedWriter.write(builder.toString());
 
