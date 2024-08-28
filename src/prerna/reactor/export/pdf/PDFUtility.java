@@ -38,10 +38,13 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.jsoup.nodes.Attributes;
 
+import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
+import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.util.Constants;
 
 
@@ -982,4 +985,82 @@ public final class PDFUtility {
 		}
 	}
 	
+	public static boolean validatePDImages(String filePath) throws IOException {
+		boolean status = false;
+		PDDocument pdDoc = null;
+		try {
+			File f = new File(filePath);
+			pdDoc = PDDocument.load(f);
+		
+			PDFRenderer pdfRenderer = new PDFRenderer(pdDoc);
+		
+			if (pdfRenderer.renderImage(0) != null) {
+				
+			status = true;
+
+			}
+		}
+			catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (pdDoc != null) {
+					try {
+						pdDoc.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		
+		return status;
+	}
+	
+	
+
+	public static int OCRPDFProcessor(String csvFileName, File file, List<String> result) throws IOException {
+		// TODO Auto-generated method stub
+		
+		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
+		PDFTextStripper pdfStripper = new PDFTextStripper();
+		String source = null;
+		File file2 = new File(file.getAbsolutePath());
+		if(file.exists()) {
+			source = file2.getName();
+		}
+		try {
+			classLogger.info("Starting file ``conversions ");
+			List <String> processedList = new ArrayList<String>();
+	
+			// pick up the files and convert them to CSV
+			classLogger.info("Processing file : " + file.getName());
+		
+					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
+				//	pdf.process();
+					
+					if(result.size()>0) {
+							//List<String> result = (List<String>) parsedText;
+
+							for (int pageIndex = 0; pageIndex < result.size(); pageIndex++) {
+								pdfStripper.setStartPage(pageIndex);
+								pdfStripper.setEndPage(pageIndex);
+								System.out.println(result.get(pageIndex) + ":" + pageIndex);
+								writer.writeRow(source, pageIndex + "", result.get(pageIndex), "");
+
+							}
+					}
+					
+					
+					processedList.add(file.getAbsolutePath());
+		}
+		
+		 finally {
+			writer.close();
+		}
+		return writer.getRowsInCsv();
+		
+	}
+	
+	
 }
+	
+	

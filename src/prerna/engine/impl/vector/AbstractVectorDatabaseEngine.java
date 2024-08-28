@@ -30,6 +30,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -40,6 +41,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.reactor.export.pdf.PDFUtility;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -109,6 +111,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
 	
+	protected String ocrEngineId = null;
+	
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
@@ -170,6 +174,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             	this.indexClasses.add(file.getName());
             }
         }
+        
+        if (this.smssProp.containsKey("AZUREOCRENGINEID")) {
+			this.ocrEngineId = smssProp.getProperty("AZUREOCRENGINEID");
+			}
 	}
 	
 	@Override
@@ -303,9 +311,17 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
 
 							rowsCreated = rows.intValue();
-						} else {
+						}else {
+							boolean status = PDFUtility.validatePDImages(document.getAbsolutePath());
+							if(status & ocrEngineId != null) {
+								List<String> result = executeAzureOCR(document.getAbsolutePath(),ocrEngineId);
+								rowsCreated = PDFUtility.OCRPDFProcessor(extractedFile.getAbsolutePath(), document,result);
+							}
+							else {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-						}
+						
+							}
+							}
 
 						// check to see if the file data was extracted
 						if (rowsCreated <= 1) {
@@ -858,6 +874,24 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+	
+	public List<String> executeAzureOCR(String filePath,String ocrEngineId) throws IOException{
+		
+		List<String> result = null;
+			IFunctionEngine functionEngine = Utility.getFunctionEngine(ocrEngineId);
+			System.out.println("FunctionName:" + functionEngine.getEngineName());
+			if (functionEngine == null) {
+				throw new IllegalArgumentException("Unable to find engine");
+			}
+			Map<String, Object> map = new HashMap<>();
+			map.put("filePath", filePath); 
+			Object parsedText = functionEngine.execute(map);
+			System.out.println("parsedData*********" + parsedText);
+			result = (List<String>) parsedText;
+		
+		return result;
+		
 	}
 	
 }
