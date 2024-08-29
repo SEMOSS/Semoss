@@ -2259,10 +2259,11 @@
 		    <version>0.1.4</version>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
+		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
-			<version>4.6.0</version>  <!-- Check latest version -->
+			<version>4.8.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
