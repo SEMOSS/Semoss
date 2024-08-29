@@ -158,16 +158,25 @@ public class ToXmlReactor extends AbstractExportTxtReactor {
 					// generate the data row
 					Object[] dataRow = row.getValues();
 					i = 0;
+					String tab = null;
+					String col = null;
 					String currTable = null;
 					for (; i < size; i++) {
 						String[] rowHeaderInfo = headerInfo.get(i).get("header").toString().split("__");
-						String tab = rowHeaderInfo[0];  
-						String col = rowHeaderInfo[1]; 
-						if (!tab.equals(currTable)) {
+						for (String l : rowHeaderInfo) {
+							System.out.println(l);
+						}
+						if(rowHeaderInfo.length > 1) {
+						tab = rowHeaderInfo[0];  
+						col = rowHeaderInfo[1]; }
+						else {
+							col = rowHeaderInfo[0];
+						}
+						if (tab != null && !tab.equals(currTable)) {
 							if (currTable != null) {
 								builder.append("</").append(currTable).append(">");
 							}
-							currTable = tab.toString();
+							currTable = tab;
 							builder.append("<").append(tab).append(">");
 						}
 						builder.append("<").append(col).append(">");
@@ -182,13 +191,15 @@ public class ToXmlReactor extends AbstractExportTxtReactor {
 							}
 						}
 						builder.append("</").append(col).append(">");
+						currTable = tab;
 					}
 
-					if (noTable) {
-						builder.append("\n");
-					} else {
-						builder.append("</").append(currTable).append(">").append("\n");
+					if (currTable!= null){
+						builder.append("</").append(currTable).append(">");
 					}
+
+					builder.append("\n");
+
 					// write row to file
 					bufferedWriter.write(builder.toString());
 

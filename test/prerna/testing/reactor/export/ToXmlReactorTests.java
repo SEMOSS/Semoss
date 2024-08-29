@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import prerna.algorithm.api.SemossDataType;
 import prerna.reactor.export.IterateReactor;
 import prerna.reactor.export.ToXmlReactor;
+import prerna.reactor.imports.ImportReactor;
+import prerna.reactor.qs.QueryAllReactor;
 import prerna.reactor.qs.source.DatabaseReactor;
 import prerna.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -357,7 +359,6 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		v2.add("2");
 
 		String engine = ApiSemossTestEngineUtils.addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
-
 		// run toxml reactor -> Database() | Select().as() | Iterate() | ToXml() 
 		// change to -> Frame() | QueryAll() | ToXml()
 		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
@@ -365,8 +366,9 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		PixelChain frame = new PixelChain(FrameReactor.class);
 		PixelChain iterate = new PixelChain(IterateReactor.class);
 		PixelChain toxml = new PixelChain(ToXmlReactor.class, ReactorKeysEnum.FILE_NAME.getKey(), "output");
-
-		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, frame, iterate, toxml);
+		PixelChain queryAll = new PixelChain(QueryAllReactor.class);
+		PixelChain imp = new PixelChain(ImportReactor.class);
+		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, imp, frame, queryAll, iterate, toxml);
 		System.out.println(pixel); //Database(database="c07675e1-d489-4297-b3ea-2c6ccbfc9ff2") | Select(TEST__colone, TEST__coltwo).as([colone, coltwo]) | Frame() | Iterate() | ToXml(fileName="output");
 
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
