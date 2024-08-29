@@ -2037,7 +2037,14 @@ public final class Utility {
 				syncToLocalMaster = true;
 			}
 		} catch(Exception e) {
-			classLogger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+		}
+		if(engineType == null) {
+			return;
 		}
 		
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
