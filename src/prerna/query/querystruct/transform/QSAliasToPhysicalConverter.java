@@ -450,12 +450,10 @@ public class QSAliasToPhysicalConverter {
 	}
 	
 	private static BetweenQueryFilter convertBetweenQueryFilter(BetweenQueryFilter queryFilter, OwlTemporalEngineMeta meta, String customTableName) {
-		
-			// need to convert column to the full name
-			queryFilter.setColumn(convertSelector(queryFilter.getColumn(), meta, customTableName));
-			return queryFilter;
+		// need to convert column to the full name
+		queryFilter.setColumn(convertSelector(queryFilter.getColumn(), meta, customTableName));
+		return queryFilter;
 	}
-
 	
 	private static GenRowFilters convertHavingGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases, String customTableName) {
 		List<IQueryFilter> origGrf = grs.getFilters();
