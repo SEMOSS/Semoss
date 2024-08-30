@@ -313,7 +313,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							rowsCreated = rows.intValue();
 						}else {
 							boolean status = PDFUtility.validatePDImages(document.getAbsolutePath());
-							if(status & ocrEngineId != null) {
+							if(status & ocrEngineId != null & !(ocrEngineId.isEmpty())) {
 								List<String> result = executeAzureOCR(document.getAbsolutePath(),ocrEngineId);
 								rowsCreated = PDFUtility.OCRPDFProcessor(extractedFile.getAbsolutePath(), document,result);
 							}
