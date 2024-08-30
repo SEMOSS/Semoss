@@ -323,6 +323,10 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 						ps.setObject(colIndex + 1, null);
 						continue;
 					}
+					if (nextRow[colIndex].equals("null")) {
+						ps.setObject(colIndex + 1, null);
+						continue;
+					}
 
 					// yay, actual data
 					SemossDataType type = types[colIndex];

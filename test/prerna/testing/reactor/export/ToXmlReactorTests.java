@@ -392,4 +392,54 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 			assertEquals(lines.get(i), linesFromXml.get(i));
 		}
 	}
+	
+	@Test
+	public void testNull() throws IOException {
+		// Create Engine
+		List<String> columns = new ArrayList<>();
+		columns.add("cone");
+
+		List<String> dtypes = new ArrayList<>();
+		dtypes.add(SemossDataType.STRING.toString());
+
+
+		Map<String, String> adt = new HashMap<>();
+
+		List<List<String>> vals = new ArrayList<>();
+		List<String> v1 = new ArrayList<>();
+		vals.add(v1);
+
+		v1.add(null);
+		
+		
+		String engine = ApiSemossTestEngineUtils.addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
+
+		// run toxml reactor
+		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
+		PixelChain select = new PixelChain(
+				"Select(TEST__cone).as([cone])");
+		PixelChain iterate = new PixelChain(IterateReactor.class);
+		PixelChain toxml = new PixelChain(ToXmlReactor.class, ReactorKeysEnum.FILE_NAME.getKey(), "output");
+
+		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, iterate, toxml);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertNotNull(nm.getValue());
+
+		// read file
+		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
+				.filter(s -> s.toString().contains("output")).findFirst()
+				.orElseThrow(() -> new RuntimeException("Could not find file"));
+
+		List<String> linesFromXml = Files.readAllLines(pathToFile);
+		assertEquals(3, linesFromXml.size());
+
+		List<String> lines = new ArrayList<>();
+		lines.add("<DataTable>");
+		lines.add("<TEST><cone>null</cone></TEST>");
+		lines.add("</DataTable>");
+
+		for (int i = 0; i < lines.size(); i++) {
+			assertEquals(lines.get(i), linesFromXml.get(i));
+		}
+	}
 }
