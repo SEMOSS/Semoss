@@ -163,15 +163,13 @@ public class ToXmlReactor extends AbstractExportTxtReactor {
 					String currTable = null;
 					for (; i < size; i++) {
 						String[] rowHeaderInfo = headerInfo.get(i).get("header").toString().split("__");
-						for (String l : rowHeaderInfo) {
-							System.out.println(l);
-						}
-						if(rowHeaderInfo.length > 1) {
-						tab = rowHeaderInfo[0];  
-						col = rowHeaderInfo[1]; }
-						else {
+						if (rowHeaderInfo.length > 1) {
+							tab = rowHeaderInfo[0];
+							col = rowHeaderInfo[1];
+						} else {
 							col = rowHeaderInfo[0];
 						}
+						//test case where you join another table and you toXML the resulting
 						if (tab != null && !tab.equals(currTable)) {
 							if (currTable != null) {
 								builder.append("</").append(currTable).append(">");
