@@ -436,12 +436,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
 		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
+		String deleteMetaQuery = "DELETE FROM "+this.vectorTableMetadataName+" WHERE SOURCE=?";
 		Connection conn = null;
 		PreparedStatement ps = null;
+		PreparedStatement metaPs = null;
 		int[] results = null;
 		try {
 			conn = this.getConnection();
 			ps = conn.prepareStatement(deleteQuery);
+			metaPs = conn.prepareStatement(deleteMetaQuery);
 			for (String document : fileNames) {
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
@@ -455,12 +458,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, documentName);
 				ps.addBatch();
+				
+				parameterIndex = 1;
+				metaPs.setString(parameterIndex++, documentName);
+				metaPs.addBatch();
 			}
 			results = ps.executeBatch();
+			// since metadata is optional
+			// its fine if no rows updated
+			metaPs.executeBatch();
 			
 			for(int j=0; j<results.length; j++) {
 	            if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-	                throw new IllegalArgumentException("Error inserting data for row " + j);
+	                throw new IllegalArgumentException("Error removing data for row " + j);
 	            }
 	        }
 			
