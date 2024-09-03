@@ -10,13 +10,14 @@ CHAT_TYPE = "chat_type"
 TEMPLATE = "template"
 TEMPLATE_NAME = "template_name"
 FULL_PROMPT = "full_prompt"
-    
+
+
 @dataclasses.dataclass
 class AbstractModelEngineResponse:
     """
     A model engine response object
     """
-    
+
     response: Any = None
     response_tokens: int = 0
     prompt_tokens: int = 0
@@ -36,10 +37,11 @@ class AbstractModelEngineResponse:
         }
 
         return non_none_attributes
-    
+
     def __str__(self):
         return str(self.to_dict())
-    
+
+
 class AskModelEngineResponse(AbstractModelEngineResponse):
     """
     A text-generation model engine response object for text-generation
@@ -52,14 +54,15 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         tokens: the response tokens
         logprobs: logprob for a given token
     """
-    
-    response: str = ''
+
+    response: str = ""
     response_tokens: int = 0
     prompt_tokens: int = 0
     warning: str = None
     tokens: List[str] = None
     logprobs: List[float] = None
-    
+
+
 class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):
     """
     A embeddings engine response object
@@ -72,6 +75,7 @@ class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):
         tokens: the response tokens
         logprobs: logprob for a given token
     """
+
     response: List[float]
     response_tokens: int = 0
     prompt_tokens: int = 0

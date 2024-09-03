@@ -19,12 +19,11 @@ public enum VectorDatabaseParamOptionsEnum {
 		EMBED_IMAGES("embedImages",					"Boolean flag to determine whether image summaries should be processed and stored in the embeddings."),
 		IMAGE_ENGINE_ID("imageEngineId",			"Indicates the engine ID of the model used for image processing"),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
-		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under"),
-		 NAMESPACE("namespace", "Namespace of pinecone vector db");
+		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under")
+		;
 	
 	    private final String key;
 	    private final String description;
-	    
 	    
 	    VectorDatabaseParamOptionsEnum(String key, String description) {
 	    	this.key = key;
@@ -34,6 +33,7 @@ public enum VectorDatabaseParamOptionsEnum {
 	    public String getKey() {
 			return this.key;
 		}
+	    
 	    public static String getDescriptionFromKey(String key) {
 			for(VectorDatabaseParamOptionsEnum e : VectorDatabaseParamOptionsEnum.values()) {
 				if(e.key.equals(key)) {

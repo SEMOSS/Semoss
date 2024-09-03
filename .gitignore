@@ -61,3 +61,14 @@ InsightCache/
 
 # Python local log file
 py/log.txt
+
+# test folder stuff
+testfolder/project/**
+testfolder/user/**
+testfolder/db/**
+testfolder/model/**
+testfolder/storage/**
+testfolder/vector/**
+testfolder/InsightCache/
+testfolder/mailpit/mailpit.log
+

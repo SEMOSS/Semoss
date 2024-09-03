@@ -1,6 +1,5 @@
 import boto3
 import json
-from string import Template
 import logging
 
 from .abstract_text_generation_client import AbstractTextGenerationClient
