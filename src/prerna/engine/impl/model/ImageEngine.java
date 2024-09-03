@@ -11,6 +11,7 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.util.UploadInputUtility;
+import prerna.util.Utility;
 
 public class ImageEngine extends AbstractPythonModelEngine implements IImageEngine {
 	
@@ -55,6 +56,11 @@ public class ImageEngine extends AbstractPythonModelEngine implements IImageEngi
 		parameters.remove("filePath");
 		parameters.remove("space");
 		parameters.put("output_dir", outputDir);
+		
+		// Check whether to use a gRPC server to connect to image model (This should be set in RDF_MAP with REMOTE_CLIENTS = true when not developing locally.)
+		Boolean useRemoteClient = Utility.getDIHelperProperty("REMOTE_CLIENTS") != null && Utility.getDIHelperProperty("REMOTE_CLIENTS").equalsIgnoreCase("true");
+		
+		parameters.put("remote_client", useRemoteClient);
 		
 		
 		if(parameters != null) {

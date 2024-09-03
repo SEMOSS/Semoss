@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package imagegen;
+import "google/protobuf/wrappers.proto";
+
+service ImageGenService {
+  rpc GenerateImage (ImageGenRequest) returns (ImageGenResponse);
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+
+
+message ImageGenRequest {
+  string prompt = 1;
+  google.protobuf.BoolValue consistency_decoder = 2;
+  google.protobuf.StringValue negative_prompt = 3;
+  google.protobuf.FloatValue guidance_scale = 4;
+  google.protobuf.Int32Value num_inference_steps = 5;
+  google.protobuf.Int32Value height = 6;
+  google.protobuf.Int32Value width = 7;
+  google.protobuf.Int32Value seed = 8;
+}
+
+
+message ImageGenResponse {
+  string base64Image = 1;
+  int32 generation_time = 2;
+  string seed = 3;
+  string prompt = 4;
+  string negative_prompt = 5;
+  float guidance_scale = 6;
+  int32 num_inference_steps = 7;
+  int32 height = 8;
+  int32 width = 9;
+  string model_name = 10;
+  string vae_model_name = 11;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+}
