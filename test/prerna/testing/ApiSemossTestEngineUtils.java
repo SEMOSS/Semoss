@@ -33,6 +33,10 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
+import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
+import prerna.testing.utility.TestExcelInputObject;
+import prerna.testing.utility.TestExcelInputUtility;
+import prerna.testing.utility.TestExcelType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -342,6 +346,48 @@ public class ApiSemossTestEngineUtils {
 		return engineId;
 	}
 
+	@SuppressWarnings("unchecked")
+	public static String addTestRdbmsDatabase(String name, List<String> tableNames, List<List<String>> columns,
+			List<List<String>> dataTypes, List<Map<String, String>> additionalDataTypes, List<List<TestExcelInputObject>> rowValues) {
 
+
+		Path path = Paths.get(ApiSemossTestInsightUtils.getInsightCache().toString(), name + ".xlsx");
+		try {
+			path = Files.createFile(path);
+			List<String> lines = new ArrayList<>();
+			for (List<String> col: columns) {
+				lines.add(String.join(", ", col));
+			}
+			for (List<TestExcelInputObject> rv : rowValues) {
+				for (TestExcelInputObject val : rv) {
+					if (TestExcelType.BOOLEAN == TestExcelInputObject.getType(val))
+					String = TestExcelInputUtility.getString(rv);
+					lines.add(String.join(", ", rv));	
+				}
+			}
+			Files.write(path, lines);
+		} catch (Exception e) {
+			fail(e.toString());
+		}
+
+		Map<String, String> dataType = new HashMap<>();
+		for (int i = 0; i < columns.size(); i++) {
+			dataType.put(columns.get(i), dataTypes.get(i));
+		}
+		Map<String, String> newHeaders = new HashMap<>();
+
+		Map<String, String> descriptionMap = new HashMap<>();
+		Map<String, String> logicalMap = new HashMap<>();
+		String pixelCall = ApiSemossTestUtils.buildPixelCall(RdbmsUploadExcelDataReactor.class, "database",
+				Arrays.asList(name), "filePath", Arrays.asList("\\" + name + ".csv"), "delimiter", Arrays.asList(","),
+				"dataTypeMap", Arrays.asList(dataType), "newHeaders", Arrays.asList(newHeaders), "additionalDataTypes",
+				Arrays.asList(additionalDataTypes), "descriptionMap", Arrays.asList(descriptionMap), "logicalNamesMap",
+				Arrays.asList(logicalMap), "existing", Arrays.asList(Boolean.FALSE));
+
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixelCall);
+		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
+		String engineId = (String) ret.get("database_id");
+		return engineId;
+	}
 	
 }
