@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestInsightUtils;
 import prerna.testing.ApiSemossTestUtils;
 import prerna.testing.PixelChain;
+import prerna.testing.utility.TestExcelInputObject;
+import prerna.testing.utility.TestExcelInputUtility;
 
 public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 
@@ -585,5 +588,30 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		for (int i = 0; i < lines.size(); i++) {
 			assertEquals(lines.get(i), linesFromXml.get(i));
 		}
+	}
+	
+	@Test
+	public void testTwoTables() {
+		String dbName = "TEST";
+		List<String> tableNames = Arrays.asList("test1", "test2");
+		List<List<String>> columns = Arrays.asList(Arrays.asList("col1", "col2"), Arrays.asList("col3", "col4"));
+		List<List<String>> dtypes = Arrays.asList(
+				Arrays.asList(SemossDataType.STRING.toString(), SemossDataType.STRING.toString()),
+				Arrays.asList(SemossDataType.STRING.toString(), SemossDataType.STRING.toString()));
+		List<Map<String, String>> adts = new ArrayList<>();
+
+		List<List<TestExcelInputObject>> rvs = new ArrayList<>();
+		List<TestExcelInputObject> rv1 = new ArrayList<>();
+		rv1.add(TestExcelInputUtility.getString("one"));
+		rv1.add(TestExcelInputUtility.getString("two"));
+
+		List<TestExcelInputObject> rv2 = new ArrayList<>();
+		rv2.add(TestExcelInputUtility.getString("three"));
+		rv2.add(TestExcelInputUtility.getString("four"));
+
+		rvs.add(rv1);
+		rvs.add(rv2);
+
+		ApiSemossTestEngineUtils.addTestRdbmsDatabase(dbName, tableNames, columns, dtypes, adts, rvs);
 	}
 }
