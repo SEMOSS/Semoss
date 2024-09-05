@@ -9,6 +9,8 @@ REMOTE_CLIENTS = false
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
+REMOTE_CLIENTS = false
+
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
 SMSSWebWatcher_EXT	.smss
