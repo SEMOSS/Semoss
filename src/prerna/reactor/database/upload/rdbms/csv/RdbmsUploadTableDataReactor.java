@@ -405,6 +405,13 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 						}
+					} else if (type == SemossDataType.BOOLEAN) {
+						Boolean dBool = Boolean.valueOf(nextRow[colIndex]);
+						if (dBool != null) {
+							ps.setBoolean(colIndex + 1, dBool);
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.BOOLEAN);
+						}
 					}
 				}
 				// add it

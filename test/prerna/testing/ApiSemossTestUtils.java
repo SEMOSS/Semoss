@@ -91,8 +91,29 @@ public class ApiSemossTestUtils {
 		NounMetadata ret = pr.getResults().get(0);
 		return ret;
 	}
-
-	public static String buildPixelCall(Class<?> cl, Object... args) {
+	
+	public static String buildPixelChain(PixelChain... chains) {
+		String call = "";
+		boolean first = true;
+		for (PixelChain pc : chains) {
+			if (first) {
+				first = false;
+			} else {
+				call += " | ";
+			}
+			
+			if (pc.isRawPixel()) {
+				call += pc.getRawPixel();
+			} else {
+				call += buildPixelCall(pc.getC(), true, pc.getArgs());
+			}
+		}
+		
+		call += ";";
+		return call;
+	}
+	
+	public static String buildPixelCall(Class<?> cl, boolean chaining, Object... args) {
 		String call = cl.getSimpleName().replace("Reactor", "");
 		call += "(";
 		for (int i = 0; i < args.length; i += 2) {
@@ -108,8 +129,17 @@ public class ApiSemossTestUtils {
 				call += convertMapToPixelInput(args[i + 1]);
 			}
 		}
-		call += ");";
+
+		if (chaining) {
+			call += ")";
+		} else {
+			call += ");";
+		}
 		return call;
+	}
+
+	public static String buildPixelCall(Class<?> cl, Object... args) {
+		return buildPixelCall(cl, false, args);
 	}
 	
 	public static void checkNounMetadataError(NounMetadata nm, String errorMessage) {

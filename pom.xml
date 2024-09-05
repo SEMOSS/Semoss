@@ -1186,11 +1186,13 @@
 		</dependency>
 		-->
 		<!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+		<!--
 		<dependency>
 		    <groupId>com.mysql</groupId>
 		    <artifactId>mysql-connector-j</artifactId>
 		    <version>8.3.0</version>
 		</dependency>
+		-->
 		<!-- 
 		<dependency>
 			<groupId>io.netty</groupId>
@@ -1522,6 +1524,12 @@
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz-jobs</artifactId>
 			<version>2.3.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/jakarta.mail/jakarta.mail-api -->
+		<dependency>
+		    <groupId>jakarta.mail</groupId>
+		    <artifactId>jakarta.mail-api</artifactId>
+		    <version>2.1.3</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.sun.mail/jakarta.mail -->
 		<dependency>
@@ -1955,10 +1963,17 @@
 		    <artifactId>clickhouse-jdbc</artifactId>
 		    <version>0.6.3</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk -->
 		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.12.763</version>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk</artifactId>
+		    <version>1.12.770</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-textract -->
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-textract</artifactId>
+		    <version>1.12.770</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
 		<!--
@@ -2244,10 +2259,11 @@
 		    <version>0.1.4</version>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
+		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
-			<version>4.6.0</version>  <!-- Check latest version -->
+			<version>4.8.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
@@ -2266,8 +2282,9 @@
 		    <artifactId>owasp-java-html-sanitizer</artifactId>
 		    <version>20240325.1</version>
 		</dependency>	
-	
-	
+
+
+
 	
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
@@ -2290,7 +2307,7 @@
 		    <artifactId>testcontainers</artifactId>
 		    <version>1.19.6</version>
 		    <scope>test</scope>
-		</dependency>
+		</dependency>				
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
