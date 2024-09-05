@@ -11,7 +11,6 @@ import websockets
 import datetime
 import os
 import base64
-import zlib
 from genai_client.image_generation.abstract_image_generation_client import (
     AbstractImageGenerationClient,
 )
