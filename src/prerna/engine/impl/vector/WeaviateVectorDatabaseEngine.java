@@ -259,41 +259,83 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
 		
-		GraphQLResponse response = client.graphQL().get().withClassName(className)
-				.withFields(content, source, divider, part, modality, _additional)
-				.withNearVector(nearVector)
-				.withAutocut(cutter)
-				.withLimit(limit.intValue())
-				.run()
-				.getResult();
-
-		// hashmap = LinkedTreeMap
-		// each level is a hashmap
-		// get is first level
-		// followed by vector table
-		// followed list of contents - array list
-		// the contents is again another hashmap
+		GraphQLResponse response = null;
 		
-		// get
-		LinkedTreeMap getMap = (LinkedTreeMap)((LinkedTreeMap)response.getData()).get("Get");
-		
-		// vector table
-		ArrayList outputs = (ArrayList)getMap.get(className);
+		if (!parameters.containsKey("fileName")) {
 
-		// each of the output is another treemap with each of the fields.. yay 
-		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++) {
-			LinkedTreeMap thisOutput = (LinkedTreeMap)outputs.get(outputIndex);
-			LinkedTreeMap additional = (LinkedTreeMap)thisOutput.get("_additional");
-			Map <String, Object> outputMap = new HashMap();
-			outputMap.put("Source", thisOutput.get("source"));
-			outputMap.put("Divider", thisOutput.get("divider"));
-			outputMap.put("Modality", thisOutput.get("modality"));
-			outputMap.put("Part", thisOutput.get("part"));
-			outputMap.put("Content", thisOutput.get("content"));
-			outputMap.put("Score", additional.get("certainty"));
-			outputMap.put("Distance", additional.get("distance"));
-			retOut.add(outputMap);
+			response = client.graphQL().get().withClassName(className)
+					.withFields(content, source, divider, part, modality, _additional).withNearVector(nearVector)
+					.withAutocut(cutter).withLimit(limit.intValue()).run().getResult();
+
+			// hashmap = LinkedTreeMap
+			// each level is a hashmap
+			// get is first level
+			// followed by vector table
+			// followed list of contents - array list
+			// the contents is again another hashmap
+
+			// get
+			LinkedTreeMap getMap = (LinkedTreeMap) ((LinkedTreeMap) response.getData()).get("Get");
+
+			// vector table
+			ArrayList outputs = (ArrayList) getMap.get(className);
+
+			// each of the output is another treemap with each of the fields.. yay
+			for (int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
+				LinkedTreeMap thisOutput = (LinkedTreeMap) outputs.get(outputIndex);
+				LinkedTreeMap additional = (LinkedTreeMap) thisOutput.get("_additional");
+				Map<String, Object> outputMap = new HashMap();
+				outputMap.put("Source", thisOutput.get("source"));
+				outputMap.put("Divider", thisOutput.get("divider"));
+				outputMap.put("Modality", thisOutput.get("modality"));
+				outputMap.put("Part", thisOutput.get("part"));
+				outputMap.put("Content", thisOutput.get("content"));
+				outputMap.put("Score", additional.get("certainty"));
+				outputMap.put("Distance", additional.get("distance"));
+				retOut.add(outputMap);
+			}
 		}
+
+		if (parameters.containsKey("fileName")) {
+
+			List<String> allFiles = (List<String>) parameters.get("fileName");
+
+			for (int fileIndex = 0; fileIndex < allFiles.size(); fileIndex++) {
+				String fileName = allFiles.get(fileIndex);
+
+				response = client.graphQL().get().withClassName(className)
+						.withFields(content, source, divider, part, modality, _additional)
+						.withNearVector(nearVector)
+						.withAutocut(cutter)
+						.withLimit(limit.intValue())
+						.withWhere(WhereFilter.builder().path("source")
+								.operator(Operator.Equal)
+								.valueText(fileName)
+								.build())
+						.run().getResult();
+
+				LinkedTreeMap getMap = (LinkedTreeMap) ((LinkedTreeMap) response.getData()).get("Get");
+
+				// vector table
+				ArrayList outputs = (ArrayList) getMap.get(className);
+
+				for (int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
+					LinkedTreeMap thisOutput = (LinkedTreeMap) outputs.get(outputIndex);
+					LinkedTreeMap additional = (LinkedTreeMap) thisOutput.get("_additional");
+					Map<String, Object> outputMap = new HashMap();
+
+					outputMap.put("Source", thisOutput.get("source"));
+					outputMap.put("Divider", thisOutput.get("divider"));
+					outputMap.put("Modality", thisOutput.get("modality"));
+					outputMap.put("Part", thisOutput.get("part"));
+					outputMap.put("Content", thisOutput.get("content"));
+					outputMap.put("Score", additional.get("certainty"));
+					outputMap.put("Distance", additional.get("distance"));
+					retOut.add(outputMap);
+				}
+			}
+		}
+
 		return retOut;
 	}
 	
