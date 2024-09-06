@@ -337,6 +337,7 @@ public class ApiSemossTestEngineUtils {
 		for (int i = 0; i < columns.size(); i++) {
 			dataType.put(columns.get(i), dataTypes.get(i));
 		}
+		
 		Map<String, String> newHeaders = new HashMap<>();
 
 		Map<String, String> descriptionMap = new HashMap<>();
@@ -408,23 +409,36 @@ public class ApiSemossTestEngineUtils {
 			return null;
 		}
 
-		Map<String, String> dataType = new HashMap<>();
-		for (int i = 0; i < columns.size(); i++) {
+		Map<String, Map<String, Map<String, String>>> dataType = new HashMap<>();
+
+		for (int i = 0; i < tableNames.size(); i++) {
+			String tableName = tableNames.get(i).toString();
 			List<String> cols = columns.get(i);
 			List<String> types = dataTypes.get(i);
-			for (int j = 0; j < cols.size(); j++) {
-				dataType.put(cols.get(j), types.get(j));
-			}
-		}
 
+			Map<String, Map<String, String>> columnDetailsMap = new HashMap<>();
+
+			for (int j = 0; j < cols.size(); j++) {
+				String columnName = cols.get(j);
+				String columnType = types.get(j);
+				
+				Map<String, String> columnTypeMap = new HashMap<>();
+				columnTypeMap.put("type", columnType);
+
+				columnDetailsMap.put(columnName, columnTypeMap);
+			}
+
+			dataType.put(tableName, columnDetailsMap);
+		}
+		
 		// Initialize other maps
-		Map<String, String> newHeaders = new HashMap<>();
-		Map<String, String> descriptionMap = new HashMap<>();
-		Map<String, String> logicalMap = new HashMap<>();
+		Map<String, Map<String, Map<String, String>>> newHeaders = new HashMap<>();
+		Map<String, Map<String, Map<String, String>>> descriptionMap = new HashMap<>();
+		Map<String, Map<String, Map<String, List<String>>>> logicalMap = new HashMap<>();
 
 		// Construct pixelCall -- issues here
 		String pixelCall = ApiSemossTestUtils.buildPixelCall(RdbmsUploadExcelDataReactor.class, "database",
-				Arrays.asList(name), "filePath", Arrays.asList(path.toString()), "delimiter", Arrays.asList(","),
+				Arrays.asList(name), "filePath", Arrays.asList("\\" + name + ".xlsx"), "delimiter", Arrays.asList(","),
 				"dataTypeMap", Arrays.asList(dataType), "newHeaders", Arrays.asList(newHeaders), "additionalDataTypes",
 				Arrays.asList(additionalDataTypes), "descriptionMap", Arrays.asList(descriptionMap), "logicalNamesMap",
 				Arrays.asList(logicalMap), "existing", Arrays.asList(Boolean.FALSE));
