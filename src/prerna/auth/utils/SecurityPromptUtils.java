@@ -57,26 +57,7 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 			"DATE_CREATED",
 			"IS_LATEST"
 			);
-	
-//	private final static List<String> PROMPT_INPUT_COLUMNS = Arrays.asList(
-//			"ID",
-//			"PROMPT_ID",
-//			"INDEX",
-//			"KEY",
-//			"DISPLAY",
-//			"TYPE",
-//			"IS_HIDDEN_PHRASE_INPUT_TOKEN",
-//			"LINKED_INPUT_TOKEN"
-//			);
-//	
-//	private final static List<String> PROMPT_VARIABLE_COLUMNS = Arrays.asList(
-//			"ID",
-//			"PROMPT_ID",
-//			"PROMPT_INPUT_ID",
-//			"TYPE",
-//			"META",
-//			"VALUE"
-//			);
+
 	
 	
 	/**
@@ -139,8 +120,7 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 			promptIdList.add(promptId);
 			listIndexPromptMapping.put(promptId, i++);
 		}
-//		appendPromptInputs(promptDetails, listIndexPromptMapping, promptIdList);
-//		appendPromptVariables(promptDetails, listIndexPromptMapping, promptIdList);
+		
 		appendPromptTags(promptDetails, listIndexPromptMapping, promptIdList);
 		return promptDetails;
 		
@@ -165,7 +145,6 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		insertPrompt(promptDetails, userId, allowClob, promptId);
 		insertTags(tags, promptId);
 		
-//		insertPromptPermission(userId, isFavorite, promptId);
 		
 	}
 	
@@ -240,68 +219,7 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Queries PromptInput Table and appends correct data structure to retList 
-	 * @param promptDetails
-	 * @param listIndexPromptMapping
-	 * @param promptIdList
-	 */
-//	private static void appendPromptInputs(List<Map<String, Object>> promptDetails,
-//			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		for (String pic : PROMPT_INPUT_COLUMNS) {
-//			qs.addSelector(new QueryColumnSelector(PROMPT_INPUT + "__" + pic));
-//		}
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(PROMPT_INPUT + "__PROMPT_ID", "==", promptIdList));
-//		qs.addOrderBy(PROMPT_INPUT + "__PROMPT_ID");
-//		qs.addOrderBy(PROMPT_INPUT + "__INDEX");
-//		// Loop through get tags 
-//		
-//		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-//		for(Map<String, Object> ret: retList) {
-//			String promptId = (String) ret.get("PROMPT_ID");
-//			Integer loc = listIndexPromptMapping.get(promptId);
-//			List<Map<String, Object>> inputList = (List<Map<String, Object>>) promptDetails.get(loc).get("inputs");
-//			if(inputList == null) {
-//				inputList = new ArrayList<>();
-//			}
-//			inputList.add(ret);
-//			promptDetails.get(loc).put("inputs", inputList);
-//		}
-//	}
-
-	/**
-	 * Queries and Appends inputTypes from PROMPT_VARIABLES table 
-	 * @param promptDetails
-	 * @param listIndexPromptMapping
-	 * @param promptIdList
-	 */
-//	private static void appendPromptVariables(List<Map<String, Object>> promptDetails,
-//			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		for (String piv : PROMPT_VARIABLE_COLUMNS) {
-//			qs.addSelector(new QueryColumnSelector(PROMPT_VARIABLE + "__" + piv));
-//		}
-//		qs.addSelector(new QueryColumnSelector(PROMPT_INPUT + "__INDEX"));
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(PROMPT_VARIABLE + "__PROMPT_ID", "==", promptIdList));
-//		qs.addOrderBy(PROMPT_VARIABLE + "__PROMPT_ID");
-//		qs.addOrderBy(PROMPT_VARIABLE + "__INDEX");
-//		qs.addRelation(PROMPT_VARIABLE + "__" + "PROMPT_INPUT_ID", PROMPT_INPUT + "__" + "ID", "left.join");
-//		// Loop through get tags 
-//		
-//		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-//		for(Map<String, Object> ret: retList) {
-//			String promptId = (String) ret.get("PROMPT_ID");
-//			String promptInputIndex = String.valueOf((Integer)ret.get("INDEX"));
-//			Integer loc = listIndexPromptMapping.get(promptId);
-//			Map<String, Map<String, Object>> inputTypeMap = (Map<String, Map<String, Object>>) promptDetails.get(loc).get("inputTypes");
-//			if(inputTypeMap == null) {
-//				inputTypeMap = new HashMap<>();
-//			}
-//			inputTypeMap.put(promptInputIndex, ret);
-//			promptDetails.get(loc).put("inputTypes", inputTypeMap);
-//		}
-//	}
+	
 	
 	/**
 	 * Queries and appends Prompt info from PROMPT table
@@ -320,17 +238,8 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
 			}
 		}
-//		qs.addSelector(new QueryColumnSelector("PROMPTP__FAVORITE"));
-//		
-//		{
-//			SelectQueryStruct subQs = new SelectQueryStruct();
-//			subQs.addSelector(new QueryColumnSelector("PROMPTPERMISSION__FAVORITE"));
-//			subQs.addSelector(new QueryColumnSelector("PROMPTPERMISSION__PROMPT_ID"));
-//			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTPERMISSION__USERID", "==", userId));
-//			qs.addRelation(new SubqueryRelationship(subQs, "PROMPTP", "left.outer.join", 
-//					new String[] {PROMPT + "__ID", "PROMPTP__PROMPT_ID", "="}));
-//
-//		}
+
+
 		if(promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
 			for(String k: promptMetadataFilter.keySet()) {
 				SelectQueryStruct subMetaQs = new SelectQueryStruct();
@@ -340,11 +249,9 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
 			}
 		}
-//		OrQueryFilter orFilter = new OrQueryFilter();
-//		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(PROMPT+"__IS_PUBLIC", "==", true));
-//		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(PROMPT+"__CREATED_BY", "==", userId));
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
-//		qs.addExplicitFilter(orFilter);
+
 		if(filters != null && !filters.isEmpty()) {
 			qs.mergeExplicitFilters(filters);
 		}
@@ -390,32 +297,13 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		}
 	}
 
-//	private static void validatePromptInputVariables(Map<String, Map<String, Object>> inputVariables) {
-//		for(Map.Entry<String, Map<String, Object>> entry: inputVariables.entrySet()) {
-//			Map<String, Object> inputTypes = entry.getValue();
-//			validateString(inputTypes, "type", false, false);
-//			validateString(inputTypes, "meta", true, false);
-//		}
-//		
-//	}
-//
-//	private static void validatePromptInput(List<Map<String, Object>> inputs) {
-//		for(Map<String, Object> inputInfo: inputs) {
-//			validateInteger(inputInfo, "index");
-//			validateString(inputInfo, "key", false, false);
-//			validateString(inputInfo, "display", false, false);
-//			validateString(inputInfo, "type", false, false);
-//			defaultToFalse(inputInfo, "is_hidden_phrase_input_token");
-//			validateString(inputInfo, "linked_input_token", true, false);
-//		}
-//	}
 
 
 	private static void validatePromptBaseDetails(Map<String, Object> promptDetails) {
 		// TODO Auto-generated method stub
 		validateString(promptDetails, "title", false, false);
 		validateString(promptDetails, "context", false, false);
-//		defaultToFalse(promptDetails, "is_public");
+
 		
 	}
 	
@@ -536,95 +424,7 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Inserts prompt input types into the Prompt Variables table. 
-	 * @param inputTypes
-	 * @param promptId
-	 * @param indexPromptMap
-	 */
-//	private static void insertPromptVariables(Map<String, Map<String, Object>> inputTypes, String promptId,
-//			Map<Integer, String> indexPromptMap) {
-//		PreparedStatement promptVaraiblesPS = null;
-//		try {
-//			promptVaraiblesPS = securityDb.getPreparedStatement(promptVaraibleQuery);
-//			for(Map.Entry<String, Map<String, Object>> entry: inputTypes.entrySet()) {
-//				int index = 1;
-//				Integer promptIndex = Integer.valueOf(String.valueOf(entry.getKey()));
-//				String promptInputId = indexPromptMap.get(promptIndex);
-//				String meta = (String) entry.getValue().get("meta");
-//				String type = (String) entry.getValue().get("type");
-////				String value = (String) entry.getValue().get("VALUE");
-//				
-//				promptVaraiblesPS.setString(index++, UUID.randomUUID().toString());
-//				promptVaraiblesPS.setString(index++, promptId);
-//				promptVaraiblesPS.setString(index++, promptInputId);
-//				if(meta != null && !meta.isEmpty()) {
-//					promptVaraiblesPS.setString(index++, meta);
-//				} else {
-//					promptVaraiblesPS.setNull(index++, java.sql.Types.VARCHAR);
-//				}
-//				promptVaraiblesPS.setString(index++, type);
-//				promptVaraiblesPS.addBatch();
-//			}
-//			
-//			promptVaraiblesPS.executeBatch();
-//			if (!promptVaraiblesPS.getConnection().getAutoCommit()) {
-//				promptVaraiblesPS.getConnection().commit();
-//			}
-//			
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			throw new IllegalArgumentException(e.getMessage());
-//		} finally {
-//			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, promptVaraiblesPS, null);
-//		}
-//	}
-
-	/**
-	 * Inserts prompt inputs per prompt into PromptInput Table
-	 * @param inputs
-	 * @param promptId
-	 * @return
-	 */
-//	private static Map<Integer, String> insertPromptInputs(List<Map<String, Object>> inputs, String promptId) {
-//		PreparedStatement promptInputPS = null;
-//		Map<Integer, String> indexPromptMap = new HashMap<>();
-//		try {
-//			promptInputPS = securityDb.getPreparedStatement(promptInputQuery);
-//			for(Map<String, Object> inputDetails: inputs) {
-//				String promptInputId = UUID.randomUUID().toString();
-//				int index = 1;
-//				promptInputPS.setString(index++, promptInputId);
-//				promptInputPS.setString(index++, promptId);
-//				Integer promptIndex = (Integer) inputDetails.get("index");
-//				promptInputPS.setInt(index++, promptIndex);
-//				promptInputPS.setString(index++, String.valueOf(inputDetails.get("key")));
-//				promptInputPS.setString(index++, String.valueOf(inputDetails.get("display")));
-//				promptInputPS.setString(index++, String.valueOf(inputDetails.get("type")));
-//				Boolean value = (Boolean) inputDetails.get("is_hidden_phrase_input_token");
-//				promptInputPS.setBoolean(index++, value);
-//				String linkedInputToken = (String) inputDetails.get("linked_input_token");
-//				if(linkedInputToken != null) {
-//					promptInputPS.setString(index++, linkedInputToken);
-//				} else {
-//					promptInputPS.setNull(index++, java.sql.Types.VARCHAR);
-//				}
-//				indexPromptMap.put(promptIndex, promptInputId);
-//				promptInputPS.addBatch();
-//			}
-//			promptInputPS.executeBatch();
-//			if (!promptInputPS.getConnection().getAutoCommit()) {
-//				promptInputPS.getConnection().commit();
-//			}
-//			
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			throw new IllegalArgumentException("ERROR FOR NOW");
-//		} finally {
-//			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, promptInputPS, null);
-//		}
-//		return indexPromptMap;
-//	}
+	
 
 	/**
 	 * Inserts basic prompt details in to Prompt table. 
