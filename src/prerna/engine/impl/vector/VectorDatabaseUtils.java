@@ -25,6 +25,7 @@ import prerna.reactor.frame.gaas.processors.ImageDocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.ImagePDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
+import prerna.reactor.frame.gaas.processors.ImagePPTProcessor;
 import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 import prerna.util.Constants;
 
@@ -185,8 +186,15 @@ public class VectorDatabaseUtils {
                         )
                 {
                     // powerpoint
-                    PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
-                    pp.process();
+                    if (embedImages) {
+                    	ImagePPTProcessor ipp = new ImagePPTProcessor(file.getAbsolutePath(), writer, true);
+                    	ipp.process();
+                    	imageMap = ipp.getImageMap();
+                    } else {                	
+	                    PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
+	                    pp.process();
+	                    
+                    }
                     processedList.add(file.getAbsolutePath());
                 }
                 else if(mimeType.equalsIgnoreCase("application/pdf"))
@@ -369,5 +377,3 @@ public class VectorDatabaseUtils {
         return (List<String>) generatedKeywordsObject;
     }
 }
-
-

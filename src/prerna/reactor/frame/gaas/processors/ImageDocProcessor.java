@@ -23,11 +23,15 @@ import org.apache.poi.xwpf.usermodel.XWPFPicture;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.ICell;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
+
+import org.apache.commons.imaging.ImageFormats;
+import org.apache.commons.imaging.Imaging;
 
 public class ImageDocProcessor {
 
@@ -87,15 +91,25 @@ public class ImageDocProcessor {
 		for (XWPFParagraph paragraph : document.getParagraphs()) {
 			StringBuilder paragraphText = new StringBuilder();
 			
+			// check if paragraph or its runs are null
+			if (paragraph == null || paragraph.getRuns() == null) {
+				continue; // Skip this paragraph as well
+			}
+			
 			for (XWPFRun run : paragraph.getRuns()) {
 				paragraphText.append(run.getText(0));
 				
 				if (embedImages) {
+					// Safely handle embedded images
 					List<XWPFPicture> pictures = run.getEmbeddedPictures();
-					for (XWPFPicture picture : pictures) {
-						if (isImageSizeAcceptable(picture)) {
-							String imageId = processImage(picture);
-							paragraphText.append(" ").append(imageId).append(" ");
+					if (pictures != null) {
+						for (XWPFPicture picture : pictures) {
+							if (picture != null && isImageSizeAcceptable(picture)) {
+								String imageId = processImage(picture);
+								if (imageId != null) {
+									paragraphText.append(" ").append(imageId).append(" ");
+								}
+							}
 						}
 					}
 				}
@@ -103,7 +117,7 @@ public class ImageDocProcessor {
 			
 			String text = paragraphText.toString().trim();
 			if (!text.isEmpty()) {
-				writer.writeRow(source, count + "", text, pageNo + "");
+				writer.writeRow(source, String.valueOf(count), text, String.valueOf(pageNo));
 			}
 			
 			if (paragraph.isPageBreak()) {
@@ -182,12 +196,68 @@ public class ImageDocProcessor {
 	
 	private boolean isImageSizeAcceptable(XWPFPicture picture) {
 		try {
-			BufferedImage image = ImageIO.read(new ByteArrayInputStream(picture.getPictureData().getData()));
+			byte[] imageData = picture.getPictureData().getData();
+			
+			// Check if image data is null or empty
+			if (imageData == null || imageData.length == 0) {
+				classLogger.error("Image data is null or empty.");
+				return false;
+			}
+			
+			String format = picture.getPictureData().suggestFileExtension();
+			
+			BufferedImage image;
+			if (isSupportedFormat(format)) {
+				image = ImageIO.read(new ByteArrayInputStream(imageData));
+			} else {
+				// If not supported, attempt to convert to PNG
+				image = convertToSupportedFormat(imageData, format);
+			}
+			
+			if (image == null) {
+				classLogger.error("Failed to convert or read the image. Unsupported format or corrupted data.");
+				return false;
+			}
+			
+			// Validate image size
 			return image.getWidth() >= MIN_IMAGE_WIDTH && image.getHeight() >= MIN_IMAGE_HEIGHT;
+			
 		} catch (IOException e) {
-			classLogger.error("Error reading image dimensions", e);
+			classLogger.error("Error reading or converting image dimensions", e);
+			return false;
+			
+		} catch (Exception e) {
+			classLogger.error("Unexpected error while processing image", e);
 			return false;
 		}
+	}
+	
+	// Helper method to check if the image format is supported by ImageIO
+	private boolean isSupportedFormat(String format) {
+		String[] supportedFormats = ImageIO.getReaderFormatNames();
+		for (String supported : supportedFormats) {
+			if (supported.equalsIgnoreCase(format)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	// Method to convert unsupported image formats to a supported one
+	private BufferedImage convertToSupportedFormat(byte[] imageData, String format) {
+		try {
+			// Convert the image data to a BufferedImage using Apache Commons Imaging
+			BufferedImage image = Imaging.getBufferedImage(imageData);
+			if (image != null) {
+				// Reencode the image as PNG
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				Imaging.writeImage(image,  baos, ImageFormats.PNG, null);
+				return ImageIO.read(new ByteArrayInputStream(baos.toByteArray()));
+			}
+		} catch (Exception e) {
+			classLogger.error("Error converting image from format: " + format, e);
+		}
+		return null;
 	}
 	
 	private String processImage(XWPFPicture picture) {

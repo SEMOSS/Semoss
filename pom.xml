@@ -2300,6 +2300,12 @@
 		    <artifactId>jbig2-imageio</artifactId>
 		    <version>3.0.4</version>
 		</dependency>
+		
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-imaging</artifactId>
+		    <version>1.0-alpha2</version>
+		</dependency>
 
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
