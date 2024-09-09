@@ -30,6 +30,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class CreateRestFunctionEngineReactor extends AbstractReactor {
 
@@ -70,7 +71,17 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String functionName = getFunctionName();
+		String checkFunctionName = getFunctionName();
+		String functionName = null;
+		//if projectName is valid then set the name, else throw error
+		if (Utility.validateName(checkFunctionName)) {
+			functionName = checkFunctionName;
+		}else {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+
+		//String functionName = getFunctionName();
 		Map<String, String> functionDetails = getFunctionDetails();
 		String functionTypeStr = functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		if(functionTypeStr == null || (functionTypeStr=functionTypeStr.trim()).isEmpty()) {

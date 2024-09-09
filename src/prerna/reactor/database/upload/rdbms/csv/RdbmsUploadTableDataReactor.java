@@ -88,11 +88,26 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 		 * 7) add to localmaster and solr
 		 */
 
+		
+		
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
-		String tableName = UploadInputUtility.getTableName(this.store, this.insight);
+		//
+
+		String checkTableName = UploadInputUtility.getTableName(this.store, this.insight);
+		String tableName = null;
+		//if projectName is valid then set the name, else throw error
+		if (Utility.validateName(checkTableName)) {
+			tableName = checkTableName;
+		}else {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+
+		//String tableName = UploadInputUtility.getTableName(this.store, this.insight);
+		
 		String uniqueColumnName = UploadInputUtility.getUniqueColumn(this.store, this.insight);
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);

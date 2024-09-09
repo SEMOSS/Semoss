@@ -29,6 +29,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class CreateModelEngineReactor extends AbstractReactor {
 
@@ -68,7 +69,17 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String modelName = getModelName();
+		String checkModelName = getModelName();
+		String modelName = null;
+		//if projectName is valid then set the name, else throw error
+		if (Utility.validateName(checkModelName)) {
+			modelName = checkModelName;
+		}else {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+		
+		//String modelName = getModelName();
 		Map<String, String> modelDetails = getModelDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 

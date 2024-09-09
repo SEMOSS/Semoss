@@ -29,6 +29,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class CreateStorageEngineReactor extends AbstractReactor {
 
@@ -68,7 +69,17 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String storageName = getStorageName();
+		String checkStorageName = getStorageName();
+		String storageName = null;
+		//if projectName is valid then set the name, else throw error
+		if (Utility.validateName(checkStorageName)) {
+			storageName = checkStorageName;
+		}else {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+		
+		//String storageName = getStorageName();
 		Map<String, String> storageDetails = getStorageDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
