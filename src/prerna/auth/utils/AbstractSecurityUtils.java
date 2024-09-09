@@ -2299,7 +2299,7 @@ public abstract class AbstractSecurityUtils {
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider thisLogin : logins) {
-				filters.add(Utility.inputSanitizer(user.getAccessToken(thisLogin).getId()));
+				filters.add(Utility.inputSQLSanitizer(user.getAccessToken(thisLogin).getId()));
 			}
 		}
 

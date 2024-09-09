@@ -283,36 +283,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 			addEmbeddings(vectorCsvTable, insight, parameters);
 		}
-		
-		if(parameters != null && parameters.containsKey(AbstractVectorDatabaseEngine.METADATA)) {
-			Map<String, Map<String, Object>> metadata = (Map<String, Map<String, Object>>) parameters.get(AbstractVectorDatabaseEngine.METADATA);
-			if(!metadata.isEmpty()) {
-				String tempMetadataFile = insight.getInsightFolder()+"/metadata"+Utility.getRandomString(6)+".csv";
-				VectorDatabaseMetadataCSVWriter writer = new VectorDatabaseMetadataCSVWriter(tempMetadataFile);
-				writer.bulkWriteRow(metadata);
-				addMetadata(VectorDatabaseMetadataCSVTable.initCSVTable(new File(tempMetadataFile)));
-			}
-		}
 	}
 	
 	@Override
 	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 		addEmbeddings(vectorCsvTable, insight, parameters);
-		
-		if(parameters != null && parameters.containsKey(AbstractVectorDatabaseEngine.METADATA)) {
-			Map<String, Map<String, Object>> metadata = (Map<String, Map<String, Object>>) parameters.get(AbstractVectorDatabaseEngine.METADATA);
-			if(!metadata.isEmpty()) {
-				String tempMetadataFile = insight.getInsightFolder()+"/metadata"+Utility.getRandomString(6)+".csv";
-				VectorDatabaseMetadataCSVWriter writer = new VectorDatabaseMetadataCSVWriter(tempMetadataFile);
-				writer.bulkWriteRow(metadata);
-				addMetadata(VectorDatabaseMetadataCSVTable.initCSVTable(new File(tempMetadataFile)));
-			}
-		}
 	}
 	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws SQLException {
+	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -384,6 +364,21 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
 		}
+		
+		if(parameters != null && parameters.containsKey(AbstractVectorDatabaseEngine.METADATA)) {
+			Map<String, Map<String, Object>> metadata = (Map<String, Map<String, Object>>) parameters.get(AbstractVectorDatabaseEngine.METADATA);
+			if(!metadata.isEmpty()) {
+				String tempMetadataFile = insight.getInsightFolder()+"/metadata"+Utility.getRandomString(6)+".csv";
+				VectorDatabaseMetadataCSVWriter writer = new VectorDatabaseMetadataCSVWriter(tempMetadataFile);
+				writer.bulkWriteRow(metadata);
+				try {
+					addMetadata(VectorDatabaseMetadataCSVTable.initCSVTable(new File(tempMetadataFile)));
+				} catch (SQLException | IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				}
+			}
+		}
 	}
 	
 	@Override
@@ -436,12 +431,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 		
 		String deleteQuery = "DELETE FROM "+this.vectorTableName+" WHERE SOURCE=?";
+		String deleteMetaQuery = "DELETE FROM "+this.vectorTableMetadataName+" WHERE SOURCE=?";
 		Connection conn = null;
 		PreparedStatement ps = null;
+		PreparedStatement metaPs = null;
 		int[] results = null;
 		try {
 			conn = this.getConnection();
 			ps = conn.prepareStatement(deleteQuery);
+			metaPs = conn.prepareStatement(deleteMetaQuery);
 			for (String document : fileNames) {
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
@@ -455,12 +453,19 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, documentName);
 				ps.addBatch();
+				
+				parameterIndex = 1;
+				metaPs.setString(parameterIndex++, documentName);
+				metaPs.addBatch();
 			}
 			results = ps.executeBatch();
+			// since metadata is optional
+			// its fine if no rows updated
+			metaPs.executeBatch();
 			
 			for(int j=0; j<results.length; j++) {
 	            if(results[j] == PreparedStatement.EXECUTE_FAILED) {
-	                throw new IllegalArgumentException("Error inserting data for row " + j);
+	                throw new IllegalArgumentException("Error removing data for row " + j);
 	            }
 	        }
 			
@@ -576,12 +581,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		List<IQueryFilter> filters = null;
 		List<IQueryFilter> metaFilters = null;
 		if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
-			//TODO: add tablename translation
-			filters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
+			filters = PGVectorQueryFitlerTranslationHelper.convertFilters( 
+						(List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY), this.vectorTableName
+					);
 		}
 		if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
-			//TODO: add tablename translation
-			metaFilters = (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
+			metaFilters = PGVectorQueryMetaFitlerTranslationHelper.convertFilters(
+						(List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY), this.vectorTableMetadataName
+					);
 		}
 		
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {}
@@ -598,14 +605,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //		final String metaTablePrefix = this.vectorTableMetadataName+"__";
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"SOURCE",VectorDatabaseCSVTable.SOURCE));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"MODALITY",VectorDatabaseCSVTable.MODALITY));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"DIVIDER",VectorDatabaseCSVTable.DIVIDER));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"PART",VectorDatabaseCSVTable.PART));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"TOKENS",VectorDatabaseCSVTable.TOKENS));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"CONTENT",VectorDatabaseCSVTable.CONTENT));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
+		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
 		qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING <-> '"+ embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+"SOURCE"));
 		qs.addOrderBy("Score", "ASC");
 		if(filters != null && !filters.isEmpty()) {
 			qs.addExplicitFilter(new GenRowFilters(filters), true);
