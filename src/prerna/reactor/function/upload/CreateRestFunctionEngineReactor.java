@@ -71,12 +71,9 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String checkFunctionName = getFunctionName();
-		String functionName = null;
-		//if projectName is valid then set the name, else throw error
-		if (Utility.validateName(checkFunctionName)) {
-			functionName = checkFunctionName;
-		}else {
+		String functionName = getFunctionName();
+		//if function name is not valid, throw error
+		if (!Utility.validateName(functionName)) {
 			//error and redirect to try again
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}

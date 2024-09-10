@@ -96,17 +96,12 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		//
 
-		String checkTableName = UploadInputUtility.getTableName(this.store, this.insight);
-		String tableName = null;
-		//if projectName is valid then set the name, else throw error
-		if (Utility.validateName(checkTableName)) {
-			tableName = checkTableName;
-		}else {
-			//error and redirect to try again
+		String tableName = UploadInputUtility.getTableName(this.store, this.insight);
+		//if db is valid then set the name, else throw error
+		if (!Utility.validateName(tableName)) {
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		//String tableName = UploadInputUtility.getTableName(this.store, this.insight);
 		
 		String uniqueColumnName = UploadInputUtility.getUniqueColumn(this.store, this.insight);
 		final boolean clean = UploadInputUtility.getClean(this.store);

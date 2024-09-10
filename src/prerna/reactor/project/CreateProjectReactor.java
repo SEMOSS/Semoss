@@ -38,13 +38,10 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		int index = 0;
 		
-		String checkProjectName = this.keyValue.get(this.keysToGet[index++]); 
-		String projectName = null;
+		String projectName = this.keyValue.get(this.keysToGet[index++]); 
 		//if projectName is valid then set the name, else throw error
-		if (Utility.validateName(checkProjectName)) {
-			projectName = checkProjectName;
-		}else {
-			//error and redirect to try again
+		if (!Utility.validateName(projectName)) {
+		//error and redirect to try again
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 		

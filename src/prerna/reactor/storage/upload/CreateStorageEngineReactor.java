@@ -69,12 +69,9 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String checkStorageName = getStorageName();
-		String storageName = null;
-		//if projectName is valid then set the name, else throw error
-		if (Utility.validateName(checkStorageName)) {
-			storageName = checkStorageName;
-		}else {
+		String storageName = getStorageName();
+		//if storage name is not valid throw error
+		if (!Utility.validateName(storageName)) {
 			//error and redirect to try again
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}

@@ -75,16 +75,14 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		
-		String checkVenvName = getVenvName();
-		String venvName = null;
-		//if projectName is valid then set the name, else throw error
-		if (Utility.validateName(checkVenvName)) {
-			venvName = checkVenvName;
-		}else {
+
+		String venvName = getVenvName();
+		//if venv name is not valid throw error
+		if (!Utility.validateName(venvName)) {
 			//error and redirect to try again
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
+		
 
 		//String venvName = getVenvName();
 		Map<String, String> venvDetails = getVenvDetails();

@@ -69,12 +69,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String checkModelName = getModelName();
-		String modelName = null;
-		//if projectName is valid then set the name, else throw error
-		if (Utility.validateName(checkModelName)) {
-			modelName = checkModelName;
-		}else {
+		String modelName = getModelName();
+		//if model name is not valid, throw error
+		if (!Utility.validateName(modelName)) {
 			//error and redirect to try again
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}

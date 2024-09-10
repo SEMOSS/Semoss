@@ -5826,7 +5826,7 @@ public final class Utility {
 	
 	//helper to validate names across webapp 
 	public static Boolean validateName(String name) {
-		String regex = "^[a-zA-Z][a-zA-Z0-9 ]*$";
+		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
 		return name.matches(regex);
 	}
 	
