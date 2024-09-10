@@ -31,6 +31,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class CreateVenvEngineReactor extends AbstractReactor {
 
@@ -74,8 +75,16 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		
+
 		String venvName = getVenvName();
+		//if venv name is not valid throw error
+		if (!Utility.validateName(venvName)) {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+		
+
+		//String venvName = getVenvName();
 		Map<String, String> venvDetails = getVenvDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
