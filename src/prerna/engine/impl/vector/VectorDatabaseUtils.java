@@ -15,7 +15,11 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
@@ -58,10 +62,12 @@ public class VectorDatabaseUtils {
 			String mimeType = null;
 			
 			//using tika for mime type check since it is more consistent across env + rhel OS and macOS
-			Tika tika = new Tika();
-	
-			try (FileInputStream inputstream = new FileInputStream(file)) {
-				mimeType = tika.detect(inputstream, new Metadata());
+            TikaConfig config = TikaConfig.getDefaultConfig();
+            Detector detector = config.getDetector();
+            Metadata metadata = new Metadata();
+            metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
+            try ( TikaInputStream stream = TikaInputStream.get( new FileInputStream(file))) {
+                mimeType = detector.detect(stream, metadata).toString();
 			} catch (IOException e) {
 				classLogger.error(Constants.ERROR_MESSAGE, e);
 	        }
