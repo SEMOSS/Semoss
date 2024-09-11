@@ -32,9 +32,11 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.io.connector.secrets.ISecrets;
@@ -91,7 +93,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
 	
-    protected boolean embedImages = false;
+    protected boolean customDocumentProcessor = false;
+    protected String customDocumentProcessorFunctionID = null;
+
     protected String imageEngineId;
     
 	// our paradigm for how we store files
@@ -158,12 +162,13 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 		
-        // 2 smss properties for image handling
-        if (this.smssProp.containsKey(Constants.EMBED_IMAGES)) {
-        	this.embedImages =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.EMBED_IMAGES));
+        // 2 smss properties for custom document processing
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
+        	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
         }
-        if (this.smssProp.containsKey(Constants.IMAGE_ENGINE_ID)) {
-        	this.imageEngineId = this.smssProp.getProperty(Constants.IMAGE_ENGINE_ID);
+        
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
+        	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
         }
         
 		// highest directory (first layer inside vector db base folder)
@@ -222,15 +227,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
 
-        boolean embedImages = this.embedImages;
-        if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey())) {
-            embedImages = Boolean.parseBoolean( (String) parameters.get(VectorDatabaseParamOptionsEnum.EMBED_IMAGES.getKey()));
-        }
-
-        String imageEngineId = this.imageEngineId;
-        if (parameters.containsKey(VectorDatabaseParamOptionsEnum.IMAGE_ENGINE_ID.getKey())) {
-            imageEngineId = (String) parameters.get(VectorDatabaseParamOptionsEnum.IMAGE_ENGINE_ID.getKey());
-        }
         
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
@@ -312,11 +308,23 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						// determine which text extraction method to use
+						
 						int rowsCreated;
-                        Map<String, Object> result = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document, embedImages);
-                        rowsCreated = (int) result.get("rowsInCSV");
-                        
+						
+						if(this.customDocumentProcessor) {
+							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
+								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
+							}
+							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
+							 Map<String, Object> functionInputs = new HashMap<>();
+							 functionInputs.put("csvPath", extractedFile.getAbsolutePath());
+							 functionInputs.put("document", document);
+							 functionInputs.put("parameters", parameters);
+							rowsCreated = (int) functionEngine.execute(functionInputs);
+						}  else {
+						// determine which text extraction method to use
+						rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+						}
 
 						// check to see if the file data was extracted
 						if (rowsCreated <= 1) {
@@ -326,12 +334,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							continue;
 						}                    
 						
-						if (embedImages) {
-                            Map<String, String> imageMap = new HashMap<>();
-                        	imageMap = (Map<String, String>) result.get("imageMap");
-                        	replaceImageKeysInCsv(extractedFileName, imageMap, imageEngineId, insight);
-                        }
-
 						classLogger.info("Creating chunks from extracted text for " + documentName);
 
 						StringBuilder splitTextCommand = new StringBuilder();
@@ -385,67 +387,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 	}
 	
-	   private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, String imageEngineId, Insight insight) throws IOException {
-	        List<String> lines = Files.readAllLines(Paths.get(csvFilePath));
-
-	        IModelEngine llmEngine = Utility.getModel(imageEngineId);
-
-	        Map<String, String> outputMap = new HashMap<>();
-	        int counter = 1;
-	        int numImages = imageMap.size();
-
-	        for (Map.Entry<String, String> entry : imageMap.entrySet()) {           
-	            classLogger.info("processing image " + counter + " out of " + numImages);
-
-	            List<Map<String, Object>> fullPrompt = new ArrayList<Map<String, Object>>() {{
-	                add(new HashMap<String, Object>() {{
-	                    put("role", "system");
-	                    put("content", "You are a helpful assistant.");
-	                }});
-	                add(new HashMap<String, Object>() {{
-	                    put("role", "user");
-	                    put("content", new ArrayList<Map<String, Object>>() {{
-	                        add(new HashMap<String, Object>() {{
-	                            put("type", "text");
-	                            put("text", "Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. Ensure all major text and components are captured comprehensively. For simpler images without much detail or text, provide a concise 1-2 sentence description.");
-	                        }});
-	                        add(new HashMap<String, Object>() {{
-	                            put("type", "image_url");
-	                            put("image_url", new HashMap<String, Object>() {{
-	                                put("url", "data:image/png;base64," + entry.getValue());
-	                            }});
-	                        }});
-	                    }});
-	                }});
-	            }};             
-	            Map<String, Object> paramMap = new HashMap<String, Object>();
-	            paramMap.put("full_prompt", fullPrompt);
-
-	            Map<String, Object> llmOutput = llmEngine.ask(null, null, insight, paramMap).toMap();
-
-	            String llmOutputStr = (String) llmOutput.get("response");
-	            llmOutputStr = llmOutputStr.replace("\"", "");
-	            String imageDescWithAnnot = " -- BEGINNING OF IMAGE DESCRIPTION : " + llmOutputStr + " : END OF IMAGE DESCRIPTION -- ";
-	            outputMap.put(entry.getKey(), imageDescWithAnnot);
-
-	            counter++;
-	        }
-
-	        List<String> updatedLines = new ArrayList<>();
-	        for (String line : lines) {
-	            String[] cells = line.split(","); // split the line into cells
-	            for (int i =0; i < cells.length; i++) {
-	                for (Map.Entry<String, String> entry : outputMap.entrySet()) {
-	                    cells[i] = cells[i].replace(entry.getKey(), entry.getValue());
-	                }
-	            }
-	            updatedLines.add(String.join(",", cells)); // join cells back into a line
-
-	        }
-
-
-	        Files.write(Paths.get(csvFilePath), updatedLines);
-	    }
 	
 	/**
 	 * 

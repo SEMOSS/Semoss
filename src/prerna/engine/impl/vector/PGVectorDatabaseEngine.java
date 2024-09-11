@@ -923,8 +923,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
 						int rowsCreated;
-                        Map<String, Object> result = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document, false);
-                        rowsCreated = (int) result.get("rowsInCSV");
+						rowsCreated= VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 
 						// check to see if the file data was extracted
 						if (rowsCreated <= 1) {
