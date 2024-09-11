@@ -81,16 +81,24 @@ public class ImagePDFProcessor {
     private List<String> extractImages(PDPage page) throws IOException {
     	List<String> imageIds = new ArrayList<>();
     	PDResources resources = page.getResources();
+    	
     	for (COSName name : resources.getXObjectNames()) {
-    		PDXObject xobject = resources.getXObject(name);
-    		if (xobject instanceof PDImageXObject) {
-    			PDImageXObject image = (PDImageXObject) xobject;
-    			if (isImageSizeAcceptable(image)) {
-	    			String imageId = generateUniqueImageId();
-	    			String base64Image = convertToBase64(image.getImage());
-	    			imageMap.put(imageId,  base64Image);
-	    			imageIds.add(imageId);
-    			}
+    		try {
+	    		PDXObject xobject = resources.getXObject(name);
+	    		if (xobject instanceof PDImageXObject) {
+	    			PDImageXObject image = (PDImageXObject) xobject;
+	    			if (isImageSizeAcceptable(image)) {
+		    			String imageId = generateUniqueImageId();
+		    			String base64Image = convertToBase64(image.getImage());
+		    			imageMap.put(imageId,  base64Image);
+		    			imageIds.add(imageId);
+	    			}
+	    		}
+    		} catch (IOException e) {
+    			classLogger.error("Error processing image: " + name, e);
+    	
+    		} catch (Exception e) {
+    			classLogger.error("Unexpected error processing image: " + name, e);
     		}
     	}
     	return imageIds;

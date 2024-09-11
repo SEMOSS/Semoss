@@ -407,7 +407,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	                    put("content", new ArrayList<Map<String, Object>>() {{
 	                        add(new HashMap<String, Object>() {{
 	                            put("type", "text");
-	                            put("text", "Describe the image. Unless it's a complicated image, keep the description 1-2 sentences. Always return something");
+	                            put("text", "Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. Ensure all major text and components are captured comprehensively. For simpler images without much detail or text, provide a concise 1-2 sentence description.");
 	                        }});
 	                        add(new HashMap<String, Object>() {{
 	                            put("type", "image_url");
