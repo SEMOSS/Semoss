@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 
 public class DeleteFilesFromEngineRunner implements Runnable {
@@ -33,6 +34,18 @@ public class DeleteFilesFromEngineRunner implements Runnable {
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}	
+		}
+		
+		// once all the files have been deleted for that vec db, issue a pull command on ZK
+		if(ClusterUtil.IS_CLUSTER_ZK) {
+			try {
+				ClusterUtil.getClusterSynchronizer().publishEngineChange(ENGINE_ID, "pullEngine", ENGINE_ID);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+ENGINE_ID+"' to sync with ZK cluster");
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
 		}
 	}
 }
