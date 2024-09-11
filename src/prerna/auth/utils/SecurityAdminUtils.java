@@ -2211,8 +2211,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 	    for(Map<String,String> i:requests){
-	    	String userId=Utility.inputSanitizer(i.get("userid"));
-	    	
+	    	String userId=Utility.inputSQLSanitizer(i.get("userid"));
 	    	existingUserIds.add(userId);
 	    }
 			    
