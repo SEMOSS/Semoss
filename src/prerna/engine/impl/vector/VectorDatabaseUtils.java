@@ -9,13 +9,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Objects;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
@@ -43,6 +46,7 @@ public class VectorDatabaseUtils {
 	 * @return
 	 * @throws IOException
 	 */
+    @Deprecated
 	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 		try {
@@ -57,10 +61,12 @@ public class VectorDatabaseUtils {
 			String mimeType = null;
 			
 			//using tika for mime type check since it is more consistent across env + rhel OS and macOS
-			Tika tika = new Tika();
-	
-			try (FileInputStream inputstream = new FileInputStream(file)) {
-				mimeType = tika.detect(inputstream, new Metadata());
+            TikaConfig config = TikaConfig.getDefaultConfig();
+            Detector detector = config.getDetector();
+            Metadata metadata = new Metadata();
+            metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
+            try ( TikaInputStream stream = TikaInputStream.get( new FileInputStream(file))) {
+                mimeType = detector.detect(stream, metadata).toString();
 			} catch (IOException e) {
 				classLogger.error(Constants.ERROR_MESSAGE, e);
 	        }
@@ -128,7 +134,7 @@ public class VectorDatabaseUtils {
      * 
      * @param csvFileName
      * @param file
-     * @return
+     * @return Map with two keys - rowsInCSV and imageMap
      * @throws IOException
      */
     public static Map<String, Object> convertFilesToCSV(String csvFileName, File file, boolean embedImages) throws IOException {
@@ -148,10 +154,12 @@ public class VectorDatabaseUtils {
             String mimeType = null;
             
             //using tika for mime type check since it is more consistent across env + rhel OS and macOS
-            Tika tika = new Tika();
-    
-            try (FileInputStream inputstream = new FileInputStream(file)) {
-                mimeType = tika.detect(inputstream, new Metadata());
+            TikaConfig config = TikaConfig.getDefaultConfig();
+            Detector detector = config.getDetector();
+            Metadata metadata = new Metadata();
+            metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
+            try ( TikaInputStream stream = TikaInputStream.get( new FileInputStream(file))) {
+                mimeType = detector.detect(stream, metadata).toString();
             } catch (IOException e) {
                 classLogger.error(Constants.ERROR_MESSAGE, e);
             }
@@ -230,7 +238,6 @@ public class VectorDatabaseUtils {
         result.put("rowsInCSV", writer.getRowsInCsv());
         result.put("imageMap", imageMap);
         return result;
-
     }
     
     public static boolean verifyFileTypes(List<String> newFilesPaths, List<String> filesInDocumentsFolder) {

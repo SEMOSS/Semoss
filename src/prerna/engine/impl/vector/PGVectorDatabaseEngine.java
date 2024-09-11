@@ -923,21 +923,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
 						int rowsCreated;
-						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
-							StringBuilder extractTextFromDocScript = new StringBuilder();
-							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-								.append("', target_folder = '")
-								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
-								.append("', output_file_name = '")
-								.append(extractedFileName)
-								.append("')");
-							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
-
-							rowsCreated = rows.intValue();
-						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-						}
+                        Map<String, Object> result = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document, false);
+                        rowsCreated = (int) result.get("rowsInCSV");
 
 						// check to see if the file data was extracted
 						if (rowsCreated <= 1) {
