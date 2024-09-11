@@ -311,7 +311,19 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						
 						int rowsCreated;
 						
-						if(this.customDocumentProcessor) {
+						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
+							StringBuilder extractTextFromDocScript = new StringBuilder();
+							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+								.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+								.append("', target_folder = '")
+								.append(this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "extraction_files")
+								.append("', output_file_name = '")
+								.append(extractedFileName)
+								.append("')");
+							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
+
+							rowsCreated = rows.intValue();
+						} else if(this.customDocumentProcessor) {
 							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
@@ -322,8 +334,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							 functionInputs.put("parameters", parameters);
 							rowsCreated = (int) functionEngine.execute(functionInputs);
 						}  else {
-						// determine which text extraction method to use
-						rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 
 						// check to see if the file data was extracted
