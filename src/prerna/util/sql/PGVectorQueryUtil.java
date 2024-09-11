@@ -24,30 +24,54 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 	}
 
 	public String createEmbeddingsTable(String table) {
-		return "CREATE TABLE IF NOT EXISTS "+table+"("
-				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
-				+ "EMBEDDING VECTOR, "
-				+ "SOURCE TEXT, "
-				+ "MODALITY TEXT, "
-				+ "DIVIDER TEXT, "
-				+ "PART TEXT, "
-				+ "TOKENS INTEGER, "
-				+ "CONTENT TEXT "
-				+ ");";
+		return "DO $$\n" +
+	                "DECLARE\n" +
+	                "    tbl_name text := '" + table + "';\n" +
+	                "BEGIN\n" +
+	                "    IF NOT EXISTS (\n" +
+	                "        SELECT 1\n" +
+	                "        FROM information_schema.tables \n" +
+	                "        WHERE table_schema = current_schema() \n" +
+	                "          AND table_name = tbl_name\n" +
+	                "    ) THEN\n" +
+	                "        EXECUTE format('CREATE TABLE %I (\n" +
+	                "            ID SERIAL PRIMARY KEY,\n" +
+	                "            EMBEDDING vector,\n" +
+	                "            SOURCE text,\n" +
+	                "            MODALITY text,\n" +
+	                "            DIVIDER text,\n" +
+	                "            PART text,\n" +
+	                "            TOKENS text,\n" +
+	                "            CONTENT text\n" +
+	                "        )', tbl_name);\n" +
+	                "    END IF;\n" +
+	                "END $$;";
 	}
 	
 	public String createEmbeddingsMetadataTable(String table) {
-		return "CREATE TABLE IF NOT EXISTS "+table+"("
-				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
-				+ "SOURCE TEXT, "
-				+ "ATTRIBUTE TEXT, "
-				+ "STR_VALUE TEXT, "
-				+ "INT_VALUE INTEGER, "
-				+ "NUM_VALUE NUMERIC(18,4), "
-				+ "BOOL_VALUE BOOLEAN, "
-				+ "DATE_VAL DATE, "
-				+ "TIMESTAMP_VAL TIMESTAMP "
-				+ ");";
+		return "DO $$\n" +
+	                "DECLARE\n" +
+	                "    tbl_name text := '" + table + "';\n" +
+	                "BEGIN\n" +
+	                "    IF NOT EXISTS (\n" +
+	                "        SELECT 1\n" +
+	                "        FROM information_schema.tables \n" +
+	                "        WHERE table_schema = current_schema() \n" +
+	                "          AND table_name = tbl_name\n" +
+	                "    ) THEN\n" +
+	                "        EXECUTE format('CREATE TABLE %I (\n" +
+	                "            ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n" +
+	                "            SOURCE TEXT,\n" +
+	                "            ATTRIBUTE TEXT,\n" +
+	                "            STR_VALUE TEXT,\n" +
+	                "            INT_VALUE INTEGER,\n" +
+	                "            NUM_VALUE NUMERIC(18,4),\n" +
+	                "            BOOL_VALUE BOOLEAN,\n" +
+	                "            DATE_VAL DATE,\n" +
+	                "            TIMESTAMP_VAL TIMESTAMP\n" +
+	                "        )', tbl_name);\n" +
+	                "    END IF;\n" +
+	                "END $$;";
 	}
 
 	public String addVectorExtension() {
