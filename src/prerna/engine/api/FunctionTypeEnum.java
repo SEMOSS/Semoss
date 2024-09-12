@@ -3,7 +3,6 @@ package prerna.engine.api;
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
-import prerna.engine.impl.function.OCRFuntionEngine;
 import prerna.engine.impl.function.AWSPollyFunctionEngine;
 
 public enum FunctionTypeEnum {
