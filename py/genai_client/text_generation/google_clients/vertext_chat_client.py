@@ -1,21 +1,17 @@
 # https://cloud.google.com/vertex-ai/generative-ai/docs/chat/test-chat-prompts
 
-from typing import Dict, Optional, List
+from typing import Optional, List
 from vertexai.language_models import ChatModel, ChatMessage
 
 from .abstract_vertex_textgen_client import AbstractVertextAiTextGeneration
-from ...constants import (
-    AskModelEngineResponse,
-    FULL_PROMPT
-)
+from ...constants import AskModelEngineResponse, FULL_PROMPT
+
 
 class VertexChatClient(AbstractVertextAiTextGeneration):
-    
-    def _get_client(
-        self
-    ):
+
+    def _get_client(self):
         return ChatModel.from_pretrained(self.model_name)
-    
+
     def ask_call(
         self,
         question: str = None,
@@ -30,38 +26,41 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
         **kwargs
     ) -> AskModelEngineResponse:
         assert self.client != None
-        
+
         chat = None
         if FULL_PROMPT in kwargs.keys():
             full_prompt = kwargs.pop(FULL_PROMPT)
 
             # make sure the full prompt param is an even list
             assert len(full_prompt) % 2 != 0
-            
+
             # pull out the last message
             last_msg = full_prompt[-1]
             if isinstance(last_msg, dict):
-                question = last_msg.get('content')
+                question = last_msg.get("content")
                 history = full_prompt[:-1]
             elif isinstance(last_msg, str):
                 question = last_msg
                 history = []
             else:
                 raise TypeError("Unable to extract the question from full prompt list")
-            
-        
-        # convert history to ChatMessage class 
+
+        # convert history to ChatMessage class
         try:
-            history = [ChatMessage(author = msg.get('author', msg['role']), content= msg['content']) for msg in history]
+            history = [
+                ChatMessage(
+                    author=msg.get("author", msg["role"]), content=msg["content"]
+                )
+                for msg in history
+            ]
         except KeyError:
-            raise KeyError("Unable to determine author of the message. No 'author' or 'role' provided.")
-        
+            raise KeyError(
+                "Unable to determine author of the message. No 'author' or 'role' provided."
+            )
+
         # begin the convo
-        chat = self.client.start_chat(
-            context=context,
-            message_history = history
-        )
-              
+        chat = self.client.start_chat(context=context, message_history=history)
+
         # convert ask inputs to vertex ai params
         parameters = {
             "temperature": temperature,  # Temperature controls the degree of randomness in token selection.
@@ -70,17 +69,17 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
             "top_k": top_k,  # A top_k of 1 means the selected token is the most probable among all tokens.
             "stop_sequences": stop_sequences,
         }
-        
+
         responses = chat.send_message_streaming(
-            message = question, 
+            message=question,
             **parameters,
         )
-        
-        final_response = ''
+
+        final_response = ""
         for response in responses:
             final_response += response.text
-            print(prefix + response.text, end ='')
-            
+            print(prefix + response.text, end="")
+
         model_engine_response = AskModelEngineResponse(response=final_response)
-        
+
         return model_engine_response

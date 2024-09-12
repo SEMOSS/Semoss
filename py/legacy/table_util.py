@@ -15,7 +15,6 @@ from paddleocr.ppstructure.recovery.recovery_to_doc import (
     sorted_layout_boxes,
     convert_info_docx,
 )
-import torch
 import numpy
 import json
 

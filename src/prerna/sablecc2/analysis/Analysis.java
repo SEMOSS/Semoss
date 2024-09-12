@@ -115,6 +115,7 @@ public interface Analysis extends Switch
     void caseASimpleValues(ASimpleValues node);
     void caseAListValues(AListValues node);
     void caseANestedMapValues(ANestedMapValues node);
+    void caseAMapOperationValues(AMapOperationValues node);
     void caseAMapList(AMapList node);
     void caseAMapListExtend(AMapListExtend node);
     void caseAWordMapKey(AWordMapKey node);

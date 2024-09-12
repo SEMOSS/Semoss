@@ -88,11 +88,21 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 		 * 7) add to localmaster and solr
 		 */
 
+		
+		
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
+		//
+
 		String tableName = UploadInputUtility.getTableName(this.store, this.insight);
+		//if db is valid then set the name, else throw error
+		if (!Utility.validateName(tableName)) {
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+
+		
 		String uniqueColumnName = UploadInputUtility.getUniqueColumn(this.store, this.insight);
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
@@ -404,6 +414,13 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 							ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(dTime));
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
+						}
+					} else if (type == SemossDataType.BOOLEAN) {
+						Boolean dBool = Boolean.valueOf(nextRow[colIndex]);
+						if (dBool != null) {
+							ps.setBoolean(colIndex + 1, dBool);
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.BOOLEAN);
 						}
 					}
 				}

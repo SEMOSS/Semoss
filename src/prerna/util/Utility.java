@@ -2037,7 +2037,14 @@ public final class Utility {
 				syncToLocalMaster = true;
 			}
 		} catch(Exception e) {
-			classLogger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+		}
+		if(engineType == null) {
+			return;
 		}
 		
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
@@ -5815,6 +5822,12 @@ public final class Utility {
 		}
 		
 		return ZonedDateTime.now(zoneId);
+	}
+	
+	//helper to validate names across webapp 
+	public static Boolean validateName(String name) {
+		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
+		return name.matches(regex);
 	}
 	
 

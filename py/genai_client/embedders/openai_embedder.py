@@ -1,25 +1,23 @@
-from typing import Union, List, Dict, Any
+from typing import List, Dict
 from openai import OpenAI
 
 from genai_client.tokenizers.abstract_tokenizer import AbstractTokenizer
 
 from ..tokenizers.openai_tokenizer import OpenAiTokenizer
 
-from ..constants import (
-    MAX_TOKENS, 
-    EmbeddingsModelEngineResponse
-)
+from ..constants import MAX_TOKENS, EmbeddingsModelEngineResponse
 
 from .abstract_embedder import AbstractEmbedder
 
 from logging_config import get_logger
+
 class_logger = get_logger(__name__)
 
 
 class OpenAiEmbedder(AbstractEmbedder):
-    
+
     def __init__(self, model_name: str, api_key: str, **kwargs):
-        
+
         # register the some of the model details with the abstract embedder class
         super().__init__(
             model_name=model_name,
@@ -28,12 +26,12 @@ class OpenAiEmbedder(AbstractEmbedder):
         )
 
         self.client = self._get_client(api_key=api_key, **kwargs)
-        
+
     def _get_tokenizer(self, init_args: Dict) -> AbstractTokenizer:
         tokenizer = OpenAiTokenizer(
             encoder_name=self.model_name, max_tokens=init_args.pop(MAX_TOKENS, None)
         )
-        
+
         return tokenizer
 
     def _get_client(self, api_key, **kwargs):
@@ -58,7 +56,9 @@ class OpenAiEmbedder(AbstractEmbedder):
                     extra={"stack": "BACKEND"},
                 )
 
-                single_batch_results = self._make_openai_embedding_call(strings_to_embed)
+                single_batch_results = self._make_openai_embedding_call(
+                    strings_to_embed
+                )
 
                 embedded_list = [
                     vector.embedding for vector in single_batch_results.data

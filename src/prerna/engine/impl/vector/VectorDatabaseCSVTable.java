@@ -94,14 +94,14 @@ public class VectorDatabaseCSVTable {
     public static VectorDatabaseCSVTable initCSVTable(File file) throws IOException {
     	VectorDatabaseCSVTable csvTable = new VectorDatabaseCSVTable();
     	
-    	final String STR_VALUE = SemossDataType.STRING.toString();
-    	final String INT_VALUE = SemossDataType.INT.toString();
+    	final String STR_DT = SemossDataType.STRING.toString();
+    	final String INT_DT = SemossDataType.INT.toString();
     	
     	CsvQueryStruct qs = new CsvQueryStruct();
     	qs.setDelimiter(',');
     	qs.setFilePath(file.getAbsolutePath());
     	qs.setSelectorsAndTypes(new String[] {SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT}, 
-    			new String[] {STR_VALUE, STR_VALUE, STR_VALUE, STR_VALUE, INT_VALUE, STR_VALUE});
+    			new String[] {STR_DT, STR_DT, STR_DT, STR_DT, INT_DT, STR_DT});
     	
     	CsvFileIterator csvIt = null;
     	try {

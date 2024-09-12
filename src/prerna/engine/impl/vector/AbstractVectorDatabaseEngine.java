@@ -34,6 +34,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
@@ -64,6 +65,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	public static final String DOCUMENTS_FOLDER_NAME = "documents";
 	public static final String INDEXED_FOLDER_NAME = "indexed_files";
+	
+	public static final String METADATA = "metadata";
+	public static final String FILTERS_KEY = "filters";
+	public static final String METADATA_FILTERS_KEY = "metaFilters";
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -427,6 +432,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
 		// TODO Auto-generated method stub
+	}
+	
+	@Override
+	public void addMetadata(VectorDatabaseMetadataCSVTable vectorCsvTable) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	/**

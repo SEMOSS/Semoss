@@ -17,12 +17,11 @@ public enum VectorDatabaseParamOptionsEnum {
 		COLUMNS_TO_RETURN("columnsToReturn",		"A list of column names in the data you want returned in the response"),
 		EXTRACTION_METHOD("extractionMethod",		"The name of the extraction method used to pull data from PDF(s). Options are \"fitz\" or \"default\"."),
 		KEYWORD_SEARCH_PARAM("keywordSearchParam",  "Create keywords from the extracted chunks and use them to when to create embeddings."),
-		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under"),
-		 NAMESPACE("namespace", "Namespace of pinecone vector db");
+		RETURN_THRESHOLD("returnThreshold", 		"The minimun threshold every response should be under")
+		;
 	
 	    private final String key;
 	    private final String description;
-	    
 	    
 	    VectorDatabaseParamOptionsEnum(String key, String description) {
 	    	this.key = key;
@@ -32,6 +31,7 @@ public enum VectorDatabaseParamOptionsEnum {
 	    public String getKey() {
 			return this.key;
 		}
+	    
 	    public static String getDescriptionFromKey(String key) {
 			for(VectorDatabaseParamOptionsEnum e : VectorDatabaseParamOptionsEnum.values()) {
 				if(e.key.equals(key)) {
