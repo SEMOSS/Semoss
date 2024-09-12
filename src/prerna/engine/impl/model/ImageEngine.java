@@ -57,12 +57,7 @@ public class ImageEngine extends AbstractPythonModelEngine implements IImageEngi
 		parameters.remove("space");
 		parameters.put("output_dir", outputDir);
 		
-		// Check whether to use a gRPC server to connect to image model (This should be set in RDF_MAP with REMOTE_CLIENTS = true when not developing locally.)
-		Boolean useRemoteClient = Utility.getDIHelperProperty("REMOTE_CLIENTS") != null && Utility.getDIHelperProperty("REMOTE_CLIENTS").equalsIgnoreCase("true");
-		
-		parameters.put("remote_client", useRemoteClient);
-		
-		
+
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();
 			while(paramKeys.hasNext()) {

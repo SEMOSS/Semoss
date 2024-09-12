@@ -1,8 +1,11 @@
 package prerna.engine.impl.model.responses;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Map;
 
 public class ImageModelEngineResponse extends AbstractImageModelEngineResponse<String> {
+	private static final Logger classLogger = LogManager.getLogger(ImageModelEngineResponse.class);
 
     private static final long serialVersionUID = 1L;
 
@@ -42,6 +45,8 @@ public class ImageModelEngineResponse extends AbstractImageModelEngineResponse<S
 
     @SuppressWarnings("unchecked")
     public static ImageModelEngineResponse fromObject(Object responseObject) {
+    	classLogger.info("RESPONSE OBJECT!!!");
+    	classLogger.info(responseObject);
         Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
         return fromMap(modelResponse);
     }
