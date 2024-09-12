@@ -163,7 +163,7 @@ public class ModelInferenceLogsUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-		}	
+		}
 	}
 	
 	public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
@@ -759,17 +759,24 @@ public class ModelInferenceLogsUtils {
 
 	private static void deleteFeedbackEntry(String messageId) {
 		String deleteQuery = "DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?";
-
-		try (Connection conn = connectToInferenceLogs(); PreparedStatement ps = conn.prepareStatement(deleteQuery)) {
-			ps.setString(1, messageId);
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(deleteQuery);
+			int index = 1;
+			ps.setString(index++, messageId);
 			int affectedRows = ps.executeUpdate();
 			if (affectedRows == 0) {
 				classLogger.warn(
 						"No changes made while attempting to delete feedback for MESSAGE_ID: {}. Please verify the state of the feedback.",
 						messageId);
 			}
-		} catch (SQLException e) {
-			classLogger.error("Error deleting feedback entry for MESSAGE_ID: {} - {}", messageId, e.getMessage());
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
