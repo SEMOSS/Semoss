@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 
 public class BedrockEngine extends AbstractPythonModelEngine {
@@ -37,6 +38,32 @@ public class BedrockEngine extends AbstractPythonModelEngine {
 					 .append(PyUtils.determineStringType(filePath));
 		} else {
 			throw new IllegalArgumentException("No file path given to summarize");
+		}
+		
+		callMaker.append(")");
+		classLogger.debug("Running >>>" + callMaker.toString());
+		
+		Object output = pyt.runScript(callMaker.toString(), insight);
+		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
+		return response;
+	}
+
+	/**
+	 * 
+	 * @param filePath
+	 * @param insight
+	 * @return
+	 */
+	public EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight) {
+		checkSocketStatus();
+		
+		StringBuilder callMaker = new StringBuilder(this.varName + ".embeddings_call(");	
+		if (stringsToEmbed != null && !stringsToEmbed.isEmpty()) {
+			callMaker.append("strings_to_embed")
+					 .append("=")
+					 .append(PyUtils.determineStringType(stringsToEmbed));
+		} else {
+			throw new IllegalArgumentException("Nothing given to embed");
 		}
 		
 		callMaker.append(")");
