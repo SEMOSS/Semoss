@@ -27,10 +27,7 @@ public class DeleteFilesFromEngineRunner implements Runnable {
 	public void run() {
 		for (int i = 0; i < this.FILE_PATHS.length; i++) {
 			try {
-				File f = new File(FILE_PATHS[i]);
-				if(f.exists()) {
-					ClusterUtil.deleteEngineCloudFile(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
-				}
+				ClusterUtil.deleteEngineCloudFile(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}	
