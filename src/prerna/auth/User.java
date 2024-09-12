@@ -43,6 +43,7 @@ import prerna.util.MountHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.Utility;
+import prerna.om.UserVenv;
 
 public class User implements Serializable {
 
@@ -113,6 +114,11 @@ public class User implements Serializable {
 	// this is what will distinguish between output vs. stdout
 	public String prefix = "";
 	
+	// This is the path to the temporary insight server directory used to run python and virtual envs
+	// EX: C:\workspace\Semoss\InsightCache\a653411963489424001
+	public String tempInsightDir = "";
+	public UserVenv userVenv;
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -135,6 +141,19 @@ public class User implements Serializable {
 		}
 		accessTokens.put(name, value);
 		setAnonymous(false);
+	}
+	
+	/**
+	 * Set the temporary insight directory for the py server and virtual env location
+	 * @param path
+	 */
+	
+	public void setTempInsightDir(String path) {
+		if (path != null && !path.isEmpty()) {
+			this.tempInsightDir = Utility.normalizePath(path);
+		} else {
+			classLogger.error("The temporary insight directory is invalid.");
+		}
 	}
 	
 	/**
@@ -606,6 +625,14 @@ public class User implements Serializable {
 	}
 	
 	/////////////////////////////////////////////////////
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public UserVenv getUserVenv() {
+		return this.userVenv;
+	}
 
 	/**
 	 * 
@@ -1081,6 +1108,9 @@ public class User implements Serializable {
 				
 				try {
 					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
+					this.setTempInsightDir(serverDirectoryPath.toString());
+					this.userVenv = new UserVenv(serverDirectoryPath.toString());
+					
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Could not create directory to launch project process");
@@ -1088,6 +1118,7 @@ public class User implements Serializable {
 				
 				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
 				try {
+					// Should consider getting rid of this
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
 				} catch (Exception e) {

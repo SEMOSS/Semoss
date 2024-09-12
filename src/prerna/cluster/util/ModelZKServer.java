@@ -43,6 +43,7 @@ import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
+import prerna.util.PythonUtils;
 
 public class ModelZKServer implements Watcher, CuratorCacheListener
 {
@@ -579,7 +580,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 
 		// TODO verify this is correct.
 		String loggerLevel = this.prop.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port, null, timeout, loggerLevel);
+		Object [] outputs = PythonUtils.startTCPServerNativePy(this.workingDirectoryBasePath, port, null, timeout, loggerLevel);
 		this.process = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 		
