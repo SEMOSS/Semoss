@@ -70,7 +70,7 @@ public class BedrockEngine extends AbstractPythonModelEngine {
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
 		Object output = pyt.runScript(callMaker.toString(), insight);
-		EmbeddingsModelEngineResponse response = AskModelEngineResponse.fromObject(output);
+		EmbeddingsModelEngineResponse response = EmbeddingsModelEngineResponse.fromObject(output);
 		return response;
 	}
 	
