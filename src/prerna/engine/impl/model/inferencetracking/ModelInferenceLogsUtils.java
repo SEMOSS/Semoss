@@ -8,12 +8,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,6 +28,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -48,6 +49,11 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class ModelInferenceLogsUtils {
 	
 	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
+	
+	// Constants for Table 
+	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
+	private static final String AGENT_TABLE_NAME = "AGENT__";
+	private static final String ROOM_TABLE_NAME = "ROOM__";
 	
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
@@ -173,7 +179,7 @@ public class ModelInferenceLogsUtils {
 			qs.setEngine(modelInferenceLogsDb);
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
-			List<IQuerySelector> selectors = new Vector<>(
+			List<IQuerySelector> selectors = new ArrayList<>(
 					Arrays.asList(
 							new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"), 
 							new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"), 
@@ -181,7 +187,7 @@ public class ModelInferenceLogsUtils {
 							)
 					);
 
-			List<Object> values = new Vector<>(Arrays.asList(feedbackText, new SemossDate(LocalDateTime.now()), rating));
+			List<Object> values = new ArrayList<>(Arrays.asList(feedbackText, new SemossDate(Utility.getCurrentZonedDateTimeUTC()), rating));
 
 			qs.setSelectors(selectors);
 			qs.setValues(values);
@@ -202,6 +208,175 @@ public class ModelInferenceLogsUtils {
 			}
 		}
 	}
+	
+	
+	
+	/**
+	 * USAGE HELPER FUNCTIONS  
+	 * 
+	 */
+	
+	/**
+	 * Function returns the number of unique calls (Inputs) per a model 
+	 * 
+	 * @param engineId
+	 * @param offset 
+	 * @param limit 
+	 * @param dateFilter 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String startDate, String endDate) {
+	
+		SelectQueryStruct qs = new SelectQueryStruct();
+		
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
+//		}
+		
+		addLimitAndOffSet(qs, limit, offset);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * Returns a list of total tokens used per project for engineId passed in 
+	 * @param engineId
+	 * @param dateFilter 
+	 * @param offset 
+	 * @param limit 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
+		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
+		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
+		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(countNumberRequestSelector);
+		
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
+//		}
+		
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * @param qs
+	 * @param limit
+	 * @param offset
+	 */
+	private static void addLimitAndOffSet(SelectQueryStruct qs, String limit, String offset) {
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = ((Number) Double.parseDouble(limit)).longValue();
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = ((Number) Double.parseDouble(offset)).longValue();
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param limit
+	 * @param offset
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
+//		}
+		
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String startDate, String endDate) {
+		if((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();	
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", startDate));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+		
+	}
+
+	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
+		//TODO - Figure out what exactly we mean by usage cause i have no idea 
+		// TODO - take in limit and offset 
+		// First get a list of insightIDs from Room 
+		List<String> insightIdList = getInsightIdListPerProject(projectId);
+		// Second query against message to find number of unique calls? Not sure what we are tracking from projects just yet 
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Unique_Calls");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightIdList));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+	}
+	
+	public static List<String> getInsightIdListPerProject(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
+		return insightIdList;
+	}
+	
 	
 	public static void doCreateNewUser(User user) {
 		String query = "INSERT INTO USERS (USER_ID, USERNAME, EMAIL) VALUES (?, ?, ?)";
@@ -282,8 +457,8 @@ public class ModelInferenceLogsUtils {
 			
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", insightId));
-			List<IQuerySelector> selectors = new Vector<>();
-			List<Object> values = new Vector<>();
+			List<IQuerySelector> selectors = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
 			selectors.add(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
 			values.add(context);
 			qs.setSelectors(selectors);
@@ -461,8 +636,8 @@ public class ModelInferenceLogsUtils {
 			qs.setEngine(modelInferenceLogsDb);
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-			List<IQuerySelector> selectors = new Vector<>();
-			List<Object> values = new Vector<>();
+			List<IQuerySelector> selectors = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
 			selectors.add(new QueryColumnSelector("ROOM__IS_ACTIVE"));
 			values.add(false);
 			qs.setSelectors(selectors);
@@ -494,8 +669,8 @@ public class ModelInferenceLogsUtils {
             qs.setEngine(modelInferenceLogsDb);
             qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
             qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
-            List<IQuerySelector> selectors = new Vector<>();
-            List<Object> values = new Vector<>();
+            List<IQuerySelector> selectors = new ArrayList<>();
+            List<Object> values = new ArrayList<>();
             selectors.add(new QueryColumnSelector("ROOM__ROOM_NAME"));
             values.add(roomName);
             qs.setSelectors(selectors);
