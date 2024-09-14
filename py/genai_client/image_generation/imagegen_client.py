@@ -17,7 +17,6 @@ class ImageGenClient(AbstractImageGenerationClient):
         self,
         endpoint: str,
         model_name: Optional[str] = "PixArt-alpha/PixArt-XL-2-1024-MS",
-        device: Optional[str] = "cuda:0",
     ):
         self.endpoint = endpoint
         self.model_name = model_name
@@ -76,6 +75,7 @@ class ImageGenClient(AbstractImageGenerationClient):
             "width": width,
             "seed": seed,
             "file_name": file_name,
+            "model": self.model_name,
         }
 
         try:
