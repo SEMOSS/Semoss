@@ -5121,7 +5121,11 @@ public final class Utility {
 			
 			classLogger.info("The python executable being used is: " + py);
 
-			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+			// check to see if the py folder is there
+			// if not go into base folder
+			String pyBase = DIHelper.getInstance().getProperty(Constants.PY_BASE_FOLDER) == null?DIHelper.getInstance().getProperty(Constants.BASE_FOLDER):DIHelper.getInstance().getProperty(Constants.PY_BASE_FOLDER);
+			
+			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
 			pyBase = pyBase.replace("\\", "/");
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
@@ -5226,7 +5230,9 @@ public final class Utility {
 			
 			py = py.replace("\\", "/");
 
-			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+			String pyBase = DIHelper.getInstance().getProperty(Constants.PY_BASE_FOLDER) == null ? DIHelper.getInstance().getProperty(Constants.BASE_FOLDER):DIHelper.getInstance().getProperty(Constants.PY_BASE_FOLDER);			
+			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
+
 			pyBase = pyBase.replace("\\", "/");
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
