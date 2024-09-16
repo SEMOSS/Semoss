@@ -886,7 +886,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			
 			// Where 
 			editUserPs.setString(i++, userId);
-			System.out.println(editUserPs);
 			editUserPs.execute();
 			if (!editUserPs.getConnection().getAutoCommit()) {
 				editUserPs.getConnection().commit();
@@ -937,19 +936,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return true;
 	}
 
-	private void addBooleanToPs(PreparedStatement editUserPs, Boolean colData, int i) throws SQLException {
-		if(colData != null) {
-			editUserPs.setBoolean(i++, colData);
-		}
-		
-	}
 
-	private void addStringToPs(PreparedStatement editUserPs, String colData, int i) throws SQLException {
-		if(colData != null && !colData.isEmpty()) {
-			editUserPs.setString(i++, colData);
-		}
-		
-	}
 
 	/**
 	 * Delete a user and all its relationships.
