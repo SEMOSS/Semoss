@@ -761,9 +761,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		 * validate and add the columns we wish to update to list
 		 */
 		List<String> columns = new ArrayList<String>();
+		List<Object> columnValues = new ArrayList<Object>();
 
 		if (newUserId != null) {
 			columns.add("ID");
+			columnValues.add(newUserId);
 		}
 
 		String error = "";
@@ -775,6 +777,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				error += e.getMessage();
 			}
 			columns.add("EMAIL");
+			columnValues.add(newEmail);
 		}
 		if (newUsername != null && !newUsername.isEmpty()) {
 			boolean usernameExists = SecurityQueryUtils.checkUsernameExist(newUsername);
@@ -783,6 +786,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 
 			columns.add("USERNAME");
+			columnValues.add(newUsername);
 		}
 		if (password != null && !password.isEmpty()) {
 			try {
@@ -794,24 +798,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (error.isEmpty()) {
 				newSalt = SecurityQueryUtils.generateSalt();
 				columns.add("PASSWORD");
+				columnValues.add(newSalt);
 				newHashPass = SecurityQueryUtils.hash(password, newSalt);
 				columns.add("SALT");
+				columnValues.add(newHashPass);
 			}
 		}
 		if (name != null && !name.isEmpty()) {
 			columns.add("NAME");
+			columnValues.add(name);
 		}
 		if (type != null && !type.isEmpty()) {
 			columns.add("TYPE");
+			columnValues.add(type);
 		}
 		if (adminChange != null) {
 			columns.add("ADMIN");
+			columnValues.add(adminChange);
 		}
 		if (publisherChange != null) {
 			columns.add("PUBLISHER");
+			columnValues.add(publisherChange);
 		}
 		if (exporterChange != null) {
 			columns.add("EXPORTER");
+			columnValues.add(exporterChange);
 		}
 		if (phone != null && !phone.isEmpty()) {
 			try {
@@ -821,12 +832,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				error += e.getMessage();
 			}
 			columns.add("PHONE");
+			columnValues.add(phone);
 		}
 		if (phoneExtension != null && !phoneExtension.isEmpty()) {
 			columns.add("PHONEEXTENSION");
+			columnValues.add(phoneExtension);
 		}
 		if (countryCode != null && !countryCode.isEmpty()) {
 			columns.add("COUNTRYCODE");
+			columnValues.add(countryCode);
 		}
 		
 		if (error != null && !error.isEmpty()) {
@@ -844,48 +858,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
 			int i = 1;
-			if (newUserId != null && !newUserId.isEmpty()) {
-				editUserPs.setString(i++, newUserId);
-			}
-			if (newEmail != null && !newEmail.isEmpty()) {
-				editUserPs.setString(i++, newEmail);
-			}
-			if (newUsername != null && !newUsername.isEmpty()) {
-				editUserPs.setString(i++, newUsername);
-			}
-			if (newHashPass != null && !newHashPass.isEmpty()) {
-				editUserPs.setString(i++, newHashPass);
-			}
-			if (newSalt != null && !newSalt.isEmpty()) {
-				editUserPs.setString(i++, newSalt);
-			}
-			if (name != null && !name.isEmpty()) {
-				editUserPs.setString(i++, name);
-			}
-			if (type != null && !type.isEmpty()) {
-				editUserPs.setString(i++, type);
-			}
-			if (adminChange != null) {
-				editUserPs.setBoolean(i++, adminChange);
-			}
-			if (publisherChange != null) {
-				editUserPs.setBoolean(i++, publisherChange);
-			}
-			if (exporterChange != null) {
-				editUserPs.setBoolean(i++, exporterChange);
-			}
-			if (phone != null && !phone.isEmpty()) {
-				editUserPs.setString(i++, phone);
-			}
-			if (phoneExtension != null && !phoneExtension.isEmpty()) {
-				editUserPs.setString(i++, phoneExtension);
-			}
-			if (countryCode != null && !countryCode.isEmpty()) {
-				editUserPs.setString(i++, countryCode);
+			
+			for(Object value: columnValues) {
+				if(value instanceof String) {
+					editUserPs.setString(i++, value.toString());
+				}
+				else if(value instanceof Boolean) {
+					editUserPs.setBoolean(i++, Boolean.parseBoolean(value.toString()));
+				} else {
+					throw new IllegalArgumentException("Edit User does not allow for non String/Boolean updates as of now");
+				}
 			}
 			
 			// Where 
 			editUserPs.setString(i++, userId);
+			System.out.println(editUserPs);
 			editUserPs.execute();
 			if (!editUserPs.getConnection().getAutoCommit()) {
 				editUserPs.getConnection().commit();
