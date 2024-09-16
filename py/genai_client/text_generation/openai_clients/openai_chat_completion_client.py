@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple
 
 from .abstract_openai_client import AbstractOpenAiClient
-from ...constants import FULL_PROMPT, AskModelEngineResponse
+from ...constants import FULL_PROMPT, IMAGE_ENCODED, AskModelEngineResponse
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
@@ -29,14 +29,25 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         message_payload = []
 
         if FULL_PROMPT not in kwargs.keys():
-            # if the user provided context, use that. Otherwise, try to get it from the template
-            message_payload = self._process_chat_completion(
-                question=question,
-                context=context,
-                history=history,
-                template_name=template_name,
-                fill_variables=kwargs,
-            )
+
+            if IMAGE_ENCODED in kwargs.keys():
+                # if the user provided context, use that. Otherwise, try to get it from the template
+                message_payload = self._process_chat_completion(
+                    question=question,
+                    context=context,
+                    history=history,
+                    template_name=template_name,
+                    fill_variables=kwargs,
+                )           
+            else:     
+                # if the user provided context, use that. Otherwise, try to get it from the template
+                message_payload = self._process_chat_completion(
+                    question=question,
+                    context=context,
+                    history=history,
+                    template_name=template_name,
+                    fill_variables=kwargs,
+                )
 
         else:
             message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
@@ -114,12 +125,23 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if history is not None:
             message_payload.extend(history)
 
-        # add the new question to the payload
-        if question != None and len(question) > 0:
-            message_payload.append({"role": "user", "content": question})
+        # check if images are in the fill args
+        if IMAGE_ENCODED in fill_variables:
+            # add the new question to the payload
+            if question != None and len(question) > 0:
+                image_payload = []
+                image_payload.append({"type": "text", "text": question})
+                image_url = {}
+                image_url["url"] = f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
+                image_payload.append({"type": "image_url", "image_url": image_url})
+                message_payload.append({"role": "user", "content": image_payload})
+        else: 
+            # add the new question to the payload
+            if question != None and len(question) > 0:
+                message_payload.append({"role": "user", "content": question})
 
         return message_payload
-
+        
     def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
         if isinstance(full_prompt, list):
             listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
