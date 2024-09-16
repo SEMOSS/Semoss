@@ -197,8 +197,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					+ SmssUtilities.getUniqueName(this.engineName, this.engineId) + " = " + createQuery);
 			stmt.execute(createQuery);
 		} catch(SQLException e) {
+			classLogger.warn("Unable to create the table " + createQuery);;
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SQLException("Unable to create the table " + createQuery);
+//			throw new SQLException("Unable to create the table " + createQuery);
 		} finally {
 			if(this.dataSource != null) {
 				ConnectionUtils.closeAllConnections(conn, stmt);
