@@ -4,8 +4,8 @@ import java.io.File;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
-import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
