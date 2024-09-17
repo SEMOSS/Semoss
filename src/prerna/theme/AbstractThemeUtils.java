@@ -49,7 +49,7 @@ public abstract class AbstractThemeUtils {
 		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
 		
 		colNames = new String[] { "id", "theme_name", "theme_map", "is_active" };
-		types = new String[] { "varchar(255)", "varchar(255)", "clob", "boolean" };
+		types = new String[] { "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getBooleanDataTypeName() };
 		if(queryUtil.allowsIfExistsTableSyntax()) {
 			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", colNames, types));
 		} else {
