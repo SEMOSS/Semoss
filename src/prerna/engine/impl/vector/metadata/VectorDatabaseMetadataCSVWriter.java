@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -114,27 +115,56 @@ public class VectorDatabaseMetadataCSVWriter {
 	public void writeSourceRow(String source, Map<String, Object> metadata) {
 		for(String attributeName : metadata.keySet()) {
 			Object metaValue = metadata.get(attributeName);
-			if(metaValue instanceof Integer) {
-				writeRow(source, attributeName, null, (Integer) metaValue, null, null, null, null);
-			} else if(metaValue instanceof Number) {
-				writeRow(source, attributeName, null, null, (Number) metaValue, null, null, null);
-			} else if(metaValue instanceof Boolean) {
-				writeRow(source, attributeName, null, null, null, (Boolean) metaValue, null, null);
-			} else if(metaValue instanceof SemossDate) {
-				if(((SemossDate) metaValue).dateHasTimeNotZero()) {
-					// assume timestamp
-					writeRow(source, attributeName, null, null, null, null, (SemossDate) metaValue, null);
-				} else {
-					// assume timestamp
-					writeRow(source, attributeName, null, null, null, null, null, (SemossDate) metaValue);
+			// account for list of values
+			if(metaValue instanceof Collection) {
+				Collection<Object> metaListValue = (Collection<Object>) metaValue;
+				for(Object thisMetaValue : metaListValue) {
+					writeSourceRowValue(source, attributeName, thisMetaValue);
 				}
 			} else {
-				// assume string
-				writeRow(source, attributeName, metaValue+"", null, null, null, null, null);
+				writeSourceRowValue(source, attributeName, metaValue);
 			}
 		}
 	}
 	
+	/**
+	 * 
+	 * @param source
+	 * @param attributeName
+	 * @param metaValue
+	 */
+	public void writeSourceRowValue(String source, String attributeName, Object metaValue) {
+		if(metaValue instanceof Integer) {
+			writeRow(source, attributeName, null, (Integer) metaValue, null, null, null, null);
+		} else if(metaValue instanceof Number) {
+			writeRow(source, attributeName, null, null, (Number) metaValue, null, null, null);
+		} else if(metaValue instanceof Boolean) {
+			writeRow(source, attributeName, null, null, null, (Boolean) metaValue, null, null);
+		} else if(metaValue instanceof SemossDate) {
+			if(((SemossDate) metaValue).dateHasTimeNotZero()) {
+				// assume timestamp
+				writeRow(source, attributeName, null, null, null, null, (SemossDate) metaValue, null);
+			} else {
+				// assume timestamp
+				writeRow(source, attributeName, null, null, null, null, null, (SemossDate) metaValue);
+			}
+		} else {
+			// assume string
+			writeRow(source, attributeName, metaValue+"", null, null, null, null, null);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param source
+	 * @param attributeName
+	 * @param strValue
+	 * @param intValue
+	 * @param numValue
+	 * @param boolValue
+	 * @param dateValue
+	 * @param timestampValue
+	 */
 	public void writeRow(String source, String attributeName, String strValue, Integer intValue, Number numValue,
 			Boolean boolValue, SemossDate dateValue, SemossDate timestampValue) {
 		StringBuilder row = new StringBuilder()
