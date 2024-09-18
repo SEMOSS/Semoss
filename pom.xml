@@ -2291,7 +2291,11 @@
 		    <version>20240325.1</version>
 		</dependency>	
 
-
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-ai-formrecognizer</artifactId>
+			<version>4.1.9</version>
+		</dependency>
 
 	
 		<!--  testing jars  -->
