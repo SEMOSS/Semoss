@@ -35,6 +35,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -259,13 +260,153 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
 		
-		GraphQLResponse response = client.graphQL().get().withClassName(className)
-				.withFields(content, source, divider, part, modality, _additional)
-				.withNearVector(nearVector)
-				.withAutocut(cutter)
-				.withLimit(limit.intValue())
-				.run()
-				.getResult();
+		GraphQLResponse response = null;
+
+		List<IQueryFilter> filters = null;
+		List<IQueryFilter> metaFilters = null;
+
+		List<String> searchFilters = new ArrayList<String>();
+
+		String[] listfiles = null;
+		String[] modalityValue = null;
+		String[] dividerValue = null;
+		String[] partValue = null;
+		int size = 0;
+		WhereFilter where = null;
+		WhereFilter[] wherecheck = new WhereFilter[size];
+
+		String operationType = null;
+
+		if (!(parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				&& !(parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+
+			response = client.graphQL().get().withClassName(className)
+					.withFields(content, source, divider, part, modality, _additional).withNearVector(nearVector)
+					.withAutocut(cutter).withLimit(limit.intValue()).run().getResult();
+		}
+
+		if ((parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				|| (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+
+			if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+				filters = (List<IQueryFilter>) parameters.remove("filters");
+				operationType = WeaviateVectorQueryFitler.checkFilters(filters);
+				System.out.println("OPERATION TYPE: " + operationType);
+				searchFilters = WeaviateVectorQueryFitler.addFilters(filters);
+
+				System.out.println(searchFilters);
+
+				for (int i = 0; i < searchFilters.size(); i++) {
+					if (searchFilters.get(i).equalsIgnoreCase("Source")) {
+
+						listfiles = WeaviateVectorQueryFitler.checkSourceFilters(filters, searchFilters.get(i));
+						size++;
+
+					}
+					if (searchFilters.get(i).equalsIgnoreCase("Modality")) {
+
+						modalityValue = WeaviateVectorQueryFitler.checkModalityFilters(filters, searchFilters.get(i));
+						System.out.println(modalityValue);
+						size++;
+
+					}
+					if (searchFilters.get(i).equalsIgnoreCase("Divider")) {
+
+						dividerValue = WeaviateVectorQueryFitler.checkDividerFilters(filters, searchFilters.get(i));
+						System.out.println(modalityValue);
+						size++;
+
+					}
+					if (searchFilters.get(i).equalsIgnoreCase("Part")) {
+
+						partValue = WeaviateVectorQueryFitler.checkPartFilters(filters, searchFilters.get(i));
+						System.out.println(partValue);
+						size++;
+
+					}
+				}
+
+			}
+
+			if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+				metaFilters = (List<IQueryFilter>) parameters.remove("metaFilters");
+				operationType = WeaviateVectorQueryFitler.checkFilters(metaFilters);
+				System.out.println("OPERATION TYPE: " + operationType);
+
+				searchFilters = WeaviateVectorQueryFitler.addFilters(metaFilters);
+				System.out.println(searchFilters);
+				for (int i = 0; i < searchFilters.size(); i++) {
+					if (searchFilters.get(i).equalsIgnoreCase("Source")) {
+
+						listfiles = WeaviateVectorQueryFitler.checkSourceFilters(metaFilters, searchFilters.get(i));
+						size++;
+
+					}
+					if (searchFilters.get(i).equalsIgnoreCase("Modality")) {
+
+						modalityValue = WeaviateVectorQueryFitler.checkModalityFilters(metaFilters, searchFilters.get(i));
+						System.out.println(modalityValue);
+						size++;
+
+					}
+					if (searchFilters.get(i).equalsIgnoreCase("Divider")) {
+
+						dividerValue = WeaviateVectorQueryFitler.checkDividerFilters(metaFilters, searchFilters.get(i));
+						System.out.println(modalityValue);
+						size++;
+
+					}
+					if (searchFilters.get(i).equalsIgnoreCase("Part")) {
+
+						partValue = WeaviateVectorQueryFitler.checkPartFilters(metaFilters, searchFilters.get(i));
+						System.out.println(partValue);
+						size++;
+
+					}
+				}
+			}
+
+			WhereFilter whereSource = null;
+			WhereFilter whereModality = null;
+			WhereFilter whereDivider = null;
+			WhereFilter wherePart = null;
+
+			wherecheck = new WhereFilter[size];
+			int i = 0;
+			if (listfiles != null) {
+				whereSource = WhereFilter.builder().path("source").operator(Operator.ContainsAny).valueText(listfiles)
+						.build();
+				wherecheck[i] = whereSource;
+				i++;
+			}
+
+			if (modalityValue != null) {
+				whereModality = WhereFilter.builder().path("modality").operator(Operator.ContainsAny)
+						.valueText(modalityValue).build();
+				wherecheck[i] = whereModality;
+				i++;
+			}
+
+			if (dividerValue != null) {
+				whereDivider = WhereFilter.builder().path("divider").operator(Operator.ContainsAny)
+						.valueText(dividerValue).build();
+				wherecheck[i] = whereDivider;
+				i++;
+			}
+
+			if (partValue != null) {
+				wherePart = WhereFilter.builder().path("part").operator(Operator.ContainsAny).valueText(partValue)
+						.build();
+				wherecheck[i] = wherePart;
+				i++;
+			}
+
+			where = WhereFilter.builder().operator(operationType).operands(wherecheck).build();
+
+			response = client.graphQL().get().withClassName(className)
+					.withFields(content, source, divider, part, modality, _additional).withNearVector(nearVector)
+					.withAutocut(cutter).withLimit(limit.intValue()).withWhere(where).run().getResult();
+		}
 
 		// hashmap = LinkedTreeMap
 		// each level is a hashmap
