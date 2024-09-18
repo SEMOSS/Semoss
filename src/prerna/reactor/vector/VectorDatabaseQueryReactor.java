@@ -1,16 +1,12 @@
 package prerna.reactor.vector;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
@@ -25,7 +21,7 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class VectorDatabaseQueryReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseQueryReactor.class);
+
 	public VectorDatabaseQueryReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(),
@@ -33,17 +29,16 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 				ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				ReactorKeysEnum.FILTERS.getKey(),
-				"fileNames"
-		};
-		this.keyRequired = new int[] {1, 1, 0, 0, 0, 0};
+				ReactorKeysEnum.META_FILTERS.getKey()
+			};
+		this.keyRequired = new int[] {1, 1, 0, 0, 0};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		List<String> filenames=getFiles();
-		classLogger.info(filenames);
+		
 		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to it.");
 		}
@@ -66,44 +61,23 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		}
 		
 		// add the insightId so Model Engine calls can be made for python
-		List<IQueryFilter> filters = getFilters();
+		List<IQueryFilter> filters = getFilters(ReactorKeysEnum.FILTERS.getKey());
 		if (filters != null) {
-			paramMap.put("filters", filters);
+			paramMap.put(AbstractVectorDatabaseEngine.FILTERS_KEY, filters);
 		}
-
-		List<Map<String, Object>> output = eng.nearestNeighbor(this.insight, searchStatement, limit, paramMap);
-		if(!filenames.isEmpty()) {
-			output = output.stream().filter(item -> filenames.contains(item.get("Source"))).collect(Collectors.toList());
+		filters = getFilters(ReactorKeysEnum.META_FILTERS.getKey());
+		if (filters != null) {
+			paramMap.put(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY, filters);
 		}
 		
-		
+		Object output = eng.nearestNeighbor(this.insight, searchStatement, limit, paramMap);
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);	
 	}
 	
 	/**
-	 * @return list of files to delete
+	 * 
+	 * @return
 	 */
-	public List<String> getFiles() {
-		List<String> filePaths = new ArrayList<>();
-
-		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				filePaths.add(grs.get(i).toString());
-			}
-			return filePaths;
-		}
-
-		// no key is added, grab all inputs
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) {
-			filePaths.add(this.curRow.get(i).toString());
-		}
-		return filePaths;
-	}
-	
 	private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
@@ -119,7 +93,10 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
         return null;
     }
 	
-	//returns how much do we need to collect
+	/**
+	 * Returns how much do we need to collect
+	 * @return
+	 */
 	private int getLimit() {
 		// try the key
 		GenRowStruct numGrs = store.getNoun(keysToGet[2]);
@@ -137,9 +114,14 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 		return 5;
 	}
 	
-	private List<IQueryFilter> getFilters() {
+	/**
+	 * 
+	 * @param key
+	 * @return
+	 */
+	private List<IQueryFilter> getFilters(String key) {
 		AbstractQueryStruct qs;
-		GenRowStruct filterGrs = store.getNoun(ReactorKeysEnum.FILTERS.getKey());
+		GenRowStruct filterGrs = store.getNoun(key);
 		if(filterGrs != null && !filterGrs.isEmpty()) {
             List<NounMetadata> filterInputs = filterGrs.getNounsOfType(PixelDataType.QUERY_STRUCT);
             if(filterInputs != null && !filterInputs.isEmpty()) {
