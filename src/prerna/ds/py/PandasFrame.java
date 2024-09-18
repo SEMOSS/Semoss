@@ -1098,11 +1098,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
+		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
+
 		if(sql.startsWith("NLP:") || sql.startsWith("nlp:"))
 		{
 			// convert this to sql
 			sql = getSQLFromNLP(sql);
 		}
+		
 		
 		if(sql.trim().toUpperCase().startsWith("SELECT")) {
 			Map retMap = new HashMap();
@@ -1124,7 +1127,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String dict = tempFrameName + "_dict = " + tempFrameName + ".to_dict('split')";
 			String dictColumns = tempFrameName + "_dict['types'] = " + tempFrameName + "_types";
 			
-			String deleteAll = "delete " + tempFrameName + ", " + tempFrameName + "_types, " + tempFrameName + "_dict";
+			String deleteAll = "del " + tempFrameName + ", " + tempFrameName + "_types, " + tempFrameName + "_dict";
 			
 			pyt.runEmptyPy(loadsqlDF, makeNewFrame, addColumnTypes, dict, dictColumns);
 			
@@ -1201,6 +1204,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
+		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
+
 		if(sql.startsWith("NLP:") || sql.startsWith("nlp:"))
 		{
 			// convert this to sql
@@ -1297,6 +1302,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
+		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
+
 		if(sql.startsWith("NLP:") || sql.startsWith("nlp:"))
 		{
 			// convert this to sql
