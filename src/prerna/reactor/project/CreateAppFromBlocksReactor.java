@@ -55,7 +55,14 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		
 		organizeKeys();
 		int index = 0;
-		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
+		
+		String newProjectName = this.keyValue.get(this.keysToGet[index++]); 
+		//if project name is not valid, throw error
+		if (!Utility.validateName(newProjectName)) {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
 		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
