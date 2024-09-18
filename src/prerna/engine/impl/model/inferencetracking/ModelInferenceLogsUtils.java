@@ -539,6 +539,24 @@ public class ModelInferenceLogsUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
+	public static List<Map<String, Object>> doRetrieveNearestNeighbor(String userId, String insightId, String dateSort) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
+		qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
+
+		qs.addRelation("MESSAGE__MESSAGE_ID", "FEEDBACK__MESSAGE_ID", "left.join");
+		qs.addRelation("MESSAGE__MESSAGE_TYPE", "FEEDBACK__MESSAGE_TYPE", "left.join");
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "nearestNeighbor"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
 	
 	public static List<Map<String, Object>> doVerifyConversation(String userId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
