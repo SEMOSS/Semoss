@@ -41,11 +41,9 @@ public class DocProcessor {
 		this.writer = writer;
 	}
 
-
 	public void process(String filetype) {
 		FileInputStream is = null;
 		Object document = null; // Use Object to handle both types
-
 		try {
 			is = new FileInputStream(filePath);
 
@@ -221,18 +219,9 @@ public class DocProcessor {
 		if(file.exists()) {
 			source = file.getName();
 		}
-//		source = Utility.cleanString(source, true);
 		return source;
 	}
 	
-//	public static void main(String[] args) throws Exception 
-//	{
-//
-//		DocProcessor dp = new DocProcessor("c:/temp/ABACUS_ADP_FY24.docx", null);
-//		dp.process();
-//	}
-
-
 	private void processParagraphs(HWPFDocument document) throws IOException {
 		int count = 1;
 		int pageNo = 1;
