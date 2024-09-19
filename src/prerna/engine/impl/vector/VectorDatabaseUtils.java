@@ -4,10 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
@@ -19,9 +17,6 @@ import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 
-import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IModelEngine;
-import prerna.om.Insight;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
@@ -65,7 +60,6 @@ public class VectorDatabaseUtils {
 				mimeType = detector.detect(stream, metadata).toString();
 			} catch (IOException e) {
 				classLogger.error(Constants.ERROR_MESSAGE, e);
-<<<<<<< feature/generate-csv-from-doc
 	        }
 			
 			if (mimeType != null) {
@@ -74,14 +68,6 @@ public class VectorDatabaseUtils {
 						|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 								|| mimeType.equalsIgnoreCase("application/msword")
 								|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
-=======
-			}
-
-			if (mimeType != null) {
-				classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-				if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-						|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
->>>>>>> dev
 								&& (filetype.equals("doc") || filetype.equals("docx")))) {
 					// document
 					DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
@@ -89,11 +75,7 @@ public class VectorDatabaseUtils {
 					processedList.add(file.getAbsolutePath());
 				} else if (mimeType
 						.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-						|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-<<<<<<< feature/generate-csv-from-doc
-
-=======
->>>>>>> dev
+								|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 								&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 					// powerpoint
 					PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
