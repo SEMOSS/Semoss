@@ -21,17 +21,13 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.LLMReactor;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.reactor.frame.gaas.processors.DocProcessor;
 import prerna.reactor.frame.gaas.processors.ImageDocProcessor;
 import prerna.reactor.frame.gaas.processors.ImagePDFProcessor;
 import prerna.reactor.frame.gaas.processors.ImagePPTProcessor;
-import prerna.reactor.frame.gaas.processors.PDFProcessor;
-import prerna.reactor.frame.gaas.processors.PPTProcessor;
 import prerna.reactor.frame.gaas.processors.TextFileProcessor;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -39,14 +35,12 @@ import prerna.util.Utility;
 public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ImageDescriptionFunctionEngine.class);
-	boolean embedImages = true;
-
-	String imageEngineId;
+	
+	private String imageEngineId;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-
 		// this is the multi modal engine
 		this.imageEngineId = this.smssProp.getProperty(Constants.IMAGE_ENGINE_ID);
 	}
@@ -63,8 +57,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 		try {
 			result = convertFilesToCSV(csvFilePath, file);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		int rowsCreated = (int) result.get("rowsInCSV");
 
@@ -80,8 +73,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 		try {
 			replaceImageKeysInCsv(csvFilePath, imageMap, imageEngineId, insight);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return rowsCreated;
@@ -176,11 +168,16 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 		return result;
 	}
 
-	private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, String imageEngineId,
-			Insight insight) throws IOException {
+	/**
+	 * 
+	 * @param csvFilePath
+	 * @param imageMap
+	 * @param imageEngineId
+	 * @param insight
+	 * @throws IOException
+	 */
+	private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, String imageEngineId, Insight insight) throws IOException {
 		List<String> lines = Files.readAllLines(Paths.get(csvFilePath));
-
-		LLMReactor llm = new LLMReactor();
 
 		IModelEngine llmEngine = Utility.getModel(imageEngineId);
 
@@ -234,10 +231,8 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 
 			String llmOutputStr = (String) llmOutput.get("response");
 			llmOutputStr = llmOutputStr.replace("\"", "");
-			String imageDescWithAnnot = " -- BEGINNING OF IMAGE DESCRIPTION : " + llmOutputStr
-					+ " : END OF IMAGE DESCRIPTION -- ";
+			String imageDescWithAnnot = " -- BEGINNING OF IMAGE DESCRIPTION : " + llmOutputStr + " : END OF IMAGE DESCRIPTION -- ";
 			outputMap.put(entry.getKey(), imageDescWithAnnot);
-
 			counter++;
 		}
 
@@ -250,7 +245,6 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 				}
 			}
 			updatedLines.add(String.join(",", cells)); // join cells back into a line
-
 		}
 
 		Files.write(Paths.get(csvFilePath), updatedLines);
@@ -259,7 +253,6 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-
 	}
 
 	/**

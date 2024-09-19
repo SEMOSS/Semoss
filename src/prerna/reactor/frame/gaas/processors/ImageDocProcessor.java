@@ -1,6 +1,7 @@
 package prerna.reactor.frame.gaas.processors;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -9,29 +10,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 
 import javax.imageio.ImageIO;
 
+import org.apache.commons.imaging.ImageFormats;
+import org.apache.commons.imaging.Imaging;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.xwpf.usermodel.ICell;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFPictureData;
 import org.apache.poi.xwpf.usermodel.XWPFPicture;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.ICell;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
-
-import org.apache.commons.imaging.ImageFormats;
-import org.apache.commons.imaging.Imaging;
 
 public class ImageDocProcessor {
 
@@ -62,7 +59,6 @@ public class ImageDocProcessor {
 			
 			processParagraphs(document);
 			processTables(document);
-		
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {

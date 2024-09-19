@@ -111,8 +111,13 @@ public class VectorDatabaseUtils {
 		return writer.getRowsInCsv();
 	}
 
+	/**
+	 * 
+	 * @param newFilesPaths
+	 * @param filesInDocumentsFolder
+	 * @return
+	 */
 	public static boolean verifyFileTypes(List<String> newFilesPaths, List<String> filesInDocumentsFolder) {
-
 		/*
 		 * First Check Make sure the csv files aren't sent with non csv files TODO
 		 * refine checks here
@@ -172,68 +177,76 @@ public class VectorDatabaseUtils {
 		return fileTypes;
 	}
 
-	/**
-	 * @param pyTranslator
-	 * @param document
-	 * @param extractioFilesPath
-	 * @param outputFileName
-	 * @param extractionMethod
-	 * @return
-	 */
-	public static int extractTextUsingPython(TCPPyTranslator pyTranslator, File document, String extractioFilesPath,
-			String outputFileName) {
-		boolean imported = Boolean.parseBoolean(pyTranslator.runScript("'vector_database' in globals().keys()") + "");
-		if (!imported) {
-			throw new IllegalArgumentException("This vector database does not the vector_database python package.");
-		}
-
-		StringBuilder extractTextFromDocScript = new StringBuilder();
-		extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-				.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
-				.append("', target_folder = '").append(extractioFilesPath).append("', output_file_name = '")
-				.append(outputFileName).append("')");
-
-		Number rows = (Number) pyTranslator.runScript(extractTextFromDocScript.toString());
-
-		return rows.intValue();
-	}
-
-	/**
-	 * @param pyTranslator
-	 * @param csvFileName
-	 * @param chunkUnitOfMeasurement
-	 * @param chunkMaxLength
-	 * @param chunkOverlap
-	 * @param chunkingStrategy
-	 */
-	public static void createChunksFromTextInPages(TCPPyTranslator pyTranslator, String csvFileName,
-			String chunkUnitOfMeasurement, int chunkMaxLength, int chunkOverlap, String chunkingStrategy) {
-
-		StringBuilder splitTextCommand = new StringBuilder();
-		splitTextCommand.append("vector_database.split_text(csv_file_location = '").append(csvFileName)
-				.append("', chunk_unit = '").append(chunkUnitOfMeasurement).append("', chunk_size = ")
-				.append(chunkMaxLength).append(", chunk_overlap = ").append(chunkOverlap)
-				.append(", chunking_strategy = ").append(chunkingStrategy).append(", cfg_tokenizer = cfg_tokenizer)");
-
-		pyTranslator.runScript(splitTextCommand.toString());
-	}
-
-	@SuppressWarnings("unchecked")
-	public static List<String> generateKeywordsFromChunks(IModelEngine modelEngine, Insight insight,
-			List<String> chunks, Integer maxKeywords, Integer percentile) {
-
-		Map<String, Object> keywordArgs = new HashMap<>();
-
-		if (maxKeywords != null) {
-			keywordArgs.put("max_keywords", maxKeywords);
-		}
-
-		if (percentile != null) {
-			keywordArgs.put("percentile", maxKeywords);
-		}
-
-		Object generatedKeywordsObject = modelEngine.model(chunks, insight, keywordArgs);
-
-		return (List<String>) generatedKeywordsObject;
-	}
+//	/**
+//	 * @param pyTranslator
+//	 * @param document
+//	 * @param extractioFilesPath
+//	 * @param outputFileName
+//	 * @param extractionMethod
+//	 * @return
+//	 */
+//	public static int extractTextUsingPython(TCPPyTranslator pyTranslator, File document, String extractioFilesPath, String outputFileName) {
+//		boolean imported = Boolean.parseBoolean(pyTranslator.runScript("'vector_database' in globals().keys()") + "");
+//		if (!imported) {
+//			throw new IllegalArgumentException("This vector database does not the vector_database python package.");
+//		}
+//
+//		StringBuilder extractTextFromDocScript = new StringBuilder();
+//		extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
+//				.append(document.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+//				.append("', target_folder = '")
+//				.append(extractioFilesPath)
+//				.append("', output_file_name = '")
+//				.append(outputFileName)
+//				.append("')");
+//
+//		Number rows = (Number) pyTranslator.runScript(extractTextFromDocScript.toString());
+//		return rows.intValue();
+//	}
+//
+//	/**
+//	 * @param pyTranslator
+//	 * @param csvFileName
+//	 * @param chunkUnitOfMeasurement
+//	 * @param chunkMaxLength
+//	 * @param chunkOverlap
+//	 * @param chunkingStrategy
+//	 */
+//	public static void createChunksFromTextInPages(TCPPyTranslator pyTranslator, String csvFileName, String chunkUnitOfMeasurement, int chunkMaxLength, int chunkOverlap, String chunkingStrategy) {
+//
+//		StringBuilder splitTextCommand = new StringBuilder();
+//		splitTextCommand.append("vector_database.split_text(csv_file_location = '")
+//				.append(csvFileName)
+//				.append("', chunk_unit = '")
+//				.append(chunkUnitOfMeasurement)
+//				.append("', chunk_size = ")
+//				.append(chunkMaxLength)
+//				.append(", chunk_overlap = ")
+//				.append(chunkOverlap)
+//				.append(", chunking_strategy = ")
+//				.append(chunkingStrategy)
+//				.append(", cfg_tokenizer = cfg_tokenizer)");
+//		pyTranslator.runScript(splitTextCommand.toString());
+//	}
+//
+//	/**
+//	 * 
+//	 * @param modelEngine
+//	 * @param insight
+//	 * @param chunks
+//	 * @param maxKeywords
+//	 * @param percentile
+//	 * @return
+//	 */
+//	public static List<String> generateKeywordsFromChunks(IModelEngine modelEngine, Insight insight, List<String> chunks, Integer maxKeywords, Integer percentile) {
+//		Map<String, Object> keywordArgs = new HashMap<>();
+//		if (maxKeywords != null) {
+//			keywordArgs.put("max_keywords", maxKeywords);
+//		}
+//		if (percentile != null) {
+//			keywordArgs.put("percentile", maxKeywords);
+//		}
+//		Object generatedKeywordsObject = modelEngine.model(chunks, insight, keywordArgs);
+//		return (List<String>) generatedKeywordsObject;
+//	}
 }

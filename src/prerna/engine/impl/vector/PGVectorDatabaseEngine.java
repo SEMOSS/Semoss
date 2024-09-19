@@ -37,6 +37,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -78,9 +79,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	private int contentLength = 512;
 	private int contentOverlap = 0;
+	
 	private String defaultChunkUnit;
-	private String defaultExtractionMethod;
 	private String defaultIndexClass;
+	
+    protected boolean customDocumentProcessor = false;
+    protected String customDocumentProcessorFunctionID = null;
 	
 	private String embedderEngineId = null;
 	private String keywordGeneratorEngineId = null;
@@ -158,8 +162,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	            throw new IllegalArgumentException("DEFAULT_CHUNK_UNIT should be either 'tokens' or 'characters'");
 			}
 		}
-		
-		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
@@ -837,7 +839,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
 		}
 
-		String extractionMethod = this.defaultExtractionMethod;
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
 			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
@@ -924,8 +925,20 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						classLogger.info("Extracting text from document " + documentName);
 						// determine which text extraction method to use
 						int rowsCreated;
-						rowsCreated= VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-
+						if(this.customDocumentProcessor) {
+							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
+								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
+							}
+							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
+							Map<String, Object> functionInputs = new HashMap<>();
+							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
+							functionInputs.put("document", document);
+							functionInputs.put("parameters", parameters);
+							rowsCreated = (int) functionEngine.execute(functionInputs);
+						} else {
+							rowsCreated= VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+						}
+						
 						// check to see if the file data was extracted
 						if (rowsCreated <= 1) {
 							// no text was extracted so delete the file

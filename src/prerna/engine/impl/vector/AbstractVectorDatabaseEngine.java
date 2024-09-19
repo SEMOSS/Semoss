@@ -2,8 +2,6 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -36,7 +34,6 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.io.connector.secrets.ISecrets;
@@ -308,9 +305,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						
 						int rowsCreated;
-						
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
@@ -328,12 +323,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
 							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
-							 Map<String, Object> functionInputs = new HashMap<>();
-							 functionInputs.put("csvPath", extractedFile.getAbsolutePath());
-							 functionInputs.put("document", document);
-							 functionInputs.put("parameters", parameters);
+							Map<String, Object> functionInputs = new HashMap<>();
+							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
+							functionInputs.put("document", document);
+							functionInputs.put("parameters", parameters);
 							rowsCreated = (int) functionEngine.execute(functionInputs);
-						}  else {
+						} else {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
 
