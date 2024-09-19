@@ -233,7 +233,7 @@ public class DocProcessor {
 //	}
 
 
-	private void processParagraphs(HWPFDocument document) {
+	private void processParagraphs(HWPFDocument document) throws IOException {
 		int count = 1;
 		int pageNo = 1;
 		String source = getSource(this.filePath);
@@ -243,10 +243,9 @@ public class DocProcessor {
 
 			for (String paragraph : paragraphs) {
 				if (paragraph != null && !paragraph.trim().isEmpty()) {
-					// Check for page breaks
-					boolean isPageBreak = paragraph.contains("\f"); // \f represents a page break character in Word
+					boolean isPageBreak = paragraph.contains("\f");
 					if (isPageBreak) {
-						pageNo++; // Increment page number
+						pageNo++;
 					}
 
 					this.writer.writeRow(source, String.valueOf(count), paragraph, String.valueOf(pageNo));
@@ -254,11 +253,11 @@ public class DocProcessor {
 
 				count++;
 			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error("Error extracting paragraphs from document", e);
+			throw e;
 		}
 	}
-
 	private void processTables(HWPFDocument document) {
 		int count = 1;
 		int pageNo = 1;
