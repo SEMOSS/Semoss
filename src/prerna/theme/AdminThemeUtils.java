@@ -57,10 +57,10 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 
 		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID", "id"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_NAME", "theme_name"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_MAP", "theme_map"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"IS_ACTIVE", "is_active"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_NAME"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_MAP"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"IS_ACTIVE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ADMIN_THEME_PREFIX+"IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 
 		List<Map<String, Object>> retVal = null;
@@ -92,10 +92,10 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public List<Map<String, Object>> getAdminThemes(int limit, int offset) {
 		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID", "id"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_NAME", "theme_name"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_MAP", "theme_map"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"IS_ACTIVE", "is_active"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_NAME"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_MAP"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"IS_ACTIVE"));
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}
