@@ -71,20 +71,23 @@ public class DocProcessor {
 	}
 
 	private void closeDocument(Object document) {
-		if (document instanceof XWPFDocument) {
-			try {
-				((XWPFDocument) document).close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else if (document instanceof HWPFDocument) {
-			try {
-				((HWPFDocument) document).close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+		if (document != null) {
+			if (document instanceof XWPFDocument) {
+				try {
+					((XWPFDocument) document).close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			} else if (document instanceof HWPFDocument) {
+				try {
+					((HWPFDocument) document).close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
+	
 
 	private void closeInputStream(FileInputStream is) {
 		if (is != null) {
@@ -253,7 +256,6 @@ public class DocProcessor {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			e.printStackTrace();
 		}
 	}
 
@@ -267,7 +269,6 @@ public class DocProcessor {
 
 		while (tableIterator.hasNext()) {
 			Table table = tableIterator.next();
-			System.out.println("Processing Table " + count);
 
 			String[] headers = null;
 			boolean headerProcessed = false;
