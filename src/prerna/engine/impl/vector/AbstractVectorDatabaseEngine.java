@@ -30,6 +30,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -89,6 +90,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
 	
+    protected boolean customDocumentProcessor = false;
+    protected String customDocumentProcessorFunctionID = null;
+
+    protected String imageEngineId;
+    
 	// our paradigm for how we store files
 	protected String defaultIndexClass;
 	protected List<String> indexClasses;
@@ -153,6 +159,15 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 		
+        // 2 smss properties for custom document processing
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
+        	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
+        }
+        
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
+        	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
+        }
+        
 		// highest directory (first layer inside vector db base folder)
 		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
 		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
@@ -208,7 +223,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
 			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
-		
+
+        
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
@@ -289,7 +305,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						// determine which text extraction method to use
 						int rowsCreated;
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
@@ -303,6 +318,16 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
 
 							rowsCreated = rows.intValue();
+						} else if(this.customDocumentProcessor) {
+							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
+								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
+							}
+							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
+							Map<String, Object> functionInputs = new HashMap<>();
+							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
+							functionInputs.put("document", document);
+							functionInputs.put("parameters", parameters);
+							rowsCreated = (int) functionEngine.execute(functionInputs);
 						} else {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
@@ -313,8 +338,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							FileUtils.forceDelete(extractedFile); // delete the csv
 							FileUtils.forceDelete(document); // delete the input file e.g pdf
 							continue;
-						}
-
+						}                    
+						
 						classLogger.info("Creating chunks from extracted text for " + documentName);
 
 						StringBuilder splitTextCommand = new StringBuilder();
@@ -367,6 +392,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
+	
 	
 	/**
 	 * 

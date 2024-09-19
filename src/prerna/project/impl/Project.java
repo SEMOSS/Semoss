@@ -798,12 +798,25 @@ public class Project implements IProject {
 	 * 
 	 */
 	public void compileReactors(SemossClassloader customLoader) {
-		File javaDirectory = new File(this.projectAssetFolder + DIR_SEPARATOR + "java");
+		File javaDirectory = new File(this.projectAssetFolder + "/java");
 		
 		// if there is no java.. dont even bother with this
 		// no need to spend time on any of this
 		if( !javaDirectory.exists() ) {
 			return;
+		}
+		
+		String classesFolder = this.projectAssetFolder + "/classes";
+		File classesDir = new File(classesFolder);
+		// delete the existing classes folder if it exists
+		// so we know the reactor files are fresh
+		if(classesDir.exists() && classesDir.isDirectory()) {
+			try {
+				FileUtils.cleanDirectory(classesDir);
+				classesDir.mkdir();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		
 		File[] jars = javaDirectory.listFiles(new FilenameFilter() {
@@ -832,16 +845,8 @@ public class Project implements IProject {
 	}
 	
 	private void compileReactorsFromJavaFiles(SemossClassloader customLoader) {
+		//set path and create a new file in path
 		String classesFolder = this.projectAssetFolder + "/classes";
-		File classesDir = new File(classesFolder);
-//		if(classesDir.exists() && classesDir.isDirectory()) {
-//			try {
-//				//FileUtils.cleanDirectory(classesDir);
-//				//classesDir.mkdir();
-//			} catch (Exception e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//			}
-//		}
 		
 		SemossClassloader cl = projectClassLoader;
 		if(customLoader != null) {
