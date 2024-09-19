@@ -13,7 +13,6 @@ import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.Tika;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
@@ -67,27 +66,22 @@ public class VectorDatabaseUtils {
 				classLogger.error(Constants.ERROR_MESSAGE, e);
 	        }
 			
-			if(mimeType != null) {
+			if (mimeType != null) {
 				classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-				if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-						|| (
-								mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
-								&& (filetype.equals("doc") || filetype.equals("docx")) 
-								)
-						)
-				{
+				if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+						|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+								|| mimeType.equalsIgnoreCase("application/msword")
+								|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
+								&& (filetype.equals("doc") || filetype.equals("docx")))) {
 					// document
 					DocProcessor dp = new DocProcessor(file.getAbsolutePath(), writer);
-					dp.process();
+					dp.process(filetype);
 					processedList.add(file.getAbsolutePath());
-				}
-				else if(mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-						|| (
-								mimeType.equalsIgnoreCase("application/x-tika-ooxml") 
-								&& (filetype.equals("ppt") || filetype.equals("pptx")) 
-								)
-						)
-				{
+				} else if (mimeType
+						.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+						|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+
+								&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 					// powerpoint
 					PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
 					pp.process();

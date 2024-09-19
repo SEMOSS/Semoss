@@ -8,6 +8,12 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.hwpf.usermodel.Table;
+import org.apache.poi.hwpf.usermodel.TableCell;
+import org.apache.poi.hwpf.usermodel.TableIterator;
+import org.apache.poi.hwpf.usermodel.TableRow;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.PackagePart;
 import org.apache.poi.xwpf.usermodel.ICell;
@@ -35,43 +41,57 @@ public class DocProcessor {
 		this.writer = writer;
 	}
 
-	public void process() {
+
+	public void process(String filetype) {
 		FileInputStream is = null;
-		XWPFDocument document= null;
-		// also process the tables
-		// also process embedded documents
+		Object document = null; // Use Object to handle both types
+
 		try {
-			try {
-				is = new FileInputStream(filePath);
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				return;
-			}
-			
-			try {
+			is = new FileInputStream(filePath);
+
+			// Check the file extension to determine which document type to process
+			if (filetype.equals("doc")) {
+				document = new HWPFDocument(is);
+				processParagraphs((HWPFDocument) document);
+				processTables((HWPFDocument) document);
+			} else {
 				document = new XWPFDocument(is);
+				processParagraphs((XWPFDocument) document);
+				processTables((XWPFDocument) document);
+				processEmbeds((XWPFDocument) document);
+			}
+		} catch (FileNotFoundException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeDocument(document);
+			closeInputStream(is);
+		}
+	}
+
+	private void closeDocument(Object document) {
+		if (document instanceof XWPFDocument) {
+			try {
+				((XWPFDocument) document).close();
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				return;
 			}
-			
-			processParagraphs(document);
-			processTables(document);
-			processEmbeds(document);
-		} finally {
-			if(document != null) {
-				try {
-					document.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+		} else if (document instanceof HWPFDocument) {
+			try {
+				((HWPFDocument) document).close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-			if(is != null) {
-				try {
-					is.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+		}
+	}
+
+	private void closeInputStream(FileInputStream is) {
+		if (is != null) {
+			try {
+				is.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -208,4 +228,69 @@ public class DocProcessor {
 //		DocProcessor dp = new DocProcessor("c:/temp/ABACUS_ADP_FY24.docx", null);
 //		dp.process();
 //	}
+
+
+	private void processParagraphs(HWPFDocument document) {
+		int count = 1;
+		int pageNo = 1;
+		String source = getSource(this.filePath);
+
+		try (WordExtractor extractor = new WordExtractor(document)) {
+			String[] paragraphs = extractor.getParagraphText();
+
+			for (String paragraph : paragraphs) {
+				if (paragraph != null && !paragraph.trim().isEmpty()) {
+					// Check for page breaks
+					boolean isPageBreak = paragraph.contains("\f"); // \f represents a page break character in Word
+					if (isPageBreak) {
+						pageNo++; // Increment page number
+					}
+
+					this.writer.writeRow(source, String.valueOf(count), paragraph, String.valueOf(pageNo));
+				}
+
+				count++;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			e.printStackTrace();
+		}
+	}
+
+	private void processTables(HWPFDocument document) {
+		int count = 1;
+		int pageNo = 1;
+		String source = getSource(this.filePath);
+
+		// Use TableIterator to go through tables
+		TableIterator tableIterator = new TableIterator(document.getRange());
+
+		while (tableIterator.hasNext()) {
+			Table table = tableIterator.next();
+			System.out.println("Processing Table " + count);
+
+			String[] headers = null;
+			boolean headerProcessed = false;
+
+			for (int rowIndex = 0; rowIndex < table.numRows(); rowIndex++) {
+				TableRow row = table.getRow(rowIndex);
+				String[] processor = new String[row.numCells()];
+
+				for (int cellIndex = 0; cellIndex < row.numCells(); cellIndex++) {
+					TableCell cell = row.getCell(cellIndex);
+					processor[cellIndex] = cell.text(); // Use text() to get cell content
+				}
+
+				if (!headerProcessed) {
+					headers = processor; // First row as headers
+					headerProcessed = true;
+				} else {
+					StringBuilder rowOut = getRow(headers, processor);
+					this.writer.writeRow(source, String.valueOf(count), rowOut.toString(), String.valueOf(pageNo));
+				}
+			}
+			count++;
+		}
+	}
+
 }
