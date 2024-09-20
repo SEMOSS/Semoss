@@ -204,39 +204,56 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, Object> query = new HashMap<>();
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
-		query.put("topK", limit);
-		query.put("includeMetadata", true);
-		query.put("includeValues", true);
-		query.put("namespace", this.defaultNamespace);
-		query.put("vector", vector);
-		String body = gson.toJson(query);
-
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(API_KY, this.apiKey);
-		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body,
-				ContentType.APPLICATION_JSON, null, null, null);
-
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-	
-		for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
-			Map<String, Object> outputMap = new HashMap();
-			outputMap.put("matches", responseMap.get("matches"));
-			matchesOut.add(outputMap);
+		List<Double> queryEmbeddings = new ArrayList<>();
+		for (int i = 0; i < vector.size(); i++) {
+			queryEmbeddings.add(vector.get(i)); // this is done to put a list of embeddings inside another list
+												// otherwise the API throws error.
 		}
 
-		for (int i = 0; i < matchesOut.size(); i++) {
-			List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut.get(i).get("matches");
-			Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
-			Map<String, Object> idMap = new HashMap<String, Object>();
-			idMap.put("id", matches.get(i).get("id"));
-			Map<String, Object> scoreMap = new HashMap<String, Object>();
-			scoreMap.put("score", matches.get(i).get("score"));
-			retOut.add(idMap);
-			retOut.add(scoreMap);
-			retOut.add(metadataMap);
-		}
+			query.put("topK", limit);
+			query.put("includeMetadata", true);
+			query.put("includeValues", true);
+			query.put("namespace", this.defaultNamespace);
+			query.put("vector", queryEmbeddings);
+
+			String body = gson.toJson(query);
+
+			Map<String, String> headersMap = new HashMap<>();
+			headersMap.put(API_KY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+			String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body,
+					ContentType.APPLICATION_JSON, null, null, null);
+
+			Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse,
+					new TypeToken<Map<String, Object>>() {
+					}.getType());
+
+			for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
+				Map<String, Object> outputMap = new HashMap();
+				outputMap.put("matches", responseMap.get("matches"));
+
+				matchesOut.add(outputMap);
+			}
+
+			for (int i = 0; i < matchesOut.size(); i++) {
+				Map<String,Object> resultMap = new HashMap<>();
+				
+				List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut.get(i).get("matches");
+				Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
+				
+				resultMap.put("Id", matches.get(i).get("id"));
+				resultMap.put("Score", matches.get(i).get("score"));
+				resultMap.put("Content", metadataMap.get("Content"));
+				resultMap.put("Divider", metadataMap.get("Divider"));
+				resultMap.put("Modality", metadataMap.get("Modality"));
+				resultMap.put("Part", metadataMap.get("Part"));
+				resultMap.put("Source", metadataMap.get("Source"));
+				resultMap.put("Tokens", metadataMap.get("Tokens"));
+				
+				retOut.add(resultMap);
+			}
+		
 
 		return retOut;
 	}
