@@ -825,21 +825,56 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
 			int i = 1;
-
-			for(Object value: columnValues) {
-				if(value instanceof String) {
-					editUserPs.setString(i++, value.toString());
-				}
-				else if(value instanceof Boolean) {
-					editUserPs.setBoolean(i++, Boolean.parseBoolean(value.toString()));
+			if (newUserId != null && !newUserId.isEmpty()) {
+				editUserPs.setString(i++, newUserId);
+			}
+			if (newUsername != null && !newUsername.isEmpty()) {
+				editUserPs.setString(i++, newUsername);
+			}
+			if (newHashPass != null && !newHashPass.isEmpty()) {
+				editUserPs.setString(i++, newHashPass);
+			}
+			if (newSalt != null && !newSalt.isEmpty()) {
+				editUserPs.setString(i++, newSalt);
+			}
+			if (name != null && !name.isEmpty()) {
+				editUserPs.setString(i++, name);
+			}
+			if (type != null && !type.isEmpty()) {
+				editUserPs.setString(i++, type);
+			}
+			if (adminChange != null) {
+				if(adminChange) {
+					editUserPs.setBoolean(i++, true);
 				} else {
-					throw new IllegalArgumentException("Edit User does not allow for non String/Boolean updates as of now");
+					editUserPs.setBoolean(i++, false);
 				}
 			}
-
+			if (publisherChange != null) {
+				if(publisherChange) {
+					editUserPs.setBoolean(i++, true);
+				} else {
+					editUserPs.setBoolean(i++, false);
+				}
+			}
+			if (exporterChange != null) {
+				if(exporterChange) {
+					editUserPs.setBoolean(i++, true);
+				} else {
+					editUserPs.setBoolean(i++, false);
+				}
+			}
+			if (phone != null && !phone.isEmpty()) {
+				editUserPs.setString(i++, phone);
+			}
+			if (phoneExtension != null && !phoneExtension.isEmpty()) {
+				editUserPs.setString(i++, phoneExtension);
+			}
+			if (countryCode != null && !countryCode.isEmpty()) {
+				editUserPs.setString(i++, countryCode);
+			}
 			// Where 
 			editUserPs.setString(i++, userId);
-			System.out.println(editUserPs);
 			editUserPs.execute();
 			if (!editUserPs.getConnection().getAutoCommit()) {
 				editUserPs.getConnection().commit();
@@ -1175,7 +1210,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllProjectSettings(
 			List<String> projectFilter, 
 			Map<String, Object> projectMetadataFilter, 
-			String searchTerm, 
+			String searchTerm,  
 			String limit, 
 			String offset) {
 		
