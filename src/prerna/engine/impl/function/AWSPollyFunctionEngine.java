@@ -83,7 +83,7 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {		
 		String extractedText = null;
-		String NameOfTheAudio = null;
+		String audioFilePath = null;
 		Object Output = null;
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
@@ -98,44 +98,30 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 		}
 		try {
 			for(String k : parameterValues.keySet()) {
-				if(k.equalsIgnoreCase("NameOfTheAudio")) {
-					NameOfTheAudio = parameterValues.get(k).toString();					   
+				if(k.equalsIgnoreCase("audioFilePath")) {
+					audioFilePath = parameterValues.get(k).toString();					   
 				} 
 				if(k.equalsIgnoreCase("extractedText")){
 					extractedText = parameterValues.get(k).toString();
 				}				
 			}
 			
-			int startIndex = this.bucketPath.indexOf('/');
-			int endIndex = this.bucketPath.lastIndexOf('/');
-			String folderS3 = null;
-			String folderPath;			        
-			if (startIndex < endIndex && startIndex < this.bucketPath.length()) {
-				folderPath = this.bucketPath.substring(startIndex+1, endIndex);
-				folderS3 = folderPath;
-				folderPath += "/"+NameOfTheAudio;
-			}else if (startIndex == endIndex && startIndex < this.bucketPath.length()) {
-				folderPath = this.bucketPath.substring(startIndex+1, this.bucketPath.length());
-				folderS3 = folderPath;
-				folderPath += "/"+NameOfTheAudio;
-			}else {
-				folderPath = NameOfTheAudio; 
-			} 
-
-			int endIndex1 = this.bucketPath.indexOf('/');
-			String s3bucketname = this.bucketPath.substring(0, endIndex1);
-			boolean identifyBucket = listObjects(s3bucketname, folderPath);	
+			
+			boolean identifyBucket = listObjects(this.bucketPath, audioFilePath);	
 			
 			if(!identifyBucket) {
-				createFolderinS3(s3bucketname, folderS3);			
+				int endIndex = audioFilePath.lastIndexOf('/');
+				System.out.println("test****"+ audioFilePath.substring(0, endIndex));
+				String s3FolderPath = audioFilePath.substring(0, endIndex);
+				createFolderinS3(this.bucketPath, s3FolderPath);			
 			} 	
 			
 			StartSpeechSynthesisTaskRequest request = new StartSpeechSynthesisTaskRequest()
 	                .withOutputFormat(OutputFormat.Mp3)
 	                .withVoiceId(VoiceId.Joanna) 
 	                .withText(extractedText)
-	                .withOutputS3BucketName(s3bucketname)
-	                .withOutputS3KeyPrefix(folderPath+"_");
+	                .withOutputS3BucketName(this.bucketPath)
+	                .withOutputS3KeyPrefix(audioFilePath+"_");
 			
 			// Start speech synthesis task
             StartSpeechSynthesisTaskResult result = this.pollyClient.startSpeechSynthesisTask(request);           
