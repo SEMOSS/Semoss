@@ -75,11 +75,12 @@ public class VectorDatabaseUtils {
 					processedList.add(file.getAbsolutePath());
 				} else if (mimeType
 						.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-								|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+						|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+								|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
 								&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 					// powerpoint
 					PPTProcessor pp = new PPTProcessor(file.getAbsolutePath(), writer);
-					pp.process();
+					pp.process(filetype);
 					processedList.add(file.getAbsolutePath());
 				} else if (mimeType.equalsIgnoreCase("application/pdf")) {
 					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
