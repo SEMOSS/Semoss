@@ -32,8 +32,12 @@ public abstract class AbstractThemeUtils {
 		
 	}
 	
-	public static void loadThemingDatabase() throws SQLException {
+	public static void loadThemingDatabase() throws Exception {
 		themeDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.THEMING_DB);
+		ThemeOwlCreator owlCreator = new ThemeOwlCreator(themeDb);
+		if(owlCreator.needsRemake()) {
+			owlCreator.remakeOwl();
+		}
 		initialize();
 		initialized = true;
 	}
@@ -48,8 +52,8 @@ public abstract class AbstractThemeUtils {
 		// ADMIN_THEME
 		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
 		
-		colNames = new String[] { "id", "theme_name", "theme_map", "is_active" };
-		types = new String[] { "varchar(255)", "varchar(255)", "clob", "boolean" };
+		colNames = new String[] { "ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE" };
+		types = new String[] { "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getBooleanDataTypeName() };
 		if(queryUtil.allowsIfExistsTableSyntax()) {
 			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", colNames, types));
 		} else {
