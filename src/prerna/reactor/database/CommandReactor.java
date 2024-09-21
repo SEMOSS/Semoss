@@ -50,6 +50,8 @@ public class CommandReactor extends GitBaseReactor {
 	@Override
 	public NounMetadata execute() {
 		
+		
+		
 		String gitProvider = DIHelper.getInstance().getProperty(Constants.GIT_PROVIDER);
 		
 		if(gitProvider == null) {
