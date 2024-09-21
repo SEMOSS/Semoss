@@ -33,7 +33,7 @@ public class LoadPyFromFileReactor extends AbstractReactor {
 			String space = keyValue.get(keysToGet[2]);
 			if(space != AssetUtility.INSIGHT_SPACE_KEY && space != AssetUtility.USER_SPACE_KEY)
 			{
-				appFolder = AssetUtility.getProjectAssetFolder(space) + "/py";
+				appFolder = AssetUtility.getProjectAssetFolder(space) + "/" + Constants.PY_BASE_FOLDER;
 				appFolder = appFolder.replace("\\", "/");
 			}
 		}
