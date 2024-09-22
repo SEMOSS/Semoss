@@ -90,6 +90,9 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 		Object output = null;
 		String imageKeyName = null;		
 		String S3BucketEngineId = null;
+		String pathInS3 = null;
+		File file = null;
+		String folderPath = null;
 
 		// validate all the required keys are set
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
@@ -104,80 +107,61 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 			}
 		}
 
-		try {
-			for(String k : parameterValues.keySet()) {
-				if (k.contains("filepathInS3")) {	
-					File file = new File(parameterValues.get(k).toString());
-					imageKeyName = file.getName();
-					String filePath = parameterValues.get(k).toString();
-					int startIndex = filePath.indexOf('/') + 1;
-					int endIndex = filePath.lastIndexOf('/');
-					String folderPath;			        
-					if (startIndex <= endIndex && startIndex < filePath.length()) {
-						folderPath = filePath.substring(startIndex, endIndex);
-						folderPath += "/"+imageKeyName;
-					} else {
-						folderPath = imageKeyName; 
-					}	
-
-					int endIndex1 = filePath.indexOf('/');
-					String bucketname = filePath.substring(0, endIndex1);					
-					boolean identifyBucket = listObjects(bucketname, folderPath);
-					if(identifyBucket) {
-						output = rekognitionFromImage(imageKeyName,bucketname);		
-					}else {			        	
-						output = "Must provide the valid path";
-						throw new RuntimeException("Must provide the valid path");
-					}
-
-				} else if(k.contains("uploadedfilepath") && k.contains("S3BucketEngineId")){
-					if(parameterValues.containsKey("uploadedfilepath")) {
-						File file = new File(parameterValues.get(k).toString());
+		try {			
+			if(parameterValues.containsKey("filepathInS3")) {				
+				folderPath = parameterValues.get("filepathInS3").toString();				
+									
+				boolean identifyBucket = listObjects(this.bucketPath, folderPath);
+				if(identifyBucket) {
+					output = rekognitionFromImage(folderPath,this.bucketPath);		
+				}else {			        	
+					output = "Must provide the valid path";
+					throw new RuntimeException("Must provide the valid path");
+				}
+			 } else if(parameterValues.containsKey("uploadedfilepath") && parameterValues.containsKey("S3BucketEngineId") 
+					 && parameterValues.containsKey("uploadedfilepath")){
+				 for(String k : parameterValues.keySet()) {
+					if(k.equalsIgnoreCase("uploadedfilepath")) {
+						file = new File(parameterValues.get(k).toString());
 						imageKeyName = file.getName(); // The name of the file in the bucket      
-					} else if(parameterValues.containsKey("S3BucketEngineId")){
+					} else if(k.equalsIgnoreCase("S3BucketEngineId")){
 						S3BucketEngineId = parameterValues.get(k).toString();
+					} else if(k.equalsIgnoreCase("pathInS3")){
+						pathInS3 = parameterValues.get(k).toString();
 					}
-
-					/* 
-			        BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
+				 }
+					
+					
+			      /*  BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 			        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 		                    .withRegion(this.region)
 		                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
 		                    .build();
 		            // Upload the file to the bucket
-		            s3Client.putObject(new PutObjectRequest(this.S3BucketName, imageKeyName, file));       
-					 */
-
-					int startIndex = this.bucketPath.indexOf('/')+1;
-					int endIndex = this.bucketPath.lastIndexOf('/');
-					String folderS3 = null;
-					String folderPath;			        
-					if (startIndex <= endIndex && startIndex < this.bucketPath.length()) {
-						folderPath = this.bucketPath.substring(startIndex, endIndex);
-						folderS3 = folderPath;
-						folderPath += "/"+imageKeyName;
-					} else {
-						folderPath = imageKeyName; // Handle the case where there is no subfolder
-					}			     
+		           // s3Client.putObject(new PutObjectRequest(this.S3BucketName, imageKeyName, file));       
+					 */		 	
+			        if(pathInS3 == null || pathInS3.isEmpty()) {
+			        	folderPath = imageKeyName;
+			        }else {				 
+			        folderPath = pathInS3 + "/" + imageKeyName;
+			        }
+					boolean identifyBucket = listObjects(this.bucketPath, folderPath);		        
 					
-					int endIndex1 = this.bucketPath.indexOf('/');
-					String bucketname = this.bucketPath.substring(0, endIndex1);					
-					boolean identifyBucket = listObjects(bucketname, folderPath);			        
-
 					IStorageEngine storage = Utility.getStorage(S3BucketEngineId);
 					Map<String, Object> map = new HashMap<>();
-					map.put("functionalityUsed",imageKeyName+"-textract_functionality");
-
-					if(identifyBucket) {
-						storage.syncLocalToStorage(folderPath,bucketname, map);	      
-						output = rekognitionFromImage(imageKeyName,bucketname);		
+					map.put("functionalityUsed",imageKeyName+"-rekognition_functionality");
+					
+					
+					if(identifyBucket) {																	
+						output = rekognitionFromImage(folderPath,this.bucketPath);		
 					} else {
-						createFolderinS3(bucketname, folderS3);
-						storage.syncLocalToStorage(folderPath,bucketname, map);	      
-						output = rekognitionFromImage(imageKeyName,bucketname);
+						createFolderinS3(this.bucketPath, pathInS3);
+						storage.syncLocalToStorage(folderPath,this.bucketPath, map);	
+						//s3Client.putObject(new PutObjectRequest(this.bucketPath,folderPath ,file));
+						output = rekognitionFromImage(folderPath,this.bucketPath);
 					} 	            
 				}
-			}			
+			//}			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 		}
@@ -272,8 +256,19 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 				.build();
 
 		ByteArrayInputStream emptyInputStream = new ByteArrayInputStream(new byte[0]); 
-		// Create an empty object (folder) in S3 
-		s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));    	
+		boolean bucketExists = doesBucketExist(s3Client, bucketName);
+		if(bucketExists) {
+			// Create an empty object (folder) in S3 
+			if(!(folderPath == null) && !(folderPath=="")) {
+				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
+			}
+		}else {
+			s3Client.createBucket(bucketName);
+			if(!(folderPath == null) && !(folderPath=="")) {
+				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
+			}
+		}
+		
 	}
 	
 	@Override
