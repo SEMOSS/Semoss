@@ -119,7 +119,7 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 					throw new RuntimeException("Must provide the valid path");
 				}
 			 } else if(parameterValues.containsKey("uploadedfilepath") && parameterValues.containsKey("S3BucketEngineId") 
-					 && parameterValues.containsKey("uploadedfilepath")){
+					 && parameterValues.containsKey("pathInS3")){
 				 for(String k : parameterValues.keySet()) {
 					if(k.equalsIgnoreCase("uploadedfilepath")) {
 						file = new File(parameterValues.get(k).toString());
@@ -160,8 +160,7 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 						//s3Client.putObject(new PutObjectRequest(this.bucketPath,folderPath ,file));
 						output = rekognitionFromImage(folderPath,this.bucketPath);
 					} 	            
-				}
-			//}			
+				}				
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 		}
