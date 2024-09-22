@@ -108,11 +108,12 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 			
 			
 			boolean identifyBucket = listObjects(this.bucketPath, audioFilePath);	
-			
+			String s3FolderPath = null;
 			if(!identifyBucket) {
 				int endIndex = audioFilePath.lastIndexOf('/');
-				System.out.println("test****"+ audioFilePath.substring(0, endIndex));
-				String s3FolderPath = audioFilePath.substring(0, endIndex);
+				if(endIndex>0) {					
+					s3FolderPath = audioFilePath.substring(0, endIndex);
+				}
 				createFolderinS3(this.bucketPath, s3FolderPath);			
 			} 	
 			
@@ -196,8 +197,19 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 				.build();
 
 		ByteArrayInputStream emptyInputStream = new ByteArrayInputStream(new byte[0]); 
-		// Create an empty object (folder) in S3 
-		s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));    	
+		boolean bucketExists = doesBucketExist(s3Client, bucketName);
+		if(bucketExists) {
+			// Create an empty object (folder) in S3 
+			if(!(folderPath == null) && !(folderPath=="")) {
+				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
+			}
+		}else {
+			s3Client.createBucket(bucketName);
+			if(!(folderPath == null) && !(folderPath=="")) {
+				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
+			}
+		}
+		
 	}
 	
 	@Override
