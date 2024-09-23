@@ -901,6 +901,10 @@ public class Constants {
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
 	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR = "CUSTOM_DOCUMENT_PROCESSOR";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID = "CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID";
+	public static final String EMBED_IMAGES = "EMBED_IMAGES";
+	public static final String IMAGE_ENGINE_ID = "IMAGE_ENGINE_ID";
 
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
