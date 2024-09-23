@@ -1963,10 +1963,17 @@
 		    <artifactId>clickhouse-jdbc</artifactId>
 		    <version>0.6.3</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk -->
 		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.12.763</version>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk</artifactId>
+		    <version>1.12.770</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-textract -->
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-textract</artifactId>
+		    <version>1.12.770</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
 		<!--
@@ -2143,6 +2150,14 @@
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-core</artifactId>
+				</exclusion>
 			</exclusions>
         </dependency>
         <dependency>
@@ -2252,10 +2267,11 @@
 		    <version>0.1.4</version>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
+		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
-			<version>4.6.0</version>  <!-- Check latest version -->
+			<version>4.8.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
@@ -2274,9 +2290,27 @@
 		    <artifactId>owasp-java-html-sanitizer</artifactId>
 		    <version>20240325.1</version>
 		</dependency>	
-	
-	
-	
+		<dependency>
+		    <groupId>com.github.jai-imageio</groupId>
+		    <artifactId>jai-imageio-jpeg2000</artifactId>
+		    <version>1.4.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.github.jai-imageio</groupId>
+		    <artifactId>jai-imageio-core</artifactId>
+		    <version>1.4.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.pdfbox</groupId>
+		    <artifactId>jbig2-imageio</artifactId>
+		    <version>3.0.4</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-imaging</artifactId>
+		    <version>1.0-alpha2</version>
+		</dependency>
+
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
@@ -2298,7 +2332,7 @@
 		    <artifactId>testcontainers</artifactId>
 		    <version>1.19.6</version>
 		    <scope>test</scope>
-		</dependency>
+		</dependency>				
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>

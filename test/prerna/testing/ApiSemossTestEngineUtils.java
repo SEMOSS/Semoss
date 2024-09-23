@@ -112,7 +112,7 @@ public class ApiSemossTestEngineUtils {
 		return null;
 	}
 
-	private static Void initializeThemes() throws IOException, SQLException {
+	private static Void initializeThemes() throws Exception {
 		doInitializeSemossDB(Constants.THEMING_DB, "database.mv.db");
 		AbstractThemeUtils.loadThemingDatabase();
 		return null;
