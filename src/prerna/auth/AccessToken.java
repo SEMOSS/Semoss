@@ -1,8 +1,9 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,38 +11,43 @@ import prerna.date.SemossDate;
 
 public class AccessToken implements Serializable {
 
-	private AuthProvider provider = null;
+	AuthProvider provider = null;
 	
 	// this will store all the groups that the user has
 	// will be provided to us when the user logs in 
 	// from an IDP
-	private Set<String> userGroups = null;
-	private String userGroupType = null;
+	Collection<String> userGroups = null;
+	String userGroupType = null;
 	
-	private String id = null;
-	private String username = null;
-	private String access_token = null;
-	private int expires_in = 0; // this is in seconds
-	private String token_type = "Bearer";
-	private long startTime = -1;
+	String id = null;
+	String username = null;
+	String access_token = null;
+	int expires_in = 0; // this is in seconds
+	String token_type = "Bearer";
+	long startTime = -1;
 	
-	private String email = null;
-	private String name = null;
-	private String profile = null;
-	private String gender = null;
-	private String locale = null;
-	private String phone = null;
-	private String phoneExtension = null;
-	private String countryCode = null;
+	String email = null;
+	String name = null;
+	String profile = null;
+	String gender = null;
+	String locale = null;
+	String phone = null;
+	String phoneExtension = null;
+	String countryCode = null;
 	
-	private Map<String, String> sans = new Hashtable<>();
+	Map<String, String> sans = null;
 
-	private boolean locked = false;
-	private SemossDate lastLogin = null;
-	private SemossDate lastPasswordReset = null;
+	boolean locked = false;
+	SemossDate lastLogin = null;
+	SemossDate lastPasswordReset = null;
 	
 	public AccessToken() {
 		this.userGroups = new HashSet<>();
+		this.sans = new HashMap<>();
+	}
+	
+	public void init() {
+		startTime = System.currentTimeMillis();
 	}
 	
 	public void setAccess_token(String accessToken) {
@@ -60,7 +66,7 @@ public class AccessToken implements Serializable {
 		this.provider = provider;
 	}
 	
-	public Set<String> getUserGroups() {
+	public Collection<String> getUserGroups() {
 		return userGroups;
 	}
 
@@ -84,10 +90,6 @@ public class AccessToken implements Serializable {
 		this.token_type = token_type;
 	}
 	
-	public void init() {
-		startTime = System.currentTimeMillis();
-	}
-
 	public long getStartTime() {
 		return startTime;
 	}

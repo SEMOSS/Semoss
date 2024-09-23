@@ -129,6 +129,7 @@ public class User implements Serializable {
 	 * @param value
 	 */
 	public void setAccessToken(AccessToken value) {
+		value = ReadOnlyAccessToken.unmodifiableToken(value);
 		AuthProvider name = value.getProvider();
 		if(!loggedInProfiles.contains(name)) {
 			loggedInProfiles.add(name);

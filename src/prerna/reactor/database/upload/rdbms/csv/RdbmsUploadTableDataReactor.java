@@ -92,12 +92,34 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
+
+		String fileName = FilenameUtils.getBaseName(filePath);
+		if (fileName.contains("_____UNIQUE")) {
+			// ... yeah, this is not intuitive at all,
+			// but I add a timestamp at the end to make sure every file is unique
+			// but i want to remove it so things are "pretty"
+			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
+		}
+		
 		String tableName = UploadInputUtility.getTableName(this.store, this.insight);
+		// if user doesn't input table name use filename, else use inputted name 
+		if (tableName == null) {
+			tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
+		} else {
+			tableName = RDBMSEngineCreationHelper.cleanTableName(tableName).toUpperCase();
+		}
+		// TODO: if not defined and filename is used, just clean it up...
+		// TODO: if not defined and filename is used, just clean it up...
+		// TODO: if not defined and filename is used, just clean it up...
+
+		// make sure tablename is valid
+		if (!Utility.validateName(tableName)) {
+			throw new IllegalArgumentException("Invalid tablename: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+
 		String uniqueColumnName = UploadInputUtility.getUniqueColumn(this.store, this.insight);
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
-
-		// now that I have everything, let us go through and insert
 
 		// start by validation
 		int stepCounter = 1;
@@ -125,21 +147,6 @@ public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Parsing file metadata...");
-
-		String fileName = FilenameUtils.getBaseName(filePath);
-		if (fileName.contains("_____UNIQUE")) {
-			// ... yeah, this is not intuitive at all,
-			// but I add a timestamp at the end to make sure every file is unique
-			// but i want to remove it so things are "pretty"
-			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
-		}
-
-		// if user doesn't input table name use filename, else use inputted name 
-		if (tableName == null) {
-			tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-		} else {
-			tableName = RDBMSEngineCreationHelper.cleanTableName(tableName).toUpperCase();
-		}
 
 		// if user defines unique column name set that if not generate one
 		// TODO: add change for false values once we want to enable that

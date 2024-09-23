@@ -28,7 +28,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -198,7 +197,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// initialize the security database
 			try {
 				AbstractThemeUtils.loadThemingDatabase();
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				// we couldn't initialize the db
 				// remove it from DIHelper
 				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
