@@ -408,6 +408,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					}
 				}
 			}
+			wProcessor.clear();
 		} else {
 			// only load the things that are defined
 			for (String sheet : dataTypesMap.keySet()) {
@@ -529,6 +530,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 
 		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, descriptions, logicalNames);
+		helper.close();
 	}
 
 	private void bulkInsertSheet(IDatabaseEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
