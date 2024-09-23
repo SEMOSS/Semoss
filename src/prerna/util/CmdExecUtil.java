@@ -68,28 +68,28 @@ public class CmdExecUtil {
 	{
 		String output = null;
 		
-		// may be do the check to see if tcp server is there
-		if(	//(tcpClient != null && !(tcpClient instanceof NativePySocketClient))
-			//		&&
-				(DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))
-		   )
-		{
-			if(tcpClient == null)
-			{
-				return "Client is not connected on socket";
-			}
-
-			PayloadStruct ps = new PayloadStruct();
-			ps.operation = ps.operation.CMD;
-			ps.payload = new Object[] {command};
-			ps.methodName = "executeCommand";
-			ps.insightId = mountName + "__" + mountDir;
-			ps.payloadClasses = new Class[] {String.class};
-
-			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);
-			return (String)retPS.payload[0];
-		}
-		else
+//		// may be do the check to see if tcp server is there
+//		if(	//(tcpClient != null && !(tcpClient instanceof NativePySocketClient))
+//			//		&&
+//				(DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))
+//		   )
+//		{
+//			if(tcpClient == null)
+//			{
+//				return "Client is not connected on socket";
+//			}
+//
+//			PayloadStruct ps = new PayloadStruct();
+//			ps.operation = ps.operation.CMD;
+//			ps.payload = new Object[] {command};
+//			ps.methodName = "executeCommand";
+//			ps.insightId = mountName + "__" + mountDir;
+//			ps.payloadClasses = new Class[] {String.class};
+//
+//			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);
+//			return (String)retPS.payload[0];
+//		}
+//		else
 		{
 	
 			// need a way to whitelist all the stuff here
