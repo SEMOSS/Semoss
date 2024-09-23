@@ -360,13 +360,11 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		// change to -> Frame() | QueryAll() | ToXml()
 		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
 		PixelChain select = new PixelChain("Select(TEST__colone, TEST__coltwo).as([colone, coltwo])");
-		PixelChain frame = new PixelChain(FrameReactor.class);
-		PixelChain iterate = new PixelChain(IterateReactor.class);
-		PixelChain toxml = new PixelChain(ToXmlReactor.class, ReactorKeysEnum.FILE_NAME.getKey(), "output");
+		PixelChain imp = new PixelChain("Import(frame=[CreateFrame(frameType=[GRID], override=[true]).as([\"test1frame\"])])");
 		PixelChain queryAll = new PixelChain(QueryAllReactor.class);
-		PixelChain imp = new PixelChain(ImportReactor.class);
-		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, imp, frame, queryAll, iterate, toxml);
-		System.out.println(pixel); // Database(database="c07675e1-d489-4297-b3ea-2c6ccbfc9ff2") |
+		PixelChain toxml = new PixelChain(ToXmlReactor.class, ReactorKeysEnum.FILE_NAME.getKey(), "output");
+		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, imp, queryAll, toxml);
+		// Database(database="c07675e1-d489-4297-b3ea-2c6ccbfc9ff2") |
 									// Select(TEST__colone, TEST__coltwo).as([colone, coltwo]) | Frame() | Iterate()
 									// | ToXml(fileName="output");
 
@@ -397,17 +395,28 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		// Create Engine
 		List<String> columns = new ArrayList<>();
 		columns.add("cone");
+		columns.add("ctwo");
 
 		List<String> dtypes = new ArrayList<>();
+		dtypes.add(SemossDataType.INT.toString());
 		dtypes.add(SemossDataType.STRING.toString());
 
 		Map<String, String> adt = new HashMap<>();
 
 		List<List<String>> vals = new ArrayList<>();
 		List<String> v1 = new ArrayList<>();
+		List<String> v2 = new ArrayList<>();
+		List<String> v3 = new ArrayList<>();
 		vals.add(v1);
+		vals.add(v2);
+		vals.add(v3);
 
-		v1.add(null);
+		v1.add("3");
+		v1.add("rv1");
+		v2.add("");
+		v2.add("rv2");
+		v3.add("1");
+		v3.add("rv3");
 
 		String engine = ApiSemossTestEngineUtils.addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
 
@@ -427,11 +436,13 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 				.orElseThrow(() -> new RuntimeException("Could not find file"));
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
-		assertEquals(3, linesFromXml.size());
+		assertEquals(5, linesFromXml.size());
 
 		List<String> lines = new ArrayList<>();
 		lines.add("<DataTable>");
 		lines.add("<TEST><cone>null</cone></TEST>");
+		lines.add("<TEST><cone>1</cone></TEST>");
+		lines.add("<TEST><cone>3</cone></TEST>");
 		lines.add("</DataTable>");
 
 		for (int i = 0; i < lines.size(); i++) {
@@ -518,7 +529,6 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 
 		String mergePixel = ApiSemossTestUtils.buildPixelChain(holder, queryall, distinct, merge, queryall, toxml);
 
-		System.out.println(mergePixel);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(mergePixel);
 		assertNotNull(nm.getValue());
 
@@ -541,54 +551,6 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		}
 	}
 
-	// join two Frames using the join reactor and toXML
-	@Test
-	public void testFrameJoin() throws IOException {
-		// Create Engine
-		List<String> columns = new ArrayList<>();
-		columns.add("cone");
-
-		List<String> dtypes = new ArrayList<>();
-		dtypes.add(SemossDataType.STRING.toString());
-
-		Map<String, String> adt = new HashMap<>();
-
-		List<List<String>> vals = new ArrayList<>();
-		List<String> v1 = new ArrayList<>();
-		vals.add(v1);
-
-		v1.add(null);
-
-		String engine = ApiSemossTestEngineUtils.addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
-
-		// run toxml reactor
-		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
-		PixelChain select = new PixelChain("Select(TEST__cone).as([cone])");
-		PixelChain iterate = new PixelChain(IterateReactor.class);
-		// import another db and try join select.join OR play around with it
-		PixelChain toxml = new PixelChain(ToXmlReactor.class, ReactorKeysEnum.FILE_NAME.getKey(), "output");
-
-		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, iterate, toxml);
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertNotNull(nm.getValue());
-
-		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
-
-		List<String> linesFromXml = Files.readAllLines(pathToFile);
-		assertEquals(3, linesFromXml.size());
-
-		List<String> lines = new ArrayList<>();
-		lines.add("<DataTable>");
-		lines.add("<TEST><cone>null</cone></TEST>");
-		lines.add("</DataTable>");
-
-		for (int i = 0; i < lines.size(); i++) {
-			assertEquals(lines.get(i), linesFromXml.get(i));
-		}
-	}
 	
 	@Test
 	public void testTwoTables() throws RuntimeException, IOException {
