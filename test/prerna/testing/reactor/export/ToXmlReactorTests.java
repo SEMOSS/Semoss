@@ -441,7 +441,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 
 	// join two tables using the join reactor and toXML
 	@Test
-	public void testDatabaseTableJoin() throws IOException {
+	public void testFrameMerge() throws IOException {
 		// Create Engine 1
 		List<String> columns1 = new ArrayList<>();
 		columns1.add("id");
@@ -591,13 +591,11 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 	}
 	
 	@Test
-	public void testTwoTables() {
+	public void testTwoTables() throws RuntimeException, IOException {
 		String dbName = "TEST";
 		List<String> tableNames = Arrays.asList("test1", "test2");
-		List<List<String>> columns = Arrays.asList(Arrays.asList("col1", "col2"), Arrays.asList("col3", "col4"));
-		List<List<String>> dtypes = Arrays.asList(
-				Arrays.asList(SemossDataType.STRING.toString(), SemossDataType.STRING.toString()),
-				Arrays.asList(SemossDataType.STRING.toString(), SemossDataType.STRING.toString()));
+		List<List<String>> columns = Arrays.asList(Arrays.asList("col1", "col2"), Arrays.asList("col1", "col3"));
+		List<List<String>> dtypes = Arrays.asList();
 		List<Map<String, String>> adts = new ArrayList<>();
 
 		List<List<TestExcelInputObject>> rvs = new ArrayList<>();
@@ -606,12 +604,44 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		rv1.add(TestExcelInputUtility.getString("two"));
 
 		List<TestExcelInputObject> rv2 = new ArrayList<>();
+		rv2.add(TestExcelInputUtility.getString("one"));
 		rv2.add(TestExcelInputUtility.getString("three"));
-		rv2.add(TestExcelInputUtility.getString("four"));
 
 		rvs.add(rv1);
 		rvs.add(rv2);
 
-		ApiSemossTestEngineUtils.addTestRdbmsDatabase(dbName, tableNames, columns, dtypes, adts, rvs);
+		String engine = ApiSemossTestEngineUtils.addTestRdbmsDatabase(dbName, tableNames, columns, dtypes, adts, rvs);
+		
+		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), engine);
+		PixelChain select = new PixelChain("Select ( TEST1__col1 , TEST1__col2 ) .as ( [ col1 , col2 ] )");
+		PixelChain select2 = new PixelChain("Select ( TEST2__col1 , TEST2__col3 ) .as ( [ col1 , col3 ] )");
+		
+		// join
+		PixelChain join = new PixelChain("Join ([(TEST1__col1, inner.join, TEST2__col1)])");
+		
+		PixelChain iterate = new PixelChain(IterateReactor.class);
+		PixelChain toxml = new PixelChain(ToXmlReactor.class, ReactorKeysEnum.FILE_NAME.getKey(), "output");
+
+		// Build and process pixel chain
+		String pixel = ApiSemossTestUtils.buildPixelChain(db, select, db, select2, join, iterate, toxml);
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertNotNull(nm.getValue());
+
+		// Read file
+		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
+		        .filter(s -> s.toString().contains("output")).findFirst()
+		        .orElseThrow(() -> new RuntimeException("Could not find file"));
+
+		List<String> linesFromXml = Files.readAllLines(pathToFile);
+
+
+		List<String> expectedLines = new ArrayList<>();
+		expectedLines.add("<DataTable>");
+		expectedLines.add("<TEST1><col1>\"one\"</col1><col2>\"two\"</col2></TEST1><TEST2><col1>\"one\"</col1><col3>\"three\"</col3></TEST2>");
+		expectedLines.add("</DataTable>");
+
+		for (int i = 0; i < expectedLines.size(); i++) {
+		    assertEquals(expectedLines.get(i), linesFromXml.get(i));
+		}
 	}
 }

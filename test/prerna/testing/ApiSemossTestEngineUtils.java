@@ -409,28 +409,10 @@ public class ApiSemossTestEngineUtils {
 			return null;
 		}
 
+		// set this to empty because its super hard to figure out data structure expected for range map
+		// just let semoss calculate it 
 		Map<String, Map<String, Map<String, String>>> dataType = new HashMap<>();
 
-		for (int i = 0; i < tableNames.size(); i++) {
-			String tableName = tableNames.get(i).toString();
-			List<String> cols = columns.get(i);
-			List<String> types = dataTypes.get(i);
-
-			Map<String, Map<String, String>> columnDetailsMap = new HashMap<>();
-
-			for (int j = 0; j < cols.size(); j++) {
-				String columnName = cols.get(j);
-				String columnType = types.get(j);
-				
-				Map<String, String> columnTypeMap = new HashMap<>();
-				columnTypeMap.put("type", columnType);
-
-				columnDetailsMap.put(columnName, columnTypeMap);
-			}
-
-			dataType.put(tableName, columnDetailsMap);
-		}
-		
 		// Initialize other maps
 		Map<String, Map<String, Map<String, String>>> newHeaders = new HashMap<>();
 		Map<String, Map<String, Map<String, String>>> descriptionMap = new HashMap<>();
