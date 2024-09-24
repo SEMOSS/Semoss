@@ -76,13 +76,14 @@ class PIIMaker:
             mask_text = masker['orig_text']
           else:
             length = end - start
+            length = length - 2
             mask_text = "m_" + self.makeRandom(N=length)
           
           masker.update({orig_text : mask_text})
           masker.update({mask_text: orig_text})
           
           # this is affecting length.. you need to make sure it is not affecting length else you need to re-run it
-          new_text = new_text[:start] + " " + mask_text + " " + new_text[end:]
+          new_text = new_text[:start] + "" + mask_text + "" + new_text[end:]
       
       processed_input.update({"output": new_text})
       processed_input.update({"mask_values": masker})
