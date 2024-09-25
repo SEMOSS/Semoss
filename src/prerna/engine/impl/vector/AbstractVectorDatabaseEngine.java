@@ -40,6 +40,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.reactor.export.pdf.PDFUtility;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -105,6 +106,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
+	
+	protected String ocrEngineId = null;
+	protected String textractEngineId = null;
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
@@ -162,6 +166,14 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if(!this.schemaFolder.exists()) {
 			this.schemaFolder.mkdirs();
 		}
+		
+		if (this.smssProp.containsKey("AZUREOCRENGINEID")) {
+			this.ocrEngineId = smssProp.getProperty("AZUREOCRENGINEID");
+			}
+        
+        if (this.smssProp.containsKey("AWSTEXTRACTENGINEID")) {
+			this.textractEngineId = smssProp.getProperty("AWSTEXTRACTENGINEID");
+			}
 		
 		// third layer - All the separate tables,classes, or searchers that can be added to this db
 		this.indexClasses = new ArrayList<>();
@@ -304,8 +316,18 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 							rowsCreated = rows.intValue();
 						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
-						}
+							
+							boolean status = PDFUtility.validatePDImages(document.getAbsolutePath());
+							String engineId = null;
+							if(ocrEngineId!= null & !ocrEngineId.isEmpty()){
+								engineId = ocrEngineId;
+							}
+							else if(textractEngineId!= null & !textractEngineId.isEmpty()){
+								engineId = textractEngineId;
+							}
+							
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document,engineId,status);
+								}
 
 						// check to see if the file data was extracted
 						if (rowsCreated <= 1) {

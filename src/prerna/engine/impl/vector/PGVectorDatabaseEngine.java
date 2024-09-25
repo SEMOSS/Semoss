@@ -937,7 +937,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 							rowsCreated = rows.intValue();
 						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document,null,false);
 						}
 
 						// check to see if the file data was extracted

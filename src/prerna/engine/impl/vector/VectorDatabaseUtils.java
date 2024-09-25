@@ -13,7 +13,6 @@ import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.Tika;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
@@ -23,7 +22,9 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
+import prerna.reactor.export.pdf.PDFUtility;
 import prerna.reactor.frame.gaas.processors.DocProcessor;
+import prerna.reactor.frame.gaas.processors.OCRProcessor;
 import prerna.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.reactor.frame.gaas.processors.PPTProcessor;
 import prerna.reactor.frame.gaas.processors.TextFileProcessor;
@@ -43,7 +44,7 @@ public class VectorDatabaseUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static int convertFilesToCSV(String csvFileName, File file) throws IOException {
+	public static int convertFilesToCSV(String csvFileName, File file,String ocrEngineId,boolean status) throws IOException {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
 		try {
 			classLogger.info("Starting file conversions ");
@@ -95,8 +96,17 @@ public class VectorDatabaseUtils {
 				}
 				else if(mimeType.equalsIgnoreCase("application/pdf"))
 				{
-					PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
-					pdf.process();
+					String filePath = file.getAbsolutePath();
+					
+					if (status & ocrEngineId != null) {
+						List<String> result = PDFUtility.executeOCR(filePath, ocrEngineId);
+						OCRProcessor ocr = new OCRProcessor(filePath, writer);
+						ocr.process(result,"pdf");
+					}
+					else {
+						PDFProcessor pdf = new PDFProcessor(file.getAbsolutePath(), writer);
+						pdf.process();
+					}
 					processedList.add(file.getAbsolutePath());
 				}
 				else if(mimeType.equalsIgnoreCase("text/plain"))

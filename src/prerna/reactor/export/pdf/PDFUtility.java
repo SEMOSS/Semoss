@@ -38,11 +38,14 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.jsoup.nodes.Attributes;
 
+import prerna.engine.api.IFunctionEngine;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 
 
@@ -55,6 +58,9 @@ import prerna.util.Constants;
 public final class PDFUtility {
 	
 	private static final Logger classLogger = LogManager.getLogger(PDFUtility.class);
+	public static final String FUNCTION_TYPE = "FUNCTION_TYPE";
+	private static final Object AZURE_OCR = "AZUREOCR";
+	private static final String AWS_TEXTRACT = "AWS_TEXTRACT";
 
 	/**
 	 * Create PDDocument
@@ -980,6 +986,62 @@ public final class PDFUtility {
 				addTextField(document, fo);
 			}
 		}
+	}
+	
+	public static boolean validatePDImages(String filePath) throws IOException {
+		boolean status = false;
+		PDDocument pdDoc = null;
+		try {
+			File f = new File(filePath);
+			pdDoc = PDDocument.load(f);
+
+			PDFRenderer pdfRenderer = new PDFRenderer(pdDoc);
+
+			if (pdfRenderer.renderImage(0) != null) {
+				status = true;
+			}
+
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("File IO Exception");
+		} finally {
+			if (pdDoc != null) {
+				try {
+					pdDoc.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("File IO Exception");
+				}
+			}
+		}
+
+		return status;
+	}
+
+	public static List<String> executeOCR(String filePath, String ocrEngineId) throws IOException {
+
+		List<String> result = null;
+		Map<String, Object> map = new HashMap<>();
+		Object parsedText = null;
+
+		IFunctionEngine functionEngine = Utility.getFunctionEngine(ocrEngineId);
+		System.out.println("FunctionName:" + functionEngine.getEngineName());
+		System.out.println("FunctionType:" + functionEngine.getSmssProp().get(FUNCTION_TYPE));
+
+		if (functionEngine.getSmssProp().get(FUNCTION_TYPE).equals(AZURE_OCR)) {
+			map.put("filePath", filePath);
+		} else if (functionEngine.getSmssProp().get(FUNCTION_TYPE).equals(AWS_TEXTRACT)) {
+			map.put("filePath", filePath);
+			map.put("isFilePresentInS3", false);
+		} else if (functionEngine == null) {
+			classLogger.error("Unable to find engine");
+			throw new IllegalArgumentException("Unable to find engine");
+		}
+
+		parsedText = functionEngine.execute(map);
+		System.out.println("parsedData*********" + parsedText);
+		result = (List<String>) parsedText;
+		return result;
 	}
 	
 }
