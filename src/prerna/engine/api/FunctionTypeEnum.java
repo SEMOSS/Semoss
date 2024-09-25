@@ -4,7 +4,6 @@ import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
-import prerna.engine.impl.function.AWSRekognitionFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
 
 public enum FunctionTypeEnum {
