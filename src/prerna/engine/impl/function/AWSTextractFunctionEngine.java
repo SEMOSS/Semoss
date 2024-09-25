@@ -148,11 +148,11 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 					throw new RuntimeException("Must provide the valid path");
 				}
 			}else {						
-		        BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
+		        /*BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 		        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 	                    .withRegion(this.region)
 	                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-	                    .build();
+	                    .build();*/
 
 	            // Upload the file to the bucket
 		        //s3Client.putObject(new PutObjectRequest(this.S3BucketName, documentKeyName, file));		        
@@ -169,8 +169,8 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 					output = textractFromDocument(folderPath,OUTPUTFOLDER);		
 				} else {
 					createFolderinS3(OUTPUTFOLDER);
-					//storage.syncLocalToStorage(folderPath,OUTPUTFOLDER, map);	
-					s3Client.putObject(new PutObjectRequest(OUTPUTFOLDER,folderPath ,file));
+					storage.syncLocalToStorage(folderPath,OUTPUTFOLDER, map);	
+					//s3Client.putObject(new PutObjectRequest(OUTPUTFOLDER,folderPath ,file));
 					output = textractFromDocument(folderPath,OUTPUTFOLDER);
 				}
 			}
