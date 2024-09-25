@@ -37,21 +37,23 @@ import prerna.util.Utility;
 
 
 public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AWSRekognitionFunctionEngine.class);
 
 	public static final String ACCESS_KEY = "ACCESS_KEY";
 	public static final String SECRET_KEY = "SECRET_KEY";
 	public static final String REGION = "REGION";
-	public static final String BUCKETNAME = "BUCKETNAME";
+	//public static final String BUCKETNAME = "BUCKETNAME";
+	public static final String BUCKETENGINEID = "S3BUCKETENGINEID";	
+	public static final String OUTPUTFOLDER = "aws-service-repos";
+	public static final String LINE = "LINE";
 
 	private String accessKey;
 	private String secretKey;	
 	private String region;
-	private String bucketPath;	
-
+	private String bucketEngineId;
 	private AmazonRekognition rekognitionClient = null;
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -59,8 +61,8 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 		this.accessKey = smssProp.getProperty(ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
 		this.region = smssProp.getProperty(REGION);
-		this.bucketPath = smssProp.getProperty(BUCKETNAME);
-		
+		this.bucketEngineId = smssProp.getProperty(BUCKETENGINEID);
+
 		if(this.accessKey == null || this.accessKey.isEmpty()){
 			throw new RuntimeException("Must pass in an access key");
 		}		
@@ -70,7 +72,7 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 		if(this.region == null || this.region.isEmpty()){
 			throw new RuntimeException("Must pass in a region");
 		}
-		if(this.bucketPath == null || this.bucketPath.isEmpty()) {
+		if(this.bucketEngineId == null || this.bucketEngineId.isEmpty()) {
 			throw new RuntimeException("Must pass in a S3BucketPath");		
 		}		
 		try {
@@ -79,7 +81,7 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 	        		.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
 	        		.withRegion(region) 
 	                .build();       
-	 
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 		} 
@@ -89,10 +91,10 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 	public Object execute(Map<String, Object> parameterValues) {
 		Object output = null;
 		String imageKeyName = null;		
-		String S3BucketEngineId = null;
-		String pathInS3 = null;
 		File file = null;
-		String folderPath = null;
+		String filePath = null;
+		String isFilePresentInS3 = null;
+		String folderPath = null;	
 
 		// validate all the required keys are set
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
@@ -107,109 +109,120 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 			}
 		}
 
-		try {			
-			if(parameterValues.containsKey("filepathInS3")) {				
-				folderPath = parameterValues.get("filepathInS3").toString();				
-									
-				boolean identifyBucket = listObjects(this.bucketPath, folderPath);
+		try {
+			for(String k : parameterValues.keySet()) {
+				if(k.equalsIgnoreCase("isFilePresentInS3")) {
+					isFilePresentInS3 = parameterValues.get(k).toString();
+				}else {
+					filePath = parameterValues.get(k).toString();
+					file = new File(parameterValues.get(k).toString());
+					imageKeyName = file.getName();
+				}
+			}			
+			if(isFilePresentInS3.equalsIgnoreCase("true")){	
+				int startIndex = filePath.indexOf('/');
+				int endIndex = filePath.lastIndexOf('/');				
+				String bucketName = filePath.substring(0, startIndex);
+				
+				if (startIndex < endIndex && startIndex < filePath.length()) {
+					folderPath = filePath.substring(startIndex+1, endIndex);					
+				}else if(startIndex==endIndex && startIndex < filePath.length()) {
+					folderPath = filePath.substring(startIndex+1, filePath.length());
+				}
+				
+				if(folderPath == null || folderPath.isEmpty() || folderPath.equals(imageKeyName)) {					
+		        	folderPath = imageKeyName;
+		        }else {		        	
+		        	folderPath = folderPath + "/" + imageKeyName;
+		        }
+				
+				boolean identifyBucket = listObjects(bucketName, folderPath);
 				if(identifyBucket) {
-					output = rekognitionFromImage(folderPath,this.bucketPath);		
+					output = rekognitionFromImage(folderPath,bucketName);		
 				}else {			        	
 					output = "Must provide the valid path";
 					throw new RuntimeException("Must provide the valid path");
 				}
-			 } else if(parameterValues.containsKey("uploadedfilepath") && parameterValues.containsKey("S3BucketEngineId") 
-					 && parameterValues.containsKey("pathInS3")){
-				 for(String k : parameterValues.keySet()) {
-					if(k.equalsIgnoreCase("uploadedfilepath")) {
-						file = new File(parameterValues.get(k).toString());
-						imageKeyName = file.getName(); // The name of the file in the bucket      
-					} else if(k.equalsIgnoreCase("S3BucketEngineId")){
-						S3BucketEngineId = parameterValues.get(k).toString();
-					} else if(k.equalsIgnoreCase("pathInS3")){
-						pathInS3 = parameterValues.get(k).toString();
-					}
-				 }
-					
-					
-			      /*  BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-			        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-		                    .withRegion(this.region)
-		                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-		                    .build();
-		            // Upload the file to the bucket
-		           // s3Client.putObject(new PutObjectRequest(this.S3BucketName, imageKeyName, file));       
-					 */		 	
-			        if(pathInS3 == null || pathInS3.isEmpty()) {
-			        	folderPath = imageKeyName;
-			        }else {				 
-			        folderPath = pathInS3 + "/" + imageKeyName;
-			        }
-					boolean identifyBucket = listObjects(this.bucketPath, folderPath);		        
-					
-					IStorageEngine storage = Utility.getStorage(S3BucketEngineId);
-					Map<String, Object> map = new HashMap<>();
-					map.put("functionalityUsed",imageKeyName+"-rekognition_functionality");
-					
-					
-					if(identifyBucket) {																	
-						output = rekognitionFromImage(folderPath,this.bucketPath);		
-					} else {
-						createFolderinS3(this.bucketPath, pathInS3);
-						storage.syncLocalToStorage(folderPath,this.bucketPath, map);	
-						//s3Client.putObject(new PutObjectRequest(this.bucketPath,folderPath ,file));
-						output = rekognitionFromImage(folderPath,this.bucketPath);
-					} 	            
-				}				
+			}else {						
+		       /* BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
+		        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+	                    .withRegion(this.region)
+	                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+	                    .build();*/
+
+	            // Upload the file to the bucket
+		        //s3Client.putObject(new PutObjectRequest(this.S3BucketName, documentKeyName, file));		        
+		        
+		        folderPath = "rekognition/" + imageKeyName;
+				
+				boolean identifyBucket = listObjects(OUTPUTFOLDER, folderPath);		        
+
+				IStorageEngine storage = Utility.getStorage(this.bucketEngineId);
+				Map<String, Object> map = new HashMap<>();
+				map.put("functionalityUsed",imageKeyName+"-Rekognition_functionality");
+
+
+				if(identifyBucket) {																	
+					output = rekognitionFromImage(folderPath,OUTPUTFOLDER);		
+				} else {
+					createFolderinS3(OUTPUTFOLDER);
+					storage.syncLocalToStorage(folderPath,OUTPUTFOLDER, map);	
+					//s3Client.putObject(new PutObjectRequest(OUTPUTFOLDER,folderPath ,file));
+					output = rekognitionFromImage(folderPath,OUTPUTFOLDER);
+				}
+			}
+						
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 		}
 		return output;
-	}	
-	
-	public Object rekognitionFromImage(String imageName, String S3BucketPath){
-		
-		Map<String, Object> map = new HashMap<>();
-		StringBuffer detectedText = new StringBuffer();
-		List<String> detectedLabels = new ArrayList<String>();		
-		
-		DetectTextRequest detectTextRequest = new DetectTextRequest()
-                .withImage(new Image()
-                        .withS3Object(new S3Object()
-                                .withBucket(S3BucketPath)
-                                .withName(imageName)
-                        )
-                );
- 
-        DetectTextResult response = this.rekognitionClient.detectText(detectTextRequest);
-       
-        // Process the result
-        response.getTextDetections().forEach(detection -> {
-        	if(detection.getType().equals("LINE")) {        		
-        		detectedText.append(detection.getDetectedText());        		  
-        	}        
-        });			
-                
-        DetectLabelsRequest detectLabesrequest = new DetectLabelsRequest()
-	            .withImage(new Image()
-	                    .withS3Object(new S3Object()
-	                            .withBucket(S3BucketPath)
-	                            .withName(imageName)))
-	            .withMaxLabels(10)
-	            .withMinConfidence(75F);
-	 
-	    DetectLabelsResult labels = this.rekognitionClient.detectLabels(detectLabesrequest);
-	 
-	    for (Label label : labels.getLabels()) {
-	    	detectedLabels.add(label.getName());	        
-	    }
-	    	    
-	    map.put("detected_text", detectedText);
-		map.put("detected_labels", detectedLabels);
-		
-		return map;
 	}
 	
+	public Object rekognitionFromImage(String imageName, String S3BucketPath){
+		Map<String, Object> map = new HashMap<>();
+		StringBuffer detectedText = new StringBuffer();
+		List<String> detectedLabels = new ArrayList<String>();
+		try {
+			DetectTextRequest detectTextRequest = new DetectTextRequest()
+	                .withImage(new Image()
+	                        .withS3Object(new S3Object()
+	                                .withBucket(S3BucketPath)
+	                                .withName(imageName)
+	                        )
+	                );
+	
+	        DetectTextResult response = this.rekognitionClient.detectText(detectTextRequest);
+	
+	        // Process the result
+	        response.getTextDetections().forEach(detection -> {
+	        	if(detection.getType().equalsIgnoreCase(LINE)) {        		
+	        		detectedText.append(detection.getDetectedText());        		  
+	        	}        
+	        });			
+	
+	        DetectLabelsRequest detectLabesrequest = new DetectLabelsRequest()
+		            .withImage(new Image()
+		                    .withS3Object(new S3Object()
+		                            .withBucket(S3BucketPath)
+		                            .withName(imageName)))
+		            .withMaxLabels(10)
+		            .withMinConfidence(75F);
+	
+		    DetectLabelsResult labels = this.rekognitionClient.detectLabels(detectLabesrequest);
+	
+		    for (Label label : labels.getLabels()) {
+		    	detectedLabels.add(label.getName());	        
+		    }
+	
+		    map.put("detected_text", detectedText);
+			map.put("detected_labels", detectedLabels);
+		}catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return map;
+	}
+
 	public Boolean listObjects(String bucketName, String folderPath){
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
@@ -247,34 +260,23 @@ public class AWSRekognitionFunctionEngine extends AbstractFunctionEngine{
 		}
 	}
 
-	private void createFolderinS3(String bucketName, String folderPath) {       
+	private void createFolderinS3(String bucketName) {       
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 				.withRegion(this.region)
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
 				.build();
-
-		ByteArrayInputStream emptyInputStream = new ByteArrayInputStream(new byte[0]); 
 		boolean bucketExists = doesBucketExist(s3Client, bucketName);
-		if(bucketExists) {
-			// Create an empty object (folder) in S3 
-			if(!(folderPath == null) && !(folderPath=="")) {
-				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
-			}
-		}else {
-			s3Client.createBucket(bucketName);
-			if(!(folderPath == null) && !(folderPath=="")) {
-				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
-			}
+		if(!bucketExists) {		
+			s3Client.createBucket(bucketName);			
 		}
-		
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
-	
+
 
 }

@@ -1979,7 +1979,7 @@
 		<dependency>
 		    <groupId>com.amazonaws</groupId>
 		    <artifactId>aws-java-sdk-rekognition</artifactId>
-		    <version>1.12.320</version> <!-- Use the latest version available -->
+		    <version>1.12.320</version> 
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
 		<!--
