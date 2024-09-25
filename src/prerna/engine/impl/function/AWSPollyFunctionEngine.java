@@ -1,6 +1,5 @@
 package prerna.engine.impl.function;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,8 +23,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.HeadBucketRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-
 import prerna.util.Constants;
 
 
@@ -35,14 +32,12 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 
 	public static final String ACCESS_KEY = "ACCESS_KEY";
 	public static final String SECRET_KEY = "SECRET_KEY";
-	public static final String REGION = "REGION";
-	public static final String BUCKETNAME = "BUCKETNAME";
+	public static final String REGION = "REGION";	
+	public static final String OUTPUTFOLDER = "aws-service-repos";
 
 	private String accessKey;
 	private String secretKey;	
-	private String region;
-	private String bucketPath;	
-	
+	private String region;	
 	private  AmazonPolly pollyClient = null;
 	
 	@Override
@@ -51,8 +46,7 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 
 		this.accessKey = smssProp.getProperty(ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
-		this.region = smssProp.getProperty(REGION);
-		this.bucketPath = smssProp.getProperty(BUCKETNAME);
+		this.region = smssProp.getProperty(REGION);		
 
 		if(this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
 			throw new RuntimeException("Must define the requiredParameters");
@@ -66,9 +60,7 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 		if(this.region == null || this.region.isEmpty()){
 			throw new RuntimeException("Must pass in a region");
 		}
-		if(this.bucketPath == null || this.bucketPath.isEmpty()) {
-			throw new RuntimeException("Must pass in a S3BucketPath");		
-		}		
+			
 		try {
 			BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 			this.pollyClient = AmazonPollyClientBuilder.standard()
@@ -84,6 +76,7 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 	public Object execute(Map<String, Object> parameterValues) {		
 		String extractedText = null;
 		String audioFilePath = null;
+		String nameOfTheAudioFile =null;
 		Object Output = null;
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
@@ -98,30 +91,27 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 		}
 		try {
 			for(String k : parameterValues.keySet()) {
-				if(k.equalsIgnoreCase("audioFilePath")) {
-					audioFilePath = parameterValues.get(k).toString();					   
+				if(k.equalsIgnoreCase("nameOfTheAudioFile")) {
+					nameOfTheAudioFile = parameterValues.get(k).toString();					   
 				} 
 				if(k.equalsIgnoreCase("extractedText")){
 					extractedText = parameterValues.get(k).toString();
 				}				
 			}
 			
+			audioFilePath = "polly/" + nameOfTheAudioFile;
+				
+			boolean identifyBucket = listObjects(OUTPUTFOLDER, audioFilePath);	
 			
-			boolean identifyBucket = listObjects(this.bucketPath, audioFilePath);	
-			String s3FolderPath = null;
-			if(!identifyBucket) {
-				int endIndex = audioFilePath.lastIndexOf('/');
-				if(endIndex>0) {					
-					s3FolderPath = audioFilePath.substring(0, endIndex);
-				}
-				createFolderinS3(this.bucketPath, s3FolderPath);			
+			if(!identifyBucket) {				
+				createFolderinS3(OUTPUTFOLDER);			
 			} 	
 			
 			StartSpeechSynthesisTaskRequest request = new StartSpeechSynthesisTaskRequest()
 	                .withOutputFormat(OutputFormat.Mp3)
 	                .withVoiceId(VoiceId.Joanna) 
 	                .withText(extractedText)
-	                .withOutputS3BucketName(this.bucketPath)
+	                .withOutputS3BucketName(OUTPUTFOLDER)
 	                .withOutputS3KeyPrefix(audioFilePath+"_");
 			
 			// Start speech synthesis task
@@ -189,27 +179,16 @@ public class AWSPollyFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 
-	private void createFolderinS3(String bucketName, String folderPath) {       
+	private void createFolderinS3(String bucketName) {       
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 				.withRegion(this.region)
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-				.build();
-
-		ByteArrayInputStream emptyInputStream = new ByteArrayInputStream(new byte[0]); 
+				.build();		
 		boolean bucketExists = doesBucketExist(s3Client, bucketName);
-		if(bucketExists) {
-			// Create an empty object (folder) in S3 
-			if(!(folderPath == null) && !(folderPath=="")) {
-				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
-			}
-		}else {
-			s3Client.createBucket(bucketName);
-			if(!(folderPath == null) && !(folderPath=="")) {
-				s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));
-			}
+		if(!bucketExists) {		
+			s3Client.createBucket(bucketName);			
 		}
-		
 	}
 	
 	@Override
