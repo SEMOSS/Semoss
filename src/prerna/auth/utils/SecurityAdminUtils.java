@@ -755,7 +755,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			columns.add("USERNAME");
 			columnValues.add(newUsername);
 		}
-		if (password != null && !password.isEmpty()) {
+		if (isNative 
+				&& password != null 
+				&& !password.isEmpty()) {
 			try {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
