@@ -38,7 +38,11 @@ public class ApiSemossTestProjectUtils {
 
 	public static void clearNonCoreProjects() throws IOException {
 		List<String> projectsToAvoid = getProjectsToAvoid();
-		File f = Paths.get(ApiTestsSemossConstants.TEST_PROJECT_DIRECTORY).toFile();
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_PROJECT_DIRECTORY);
+		if(Files.notExists(p)) {
+			Files.createDirectory(p);
+			}
+		File f = p.toFile();
 		List<String> toDelete = new ArrayList<>();
 		for (String s : f.list()) {
 			boolean found = false;
@@ -53,6 +57,10 @@ public class ApiSemossTestProjectUtils {
 			}
 		}
 		
+		doClearProject(toDelete);
+	}
+
+	private static void doClearProject(List<String> toDelete) throws IOException {
 		for (String delete : toDelete) {
 			Path p = Paths.get(ApiTestsSemossConstants.TEST_PROJECT_DIRECTORY.toString(), delete);
 			if (Files.isDirectory(p)) {
@@ -61,7 +69,7 @@ public class ApiSemossTestProjectUtils {
 			} else {
 				Files.delete(p);
 			}
-		}	
+		}
 	}
 
 	private static List<String> getProjectsToAvoid() throws IOException {

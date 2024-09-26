@@ -3646,7 +3646,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 * @param endDate
 	 */
-	public static void approveEngineUserAccessRequests(String userId, String userType, String engineId, List<Map<String, Object>> requests, String endDate) {
+	public void approveEngineUserAccessRequests(String userId, String userType, String engineId, List<Map<String, Object>> requests, String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -3739,7 +3739,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param requests
 	 */
-	public static void denyEngineUserAccessRequests(String userId, String userType, String engineId, List<String> requestIds) {
+	public void denyEngineUserAccessRequests(String userId, String userType, String engineId, List<String> requestIds) {
 		// bulk update to databaseaccessrequest table
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
@@ -3778,7 +3778,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 * @param endDate
 	 */
-	public static void approveProjectUserAccessRequests(String userId, String userType, String projectId, List<Map<String, Object>> requests, String endDate) {
+	public void approveProjectUserAccessRequests(String userId, String userType, String projectId, List<Map<String, Object>> requests, String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -3870,7 +3870,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param requests
 	 */
-	public static void denyProjectUserAccessRequests(String userId, String userType, String projectId, List<String> RequestIdList) {
+	public void denyProjectUserAccessRequests(String userId, String userType, String projectId, List<String> RequestIdList) {
 		// bulk update to projectaccessrequest table
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
@@ -3909,7 +3909,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 * @param endDate
 	 */
-	public static void approveInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<Map<String, Object>> requests, String endDate) {
+	public void approveInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<Map<String, Object>> requests, String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -4003,7 +4003,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param requests
 	 */
-	public static void denyInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<String> RequestIdList) {
+	public void denyInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<String> RequestIdList) {
 		// bulk update to accessrequest table
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
@@ -4052,7 +4052,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public static String getEngineMarkdown(String engineId) {
+	public String getEngineMarkdown(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", Constants.MARKDOWN));
