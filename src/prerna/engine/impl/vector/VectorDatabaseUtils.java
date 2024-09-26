@@ -27,9 +27,6 @@ public class VectorDatabaseUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseUtils.class);
 
-	private static final String DIR_SEPARATOR = "/";
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
 	/**
 	 * 
 	 * @param csvFileName
