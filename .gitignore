@@ -58,7 +58,10 @@ function/**
 storage/**
 vector/**
 *.mv.db
-InsightCache/
+InsightCache/*
+
+# Unignore CSV_Insights directory
+!InsightCache/CSV_Insights/
 
 # Python local log file
 py/log.txt
