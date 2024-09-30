@@ -60,8 +60,9 @@ vector/**
 *.mv.db
 InsightCache/*
 
-# Unignore CSV_Insights directory
+# Unignore CSV_Insights directory itself, but ignore its contents
 !InsightCache/CSV_Insights/
+InsightCache/CSV_Insights/*
 
 # Python local log file
 py/log.txt
