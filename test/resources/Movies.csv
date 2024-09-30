@@ -1,0 +1,442 @@
+Nominated,Title,Genre,Studio,Director,Revenue-Domestic,MovieBudget,Revenue-International ,RottenTomatoes-Critics,RottenTomatoes-Audience
+Y,American Hustle,Drama,Sony,David O. Russell,141870000,40000000,61761739,0.93,0.78
+Y,Captain Phillips,Drama,Sony,Paul Greengrass,106870000,55000000,110700042,0.93,0.91
+Y,Dallas Buyers Club,Drama,Focus,Jean-Marc Vallee,24356000,5000000,6000000,0.94,0.92
+Y,Gravity,Thriller-Horror,WB,Alfonso Cuarón,268167000,100000000,431000000,0.97,0.84
+Y,Nebraska,Drama,Paramount,Alexander Payne,15895000,12000000,0,0.92,0.87
+Y,Philomena,Drama,Weinstein Company,Sephen Frears,30396000,0,0,0.92,0.9
+Y,12 Years a Slave,Drama,Fox Searchlight,Steve McQueen,48352000,20000000,0,0.96,0.92
+Y,The Wolf of Wall Street,Drama,Paramount,Martin Scorsese,111032000,100000000,0,0.77,0.83
+Y,Her,Drama,WB,Spike Jonze,23249000,0,0,0.94,0.85
+N,Star Trek Into Darkness,Action-Adventure,Paramount,JJ Abrams,228778000,190000000,0,0.87,0.9
+N,Pacific Rim,Action-Adventure,WB,Guillermo Del Toro,101802000,190000000,0,0.71,0.78
+N,Homefront,Action-Adventure,Open Road Films,Gary Fleder,20158000,22000000,12700000,0.41,0.64
+N,Grown Ups 2,Comedy-Musical,Sony,Dennis Dugan,133668525,80000000,59800000,0.07,0.55
+N,Oz The Great and Powerful,Action-Adventure,Buena Vista,Sam Raimi,234911000,215000000,109429003,0.59,0.57
+N,"The Way, Way Back",Comedy-Musical,Fox Searchlight,"Nat Faxon, Jim Rash",21506000,5000000,43886362,0.85,0.85
+N,This is the End,Comedy-Musical,Sony,"Evan Goldberg, Seth Rogen",101470000,32000000,0,0.83,0.73
+N,The World's End,Comedy-Musical,Focus,Edgar Wright,26004000,20000000,0,0.89,0.73
+N,Baggage Claim,Comedy-Musical,Fox Searchlight,David Talbert,21569000,0,2021767547,0.14,0.55
+N,After Earth,Action-Adventure,Sony,M. Night Shyamalan,60522000,130000000,0,0.11,0.38
+N,Anchorman 2: The Legend Continues,Comedy-Musical,Paramount,Adam McKay,125117000,50000000,42813762,0.74,0.62
+N,The Book Thief,Drama,Fox,Brian Percival,20996000,19000000,0,0.5,0.78
+N,A good Day to Die Hard,Action-Adventure,Fox,John Moore,67349000,92000000,237304000,0.14,0.42
+N,Last Vegas,Comedy-Musical,CBS,Jon Turteltaub,63890000,28000000,62922000,0.47,0.62
+N,The Place Beyond the Pines,Drama,Focus,Derek Cianfrance,21403000,15000000,14082000,0.81,0.75
+N,47 Ronin,Action-Adventure,Universal,Carl Rinsch,38362000,175000000,104700000,0.12,0.55
+N,Lone Survivor,Action-Adventure,Universal,Peter Berg,119000000,40000000,0,0.74,0.9
+N,Fruitvale Station,Drama,Weinstein Company,Ryan Coogler,16101000,0,924000,0.94,0.89
+N,Admission,Comedy-Musical,Focus,Paul Weitz,18007000,13000000,0,0.38,0.34
+N,The Hunger Games: Catching Fire,Action-Adventure,Lionsgate,Francis Lawrence,423116000,130000000,439278000,0.89,0.91
+N,All is Lost,Drama,Roadside Attractions,J.C. Chandor,6255000,8500000,0,0.93,0.67
+N,Don Jon,Comedy-Musical,Relativity,Joseph Gordon-Levitt,24477000,6000000,5973000,0.81,0.63
+N,Saving Mr. Banks,Drama,Buena Vista,John Lee Hancock,82012000,35000000,17900000,0.8,0.88
+N,Machete Kills,Action-Adventure,Open Road Films,Robert Rodriguez,8008000,12000000,7000000,0.29,0.4
+N,Ender's Game,Action-Adventure,Lionsgate,Gavin Hood,61737000,110000000,50494000,0.61,0.71
+Y,Amour,Drama,Sony,Michael Haneke,8900000,13100000,6739000,0.93,0.82
+Y,Argo,Thriller-Horror,WB,Ben Affleck,136025000,44500000,96300000,0.96,0.9
+Y,Beasts of the Southern Wild,Drama,Fox Searchlight,Benh Zeitlin,12795000,1800000,0,0.86,0.76
+Y,Django Unchained,Action-Adventure,Weinstein Company,Quentin Tarantino,162805000,100000000,262562000,0.88,0.92
+Y,Les Miserables,Comedy-Musical,Universal,Tom Hooper,148809000,61000000,293000000,0.7,0.79
+Y,Life of Pi,Action-Adventure,Fox,Ang Lee,124987000,120000000,484029000,0.87,0.85
+Y,Lincoln,Drama,Buena Vista,Steven Spielberg,182207000,65000000,93085000,0.9,0.81
+Y,Silver Linings Playbook,Comedy-Musical,Weinstein Company,David O. Russell,132092000,21000000,104319000,0.92,0.86
+Y,Zero Dark Thirty,Thriller-Horror,Sony,Kathryn Bigelow,95720000,40000000,37100000,0.93,0.8
+Y,The Hobbit: An Unexpected Journey,Action-Adventure,WB,Peter Jackson,303003000,200000000,714000000,0.65,0.83
+N,Wreck-It Ralph,Family-Animation,Buena Vista,Rich Moore,189422000,165000000,281800000,0.86,0.87
+N,Rock of Ages,Comedy-Musical,WB,Adam Shankman,38518000,75000000,20900000,0.41,0.55
+N,People Like Us,Drama,Buena Vista,Alex Kurtzman,12434000,16000000,0,0.55,0.63
+N,Fun Size,Comedy-Musical,Paramount,Josh Schwartz,9409000,14000000,2007000,0.25,0.48
+N,The Man With the Iron Fists,Action-Adventure,Universal,RZA,15634000,15000000,4037000,0.49,0.41
+N,Bernie,Comedy-Musical,Millenium Entertainment,Richard Linklater,9206000,6000000,0,0.9,0.72
+N,Trouble with the Curve,Drama,WB,Robert Lorenz,35763000,60000000,13200000,0.51,0.67
+N,Cabin in the Woods,Thriller-Horror,Lionsgate,Drew Goddard,42073000,30000000,24412000,0.92,0.73
+N,Seven Psychopaths,Action-Adventure,CBS,Martin McDonagh,15024000,15000000,4398000,0.83,0.71
+N,Tyler Perry's Good Deeds,Drama,Lionsgate,Tyler Perry,35025000,14000000,553000,0.31,0.77
+N,MIB 3,Comedy-Musical,Sony,Barry Sonnenfeld,179020000,225000000,445005000,0.7,0.71
+N,The Master,Drama,Weinstein Company,Paul Thomas Anderson,16377000,32000000,11880000,0.85,0.6
+N,That's My Boy,Comedy-Musical,Sony,Sean Anders,36931000,70000000,20788000,0.2,0.53
+N,Contraband,Thriller-Horror,Universal,Baltasar Kormakur,66528000,25000000,29734000,0.51,0.58
+N,Gone,Thriller-Horror,Lionsgate,Heitor Dhalia,11682000,0,6417000,0.11,0.43
+N,Frankenweenie,Family-Animation,Buena Vista,Tim Burton,35291000,39000000,46200000,0.87,0.7
+N,Brave,Family-Animation,Buena Vista,"Mark Andrews, Brenda Chapman",237283000,185000000,301700000,0.78,0.76
+N,The Raven,Thriller-Horror,Relativity,James McTeigue,16008000,26000000,13649000,0.23,0.46
+N,Salmon Fishing in the Yemen,Drama,CBS,Lasse Hallström,9047000,14500000,25516000,0.67,0.64
+N,Prometheus,Action-Adventure,Fox,Ridley Scott,126477000,130000000,276877000,0.74,0.69
+N,Joyful Noise,Comedy-Musical,WB,Todd Graff,30932000,25000000,226000,0.33,0.66
+N,Hitchcock,Drama,Fox Searchlight,Sacha Gervasi,6008677,0,17561000,0.62,0.61
+N,Think Like a Man,Comedy-Musical,Sony,Tim Story,91547000,12000000,4523000,0.53,0.8
+N,What to Expect When You're Expecting,Comedy-Musical,Lionsgate,Kirk Jones,41152000,40000000,43231000,0.22,0.48
+Y,The Artist,Drama,Weinstein Company,Michel Hazanavicius,44671682,15000000,88761174,0.98,0.89
+Y,The Descendants,Drama,Fox,Alexander Payne,82584160,20000000,94659025,0.89,0.79
+Y,Extremely Loud and Incredibly Close,Drama,WB,Stephen Daldry,31847881,40000000,16000000,0.47,0.61
+Y,The Help,Drama,Buena Vista,Tate Taylor,169708112,25000000,41900000,0.76,0.9
+Y,Hugo,Family-Animation,Paramount,Martin Scorsese,73864507,170000000,111905653,0.94,0.79
+Y,Midnight in Paris,Comedy-Musical,Sony,Woody Allen,56817045,17000000,94302174,0.93,0.82
+Y,Moneyball,Drama,Sony,Bennett Miller,75605492,50000000,34600724,0.95,0.86
+Y,The Tree of Life,Drama,Fox,Terrence Malick,13303319,32000000,41000000,0.84,0.6
+Y,War Horse,Action-Adventure,Buena Vista,Steven Spielberg,79884879,66000000,97700000,0.77,0.74
+N,The Darkest Hour,Thriller-Horror,Summit Entertainment,Chris Gorak,21443494,30000000,43183292,0.12,0.25
+N,Arthur,Comedy-Musical,WB,Jason Winer,33035397,40000000,12700000,0.26,0.47
+N,Warrior,Action-Adventure,Lionsgate,Gavin O'Connor,13657115,25000000,9400000,0.83,0.93
+N,Bridesmaids,Comedy-Musical,Universal,Paul Feig,169106725,32500000,119276798,0.9,0.76
+N,50/50,Drama,Summit Entertainment,Jonathan Levine ,35014192,8000000,4173591,0.93,0.89
+N,Battle: Los Angeles,Action-Adventure,Sony,Jonathan Liebesman,83552429,70000000,128266925,0.35,0.49
+N,Beastly,Action-Adventure,CBS,Daniel Barnz,27865571,17000000,968438,0.2,0.48
+N,Bad Teacher,Comedy-Musical,Sony,Jake Kasdan,100292856,20000000,115904636,0.44,0.36
+N,Larry Crowne,Comedy-Musical,Universal,Tom Hanks,35608245,30000000,115904636,0.35,0.43
+N,Shark Night 3D,Thriller-Horror,Relativity,David R. Ellis,18877153,25000000,21259326,0.16,0.23
+N,Captain America: The First Avenger,Action-Adventure,Paramount,Joe Johnston,176654505,140000000,191953858,0.79,0.75
+N,The Eagle,Action-Adventure,Focus,Kevin Macdonald,19490041,25000000,7631999,0.38,0.42
+N,Green Lantern,Action-Adventure,WB,Martin Campbell,116601172,200000000,103250000,0.26,0.47
+N,Contagion,Action-Adventure,WB,Steven Soderbergh,75658097,60000000,59800000,0.84,0.61
+N,Final Destination 5,Thriller-Horror,WB,Steven Quale,42587643,40000000,115300000,0.61,0.52
+N,The Dilemma,Comedy-Musical,Universal,Ron Howard,48475290,70000000,21246676,0.24,0.31
+N,Super 8,Action-Adventure,Paramount,J.J. Abrams,127004179,50000000,132932498,0.82,0.78
+N,A Separation,Drama,Sony,Asghar Farhadi,7099055,800000,12800000,0.99,0.92
+N,Something Borrowed,Comedy-Musical,WB,Luke Greenfield,39046489,35000000,21137332,0.15,0.48
+N,Cowboys and Aliens,Action-Adventure,Universal,Jon Favreau,100240551,163000000,74581774,0.44,0.45
+N,Winnie the Pooh,Family-Animation,Buena Vista,Stephen J. Anderson,26692846,30000000,6460000,0.91,0.78
+N,I Don't Know How She Does It,Comedy-Musical,Weinstein Company,Douglas McGrath,9662284,24000000,20889211,0.17,0.32
+N,No Strings Attached,Comedy-Musical,Paramount,Ivan Reitman,70662220,25000000,77118220,0.49,0.55
+N,The Smurfs,Family-Animation,Sony,Raja Gosnell,142614158,110000000,421135165,0.23,0.46
+N,The Thing,Action-Adventure,Universal,Matthijs van Heijningen Jr. ,16928670,38000000,10500000,0.36,0.42
+Y,The King's Speech,Drama,Weinstein Company,Tom Hooper,135453143,15000000,275414100,0.95,0.93
+Y,Black Swan,Drama,Fox,Darren Aronofsky,106954678,13000000,222443368,0.87,0.86
+Y,The Fighter,Drama,Paramount,David O. Russell,93617009,25000000,35573860,0.9,0.88
+Y,Inception,Action-Adventure,WB,Christopher Nolan,292576195,160000000,532956569,0.86,0.93
+Y,The Kids Are Alright,Comedy-Musical,Focus Features,Lisa Cholodenko,20811365,4000000,13894485,0.93,0.72
+Y,127 Hours,Drama,Fox,Danny Boyle,18335230,18000000,42403567,0.93,0.84
+Y,The Social Network,Drama,Sony,David Fincher,96962694,40000000,127957621,0.96,0.89
+Y,Toy Story 3,Family-Animation,Buena Vista,Lee Unkrich,415004880,200000000,648167031,0.99,0.91
+Y,True Grit,Action-Adventure,Paramount,Joel & Ethan Coen,171243005,38000000,79880786,0.96,0.86
+Y,Winter's Bone,Drama,Roadside Attractions,Debra Granik,6531503,2000000,7300000,0.94,0.74
+N,From Paris with Love,Action-Adventure,Lionsgate,Pierre Morel,24077427,52000000,28749167,0.37,0.57
+N,Shutter Island,Drama,Paramount,Martin Scorsese,128012934,80000000,166791261,0.69,0.73
+N,Eat Pray Love,Drama,Sony,Ryan Murphy,80574010,60000000,124020006,0.37,0.45
+N,Grown Ups,Comedy-Musical,Sony,Dennis Dugan,162001186,80000000,109429003,0.1,0.59
+N,Vampires Suck,Comedy-Musical,Fox,Jason Friedberg,36661504,20000000,43886362,0.04,0.31
+N,Morning Glory,Comedy-Musical,Paramount,Roger Michell,31011732,40000000,2773448,0.55,0.52
+N,Charlie St. Cloud,Drama,Universal,Burr Steers,31162545,44000000,17028159,0.27,0.61
+N,The Losers,Action-Adventure,WB,Sylvain White,23591432,25000000,5788291,0.49,0.54
+N,Remember Me,Drama,Summit,Allen Coulter,19068240,16000000,36964649,0.28,0.69
+N,Legion,Thriller-Horror,Sony,Scott Stewart,40168080,26000000,27750578,0.2,0.36
+N,The Girl Who Played with Fire,Thriller-Horror,Music Box Films,Daniel Alfredson,7638241,0,59488554,0.7,0.68
+N,The Sorcerer's Apprentice,Action-Adventure,Buena Vista,Jon Turteltaub,63150991,0,0,0.41,0.56
+N,Edge of Darkness,Thriller-Horror,WB,Martin Campbell,43313890,80000000,37810239,0.58,0.56
+N,Resident Evil: Afterlife,Thriller-Horror,Sony,Paul W. S. Anderson,60128566,60000000,236093097,0.24,0.51
+N,The Last Song,Drama,Buena Vista,Julie Anne Robinson,62950384,20000000,26091272,0.19,0.65
+N,Case 39,Thriller-Horror,Paramount,Christian Alvart,13261851,26000000,14928128,0.23,0.42
+N,The Switch,Comedy-Musical,Miramax,Josh Gordon,27779426,19000000,22051181,0.51,0.44
+N,The Next Three Days,Thriller-Horror,Lionsgate,Paul Haggis,21148651,30000000,46300000,0.52,0.66
+N,Tangled,Family-Animation,Buena Vista,Nathan Greno,200821936,260000000,389900000,0.9,0.87
+N,Our Family Wedding,Comedy-Musical,Fox,Rick Famuyiwa,20255281,0,1153747,0.14,0.48
+N,The Last Airbender,Action-Adventure,Paramount,M. Night Shyamalan,131772187,150000000,187941694,0.06,0.42
+N,Blue Valentine,Drama,Weinstein Company,Derek Cianfrance,9706328,1000000,2649406,0.88,0.75
+N,Country Strong,Drama,Sony,Shana Feste,20218921,15000000,310273,0.22,0.53
+N,Knight & Day,Comedy-Musical,Fox,James Mangold,76423035,117000000,185507401,0.53,0.52
+N,Gulliver's Travels,Comedy-Musical,Fox,Rob Letterman,42779261,0,0,0.21,0.3
+N,Karate Kid,Drama,Sony,Harald Zwart,176591618,40000000,182534404,0.67,0.75
+N,Secretariat,Drama,Buena Vista,Randall Wallace,59713955,35000000,537416,0.64,0.76
+N,Harry Potter and the Deathly Hallows Part 1,Action-Adventure,WB,David Yates,295983305,0,660416406,0.79,0.87
+N,Jonah Hex,Action-Adventure,WB,Jimmy Hayward,10547117,47000000,356195,0.13,0.23
+N,The Twilight Saga: Eclipse,Drama,Summit ,David Slade,300531751,68000000,397959596,0.49,0.74
+Y,The Hurt Locker,Action-Adventure,Summit,Kathryn Bigelow,17017811,15000000,32212961,0.97,0.83
+Y,Avatar,Action-Adventure,Fox,James Cameron,749766139,0,2021767547,0.83,0.92
+Y,The Blind Side,Drama,WB,John Lee Hancock,255959475,29000000,53248834,0.66,0.9
+Y,District 9,Action-Adventure,Sony,Neill Blomkamp,115646235,30000000,95173376,0.91,0.81
+Y,An Education,Drama,Sony,Lone Scherfig,12574914,7500000,13521938,0.94,0.78
+Y,Inglourious Basterds,Action-Adventure,Weinstein Company,Quentin Tarantino,120540719,70000000,200914970,0.88,0.87
+Y,Precious,Drama,Lionsgate,Lee Daniels,47566524,10000000,16081309,0.91,0.8
+Y,A Serious Man,Comedy-Musical,Focus,Joel and Ethan Coen,9228768,0,22201566,0.89,0.65
+Y,Up ,Family-Animation,Buena Vista,Pete Docter,293004164,175000000,438338580,0.98,0.86
+Y,Up in the Air,Drama,Paramount,Jason Reitman,83823381,25000000,83091358,0.91,0.76
+N,Tyler Perry's Madea Goes to Jail,Comedy-Musical,Lionsgate,Tyler Perry,90508336,0,0,0.28,0.74
+N,Dragonball Evolution,Action-Adventure,Fox,James Wong,9362785,0,48134914,0.14,0.27
+N,Gamer,Thriller-Horror,Lionsgate,Neveldine/Taylor,20534907,0,20293633,0.29,0.42
+N,Tyler Perry's I Can Do Bad All By Myself,Drama,Lionsgate,Tyler Perry,51733921,0,0,0.62,0.81
+N,Watchmen,Action-Adventure,WB,Zack Snyder,107509799,130000000,77749184,0.64,0.68
+N,Fantastic Mr. Fox,Family-Animation,Fox,Wes Anderson,21002919,40000000,25468104,0.93,0.81
+N,Astro Boy,Family-Animation,Summit,David Bowers,19551067,65000000,20335919,0.49,0.53
+N,Notorious,Drama,Fox,George Tillman,36843682,20000000,7528069,0.5,0.66
+N,Friday the 13th,Thriller-Horror,WB,Marcus Nispel,65002019,19000000,26377032,0.26,0.52
+N,The Last House on the Left,Thriller-Horror,Universal,Dennis Iliadis,32752215,0,12534013,0.41,0.55
+N,The Invention of Lying,Comedy-Musical,WB,Ricky Gervais,18451251,18500000,13955256,0.57,0.47
+N,Inkheart,Action-Adventure,WB,Iain Softley,17303424,60000000,45146937,0.39,0.49
+N,Capitalism: A Love Story,Documentary,Overture Films,Michael Moore,14363397,20000000,3073112,0.75,0.72
+N,Underworld: Rise of the Lycans,Thriller-Horror,Sony,Patrick Tatopoulos,45802315,35000000,45551186,0.3,0.68
+N,The International,Thriller-Horror,Sony,Tom Tykwer,25450527,50000000,34710864,0.59,0.39
+N,17 Again,Comedy-Musical,WB,Burr Steers,64167069,0,72100407,0.55,0.7
+N,A Perfect Getaway,Thriller-Horror,Universal,David Twohy,15515460,14000000,7337178,0.6,0.5
+N,The Taking of Pelham 1 2 3,Thriller-Horror,Sony,Tony Scott,65452312,100000000,84713814,0.51,0.6
+N,Fame,Drama,MGM,Kevin Tancharoen,22455510,18000000,54756326,0.25,0.42
+N,The Uninvited,Thriller-Horror,Paramount,The Guard Brothers,28596818,0,13027228,0.32,0.52
+N,Everybody's Fine,Comedy-Musical,Miramax,Kirk Jones,9208876,21000000,7234733,0.46,0.54
+N,Extract,Comedy-Musical,Miramax,Mike Judge,10823158,8000000,25625,0.63,0.38
+N,Jennifer's Body,Comedy-Musical,Fox,Karyn Kusama,16204793,16000000,15351268,0.43,0.37
+N,The Ugly Truth,Comedy-Musical,Sony,Robert Luketic,88915214,38000000,116383693,0.13,0.68
+N,Push,Thriller-Horror,Summit,Paul McGuigan,31811527,38000000,17047091,0.22,0.47
+N,Away We Go,Comedy-Musical,Focus,Sam Mendes,9451946,17000000,5447471,0.67,0.73
+N,The Haunting in Connecticut,Thriller-Horror,Lionsgate,Peter Cornwell,55389516,0,22138216,0.17,0.51
+N,Next Day Air,Comedy-Musical,Summit ,Benny Boom,10027047,0,145472,0.21,0.35
+N,Year One,Comedy-Musical,Sony,Harold Ramis,43337279,60000000,19020621,0.14,0.31
+Y,Slumdog Millionaire,Drama,Fox,Danny Boyle,141319928,15000000,236590616,0.94,0.9
+Y,The Curious Case of Benjamin Button,Drama,Paramount,David Fincher,127509326,150000000,206422757,0.72,0.81
+Y,Frost/Nixon,Drama,Universal,Ron Howard,18622031,25000000,8804304,0.92,0.86
+Y,Milk,Drama,Focus Features,Gus Van Sant,31841299,20000000,22745285,0.94,0.88
+Y,The Reader,Drama,Weinstein Company,Stephen Daldry,34194407,32000000,74707560,0.61,0.78
+N,W.,Drama,Lionsgate,Oliver Stone,25534493,25100000,3971971,0.59,0.42
+N,The Wrestler,Drama,Fox,Darren Aronofsky,26238243,6000000,18465752,0.98,0.86
+N,Sex Drive,Comedy-Musical,Summit,Sean Anders,8402485,19000000,10353451,0.46,0.6
+N,The Secret Life of Bees,Drama,Fox,Gina Prince-Bythewood,37770162,11000000,2177160,0.58,0.78
+N,The Boy in the Striped Pajamas,Drama,Miramax,Mark Herman,9046156,12500000,31370407,0.63,0.84
+N,Appaloosa,Action-Adventure,WB,Ed Harris,20211394,20000000,7454457,0.77,0.54
+N,Lakeview Terrace,Thriller-Horror,Sony,Neil LaBute,39263506,20000000,5390131,0.46,0.43
+N,Made of Honor,Comedy-Musical,Sony,Paul Weiland,46012734,40000000,59950026,0.14,0.61
+N,Burn After Ridiculous,Comedy-Musical,Focus,Joel & Ethan Coen,60355347,37000000,103364722,0.78,0.64
+N,The Tale of Despereaux,Family-Animation,Universal,Sam Fell,50877145,60000000,36070820,0.56,0.46
+N,The Visitor,Drama,Overture Films,Thomas McCarthy,9427089,4000000,8651086,0.89,0.82
+N,Semi-Pro,Comedy-Musical,New Line,Ken Alterman,33479698,90000000,10405206,0.21,0.41
+N,Superhero Movie,Comedy-Musical,MGM/UA,Craig Mazin,25881068,35000000,45356283,0.16,0.36
+N,Nim's Island,Action-Adventure,Fox,Jennifer Flackett,48006762,37000000,52069580,0.51,0.49
+N,Max Payne,Action-Adventure,Fox,John Moore,40689393,35000000,44727512,0.16,0.36
+Y,No Country for Old Men,Drama,Miramax,Joel and Ethan Coen,74283625,0,97343541,0.95,0.84
+Y,Atonement,Drama,Focus,Joe Wright,50927067,0,78338994,0.83,0.79
+Y,Juno,Drama,Fox,Jason Reitman,143495265,7500000,87916319,0.94,0.89
+Y,Michael Clayton,Thriller-Horror,WB,Tony Gilroy,49033882,0,43957953,0.9,0.72
+Y,There Will Be Blood,Drama,Paramount,Paul Thomas Anderson,40222514,25000000,35959031,0.91,0.84
+N,The Hills Have Eyes 2,Thriller-Horror,Fox,Martin Weisz,20804166,15000000,16662372,0.11,0.5
+N,Mr. Brooks,Thriller-Horror,MGM,Bruce A. Evans,28549298,20000000,19572602,0.55,0.75
+N,Spider-Man 3,Action-Adventure,Sony,Sam Raimi,336530303,258000000,554341323,0.63,0.54
+N,Aliens Vs. Predator - Requiem,Thriller-Horror,Fox,Colin and Greg Strause,41797066,0,87087428,0.12,0.37
+N,Bridge to Terabithia,Action-Adventure,Buena Vista,Gábor Csupó,82272442,0,55314621,0.84,0.71
+N,The Messengers,Thriller-Horror,Sony,Pang Brothers,35374833,16000000,19653826,0.12,0.48
+N,Dead Silence,Thriller-Horror,Universal,James Wan,16809076,20000000,5408331,0.2,0.57
+N,Amazing Grace,Drama,IDP,Michael Apted,21250683,0,10869677,0.7,0.84
+N,BRATZ,Comedy-Musical,Lionsgate,Sean McNamara,10010209,0,16002944,0.07,0.51
+N,The Great Debaters,Drama,MGM/UA,Denzel Washington,30236407,15000000,0,0.69,0.86
+N,The Mist,Thriller-Horror,MGM/UA,Frank Darabont,25594957,18000000,31698758,0.74,0.64
+N,Shooter,Action-Adventure,Paramount,Antoine Fuqua,47003582,61000000,48693414,0.48,0.82
+N,Becoming Jane,Drama,Miramax,Julian Jarrold,18670946,16500000,18640726,0.57,0.74
+N,Primeval,Thriller-Horror,Buena Vista,Michael Katleman,10597734,0,4693543,0.19,0.35
+N,Death Sentence,Thriller-Horror,Fox,James Wan,9534258,0,7440201,0.2,0.62
+Y,The Departed,Drama,WB,Martin Scorsese,132384315,90000000,157463039,0.93,0.92
+Y,Babel,Drama,Paramount,Alejandro González Iñárritu,34302837,25000000,101027345,0.69,0.76
+Y,Letters from Iwo Jima,Action-Adventure,WB,Clint Eastwood,13756082,19000000,54917146,0.91,0.85
+Y,Little Miss Sunshine,Comedy-Musical,Fox,Jonathan Dayton,59891098,8000000,40632083,0.91,0.9
+Y,The Queen,Drama,Miramax,Stephen Frears,56441711,15000000,66942417,0.97,0.74
+N,The Grudge 2,Thriller-Horror,Sony,Takashi Shimizu,39143839,10000000,76921753,0.1,0.57
+N,The Benchwarmers,Comedy-Musical,Sony,Dennis Dugan,59843754,33000000,5113537,0.11,0.71
+N,ATL,Drama,WB,Chris Robinson,21170563,20000000,0,0.63,0.81
+N,The Texas Chainsaw Massacre: The Beginning,Thriller-Horror,New Line,Jonathan Liebesman,39517763,16000000,12246643,0.12,0.64
+N,Ultraviolet,Thriller-Horror,Sony,Kurt Wimmer,18535812,30000000,12534399,0.09,0.42
+N,An American Haunting,Thriller-Horror,Freestyle,Courtney Solomon,16298046,14000000,13314091,0.12,0.47
+N,Miami Vice,Action-Adventure,Universal,Michael Mann,63450470,135000000,100344039,0.47,0.48
+N,Curious George,Family-Animation,Universal,Matthew O'Callaghan,58360760,50000000,11474055,0.69,0.65
+N,How To Eat Fried Worms,Family-Animation,New Line,Bob Dolman,13040527,0,55787,0.58,0.5
+N,Invincible,Drama,Buena Vista,Ericson Core,57806952,40000000,673876,0.71,0.74
+N,The Wicker Man,Thriller-Horror,WB,Neil LaBute,23649127,40000000,15105946,0.15,0.27
+N,Flags of Our Fathers,Action-Adventure,Paramount,Clint Eastwood,33602376,90000000,32297873,0.73,0.7
+N,Eight Below,Action-Adventure,Buena Vista,Frank Marshall,81612565,40000000,38843429,0.72,0.8
+N,16 Blocks,Thriller-Horror,WB,Richard Donner,36895141,55000000,28769580,0.55,0.6
+N,John Tucker Must Die,Comedy-Musical,Fox,Betty Thomas,41011711,18000000,27812815,0.25,0.74
+Y,Crash,Drama,Lionsgate,Paul Haggis,54580300,6500000,43829761,0.76,0
+Y,Brokeback Mountain,Action-Adventure,Focus,Ang Lee,83043761,14000000,95081998,0.87,0.77
+Y,Capote,Drama,Sony,Bennett Miller,28750530,7000000,20482631,0.9,0.73
+Y,"Good Night, and Good Luck",Drama,Warner Independent,George Clooney,31558003,7000000,23083188,0.93,0.73
+Y,Munich,Thriller-Horror,Universal,Steven Spielberg,47403685,70000000,82955226,0.78,0.78
+N,Hitch,Comedy-Musical,Sony,Andy Tennant,179495555,70000000,188604865,0.69,0.65
+N,Two for the Money,Thriller-Horror,Universal,D.J. Caruso,22991379,35000000,7535130,0.21,0.5
+N,Cry Wolf,Thriller-Horror,Rogue Pictures,Jeff Wadlow,10047674,1000000,5537821,0.23,0.56
+N,The Legend of Zorro,Action-Adventure,Sony,Martin Campbell,46464023,75000000,95936042,0.26,0.61
+N,Wedding Crashers,Comedy-Musical,New Line,David Dobkin,209255921,40000000,75920820,0.75,0.7
+N,The Ring Two,Thriller-Horror,Dreamworks,Hideo Nakata,76231249,0,85220289,0.2,0.54
+N,Just Friends,Comedy-Musical,New Line,Roger Kumble,32619671,0,18292763,0.42,0.73
+N,The Gospel,Drama,Sony,Rob Hardy,15778152,4000000,0,0.32,0.76
+N,Serenity,Action-Adventure,Universal,Joss Whedon,25514517,39000000,13354947,0.82,0.89
+N,Lords of Dogtown,Drama,Sony,Catherine Hardwicke,11273517,25000000,2138440,0.55,0.8
+N,Herbie: Fully Loaded,Comedy-Musical,Buena Vista,Angela Robinson,66023816,50000000,78123000,0.42,0.54
+N,Dark Water,Thriller-Horror,Buena Vista,Walter Salles,25473352,0,24010000,0.45,0.37
+N,The Amityville Horror,Thriller-Horror,MGM,Andrew Douglas,65233369,19000000,42813762,0.24,0.64
+N,Wolf Creek,Thriller-Horror,Weinstein Company,Greg McLean,16188180,0,11574468,0.53,0.49
+N,Chicken Little,Family-Animation,Buena Vista,Mark Dindal,135386665,150000000,179046172,0.36,0.56
+Y,Million Dollar Baby,Drama,WB,Clint Eastwood,100492203,30000000,116271443,0.92,0.87
+Y,The Aviator,Drama,Miramax,Martin Scorsese,102610330,110000000,111131129,0.87,0.73
+Y,Finding Neverland,Drama,Miramax,Marc Forster,51680613,25000000,65085943,0.83,0.84
+Y,Ray,Drama,Universal,Taylor Hackford,75331600,40000000,49399934,0.81,0.87
+Y,Sideways,Comedy-Musical,Fox,Alexander Payne,71503593,16000000,38203338,0.96,0.77
+N,Shaun of the Dead,Comedy-Musical,Rogue Pictures,Edgar Wright,13542874,0,16496518,0.91,0.91
+N,Mean Girls,Comedy-Musical,Paramount,Mark Waters,86058055,17000000,42984816,0.83,0.66
+N,Blade: Trinity,Thriller-Horror,New Line,David S. Goyer,52411906,65000000,76493460,0.26,0.7
+N,The Girl Next Door,Comedy-Musical,Fox,Luke Greenfield,14589444,0,15821739,0.55,0.71
+N,Open Water,Thriller-Horror,Lionsgate,Chris Kentis,30610863,500000,24057091,0.72,0.32
+N,Soul Plane,Comedy-Musical,MGM,Jessey Terrero,14190750,16000000,631596,0.18,0.58
+N,The Whole Ten Yards,Comedy-Musical,WB,Howard Deutch,16328471,40000000,9827310,0.04,0.49
+N,Shark Tale,Family-Animation,Dreamworks,Vicky Jenson,160861908,75000000,206413111,0.36,0.59
+N,The Terminal,Drama,Dreamworks,Steven Spielberg,77872883,60000000,141544372,0.6,0.72
+N,The Chronicles of Riddick,Action-Adventure,Universal,David Twohy,57761012,105000000,58011721,0.29,0.73
+N,Dirty Dancing: Havana Nights,Drama,Lionsgate,Guy Ferland,14161590,25000000,13523426,0.22,0.71
+N,Taxi,Comedy-Musical,Fox,Tim Story,36611066,25000000,32284369,0.1,0.6
+N,Catch that Kid,Family-Animation,Fox,Bart Freundlich,16703799,12000000,226963,0.11,0.53
+N,Along Came Polly,Comedy-Musical,Universal,John Hamburg,88097164,42000000,83866222,0.25,0.54
+N,I Heart Huckabees,Comedy-Musical,Fox,David O. Russell,12785432,20000000,7286740,0.62,0.75
+Y,The Lord of the Rings: The Return of the King,Action-Adventure,New Line,Peter Jackson,377027325,94000000,742083616,0.94,0.83
+Y,Lost in Translation,Comedy-Musical,Focus,Sofia Coppola,44585453,4000000,75138403,0.95,0.84
+Y,Master and Commander: The Far Side of the World ,Action-Adventure,Fox,Peter Weir,93927920,150000000,118083191,0.85,0.75
+Y,Mystic River,Drama,WB,Clint Eastwood,90135191,25000000,66686829,0.87,0.86
+Y,Seabiscuit,Drama,Universal,Gary Ross,120277854,87000000,28058591,0.77,0.74
+N,Bruce Almighty,Comedy-Musical,Universal,Tom Shadyac,242829261,81000000,241763613,0.49,0.61
+N,The Triplets of Belleville,Family-Animation,Sony,Sylvain Chomet,7007149,8000000,7769611,0.94,0.88
+N,Freaky Friday,Comedy-Musical,Buena Vista,Mark Waters,110230332,20000000,50616000,0.88,0.6
+N,Le Divorce,Comedy-Musical,Fox,James Ivory,9081057,0,3910939,0.37,0.25
+N,Tears of the Sun,Drama,Sony,Antoine Fuqua,43734876,75000000,42733286,0.34,0.72
+N,The Matrix Reloaded,Action-Adventure,WB,Andy & Larry Wachowski,281576461,150000000,460552000,0.73,0.74
+N,Gods and Generals,Action-Adventure,WB,Ronald F. Maxwell,12882934,56000000,41002,0.08,0.65
+N,Hulk,Action-Adventure,Universal,Ang Lee,132177234,137000000,113183246,0.62,0.34
+N,Girl With a Pearl Earring,Drama,Lionsgate,Peter Webber,11670971,15564000,19795818,0.72,0.66
+N,Bend It Like Beckham,Comedy-Musical,Fox,Gurinder Chadha,32543449,6000000,44039884,0.85,0.69
+N,A Mighty Wind,Comedy-Musical,WB,Christopher Guest,17781006,6000000,969240,0.88,0.8
+N,The Recruit,Thriller-Horror,Buena Vista,Roger Donaldson,52802140,0,48389744,0.43,0.63
+N,Kill Bill Vol. 1,Action-Adventure,Miramax,Quentin Tarantino,70099045,30000000,110850000,0.85,0.76
+N,The League of Extraordinary Gentlemen,Family-Animation,Fox,Stephen Norrington,66465204,78000000,112800000,0.17,0.54
+N,Holes,Comedy-Musical,Buena Vista,Andrew Davis,67406573,20000000,4000000,0.77,0.72
+Y,Chicago,Drama,Miramax,Rob Marshall,170687518,45000000,136089214,0.87,0.8
+Y,Gangs of New York,Drama,Miramax,Martin Scorsese,77812000,97000000,115960504,0.75,0.76
+Y,The Hours,Action-Adventure,Paramount,Stephen Daldry,41675994,25000000,67170078,0.81,0.82
+Y,The Lord of the Rings: The Two Towers,Action-Adventure,New Line,Peter Jackson,339789881,94000000,583495746,0.96,0.92
+Y,The Pianist,Drama,Focus,Roman Polanksi,32572577,35000000,87500000,0.96,0.94
+N,The Good Girl,Thriller-Horror,Fox,Miguel Arteta,14018296,8000000,2837828,0.81,0.53
+N,SwimFan,Drama,Fox,John Polson,28564995,10000000,5846245,0.14,0.36
+N,Far From Heaven,Drama,Focus,Todd Haynes,15901849,13500000,13126065,0.89,0.76
+N,The Emperor's Club,Family-Animation,Universal,Michael Hoffman,14118751,12500000,2199698,0.5,0.65
+N,Spirited Away,Action-Adventure,Buena Vista,Hayao Miyazaki,10055859,19000000,264869236,0.97,0.95
+N,Hart's War,Family-Animation,MGM,Gregory Hoblit,19077641,70000000,13209403,0.6,0.51
+N,Lilo & Stitch ,Action-Adventure,Buena Vista,Chris Sanders,145794338,80000000,127349813,0.86,0.65
+N,Spider-Man,Action-Adventure,Sony,Sam Raimi,403706375,139000000,418002176,0.89,0.65
+N,Clockstoppers,Comedy-Musical,Paramount,Jonathan Frakes,36989956,26000000,1803327,0.29,0.33
+N,Showtime,Thriller-Horror,WB,Tom Dey,38082712,85000000,39659020,0.25,0.29
+N,Abandon,Comedy-Musical,Paramount,Stephen Gaghan,10727683,25000000,1574536,0.17,0.36
+N,The Country Bears,Action-Adventure,Buena Vista,Peter Hastings,16990825,35000000,1021272,0.3,0.38
+N,XXX,Action-Adventure,Sony,Rob Cohen,142109382,70000000,135339000,0.48,0.69
+N,Collateral Damage,Comedy-Musical,WB,Andrew Davis,40077257,85000000,38305176,0.18,0.33
+N,Two Weeks Notice,Drama,WB,Marc Lawrence,93354851,60000000,105688391,0.42,0.63
+Y,A Beautiful Mind,Drama,Universal,Ron Howard,170742341,58000000,142800000,0.78,0.91
+Y,Gosford Park,Drama,USA,Robert Altman,41308615,19800000,46445429,0.86,0.75
+Y,In the Bedroom,Action-Adventure,Miramax,Todd Field,35930604,1700000,7438175,0.93,0.78
+Y,The Lord of the Rings: The Fellowship of the Ring,Comedy-Musical,New Line,Peter Jackson,313364114,93000000,555985574,0.92,0.92
+Y,Moulin Rouge!,Drama,Fox,Baz Luhrmann,57386607,50000000,121826827,0.76,0.88
+N,Angel Eyes,Comedy-Musical,WB,Luis Mandoki,24174218,53000000,5541388,0.33,0.48
+N,Ocean's Eleven,Drama,WB,Steven Soderbergh,183417150,85000000,267300000,0.82,0.76
+N,Bread and Tulips,Comedy-Musical,First,Silvio Soldini,5318679,0,3159755,0.71,0.83
+N,Max Keeble's Big Move,Action-Adventure,Buena Vista,Tim Hill,17294293,25000000,1340361,0.29,0.41
+N,American Outlaws,Family-Animation,WB,Les Mayfield,13342790,35000000,336123,0.14,0.67
+N,Spy Kids,Family-Animation,Miramax,Robert Rodriguez,112719001,35000000,35215179,0.93,0.39
+N,"Monsters, Inc.",Comedy-Musical,Buena Vista,Pete Docter,255873250,115000000,269493347,0.95,0.84
+N,Two Can Play That Game,Comedy-Musical,Sony,Mark Brown,22235901,13000000,155549,0.43,0.81
+N,Get Over It,Comedy-Musical,Miramax,Tommy O'Haver,11576464,22000000,8323902,0.44,0.5
+N,Kingdom Come,Comedy-Musical,Fox,Doug McHenry,23249649,7000000,146400,0.28,0.65
+N,The Mexican,Drama,Dreamworks,Gore Verbinski,66845033,57000000,81000000,0.56,0.47
+N,The Closet,Thriller-Horror,Miramax,Francis Veber,6678894,0,43425851,0.86,0.75
+N,John Carpenter's Ghosts of Mars,Thriller-Horror,Sony,John Carpenter,8709640,28000000,5301192,0.21,0.29
+N,Vanilla Sky,Comedy-Musical,Paramount,Cameron Crowe,100618344,68000000,102769997,0.4,0.68
+N,Town & Country,Action-Adventure,New Line,Peter Chelsom,6719973,90000000,3652318,0.13,0.17
+Y,Gladiator,Drama,Dreamworks,Ridley Scott,187705427,103000000,269935000,0.78,0.85
+Y,Chocolat,Action-Adventure,Miramax,Lasse Hallström,71509363,25000000,81190583,0.63,0.82
+Y,"Crouching Tiger, Hidden Dragon",Drama,Sony,Ang Lee,128078872,17000000,85446864,0.97,0.81
+Y,Erin Brokovich,Drama,Universal,Steven Soderbergh,125595205,52000000,130676081,0.84,0.76
+Y,Traffic,Comedy-Musical,USA,Steven Soderbergh,124115725,0,83400000,0.92,0.81
+N,Road Trip,Comedy-Musical,Dreamworks,Todd Phillips,68540777,16000000,51213510,0.57,0.68
+N,Where the Heart Is,Comedy-Musical,Fox,Matt Williams,33772838,15000000,7090880,0.35,0.76
+N,The Replacements,Thriller-Horror,WB,Howard Deutch,44737059,50000000,5317452,0.4,0.7
+N,Hollow Man,Comedy-Musical,Sony,Paul Verhoeven,73209340,95000000,117004115,0.27,0.35
+N,The Nutty Professor II: The Klumps,Thriller-Horror,Universal,Peter Segal,123309890,84000000,43030000,0.26,0.53
+N,Space Cowboys,Comedy-Musical,WB,Clint Eastwood,90464773,65000000,38419359,0.79,0.5
+N,Meet the Parents,Comedy-Musical,Universal,Jay Roach,166244045,55000000,164200000,0.84,0.79
+N,Scary Movie,Action-Adventure,Miramax,Keenan Ivory Wayans,157019771,19000000,121000000,0.53,0.5
+N,Red Planet,Action-Adventure,WB,Antony Hoffman,17480890,80000000,15983079,0.14,0.31
+N,Get Carter,Drama,WB,Stephen Kay,14967182,63600000,4445811,0.12,0.3
+N,Here on Earth,Comedy-Musical,Fox,Mark Piznarski,10522168,15000000,350980,0.17,0.61
+N,Lucky Numbers,Comedy-Musical,Paramount,Nora Ephron,10042516,63000000,847706,0.22,0.22
+N,Small Time Crooks,Thriller-Horror,Dreamworks,Woody Allen,17266359,25000000,12668118,0.67,0.54
+N,Eye of the Beholder,Comedy-Musical,Destination,Stephan Elliott,16500786,35000000,1088919,0.09,0.33
+N,Loser,Drama,Sony,Amy Heckerling,15618626,20000000,2786080,0,0
+Y,American Beauty,Drama,Dreamworks,Sam Mendes,130096601,15000000,226200000,0.88,0.9
+Y,The Cider House Rules,Drama,Miramax,Lasse Hallström,57545092,24000000,31000000,0.71,0.75
+Y,The Green Mile,Thriller-Horror,WB,Frank Darabont,136801374,60000000,150000000,0.8,0.93
+Y,The Insider,Thriller-Horror,Buena Vista,Michael Mann,29089912,90000000,31200000,0.96,0.87
+Y,The Sixth Sense,Family-Animation,Buena Vista,M. Night Shyamalan,293506292,40000000,379300000,0.85,0.87
+N,The Iron Giant,Action-Adventure,WB,Brad Bird,23159305,70000000,0,0.97,0.72
+N,The 13th Warrior,Drama,Buena Vista,John McTiernan,32698899,160000000,29000000,0.33,0.66
+N,Payback,Family-Animation,Paramount,Brian Helgeland,81526121,90000000,80100000,0.53,0.67
+N,Tarzan,Action-Adventure,Buena Vista,Chris Buck,171091819,130000000,277100000,0.88,0.63
+N,The World Is Not Enough,Comedy-Musical,MGM,Michael Apted,126943684,135000000,234888716,0.51,0.58
+N,The Story of Us,Drama,Universal,Rob Reiner,27100031,50000000,31800000,0.28,0.56
+N,Bringing Out the Dead,Family-Animation,Paramount,Martin Scorsese,16797191,55000000,0,0.71,0.64
+N,Doug's First Movie,Drama,Buena Vista,Maurice Joyce,19440089,0,0,0.26,0.41
+N,Light it Up,Comedy-Musical,Fox,Craig Bolotin,5985690,13000000,0,0.38,0.75
+N,Chill Factor,Comedy-Musical,WB,Hugh Johnson,11263966,70000000,0,0.07,0.36
+N,200 Cigarettes,Comedy-Musical,Paramount,Risa Bramon Garcia,6852450,6000000,0,0.29,0.53
+N,Foolish,Drama,Artisan,Dave Meyers,6033999,0,0,0,0.65
+N,Boys Don't Cry,Action-Adventure,Fox,Kimberly Peirce,11540607,2000000,0,0.88,0.84
+N,The Mod Squad,Action-Adventure,MGM,Scott Silver,13263993,50000000,0,0.04,0.21
+N,Twin Dragons,Comedy-Musical,Miramax,Ringo Lam,8359717,10000000,0,0,0
+Y,Shakespeare in Love,Drama,Miramax,John Madden,100317794,25000000,189000000,0.93,0.76
+Y,Elizabeth,Drama,Gramercy,Shekhar Kapur,30082699,30000000,52067943,0.82,0.85
+Y,Life is Beautiful,Action-Adventure,Miramax,Roberto Benigni,57247384,0,171600000,0.8,0.96
+Y,Savng Private Ryan,Action-Adventure,Dreamworks,Steven Spielberg,216540909,70000000,265300000,0.93,0.92
+Y,The Thin Red Line,Comedy-Musical,Fox,Terrence Malick,36400491,52000000,61726074,0.78,0.75
+N,The Parent Trap,Drama,Buena Vista,Nancy Meyers,66308518,0,25800000,0.85,0.67
+N,Great Expectations,Comedy-Musical,Fox,Alfonso Cuarón,26420672,0,29073394,0.38,0.75
+N,Lethal Weapon 4,Family-Animation,WB,Richard Donner,130444603,140000000,155000000,0.52,0.7
+N,Jack Frost,Comedy-Musical,WB,Troy Miller,34562556,85000000,0,0.46,0.16
+N,Bride of Chucky,Family-Animation,Universal,Ronny Yu,32383850,25000000,18288000,0.42,0.52
+N,A Bug's Life,Comedy-Musical,Buena Vista,John Lasseter,162798565,120000000,200600000,0.92,0.61
+N,Can't Hardly Wait,Action-Adventure,Sony,Deborah Kaplan,25605015,0,0,0.44,0.59
+N,Armageddon,Drama,Buena Vista,Michael Bay,201578182,140000000,352131606,0.39,0.77
+N,A Simple Plan,Drama,Paramount,Sam Raimi,16316273,30000000,0,0.9,0.75
+N,American History X,Drama,New Line,Tony Kaye,6719864,20000000,17155263,0.82,0.96
+N,Return to Paradise,Family-Animation,Polygram,Joseph Ruben,8341087,0,0,0.71,0.73
+N,Air Bud: Golden Reciever,Comedy-Musical,Miramax,Richard Martin,10224116,0,0,0.06,0.41
+N,Ringmaster,Action-Adventure,Artisan,Neil Abramson,9257103,20000000,0,0.25,0.19
+N,Soldier,Action-Adventure,WB,Paul W. S. Anderson,14594226,60000000,0,0.1,0.45
+N,Black Dog,Drama,Universal,Kevin Hooks,12951088,0,0,0.11,0.61
+Y,Titanic,Comedy-Musical,Paramount,James Cameron,600788188,200000000,1526700000,0.87,0.69
+Y,As Good as It Gets,Comedy-Musical,Sony,James L. Brooks,148478011,50000000,165700000,0.86,0.81
+Y,The Full Monty ,Drama,Fox Searchlight,Peter Cattaneo,45950122,3500000,211988527,0.95,0.73
+Y,Good Will Hunting,Drama,Miramax,Gus Van Sant,138433435,0,87500000,0.97,0.92
+Y,L.A. Confidential,Thriller-Horror,WB,Curtis Hanson,64616940,0,61600000,0.99,0.9
+N,Breakdown,Thriller-Horror,Paramount,Jonathan Mostow,50159144,36000000,0,0.8,0.61
+N,The Jackal,Family-Animation,Universal,Michael Caton-Jones,54930280,60000000,104000000,0.15,0.56
+N,That Darn Cat,Comedy-Musical,Buena Vista,Bob Spiers,18301610,0,0,0.13,0.3
+N,Grosse Pointe Blank,Comedy-Musical,Buena Vista,George Armitage,28084357,0,0,0.79,0.84
+N,In & Out,Comedy-Musical,Paramount,Frank Oz,63856929,35000000,0,0.73,0.48
+N,Beverly Hills Ninja,Drama,Sony,Dennis Dugan,31480418,0,0,0.14,0.54
+N,Eve's Bayou,Family-Animation,Trimark,Kasi Lemmons,14842388,0,0,0.8,0.86
+N,Hercules,Thriller-Horror,Buena Vista,Ron Clements,99112101,85000000,153600000,0.84,0.68
+N,Scream 2,Drama,Dimension Films,Wes Craven,101363301,24000000,71000000,0.81,0.54
+N,Midnight in the Garden of Good and Evil,Comedy-Musical,WB,Clint Eastwood,25105255,35000000,0,0.47,0.63
+N,The 6th Man,Action-Adventure,Buena Vista,Randall Miller,14772788,0,0,0.23,0.54
+N,The Postman,Drama,WB,Kevin Costner,17626234,80000000,0,0.09,0.51
+N,Kolya,Drama,Miramax,Jan Sv?rák,5770254,0,0,0.96,0.91
+N,Kama Sutra: A Tale of Love,Action-Adventure,Trimark,Mira Nair,4109095,3000000,0,0.4,0.69
+N,Kull the Conqueror,Drama,Universal,John Nicolella,6112613,0,0,0.26,0.35
+Y,The English Patient,Comedy-Musical,Miramax,Anthony Minghella,78676425,27000000,153300000,0.83,0.81
+Y,Fargo,Drama,Gramercy,Joel and Ethan Coen,24611975,7000000,36000000,0.94,0.91
+Y,Jerry Maguire,Drama,Sony,Cameron Crowe,153952592,50000000,119600000,0.85,0.72
+Y,Secrets & Lies,Drama,October,Mike Leigh,13417292,4500000,0,0.94,0.9
+Y,Shine,Thriller-Horror,Fine Line,Scott Hicks,35892330,0,0,0.91,0.89
+N,Ransom,Comedy-Musical,Buena Vista,Ron Howard,136492681,0,173000000,0.73,0.61
+N,Mother,Thriller-Horror,Paramount,Albert Brooks,19145198,0,0,0.91,0.63
+N,Heaven's Prisoners,Comedy-Musical,New Line,Phil Joanou,5009305,0,0,0.16,0.25
+N,The Associate,Thriller-Horror,Buena Vista,Donald Petrie,12844057,0,0,0.28,0.53
+N,Screamers,Drama,Sony,Christian Duguay,5711695,0,0,0.3,0.45
+N,Ghosts of Mississippi,Drama,Sony,Rob Reiner,13323144,36000000,0,0.46,0.64
+N,Romeo + Juliet,Family-Animation,Fox,Baz Luhrmann,46351345,14500000,101203653,0.7,0.76
+N,Alaska,Comedy-Musical,Sony,Fraser Clarke Heston,11829959,24000000,0,0.18,0.5
+N,Celtic Pride,Thriller-Horror,Buena Vista,Tom DeCerchio,9255027,0,0,0.09,0.31
+N,Mary Reilly,Family-Animation,Sony,Stephan Frears,5707094,47000000,6672308,0.26,0.4
+N,Fly Away Home,Family-Animation,Sony,Carroll Ballard,25143818,0,0,0.85,0.64
+N,Beavis and Butt-head Do America,Thriller-Horror,Paramount,Mike Judge,63118386,12000000,0,0.71,0.61
+N,A Time to Kill,Action-Adventure,WB,Joel Schumacher,108766007,40000000,43500000,0.67,0.83
+N,Supercop,Action-Adventure,Miramax,Stanley Tong,16270600,0,0,0.95,0.7
+N,The Substitute,Action-Adventure,Orion Pictures,Robert Mandel,14818176,0,0,0.38,0.44

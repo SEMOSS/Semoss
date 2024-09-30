@@ -44,6 +44,24 @@ public class ApiTestsSemossConstants {
 	public static final String EMAIL_TEXT = "Text";	
 	public static final String EMAIL_DATE = "Date";	
 	public static final String EMAIL_READ = "Read";	//boolean
+	
+	// movie data
+	public static final String MOVIE_CSV_FILE_NAME = "Movies.csv";
+	public static final Path TEST_MOVIE_CSV_PATH = Paths.get(TEST_RESOURCES_DIRECTORY, MOVIE_CSV_FILE_NAME);
+	public static final String MOVIE_TABLE_NAME = "Movies";
+	public static final String TITLE = "Title";
+	public static final String MOVIE_BUDGET = "MovieBudget";
+	public static final String ROTTEN_TOMATOES_AUDIENCE = "RottenTomatoes_Critics";
+	public static final String ROTTEN_TOMATOES_CRITICS = "RottenTomatoes_Audience";
+	public static final String REVENUE_DOMESTIC = "Revenue_Domestic";
+	public static final Object REVENUE_INTERNATIONAL = "Revenue_International";
+	public static final String DIRECTOR = "Director";
+	public static final String STUDIO = "Studio";
+	public static final String GENRE = "Genre";
+	public static final Object NOMINATED = "Nominated";
+
+
+
 
 
 }
