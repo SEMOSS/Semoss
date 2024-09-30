@@ -905,7 +905,7 @@ def compose_prompt_orca(
     return prompt
 
 
-def load_module_from_file(module_name=None, file_path=None):
+def load_module_from_file(module_name=None, file_path=None, search=None):
     import importlib.util
     import sys
 
@@ -916,9 +916,14 @@ def load_module_from_file(module_name=None, file_path=None):
         del prev_module
     except Exception as e:
         pass
-    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if search is not None:
+      sys.path.append(search)
+    spec = importlib.util.spec_from_file_location(module_name, file_path, submodule_search_locations=search)
     module = importlib.util.module_from_spec(spec)
     # sys.modules[module_name] = module
     spec.loader.exec_module(module)
+    # reset the path
+    if search is not None:
+      sys.path.remove(search)
     return module
     # import module_name

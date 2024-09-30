@@ -29,6 +29,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class CreateStorageEngineReactor extends AbstractReactor {
 
@@ -69,10 +70,17 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		organizeKeys();
 		
 		String storageName = getStorageName();
-		Map<String, String> storageDetails = getStorageDetails();
+		//if storage name is not valid throw error
+		if (!Utility.validateName(storageName)) {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+		
+		//String storageName = getStorageName();
+		Map<String, Object> storageDetails = getStorageDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
-		String storageTypeStr = storageDetails.get(IStorageEngine.STORAGE_TYPE);
+		String storageTypeStr = (String) storageDetails.get(IStorageEngine.STORAGE_TYPE);
 		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
 		}
@@ -187,18 +195,18 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getStorageDetails() {
+	private Map<String, Object> getStorageDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, String>) mapNouns.get(0).getValue();
+				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
 		
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, String>) mapNouns.get(0).getValue();
+			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 		
 		throw new NullPointerException("Must define the properties for the new storage engine");

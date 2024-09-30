@@ -73,3 +73,6 @@ testfolder/vector/**
 testfolder/InsightCache/
 testfolder/mailpit/mailpit.log
 
+# test resources
+test/resources/RDF_MAP.prop
+

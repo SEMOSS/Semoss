@@ -356,57 +356,61 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			// need to calculate all the ranges
 			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
-			wProcessor.parse(helper.getFilePath());
-			wProcessor.determineTableRanges();
-			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
-
-			for (String sheet : sProcessor.keySet()) {
-				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheet);
-				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
-				int counterSheetName = 0;
-				
-				if (tableNames != null) {
-					rangeAndNameMap = tableNames.get(sheet);
-				}
-				
-				if (uniqueColumnsMap != null) {
-					rangeAndUniqueColumnMap = uniqueColumnsMap.get(sheet);
-				}
-
-				for (ExcelBlock eBlock : blocks) {
-					List<ExcelRange> ranges = eBlock.getRanges();
-					for (ExcelRange eRange : ranges) {
-						String range = eRange.getRangeSyntax();
-						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
-						ExcelQueryStruct qs = new ExcelQueryStruct();
-						String tableName = null;
-						String uniqueColumnName = null;
-						
-						if (rangeAndNameMap != null) {
-							tableName = rangeAndNameMap.get(range);
-						}
-
-						if (tableName == null) {
-							if (ranges.size() > 1) {
-								tableName = sheet + "_" + counterSheetName;
-								counterSheetName++;
-							} else {
-								tableName = sheet;
+			try {
+				wProcessor.parse(helper.getFilePath());
+				wProcessor.determineTableRanges();
+				Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
+	
+				for (String sheet : sProcessor.keySet()) {
+					ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheet);
+					List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
+					int counterSheetName = 0;
+					
+					if (tableNames != null) {
+						rangeAndNameMap = tableNames.get(sheet);
+					}
+					
+					if (uniqueColumnsMap != null) {
+						rangeAndUniqueColumnMap = uniqueColumnsMap.get(sheet);
+					}
+	
+					for (ExcelBlock eBlock : blocks) {
+						List<ExcelRange> ranges = eBlock.getRanges();
+						for (ExcelRange eRange : ranges) {
+							String range = eRange.getRangeSyntax();
+							boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
+							ExcelQueryStruct qs = new ExcelQueryStruct();
+							String tableName = null;
+							String uniqueColumnName = null;
+							
+							if (rangeAndNameMap != null) {
+								tableName = rangeAndNameMap.get(range);
 							}
+	
+							if (tableName == null) {
+								if (ranges.size() > 1) {
+									tableName = sheet + "_" + counterSheetName;
+									counterSheetName++;
+								} else {
+									tableName = sheet;
+								}
+							}
+							
+							if (rangeAndUniqueColumnMap != null) {
+								uniqueColumnName = rangeAndUniqueColumnMap.get(range);
+							}
+	
+							qs.setSheetName(sheet);
+							qs.setSheetRange(range);
+							// sheetIterator will calculate the types if necessary
+							ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
+	
+							processSheet(database, owlEngine, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
 						}
-						
-						if (rangeAndUniqueColumnMap != null) {
-							uniqueColumnName = rangeAndUniqueColumnMap.get(range);
-						}
-
-						qs.setSheetName(sheet);
-						qs.setSheetRange(range);
-						// sheetIterator will calculate the types if necessary
-						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-
-						processSheet(database, owlEngine, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
 					}
 				}
+			} finally {
+				wProcessor.clear();
 			}
 		} else {
 			// only load the things that are defined
