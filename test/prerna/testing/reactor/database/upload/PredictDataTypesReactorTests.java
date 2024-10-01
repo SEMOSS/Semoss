@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import prerna.algorithm.api.SemossDataType;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestInsightUtils;
-import prerna.testing.ApiSemossTestUtils;
 import prerna.testing.ApiTestsSemossConstants;
 
 public class PredictDataTypesReactorTests extends AbstractBaseSemossApiTests {
@@ -29,8 +28,7 @@ public class PredictDataTypesReactorTests extends AbstractBaseSemossApiTests {
 		File insightFolder = new File(ApiSemossTestInsightUtils.getInsight().getInsightFolder());
         FileUtils.copyFileToDirectory(movieFile, insightFolder);
 
-		Map<String, Object> predictedTypes = UploadTestUtility.predictDataTypes(ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME);
-		ApiSemossTestUtils.print(predictedTypes);
+		Map<String, Object> predictedTypes = UploadTestUtility.predictDataTypes(ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME, ApiTestsSemossConstants.DELIMITER);
 		
 		String[] headers = (String[]) predictedTypes.get("headers");
 		Assert.assertArrayEquals(new String[] { "Nominated", "Title", "Genre", "Studio", "Director", "Revenue-Domestic",

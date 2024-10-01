@@ -47,6 +47,7 @@ public class ApiTestsSemossConstants {
 	
 	// movie data
 	public static final String MOVIE_CSV_FILE_NAME = "Movies.csv";
+	public static final String DELIMITER = ",";
 	public static final Path TEST_MOVIE_CSV_PATH = Paths.get(TEST_RESOURCES_DIRECTORY, MOVIE_CSV_FILE_NAME);
 	public static final String MOVIE_TABLE_NAME = "Movies";
 	public static final String TITLE = "Title";
