@@ -930,8 +930,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if (aggKeys.size() == 0 && !((SelectQueryStruct) this.qs).getGroupBy().isEmpty()) {
 			if (havingList.size() == 0) {
 				groupCriteria.delete(0, groupCriteria.length());
+			} else {
+				aggCriteria2.append(havingList.get(0));
 			}
-			aggCriteria2.append(havingList.get(0));
 		}
 		
 		for(int cIndex = 0;cIndex < aggKeys.size();cIndex++) {
