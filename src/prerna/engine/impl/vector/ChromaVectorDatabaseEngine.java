@@ -227,6 +227,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
 		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
+		
+		List<List<Map<String, Object>>> resultOut = new ArrayList<List<Map<String,Object>>>();
 		Gson gson = new Gson();
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
@@ -250,11 +252,18 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			headersMap = null;
 		}
 
+		
 		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-		retOut.add(responseMap);
+		
+		// Retrieve the metadatas list response
+		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
+
+		resultOut.add((List<Map<String, Object>>) resultMap.get(0));
+		retOut = resultOut.get(0);
+
 		return retOut;
 	}
 	
