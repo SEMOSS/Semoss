@@ -2332,7 +2332,12 @@
 		    <artifactId>testcontainers</artifactId>
 		    <version>1.19.6</version>
 		    <scope>test</scope>
-		</dependency>				
+		</dependency>
+        <dependency>
+        	<groupId>com.microsoft.cognitiveservices.speech</groupId>
+        	<artifactId>client-sdk</artifactId>
+        	<version>1.40.0</version>
+        </dependency>				
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
