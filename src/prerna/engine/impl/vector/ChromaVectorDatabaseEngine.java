@@ -24,6 +24,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -228,6 +229,20 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
 		Gson gson = new Gson();
+		
+
+		List<IQueryFilter> filters = null;
+		List<IQueryFilter> metaFilters = null;
+		
+		List<String> searchFilters = new ArrayList<String>();
+
+		String[] listfiles = null;
+		String[] modalityValue = null;
+		String[] dividerValue = null;
+		String[] partValue = null;
+		int size = 0;
+	
+		String operationType = null;
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
 		Map<String, Object> query = new HashMap<>();
@@ -235,11 +250,17 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// this is done to put a list of embeddings inside another list otherwise the
 		// API throws error.
 		queryEmbeddings.add(vector); 
-										
-		// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
+		
+		
+		
+		if (!(parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				&& !(parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+
+		
 		query.put("query_texts", searchStatement);
 		query.put("n_results", limit);
 		query.put("query_embeddings", queryEmbeddings);
+		
 		String body = gson.toJson(query);
 
 		Map<String, String> headersMap = new HashMap<>();
@@ -255,7 +276,73 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		retOut.add(responseMap);
+		
+		}
+		
+		//Filter condition
+		
+
+		else if ((parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				|| (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+			
+			Map<String,Object> equalFilter = new HashMap<>();
+
+			Map<String,Object> Filter = new HashMap<>();
+			
+			List<String> sourceList = new ArrayList<>();
+			
+			
+		//	sourceList.add("somatosensory.pdf");
+		//	sourceList.add("test.pdf");
+			
+			if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+				
+				
+			
+				filters = (List<IQueryFilter>) parameters.remove("filters");
+				operationType = ChromaVectorQueryFitler.checkFilters(filters);
+				System.out.println("OPERATION TYPE: " + operationType);
+				searchFilters = ChromaVectorQueryFitler.addFilters(filters);
+
+				System.out.println(searchFilters);
+
+				for (int i = 0; i < searchFilters.size(); i++) {
+					if (searchFilters.get(i).equalsIgnoreCase("Source")) {
+
+						listfiles = ChromaVectorQueryFitler.checkSourceFilters(filters, searchFilters.get(i));
+						size++;
+
+					}
+				}
+
+			query.put("query_texts", searchStatement);
+			query.put("n_results", limit);
+			query.put("query_embeddings", queryEmbeddings);
+			
+			equalFilter.put("$in", listfiles);
+			Filter.put("Source", equalFilter);
+			query.put("where", Filter);
+			
+			String body = gson.toJson(query);
+
+			Map<String, String> headersMap = new HashMap<>();
+			if (this.apiKey != null && !this.apiKey.isEmpty()) {
+				headersMap.put("Api-Key", this.apiKey);
+				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+			} else {
+				headersMap = null;
+			}
+
+			String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
+					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+
+			Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+			retOut.add(responseMap);
+		}
+		}
+		
 		return retOut;
+		
 	}
 	
 	@Override
