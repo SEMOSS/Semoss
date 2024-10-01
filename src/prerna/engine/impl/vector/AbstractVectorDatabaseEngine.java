@@ -573,7 +573,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
 			this.smssProp.put(Constants.MAX_TOKENS, "None");
 		} else {
-			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
+			String modelMaxTokens = modelProperties.getProperty(Constants.MAX_TOKENS);
+			if(modelMaxTokens == null || (modelMaxTokens=modelMaxTokens.trim()).isEmpty()) {
+				this.smssProp.put(Constants.MAX_TOKENS, "None");
+			} else {
+				this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens);
+			}
 		}
 
 		// model engine responsible for creating keywords
