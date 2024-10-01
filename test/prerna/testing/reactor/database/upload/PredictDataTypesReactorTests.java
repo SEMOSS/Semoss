@@ -2,34 +2,28 @@ package prerna.testing.reactor.database.upload;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.testing.AbstractBaseSemossApiTests;
-import prerna.testing.ApiSemossTestInsightUtils;
 import prerna.testing.ApiTestsSemossConstants;
 
 public class PredictDataTypesReactorTests extends AbstractBaseSemossApiTests {
 
 	@Test
-	public void testPredictTypes() throws IOException {
+	public void testPredictTypes() {
+		// upload file
 		Path filePath = ApiTestsSemossConstants.TEST_MOVIE_CSV_PATH;
-		
-		// copy file to insight folder
-		// TODO use a reactor to do this and test output
-		File movieFile = new File(filePath.toString());
-		File insightFolder = new File(ApiSemossTestInsightUtils.getInsight().getInsightFolder());
-        FileUtils.copyFileToDirectory(movieFile, insightFolder);
+		UploadTestUtility.uploadFile(filePath.toString());
 
+		// run pixel
 		Map<String, Object> predictedTypes = UploadTestUtility.predictDataTypes(ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME, ApiTestsSemossConstants.DELIMITER);
 		
+		// test output
 		String[] headers = (String[]) predictedTypes.get("headers");
 		Assert.assertArrayEquals(new String[] { "Nominated", "Title", "Genre", "Studio", "Director", "Revenue-Domestic",
 				"MovieBudget", "Revenue-International", "RottenTomatoes-Critics", "RottenTomatoes-Audience" }, headers);

@@ -49,7 +49,7 @@ public class ApiTestsSemossConstants {
 	public static final String MOVIE_CSV_FILE_NAME = "Movies.csv";
 	public static final String DELIMITER = ",";
 	public static final Path TEST_MOVIE_CSV_PATH = Paths.get(TEST_RESOURCES_DIRECTORY, MOVIE_CSV_FILE_NAME);
-	public static final String MOVIE_TABLE_NAME = "Movies";
+	public static final String MOVIE_TABLE_NAME = "MOVIES";
 	public static final String TITLE = "Title";
 	public static final String MOVIE_BUDGET = "MovieBudget";
 	public static final String ROTTEN_TOMATOES_AUDIENCE = "RottenTomatoes_Critics";

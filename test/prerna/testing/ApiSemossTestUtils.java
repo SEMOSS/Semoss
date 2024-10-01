@@ -81,7 +81,7 @@ public class ApiSemossTestUtils {
 		PixelRunner pr = new PixelRunner();
 		
 		try {
-//			System.out.println(pixel);
+			System.out.println(pixel);
 			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
