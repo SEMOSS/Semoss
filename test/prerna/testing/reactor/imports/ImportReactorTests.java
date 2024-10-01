@@ -20,4 +20,13 @@ public class ImportReactorTests extends AbstractBaseSemossApiTests {
 		assertEquals(frameAlias, frame.getName());
 	}
 
+	@Test
+	public void testImportToPythonFrame() {
+		String frameType = "Py";
+		String frameAlias = "Frame123";
+		boolean override = true;
+		ITableDataFrame frame = ImportTestUtility.createFrame(frameType, frameAlias, override);
+		assertEquals(DataFrameTypeEnum.PYTHON, frame.getFrameType());
+		assertEquals(frameAlias, frame.getName());
+	}
 }

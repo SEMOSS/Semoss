@@ -3817,6 +3817,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DISPLAYOPTIONS</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/ENGINEMETAKEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEMETAKEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/ENGINEMETAKEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/ENGINEMETAKEYS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(500)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/ENGINEMETAKEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DEFAULTVALUES</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTMETAKEYS">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:domain>noData</rdfs:domain>
@@ -3880,6 +3894,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DISPLAYOPTIONS</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/PROJECTMETAKEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECTMETAKEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/PROJECTMETAKEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/PROJECTMETAKEYS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(500)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/PROJECTMETAKEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DEFAULTVALUES</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/INSIGHTMETAKEYS">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:domain>noData</rdfs:domain>
@@ -3941,6 +3969,20 @@
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DISPLAYOPTIONS/INSIGHTMETAKEYS"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DISPLAYOPTIONS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/INSIGHTMETAKEYS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/INSIGHTMETAKEYS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/INSIGHTMETAKEYS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/INSIGHTMETAKEYS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(500)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DEFAULTVALUES/INSIGHTMETAKEYS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DEFAULTVALUES</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID">
@@ -4040,7 +4082,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:02:19 12:48:28</TIME>
+	<TIME xmlns="ENGINE:">2024:10:01 15:01:33</TIME>
 </rdf:Description>
 
 </rdf:RDF>
