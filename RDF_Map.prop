@@ -4,6 +4,14 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSVenvWatcher
 PROJECT_WATCHER	ProjectWatcher
 
+PYTHONHOME C:\workspace\Semoss\venv\Scripts
+
+TCP_WORKER prerna.tcp.SocketServer
+TCP_CLIENT prerna.tcp.client.NativePySocketClient
+NATIVE_PY_SERVER true
+NETTY_PYTHON true
+USE_PYTHON true
+
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
@@ -63,9 +71,7 @@ ENCRYPT_SMSS false
 
 #USE SOCKET FOR RUNNING R/PYTHON IN SEPARATE PROCESS
 NETTY_R false
-NETTY_PYTHON false
 
-USE_PYTHON false
 PY_WORKER prerna.pyserve.FileBasedPyWorker
 LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
 USE_PY_FILE	TRUE 
