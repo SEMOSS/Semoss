@@ -2334,15 +2334,5 @@
 		    <scope>test</scope>
 		</dependency>				
 		<!--  please add jars above and not within the testing block -->
-		<dependency>
-			<groupId>com.microsoft.graph</groupId>
-			<artifactId>microsoft-graph</artifactId>
-			<version>6.16.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp</artifactId>
-			<version>3.14.9</version>
-		</dependency>
 	</dependencies>
 </project>
