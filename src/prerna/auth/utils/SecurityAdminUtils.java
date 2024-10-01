@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -656,6 +657,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String newEmail = (String) userInfo.get("newEmail");
 		// always lower case emails
 		if (newEmail != null) {
+			classLogger.info("Email is not null");
 			newEmail = newEmail.toLowerCase();
 		}
 		Boolean adminChange = null;
@@ -826,7 +828,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement editUserPs = null;
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
+			classLogger.info("EditUserPs: " + editUserPs);
+			classLogger.info("colToUpdate: " + Arrays.toString(colToUpdate));
 			int i = 1;
+			if(newEmail != null && !newEmail.isEmpty()) {
+				editUserPs.setString(i++, newEmail);
+			}
 			if (newUserId != null && !newUserId.isEmpty()) {
 				editUserPs.setString(i++, newUserId);
 			}
