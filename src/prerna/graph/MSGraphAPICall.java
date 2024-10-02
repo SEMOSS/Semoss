@@ -33,13 +33,18 @@ public class MSGraphAPICall {
 		try {
 			httpClient = HttpClients.createDefault();
 
-			String uri;
+			String uri = "";
 			if(nextLink == null) {
-				uri = URLEncoder.encode("\"displayName:" + searchTerm 
-						+ "\" OR \"mail:" + searchTerm
-						+ "\" OR \"userPrincipalName:" + searchTerm + "\"", 
-						java.nio.charset.StandardCharsets.UTF_8.toString());
-				uri = SocialPropertiesUtil.getInstance().getProperty("ms_graph_url") + "/v1.0/users?$search=" + uri + "&$top=999&$count=true";
+				String searchParam = "";
+				if(searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty()) {
+					searchParam = "$search=" + 
+										URLEncoder.encode("\"displayName:" + searchTerm 
+										+ "\" OR \"mail:" + searchTerm
+										+ "\" OR \"userPrincipalName:" + searchTerm + "\"", 
+										java.nio.charset.StandardCharsets.UTF_8.toString())
+									+ "&";
+				}
+				uri = SocialPropertiesUtil.getInstance().getProperty("ms_graph_url") + "/v1.0/users?" + searchParam + "$top=999&$count=true";
 			} else {
 				uri = nextLink;
 			}

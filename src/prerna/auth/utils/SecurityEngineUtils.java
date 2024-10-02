@@ -654,7 +654,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getEngineUsers(User user, String engineId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this database");
+			throw new IllegalArgumentException("The user does not have access to view this engine");
 		}
 		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
