@@ -341,7 +341,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static Integer getUserAccessRequestDatabasePermission(String userId, String databaseId) {
+	public static Integer getUserAccessRequestEnginePermission(String userId, String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID", "==", userId));
