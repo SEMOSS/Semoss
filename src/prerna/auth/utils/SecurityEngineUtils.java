@@ -1727,6 +1727,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__EMAIL"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}
