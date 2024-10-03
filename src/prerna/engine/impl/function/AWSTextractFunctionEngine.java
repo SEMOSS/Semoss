@@ -42,13 +42,17 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 	public static final String ACCESS_KEY = "ACCESS_KEY";
 	public static final String SECRET_KEY = "SECRET_KEY";
 	public static final String REGION = "REGION";
-	public static final String BUCKETNAME = "BUCKETNAME";
-
+	//public static final String BUCKETNAME = "BUCKETNAME";
+	public static final String BUCKETENGINEID = "S3BUCKETENGINEID";	
+	public static final String OUTPUTFOLDER = "aws-service-repos";
+	public static final String SUCCEEDED = "SUCCEEDED";
+	public static final String PAGE = "PAGE";
+	public static final String LINE = "LINE";
+	
 	private String accessKey;
 	private String secretKey;	
-	private String region;
-	private String bucketPath;	
-
+	private String region;	
+	private String bucketEngineId;		
 	private AmazonTextract textractClient = null;
 
 	@Override
@@ -57,8 +61,8 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
 		this.accessKey = smssProp.getProperty(ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
-		this.region = smssProp.getProperty(REGION);
-		this.bucketPath = smssProp.getProperty(BUCKETNAME);
+		this.region = smssProp.getProperty(REGION);		
+		this.bucketEngineId = smssProp.getProperty(BUCKETENGINEID);		
 
 		if(this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
 			throw new RuntimeException("Must define the requiredParameters");
@@ -71,10 +75,11 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 		}	
 		if(this.region == null || this.region.isEmpty()){
 			throw new RuntimeException("Must pass in a region");
-		}
-		if(this.bucketPath == null || this.bucketPath.isEmpty()) {
-			throw new RuntimeException("Must pass in a S3BucketPath");		
 		}		
+		if(this.bucketEngineId == null || this.bucketEngineId.isEmpty()) {
+			throw new RuntimeException("Must pass in a S3BucketEngineId");		
+		}
+		
 		try {
 			BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 			this.textractClient = AmazonTextractClientBuilder.standard()
@@ -89,8 +94,11 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		Object output = null;
-		String documentKeyName = null;		
-		String S3BucketEngineId = null;
+		String documentKeyName = null;	
+		File file = null;
+		String filePath = null;
+		String isFilePresentInS3 = null;
+		String folderPath = null;			
 
 		// validate all the required keys are set
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
@@ -106,86 +114,67 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 		}
 
 		try {
-			for(String k : parameterValues.keySet()) {
-				if (k.contains("filepathInS3")) {	
-					File file = new File(parameterValues.get(k).toString());
+			for(String key : parameterValues.keySet()) {
+				if(key.equalsIgnoreCase("isFilePresentInS3")) {
+					isFilePresentInS3 = parameterValues.get(key).toString();
+				}else {
+					filePath = parameterValues.get(key).toString();
+					file = new File(parameterValues.get(key).toString());
 					documentKeyName = file.getName();
-					String filePath = parameterValues.get(k).toString();
-					int startIndex = filePath.indexOf('/') + 1;
-					int endIndex = filePath.lastIndexOf('/');
-					String folderPath;			        
-					if (startIndex <= endIndex && startIndex < filePath.length()) {
-						folderPath = filePath.substring(startIndex, endIndex);
-						folderPath += "/"+documentKeyName;
-					} else {
-						folderPath = documentKeyName; // Handle the case where there is no subfolder
-					}			     
-					System.out.println("folderName: " + folderPath);
-
-					int endIndex1 = filePath.indexOf('/');
-					String bucketname = filePath.substring(0, endIndex1);
-					System.out.println("bucketname"+bucketname);
-
-					boolean identifyBucket = listObjects(bucketname, folderPath);
-					if(identifyBucket) {
-						output = textractFromDocument(documentKeyName,bucketname);		
-					}else {			        	
-						output = "Must provide the valid path";
-						throw new RuntimeException("Must provide the valid path");
-					}
-
-				} else if(k.contains("uploadedfilepath") && k.contains("S3BucketEngineId")){
-					if(parameterValues.containsKey("uploadedfilepath")) {
-						File file = new File(parameterValues.get(k).toString());
-						documentKeyName = file.getName(); // The name of the file in the bucket      
-					} else if(parameterValues.containsKey("S3BucketEngineId")){
-						S3BucketEngineId = parameterValues.get(k).toString();
-					}
-
-					/* 
-			        BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-			        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-		                    .withRegion(this.region)
-		                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-		                    .build();
-
-		            // Upload the file to the bucket
-		            s3Client.putObject(new PutObjectRequest(this.S3BucketName, documentKeyName, file));       
-					 */
-
-					int startIndex = this.bucketPath.indexOf('/')+1;
-					int endIndex = this.bucketPath.lastIndexOf('/');
-					String folderS3 = null;
-					String folderPath;			        
-					if (startIndex <= endIndex && startIndex < this.bucketPath.length()) {
-						folderPath = this.bucketPath.substring(startIndex, endIndex);
-						folderS3 = folderPath;
-						folderPath += "/"+documentKeyName;
-					} else {
-						folderPath = documentKeyName; // Handle the case where there is no subfolder
-					}			     
-					System.out.println("folderName: " + folderPath);
-
-
-					int endIndex1 = this.bucketPath.indexOf('/');
-					String bucketname = this.bucketPath.substring(0, endIndex1);
-					System.out.println("bucketname"+bucketname);
-					boolean identifyBucket = listObjects(bucketname, folderPath);			        
-
-					IStorageEngine storage = Utility.getStorage(S3BucketEngineId);
-					Map<String, Object> map = new HashMap<>();
-					map.put("functionalityUsed",documentKeyName+"-textract_functionality");
-
-					if(identifyBucket) {
-						storage.syncLocalToStorage(folderPath,bucketname, map);	      
-						output = textractFromDocument(documentKeyName,bucketname);		
-					} else {
-						createFolderinS3(bucketname, folderS3);
-						storage.syncLocalToStorage(folderPath,bucketname, map);	      
-						output = textractFromDocument(documentKeyName,bucketname);
-					} 	            
 				}
 			}			
+			if(isFilePresentInS3.equalsIgnoreCase("true")){	
+				int startIndex = filePath.indexOf('/');
+				int endIndex = filePath.lastIndexOf('/');				
+				String bucketName = filePath.substring(0, startIndex);
+				
+				if (startIndex < endIndex && startIndex < filePath.length()) {
+					folderPath = filePath.substring(startIndex+1, endIndex);					
+				}else if(startIndex==endIndex && startIndex < filePath.length()) {
+					folderPath = filePath.substring(startIndex+1, filePath.length());
+				}
+				
+				if(folderPath == null || folderPath.isEmpty() || folderPath.equals(documentKeyName)) {					
+		        	folderPath = documentKeyName;
+		        }else {		        	
+		        	folderPath = folderPath + "/" + documentKeyName;
+		        }
+				
+				boolean identifyBucket = listObjects(bucketName, folderPath);
+				if(identifyBucket) {
+					output = textractFromDocument(folderPath,bucketName);		
+				}else {			        	
+					output = "Must provide the valid path";
+					throw new RuntimeException("Must provide the valid path");
+				}
+			}else {						
+		        /*BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
+		        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+	                    .withRegion(this.region)
+	                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+	                    .build();*/
+
+	            // Upload the file to the bucket
+		        //s3Client.putObject(new PutObjectRequest(this.S3BucketName, documentKeyName, file));		        
+		        
+		        folderPath = "textract/" + documentKeyName;		       
+				boolean identifyBucket = listObjects(OUTPUTFOLDER, folderPath);		        
+
+				IStorageEngine storage = Utility.getStorage(this.bucketEngineId);
+				Map<String, Object> map = new HashMap<>();
+				map.put("functionalityUsed",documentKeyName+"-Textract_functionality");
+
+
+				if(identifyBucket) {																	
+					output = textractFromDocument(folderPath,OUTPUTFOLDER);		
+				} else {
+					createFolderinS3(OUTPUTFOLDER);
+					storage.syncLocalToStorage(folderPath,OUTPUTFOLDER, map);	
+					//s3Client.putObject(new PutObjectRequest(OUTPUTFOLDER,folderPath ,file));
+					output = textractFromDocument(folderPath,OUTPUTFOLDER);
+				}
+			}
+						
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 		}
@@ -213,16 +202,20 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 			do {
 				getRequest.setNextToken(nextToken);
 				do {
-					getResult = this.textractClient.getDocumentTextDetection(getRequest);  
-				} while (!getResult.getJobStatus().equals("SUCCEEDED"));
+					getResult = this.textractClient.getDocumentTextDetection(getRequest); 
+					if(getResult.getJobStatus().equalsIgnoreCase("FAILED")) {
+						extractedTextFromDoc.add("Must provide the valid file");
+						break;
+					}
+				} while (!getResult.getJobStatus().equalsIgnoreCase(SUCCEEDED));
 				nextToken = getResult.getNextToken();
 
 				for (Block block : getResult.getBlocks()) {
-					if ("PAGE".equals(block.getBlockType())) {
+					if (PAGE.equalsIgnoreCase(block.getBlockType())) {
 						int pageNumber = block.getPage();
 						StringBuilder pageText = new StringBuilder();
 						for (Block item : getResult.getBlocks()) {
-							if (item.getPage() == pageNumber && "LINE".equals(item.getBlockType())) {
+							if (item.getPage() == pageNumber && LINE.equalsIgnoreCase(item.getBlockType())) {
 								pageText.append(item.getText());
 							}
 						}
@@ -230,9 +223,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 					}
 				}
 			} while (nextToken != null);
-			
-			System.out.println(extractedTextFromDoc.size());
-			System.out.println(extractedTextFromDoc);			        
+				        
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 			e.printStackTrace();
@@ -248,13 +239,11 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 				.build();
 		boolean result = false;
 		boolean bucketExists = doesBucketExist(s3Client, bucketName);
-		System.out.println("Bucket exists: " + bucketExists);
-
+		
 		if (bucketExists) {
 			try {
 				// Check if the object exists
 				s3Client.getObjectMetadata(new GetObjectMetadataRequest(bucketName, folderPath));
-				System.out.println("File exists.");
 				result = true;
 			} catch (com.amazonaws.services.s3.model.AmazonS3Exception e) {
 				if (e.getStatusCode() == 404) {
@@ -279,16 +268,16 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 
-	private void createFolderinS3(String bucketName, String folderPath) {       
+	private void createFolderinS3(String bucketName) {       
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 				.withRegion(this.region)
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
 				.build();
-
-		ByteArrayInputStream emptyInputStream = new ByteArrayInputStream(new byte[0]); 
-		// Create an empty object (folder) in S3 
-		s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));    	
+		boolean bucketExists = doesBucketExist(s3Client, bucketName);
+		if(!bucketExists) {		
+			s3Client.createBucket(bucketName);			
+		}
 	}
 
 	@Override
