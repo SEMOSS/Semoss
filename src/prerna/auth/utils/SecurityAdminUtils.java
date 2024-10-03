@@ -49,7 +49,6 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
-//import prerna.web.services.util.WebUtility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
@@ -688,7 +687,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String newSalt = null;
 		String newHashPass = null;
 
-
 		// cannot edit a user to match another user when native... would cause some
 		// serious issues :/
 		// so we will check if you are switching to a native
@@ -721,8 +719,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("The new user id already exists. Please enter a unique user id.");
 			}
 		}
-
-
 
 		/**
 		 * validate and add the columns we wish to update to list
@@ -827,11 +823,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
 			int i = 1;
-			if(newEmail != null && !newEmail.isEmpty()) {
-				editUserPs.setString(i++, newEmail);
-			}
 			if (newUserId != null && !newUserId.isEmpty()) {
 				editUserPs.setString(i++, newUserId);
+			}
+			if(newEmail != null && !newEmail.isEmpty()) {
+				editUserPs.setString(i++, newEmail);
 			}
 			if (newUsername != null && !newUsername.isEmpty()) {
 				editUserPs.setString(i++, newUsername);
