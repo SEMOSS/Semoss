@@ -20,14 +20,14 @@ import prerna.testing.reactor.database.upload.UploadTestUtility;
 public class ImportTestUtility {
 	
 	
-	public static ITableDataFrame createFrame(String frameType, String frameAlias, boolean override) {
+	public static ITableDataFrame createMovieFrame(String frameType, String frameAlias, boolean override) {
 		String framePixel = ApiSemossTestUtils.buildPixelCall(CreateFrameReactor.class,
 				ReactorKeysEnum.FRAME_TYPE.getKey(), frameType, "override", override, ReactorKeysEnum.ALIAS.getKey(),
 				frameAlias);
 		return runImportMoviePixels(framePixel);
 	}
 	
-	public static ITableDataFrame runImportMoviePixels(String framePixel) {
+	private static ITableDataFrame runImportMoviePixels(String framePixel) {
 		// remove semicolon
 		framePixel = framePixel.replace(";", "");
 		String databaseId = uploadMovieDB();

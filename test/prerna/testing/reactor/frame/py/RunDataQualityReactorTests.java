@@ -22,7 +22,7 @@ public class RunDataQualityReactorTests extends AbstractBaseSemossApiTests {
 		String frameType = "Py";
 		String frameAlias = "PYFRAME_8afc5e4d_21b7_49e5_bc78_3f475d31932f";
 		boolean override = true;
-		ITableDataFrame frame = ImportTestUtility.createFrame(frameType, frameAlias, override);
+		ITableDataFrame frame = ImportTestUtility.createMovieFrame(frameType, frameAlias, override);
 		//PYFRAME_8afc5e4d_21b7_49e5_bc78_3f475d31932f | RunDataQuality ( rule = [ "Name Format" ] , column = [ "Director" ] , options = [ "first last" ] , inputTable = [ "dataQualityTable_1727807678928" ] ) ;
 		PandasFrame newFrame = runRunDataQualityPixel("Name Format", "Director", "first last", "dataQualityTable_1727807678928");
 		String[] headers = newFrame.getColumnHeaders();

@@ -15,7 +15,7 @@ public class ImportReactorTests extends AbstractBaseSemossApiTests {
 		String frameType = "Grid";
 		String frameAlias = "Frame123";
 		boolean override = true;
-		ITableDataFrame frame = ImportTestUtility.createFrame(frameType, frameAlias, override);
+		ITableDataFrame frame = ImportTestUtility.createMovieFrame(frameType, frameAlias, override);
 		assertEquals(DataFrameTypeEnum.GRID, frame.getFrameType());
 		assertEquals(frameAlias, frame.getName());
 	}
@@ -25,7 +25,7 @@ public class ImportReactorTests extends AbstractBaseSemossApiTests {
 		String frameType = "Py";
 		String frameAlias = "Frame123";
 		boolean override = true;
-		ITableDataFrame frame = ImportTestUtility.createFrame(frameType, frameAlias, override);
+		ITableDataFrame frame = ImportTestUtility.createMovieFrame(frameType, frameAlias, override);
 		assertEquals(DataFrameTypeEnum.PYTHON, frame.getFrameType());
 		assertEquals(frameAlias, frame.getName());
 	}
