@@ -161,6 +161,10 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		promptDeatilsValidation(promptDetails);
 		updatePrompt(promptId);
 		insertPrompt(promptDetails, userId, allowClob, promptId);
+		if(tags != null && !tags.isEmpty())
+		{
+			updatePromptTags(promptId, tags);
+		}
 	}
 	
 	/**
@@ -187,6 +191,33 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+	
+	/**
+	 * Update the engine metadata
+	 * Will delete existing values and then perform a bulk insert
+	 * @param promptId
+	 * @param insightId
+	 * @param tags
+	 */
+	public static void updatePromptTags(String promptId, List<String> tags) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			int parameterIndex = 1;
+			deletePs.setString(parameterIndex++, promptId);
+			deletePs.execute();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+		insertTags(tags, promptId);
 	}
 
 	/**
