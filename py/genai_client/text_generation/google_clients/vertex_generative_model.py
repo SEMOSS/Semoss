@@ -2,6 +2,7 @@
 
 from typing import Optional, List
 from vertexai.preview.generative_models import GenerativeModel, Content, Part
+from vertexai.generative_models._generative_models import gapic_content_types
 
 from .abstract_vertex_textgen_client import AbstractVertextAiTextGeneration
 from ...constants import AskModelEngineResponse, FULL_PROMPT
@@ -87,11 +88,26 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
             "candidate_count": candidate_count,
         }
 
+        # Initialize an empty dictionary to store the mapped safety settings
+        mapped_safety_settings = {}
+        # Iterate over each category and threshold in the safety settings
+        for category, threshold in self.safety_settings.items():
+            try:
+                # Convert the category to an uppercase attribute of HarmCategory to match with the enum
+                harm_category = getattr(gapic_content_types.HarmCategory, category.upper())
+                # Convert the threshold to an uppercase attribute of HarmBlockThreshold to match with the enum
+                harm_block_threshold = getattr(gapic_content_types.SafetySetting.HarmBlockThreshold, threshold.upper())
+                mapped_safety_settings[harm_category] = harm_block_threshold
+            except AttributeError as e:
+                # Log the error if the category or threshold is invalid
+                print(f"Invalid category or threshold: {category}, {threshold}. Error: {e}")
+        
         if stream:
             responses = chat.send_message(
                 content=question,
                 generation_config=generation_config,
                 stream=stream,
+                safety_settings=mapped_safety_settings
             )
 
             model_engine_response = AskModelEngineResponse(response="")
@@ -114,6 +130,7 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
                 content=question,
                 generation_config=generation_config,
                 stream=stream,
+                safety_settings=mapped_safety_settings
             )
 
             model_engine_response = AskModelEngineResponse(
