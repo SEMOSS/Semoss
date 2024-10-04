@@ -12,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 
 import prerna.reactor.export.CollectAllReactor;
 import prerna.reactor.export.CollectReactor;
+import prerna.reactor.frame.CreateFrameReactor;
 import prerna.reactor.qs.source.DatabaseReactor;
 import prerna.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,12 +36,6 @@ public class PixelQueryTestUtils {
 		return select(cols, null);
 	}
 
-	public static PixelChain groupBy(String[] cols) {
-		PixelChain group = new PixelChain("Group(" + StringUtils.join(cols, ", ") + ")");
-		return group;
-
-	}
-
 	public static PixelChain select(String[] cols, String[] alias) {
 		StringBuilder sb = new StringBuilder("Select(" + StringUtils.join(cols, ", ") + ")");
 		if (alias != null) {
@@ -53,6 +48,12 @@ public class PixelQueryTestUtils {
 		PixelChain select = new PixelChain(sb.toString());
 		return select;
 	}
+	
+	public static PixelChain groupBy(String[] cols) {
+		PixelChain group = new PixelChain("Group(" + StringUtils.join(cols, ", ") + ")");
+		return group;
+
+	}
 
 	public static PixelChain collect(int numRows) {
 		PixelChain pc = new PixelChain(CollectReactor.class, ReactorKeysEnum.LIMIT.getKey(), numRows);
@@ -63,6 +64,23 @@ public class PixelQueryTestUtils {
 		PixelChain pc = new PixelChain(CollectAllReactor.class);
 		return pc;
 	}
+	
+	// import methods
+	
+	public static String createFramePixel(String frameType, String frameAlias, boolean override) {
+		String framePixel = ApiSemossTestUtils.buildPixelCall(CreateFrameReactor.class,
+				ReactorKeysEnum.FRAME_TYPE.getKey(), frameType, "override", override, ReactorKeysEnum.ALIAS.getKey(),
+				frameAlias);
+		return framePixel;
+	}
+	
+	public static PixelChain importPixel(String framePixel) {
+		framePixel = framePixel.replace(";", "");
+		PixelChain importPixel = new PixelChain("Import(frame=[" + framePixel + "])");
+		return importPixel;
+	}
+	
+	// query results
 
 	public static List<Map<String, Object>> flushTaskToList(BasicIteratorTask task, Integer rowCount) {
 		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();

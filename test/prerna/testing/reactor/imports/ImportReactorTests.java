@@ -9,6 +9,16 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.testing.AbstractBaseSemossApiTests;
 
 public class ImportReactorTests extends AbstractBaseSemossApiTests {
+	
+	@Test
+	public void testFileRead() {
+		String frameType = "Grid";
+		String frameAlias = "Frame123";
+		ITableDataFrame frame = ImportTestUtility.fileReadMovie(frameType, frameAlias);
+		assertEquals(DataFrameTypeEnum.GRID, frame.getFrameType());
+		assertEquals(frameAlias, frame.getName());
+	}
+	
 
 	@Test
 	public void testImportToGrid() {

@@ -3,6 +3,8 @@ package prerna.testing;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Vector;
 
 import prerna.util.Constants;
 
@@ -55,13 +57,25 @@ public class ApiTestsSemossConstants {
 	public static final String ROTTEN_TOMATOES_AUDIENCE = "RottenTomatoes_Critics";
 	public static final String ROTTEN_TOMATOES_CRITICS = "RottenTomatoes_Audience";
 	public static final String REVENUE_DOMESTIC = "Revenue_Domestic";
-	public static final Object REVENUE_INTERNATIONAL = "Revenue_International";
+	public static final String REVENUE_INTERNATIONAL = "Revenue_International";
 	public static final String DIRECTOR = "Director";
 	public static final String STUDIO = "Studio";
 	public static final String GENRE = "Genre";
-	public static final Object NOMINATED = "Nominated";
-
-
+	public static final String NOMINATED = "Nominated";
+	
+	public static List<String> MOVIE_TABLE_COLUMNS = new Vector<String>();
+	static {
+		MOVIE_TABLE_COLUMNS.add(TITLE);
+		MOVIE_TABLE_COLUMNS.add(MOVIE_BUDGET);
+		MOVIE_TABLE_COLUMNS.add(ROTTEN_TOMATOES_AUDIENCE);
+		MOVIE_TABLE_COLUMNS.add(ROTTEN_TOMATOES_CRITICS);
+		MOVIE_TABLE_COLUMNS.add(REVENUE_DOMESTIC);
+		MOVIE_TABLE_COLUMNS.add(REVENUE_INTERNATIONAL);
+		MOVIE_TABLE_COLUMNS.add(DIRECTOR);
+		MOVIE_TABLE_COLUMNS.add(STUDIO);
+		MOVIE_TABLE_COLUMNS.add(GENRE);
+		MOVIE_TABLE_COLUMNS.add(NOMINATED);
+	}
 
 
 
