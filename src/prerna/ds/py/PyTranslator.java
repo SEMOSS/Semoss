@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.ICache;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.client.ErrorSenderThread;
@@ -280,7 +281,7 @@ public class PyTranslator {
 			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			// Cleanup
-			scriptFile.delete();
+			ICache.deleteFolder(pyTempF);
 		}
 	}
 
