@@ -1753,14 +1753,4 @@ public class ImportUtility {
 			throw new IllegalArgumentException("Could not find the specified join column to merge with the existing frame");
 		}
 	}
-	
-	public static boolean deleteDirectory(File directoryToBeDeleted) {
-		File[] allContents = directoryToBeDeleted.listFiles();
-	    if (allContents != null) {
-	        for (File file : allContents) {
-	            deleteDirectory(file);
-	        }
-	    }
-	    return directoryToBeDeleted.delete();
-	}
 }
