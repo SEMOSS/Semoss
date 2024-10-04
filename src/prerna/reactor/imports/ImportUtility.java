@@ -1,5 +1,6 @@
 package prerna.reactor.imports;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1751,5 +1752,15 @@ public class ImportUtility {
 			//TODO: delete stuff that was added!!!
 			throw new IllegalArgumentException("Could not find the specified join column to merge with the existing frame");
 		}
+	}
+	
+	public static boolean deleteDirectory(File directoryToBeDeleted) {
+		File[] allContents = directoryToBeDeleted.listFiles();
+	    if (allContents != null) {
+	        for (File file : allContents) {
+	            deleteDirectory(file);
+	        }
+	    }
+	    return directoryToBeDeleted.delete();
 	}
 }
