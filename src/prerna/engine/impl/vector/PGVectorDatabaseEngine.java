@@ -88,6 +88,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	private String embedderEngineId = null;
 	private String keywordGeneratorEngineId = null;
+	private String distanceMethod = null;
 	
 	private String vectorTableName = null;
 	private String vectorTableMetadataName = null;
@@ -113,7 +114,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-
+		
+		this.distanceMethod = smssProp.getProperty(Constants.DISTANCE_METHOD);
 		this.vectorTableName = smssProp.getProperty(PGVECTOR_TABLE_NAME);
 		if(this.vectorTableName == null || (this.vectorTableName=this.vectorTableName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the vector db table name");
@@ -182,6 +184,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		
 		pgVectorQueryUtil.createOWL(this, table, metadataTable);
 	}
+	
+	private String getDistanceOperator() {
+        if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
+            return "<=>";
+        } else {
+            return "<->"; // Default to Eculidean
+        }
+    }
 	
 	/**
 	 * 
@@ -614,7 +624,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
 		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
 		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
-		qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING <-> '"+ embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
+		qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING " + getDistanceOperator() + " '"+ embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
 		qs.addOrderBy("Score", "ASC");
 		if(filters != null && !filters.isEmpty()) {
 			qs.addExplicitFilter(new GenRowFilters(filters), true);
