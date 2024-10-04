@@ -151,6 +151,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, 
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+		
+		//TODO: let us add validation by looking at the response
 	}
 
 	@Override
@@ -191,6 +193,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_DELETE,
 					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
+			//TODO: let us add validation by looking at the response			
+			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
 			File documentFile = new File(
@@ -226,9 +230,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			limit = 3;
 		}
 		
-		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
-		
-		List<List<Map<String, Object>>> resultOut = new ArrayList<List<Map<String,Object>>>();
 		Gson gson = new Gson();
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
@@ -251,7 +252,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		} else {
 			headersMap = null;
 		}
-
 		
 		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
@@ -260,11 +260,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		// Retrieve the metadatas list response
 		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
-
-		resultOut.add((List<Map<String, Object>>) resultMap.get(0));
-		retOut = resultOut.get(0);
-
-		return retOut;
+		return (List<Map<String, Object>>) resultMap.get(0);
 	}
 	
 	@Override
