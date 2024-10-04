@@ -23,6 +23,8 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -522,6 +524,26 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
+	}
+
+	public static List<Map<String, Object>> getAvailableMetaValues(List<String> metaKeys) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+		fSelector.setAlias("count");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
+		qs.addSelector(fSelector);
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKeys));
+
+		// group
+		qs.addGroupBy(new QueryColumnSelector("PROMPTMETA__METAKEY"));
+		qs.addGroupBy(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 
