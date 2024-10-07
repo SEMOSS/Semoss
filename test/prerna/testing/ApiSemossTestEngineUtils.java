@@ -1,19 +1,12 @@
 package prerna.testing;
 
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import com.amazonaws.opensearch.sql.jdbc.shadow.com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.FileOutputStream;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,16 +28,20 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
-import prerna.testing.utility.TestExcelInputObject;
-import prerna.testing.utility.TestExcelInputUtility;
-import prerna.testing.utility.TestExcelType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.testing.utility.TestExcelInputObject;
+import prerna.testing.utility.TestExcelType;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
@@ -56,6 +53,10 @@ public class ApiSemossTestEngineUtils {
 	private static Path ENGINES_CONFIG_FILE = Paths.get(ApiTestsSemossConstants.TEST_CONFIG_DIRECTORY.toString(),
 			"engines.txt");
 	private static List<String> CORE_DBS = null;
+
+	
+	private static List<String> CURRENT_NAMES = new ArrayList<>();
+	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
 
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
@@ -227,7 +228,9 @@ public class ApiSemossTestEngineUtils {
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
-				st.addBatch("DELETE FROM " + x);
+				if (!DO_NOT_CLEAR_LIST.contains(x)) {
+					st.addBatch("DELETE FROM " + x);
+				}
 			}
 			st.executeBatch();
 

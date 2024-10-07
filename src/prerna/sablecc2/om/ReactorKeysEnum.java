@@ -188,6 +188,7 @@ public enum ReactorKeysEnum {
 	PORTAL_NAME("portalName", 									"Name of the portal within a project"),
 	POSITION_MAP("positionMap", 								"Map containing positions for elements"),
 	PRAGMA("pragma",											"Directives that can be provided with the query like cache"),
+	PROMPT_TITLE("promptTitle",									"String title of prompt title that is about to be created"),
 	PREDEFINED_PARAM_STRUCT("preDefinedParamStruct",			"Map containing the details for a predefined paramter"),	
 	PROJECT("project", 											"Name of the project"),
 	PROJECT_TYPE("projectType", 								"The type of the project being created"),

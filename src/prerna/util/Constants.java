@@ -816,6 +816,7 @@ public class Constants {
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
 	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String PROMPT_METAKEYS = "PROMPTMETAKEYS";
 	public static final String METAKEY = "METAKEY";
 	public static final String SINGLE_MULTI = "SINGLEMULTI";
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
