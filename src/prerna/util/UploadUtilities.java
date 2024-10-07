@@ -1212,7 +1212,7 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryStorageSmss(String storageId, String storageName, String storageClassName, Map<String, String> properties) throws IOException {
+	public static File createTemporaryStorageSmss(String storageId, String storageName, String storageClassName, Map<String, Object> properties) throws IOException {
 		String storageTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 
 		// i am okay with deleting the .temp if it exists

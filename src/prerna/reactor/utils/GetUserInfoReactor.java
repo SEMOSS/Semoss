@@ -1,8 +1,8 @@
 package prerna.reactor.utils;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -31,7 +31,7 @@ public class GetUserInfoReactor extends AbstractReactor {
 				Map<String, String> san = token.getSAN();
 				providerMap.put("san", san);
 				String groupType = token.getUserGroupType();
-				Set<String> groups = token.getUserGroups();
+				Collection<String> groups = token.getUserGroups();
 				Map<String, Object> groupMap = new HashMap<>();
 				groupMap.put("groupType", groupType);
 				groupMap.put("groups", groups);

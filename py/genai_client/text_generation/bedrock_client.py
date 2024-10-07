@@ -186,7 +186,6 @@ class BedrockClient(AbstractTextGenerationClient):
             csv_args={
                 "delimiter": ",",
                 "quotechar": '"',
-                "fieldnames": ["Content"],
             },
         )
         docs = loader.load()
