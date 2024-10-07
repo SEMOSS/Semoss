@@ -1,6 +1,7 @@
 import boto3
 import json
 import logging
+import requests
 
 from .abstract_text_generation_client import AbstractTextGenerationClient
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
@@ -9,6 +10,7 @@ from ..constants import (
     MAX_INPUT_TOKENS,
     FULL_PROMPT,
     AskModelEngineResponse,
+    EmbeddingsModelEngineResponse,
 )
 
 # from langchain_community.llms import Bedrock
@@ -399,3 +401,35 @@ class BedrockClient(AbstractTextGenerationClient):
             raise Exception(f"Error while making request to Bedrock: {e}")
 
         return final_response
+    
+    def embeddings_call(self, strings_to_embed:list[str]) -> EmbeddingsModelEngineResponse:  
+        embeddings_list = []
+        embeddings = []       
+
+        for text in strings_to_embed:
+            json_obj = {"inputText": text}
+            request = json.dumps(json_obj)
+
+            try:   
+                client = self._get_client()             
+
+                response = client.invoke_model(
+                    modelId=self.modelId, body=request
+                )
+                response_body = json.loads(response['body'].read()) 
+                embedding_array = response_body.get("embedding")
+
+                if embedding_array:
+                    embeddings_list = [float(value) for value in embedding_array]
+                    embeddings.append(embeddings_list)
+
+                model_engine_response = EmbeddingsModelEngineResponse(
+                response=embeddings,
+                prompt_tokens=response_body.get("inputTextTokenCount"),
+                response_tokens=0
+            )
+
+            except requests.RequestException as e:
+                print(f"An error occurred in bedrock embeddings_call: {e}")                 
+
+        return model_engine_response
