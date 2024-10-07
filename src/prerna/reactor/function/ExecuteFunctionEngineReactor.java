@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.om.FileReference;
 
 public class ExecuteFunctionEngineReactor extends AbstractReactor {
 
@@ -28,6 +29,15 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> parameterValues = getMap();
+		
+		// If both filePath and space are provided, we override the filePath with the file reference
+		if (parameterValues.containsKey("filePath") && parameterValues.containsKey("space")) {
+		    String filePath = (String) parameterValues.get("filePath");
+		    String space = (String) parameterValues.get("space");
+			FileReference fileRef = new FileReference(filePath, space);
+			parameterValues.put("filePath", fileRef);
+		}
+		
 		
 		IFunctionEngine engine = Utility.getFunctionEngine(engineId);
 		Object execValue = engine.execute(parameterValues);
