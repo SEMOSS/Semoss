@@ -900,6 +900,10 @@ public class Constants {
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
 	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR = "CUSTOM_DOCUMENT_PROCESSOR";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID = "CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID";
+	public static final String EMBED_IMAGES = "EMBED_IMAGES";
+	public static final String IMAGE_ENGINE_ID = "IMAGE_ENGINE_ID";
 
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
@@ -911,4 +915,25 @@ public class Constants {
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
 	
 	public static final String WHITE_LIST_DOMAINS =  "WHITE_LIST_DOMAINS";
+	
+	public static final String SMSS_USER_NAME = "name";
+	public static final String SMSS_USER_EMAIL = "email";
+	//MS_GRAPH_USER
+	public static final String MS_GRAPH_DISPLAY_NAME = "displayName";
+	public static final String MS_GRAPH_EMAIL = "mail";
+	public static final String MS_GRAPH_ID = "id";
+	public static final String MS_GRAPH_USERNAME = "username";
+	public static final String MS_GRAPH_USER_PRINCIPAL_NAME = "userPrincipalName";
+	public static final String MS_GRAPH_VALUE = "value";
+	//USER_MAP 
+	public static final String USER_MAP_NAME = "name";
+	public static final String USER_MAP_ID = "id";
+	public static final String USER_MAP_TYPE = "type";
+	public static final String USER_MAP_EMAIL = "email";
+	public static final String USER_MAP_USERNAME = "username";
+	// MAP user
+	public static final String MAP_USERID = "userid";
+	public static final String MAP_EMAIL = "email";
+	public static final String MAP_NAME = "name";
+	public static final String MAP_USERNAME = "username";
 }
