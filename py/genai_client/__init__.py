@@ -57,6 +57,9 @@ def __getattr__(name: str) -> Any:
 
         return HuggingfaceTokenizer
 
+    elif name == "awsTitanTextEmbedder":
+            from .embedders.awsTitanText_embedder import awsTitanTextEmbedder
+            return awsTitanTextEmbedder
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -119,6 +122,9 @@ def get_embedder(embedder_type, **kwargs):
         from .embedders.vertex_embedder import VertexAiEmbedder
 
         return VertexAiEmbedder(**kwargs)
+    elif embedder_type == "AWS_TITAN_TEXT_EMBEDDINGS":
+        from .embedders.awsTitanText_embedder import awsTitanTextEmbedder
+        return awsTitanTextEmbedder(**kwargs)
     else:
         raise ValueError("Embedder type has not been defined.")
 
@@ -136,7 +142,7 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
 
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
     # putting this for now, need to implement vertex tokenizer. this will fall back to cl100k_base
-    elif tokenizer_type == "VERTEX":
+    elif (tokenizer_type == 'VERTEX') or (tokenizer_type == 'AWS_TITAN_TEXT_EMBEDDINGS'):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
@@ -160,4 +166,5 @@ __all__ = [
     "get_text_gen_client",
     "get_embedder",
     "get_tokenizer",
+    'awsTitanTextEmbedder',
 ]

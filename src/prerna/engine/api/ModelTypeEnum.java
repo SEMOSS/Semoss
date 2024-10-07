@@ -1,5 +1,6 @@
 package prerna.engine.api;
 
+import prerna.engine.impl.model.AwsTitanTextEmbeddingsEngine;
 import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.OpenAiEngine;
@@ -18,6 +19,7 @@ public enum ModelTypeEnum {
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
 	VERTEX("VERTEX", VertexEngine.class.getName()),
+	AWS_TITAN_TEXT_EMBEDDINGS("AWS_TITAN_TEXT_EMBEDDINGS", AwsTitanTextEmbeddingsEngine.class.getName()),
 	;
 
 	private String modelName;
