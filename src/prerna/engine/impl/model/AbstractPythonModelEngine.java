@@ -229,6 +229,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 						 .append(PyUtils.determineStringType(value));
 			}
 		}
+
+		if (parameters.isEmpty() || ! (parameters.containsKey("max_new_tokens") || parameters.containsKey("max_tokens"))) {
+			if (this.vars.containsKey("MAX_TOKENS")) {
+				callMaker.append(", max_new_tokens=")
+						 .append(this.vars.get("MAX_TOKENS").toString());
+			}
+		}
 		
 		if(this.prefix != null) {
 			callMaker.append(", prefix='")
