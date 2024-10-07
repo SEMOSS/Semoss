@@ -30,24 +30,13 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         if FULL_PROMPT not in kwargs.keys():
 
-            if IMAGE_ENCODED in kwargs.keys():
-                # if the user provided context, use that. Otherwise, try to get it from the template
-                message_payload = self._process_chat_completion(
-                    question=question,
-                    context=context,
-                    history=history,
-                    template_name=template_name,
-                    fill_variables=kwargs,
-                )           
-            else:     
-                # if the user provided context, use that. Otherwise, try to get it from the template
-                message_payload = self._process_chat_completion(
-                    question=question,
-                    context=context,
-                    history=history,
-                    template_name=template_name,
-                    fill_variables=kwargs,
-                )
+            message_payload = self._process_chat_completion(
+                question=question,
+                context=context,
+                history=history,
+                template_name=template_name,
+                fill_variables=kwargs,
+            )
 
         else:
             message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
