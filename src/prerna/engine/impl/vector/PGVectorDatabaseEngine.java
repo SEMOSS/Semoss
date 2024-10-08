@@ -185,14 +185,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		pgVectorQueryUtil.createOWL(this, table, metadataTable);
 	}
 	
-	private String getDistanceOperator() {
-        if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
-            return "<=>";
-        } else {
-            return "<->"; // Default to Eculidean
-        }
-    }
-	
 	/**
 	 * 
 	 * @param createQuery
@@ -618,13 +610,29 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 //		final String metaTablePrefix = this.vectorTableMetadataName+"__";
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
-		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
-		qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING " + getDistanceOperator() + " '"+ embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
+		qs.addSelector(
+				new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.MODALITY,
+				VectorDatabaseCSVTable.MODALITY));
+		qs.addSelector(
+				new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
+		qs.addSelector(
+				new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
+		qs.addSelector(
+				new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
+		// Determine the distanceMethod to use for the query
+		if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
+			qs.addSelector(new QueryOpaqueSelector("(EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')",
+					"Score"));// Store the result in the "Score" field, '<=>' cosine similarity operator.
+
+		} else {
+			qs.addSelector(new QueryOpaqueSelector(
+					"POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
+			// '<->' Euclidean (L2) distance operator
+			// The POWER function is used to square the distance to avoid the computational cost of square roots
+			// This also ensures all distance values are non-negative, which is important for optimization
+		}
 		qs.addOrderBy("Score", "ASC");
 		if(filters != null && !filters.isEmpty()) {
 			qs.addExplicitFilter(new GenRowFilters(filters), true);
