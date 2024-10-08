@@ -150,6 +150,9 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         specific_tokenizer = self.tokenizer._get_tokenizer(self.model_name)
         if hasattr(specific_tokenizer, "apply_chat_template"):
+            # Apply the chat template to the prompt if no chat template was provided
+            if specific_tokenizer.chat_template == None:
+                specific_tokenizer.chat_template = "chatml"
             # there is a apply chat template available for this model - transformers tokenizer
             prompt = specific_tokenizer.apply_chat_template(
                 prompt_payload, tokenize=False
