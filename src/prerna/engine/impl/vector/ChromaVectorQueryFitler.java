@@ -1,8 +1,13 @@
 package prerna.engine.impl.vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -10,9 +15,12 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public final class ChromaVectorQueryFitler {
+
+	private static final Logger classLogger = LogManager.getLogger(ChromaVectorQueryFitler.class);
 
 	public static String[] checkModalityFilters(List<IQueryFilter> filters, String column) {
 		String[] filterSyntax = null;
@@ -50,7 +58,7 @@ public final class ChromaVectorQueryFitler {
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToModalityValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -68,7 +76,7 @@ public final class ChromaVectorQueryFitler {
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToModalityValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -79,35 +87,9 @@ public final class ChromaVectorQueryFitler {
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToModalityValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
-	}
-
-	private static String[] addSelectorToModalityValuesFilter(NounMetadata rightComp) {
-
-		String rightSelector = null;
-		Vector<String> rs = new Vector<>();
-		String[] result = new String[1];
-
-		if (!(rightComp.getValue().toString().contains("["))) {
-			rightSelector = (String) rightComp.getValue();
-
-			result[0] = rightSelector;
-
-		} else {
-			rs = (Vector<String>) rightComp.getValue();
-			result = new String[rs.size()];
-			for (int i = 0; i < rs.size(); i++) {
-
-				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
-			}
-
-		}
-
-		return result;
 	}
 
 	public static List<String> addFilters(List<IQueryFilter> filters) {
@@ -155,12 +137,14 @@ public final class ChromaVectorQueryFitler {
 	private static String checkFilterType(IQueryFilter filter) {
 
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		// if(filterType.equals("metaFilters"))
+
 		if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return "And";
+			return null;
 		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return "And";
+			return "$and";
 		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return "Or";
+			return "$or";
 		}
 		return null;
 	}
@@ -218,7 +202,7 @@ public final class ChromaVectorQueryFitler {
 
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToSourceValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 
@@ -250,7 +234,7 @@ public final class ChromaVectorQueryFitler {
 
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToSourceValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -289,33 +273,6 @@ public final class ChromaVectorQueryFitler {
 		return leftresult;
 	}
 
-	protected static String[] addSelectorToSourceValuesFilter(NounMetadata rightComp) {
-
-		String rightSelector = null;
-		Vector<String> rs = new Vector<>();
-		String[] result = new String[1];
-
-		if (!(rightComp.getValue().toString().contains("["))) {
-			rightSelector = (String) rightComp.getValue();
-
-			result[0] = rightSelector;
-
-		} else {
-			rs = (Vector<String>) rightComp.getValue();
-			result = new String[rs.size()];
-			for (int i = 0; i < rs.size(); i++) {
-
-				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
-			}
-
-		}
-
-		return result;
-
-	}
-
 	public static String[] checkSourceFilters(List<IQueryFilter> filters, String column) {
 		String[] filterSyntax = null;
 		for (IQueryFilter filter : filters) {
@@ -323,6 +280,35 @@ public final class ChromaVectorQueryFitler {
 
 		}
 		return filterSyntax;
+	}
+
+	public static String checkOperationType(boolean flag1, boolean flag2, String operationType1,
+			String operationType2) {
+		String operationType = null;
+		if (flag1 && flag2 && operationType1 == null && operationType2 == null) {
+			operationType = "$and";
+		}
+
+		else if (flag1 && flag2 && operationType1 != null && operationType2 == null) {
+			operationType = operationType1;
+		}
+
+		else if (flag1 && flag2 && operationType2 != null && operationType1 == null) {
+			operationType = operationType2;
+		}
+
+		else if (flag1 && flag2 && operationType2 != null && operationType1 != null
+				&& operationType1 == operationType2) {
+			operationType = operationType2;
+		} else if (flag1 && !flag2) {
+			operationType = operationType1;
+		} else if (!flag1 && flag2) {
+			operationType = operationType2;
+		} else
+			throw new SemossPixelException("Operation type is not valid");
+
+		return operationType;
+
 	}
 
 	/**
@@ -358,7 +344,7 @@ public final class ChromaVectorQueryFitler {
 
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToSourceValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -400,7 +386,7 @@ public final class ChromaVectorQueryFitler {
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToDividerValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -418,7 +404,7 @@ public final class ChromaVectorQueryFitler {
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToDividerValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -429,34 +415,9 @@ public final class ChromaVectorQueryFitler {
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToDividerValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
-	}
-
-	private static String[] addSelectorToDividerValuesFilter(NounMetadata rightComp) {
-		String rightSelector = null;
-		Vector<String> rs = new Vector<>();
-		String[] result = new String[1];
-
-		if (!(rightComp.getValue().toString().contains("["))) {
-			rightSelector = (String) rightComp.getValue();
-
-			result[0] = rightSelector;
-
-		} else {
-			rs = (Vector<String>) rightComp.getValue();
-			result = new String[rs.size()];
-			for (int i = 0; i < rs.size(); i++) {
-
-				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
-			}
-
-		}
-
-		return result;
 	}
 
 	public static String[] checkPartFilters(List<IQueryFilter> filters, String column) {
@@ -495,7 +456,7 @@ public final class ChromaVectorQueryFitler {
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToPartValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -513,7 +474,7 @@ public final class ChromaVectorQueryFitler {
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToPartValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
@@ -524,12 +485,12 @@ public final class ChromaVectorQueryFitler {
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToPartValuesFilter(rightComp);
+			return addSelectorToColumnValuesFilter(rightComp);
 		}
 		return null;
 	}
 
-	private static String[] addSelectorToPartValuesFilter(NounMetadata rightComp) {
+	private static String[] addSelectorToColumnValuesFilter(NounMetadata rightComp) {
 		String rightSelector = null;
 		Vector<String> rs = new Vector<>();
 		String[] result = new String[1];
@@ -545,12 +506,98 @@ public final class ChromaVectorQueryFitler {
 			for (int i = 0; i < rs.size(); i++) {
 
 				result[i] = rs.get(i);
-				System.out.println(result[i]);
 
 			}
 
 		}
 
 		return result;
+	}
+
+	public static void addSearchFilters(List<IQueryFilter> filters, List<String> searchFilters, String operationType,
+			Map<String, Object> query, ArrayList<Map<String, Object>> whereFilters) {
+
+		Map<String, Object> sourceFilter = new HashMap<>();
+		Map<String, Object> modalityFilter = new HashMap<>();
+		Map<String, Object> dividerFilter = new HashMap<>();
+		Map<String, Object> partFilter = new HashMap<>();
+
+		Map<String, Object> Filter_S = new HashMap<>();
+		Map<String, Object> Filter_M = new HashMap<>();
+		Map<String, Object> Filter_D = new HashMap<>();
+		Map<String, Object> Filter_P = new HashMap<>();
+
+		String[] listfiles = null;
+		String[] modalityValue = null;
+		String[] dividerValue = null;
+		String[] partValue = null;
+		int size = 0;
+		String SOURCE = "Source";
+		String MODALITY = "Modality";
+		String DIVIDER = "Divider";
+		String PART = "Part";
+		String IN = "$in";
+		String WHERE = "where";
+		String errmsg = "Column value is not valid.Please pass valid column values,i.e; Source,Modality,Divider and Part";
+
+		for (int i = 0; i < searchFilters.size(); i++) {
+			if (searchFilters.get(i).equalsIgnoreCase(SOURCE)) {
+
+				listfiles = ChromaVectorQueryFitler.checkSourceFilters(filters, searchFilters.get(i));
+				size++;
+				sourceFilter.put(IN, listfiles);
+				Filter_S.put(SOURCE, sourceFilter);
+				if (operationType == null) {
+					query.put(WHERE, Filter_S);
+				} else {
+					whereFilters.add(Filter_S);
+				}
+
+			}
+			if (searchFilters.get(i).equalsIgnoreCase(MODALITY)) {
+
+				modalityValue = ChromaVectorQueryFitler.checkModalityFilters(filters, searchFilters.get(i));
+				size++;
+				modalityFilter.put(IN, modalityValue);
+				Filter_M.put(MODALITY, modalityFilter);
+				if (operationType == null) {
+					query.put(WHERE, Filter_M);
+				} else {
+					whereFilters.add(Filter_M);
+				}
+
+			}
+			if (searchFilters.get(i).equalsIgnoreCase(DIVIDER)) {
+
+				dividerValue = ChromaVectorQueryFitler.checkDividerFilters(filters, searchFilters.get(i));
+				size++;
+				dividerFilter.put(IN, dividerValue);
+				Filter_D.put(DIVIDER, dividerFilter);
+				if (operationType == null) {
+					query.put(WHERE, Filter_D);
+				} else {
+					whereFilters.add(Filter_D);
+				}
+
+			}
+			if (searchFilters.get(i).equalsIgnoreCase(PART)) {
+
+				partValue = ChromaVectorQueryFitler.checkPartFilters(filters, searchFilters.get(i));
+				size++;
+				partFilter.put(IN, partValue);
+				Filter_P.put(PART, partFilter);
+				if (operationType == null) {
+					query.put(WHERE, Filter_P);
+				} else {
+					whereFilters.add(Filter_P);
+				}
+
+			}
+		}
+		if (size == 0) {
+			classLogger.error(errmsg);
+			throw new IllegalArgumentException(errmsg);
+
+		}
 	}
 }
