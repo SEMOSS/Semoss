@@ -21,6 +21,21 @@ import prerna.testing.reactor.database.upload.UploadTestUtility;
  * Test utility to import data into a frame
  */
 public class ImportTestUtility {
+	
+	public static String uploadMovieDB(String databaseName) {
+		String delimiter = ApiTestsSemossConstants.DELIMITER;
+		Path filePath = ApiTestsSemossConstants.TEST_MOVIE_CSV_PATH;
+		UploadTestUtility.uploadFile(filePath.toString());
+
+		Map<String, Object> predictedTypes = UploadTestUtility
+				.predictDataTypes(ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME, delimiter);
+		Map<String, Object> dataTypes = (Map<String, Object>) predictedTypes.get("dataTypes");
+		boolean exists = false;
+		Map<String, Object> dbInfo = UploadTestUtility.rdbmsUploadTable(databaseName,
+				ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME, delimiter, dataTypes, exists);
+		String databaseId = (String) dbInfo.get("database_id");
+		return databaseId;
+	}
 
 	/**
 	 * Import movie dataset from csv into frame
@@ -65,9 +80,9 @@ public class ImportTestUtility {
 	 * @param override
 	 * @return
 	 */
-	public static ITableDataFrame createMovieFrame(String frameType, String frameAlias, boolean override) {
+	public static ITableDataFrame createMovieFrame(String databaseId, String frameType, String frameAlias, boolean override) {
 		String framePixel = PixelQueryTestUtils.createFramePixel(frameType, frameAlias, override);
-		return runImportMoviePixels(framePixel);
+		return runImportMoviePixels(databaseId, framePixel);
 	}
 
 	/**
@@ -90,9 +105,8 @@ public class ImportTestUtility {
 	}
 
 
-	private static ITableDataFrame runImportMoviePixels(String framePixel) {
+	private static ITableDataFrame runImportMoviePixels(String databaseId, String framePixel) {
 		// remove semicolon
-		String databaseId = uploadMovieDB();
 		// pixels to import all movie data into frame
 		PixelChain db = new PixelChain(DatabaseReactor.class, ReactorKeysEnum.DATABASE.getKey(), databaseId);
 		PixelChain select = new PixelChain(SelectTableReactor.class, ReactorKeysEnum.TABLE.getKey(),
@@ -102,22 +116,6 @@ public class ImportTestUtility {
 		NounMetadata noun = ApiSemossTestUtils.processPixel(pixel);
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 		return frame;
-	}
-
-	private static String uploadMovieDB() {
-		String delimiter = ApiTestsSemossConstants.DELIMITER;
-		Path filePath = ApiTestsSemossConstants.TEST_MOVIE_CSV_PATH;
-		UploadTestUtility.uploadFile(filePath.toString());
-
-		Map<String, Object> predictedTypes = UploadTestUtility
-				.predictDataTypes(ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME, delimiter);
-		Map<String, Object> dataTypes = (Map<String, Object>) predictedTypes.get("dataTypes");
-		boolean exists = false;
-		String databaseName = "MOV_DB";
-		Map<String, Object> dbInfo = UploadTestUtility.rdbmsUploadTable(databaseName,
-				ApiTestsSemossConstants.MOVIE_CSV_FILE_NAME, delimiter, dataTypes, exists);
-		String databaseId = (String) dbInfo.get("database_id");
-		return databaseId;
 	}
 
 }

@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringUtils;
 import prerna.reactor.export.CollectAllReactor;
 import prerna.reactor.export.CollectReactor;
 import prerna.reactor.frame.CreateFrameReactor;
+import prerna.reactor.qs.SortReactor;
 import prerna.reactor.qs.source.DatabaseReactor;
 import prerna.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,6 +31,11 @@ public class PixelQueryTestUtils {
 	public static PixelChain frame(String frameName) {
 		PixelChain frame = new PixelChain(FrameReactor.class, ReactorKeysEnum.FRAME.getKey(), frameName);
 		return frame;
+	}
+	
+	public static PixelChain distinct(boolean isDistinct) {
+		PixelChain distinct = new PixelChain("Distinct("+isDistinct+")");
+		return distinct;
 	}
 
 	public static PixelChain select(String[] cols) {
@@ -49,11 +55,28 @@ public class PixelQueryTestUtils {
 		return select;
 	}
 	
+	public static PixelChain filter(String column, String comparison, Object val) {
+		PixelChain select = new PixelChain("Filter"+buildFilter(column, comparison, val));
+		return select;
+	}
+
+	public static String buildFilter(String column, String comparison, Object val) {
+		String result = "";
+		result += "(" + column + " " + comparison + "\"" + val + "\")";
+		return result;
+	}
+	
 	public static PixelChain groupBy(String[] cols) {
 		PixelChain group = new PixelChain("Group(" + StringUtils.join(cols, ", ") + ")");
 		return group;
 
 	}
+	public static PixelChain sort(String[] cols, String sortDir) {
+		PixelChain sort = new PixelChain(SortReactor.class, ReactorKeysEnum.COLUMNS.getKey(), cols,
+				ReactorKeysEnum.SORT.getKey(), sortDir);
+		return sort;
+	}
+
 
 	public static PixelChain collect(int numRows) {
 		PixelChain pc = new PixelChain(CollectReactor.class, ReactorKeysEnum.LIMIT.getKey(), numRows);
@@ -95,6 +118,16 @@ public class PixelQueryTestUtils {
 			fail();
 		}
 		return list;
+	}
+
+	public static PixelChain limit(int i) {
+		PixelChain limit = new PixelChain("Limit("+i+")");
+		return limit;
+	}
+	
+	public static PixelChain offset(int i) {
+		PixelChain offset = new PixelChain("Offset("+i+")");
+		return offset;
 	}
 
 }

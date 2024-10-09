@@ -95,7 +95,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private Map <String, StringBuilder>aggHash2 = null;
 	private Map <String, StringBuilder>orderHash = null;
 	private Map<String, SemossDataType> typesHash = null;
-	
+	private Map<String, String> aliasHash = null;
+
 	// Experiment
 	private List<String> caseWhenFunctionList = null;
 	private boolean caseWhenFunction;
@@ -210,6 +211,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggHash2 = new HashMap<>();
 		typesHash = new HashMap<>(); // EXPERIMENTING
 		orderHash = new HashMap<>();
+		aliasHash = new HashMap<>(); 
 		orderBy = new StringBuilder("");
 		normalizer = new StringBuilder(".to_dict('split')");//['data']"); // Ideally I should be able to put drop duplicates here
 		ascending = new StringBuilder("");
@@ -476,6 +478,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		if(groupCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.GROUP)) {
 			groupCriteria.append("], sort=False)");
+			// when doing a group by, it creates a different object
+			List <IQuerySelector> groupSelectors = ((SelectQueryStruct) this.qs).getGroupBy();
+			if (actHeaders.size() == groupSelectors.size()) {
+				// to convert to dataframe we need to append 
+				groupCriteria.append(".count().reset_index()");
+			}
 		}
 		if(filterCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.FILTER)) {
 			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
@@ -504,19 +512,27 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				ORDER_BY_DIRECTION sortDir = orderBy.getSortDir();
 				if(sortDir == ORDER_BY_DIRECTION.ASC) {
 					sort = "True";
-				} else {
+				} else if (sortDir == ORDER_BY_DIRECTION.DESC){
 					sort = "False";
 				}
 				StringBuilder orderByClause = null;
 				if(orderHash.containsKey(alias)) {
 					orderByClause = orderHash.get(alias);
 				}
+			
+				if (orderByClause == null && aliasHash.containsKey(alias)) {
+					orderByClause = new StringBuilder("'"+aliasHash.get(alias)+"'");
+				}
 				
 				if(orderByClause != null) {
 					// check if it is aggregate
 					// at this point the alias does it
 					//addOrder(orderByClause, sort);
-					addOrder(new StringBuilder(alias), sort);
+					if (orderHash.containsKey(alias)) {
+						addOrder(new StringBuilder(alias), sort);
+					} else {
+						addOrder(new StringBuilder(aliasHash.get(alias)), sort);
+					}
 					
 					// also add the other piece to test
 					addOrder2(orderByClause, sort);
@@ -807,6 +823,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			sb.append("'" + columnName + "'").append(":").append("'" + alias + "'");
 			renameColList.add(sb);
 		}
+		aliasHash.put(columnName, alias);
 		if(tableName != null)
 			return new StringBuffer(tableName).append("['").append(alias).append("']") + "";
 		else
