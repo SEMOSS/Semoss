@@ -264,7 +264,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					PYTHON, 
 					"How to use in Python",
 					"from gaas_gpt_function import FunctionEngine \r\n" + 
-							"function = FunctionEngine(engine_id = \"f3a4c8b2-7f3e-4d04-8c1f-2b0e3dabf5e9\", insight_id = '${i}')\r\n" + 
+							"function = FunctionEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" + 
 							"output = function.execute({'param1':'value1', ... , 'paramN':'valueN'})"
 					);
 			usage.add(usageMap);
