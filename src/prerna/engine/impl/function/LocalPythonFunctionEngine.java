@@ -43,6 +43,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 	}
 
@@ -115,7 +116,12 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		pyt = new TCPPyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		String execCommand = "exec(open('" + this.engineDirectoryPath.replace(File.separator, "/") + "/" + this.pythonFileName + "').read())";
+		String execCommand = "import sys\n" 
+				+ "import os\n" 
+				+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
+				+ "os.chdir('" + this.engineDirectoryPath + "')\n"
+				+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
+
 		this.pyt.runScript(execCommand);
 	}
 	
