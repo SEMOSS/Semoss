@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,6 +22,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(LocalPythonFunctionEngine.class);
 	
+	private static final String INIT_FUNCTION_ENGINE = "INIT_FUNCTION_ENGINE";
 	private static final String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
 	
 	private String pythonFileName;
@@ -31,7 +33,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	private ClientProcessWrapper cpw = null;
 	
 	// string substitute vars
-	Map<String, String> vars = new HashMap<>();
+	private Map<String, String> vars = new HashMap<>();
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -45,6 +47,12 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
+		
+		// vars for string substitution
+		for (Object smssKey : this.smssProp.keySet()) {
+			String key = smssKey.toString();
+			this.vars.put(key, this.smssProp.getProperty(key));
+		}
 	}
 
 	private synchronized void startServer(int port) {
@@ -122,7 +130,29 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 				+ "os.chdir('" + this.engineDirectoryPath + "')\n"
 				+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
 
+		// execute all the basic commands
+		String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
+		if(initCommands != null && !(initCommands=initCommands.trim()).isEmpty()) {
+			// break the commands separated by ;
+			String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+			// replace the Vars
+			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+				execCommand += "\n" + fillVars(commands[commandIndex]);
+			}
+		}
+		
 		this.pyt.runScript(execCommand);
+	}
+	
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
+	private String fillVars(String input) {
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
 	}
 	
 	private void checkSocketStatus() {
