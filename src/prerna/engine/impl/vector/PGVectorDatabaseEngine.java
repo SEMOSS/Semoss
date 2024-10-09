@@ -88,6 +88,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	private String embedderEngineId = null;
 	private String keywordGeneratorEngineId = null;
+	private String distanceMethod = null;
 	
 	private String vectorTableName = null;
 	private String vectorTableMetadataName = null;
@@ -113,7 +114,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-
+		
+		this.distanceMethod = smssProp.getProperty(Constants.DISTANCE_METHOD);
 		this.vectorTableName = smssProp.getProperty(PGVECTOR_TABLE_NAME);
 		if(this.vectorTableName == null || (this.vectorTableName=this.vectorTableName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the vector db table name");
@@ -614,8 +616,25 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
 		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
 		qs.addSelector(new QueryColumnSelector(tablePrefix+VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
-		qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING <-> '"+ embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
-		qs.addOrderBy("Score", "ASC");
+		// Determine the distanceMethod to use for the query
+		// Store the result in the "Score" field,
+		if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
+			// '<=>' cosine similarity operator
+			// cosine distance is between -1 and 1
+			// 1 = identical
+			// 0 = orthogonal
+			// -1 = opposite
+			// so need to show results as desc
+			qs.addSelector(new QueryOpaqueSelector("(EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
+			qs.addOrderBy("Score", "DESC");
+		} else {
+			// '<->' Euclidean (L2) distance operator
+			// The POWER function is used to square the distance to avoid the computational cost of square roots
+			// This also ensures all distance values are non-negative, which is important for optimization
+			qs.addSelector(new QueryOpaqueSelector(
+					"POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
+			qs.addOrderBy("Score", "ASC");
+		}
 		if(filters != null && !filters.isEmpty()) {
 			qs.addExplicitFilter(new GenRowFilters(filters), true);
 		}
