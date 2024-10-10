@@ -39,7 +39,8 @@ class OpenAiTokenizer(AbstractTokenizer):
             try:
                 return tiktoken.encoding_for_model(encoder_name)
             except KeyError:
-                logger.warning("Warning: model not found. Using cl100k_base encoding.")
+                logger.warning(
+                    "Warning: model not found. Using cl100k_base encoding.")
                 return tiktoken.get_encoding("cl100k_base")
 
     def count_tokens(self, input: Union[List[Dict], str]) -> int:

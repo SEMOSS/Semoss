@@ -159,6 +159,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IImageEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IReactorEngine;
@@ -2574,6 +2575,8 @@ public final class Utility {
 			return getFunctionEngine(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
+		} else if (IEngine.CATALOG_TYPE.IMAGE == type) {
+			return getImageEngine(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
@@ -2756,6 +2759,25 @@ public final class Utility {
 	 */
 	public static IStorageEngine getStorage(String engineId, boolean pullIfNeeded) {
 		return (IStorageEngine) baseGetEngine(engineId, pullIfNeeded);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IImageEngine getImageEngine(String engineId) {
+		return getImageEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IImageEngine getImageEngine(String engineId, boolean pullIfNeeded) {
+		return (IImageEngine) baseGetEngine(engineId, true);
 	}
 
 	/**

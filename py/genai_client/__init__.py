@@ -26,6 +26,10 @@ def __getattr__(name: str) -> Any:
         )
 
         return VertexClient
+    elif name == "ImageGenClient":
+        from .image_generation.imagegen_client import ImageGenClient
+
+        return ImageGenClient
 
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
@@ -148,6 +152,7 @@ __all__ = [
     "AzureOpenAiClient",
     "OpenAiClient",
     "TextGenClient",
+    "ImageGenClient",
     "BedrockClient",
     "VertexClient",
     "LocalEmbedder",

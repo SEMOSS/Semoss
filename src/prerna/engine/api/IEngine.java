@@ -17,6 +17,7 @@ public interface IEngine extends Closeable {
 		VENV,
 		// special kind for IProject
 		PROJECT,
+		IMAGE,
 	};
 	
 	/**
