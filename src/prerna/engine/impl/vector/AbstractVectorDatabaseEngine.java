@@ -70,6 +70,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String METADATA = "metadata";
 	public static final String FILTERS_KEY = "filters";
 	public static final String METADATA_FILTERS_KEY = "metaFilters";
+	public static final String RETAIN_EXTRACTED_TEXT = "RETAIN_EXTRACTED_TEXT"; 
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -114,6 +115,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
+	
+	protected boolean retainExtractedText = false;
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -185,6 +188,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
             	this.indexClasses.add(file.getName());
             }
         }
+        
+        this.retainExtractedText = Boolean.parseBoolean(this.smssProp.getProperty(RETAIN_EXTRACTED_TEXT));
 	}
 	
 	@Override
@@ -377,7 +382,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				}
 			}
 		} finally {
-			cleanUpAddDocument(indexFilesDir);
+			if(!this.retainExtractedText) { 
+				cleanUpAddDocument(indexFilesDir);
+			}			
 		}
 	}
 	

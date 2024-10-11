@@ -76,6 +76,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
+	public static final String RETAIN_EXTRACTED_TEXT = "RETAIN_EXTRACTED_TEXT";
 
 	private int contentLength = 512;
 	private int contentOverlap = 0;
@@ -110,6 +111,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	// maintain details in the log database
 	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+	
+	protected boolean retainExtractedText = false;
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -169,6 +172,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
+		
+		this.retainExtractedText = Boolean.parseBoolean(this.smssProp.getProperty(RETAIN_EXTRACTED_TEXT));
 	}
 	
 	/**
@@ -1003,7 +1008,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				}
 			}
 		} finally {
-			cleanUpAddDocument(indexFilesFolder);
+			if(!this.retainExtractedText) {
+				cleanUpAddDocument(indexFilesFolder);
+			}			
 		}
 	}
 	
