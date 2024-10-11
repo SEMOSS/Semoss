@@ -101,6 +101,58 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return model_response
 
+    def instruct(
+        self,
+        question: str,
+        context: Optional[str] = None,
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ) -> List[Dict]:
+        """This method is responsible for interacting with models that can perform instruction based text-generation.
+        This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
+
+        Args:
+            - question (str): The task to instruct.
+            - context (Optional[str]): Context for the question.
+            - insight_id (Optional[str]): Identifier for insights.
+            - param_dict (Optional[Dict]): Additional parameters.
+
+        Returns:
+            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
+            - response
+            - numberOfTokensInPrompt
+            - numberOfTokensInResponse
+            - messageId
+            - roomId
+        """
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        if param_dict is None:
+            param_dict = {}
+
+        param_dict["operation"] = "INSTRUCT"
+
+        epoc = super().get_next_epoc()
+
+        model_response = super().call(
+            epoc=epoc,
+            engine_type="Model",
+            engine_id=self.engine_id,
+            method_name="ask",
+            method_args=[question, context, insight_id, param_dict],
+            method_arg_types=[
+                "java.lang.String",
+                "java.lang.String",
+                "prerna.om.Insight",
+                "java.util.Map",
+            ],
+            insight_id=insight_id,
+        )
+
+        return model_response
+
     def embeddings(
         self,
         strings_to_embed: List[str],
