@@ -1,5 +1,12 @@
 package prerna.testing;
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.amazonaws.opensearch.sql.jdbc.shadow.com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.FileOutputStream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,6 +40,10 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
+import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
+import prerna.testing.utility.TestExcelInputObject;
+import prerna.testing.utility.TestExcelInputUtility;
+import prerna.testing.utility.TestExcelType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -41,28 +52,32 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ApiSemossTestEngineUtils {
-	
-	private static Path ENGINES_CONFIG_FILE = Paths.get(ApiTestsSemossConstants.TEST_CONFIG_DIRECTORY.toString(), "engines.txt");
+
+	private static Path ENGINES_CONFIG_FILE = Paths.get(ApiTestsSemossConstants.TEST_CONFIG_DIRECTORY.toString(),
+			"engines.txt");
 	private static List<String> CORE_DBS = null;
-	
-	
+
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
 			Pair.of(Constants.LOCAL_MASTER_DB, Arrays.asList(new String[] {})),
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
-			//Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
+			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
 			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {})),
-			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {}))
-			);
-	
+			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})));
+
 	static void checkDatabasePropMapping() {
-		assertEquals(ApiTestsSemossConstants.LMD_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTestsSemossConstants.SECURITY_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTestsSemossConstants.SCHEDULER_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTestsSemossConstants.THEMES_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
-    	assertEquals(ApiTestsSemossConstants.UTDB_SMSS, ((String) DIHelper.getInstance().getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
+		assertEquals(ApiTestsSemossConstants.LMD_SMSS,
+				((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
+		assertEquals(ApiTestsSemossConstants.SECURITY_SMSS,
+				((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
+		assertEquals(ApiTestsSemossConstants.SCHEDULER_SMSS,
+				((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
+		assertEquals(ApiTestsSemossConstants.THEMES_SMSS,
+				((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
+		assertEquals(ApiTestsSemossConstants.UTDB_SMSS, ((String) DIHelper.getInstance()
+				.getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
 	}
-	
+
 	static void unloadDatabases() {
 		DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE);
 		DIHelper.getInstance().removeEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE);
@@ -70,7 +85,7 @@ public class ApiSemossTestEngineUtils {
 		DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE);
 		DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE);
 	}
-	
+
 	public static void addDBStartupTasks(List<Callable<Void>> tasks) {
 		tasks.add(() -> initializeLocalMaster());
 		tasks.add(() -> initializeSecurity());
@@ -78,19 +93,19 @@ public class ApiSemossTestEngineUtils {
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
 	}
-	
+
 	private static Void initializeLocalMaster() throws IOException, Exception {
 		doInitializeSemossDB(Constants.LOCAL_MASTER_DB, "databaseNewMaster.mv.db");
 		MasterDatabaseUtility.initLocalMaster();
 		return null;
 	}
-	
+
 	private static Void initializeSecurity() throws IOException, Exception {
 		doInitializeSemossDB(Constants.SECURITY_DB, "database.mv.db");
 		AbstractSecurityUtils.loadSecurityDatabase();
 		return null;
 	}
-	
+
 	private static Void initializeUserTracking() throws IOException, Exception {
 		doInitializeSemossDB(Constants.USER_TRACKING_DB, "databaseNewUserTracking.mv.db");
 		UserTrackingUtils.initUserTrackerDatabase();
@@ -107,42 +122,41 @@ public class ApiSemossTestEngineUtils {
 		doInitializeSemossDB(Constants.SCHEDULER_DB, "database.mv.db");
 		// error when initializing
 		// TODO: fix this later
-		//SchedulerDatabaseUtility.startServer();
+		// SchedulerDatabaseUtility.startServer();
 		return null;
 	}
 
 	private static void initializeSemossDatabases() throws Exception {
 		doInitializeSemossDB(Constants.LOCAL_MASTER_DB, "databaseNewMaster.mv.db");
 		MasterDatabaseUtility.initLocalMaster();
-		
+
 		doInitializeSemossDB(Constants.SECURITY_DB, "database.mv.db");
 //		SecurityOwlCreator soc = new SecurityOwlCreator((RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB));
 //		soc.remakeOwl();
 		AbstractSecurityUtils.loadSecurityDatabase();
-		
+
 		doInitializeSemossDB(Constants.SCHEDULER_DB, "database.mv.db");
 		// error when initializing
 		// TODO: fix this later
-		//SchedulerDatabaseUtility.startServer();
-		
+		// SchedulerDatabaseUtility.startServer();
+
 		doInitializeSemossDB(Constants.THEMING_DB, "database.mv.db");
 		AbstractThemeUtils.loadThemingDatabase();
-		
+
 		doInitializeSemossDB(Constants.USER_TRACKING_DB, "databaseNewUserTracking.mv.db");
 		UserTrackingUtils.initUserTrackerDatabase();
-		
-		
-		createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,"Native", true);
+
+		createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
 	}
 
 	public static void createUser(String userUserName, String email, String type, boolean isAdmin) throws SQLException {
 		Triple<String, String, String> cds = getTestDatabaseConnection(Constants.SECURITY_DB);
-		
+
 		try (Connection conn = DriverManager.getConnection(cds.getLeft(), cds.getMiddle(), cds.getRight())) {
 			String userPassword = "TestTest8*";
 			String salt = SecurityQueryUtils.generateSalt();
 			String hashed = SecurityQueryUtils.hash(userPassword, salt);
-			
+
 			String name = userUserName.substring(0, 1);
 			PreparedStatement ps = conn.prepareStatement("INSERT INTO SMSS_USER "
 					+ "(NAME, EMAIL, \"TYPE\", ID, PASSWORD, SALT, USERNAME, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, LASTPASSWORDRESET, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE)\r\n"
@@ -157,7 +171,7 @@ public class ApiSemossTestEngineUtils {
 			ps.setString(i++, userUserName);
 			ps.setBoolean(i++, isAdmin);
 			ps.executeUpdate();
-			
+
 			conn.commit();
 			ps.close();
 		}
@@ -166,24 +180,23 @@ public class ApiSemossTestEngineUtils {
 	private static void doInitializeSemossDB(String name, String dbName) throws IOException {
 		String smssPath = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + ".smss";
 		String db = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
-		
+
 		assertTrue(smssPath.contains("testfolder"));
 		assertTrue(db.contains("testfolder"));
-		
+
 		if (Files.exists(Paths.get(db))) {
 			Files.delete(Paths.get(db));
 		}
-		
+
 		DIHelper.getInstance().setEngineProperty(name + "_" + Constants.STORE, smssPath);
 	}
-	
-	
+
 	public static void deleteAllDataAndAddUser() {
 		for (Pair<String, List<String>> x : DB_TO_CLEAR) {
 			Triple<String, String, String> connectionDetails = getTestDatabaseConnection(x.getLeft());
 			connectAndClearDb(connectionDetails, x.getRight());
 		}
-		
+
 		try {
 			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
 		} catch (Exception e) {
@@ -191,15 +204,17 @@ public class ApiSemossTestEngineUtils {
 			fail("Could not add Default Native Admin user");
 		}
 	}
-	
-	private static void connectAndClearDb(Triple<String, String, String> connectionDetails, List<String> ignoredTables) {
+
+	private static void connectAndClearDb(Triple<String, String, String> connectionDetails,
+			List<String> ignoredTables) {
 		PreparedStatement ps = null;
 		Statement st = null;
-		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(), 
+		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
 				connectionDetails.getRight())) {
 			assertTrue(connectionDetails.getLeft().contains("testfolder"));
-			
-			ps = conn.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
+
+			ps = conn
+					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
 			ps.execute();
 			ResultSet rs = ps.getResultSet();
 			List<String> al = new ArrayList<>();
@@ -207,7 +222,7 @@ public class ApiSemossTestEngineUtils {
 				al.add(rs.getString(1));
 			}
 			ps.close();
-			
+
 			al.removeAll(ignoredTables);
 			// delete * from databases
 			st = conn.createStatement();
@@ -215,7 +230,7 @@ public class ApiSemossTestEngineUtils {
 				st.addBatch("DELETE FROM " + x);
 			}
 			st.executeBatch();
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Could not clear core dbs");
@@ -227,7 +242,7 @@ public class ApiSemossTestEngineUtils {
 					e.printStackTrace();
 				}
 			}
-			
+
 			if (st != null) {
 				try {
 					st.close();
@@ -242,7 +257,8 @@ public class ApiSemossTestEngineUtils {
 		String dbPath = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
 		Properties props = Utility.loadProperties(dbPath);
 		String connection = props.getProperty(Constants.CONNECTION_URL);
-		connection = connection.replaceAll("@BaseFolder@", ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'));
+		connection = connection.replaceAll("@BaseFolder@",
+				ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'));
 		connection = connection.replaceAll("@ENGINE@", db);
 		assertTrue(connection.contains("testfolder"));
 
@@ -250,7 +266,7 @@ public class ApiSemossTestEngineUtils {
 		String password = props.getProperty(Constants.PASSWORD);
 		return Triple.of(connection, username, password);
 	}
-	
+
 	public static void clearNonCoreDBs() throws IOException {
 		List<String> dbsToAvoid = getDBsToAvoid();
 		File f = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY).toFile();
@@ -267,7 +283,7 @@ public class ApiSemossTestEngineUtils {
 				toDelete.add(s);
 			}
 		}
-		
+
 		for (String delete : toDelete) {
 			Path p = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY.toString(), delete);
 			if (Files.isDirectory(p)) {
@@ -280,20 +296,20 @@ public class ApiSemossTestEngineUtils {
 			}
 		}
 	}
-	
+
 	private static List<String> getDBsToAvoid() throws IOException {
 		if (CORE_DBS != null) {
 			return CORE_DBS;
 		}
-		
+
 		CORE_DBS = Files.readAllLines(ENGINES_CONFIG_FILE).stream().map(s -> s.trim()).filter(s -> !s.isEmpty())
 				.collect(Collectors.toList());
 		return CORE_DBS;
 	}
 
 	@SuppressWarnings("unchecked")
-	public static String addTestRdbmsDatabase(String name, List<String> columns, List<String> dataTypes, Map<String, String> additionalDataTypes, 
-			List<List<String>> rowValues) {
+	public static String addTestRdbmsDatabase(String name, List<String> columns, List<String> dataTypes,
+			Map<String, String> additionalDataTypes, List<List<String>> rowValues) {
 		assertNotNull(name);
 		assertNotNull(columns);
 		assertNotNull(dataTypes);
@@ -301,9 +317,9 @@ public class ApiSemossTestEngineUtils {
 		assertEquals(columns.size(), dataTypes.size(), "Column name count and dataType count have to match up");
 		assertTrue(rowValues.size() > 0, "Input must contain table data");
 		assertEquals(1, rowValues.stream().map(s -> s.size()).distinct().count(), "All row value lengths must match");
-		assertEquals(rowValues.get(0).size(), columns.size(), "Data columns must have same size as column names and data types");
-		
-		
+		assertEquals(rowValues.get(0).size(), columns.size(),
+				"Data columns must have same size as column names and data types");
+
 		Path path = Paths.get(ApiSemossTestInsightUtils.getInsightCache().toString(), name + ".csv");
 		try {
 			path = Files.createFile(path);
@@ -313,28 +329,24 @@ public class ApiSemossTestEngineUtils {
 				lines.add(String.join(", ", rv));
 			}
 			Files.write(path, lines);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			fail(e.toString());
 		}
-		
+
 		Map<String, String> dataType = new HashMap<>();
 		for (int i = 0; i < columns.size(); i++) {
 			dataType.put(columns.get(i), dataTypes.get(i));
 		}
-		Map<String, String> newHeaders = new HashMap<>();
 		
+		Map<String, String> newHeaders = new HashMap<>();
+
 		Map<String, String> descriptionMap = new HashMap<>();
 		Map<String, String> logicalMap = new HashMap<>();
-		String pixelCall = ApiSemossTestUtils.buildPixelCall(RdbmsUploadTableDataReactor.class, 
-				"database", Arrays.asList(name), 
-				"filePath", Arrays.asList("\\" + name + ".csv"), 
-				"delimiter", Arrays.asList(","), 
-				"dataTypeMap", Arrays.asList(dataType), 
-				"newHeaders", Arrays.asList(newHeaders), 
-				"additionalDataTypes", Arrays.asList(additionalDataTypes), 
-				"descriptionMap", Arrays.asList(descriptionMap), 
-				"logicalNamesMap", Arrays.asList(logicalMap), 
-				"existing", Arrays.asList(Boolean.FALSE));
+		String pixelCall = ApiSemossTestUtils.buildPixelCall(RdbmsUploadTableDataReactor.class, "database",
+				Arrays.asList(name), "filePath", Arrays.asList("\\" + name + ".csv"), "delimiter", Arrays.asList(","),
+				"dataTypeMap", Arrays.asList(dataType), "newHeaders", Arrays.asList(newHeaders), "additionalDataTypes",
+				Arrays.asList(additionalDataTypes), "descriptionMap", Arrays.asList(descriptionMap), "logicalNamesMap",
+				Arrays.asList(logicalMap), "existing", Arrays.asList(Boolean.FALSE));
 
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixelCall);
 		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
@@ -342,6 +354,82 @@ public class ApiSemossTestEngineUtils {
 		return engineId;
 	}
 
+	@SuppressWarnings("unchecked")
+	public static String addTestRdbmsDatabase(String name, List<String> tableNames, List<List<String>> columns,
+			List<List<String>> dataTypes, List<Map<String, String>> additionalDataTypes,
+			List<List<TestExcelInputObject>> rowValues) {
 
-	
+		Path path = Paths.get(ApiSemossTestInsightUtils.getInsightCache().toString(), name + ".xlsx");
+		try (Workbook workbook = new XSSFWorkbook()) {
+
+			for (int t = 0; t < tableNames.size(); t++) {
+				String tableName = tableNames.get(t);
+				Sheet sheet = workbook.createSheet(tableName);
+
+				// Add column headers for the current sheet
+				Row headerRow = sheet.createRow(0);
+				List<String> currentColumns = columns.get(t);
+				int colIdx = 0;
+				for (String col : currentColumns) {
+					Cell cell = headerRow.createCell(colIdx++);
+					cell.setCellValue(col);
+				}
+
+				// Add row values for the current sheet
+				List<TestExcelInputObject> currentRowValues = rowValues.get(t);
+				int rowIdx = 1;
+				for (TestExcelInputObject val : currentRowValues) {
+					Row row = sheet.createRow(rowIdx++);
+					colIdx = 0; // Reset column index for each row
+					for (TestExcelInputObject cellValue : currentRowValues) {
+						Cell cell = row.createCell(colIdx++);
+						if (TestExcelType.BOOLEAN == cellValue.getType()) {
+							cell.setCellValue(cellValue.getB());
+						} else if (TestExcelType.INTEGER == cellValue.getType()) {
+							cell.setCellValue(cellValue.getI());
+						} else if (TestExcelType.DOUBLE == cellValue.getType()) {
+							cell.setCellValue(cellValue.getD());
+						} else if (TestExcelType.DATE == cellValue.getType()) {
+							cell.setCellValue(cellValue.getLdt().toString()); // or format it as a date
+						} else if (TestExcelType.STRING == cellValue.getType()) {
+							cell.setCellValue(cellValue.getS());
+						} else if (TestExcelType.NULL == cellValue.getType()) {
+							cell.setCellValue(""); // Empty cell for null values
+						}
+					}
+				}
+			}
+
+			// Write the output to the file
+			try (FileOutputStream fileOut = new FileOutputStream(path.toFile())) {
+				workbook.write(fileOut);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+
+		// set this to empty because its super hard to figure out data structure expected for range map
+		// just let semoss calculate it 
+		Map<String, Map<String, Map<String, String>>> dataType = new HashMap<>();
+
+		// Initialize other maps
+		Map<String, Map<String, Map<String, String>>> newHeaders = new HashMap<>();
+		Map<String, Map<String, Map<String, String>>> descriptionMap = new HashMap<>();
+		Map<String, Map<String, Map<String, List<String>>>> logicalMap = new HashMap<>();
+
+		// Construct pixelCall -- issues here
+		String pixelCall = ApiSemossTestUtils.buildPixelCall(RdbmsUploadExcelDataReactor.class, "database",
+				Arrays.asList(name), "filePath", Arrays.asList("\\" + name + ".xlsx"), "delimiter", Arrays.asList(","),
+				"dataTypeMap", Arrays.asList(dataType), "newHeaders", Arrays.asList(newHeaders), "additionalDataTypes",
+				Arrays.asList(additionalDataTypes), "descriptionMap", Arrays.asList(descriptionMap), "logicalNamesMap",
+				Arrays.asList(logicalMap), "existing", Arrays.asList(Boolean.FALSE));
+
+		// Process the pixel call -- string to map issue
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixelCall);
+		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
+		String engineId = (String) ret.get("database_id");
+		return engineId;
+	}
+
 }
