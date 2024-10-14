@@ -49,13 +49,19 @@ public class ApiSemossTestInsightUtils {
 		}
 	}
 	
-	static void clearInsightCacheDifferently() {
-		File dir = ApiSemossTestInsightUtils.getInsightCache().toFile();
-    	assertTrue(dir.isDirectory());
-    	File[] files = dir.listFiles();
-    	for (File f : files) {
-    		assertTrue(f.delete(), "Could not delete: " + f.getName());
-    	}
+	static void clearInsightCacheDifferently() throws IOException {
+//		File dir = ApiSemossTestInsightUtils.getInsightCache().toFile();
+//    	assertTrue(dir.isDirectory());
+//    	File[] files = dir.listFiles();
+//    	for (File f : files) {
+//    		assertTrue(f.delete(), "Could not delete: " + f.getName());
+//    	}
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache");
+		if (Files.exists(p)) {
+			FileUtils.cleanDirectory(p.toFile());
+		}
+		
+		Files.createDirectories(TEST_INSIGHT_CACHE);
 	}
 
 	@SuppressWarnings("unchecked")

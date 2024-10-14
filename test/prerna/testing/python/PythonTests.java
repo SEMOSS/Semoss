@@ -25,4 +25,16 @@ public class PythonTests extends AbstractBaseSemossApiTests {
 		NounMetadata response = values.get(0);
 		assertEquals("4", response.getValue().toString());
 	}
+	
+	@Test
+	public void basicPython2() {
+		String pixel = "Py(\"<encode>2+2</encode>\");";
+
+		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+		assertNotNull(nm);
+		assertEquals(PixelDataType.CODE, nm.getNounType());
+		List<NounMetadata> values = (List<NounMetadata>) nm.getValue();
+		NounMetadata response = values.get(0);
+		assertEquals("4", response.getValue().toString());
+	}
 }

@@ -2,6 +2,7 @@ package prerna.testing;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -78,7 +79,7 @@ public abstract class AbstractBaseSemossApiTests {
 	// Ensure that everything is pointing in the correct direction before each test to limit damage
     // in case the DIHelper decides to reload with a different rdf map properties. 
     @BeforeEach
-    public void beforeEachTest() {
+    public void beforeEachTest() throws IOException {
     	ApiSemossTestEngineUtils.checkDatabasePropMapping();
     	
     	// do we want a clean database
