@@ -465,6 +465,15 @@ class ModelEngine(AbstractModelEngine):
     ) -> Dict:
         return self.model_engine.ask(**kwargs)
 
+    def instruct(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ) -> Dict:
+        return self.model_engine.instruct(**kwargs)
+
     def embeddings(
         self,
         insight_id: Optional[
