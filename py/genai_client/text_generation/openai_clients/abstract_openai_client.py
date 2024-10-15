@@ -2,7 +2,8 @@ from typing import Any
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from abc import ABC, abstractmethod
-from ...constants import AskModelEngineResponse
+from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ...constants import AskModelEngineResponse, MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
@@ -26,10 +27,21 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
         pass
 
     def _get_tokenizer(self, init_args):
-        return OpenAiTokenizer(
-            encoder_name=init_args.pop("tokenizer_name", None) or self.model_name,
-            max_tokens=init_args.pop("max_tokens", None),
-        )
+        """
+        If we are hosting the model, we will use the Huggingface Tokenizer, otherwise we will use the OpenAI Tokenizer.
+        """
+        hosted_model = init_args.pop("hosted_model", False)
+        if hosted_model:
+            return HuggingfaceTokenizer(
+                encoder_name=self.model_name,
+                max_tokens=init_args.pop(MAX_TOKENS, None),
+                max_input_tokens=init_args.pop(MAX_INPUT_TOKENS, None),
+            )
+        else:
+            return OpenAiTokenizer(
+                encoder_name=init_args.pop("tokenizer_name", None) or self.model_name,
+                max_tokens=init_args.pop("max_tokens", None),
+            )
 
     def _get_client(self, api_key, **kwargs):
         from openai import OpenAI

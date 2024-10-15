@@ -8,6 +8,7 @@ class OpenAiChatCompletionServer(OpenAiChatCompletion):
     def __init__(
         self, endpoint: str, model_name: str = None, api_key: str = "EMPTY", **kwargs
     ):
+        print("Printing from OpenAI Inference Server")
         super().__init__(
             api_key=api_key, model_name=model_name, base_url=endpoint, **kwargs
         )
