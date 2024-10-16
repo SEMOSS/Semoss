@@ -9,6 +9,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
@@ -129,6 +130,11 @@ public class RemoteModelEngine implements IModelEngine {
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public InstructModelEngineResponse instruct(String task, String context, Insight insight, Map<String, Object> parameters) {
 		return null;
 	}
 
