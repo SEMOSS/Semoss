@@ -103,7 +103,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
     def instruct(
         self,
-        question: str,
+        task: str,
         context: Optional[str] = None,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
@@ -112,8 +112,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
 
         Args:
-            - question (str): The task to instruct.
-            - context (Optional[str]): Context for the question.
+            - task (str): The task to instruct.
+            - context (Optional[str]): Context for the task.
             - insight_id (Optional[str]): Identifier for insights.
             - param_dict (Optional[Dict]): Additional parameters.
 
@@ -132,16 +132,14 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if param_dict is None:
             param_dict = {}
 
-        param_dict["operation"] = "INSTRUCT"
-
         epoc = super().get_next_epoc()
 
         model_response = super().call(
             epoc=epoc,
             engine_type="Model",
             engine_id=self.engine_id,
-            method_name="ask",
-            method_args=[question, context, insight_id, param_dict],
+            method_name="instruct",
+            method_args=[task, context, insight_id, param_dict],
             method_arg_types=[
                 "java.lang.String",
                 "java.lang.String",

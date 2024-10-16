@@ -42,9 +42,8 @@ public class LLMInstructReactor extends AbstractReactor {
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		paramMap.put("operation", "instruct");
-		
-		Map<String, Object> output = modelEngine.ask(task, context, this.insight, paramMap).toMap();
+
+		Map<String, Object> output = modelEngine.instruct(task, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
