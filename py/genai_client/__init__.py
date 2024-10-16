@@ -27,6 +27,11 @@ def __getattr__(name: str) -> Any:
 
         return VertexClient
 
+    elif name == "TextGenRemoteClient":
+        from .remote_client.text_gen_remote_client import TextGenRemoteClient
+
+        return TextGenRemoteClient
+
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
 

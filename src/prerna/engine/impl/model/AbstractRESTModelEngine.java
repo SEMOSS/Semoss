@@ -24,6 +24,8 @@ import com.google.gson.Gson;
 
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
+import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
@@ -181,5 +183,14 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 	protected IModelEngineResponseHandler handleDeserialization(String responseData, Class<? extends IModelEngineResponseHandler> responseType) {
 		IModelEngineResponseHandler responseObject = new Gson().fromJson(responseData, responseType);
         return responseObject;
+	}
+	
+	@Override
+	protected InstructModelEngineResponse instructCall(String task, String context, Insight insight, Map<String, Object> parameters) {
+	    return new InstructModelEngineResponse(
+	        new String[] { "This model does not support the instruct method." },
+	        0,
+	        0
+	    );
 	}
 }
