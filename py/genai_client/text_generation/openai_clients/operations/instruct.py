@@ -27,11 +27,12 @@ class Instruct:
         )
 
         final_response = InstructModelEngineResponse()
-        final_response.response = [final_data]
-        final_response.prompt_tokens = (
-            detect_task_response.prompt_tokens + decompose_response.prompt_tokens
-        )
-        final_response.response_tokens = self.client.tokenizer.count_tokens(final_data)
+        final_response.response = final_data
+        final_response.prompt_tokens = decompose_response.prompt_tokens
+        # final_response.response_tokens = self.client.tokenizer.count_tokens(
+        #     decompose_response.response.decode("utf-8")
+        # )
+        final_response.response_tokens = 1
         warnings = [detect_task_response.warning, decompose_response.warning]
         final_response.warning = "\n\n".join(filter(None, warnings))
 
@@ -77,8 +78,6 @@ class Instruct:
 
         task_target = response.strip()
 
-        print("TASK TARGET: ", task_target)
-
         return task_target, detect_task_response
 
     def _decompose_task(
@@ -95,22 +94,17 @@ class Instruct:
         top_p = kwargs.get("top_p", 0.2)
         max_tokens = max_new_tokens
         system_message = (
-            f"{task_target}\n"
-            + """
-                ### Context:
-                When faced with a large, complex task we need to employ a systematic approach to break it down into more manageable sub-tasks. This process involves analyzing the task, understanding its components for each sub-task. Throughout the decomposition process, iteratively define the methodology for each sub-task, which includes concrete instructions or algorithms specific to that sub-task. Each step or instruction within the methodology should be atomic, clear, and actionable. Based on the defined methodology evaluate the size and complexity of each sub-task and further divide it into smaller steps if necessary. This process is recursive until all subtasks, inputs, outputs, constraints, and Methodologies are thoroughly defined. Then proceed with task execution utilizing the output from previous steps as input for subsequent tasks.
-
-                ### Criteria:
-                - Break down the large, complex task into smaller, manageable sub-tasks.
-                - Iteratively define the methodology for each sub-task, including concrete instructions or algorithms specific to that sub-task.
-                - Ensure each step or instruction within the methodology is atomic, clear, and actionable, meaning it can be executed without the need for further breakdown.
-                - Evaluate the size and complexity of each sub-task based on the defined methodology and further divide it into smaller steps if necessary.
-                - Ensure all sub-tasks, inputs, outputs, constraints, and methodologies are thoroughly defined before proceeding with task execution.
-                - Present the complete sub-task structure, including well-defined input, output, methodology, and possibly constraints for each sub-task.
-                - Utilize the output from completed sub-tasks as input for subsequent tasks.
-                - Ensure the successful completion of the entire task by effectively managing the task decomposition.
-
-                """
+            f"As an AI assistant, your task is to decompose the following task into a sequence of clear and actionable steps. "
+            f"Please present the steps in JSON array format.\n\n"
+            f"### Task Target:\n{task_target}\n\n"
+            "### Instructions:\n"
+            "- Break down the task into smaller, manageable steps.\n"
+            "- Each step should be clear, concise, and actionable.\n"
+            "- Do not include additional explanations or context.\n"
+            "- Present the steps in JSON array format.\n"
+            "- DO NOT RETURN ANYTHING OTHER THAN THE JSON ARRAY.\n\n"
+            "### Example Output:\n"
+            '["Description for step 1.", "Description for step 2.", "Description for step 3."]\n'
         )
 
         messages = []
@@ -142,11 +136,18 @@ class Instruct:
 
         response = self.client.inference_call(prefix=prefix, **updated_kwargs)
 
-        start_index = response.find("{")
-        end_index = response.rfind("}")
-        if start_index != -1 and end_index != -1:
-            output_data = response[start_index : end_index + 1]
-        else:
-            output_data = response.strip()
+        parsed_response = self.parse_response(response)
 
-        return output_data, decompose_response
+        return parsed_response, decompose_response
+
+    def parse_response(self, response):
+        print("Parsing response... : ")
+        import json
+
+        try:
+            steps = json.loads(response)
+        except json.JSONDecodeError as e:
+            print("Error parsing response with json:", e)
+            steps = ["Error parsing response."]
+
+        return steps
