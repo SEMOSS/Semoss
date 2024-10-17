@@ -1,8 +1,7 @@
 package prerna.testing;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,25 +42,21 @@ public class ApiSemossTestInsightUtils {
 	}
 
 	static void clearInsightCache() throws IOException {
-		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache", "test");
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache");
 		if (Files.exists(p)) {
 			FileUtils.cleanDirectory(p.toFile());
 		}
 	}
 	
-	static void clearInsightCacheDifferently() throws IOException {
-//		File dir = ApiSemossTestInsightUtils.getInsightCache().toFile();
-//    	assertTrue(dir.isDirectory());
-//    	File[] files = dir.listFiles();
-//    	for (File f : files) {
-//    		assertTrue(f.delete(), "Could not delete: " + f.getName());
-//    	}
-		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache");
-		if (Files.exists(p)) {
-			FileUtils.cleanDirectory(p.toFile());
+	static void clearInsight() {
+		try {
+			if (Files.exists(TEST_INSIGHT_CACHE)) {
+				FileUtils.cleanDirectory(TEST_INSIGHT_CACHE.toFile());
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.toString());
 		}
-		
-		Files.createDirectories(TEST_INSIGHT_CACHE);
 	}
 
 	@SuppressWarnings("unchecked")

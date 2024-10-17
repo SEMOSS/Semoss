@@ -79,7 +79,7 @@ public abstract class AbstractBaseSemossApiTests {
 	// Ensure that everything is pointing in the correct direction before each test to limit damage
     // in case the DIHelper decides to reload with a different rdf map properties. 
     @BeforeEach
-    public void beforeEachTest() throws IOException {
+    public void beforeEachTest() {
     	ApiSemossTestEngineUtils.checkDatabasePropMapping();
     	
     	// do we want a clean database
@@ -98,7 +98,7 @@ public abstract class AbstractBaseSemossApiTests {
     		ApiSemossTestEmailUtils.deleteAllEmails();
     	}
     	
-    	ApiSemossTestInsightUtils.clearInsightCacheDifferently();
+    	ApiSemossTestInsightUtils.clearInsight();
     }
     
 }
