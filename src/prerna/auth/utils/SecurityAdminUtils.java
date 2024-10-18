@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,22 +37,18 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.update.UpdateQueryStruct;
-import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
-//import prerna.web.services.util.WebUtility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
@@ -630,6 +625,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Update user information.
+	 * 
 	 * @param adminId
 	 * @param userInfo
 	 * @return
@@ -638,192 +634,265 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public boolean editUser(Map<String, Object> userInfo) {
 		// input fields
 		String userId = userInfo.get("id") != null ? userInfo.get("id").toString() : "";
-		if(userId == null || userId.isEmpty()) {
+		if (userId == null || userId.isEmpty()) {
 			throw new NullPointerException("Must provide a unique and non-empty user id");
 		}
 		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
 		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
 		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
-		String phone = userInfo.get("phone") != null ?  userInfo.get("phone").toString() : ""; 
-		String phoneExtension = userInfo.get("phoneextension") != null ?  userInfo.get("phoneextension").toString() : ""; 
-		String countryCode = userInfo.get("countrycode") != null ?  userInfo.get("countrycode").toString() : ""; 
+		String phone = userInfo.get("phone") != null ? userInfo.get("phone").toString() : "";
+		String phoneExtension = userInfo.get("phoneextension") != null ? userInfo.get("phoneextension").toString() : "";
+		String countryCode = userInfo.get("countrycode") != null ? userInfo.get("countrycode").toString() : "";
 		// modified fields
 		String newUserId = (String) userInfo.get("newId");
-		if(newUserId != null && newUserId.trim().isEmpty()) {
+		if (newUserId != null && newUserId.trim().isEmpty()) {
 			newUserId = null;
 		}
 		String newUsername = (String) userInfo.get("newUsername");
-		if(newUsername != null && newUsername.trim().isEmpty()) {
+		if (newUsername != null && newUsername.trim().isEmpty()) {
 			newUsername = null;
 		}
 		String newEmail = (String) userInfo.get("newEmail");
 		// always lower case emails
-		if(newEmail != null) {
+		if (newEmail != null) {
 			newEmail = newEmail.toLowerCase();
 		}
 		Boolean adminChange = null;
-		if(userInfo.containsKey("admin")) {
-			if(userInfo.get("admin") instanceof Number) {
+		if (userInfo.containsKey("admin")) {
+			if (userInfo.get("admin") instanceof Number) {
 				adminChange = ((Number) userInfo.get("admin")).intValue() == 1;
 			} else {
-				adminChange = Boolean.parseBoolean( userInfo.get("admin") + "");
+				adminChange = Boolean.parseBoolean(userInfo.get("admin") + "");
 			}
 		}
 
 		Boolean publisherChange = null;
-		if(userInfo.containsKey("publisher")) {
-			if(userInfo.get("publisher") instanceof Number) {
+		if (userInfo.containsKey("publisher")) {
+			if (userInfo.get("publisher") instanceof Number) {
 				publisherChange = ((Number) userInfo.get("publisher")).intValue() == 1;
 			} else {
-				publisherChange = Boolean.parseBoolean( userInfo.get("publisher") + "");
+				publisherChange = Boolean.parseBoolean(userInfo.get("publisher") + "");
 			}
 		}
-		
+
 		Boolean exporterChange = Boolean.TRUE;
-		if(userInfo.containsKey("exporter")) {
-			if(userInfo.get("exporter") instanceof Number) {
+		if (userInfo.containsKey("exporter")) {
+			if (userInfo.get("exporter") instanceof Number) {
 				exporterChange = ((Number) userInfo.get("exporter")).intValue() == 1;
 			} else {
-				exporterChange = Boolean.parseBoolean( userInfo.get("exporter") + "");
+				exporterChange = Boolean.parseBoolean(userInfo.get("exporter") + "");
 			}
 		}
 
 		String newSalt = null;
 		String newHashPass = null;
-		
-		// validate new inputs and insert into selectors and values to use for update
-		List<IQuerySelector> selectors = new Vector<>();
-		List<Object> values = new Vector<>();
-		
-		// cannot edit a user to match another user when native... would cause some serious issues :/
+
+		// cannot edit a user to match another user when native... would cause some
+		// serious issues :/
 		// so we will check if you are switching to a native
 		boolean isNative = false;
-		if(type != null && !type.isEmpty()) {
+		if (type != null && !type.isEmpty()) {
 			isNative = type.equalsIgnoreCase("NATIVE");
 		} else {
 			isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
 		}
-		if(isNative) {
+		if (isNative) {
 			// username and id must match for native
 			// so they should be updated together and have the same value
-			if( !( (newUsername != null && newUserId != null) || (newUsername == null && newUserId == null) ) ){
-				throw new IllegalArgumentException("For native users, the id and the username must be updated together and have the same value");
+			if (!((newUsername != null && newUserId != null) || (newUsername == null && newUserId == null))) {
+				throw new IllegalArgumentException(
+						"For native users, the id and the username must be updated together and have the same value");
 			}
-			if(newUserId != null && newUserId.isEmpty()) {
-				throw new IllegalArgumentException("For native users, the id and the username must be updated together and have the same value");
+			if (newUserId != null && newUserId.isEmpty()) {
+				throw new IllegalArgumentException(
+						"For native users, the id and the username must be updated together and have the same value");
 			}
-			if(newUserId != null && !newUserId.equalsIgnoreCase(newUsername)) {
-				throw new IllegalArgumentException("For native users, the id and the username must be updated together and have the same value");
+			if (newUserId != null && !newUserId.equalsIgnoreCase(newUsername)) {
+				throw new IllegalArgumentException(
+						"For native users, the id and the username must be updated together and have the same value");
 			}
 		}
 		// if we are updating the user id
 		// make sure the new id does not exist
-		if(newUserId != null) {
-			if(SecurityQueryUtils.checkUserExist(newUserId)){
+		if (newUserId != null) {
+			if (SecurityQueryUtils.checkUserExist(newUserId)) {
 				throw new IllegalArgumentException("The new user id already exists. Please enter a unique user id.");
 			}
 		}
-		
-		// check new userID
-		if(newUserId != null) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__ID"));
-			values.add(newUserId);
+
+		/**
+		 * validate and add the columns we wish to update to list
+		 */
+		List<String> columns = new ArrayList<String>();
+		List<Object> columnValues = new ArrayList<Object>();
+
+		if (newUserId != null) {
+			columns.add("ID");
+			columnValues.add(newUserId);
 		}
-	
+
 		String error = "";
-		if(newEmail != null && !newEmail.isEmpty()){
+		if (newEmail != null && !newEmail.isEmpty()) {
 			try {
 				validEmail(newEmail, true);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-			selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
-			values.add(newEmail);
+			columns.add("EMAIL");
+			columnValues.add(newEmail);
 		}
-		if(newUsername != null && !newUsername.isEmpty()) {
+		if (newUsername != null && !newUsername.isEmpty()) {
 			boolean usernameExists = SecurityQueryUtils.checkUsernameExist(newUsername);
-			if(usernameExists) {
+			if (usernameExists) {
 				throw new IllegalArgumentException("The username already exists");
 			}
-			selectors.add(new QueryColumnSelector("SMSS_USER__USERNAME"));
-			values.add(newUsername);
+
+			columns.add("USERNAME");
+			columnValues.add(newUsername);
 		}
-		if(password != null && !password.isEmpty()){
-            try {
+		if (isNative 
+				&& password != null 
+				&& !password.isEmpty()) {
+			try {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-            if(error.isEmpty()){
-                newSalt = SecurityQueryUtils.generateSalt();
-    			selectors.add(new QueryColumnSelector("SMSS_USER__PASSWORD"));
-    			newHashPass = SecurityQueryUtils.hash(password, newSalt); 
-    			values.add(newHashPass);
-    			selectors.add(new QueryColumnSelector("SMSS_USER__SALT"));
-    			values.add(newSalt);
-            }
-        }
-		if(name != null && !name.isEmpty()) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__NAME"));
-			values.add(name);
+			if (error.isEmpty()) {
+				newSalt = SecurityQueryUtils.generateSalt();
+				columns.add("PASSWORD");
+				columnValues.add(newSalt);
+				newHashPass = SecurityQueryUtils.hash(password, newSalt);
+				columns.add("SALT");
+				columnValues.add(newHashPass);
+			}
 		}
-		if(type != null && !type.isEmpty()) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__TYPE"));
-			values.add(type);
+		if (name != null && !name.isEmpty()) {
+			columns.add("NAME");
+			columnValues.add(name);
 		}
-		if(adminChange != null) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__ADMIN"));
-			values.add(adminChange);
+		if (type != null && !type.isEmpty()) {
+			columns.add("TYPE");
+			columnValues.add(type);
 		}
-		if(publisherChange != null) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-			values.add(publisherChange);
+		if (adminChange != null) {
+			columns.add("ADMIN");
+			columnValues.add(adminChange);
 		}
-		if(exporterChange != null) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-			values.add(exporterChange);
+		if (publisherChange != null) {
+			columns.add("PUBLISHER");
+			columnValues.add(publisherChange);
 		}
-		if(phone != null && !phone.isEmpty()) {
+		if (exporterChange != null) {
+			columns.add("EXPORTER");
+			columnValues.add(exporterChange);
+		}
+		if (phone != null && !phone.isEmpty()) {
 			try {
 				phone = formatPhone(phone);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-			selectors.add(new QueryColumnSelector("SMSS_USER__PHONE"));
-			values.add(phone);
+			columns.add("PHONE");
+			columnValues.add(phone);
 		}
-		if(phoneExtension != null && !phoneExtension.isEmpty()) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-			values.add(phoneExtension);
+		if (phoneExtension != null && !phoneExtension.isEmpty()) {
+			columns.add("PHONEEXTENSION");
+			columnValues.add(phoneExtension);
 		}
-		if(countryCode != null && !countryCode.isEmpty()) {
-			selectors.add(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
-			values.add(countryCode);
+		if (countryCode != null && !countryCode.isEmpty()) {
+			columns.add("COUNTRYCODE");
+			columnValues.add(countryCode);
 		}
 
-		if(error != null && !error.isEmpty()) {
+		if (error != null && !error.isEmpty()) {
 			throw new IllegalArgumentException(error);
 		}
 
-		UpdateQueryStruct qs = new UpdateQueryStruct();
-		qs.setEngine(securityDb);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
-		qs.setSelectors(selectors);
-		qs.setValues(values);
-		
-		UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-		String updateQ = updateInterp.composeQuery();
+		/**
+		 * Create ps and add updated rows to ps and values 
+		 */
+
+		String[] colToUpdate = columns.toArray(new String[0]);
+		String[] whereCol = { "ID" };
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", colToUpdate, whereCol);
+		PreparedStatement editUserPs = null;
 		try {
-			securityDb.insertData(updateQ);
-		} catch (SQLException e) {
+			editUserPs = securityDb.getPreparedStatement(editUserQuery);
+			int i = 1;
+			if (newUserId != null && !newUserId.isEmpty()) {
+				editUserPs.setString(i++, newUserId);
+			}
+			if(newEmail != null && !newEmail.isEmpty()) {
+				editUserPs.setString(i++, newEmail);
+			}
+			if (newUsername != null && !newUsername.isEmpty()) {
+				editUserPs.setString(i++, newUsername);
+			}
+			if (newHashPass != null && !newHashPass.isEmpty()) {
+				editUserPs.setString(i++, newHashPass);
+			}
+			if (newSalt != null && !newSalt.isEmpty()) {
+				editUserPs.setString(i++, newSalt);
+			}
+			if (name != null && !name.isEmpty()) {
+				editUserPs.setString(i++, name);
+			}
+			if (type != null && !type.isEmpty()) {
+				editUserPs.setString(i++, type);
+			}
+			if (adminChange != null) {
+				if(adminChange) {
+					editUserPs.setBoolean(i++, true);
+				} else {
+					editUserPs.setBoolean(i++, false);
+				}
+			}
+			if (publisherChange != null) {
+				if(publisherChange) {
+					editUserPs.setBoolean(i++, true);
+				} else {
+					editUserPs.setBoolean(i++, false);
+				}
+			}
+			if (exporterChange != null) {
+				if(exporterChange) {
+					editUserPs.setBoolean(i++, true);
+				} else {
+					editUserPs.setBoolean(i++, false);
+				}
+			}
+			if (phone != null && !phone.isEmpty()) {
+				editUserPs.setString(i++, phone);
+			}
+			if (phoneExtension != null && !phoneExtension.isEmpty()) {
+				editUserPs.setString(i++, phoneExtension);
+			}
+			if (countryCode != null && !countryCode.isEmpty()) {
+				editUserPs.setString(i++, countryCode);
+			}
+			// Where 
+			editUserPs.setString(i++, userId);
+			editUserPs.execute();
+			if (!editUserPs.getConnection().getAutoCommit()) {
+				editUserPs.getConnection().commit();
+			}
+
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return false;
+			throw new IllegalArgumentException(e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
 		}
-		if(isNative) {
-			if(newUserId != null && !userId.equals(newUserId)) {
+
+		/**
+		 * HMM what to do about this one Should i update?
+		 */
+		if (isNative) {
+			if (newUserId != null && !userId.equals(newUserId)) {
 				// need to update the password history
 				String updateQuery = "UPDATE PASSWORD_HISTORY SET USERID=? WHERE USERID=? and TYPE=?";
 				PreparedStatement ps = null;
@@ -834,7 +903,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, userId);
 					ps.setString(parameterIndex++, type);
 					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
@@ -843,7 +912,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
-			if(newHashPass != null && newSalt != null) {
+			if (newHashPass != null && newSalt != null) {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 				try {
 					SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
@@ -853,7 +922,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 		return true;
-    }
+	}
 	
 	/**
 	 * Delete a user and all its relationships.
@@ -1142,7 +1211,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllProjectSettings(
 			List<String> projectFilter, 
 			Map<String, Object> projectMetadataFilter, 
-			String searchTerm, 
+			String searchTerm,  
 			String limit, 
 			String offset) {
 		
