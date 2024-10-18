@@ -63,8 +63,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
-					"How to use in Pixel",
-					"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues = [ {} ] );"
+					"How to use in Javascript",
+					"## Generation\r\n" + 
+							"LLM(engine = \""+engineId+"\", command = \"<encode>Sample Question</encode>\", paramValues=[{}]);\r\n" + 
+							
+							"\n## Embeddings\r\n" +
+							"Embeddings(engine = \""+engineId+"\", values = [\"Sample String 1\", \"Sample String 2\"], paramValues=[{}]);"
 					);
 			usage.add(usageMap);
 		}
@@ -73,9 +77,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					PYTHON, 
 					"How to use in Python",
 					"from gaas_gpt_model import ModelEngine\r\n" + 
-							"question = 'Sample Question'\r\n" +
 							"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
-							"output = model.ask(question = question)"
+							
+							"\n# Generation\r\n" +
+							"question = 'Sample Question'\r\n" +
+							"output = model.ask(question = question)\r\n" +
+							
+							"\n# Embeddings\r\n" + 
+							"text_arr = ['Sample String 1', 'Sample String 2']\r\n" +
+							"model.embeddings(strings_to_embed = text_arr)"
 					);
 			usage.add(usageMap);
 		}
@@ -97,7 +107,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
-					"How to use in Pixel",
+					"How to use in Javascript",
 					"Storage(storage = \""+engineId+"\")|ListStoragePath(storagePath='/your/storage/path');\r\n"
 							+ "Storage(storage = \""+engineId+"\")|ListStoragePathDetails(storagePath='/your/storage/path');\r\n"
 							+ "Storage(storage = \""+engineId+"\")|PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');\r\n"
@@ -142,7 +152,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
-					"How to use in Pixel",
+					"How to use in Javascript",
 					"Database(database = \""+engineId+"\")|Query(\"<encode> your select query </encode>\")|Collect(500);\r\n"
 							+ "Database(database = \""+engineId+"\")|Query(\"<encode> your insert/update/delete query </encode>\")|ExecQuery();"
 					);
@@ -179,7 +189,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
-					"How to use in Pixel",
+					"How to use in Javascript",
 					"## List all the documents the vector database currently comprises of ##\r\n" +
 							"ListDocumentsInVectorDatabase (engine = \""+engineId+"\");\r\n" + 
 							
@@ -254,7 +264,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
-					"How to use in Pixel",
+					"How to use in Javascript",
 					"ExecuteFunctionEngine(engine = \""+engineId+"\", map=[{'param1':'value1', ... , 'paramN':'valueN'}] )"
 					);
 			usage.add(usageMap);
@@ -287,7 +297,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		{
 			Map<String, Object> usageMap = fillMap(
 					PIXEL, 
-					"How to use in Pixel",
+					"How to use in Javascript",
 					"Documentation pending"
 					);
 			usage.add(usageMap);
