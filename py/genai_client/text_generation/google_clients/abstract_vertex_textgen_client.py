@@ -19,6 +19,7 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
         service_account_key_file: str = None,
         region: str = None,
         project: str = None,
+        max_tokens: int = None,
         safety_settings: Optional[Dict] = None,
         **kwargs,
     ):
@@ -38,6 +39,7 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
 
         self.model_name = model_name
         self.client = self._get_client()
+        self.max_tokens = max_tokens
         self.safety_settings = safety_settings or {}
 
     @abstractclassmethod
