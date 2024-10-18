@@ -24,6 +24,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -215,8 +216,36 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+
+		String QUERY_TEXTS = "query_texts";
+		String N_RESULTS = "n_results";
+		String QUERY_EMBEDDINGS = "query_embeddings";
+		String WHERE = "where";
+		String API_KEY = "Api-Key";
+
+		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
+		List<Map<String, Object>> resultMap = new ArrayList<Map<String, Object>>();
+
+		Gson gson = new Gson();
+
+		List<IQueryFilter> filters = null;
+		List<IQueryFilter> metaFilters = null;
+
+		List<String> searchFilters = new ArrayList<String>();
+
+		String operationType = null;
+		String operationType1 = null;
+		String operationType2 = null;
+		Map<String, Object> Operator = new HashMap<>();
+		ArrayList<Map<String, Object>> whereFilters = new ArrayList<Map<String, Object>>();
+		Map<String, Object> query = new HashMap<>();
+		List<List<Double>> queryEmbeddings = new ArrayList<>();
+		String body = null;
+
 		if (insight == null) {
+			classLogger.error("Insight must be provided to run Model Engine Encoder");
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		if (!modelPropsLoaded) {
@@ -225,37 +254,88 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (limit == null) {
 			limit = 3;
 		}
-		
-		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
-		Gson gson = new Gson();
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
-		Map<String, Object> query = new HashMap<>();
-		List<List<Double>> queryEmbeddings = new ArrayList<>();
 		// this is done to put a list of embeddings inside another list otherwise the
 		// API throws error.
-		queryEmbeddings.add(vector); 
-										
-		// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
-		query.put("query_texts", searchStatement);
-		query.put("n_results", limit);
-		query.put("query_embeddings", queryEmbeddings);
-		String body = gson.toJson(query);
+		queryEmbeddings.add(vector);
+
+		if (!(parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				&& !(parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+
+			query.put(QUERY_TEXTS, searchStatement);
+			query.put(N_RESULTS, limit);
+			query.put(QUERY_EMBEDDINGS, queryEmbeddings);
+
+		    body = gson.toJson(query);
+
+		}
+
+		// Filter condition
+
+		else if ((parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				|| (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+
+			query.put(QUERY_TEXTS, searchStatement);
+			query.put(N_RESULTS, limit);
+			query.put(QUERY_EMBEDDINGS, queryEmbeddings);
+
+			boolean flag1 = false;
+			boolean flag2 = false;
+			if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+				flag1 = parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY);
+				filters = (List<IQueryFilter>) parameters.remove("filters");
+				operationType1 = ChromaVectorQueryFitler.checkFilters(filters);
+			}
+			if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+				flag2 = parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
+				metaFilters = (List<IQueryFilter>) parameters.remove("metaFilters");
+				operationType2 = ChromaVectorQueryFitler.checkFilters(metaFilters);
+			}
+
+			operationType = ChromaVectorQueryFitler.checkOperationType(flag1, flag2, operationType1, operationType2);
+
+			if (flag1) {
+				searchFilters = ChromaVectorQueryFitler.addFilters(filters);
+				ChromaVectorQueryFitler.addSearchFilters(filters, searchFilters, operationType, query, whereFilters);
+			}
+
+			if (flag2) {
+				searchFilters = ChromaVectorQueryFitler.addFilters(metaFilters);
+				ChromaVectorQueryFitler.addSearchFilters(metaFilters, searchFilters, operationType, query, whereFilters);
+
+			}
+			
+			if (operationType != null) {
+				Operator.put(operationType, whereFilters);
+				query.put(WHERE, Operator);
+			}
+
+			body = gson.toJson(query);
+
+		}
+
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("Api-Key", this.apiKey);
+			headersMap.put(API_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
 		}
 
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
-				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(
+				this.url + this.collectionID + API_QUERY, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		retOut.add(responseMap);
+
+		// Retrieve the metadatas list response
+		resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
+		retOut = (List<Map<String, Object>>) resultMap.get(0);
+
 		return retOut;
+
 	}
 	
 	@Override
