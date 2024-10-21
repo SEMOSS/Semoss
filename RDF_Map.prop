@@ -1,0 +1,762 @@
+#This section is for properties
+
+ENGINE_WATCHER	SMSSWatcher
+ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSVenvWatcher
+PROJECT_WATCHER	ProjectWatcher
+
+INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
+CSV_INSIGHT_CACHE_FOLDER CSV_Insights
+
+SMSSWebWatcher	prerna.util.SMSSWebWatcher
+SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
+SMSSWebWatcher_EXT	.smss
+SMSSWebWatcher_ETYPE	DATABASE
+
+SMSSStorageWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSStorageWatcher_DIR	C:\\workspace\\Semoss\\storage
+SMSSStorageWatcher_EXT	.smss
+SMSSStorageWatcher_ETYPE	STORAGE
+
+SMSSModelWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSModelWatcher_DIR	C:\\workspace\\Semoss\\model
+SMSSModelWatcher_EXT	.smss
+SMSSModelWatcher_ETYPE	MODEL
+
+SMSSVectorWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSVectorWatcher_DIR	C:\\workspace\\Semoss\\vector
+SMSSVectorWatcher_EXT	.smss
+SMSSVectorWatcher_ETYPE	VECTOR
+
+SMSSFunctionWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSFunctionWatcher_DIR	C:\\workspace\\Semoss\\function
+SMSSFunctionWatcher_EXT	.smss
+SMSSFunctionWatcher_ETYPE	FUNCTION
+
+SMSSVenvWatcher	prerna.util.SMSSNoInitEngineWatcher
+SMSSVenvWatcher_DIR	C:\\workspace\\Semoss\\venv
+SMSSVenvWatcher_EXT	.smss
+SMSSVenvWatcher_ETYPE	VENV
+
+ProjectWatcher	prerna.util.ProjectWatcher
+ProjectWatcher_DIR		C:\\workspace\\Semoss\\project
+ProjectWatcher_EXT	.smss
+
+#JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
+#JobSchedulerWatcher_DIR C:\\workspace\\Semoss\\rpa\\json
+#JobSchedulerWatcher_EXT	.json
+#rpa.config.directory C:\\workspace\\Semoss\\rpa
+
+BaseFolder	C:\\workspace\\Semoss
+ADDITIONAL_REACTORS C:\\workspace\\Semoss\\reactors.json
+ADDITIONAL_REACTOR_PACKAGES
+SOCIAL	C:\\workspace\\Semoss\\social.properties
+EMAIL_TEMPLATES	C:\\workspace\\Semoss\\emailTemplates\\
+
+#Caching for tasks
+X_CACHE false
+
+#Encrypt the SMSS file passwords
+ENCRYPT_SMSS false
+
+#THIS IS FOR TESTING ONLY
+#FORCE_PORT 9999
+
+#USE SOCKET FOR RUNNING R/PYTHON IN SEPARATE PROCESS
+NETTY_R false
+NETTY_PYTHON true
+NATIVE_PY_SERVER true
+
+USE_PYTHON true
+PY_WORKER prerna.pyserve.FileBasedPyWorker
+LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
+USE_PY_FILE	TRUE 
+
+USE_R true
+R_CONNECTION_JRI	true
+#JRI must be false in order to use user rserve
+IS_USER_RSERVE false
+#Options are pooled or dedicated
+R_USER_CONNECTION_TYPE pooled
+#Only relevant if set to pooled
+RSERVE_CONNECTION_POOL_SIZE 12
+R_USER_RECOVERY_DEFAULT false
+#Kill existing Rserve processes on startup
+R_KILL_ON_STARTUP true
+#R MEMORY LIMIT
+R_MEM_LIMIT 4096
+
+#SIZE LIMIT FOR ROW by COL 
+#FOR NO LIMIT USE -1
+FRAME_SIZE_LIMIT -1
+#DO WE LIMIT FOR NATIVE FRAMES
+FRAME_SIZE_LIMIT_NATIVE false
+
+FILE_TRANSFER_LIMIT 5000
+USER_WORKSPACE false
+
+#DEFAULT TERMINAL MODE
+#VALID ONLY FOR WINDOWS
+#USE "cmd" or "powershell"
+TERMINAL_MODE cmd
+
+#SET DEFAULT FRAME TO LOAD DATA
+#Frame type options: GRID, R, NATIVE, GRAPH, PY
+DEFAULT_FRAME_TYPE GRID
+#CURRENTLY ONLY SUPPORT VALUES OF : H2_DB OR SQLITE
+DEFAULT_GRID_TYPE H2_DB
+
+#SET THE DEFAULT SCRIPTING LANGUAGE
+#THIS WILL DETERMINE IF WE SWITCH TO R OR PY IN CLEAN/ANALYTICS
+DEFAULT_SCRIPTING_LANGUAGE R
+
+#SET DEFAULT INSIGHTS RDBMS 
+#CURRENTLY ONLY SUPPORT VALUES OF : H2_DB OR SQLITE
+#DEFAULT IS H2_DB IF THIS IS REMOVED
+DEFAULT_INSIGHTS_RDBMS H2_DB
+
+#SET THE EMBED URL IMAGE
+#FILENAME MUST BE FOUND IN semoss_home\images\embed
+#IF NO IMAGE, USE NONE
+EMBED_URL_LOGO	semoss_logo_dark.svg
+
+#ENCODE LOGS
+LOG_ENCODING false
+
+#Use a custom chrome binary
+#GOOGLE_CHROME_BINARY C:\\Users\\mahkhalil\\Desktop\\GoogleChromePortable\\GoogleChromePortable.exe
+#SEMOSS logo used for exporting files
+EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss\\images\\embed\\semoss_logo.png
+
+#SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
+SCHEDULER_ENDPOINT	http://localhost:8080/Monolith
+SCHEDULER_KEYSTORE
+SCHEDULER_KEYSTORE_PASSWORD
+SCHEDULER_CERTIFICATE_PASSWORD
+
+#SAML CONFIG
+SAML_PROP_LOC	C:\\workspace\\Semoss\\saml\\mesoc\\conf	
+SAML_FEDERATION_LOG_PATH	C:\\workspace\\Semoss\\saml\\mesoc\\conf\\debug\\Federation
+
+#SET THIS TO TRUE IF RUNNING LOCALLY ON LAPTOP
+#OTHERWISE, KEEP THIS FALSE FOR SERVER DEPLOYMENT
+LOCAL_DEPLOYMENT false
+
+#WHAT SAMESITE COOKIE VALUE DO YOU WANT
+#POSSIBLE VALUES INCLUDE strict, lax, none
+SAMESITE_COOKIE none
+
+#POST MESSAGE SPECIFIC KEYS
+PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD	password123
+
+#SET IF INSIGHTS ON SAVE ARE CACHEABLE
+DEFAULT_INSIGHT_CACHEABLE	true
+
+#SET RESTRICTIONS ON PIVOT SIZE
+PIVOT_ROW_MAX	1000
+PIVOT_COL_MAX	100
+
+#Secrets
+SECRET_STORE_ENABLED	false
+#HASHICORP_VAULT or AZURE_KEYVAULT
+SECRET_STORE_TYPE		
+#Base Paths For Resources
+SECRETS_DB_PATH			semoss-db
+SECRETS_STORAGE_PATH	semoss-storage
+SECRETS_MODEL_PATH		semoss-model
+SECRETS_VECTOR_PATH		semoss-vector
+SECRETS_FUNCTION_PATH 	semoss-function
+SECRETS_PROJECT_PATH	semoss-project
+SECRETS_VENV_PATH		semoss-venv
+
+#Hashicorp Vault
+VAULT_ADDR				
+VAULT_TOKEN				
+
+#Azure KeyVault
+#Note SECRET_*_PATH can only be contain alphanumeric and dashes
+#ClientSecretCredential if passing in client/secret/tenant
+AZURE_AUTHENTICATE_MODE	
+AZURE_KEYVAULT_NAME	
+AZURE_CLIENT_ID	
+AZURE_CLIENT_SECRET	
+AZURE_TENANT_ID 		
+
+#Virus Scanning
+VIRUS_SCANNING_ENABLED 	false
+VIRUS_SCANNING_METHOD 	ClamAV
+CLAMAV_SCANNING_PORT 	3310
+CLAMAV_SCANNING_ADDRESS	 
+CLAMAV_SCANNING_FS		
+
+#Limit to only admins
+ADMIN_ONLY_PROJECT_ADD	false
+ADMIN_ONLY_PROJECT_DELETE	false
+ADMIN_ONLY_PROJECT_ADD_ACCESS	false
+ADMIN_ONLY_PROJECT_SET_PUBLIC	false
+ADMIN_ONLY_DB_ADD	false
+ADMIN_ONLY_DB_DELETE	false
+ADMIN_ONLY_DB_ADD_ACCESS	false
+ADMIN_ONLY_DB_SET_PUBLIC	false
+ADMIN_ONLY_DB_SET_DISCOVERABLE	false
+ADMIN_ONLY_INSIGHT_SET_PUBLIC	false
+
+USER_TRACKING_ENABLED	false
+USER_TRACKING_METHOD	GEOIP2
+
+MODEL_INFERENCE_LOGS_ENABLED false
+
+##################################################
+##################################################
+##################################################
+# BELOW ARE LEGACY PARAMS
+# DO NOT UPDATE OR MODIFY
+
+T_ON true
+T_ENDPOINT https://play.semoss.org/track/
+
+BROWSER_TYPE	Mozilla15
+URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
+SOLR_BASE_URL	https://localhost:443/solr
+
+SMSSWatcher	prerna.util.SMSSFileWatcher
+SMSSWatcher_DIR	C:\\workspace\\Semoss\\db
+SMSSWatcher_EXT	.smss
+
+SHOW_GOV_WARNING	false
+GPS_SUDOWL_DEFAULT	false
+GPS_SEARCH_DEFAULT	true
+GPS_PROPERTIES_DEFAULT	true
+
+Concept	http://semoss.org/ontologies
+
+LISTENERS	ProcessQueryListener;PerspectiveSelectionListener;QuestionListener;CustomizeSparqlBtnListener;SparqlAreaListener;FilterRefreshListener;UndoListener;RemoveQueryListener;FileBrowseListener;OWLRefreshListener;ColorShapeRefreshListener;ColorShapeClearRefreshListener;DBBrowseListener;GraphPlaySheetSettingsListener;ImportDataListener;CustomUpdateButtonListener;ImportTypeSelectionListener;StartTrainingListener;MapBrowseListener;AdvancedImportOptionsListener;OWLSaveListener;ShowQuestionSparqlListener;ShowSparqlHintListener;SparqlBoxListener;RDBMSTestConnectionCreateSchemaBtnListener;RDBMSDriverComboBoxListener;QuestionModificationTypeBtnListener;QuestionModButtonListener;AddParameterBtnListener;QuestionPerspectiveSelectorListener;QuestionModSelectorListener;QuestionShowMoreOptionsBtnListener;QuestionParameterDependBoxListener;QuestionParameterQueryBoxListener;QuestionParameterOptionBoxListener;QuestionAddDependencyBtnListener;QuestionEditDependencyBtnListener;QuestionDeleteDependencyBtnListener;QuestionAddQueryBtnListener;QuestionEditQueryBtnListener;QuestionDeleteQueryBtnListener;QuestionAddOptionBtnListener;QuestionOptionQueryBtnListener;QuestionDeleteOptionBtnListener;QuestionPlaySheetListListener;ServiceSelectBtnListener;ServiceTierSelectorListener;TransReportTypeComboBoxListener;TransitionReportGenButtonListener;CostDBUpdateListener;ShowHideAdvancedFinancials;CalculateTransitionCostsButtonListener;TransOverheadRadioButtonListener;CalcTransAdditionalCostsButtonListener;InsertDownstreamButtonListener;RunBVAloneButtonListener;RunTMAloneButtonListener;SysBudgetInsertListener;InsertServicePropertiesButtonListener;RunCapabilityBVButtonListener;UpdateActiveSystemsListener;AggregateTAPServicesIntoTAPCoreListener;CreateFutureInterfaceDatabaseListener;SysBPCapInsertListener;SORpropInsertListener;EAPropertyCreatorListener;FunctionalAreaSelectorListener;SourceReportGenButtonListener;SourceReportTaskWeightButtonListener;RunVendorTMAloneButtonListener;FactSheetReportTypeComboBoxListener;FactSheetListener;FactsReportImageExportButtonListener;TaskerGenerationListener;DatabaseComparisonListener;FormsSourceFilesConsolidationListener
+
+#Listener Classes
+ProcessQueryListener	prerna.ui.main.listener.impl.ProcessQueryListener
+PerspectiveSelectionListener	prerna.ui.main.listener.impl.PerspectiveSelectionListener
+QuestionListener	prerna.ui.main.listener.impl.QuestionListener
+CustomizeSparqlBtnListener	prerna.ui.main.listener.impl.CustomizeSparqlBtnListener
+SparqlAreaListener	perna.ui.main.listener.impl.SparqlAreaListener
+FilterRefreshListener	prerna.ui.main.listener.impl.FilterRefreshListener
+UndoListener	prerna.ui.main.listener.impl.UndoListener
+RemoveQueryListener	prerna.ui.main.listener.impl.RemoveQueryListener
+FileBrowseListener	prerna.ui.main.listener.impl.FileBrowseListener
+OWLRefreshListener	prerna.ui.main.listener.impl.OWLRefreshListener
+DBBrowseListener	prerna.ui.main.listener.impl.DBBrowseListener
+ImportDataListener	prerna.ui.main.listener.impl.ImportDataListener
+ColorShapeRefreshListener	prerna.ui.main.listener.impl.ColorShapeRefreshListener
+ColorShapeClearRefreshListener	prerna.ui.main.listener.impl.ColorShapeClearRefreshListener
+CalculateTransitionCostsButtonListener prerna.ui.main.listener.specific.tap.CalculateTransitionCostsButtonListener
+GraphPlaySheetSettingsListener prerna.ui.main.listener.impl.GraphPlaySheetSettingsListener
+
+CustomUpdateButtonListener	prerna.ui.main.listener.impl.CustomUpdateButtonListener
+ImportTypeSelectionListener	prerna.ui.main.listener.impl.ImportTypeSelectionListener
+StartTrainingListener	prerna.ui.main.listener.impl.StartTrainingListener
+
+MapBrowseListener	prerna.ui.main.listener.impl.MapBrowseListener
+AdvancedImportOptionsListener	prerna.ui.main.listener.impl.AdvancedImportOptionsListener
+ExportNodeLoadSheetsListener	prerna.ui.main.listener.impl.ExportNodeLoadSheetsListener
+ExportRelationshipsLoadSheetsListener	prerna.ui.main.listener.impl.ExportRelationshipsLoadSheetsListener
+ExportDatabaseLoadSheetsListener	prerna.ui.main.listener.impl.ExportDatabaseLoadSheetsListener
+SubjectNodeTypeSelectionListener	prerna.ui.main.listener.impl.SubjectNodeTypeSelectionListener
+ObjectNodeTypeSelectionListener	prerna.ui.main.listener.impl.ObjectNodeTypeSelectionListener
+AddExportListener	prerna.ui.main.listener.impl.AddExportListener
+LoadSheetExportClearAllListener	prerna.ui.main.listener.impl.LoadSheetExportClearAllListener
+OWLSaveListener	prerna.ui.main.listener.impl.SaveOWLListener
+ShowQuestionSparqlListener prerna.ui.main.listener.impl.ShowQuestionSparqlListener
+ShowSparqlHintListener	prerna.ui.main.listener.impl.ShowSparqlHintListener
+SparqlBoxListener	prerna.ui.main.listener.impl.SparqlBoxListener
+RDBMSTestConnectionCreateSchemaBtnListener prerna.ui.main.listener.impl.RDBMSTestConnectionCreateSchemaBtnListener
+RDBMSDriverComboBoxListener	prerna.ui.main.listener.impl.RDBMSDriverComboBoxListener
+QuestionModificationTypeBtnListener	prerna.ui.main.listener.impl.QuestionModificationTypeBtnListener
+QuestionModButtonListener	prerna.ui.main.listener.impl.QuestionModButtonListener
+AddParameterBtnListener	prerna.ui.main.listener.impl.AddParameterBtnListener
+QuestionModDBComboBoxListener	prerna.ui.main.listener.impl.QuestionModDBComboBoxListener
+QuestionPerspectiveSelectorListener	prerna.ui.main.listener.impl.QuestionPerspectiveSelectorListener
+QuestionModSelectorListener	prerna.ui.main.listener.impl.QuestionModSelectorListener
+QuestionShowMoreOptionsBtnListener	prerna.ui.main.listener.impl.QuestionShowMoreOptionsBtnListener
+QuestionParameterQueryBoxListener	prerna.ui.main.listener.impl.QuestionParameterQueryBoxListener
+QuestionParameterDependBoxListener	prerna.ui.main.listener.impl.QuestionParameterDependBoxListener
+QuestionAddDependencyBtnListener	prerna.ui.main.listener.impl.QuestionAddDependencyBtnListener
+QuestionEditDependencyBtnListener	prerna.ui.main.listener.impl.QuestionEditDependencyBtnListener
+QuestionDeleteDependencyBtnListener	prerna.ui.main.listener.impl.QuestionDeleteDependencyBtnListener
+QuestionAddQueryBtnListener	prerna.ui.main.listener.impl.QuestionAddQueryBtnListener
+QuestionEditQueryBtnListener	prerna.ui.main.listener.impl.QuestionEditQueryBtnListener
+QuestionDeleteQueryBtnListener	prerna.ui.main.listener.impl.QuestionDeleteQueryBtnListener
+QuestionParameterOptionBoxListener	prerna.ui.main.listener.impl.QuestionParameterOptionBoxListener
+QuestionAddOptionBtnListener	prerna.ui.main.listener.impl.QuestionAddOptionBtnListener
+QuestionEditOptionBtnListener	prerna.ui.main.listener.impl.QuestionEditOptionBtnListener
+QuestionDeleteOptionBtnListener	prerna.ui.main.listener.impl.QuestionDeleteOptionBtnListener
+QuestionPlaySheetListListener	prerna.ui.main.listener.impl.QuestionPlaySheetListListener
+
+#TAP Specific
+ServiceSelectBtnListener prerna.ui.main.listener.specific.tap.ServiceSelectBtnListener
+ServiceTierSelectorListener	prerna.ui.main.listener.specific.tap.ServiceTierSelectorListener
+TransReportTypeComboBoxListener prerna.ui.main.listener.specific.tap.TransReportTypeComboBoxListener
+TransitionReportGenButtonListener prerna.ui.main.listener.specific.tap.TransitionReportGenButtonListener
+CostDBUpdateListener prerna.ui.main.listener.specific.tap.CostDBUpdateListener
+ShowHideAdvancedFinancials prerna.ui.main.listener.specific.tap.ShowHideAdvancedFinancials
+TransOverheadRadioButtonListener prerna.ui.main.listener.specific.tap.TransOverheadRadioButtonListener
+CalcTransAdditionalCostsButtonListener prerna.ui.main.listener.specific.tap.CalcTransAdditionalCostsButtonListener
+
+InsertDownstreamButtonListener prerna.ui.main.listener.specific.tap.InsertDownstreamButtonListener
+RunTMAloneButtonListener	prerna.ui.main.listener.specific.tap.RunTMAloneButtonListener
+RunBVAloneButtonListener	prerna.ui.main.listener.specific.tap.RunBVAloneButtonListener
+SysBudgetInsertListener	prerna.ui.main.listener.specific.tap.SysBudgetInsertListener
+InsertServicePropertiesButtonListener	prerna.ui.main.listener.specific.tap.InsertServicePropertiesButtonListener
+RunCapabilityBVButtonListener prerna.ui.main.listener.specific.tap.RunCapabilityBVButtonListener
+UpdateActiveSystemsListener	prerna.ui.main.listener.specific.tap.UpdateActiveSystemsListener
+AggregateTAPServicesIntoTAPCoreListener	prerna.ui.main.listener.specific.tap.AggregateTAPServicesIntoTAPCoreListener
+CreateFutureInterfaceDatabaseListener prerna.ui.main.listener.specific.tap.CreateFutureInterfaceDatabaseListener
+SysBPCapInsertListener prerna.ui.main.listener.specific.tap.SysBPCapInsertListener
+SORpropInsertListener prerna.ui.main.listener.specific.tap.SORpropInsertListener
+EAPropertyCreatorListener		prerna.ui.main.listener.specific.tap.EAPropertyCreatorListener
+FormsSourceFilesConsolidationListener prerna.ui.main.listener.specific.tap.FormsSourceFilesConsolidationListener
+
+FunctionalAreaSelectorListener	prerna.ui.main.listener.specific.tap.FunctionalAreaSelectorListener
+SourceReportGenButtonListener prerna.ui.main.listener.specific.tap.SourceReportGenButtonListener
+SourceReportTaskWeightButtonListener prerna.ui.main.listener.specific.tap.SourceReportTaskWeightButtonListener
+RunVendorTMAloneButtonListener	prerna.ui.main.listener.specific.tap.RunVendorTMAloneButtonListener
+FactSheetReportTypeComboBoxListener prerna.ui.main.listener.specific.tap.FactSheetReportTypeComboBoxListener
+FactSheetListener prerna.ui.main.listener.specific.tap.FactSheetListener
+FactsReportImageExportButtonListener prerna.ui.main.listener.specific.tap.FactsReportImageExportButtonListener
+TaskerGenerationListener prerna.ui.main.listener.specific.tap.TaskerGenerationListener
+
+DatabaseComparisonListener		prerna.ui.main.listener.impl.DatabaseComparisonListener
+
+#Listener View
+PerspectiveSelectionListener_VIEW	questionSelector
+SparqlAreaListener_VIEW	sparqlArea
+ProcessQueryListener_VIEW	sparqlArea
+RemoveQueryListener_VIEW	sparqlArea
+AppendPlaySheetListener_VIEW	playsheetList
+FileBrowseListener_VIEW	importFileNameField
+# Controllers block
+importFileNameField_CONTROLLER
+exportFileNameField_CONTROLLER
+filterPanel_CONTROLLER
+controlPanel_CONTROLLER
+propPanel_CONTROLLER
+inputPanel_CONTROLLER
+perspectiveSelector_CONTROLLER	PerspectiveSelectionListener
+questionSelector_CONTROLLER	QuestionListener
+paramPanel_CONTROLLER
+removeButton_CONTROLLER	RemoveQueryListener
+submitButton_CONTROLLER	ProcessQueryListener
+btnCustomSparql_CONTROLLER	CustomizeSparqlBtnListener
+playSheetComboBox_CONTROLLER	CustomizeSparqlBtnListener
+btnGetQuestionSparql_CONTROLLER	ShowQuestionSparqlListener
+btnShowHint_CONTROLLER	ShowSparqlHintListener
+sparqlArea_CONTROLLER	SparqlBoxListener
+
+exportButton_CONTROLLER
+rightView_CONTROLLER
+graphPanel_CONTROLLER
+imExPanel_CONTROLLER
+imExFileSelector_CONTROLLER
+importButton_CONTROLLER
+importPanel_CONTROLLER
+exportPanel_CONTROLLER
+settingsPanel_CONTROLLER
+refreshButton_CONTROLLER	FilterRefreshListener
+
+undoBtn_CONTROLLER UndoListener
+fileBrowseBtn_CONTROLLER	FileBrowseListener
+dbBrowseBtn_CONTROLLER	DBBrowseListener
+btnRepaintGraph_CONTROLLER	OWLRefreshListener
+btnColorShape_CONTROLLER	ColorShapeRefreshListener
+btnResetDefaults_CONTROLLER	ColorShapeClearRefreshListener
+importButton_CONTROLLER	ImportDataListener
+sudowlCheck_CONTROLLER	GraphPlaySheetSettingsListener
+propertyCheck_CONTROLLER	GraphPlaySheetSettingsListener
+searchCheck_CONTROLLER	GraphPlaySheetSettingsListener
+highQualityExportCheck_CONTROLLER	GraphPlaySheetSettingsListener
+
+btnCustomUpdate_CONTROLLER	CustomUpdateButtonListener
+dbImportTypeComboBox_CONTROLLER	ImportTypeSelectionListener
+pptTrainingBtn_CONTROLLER	StartTrainingListener
+htmlTrainingBtn_CONTROLLER	StartTrainingListener
+
+mapBrowseBtn_CONTROLLER	MapBrowseListener
+dbPropBrowseButton_CONTROLLER	MapBrowseListener
+questionBrowseButton_CONTROLLER	MapBrowseListener
+btnShowAdvancedImportFeatures_CONTROLLER	AdvancedImportOptionsListener
+btnExportNodeLoadSheets_CONTROLLER	ExportNodeLoadSheetsListener
+btnExportRelationshipsLoadSheets_CONTROLLER	ExportRelationshipsLoadSheetsListener
+btnExportDatabaseLoadSheets_CONTROLLER	ExportDatabaseLoadSheetsListener
+loadSheetExportPanel_CONTROLLER
+exportDataSourceComboBox_CONTROLLER	LoadSheetExportClearAllListener
+subjectNodeTypeComboBox1_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox1_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox2_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox2_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox3_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox3_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox4_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox4_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox5_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox5_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox6_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox6_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox7_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox7_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox8_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox8_CONTROLLER	ObjectNodeTypeSelectionListener
+subjectNodeTypeComboBox9_CONTROLLER	SubjectNodeTypeSelectionListener
+objectNodeTypeComboBox9_CONTROLLER	ObjectNodeTypeSelectionListener
+btnAddExport_CONTROLLER	AddExportListener
+btnClearAll_CONTROLLER	LoadSheetExportClearAllListener
+saveSudowl_CONTROLLER	OWLSaveListener
+btnTestRDBMSConnection_CONTROLLER	RDBMSTestConnectionCreateSchemaBtnListener
+btnGetRDBMSSchema_CONTROLLER	RDBMSTestConnectionCreateSchemaBtnListener
+dbImportRDBMSDriverComboBox_CONTROLLER	RDBMSDriverComboBoxListener
+
+#DB Mod Question Mod
+addQuestionButton_CONTROLLER	QuestionModificationTypeBtnListener
+editQuestionButton_CONTROLLER	QuestionModificationTypeBtnListener
+deleteQuestionButton_CONTROLLER	QuestionModificationTypeBtnListener
+questionModButton_CONTROLLER	QuestionModButtonListener
+questionAddParameterButton_CONTROLLER	AddParameterBtnListener
+questionDatabaseSelector_CONTROLLER	QuestionModDBComboBoxListener
+questionPerspectiveSelector_CONTROLLER	QuestionPerspectiveSelectorListener
+questionModSelector_CONTROLLER	QuestionModSelectorListener
+questionMoreOptionsButton_CONTROLLER	QuestionShowMoreOptionsBtnListener
+parameterQueryTextPane_CONTROLLER	QuestionParameterQueryBoxListener
+parameterDependTextPane_CONTROLLER	QuestionParameterDependBoxListener
+parameterOptionTextPane_CONTROLLER	QuestionParameterOptionBoxListener
+addParameterDependencyButton_CONTROLLER	QuestionAddDependencyBtnListener
+dependenciesEditButton_CONTROLLER	QuestionEditDependencyBtnListener
+dependenciesDeleteButton_CONTROLLER	QuestionDeleteDependencyBtnListener
+addParameterQueryButton_CONTROLLER	QuestionAddQueryBtnListener
+parameterQueriesEditButton_CONTROLLER	QuestionEditQueryBtnListener
+parameterQueriesDeleteButton_CONTROLLER	QuestionDeleteQueryBtnListener
+addParameterOptionButton_CONTROLLER	QuestionAddOptionBtnListener
+optionsEditButton_CONTROLLER	QuestionEditOptionBtnListener
+optionsDeleteButton_CONTROLLER	QuestionDeleteOptionBtnListener
+questionLayoutComboBox_CONTROLLER	QuestionPlaySheetListListener
+
+#MHS Financial Analysis
+serviceSelectionBtn_CONTROLLER ServiceSelectBtnListener
+tierCheck1_CONTROLLER	ServiceTierSelectorListener
+tierCheck2_CONTROLLER	ServiceTierSelectorListener
+tierCheck3_CONTROLLER	ServiceTierSelectorListener
+transReportTypeComboBox_CONTROLLER TransReportTypeComboBoxListener
+transitionReportGenButton_CONTROLLER TransitionReportGenButtonListener
+btnUpdateCostDB_CONTROLLER	CostDBUpdateListener
+btnAdvancedFinancialFunctions_CONTROLLER ShowHideAdvancedFinancials
+calculateTransitionCostsButton_CONTROLLER CalculateTransitionCostsButtonListener
+rdbtnApplyTapOverhead_CONTROLLER TransOverheadRadioButtonListener
+rdbtnDoNotApplyOverhead_CONTROLLER TransOverheadRadioButtonListener
+calcTransAdditionalButton_CONTROLLER CalcTransAdditionalCostsButtonListener
+
+#MHS TAP Additional Calculations
+btnInsertDownstream_CONTROLLER InsertDownstreamButtonListener
+btnRunBvAlone_CONTROLLER	RunBVAloneButtonListener
+btnRunTmAlone_CONTROLLER	RunTMAloneButtonListener
+btnInsertBudgetProperty_CONTROLLER	SysBudgetInsertListener
+btnInsertServiceProperties_CONTROLLER	InsertServicePropertiesButtonListener
+btnRunCapabilityBV_CONTROLLER	RunCapabilityBVButtonListener
+btnUpdateActiveSystems_CONTROLLER	UpdateActiveSystemsListener
+btnAggregateTapServicesIntoTapCore_CONTROLLER	AggregateTAPServicesIntoTAPCoreListener
+btnCreateFutureInterfaceDatabase_CONTROLLER	CreateFutureInterfaceDatabaseListener
+btnSysBPCapInsert_CONTROLLER	SysBPCapInsertListener
+btnSORInsert_CONTROLLER SORpropInsertListener
+addEAPropertyButton_CONTROLLER	EAPropertyCreatorListener
+btnRunSourceFilesConsolidation_CONTROLLER	FormsSourceFilesConsolidationListener
+
+#MHS TAP Report Generator
+HSDCheckBox_CONTROLLER	FunctionalAreaSelectorListener
+HSSCheckBox_CONTROLLER	FunctionalAreaSelectorListener
+FHPCheckBox_CONTROLLER	FunctionalAreaSelectorListener
+DHMSMCheckBox_CONTROLLER	FunctionalAreaSelectorListener
+sourceReportGenButton_CONTROLLER SourceReportGenButtonListener
+btnUpdateVendorDB_CONTROLLER SourceReportTaskWeightButtonListener
+btnCalculateVendorTMAlone_CONTROLLER	RunVendorTMAloneButtonListener
+factSheetReportSystemToggleComboBox_CONTROLLER FactSheetReportTypeComboBoxListener
+btnFactSheetReport_CONTROLLER FactSheetListener
+btnFactSheetImageExport_CONTROLLER FactsReportImageExportButtonListener
+btnTaskerGeneration_CONTROLLER	TaskerGenerationListener
+
+compareDBButton_CONTROLLER	DatabaseComparisonListener
+
+# Right Views
+RIGHT_VIEW	prerna.ui.components.RightView
+
+#parents
+importFileNameField
+exportFileNameField
+filterPanel
+controlPanel
+propPanel
+sparqlArea
+inputPanel
+perspectiveSelector
+questionSelector
+paramPanel
+fillButton
+submitButton
+clearButton
+showSparql
+exportButton
+rightView
+graphPanel
+imExPanel
+imExFileSelector
+importButton
+importPanel
+exportPanel
+settingsPanel
+loadSheetExportPanel
+
+#Shape maps
+SystemInterface_SHAPE	CIRCLE
+System_SHAPE	SQUARE
+Requirement_SHAPE	HEXAGON
+BusinessProcess_SHAPE	CIRCLE
+Activity_SHAPE	PENTAGON
+BusinessLogicUnit_SHAPE	TRIANGLE
+DataObject_SHAPE	TRIANGLE
+Capability_SHAPE DIAMOND
+SystemDCSite_SHAPE	CIRCLE
+DCSite_SHAPE	TRIANGLE
+FError_SHAPE	CIRCLE
+Service_SHAPE	DIAMOND
+SoftwareModule_SHAPE	CIRCLE
+SoftwareVersion_SHAPE	CIRCLE
+Site_SHAPE	SQUARE
+IPAddress_SHAPE	TRIANGLE
+UserName_SHAPE	HEXAGON
+AssetID_SHAPE	DIAMOND
+Employee_SHAPE	CIRCLE
+HardwareVersion_SHAPE	CIRCLE
+HardwareModule_SHAPE	CIRCLE
+LifeCycle_SHAPE	HEXAGON
+SystemCategory_SHAPE	TRIANGLE
+Participant_SHAPE	CIRCLE
+DocumentType_SHAPE	STAR
+PPI_SHAPE	SQUARE
+DISRServiceArea_SHAPE	STAR
+MTF_SHAPE	CIRCLE
+Facility_SHAPE	SQUARE
+City_SHAPE	TRIANGLE
+FacilityCmdCode_SHAPE	PENTAGON
+NPI_SHAPE	StAR
+CaseID_SHAPE	TRIANGLE
+CasePass_SHAPE	CIRCLE
+Group_SHAPE	SQUARE
+Hardware_SHAPE	HEXAGON
+DirectObservation_SHAPE	TRIANGLE
+Source_SHAPE	DIAMOND
+KeyObjective_SHAPE	CIRCLE
+SBASubArea_SHAPE	SQUARE
+SBA_SHAPE	STAR
+
+#Shape Colors
+SystemInterface_COLOR	GREEN
+System_COLOR	BLUE
+Requirement_COLOR	BROWN
+BusinessProcess_COLOR	YELLOW
+Activity_COLOR	RED
+BusinessLogicUnit_COLOR	PURPLE
+DataObject_COLOR	ORANGE
+Capability_COLOR  AQUA
+SystemDCSite_COLOR	ORANGE
+DCSite_COLOR	GREEN
+FError_COLOR	BROWN
+Service_COLOR	BROWN
+SoftwareModule_COLOR	BROWN
+SoftwareVersion_COLOR	PURPLE
+Site_COLOR	BLUE
+IPAddress_COLOR	ORANGE
+UserName_COLOR	RED
+AssetID_COLOR	BROWN
+Employee_COLOR	GREEN
+HardwareModule_COLOR	BLACK
+HardwareVersion_COLOR	ORANGE
+LifeCycle_COLOR	YELLOW
+SystemCategory_COLOR	GREEN
+Documents_COLOR	GREEN
+Participant_COLOR	BLUE
+DocumentType_COLOR	AQUA
+PPI_COLOR	GREEN
+StandardIdentifier_COLOR	ORANGE
+DISRServiceArea_COLOR	YELLOW
+MTF_COLOR	BLUE
+Facility_COLOR	RED
+City_COLOR	YELLOW
+FacilityCmdCode_COLOR	GREEN
+NPI_COLOR	ORANGE
+CaseID_COLOR	GREEN
+CasePass_COLOR	ORANGE
+Group_COLOR	YELLOW
+Hardware_COLOR	RED
+DirectObservation_COLOR	RED
+Source_COLOR	BLUE
+KeyObjective_COLOR	GREEN
+SBASubArea_COLOR	YELLOW
+SBA_COLOR	PURPLE
+
+##COMMON QUERIES ACROSS ALL ENGINES
+
+#Base Predicate and Object search queries
+
+NEIGHBORHOOD_OBJECT_QUERY	SELECT  DISTINCT ?object WHERE {BIND (<@URI@> AS ?subject){?subject ?predicate ?object} MINUS {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object} MINUS{ ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?object. } } ORDER BY ?subject
+
+NEIGHBORHOOD_OBJECT_QUERY_2	SELECT  DISTINCT ?subject WHERE { {?subject ?predicate ?object}BIND (<@URI@> AS ?object)} ORDER BY ?subject 
+
+NEIGHBORHOOD_TYPE_QUERY	SELECT  DISTINCT ?type WHERE {{?subject ?predicate ?object} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}MINUS {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object} MINUS{ ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?object. } } ORDER BY ?type BINDINGS ?subject {@FILTER_VALUES@}
+NEIGHBORHOOD_TYPE_QUERY_2	SELECT  DISTINCT ?type WHERE { {?subject ?predicate ?object}{?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}} ORDER BY ?type BINDINGS ?object {@FILTER_VALUES@}
+
+NEIGHBORHOOD_TYPE_QUERY_JENA	SELECT  DISTINCT ?type ?predicate WHERE { VALUES ?subject {@FILTER_VALUES@} {?subject ?predicate ?object} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} MINUS {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object} MINUS {?subject <http://www.w3.org/2000/01/rdf-schema#label> ?object} } ORDER BY ?type ?subject
+NEIGHBORHOOD_TYPE_QUERY_JENA_2	SELECT  DISTINCT ?type ?predicate WHERE { VALUES ?object {@FILTER_VALUES@} {?subject ?predicate ?object}{?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>}} ORDER BY ?type ?object
+
+TRAVERSE_FREELY_QUERY	SELECT DISTINCT ?subject ?predicate ?object WHERE {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>. ?subject ?predicate ?object. } BINDINGS ?subject {@FILTER_VALUES@}
+TRAVERSE_FREELY_QUERY_2	SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>. ?subject ?predicate ?object. } BINDINGS ?object {@FILTER_VALUES@}
+TRAVERSE_FREELY_QUERY_MULTI_TYPE	SELECT DISTINCT ?subject ?predicate ?object WHERE {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objectType. BIND(<@FILTER_VALUES@> AS ?subject). ?subject ?predicate ?object. } BINDINGS ?objectType {@OBJECT_TYPE@}
+TRAVERSE_FREELY_QUERY_MULTI_TYPE_2	SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subjectType. BIND(<@FILTER_VALUES@> AS ?object). ?subject ?predicate ?object. } BINDINGS ?subjectType {@SUBJECT_TYPE@}
+
+TRAVERSE_FREELY_QUERY_JENA	SELECT DISTINCT ?subject ?predicate ?object WHERE { VALUES ?subject {@FILTER_VALUES@} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>} BIND(<@PREDICATE@> as ?predicate) {?subject <@PREDICATE@> ?object} }
+TRAVERSE_FREELY_QUERY_JENA_2	SELECT DISTINCT ?subject ?predicate ?object WHERE { VALUES ?object {@FILTER_VALUES@} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>} BIND(<@PREDICATE@> as ?predicate) {?subject <@PREDICATE@> ?object} }
+
+TRAVERSE_INSTANCE_FREELY_QUERY	SELECT DISTINCT ?subject ?predicate ?object WHERE {BIND(<@SUBJECT@> AS ?subject) BIND(<@OBJECT@> AS ?object). ?subject ?predicate ?object. } 
+TRAVERSE_INSTANCE_FREELY_QUERY_2	SELECT DISTINCT	?subject ?predicate ?object WHERE {BIND(<@OBJECT@> AS ?subject) BIND(<@SUBJECT@> AS ?object). ?subject ?predicate ?object. }
+
+SUBJECT_TYPE_QUERY SELECT ?object WHERE {BIND (<@ENTITY@> AS ?subject) { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object}   FILTER NOT EXISTS { { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subtype} {?subtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?object} }}
+TYPE_QUERY	SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}
+
+#Relation Predictor Queries
+NEIGHBORHOOD_PREDICATE_FINDER_QUERY	SELECT  DISTINCT ?predicate WHERE {BIND (@SUBJECT@ AS ?subject). BIND (@OBJECT@ AS ?object). ?subject ?predicate ?object. }
+NEIGHBORHOOD_PREDICATE_ALT2_FINDER_QUERY	SELECT  ?predicate WHERE {?subject <http://www.w3.org/2000/01/rdf-schema#label> @SUBJECT@.  BIND (@OBJECT@ AS ?object). ?subject ?predicate ?object.}
+NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY	SELECT  ?predicate WHERE {?subject <http://www.w3.org/2000/01/rdf-schema#label> @SUBJECT@.  ?object <http://www.w3.org/2000/01/rdf-schema#label> @OBJECT@. ?subject ?predicate ?object. }
+
+NEIGHBORHOOD_PREDICATE_FINDER_QUERY_2	SELECT  DISTINCT ?predicate WHERE {BIND (@SUBJECT@ AS ?object). BIND (@OBJECT@ AS ?subject). ?subject ?predicate ?object. }
+NEIGHBORHOOD_PREDICATE_ALT2_FINDER_QUERY_2	SELECT  ?predicate WHERE {?object <http://www.w3.org/2000/01/rdf-schema#label> @SUBJECT@.  BIND (@OBJECT@ AS ?subject). ?subject ?predicate ?object.}
+NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY_2	SELECT  ?predicate WHERE {?object <http://www.w3.org/2000/01/rdf-schema#label> @SUBJECT@.  ?subject <http://www.w3.org/2000/01/rdf-schema#label> @OBJECT@. ?subject ?predicate ?object. }
+
+##Concept Queries
+SEMOSS_URI	http://semoss.org/ontologies
+
+## DATA MAKERS DEFINED
+GraphDataModel	prerna.om.GraphDataModel
+TinkerFrame	prerna.ds.TinkerFrame
+H2Frame	prerna.ds.h2.H2Frame
+SqlServerFrame prerna.ds.sqlserver.SqlServerFrame
+SparkDataFrame	prerna.ds.spark.SparkDataFrame
+Dashboard prerna.om.Dashboard
+NativeFrame prerna.ds.nativeframe.NativeFrame
+RDataTable prerna.ds.r.RDataTable
+
+
+##PLAYSHEETS DEFINED
+PLAYSHEETS_DEFINED	Grid;Graph;VivaGraph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;RawGrid;
+
+CirclePack	prerna.ui.components.playsheets.CirclePackPlaySheet
+Clustering	prerna.ui.components.playsheets.ClusteringVizPlaySheet
+Column	prerna.ui.components.playsheets.ColumnChartPlaySheet
+Combo	prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
+Dendrogram	prerna.ui.components.playsheets.DendrogramPlaySheet
+Graph	prerna.ui.components.playsheets.GraphPlaySheet
+VivaGraph	prerna.ui.components.playsheets.GraphPlaySheet
+Grid	prerna.ui.components.playsheets.GridPlaySheet
+RawGrid	prerna.ui.components.playsheets.GridRAWPlaySheet
+HeatMap	prerna.ui.components.playsheets.HeatMapPlaySheet
+Line	prerna.ui.components.playsheets.LineChartPlaySheet
+ParallelSets	prerna.ui.components.playsheets.ParallelSetsPlaySheet
+ParallelCoordinates	prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet
+Pie	prerna.ui.components.playsheets.PieChartPlaySheet
+Scatter	prerna.ui.components.playsheets.ScatterChartPlaySheet
+ScatterplotMatrix	prerna.ui.components.playsheets.ScatterPlotMatrixPlaySheet
+SingleAxisCluster	prerna.ui.components.playsheets.WekaAprioriVizPlaySheet
+SystemSimilarity	prerna.ui.components.specific.tap.SysSimHeatMapSheet
+USHeatMap	prerna.ui.components.playsheets.USHeatMapPlaySheet
+USMap	prerna.ui.components.playsheets.CONUSMapPlaySheet
+WorldHeatMap	prerna.ui.components.playsheets.WorldHeatMapPlaySheet
+WorldMap	prerna.ui.components.playsheets.OCONUSMapPlaySheet
+
+Grid_HINT	GridPlaySheet Hint: SELECT ?x1 ?x2 ?x3 WHERE{ ... }
+Graph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
+VivaGraph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
+HeatMap_HINT	HeatMapPlaySheet Hint: SELECT ?xAxisList ?yAxisList ?numericHeatValue WHERE{ ... } GROUP BY ?xAxisList ?yAxisList
+Line_HINT	LineChartPlaySheet Hint: SELECT ?xAxis ?series1 (OPTIONAL) ?series2 ?series3 ... (where all series values are numbers) WHERE { ... }
+Dendrogram_HINT	DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }
+ParallelCoordinates_HINT	ParallelCoordinatesPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }
+ParallelSets_HINT	ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }
+Scatter_HINT	GridScatterSheet Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }
+Column_HINT	ColumnChartPlaySheet Hint: SELECT ?xAxis ?yAxis1 (OPTIONAL) ?yAxis2 ?yAxis3 ... (where all yAxis values are numbers) WHERE { ... }
+Pie_HINT	PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }
+CirclePack_HINT	CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }
+Clustering_HINT	ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters
+SingleAxisCluster_HINT	OutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount
+USHeatMap_HINT	USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }
+USMap_HINT	CONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
+WorldHeatMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
+WorldMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
+
+Grid_DATAMAKER	TinkerFrame
+VivaGraph_DATAMAKER	TinkerFrame
+Graph_DATAMAKER	GraphDataModel
+HeatMap_DATAMAKER	TinkerFrame
+Line_DATAMAKER	TinkerFrame
+Combo_DATAMAKER prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
+Dendrogram_DATAMAKER prerna.ui.components.playsheets.DendrogramPlaySheet
+ParallelCoordinates_DATAMAKER TinkerFrame
+ParallelSets_DATAMAKER TinkerFrame
+Scatter_DATAMAKER TinkerFrame
+Column_DATAMAKER TinkerFrame
+Pie_DATAMAKER TinkerFrame
+3dBarchart_DATAMAKER TinkerFrame
+CirclePack_DATAMAKER prerna.ui.components.playsheets.CirclePackPlaySheet
+Clustering_DATAMAKER TinkerFrame
+Gantt_DATAMAKER prerna.ui.components.playsheets.GanttPlaySheet
+Sankey_DATAMAKER prerna.ui.components.playsheets.SankeyPlaySheet
+ScatterplotMatrix_DATAMAKER TinkerFrame
+SingleAxisCluster_DATAMAKER TinkerFrame
+USHeatMap_DATAMAKER TinkerFrame
+USMap_DATAMAKER TinkerFrame
+WorldHeatMap_DATAMAKER TinkerFrame
+WorldMap_DATAMAKER TinkerFrame
+Mashup_DATAMAKER TinkerFrame
+
+Combo_CUSTOM	FALSE
+3dBarchart_CUSTOM	FALSE
+Gantt_CUSTOM	FALSE
+SystemSimilarity_CUSTOM	FALSE
+Mashup_CUSTOM	FALSE
+
+Graph_DATA	getGraphOutput
+
+
+##TRANSFORMATIONS DEFINED
+join	prerna.ui.components.playsheets.datamakers.JoinTransformation
+filter	prerna.ui.components.playsheets.datamakers.FilterTransformation
+algorithmTransformation	prerna.algorithm.learning.AlgorithmTransformation
+algorithmAction	prerna.algorithm.learning.AlgorithmAction
+math	prerna.ui.components.playsheets.datamakers.MathTransformation
+pkql	prerna.ui.components.playsheets.datamakers.PKQLTransformation
+
+
+##DESIGNATED PORTS
+MARIADB_PORT 3306
+SQLServer_PORT 1433
+
+##LIMIT FOR HOW MUCH DATA TO KEEP IN H2 IN-MEM FRAME
+H2_IN_MEM_SIZE	10000
+
+##TURN CACHING ON OR OFF
+CACHE_SETTING ON
+
+PROBHIBITED_HEADERS	ALL,CHECK,CONSTRAINT,CROSS,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,DISTINCT,EXCEPT,EXISTS,FALSE,FETCH,FOR,FOREIGN,FROM,FULL,HAVING,INNER,INTERSECT,IS,JOIN,LIKE,LIMIT,MINUS,NATURAL,NOT,NULL,OFFSET,ON,ORDER,PRIMARY,ROWNUM,SELECT,SYSDATE,SYSTIME,SYSTIMESTAMP,TODAY,TRUE,UNION,UNIQUE,WHERE,WITH
+
+#http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc36271.1550/html/blocks/BEIJHIFE.htm
+ANSI_SQL_KEYWORDS ABSOLUTE,ACTION,ALLOCATE,ARE,ASSERTION,BIT,BIT_LENGTH,BOTH,CASCADED,CASE,CAST,CATALOG,CHAR,CHAR_LENGTH,CHARACTER,CHARACTER_LENGTH,COALESCE,COLLATION,COLUMN,CONNECTION,CONSTRAINTS,CORRESPONDING,CROSS,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,DATE,DAY,DEC,DECIMAL,DEFFERABLE,DEFERRED,DESCRIBE,DESCRIPTOR,DIAGNOSTICS,DISCONNECT,DOMAIN,END-EXEC,EXCEPTION,EXTRACT,FALSE,FIRST,FLOAT,FOUND,FULL,GET,GLOBAL,GO,HOUR,IMMEDIATE,INDICATOR,INITIALLY,INNER,INPUT,INSENSITIVE,INT,INTEGER,INTERVAL,JOIN,LANGUAGE,LAST,LEADING,LEFT,LOCAL,LOWER,MATCH,MINUTE,MODULE,MONTH,NAMES,NATURAL,NCHAR,NEXT,NO,NULLIF,NUMERIC,OCTET_LENGTH,OUTER,OUTPUT,OVERLAPS,PAD,PARTIAL,POSITION,PRESERVE,PRIOR,REAL,RELATIVE,RESTRICT,RIGHT,SCROLL,SECOND,SECTION,SEMI_SENSITIVE,SESSION_USER,SIZE,SMALLINT,SPACE,SQL,SQLCODE,SQLERROR,SUBSTRING,SYSTEM_USER,THEN,TIME,TIMESTAMP,TIMEZONE_HOUR,TIMEZONE_MINUTE,TRAILING,TRANSLATE,TRANSLATION,TRIM,TRUE,UNKNOWN,UPPER,USAGE,VALUE,VARCHAR,WHEN,WHENEVER,WRITE,YEAR,ZONE
+
+#http://www.h2database.com/html/advanced.html#keywords
+H2_DB_KEYWORDS ALL,AND,ARRAY,AS,BETWEEN,BOTH,CASE,CHECK,CONSTRAINT,CROSS,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,DISTINCT,EXCEPT,EXISTS,FALSE,FETCH,FILTER,FOR,FOREIGN,FROM,FULL,GROUP,GROUPS,HAVING,IF,LIKE,IN,INNER,INTERSECT,INTERSECTS,INTERVAL,IS,JOIN,LEADING,LEFT,LIKE,LIMIT,LOCALTIME,LOCALTIMESTAMP,MINUS,NATURAL,NOT,NULL,OFFSET,ON,OR,ORDER,OVER,PARTITION,PRIMARY,QUALIFY,RANGE,REGEXP,RIGHT,ROW,_ROWID_,ROWNUM,ROWS,SELECT,SYSDATE,SYSTIME,SYSTIMESTAMP,TABLE,TODAY,TOP,TRAILING,TRUE,UNION,UNIQUE,VALUES,WHERE,WINDOW,WITH 
+
+#https://www.sqlite.org/lang_keywords.html
+SQLITE_KEYWORDS ABORT,ACTION,ADD,AFTER,ALL,ALTER,ANALYZE,AND,AS,ASC,ATTACH,AUTOINCREMENT,BEFORE,BEGIN,BETWEEN,BY,CASCADE,CASE,CAST,CHECK,COLLATE,COLUMN,COMMIT,CONFLICT,CONSTRAINT,CREATE,CROSS,CURRENT,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,DATABASE,DEFAULT,DEFERRABLE,DEFERRED,DELETE,DESC,DETACH,DISTINCT,DO,DROP,EACH,ELSE,END,ESCAPE,EXCEPT,EXCLUDE,EXCLUSIVE,EXISTS,EXPLAIN,FAIL,FILTER,FOLLOWING,FOR,FOREIGN,FROM,FULL,GLOB,GROUP,GROUPS,HAVING,IF,IGNORE,IMMEDIATE,IN,INDEX,INDEXED,INITIALLY,INNER,INSERT,INSTEAD,INTERSECT,INTO,IS,ISNULL,JOIN,KEY,LEFT,LIKE,LIMIT,MATCH,NATURAL,NO,NOT,NOTHING,NOTNULL,NULL,OF,OFFSET,ON,OR,ORDER,OTHERS,OUTER,OVER,PARTITION,PLAN,PRAGMA,PRECEDING,PRIMARY,QUERY,RAISE,RANGE,RECURSIVE,REFERENCES,REGEXP,REINDEX,RELEASE,RENAME,REPLACE,RESTRICT,RIGHT,ROLLBACK,ROW,ROWS,SAVEPOINT,SELECT,SET,TABLE,TEMP,TEMPORARY,THEN,TIES,TO,TRANSACTION,TRIGGER,UNBOUNDED,UNION,UNIQUE,UPDATE,USING,VACUUM,VALUES,VIEW,VIRTUAL,WHEN,WHERE,WINDOW,WITH,WITHOUT
+
+#https://dev.mysql.com/doc/refman/8.0/en/keywords.html
+MYSQL_KEYWORDS KEY,VALUES
+
+SQL_SERVER_KEYWORDS GROUP
