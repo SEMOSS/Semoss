@@ -3,10 +3,13 @@ import json
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # model_name = "meta-llama/CodeLlama-13b-hf"
+#model_name = "qwen
+#from smss_util.JSONMaker import JSONMaker
+# jm = JSONMaker(model_name = "Qwen/Qwen2.5-7B", load_in_8bit=True, local_files_only=False)
 
 class JSONMaker:
 
-  def init(self, model_name=None, tokenizer_name=None, file_name=None, snapshot=None, repo_type=None, local_files_only=True, context=None, **kwargs):
+  def __init__(self, model_name=None, tokenizer_name=None, file_name=None, snapshot=None, repo_type=None, local_files_only=True, context=None, **kwargs):
     # try to see the repo type
     # load it accordingly
     # This code will assume Cuda
