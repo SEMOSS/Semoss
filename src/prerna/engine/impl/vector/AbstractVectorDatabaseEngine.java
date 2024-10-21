@@ -487,7 +487,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		List<Map<String, Object>> vectorSearchResponse = nearestNeighborCall(insight, searchStatement, limit, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
-		if (inferenceLogsEnbaled) {
+		if (inferenceLogsEnbaled && this.keepInputOutput) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/UUID.randomUUID().toString(), 
@@ -573,7 +573,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
 			this.smssProp.put(Constants.MAX_TOKENS, "None");
 		} else {
-			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
+			String modelMaxTokens = modelProperties.getProperty(Constants.MAX_TOKENS);
+			if(modelMaxTokens == null || (modelMaxTokens=modelMaxTokens.trim()).isEmpty()) {
+				this.smssProp.put(Constants.MAX_TOKENS, "None");
+			} else {
+				this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens);
+			}
 		}
 
 		// model engine responsible for creating keywords
