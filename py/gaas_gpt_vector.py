@@ -27,6 +27,7 @@ class VectorEngine(ServerProxy):
         file_paths: List[str],
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
+        space: Optional[str] = None,
     ) -> bool:
         """
         Add the documents into the vector database
@@ -44,7 +45,11 @@ class VectorEngine(ServerProxy):
             f",paramValues=[{param_dict}]" if param_dict is not None else ""
         )
 
-        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
+        optionalSpace = (
+            f",space=['{space}']" if (space is not None and space != "") else ""
+        )
+
+        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams}{optionalSpace});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(

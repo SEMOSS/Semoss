@@ -10,6 +10,7 @@ CHAT_TYPE = "chat_type"
 TEMPLATE = "template"
 TEMPLATE_NAME = "template_name"
 FULL_PROMPT = "full_prompt"
+IMAGE_ENCODED = "image_encoded"
 
 
 @dataclasses.dataclass
