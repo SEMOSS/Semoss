@@ -3,6 +3,9 @@ package prerna.engine.impl.model;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -186,11 +189,13 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 	}
 	
 	@Override
-	protected InstructModelEngineResponse instructCall(String task, String context, Insight insight, Map<String, Object> parameters) {
-	    return new InstructModelEngineResponse(
-	        new String[] { "This model does not support the instruct method." },
-	        0,
-	        0
-	    );
+	protected InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+	    Map<String, String> messageMap = new HashMap<>();
+	    messageMap.put("message", "This model does not support the instruct method.");
+
+	    List<Map<String, String>> responseList = Collections.singletonList(messageMap);
+
+	    return new InstructModelEngineResponse(responseList, 0, 0);
 	}
 }
+

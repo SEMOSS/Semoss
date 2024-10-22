@@ -134,7 +134,7 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 	
 	@Override
-	public InstructModelEngineResponse instruct(String task, String context, Insight insight, Map<String, Object> parameters) {
+	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		return null;
 	}
 

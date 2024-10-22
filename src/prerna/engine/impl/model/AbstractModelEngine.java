@@ -140,15 +140,15 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 * @param hyperParameters
 	 * @return
 	 */
-	protected abstract InstructModelEngineResponse instructCall(String task, String context, Insight insight, Map<String, Object> hyperParameters);
+	protected abstract InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters);
 	
 	@Override
-	public InstructModelEngineResponse instruct(String task, String context, Insight insight, Map<String, Object> parameters) {
+	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		if(parameters == null) {
 			parameters = new HashMap<String, Object>();
 		}
 		
-		InstructModelEngineResponse instructModelResponse = instructCall(task, context, insight, parameters);
+		InstructModelEngineResponse instructModelResponse = instructCall(task, context, projectData, insight, parameters);
 		
 		instructModelResponse.setMessageId(UUID.randomUUID().toString());
 		instructModelResponse.setRoomId(insight.getInsightId());

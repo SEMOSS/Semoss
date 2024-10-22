@@ -263,7 +263,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 	
 	@Override
-	public InstructModelEngineResponse instructCall(String task, String context, Insight insight, Map<String, Object> parameters) {
+	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
 		
 		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
@@ -275,6 +275,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 					 .append(context.replace("\"", "\\\""))
 					 .append("\"\"\"");	
 		}
+		
+		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
 		
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();

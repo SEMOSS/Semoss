@@ -57,7 +57,7 @@ public interface IModelEngine extends IEngine {
 	 *  			- messageId : The unique identifier of a message (the user's input and the model response)
 	 *  			- roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	InstructModelEngineResponse instruct(String task, String context, Insight insight, Map <String, Object> parameters);
+	InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map <String, Object> parameters);
 	
 
 	/**

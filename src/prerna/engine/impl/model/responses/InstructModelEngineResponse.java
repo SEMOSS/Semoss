@@ -2,8 +2,11 @@ package prerna.engine.impl.model.responses;
 
 import java.util.Map;
 import java.util.List;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class InstructModelEngineResponse extends AbstractModelEngineResponse<String[]> {
+public class InstructModelEngineResponse extends AbstractModelEngineResponse<List<Map<String, String>>> {
+	private static final Logger classLogger = LogManager.getLogger(InstructModelEngineResponse.class);
 
 
     private static final long serialVersionUID = 1L;
@@ -14,7 +17,7 @@ public class InstructModelEngineResponse extends AbstractModelEngineResponse<Str
 	private String messageId;
 	private String roomId;
 
-    public InstructModelEngineResponse(String[] response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+    public InstructModelEngineResponse(List<Map<String,String>> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
     
@@ -44,15 +47,10 @@ public class InstructModelEngineResponse extends AbstractModelEngineResponse<Str
 
     public static InstructModelEngineResponse fromMap(Map<String, Object> modelResponse) {
         Object responseObject = modelResponse.get(RESPONSE);
-        String[] responseArray = null;
+        List<Map<String, String>> responseList = null;
 
-        if (responseObject instanceof String[]) {
-            responseArray = (String[]) responseObject;
-        } else if (responseObject instanceof java.util.List) {
-            java.util.List<?> responseList = (java.util.List<?>) responseObject;
-            responseArray = responseList.toArray(new String[0]);
-        } else if (responseObject instanceof String) {
-            responseArray = new String[] { (String) responseObject };
+        if (responseObject instanceof List) {
+            responseList = (List<Map<String, String>>) responseObject;
         } else {
             throw new IllegalArgumentException("Invalid response type: " + responseObject.getClass());
         }
@@ -60,7 +58,7 @@ public class InstructModelEngineResponse extends AbstractModelEngineResponse<Str
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
 
-        return new InstructModelEngineResponse(responseArray, tokensInPrompt, tokensInResponse);
+        return new InstructModelEngineResponse(responseList, tokensInPrompt, tokensInResponse);
     }
 
     @SuppressWarnings("unchecked")
@@ -69,6 +67,7 @@ public class InstructModelEngineResponse extends AbstractModelEngineResponse<Str
             Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
             return fromMap(modelResponse);
         } else {
+        	classLogger.error("responseObject : {}", responseObject);
             throw new IllegalArgumentException("Expected a Map<String, Object> but got: " + responseObject.getClass());
         }
     }
