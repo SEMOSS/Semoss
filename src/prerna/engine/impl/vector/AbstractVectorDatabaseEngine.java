@@ -333,13 +333,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 							}
 							catch(Exception e) {
-								classLogger.error(Constants.STACKTRACE, e);
 								FileUtils.forceDelete(extractedFile);
 								FileUtils.forceDelete(document);
-								classLogger.error(document.getName()+":"+e.getMessage());
+								classLogger.error(document.getName()+" : "+e.getMessage());
 								continue;
 							}
-							classLogger.error(document.getName()+": No Error");
+							classLogger.info(document.getName()+" : No Error");
 						}
 
 						// check to see if the file data was extracted
