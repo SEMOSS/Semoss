@@ -29,6 +29,7 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
         return OpenAiTokenizer(
             encoder_name=init_args.pop("tokenizer_name", None) or self.model_name,
             max_tokens=init_args.pop("max_tokens", None),
+            max_input_tokens=init_args.pop("max_input_tokens", None)
         )
 
     def _get_client(self, api_key, **kwargs):
