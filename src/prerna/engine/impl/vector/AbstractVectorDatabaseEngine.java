@@ -329,7 +329,17 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							functionInputs.put("parameters", parameters);
 							rowsCreated = (int) functionEngine.execute(functionInputs);
 						} else {
-							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							try {
+								rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
+							}
+							catch(Exception e) {
+								classLogger.error(Constants.STACKTRACE, e);
+								FileUtils.forceDelete(extractedFile);
+								FileUtils.forceDelete(document);
+								classLogger.error(document.getName()+":"+e.getMessage());
+								continue;
+							}
+							classLogger.error(document.getName()+": No Error");
 						}
 
 						// check to see if the file data was extracted
