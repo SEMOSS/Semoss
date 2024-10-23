@@ -4,20 +4,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.weaviate.client.v1.filters.Operator;
+import io.weaviate.client.v1.filters.WhereFilter;
 import prerna.query.querystruct.filters.AndQueryFilter;
-import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.reactor.qs.SubQueryExpression;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public final class WeaviateVectorQueryFitler {
+
+	private static final Logger classLogger = LogManager.getLogger(WeaviateVectorQueryFitler.class);
 
 	public static String[] checkModalityFilters(List<IQueryFilter> filters, String column) {
 		String[] filterSyntax = null;
@@ -50,9 +53,9 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < filterList.size(); i++) {
 			filterSimple = (SimpleQueryFilter) filterList.get(i);
 			if (filterSimple.getLComparison().toString().contains(column))
-
 				rightComp = filterSimple.getRComparison();
 		}
+		
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToModalityValuesFilter(rightComp);
@@ -68,9 +71,9 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < filterList.size(); i++) {
 			filterSimple = (SimpleQueryFilter) filterList.get(i);
 			if (filterSimple.getLComparison().toString().contains(column))
-
 				rightComp = filterSimple.getRComparison();
 		}
+		
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToModalityValuesFilter(rightComp);
@@ -97,25 +100,21 @@ public final class WeaviateVectorQueryFitler {
 
 		if (!(rightComp.getValue().toString().contains("["))) {
 			rightSelector = (String) rightComp.getValue();
-
 			result[0] = rightSelector;
 
 		} else {
 			rs = (Vector<String>) rightComp.getValue();
 			result = new String[rs.size()];
 			for (int i = 0; i < rs.size(); i++) {
-
 				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
 			}
-
 		}
 
 		return result;
 	}
 
 	public static List<String> addFilters(List<IQueryFilter> filters) {
+		String ERROR = "Unable to generate filter";
 		List<String> filterStatements = new ArrayList<>();
 
 		for (IQueryFilter filter : filters) {
@@ -127,7 +126,7 @@ public final class WeaviateVectorQueryFitler {
 			}
 		}
 		if (filterStatements.size() == 0) {
-			throw new IllegalArgumentException("Unable to generate filter");
+			throw new IllegalArgumentException(ERROR);
 		}
 		return filterStatements;
 	}
@@ -159,13 +158,15 @@ public final class WeaviateVectorQueryFitler {
 
 	private static String checkFilterType(IQueryFilter filter) {
 
+		String AND = "And";
+		String OR = "Or";
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return "And";
+			return AND;
 		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return "And";
+			return AND;
 		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return "Or";
+			return OR;
 		}
 		return null;
 	}
@@ -183,9 +184,7 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < numAnds; i++) {
 			filterBuilder = processFilter(filterList.get(i));
 			AndList.addAll(processFilter(filterList.get(i)));
-
 		}
-
 		return AndList;
 	}
 
@@ -203,7 +202,6 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < numAnds; i++) {
 			filterBuilder = processFilter(filterList.get(i));
 			AndList.addAll(processFilter(filterList.get(i)));
-
 		}
 
 		return AndList;
@@ -245,7 +243,6 @@ public final class WeaviateVectorQueryFitler {
 			String op = addSelectorToValuesFilter(leftComp, thisComparator);
 			results.add(op);
 			return (List<String>) results;
-
 		}
 		return null;
 	}
@@ -270,6 +267,10 @@ public final class WeaviateVectorQueryFitler {
 	 */
 	protected static String addSelectorToValuesFilter(NounMetadata leftComp, String thisComparator) {
 		String leftresult = "";
+		String SOURCE = "Source";
+		String MODALITY = "Modality";
+		String DIVIDER = "divider";
+		String PART = "part";
 
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftDataType = leftSelector.getDataType();
@@ -277,16 +278,16 @@ public final class WeaviateVectorQueryFitler {
 		if (leftDataType == null) {
 			String leftConceptProperty = leftSelector.getQueryStructName();
 
-			if (leftConceptProperty.equalsIgnoreCase("Source")) {
+			if (leftConceptProperty.equalsIgnoreCase(SOURCE)) {
 				leftresult += leftConceptProperty;
 			}
-			if (leftConceptProperty.equalsIgnoreCase("Modality")) {
+			if (leftConceptProperty.equalsIgnoreCase(MODALITY)) {
 				leftresult += leftConceptProperty;
 			}
-			if (leftConceptProperty.equalsIgnoreCase("Divider")) {
+			if (leftConceptProperty.equalsIgnoreCase(DIVIDER)) {
 				leftresult += leftConceptProperty;
 			}
-			if (leftConceptProperty.equalsIgnoreCase("Part")) {
+			if (leftConceptProperty.equalsIgnoreCase(PART)) {
 				leftresult += leftConceptProperty;
 			}
 		}
@@ -309,12 +310,8 @@ public final class WeaviateVectorQueryFitler {
 			rs = (Vector<String>) rightComp.getValue();
 			result = new String[rs.size()];
 			for (int i = 0; i < rs.size(); i++) {
-
 				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
 			}
-
 		}
 
 		return result;
@@ -325,7 +322,6 @@ public final class WeaviateVectorQueryFitler {
 		String[] filterSyntax = null;
 		for (IQueryFilter filter : filters) {
 			filterSyntax = processSourceFilter(filter, column);
-
 		}
 		return filterSyntax;
 	}
@@ -357,7 +353,6 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < filterList.size(); i++) {
 			filterSimple = (SimpleQueryFilter) filterList.get(i);
 			if (filterSimple.getLComparison().toString().contains(column))
-
 				rightComp = filterSimple.getRComparison();
 		}
 
@@ -372,7 +367,6 @@ public final class WeaviateVectorQueryFitler {
 		String[] filterSyntax = null;
 		for (IQueryFilter filter : filters) {
 			filterSyntax = processDividerFilter(filter, column);
-
 		}
 		return filterSyntax;
 	}
@@ -400,7 +394,6 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < filterList.size(); i++) {
 			filterSimple = (SimpleQueryFilter) filterList.get(i);
 			if (filterSimple.getLComparison().toString().contains(column))
-
 				rightComp = filterSimple.getRComparison();
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
@@ -418,7 +411,6 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < filterList.size(); i++) {
 			filterSimple = (SimpleQueryFilter) filterList.get(i);
 			if (filterSimple.getLComparison().toString().contains(column))
-
 				rightComp = filterSimple.getRComparison();
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
@@ -446,19 +438,14 @@ public final class WeaviateVectorQueryFitler {
 
 		if (!(rightComp.getValue().toString().contains("["))) {
 			rightSelector = (String) rightComp.getValue();
-
 			result[0] = rightSelector;
 
 		} else {
 			rs = (Vector<String>) rightComp.getValue();
 			result = new String[rs.size()];
 			for (int i = 0; i < rs.size(); i++) {
-
 				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
 			}
-
 		}
 
 		return result;
@@ -468,7 +455,6 @@ public final class WeaviateVectorQueryFitler {
 		String[] filterSyntax = null;
 		for (IQueryFilter filter : filters) {
 			filterSyntax = processPartFilter(filter, column);
-
 		}
 		return filterSyntax;
 	}
@@ -513,7 +499,6 @@ public final class WeaviateVectorQueryFitler {
 		for (int i = 0; i < filterList.size(); i++) {
 			filterSimple = (SimpleQueryFilter) filterList.get(i);
 			if (filterSimple.getLComparison().toString().contains(column))
-
 				rightComp = filterSimple.getRComparison();
 		}
 		FILTER_TYPE fType = filterSimple.getSimpleFilterType();
@@ -541,21 +526,134 @@ public final class WeaviateVectorQueryFitler {
 
 		if (!(rightComp.getValue().toString().contains("["))) {
 			rightSelector = (String) rightComp.getValue();
-
 			result[0] = rightSelector;
 
 		} else {
 			rs = (Vector<String>) rightComp.getValue();
 			result = new String[rs.size()];
 			for (int i = 0; i < rs.size(); i++) {
-
 				result[i] = rs.get(i);
-				System.out.println(result[i]);
-
 			}
-
 		}
 
 		return result;
+	}
+
+	public static WhereFilter[] addSearchFilters(List<IQueryFilter> filters, List<String> searchFilters,
+			String operationType) {
+
+		WhereFilter whereSource = null;
+		WhereFilter whereModality = null;
+		WhereFilter whereDivider = null;
+		WhereFilter wherePart = null;
+
+		String[] filesList = null;
+		String[] modalityList = null;
+		String[] dividerList = null;
+		String[] partList = null;
+		
+		int size = 0;
+		String SOURCE = "source";
+		String MODALITY = "modality";
+		String DIVIDER = "divider";
+		String PART = "part";
+
+		String errorMsg = "Column value is not valid.Please pass valid column values,i.e; Source,Modality,Divider and Part";
+
+		for (int i = 0; i < searchFilters.size(); i++) {
+			if (searchFilters.get(i).equalsIgnoreCase(SOURCE)) {
+
+				filesList = WeaviateVectorQueryFitler.checkSourceFilters(filters, searchFilters.get(i));
+				size++;
+
+			}
+			if (searchFilters.get(i).equalsIgnoreCase(MODALITY)) {
+
+				modalityList = WeaviateVectorQueryFitler.checkModalityFilters(filters, searchFilters.get(i));
+				size++;
+
+			}
+			if (searchFilters.get(i).equalsIgnoreCase(DIVIDER)) {
+
+				dividerList = WeaviateVectorQueryFitler.checkDividerFilters(filters, searchFilters.get(i));
+				size++;
+
+			}
+			if (searchFilters.get(i).equalsIgnoreCase(PART)) {
+
+				partList = WeaviateVectorQueryFitler.checkPartFilters(filters, searchFilters.get(i));
+				size++;
+
+			}
+		}
+		if (size == 0) {
+			classLogger.error(errorMsg);
+			throw new IllegalArgumentException(errorMsg);
+
+		}
+
+		WhereFilter[] whereCheck = new WhereFilter[size];
+		int i = 0;
+
+		if (filesList != null) {
+			whereSource = WhereFilter.builder().path(SOURCE).operator(Operator.ContainsAny).valueText(filesList)
+					.build();
+			whereCheck[i] = whereSource;
+			i++;
+		}
+
+		if (modalityList != null) {
+			whereModality = WhereFilter.builder().path(MODALITY).operator(Operator.ContainsAny).valueText(modalityList)
+					.build();
+			whereCheck[i] = whereModality;
+			i++;
+		}
+
+		if (dividerList != null) {
+			whereDivider = WhereFilter.builder().path(DIVIDER).operator(Operator.ContainsAny).valueText(dividerList)
+					.build();
+			whereCheck[i] = whereDivider;
+			i++;
+		}
+
+		if (partList != null) {
+			wherePart = WhereFilter.builder().path(PART).operator(Operator.ContainsAny).valueText(partList).build();
+			whereCheck[i] = wherePart;
+			i++;
+		}
+
+		return whereCheck;
+
+	}
+
+	public static String checkOperationType(boolean flag1, boolean flag2, String operationType1,
+			String operationType2) {
+		String operationType = null;
+		String AND = "And";
+		String errorMessage = "Operation type is not valid";
+
+		if (flag1 && flag2 && operationType1 == null && operationType2 == null) {
+			operationType = AND;
+		}
+
+		else if (flag1 && flag2 && operationType1 != null && operationType2 == null) {
+			operationType = operationType1;
+		}
+
+		else if (flag1 && flag2 && operationType2 != null && operationType1 == null) {
+			operationType = operationType2;
+		}
+
+		else if (flag1 && flag2 && operationType2 != null && operationType1 != null
+				&& operationType1 == operationType2) {
+			operationType = operationType2;
+		} else if (flag1 && !flag2) {
+			operationType = operationType1;
+		} else if (!flag1 && flag2) {
+			operationType = operationType2;
+		} else
+			throw new SemossPixelException(errorMessage);
+
+		return operationType;
 	}
 }
