@@ -35,6 +35,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -229,18 +230,32 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+		
+		int cutter = autocut;
+		String FILTERS = "filters";
+		String METAFILTERS = "metaFilters";
+		List<Map<String, Object>> retOut = new ArrayList<>();
+		List<String> searchFilters = new ArrayList<String>();
+		
+		GraphQLResponse response = null;
+		List<IQueryFilter> filters = null;
+		List<IQueryFilter> metaFilters = null;
+		WhereFilter where = null;
+		String operationType = null;
+		String operationType1 = null;
+		String operationType2 = null;
+		ArrayList outputs = new ArrayList<>();
+		
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
 		if(limit == null) {
 			limit = 3;
 		}
-		int cutter = autocut;
+		
 		if(parameters.containsKey(AUTOCUT)) {
 			cutter = Integer.parseInt(parameters.get(AUTOCUT) + "");
 		}
-		
-		List<Map<String, Object>> retOut = new ArrayList<>();
 		
 		Float [] vector = getEmbeddingsFloat(searchStatement, insight);
 
@@ -259,13 +274,61 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
 		
-		GraphQLResponse response = client.graphQL().get().withClassName(className)
-				.withFields(content, source, divider, part, modality, _additional)
-				.withNearVector(nearVector)
-				.withAutocut(cutter)
-				.withLimit(limit.intValue())
-				.run()
-				.getResult();
+		if (!(parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				&& !(parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+
+			response = client.graphQL().get().withClassName(className)
+					.withFields(content, source, divider, part, modality, _additional).withNearVector(nearVector)
+					.withAutocut(cutter).withLimit(limit.intValue()).run().getResult();
+		
+		}
+
+		//create constant
+		if ((parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY))
+				|| (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY))) {
+				
+				boolean flag1 = false;
+				boolean flag2 = false;
+				if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+					flag1 = parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY);
+					filters = (List<IQueryFilter>) parameters.remove(FILTERS);
+					operationType1 = WeaviateVectorQueryFitler.checkFilters(filters);
+				}
+				if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+					flag2 = parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
+					metaFilters = (List<IQueryFilter>) parameters.remove(METAFILTERS);
+					operationType2 = WeaviateVectorQueryFitler.checkFilters(metaFilters);
+				}
+
+				operationType = WeaviateVectorQueryFitler.checkOperationType(flag1, flag2, operationType1, operationType2);
+
+		     	WhereFilter[] whereCheck  = null;
+
+				if (flag1) {
+					searchFilters = WeaviateVectorQueryFitler.addFilters(filters);
+					whereCheck  = WeaviateVectorQueryFitler.addSearchFilters(filters, searchFilters, operationType);			
+				}
+
+				if (flag2) {
+					searchFilters = WeaviateVectorQueryFitler.addFilters(metaFilters);
+					whereCheck  = WeaviateVectorQueryFitler.addSearchFilters(metaFilters, searchFilters, operationType);
+
+				}
+				
+				where = WhereFilter.builder().operator(operationType).operands(whereCheck).build();
+				
+				
+				response = client.graphQL().get().withClassName(className)
+						.withFields(content, source, divider, part, modality, _additional).withNearVector(nearVector)
+						.withAutocut(cutter).withLimit(limit.intValue()).withWhere(where).run().getResult();
+
+				}
+		
+		LinkedTreeMap getMap = (LinkedTreeMap)((LinkedTreeMap)response.getData()).get("Get");
+		
+		// vector table
+		 outputs = (ArrayList)getMap.get(className);
+
 
 		// hashmap = LinkedTreeMap
 		// each level is a hashmap
@@ -275,10 +338,10 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// the contents is again another hashmap
 		
 		// get
-		LinkedTreeMap getMap = (LinkedTreeMap)((LinkedTreeMap)response.getData()).get("Get");
+	//	LinkedTreeMap getMap = (LinkedTreeMap)((LinkedTreeMap)response.getData()).get("Get");
 		
 		// vector table
-		ArrayList outputs = (ArrayList)getMap.get(className);
+	//	ArrayList outputs = (ArrayList)getMap.get(className);
 
 		// each of the output is another treemap with each of the fields.. yay 
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++) {
