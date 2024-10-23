@@ -99,6 +99,66 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					);
 			usage.add(usageMap);
 		}
+		{
+			Map<String, Object> usageMap = fillMap(
+					"OPENAI", 
+					"How to use externally with OpenAI API",
+					"# import the ai platform package - requires user access/secret, service account, or bearer_token"
+					+ "\r\n"
+					+ "import ai_server\r\n"
+					+ "server_connection=ai_server.RESTServer(\r\n"
+					+ "    base=\"<the api endpoint>\"			# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
+					+ "    access_key=\"<your access key>\",		# example: \"d0033d40-ea83-4083-96ce-17a01451f831\"\r\n"
+					+ "    secret_key=\"<your secret key>\",		# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
+					+ ")"
+					+ "\r\n"
+					+ "\r\n"
+					+ "# import the openai package and httpx\r\n"
+					+ "from openai import OpenAI\r\n"
+					+ "import httpx as httpx\r\n"
+					+ "http_client = httpx.Client()\r\n"
+					+ "http_client.cookies=server_connection.cookies\r\n"
+					+ "\r\n"
+					+ "# setup openai to point to this running instance\r\n"
+					+ "client = OpenAI(\r\n"
+					+ "    api_key=\"EMPTY\",\r\n"
+					+ "    base_url=server_connection.get_openai_endpoint(),\r\n"
+					+ "    default_headers=server_connection.get_auth_headers(),\r\n"
+					+ "    http_client=http_client\r\n"
+					+ ")"
+					+ "\r\n"
+					+ "\r\n"
+					+ "# chat completitions using openai\r\n"
+					+ "response = client.chat.completions.create(\r\n"
+					+ "    model=\""+engineId+"\",\r\n"
+					+ "    messages=[\r\n"
+					+ "        {\"role\": \"system\", \"content\": \"You are a helpful assistant.\"},\r\n"
+					+ "        {\"role\": \"user\", \"content\": \"Who won the world series in 2020?\"},\r\n"
+					+ "        {\"role\": \"assistant\", \"content\": \"The Los Angeles Dodgers won the World Series in 2020.\"},\r\n"
+					+ "        {\"role\": \"user\", \"content\": \"Where was it played?\"}\r\n"
+					+ "    ],\r\n"
+					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
+					+ ")"
+					+ "\r\n"
+					+ "\r\n"
+					+ "# completitions using openai - note this is marked deprecated by openai\r\n"
+					+ "response = client.completions.create(\r\n"
+					+ "    model=\""+engineId+"\",\r\n"
+					+ "    prompt=\"Write a tagline for an ice cream shop.\",\r\n"
+					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
+					+ ")"
+					+ "\r\n"
+					+ "\r\n"
+					+ "# embeddings using openai\r\n"
+					+ "client.embeddings.create(\r\n"
+					+ "    model=\""+engineId+"\",\r\n"
+					+ "    input=[\"Your text string goes here\"],\r\n"
+					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
+					+ ")"
+					);
+			System.out.println("again4");
+			usage.add(usageMap);
+		}
 		return usage;
 	}
 	
