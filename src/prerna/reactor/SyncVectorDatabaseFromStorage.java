@@ -67,14 +67,17 @@ public class SyncVectorDatabaseFromStorage extends AbstractReactor{
 		String storageId = this.keyValue.get(this.keysToGet[1]);
 		String storagePath = this.keyValue.get(this.keysToGet[2]);
 		
-		try {			
-			fileList = fetchRecentUploadsFromStorage(insight,storageId, storagePath); 			
-			 
-	        for (String uploadedFileName : fileList) {
-	    	 File  formattedFiles = new File(uploadedFileName);			
-			 String fileName = formattedFiles.getName();
-			 uploadedFiles.add(fileName);
-	        }
+		try {
+			IStorageEngine storage = Utility.getStorage(storageId);
+			List<Map<String, Object>> storageFileList = storage.listDetails(storagePath);
+			for (Map<String, Object> storageFile : storageFileList) { 
+	        	if(storageFile.get(PATH).equals(storageFile.get(NAME))) {
+	        		uploadedFiles.add(storageFile.get(NAME).toString());
+	        	}
+			}	
+			
+			fileList = fetchRecentUploadsFromStorage(insight,storage, storageFileList); 
+			
 			for(String engineId : engineList) {
 				if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 					throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
@@ -117,7 +120,7 @@ public class SyncVectorDatabaseFromStorage extends AbstractReactor{
 		
 	}	
 	
-	public List<String> fetchRecentUploadsFromStorage(Insight insight,String storageEngineId, String storagePath) {
+	public List<String> fetchRecentUploadsFromStorage(Insight insight,IStorageEngine storage, List<Map<String, Object>> storageFileList) {
 		File outputFile = null;
 		List<String> fileList = new ArrayList<String>(); 
 		
@@ -131,18 +134,14 @@ public class SyncVectorDatabaseFromStorage extends AbstractReactor{
 			}
 			File storageFileFolderDir = new File( Utility.normalizePath(in.getInsightFolder()));
 			
-			Date lastChecked = getLastCheckedDate();
-			
-			IStorageEngine storage = Utility.getStorage(storageEngineId);			
-			
-			List<Map<String, Object>> storageFileList = storage.listDetails(storagePath);			
+			Date lastChecked = getLastCheckedDate();			
 			
 			for (Map<String, Object> storageFile : storageFileList) { 
 	        	if(storageFile.get(PATH).equals(storageFile.get(NAME))) {
 	        		Instant instant = Instant.parse(storageFile.get(MODIFIED_TIME).toString());  
 	        		Date fileModifiedDate = Date.from(instant);
 	        		if(fileModifiedDate.after(lastChecked)) {	        			
-	        			storage.copyToLocal(storagePath + DIR_SEPARATOR + storageFile.get(NAME).toString(), 
+	        			storage.copyToLocal(this.keyValue.get(this.keysToGet[2]) + DIR_SEPARATOR + storageFile.get(NAME).toString(), 
 	        					storageFileFolderDir.toString());
 	        			
 	        			outputFile = new File(storageFileFolderDir + DIR_SEPARATOR + storageFile.get(NAME).toString());
