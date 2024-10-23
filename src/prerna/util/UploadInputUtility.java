@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
@@ -20,8 +23,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public final class UploadInputUtility {
 
@@ -176,12 +177,8 @@ public final class UploadInputUtility {
 		//normalize
 		fileLocation = Utility.normalizePath(fileLocation);
 		
-		GenRowStruct spaceGrs = store.getNoun(SPACE);
-		if (fileGrs == null || fileGrs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the file path using key " + keyToGrab);
-		}
-
 		String space = null;
+		GenRowStruct spaceGrs = store.getNoun(SPACE);
 		// grabbing the space
 		// and using the asset utility to get the location
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
