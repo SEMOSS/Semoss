@@ -129,6 +129,7 @@ public class User implements Serializable {
 	 * @param value
 	 */
 	public void setAccessToken(AccessToken value) {
+		value = ReadOnlyAccessToken.unmodifiableToken(value);
 		AuthProvider name = value.getProvider();
 		if(!loggedInProfiles.contains(name)) {
 			loggedInProfiles.add(name);
@@ -998,10 +999,15 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(cmdUtil != null && this.cpw.getSocketClient() != null || !this.cpw.getSocketClient().isConnected()) {
-			cmdUtil.setTcpClient(this.cpw.getSocketClient());
-		}
-		return this.cmdUtil;
+	    if (this.cpw.getSocketClient() == null) {
+	        this.getPyTranslator();
+	    }
+	    if (cmdUtil != null) {
+	        if (this.cpw.getSocketClient() != null && !this.cpw.getSocketClient().isConnected()) {
+	            cmdUtil.setTcpClient(this.cpw.getSocketClient());
+	        }
+	    }
+	    return this.cmdUtil;
 	}
 	
 	public MountHelper getUserMountHelper() {
