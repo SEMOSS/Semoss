@@ -150,7 +150,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					+ "\r\n"
 					+ "\r\n"
 					+ "# embeddings using openai\r\n"
-					+ "client.embeddings.create(\r\n"
+					+ "embeddings = client.embeddings.create(\r\n"
 					+ "    model=\""+engineId+"\",\r\n"
 					+ "    input=[\"Your text string goes here\"],\r\n"
 					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
