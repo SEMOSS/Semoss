@@ -106,10 +106,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"# import the ai platform package - requires user access/secret, service account, or bearer_token"
 					+ "\r\n"
 					+ "import ai_server\r\n"
-					+ "server_connection=ai_server.RESTServer(\r\n"
-					+ "    base=\"<the api endpoint>\"			# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
+					+ "server_connection=ai_server.ServerClient(\r\n"
+					+ "    base=\"<the api endpoint>\",			# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
 					+ "    access_key=\"<your access key>\",		# example: \"d0033d40-ea83-4083-96ce-17a01451f831\"\r\n"
-					+ "    secret_key=\"<your secret key>\",		# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
+					+ "    secret_key=\"<your secret key>\"		# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
 					+ ")"
 					+ "\r\n"
 					+ "\r\n"
@@ -156,7 +156,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
 					+ ")"
 					);
-			System.out.println("again4");
 			usage.add(usageMap);
 		}
 		return usage;
