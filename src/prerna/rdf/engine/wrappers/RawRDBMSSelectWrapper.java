@@ -232,14 +232,16 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					try(InputStream is = rs.getBinaryStream(colNum);
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					) {
-				        byte[] buffer = new byte[1024];
-				        int length;
-
-				        while ((length = is.read(buffer)) != -1) {
-				            baos.write(buffer, 0, length);
-				        }
-
-				        val = baos.toString("UTF-8"); 
+						if(is != null) {
+					        byte[] buffer = new byte[1024];
+					        int length;
+	
+					        while ((length = is.read(buffer)) != -1) {
+					            baos.write(buffer, 0, length);
+					        }
+	
+					        val = baos.toString("UTF-8"); 
+						}
 					} catch (IOException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
