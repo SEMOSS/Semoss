@@ -68,11 +68,14 @@ import java.text.Normalizer.Form;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -5838,6 +5841,68 @@ public final class Utility {
 	public static Boolean validateName(String name) {
 		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
 		return name.matches(regex);
+	}
+	
+	
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the week.
+	 */
+	public static Map<String, LocalDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, LocalDateTime> weekDates = new HashMap<>();
+
+		// Find the start of the week (Sunday)
+		ZonedDateTime start = utcDateTime;
+		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
+			start = start.minusDays(1);
+		}
+
+		// Find the end of the week (Saturday)
+		ZonedDateTime end = utcDateTime;
+		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
+			end = end.plusDays(1);
+		}
+		// Convert ZonedDateTime to LocalDateTime
+		weekDates.put("start", start.toLocalDateTime());
+		weekDates.put("end", end.toLocalDateTime());
+
+		return weekDates;
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the month.
+	 */
+	public static Map<String, LocalDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, LocalDateTime> dates = new HashMap<>();
+		 // Find the start of the month by setting the day to 1.
+		dates.put("start", utcDateTime.withDayOfMonth(1).toLocalDateTime());
+		// Find the end of the month by setting the day to the last day of the month.
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()).toLocalDateTime());
+
+		return dates;
+	}
+	
+	/**
+	 *  @param value
+	 * @param type
+	 * @return default values based on type
+	 */
+	public static <T> T nullCheckUtility(Object value, Class<T> type) {
+		if (value == null) {
+			if (type == Integer.class) {
+				return type.cast(0);
+			} else if (type == Double.class) {
+				return type.cast(0.0);
+			} else if (type == String.class) {
+				return type.cast(null);
+			} else if (type == Boolean.class) {
+				return type.cast(true);
+			}
+		}
+		return type.cast(value);
 	}
 	
 

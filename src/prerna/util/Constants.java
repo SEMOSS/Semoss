@@ -936,4 +936,37 @@ public class Constants {
 	public static final String MAP_EMAIL = "email";
 	public static final String MAP_NAME = "name";
 	public static final String MAP_USERNAME = "username";
+	
+    // ENGINEPERMISSION extra columns added for user throttle limit
+ 	public static final String ENGINE_IS_MAX_TOKEN = "engine_is_max_token";
+ 	public static final String ENGINE_MAX_TOKEN = "engine_max_token";
+ 	public static final String ENGINE_MAX_RESPONSE_TIME = "engine_max_response_time";
+ 	public static final String ENGINE_FREQUENCY = "engine_frequency";
+ 	
+    // SMSS_USER extra columns added for user throttle limit
+  	public static final String USER_MAX_TOKEN = "user_max_token";
+  	public static final String USER_MAX_RESPONSE_TIME = "user_max_response_time";
+  	public static final String USER_FREQUENCY = "user_frequency";
+  	
+	//UTC ZONE
+  	public static final String UTC_ZONE = "UTC";
+  	
+  	//Trottle limit for a user having tokens and response
+  	public static final String TOTAL_TOKEN_RESPONSE = "totalTokenResponse";
+  	public static final String IS_MAX_TOKEN_REACHED = "isMaxTokenReached";
+  	public static final String TOTAL_TOKENS_RESPONSE_TIME = "totalTokensResponseTime";
+  	public static final String TOTAL_RESPONSE_TIME = "totalResponseTime";
+  	public static final String MAX_TOKEN = "maxTokens";
+  	public static final String IS_MAX_RESPONSE_TIME_REACHED = "isMaxResponseTimeReached";
+  	public static final String MAX_RESPONSE_TIME = "maxResponseTime";
+  	public static final String IS_MAX_TOKEN = "isMaxToken";
+  	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+  	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
+  	public static final String RATE_LIMIT = "rateLimit";
+  	
+  	//Exception Message for throttle limit
+  	public static final String TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded: You have used %d tokens, but the limit is %d";
+    public static final String RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded: You have reached %.2f seconds, but the limit is %.2f seconds.";
+  	
+	
 }

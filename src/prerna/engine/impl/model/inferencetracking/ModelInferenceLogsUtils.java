@@ -6,9 +6,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -905,5 +907,60 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
+	
+	
+	/**
+	 * 
+	 * @param user
+	 * @param utcDateTime
+	 * @param frequency
+	 * @param isMaxToken
+	 * @return  total token count or response time within the specified period, with the key "totalToken"
+	 */
+	public static Map<String, Object> getTotalTokensOrTotalResponseTime(User user, ZonedDateTime currentDateTime, String frequency, boolean isMaxToken) {
+		
+		 // Initialize the date range map (start and end dates)
+	    Map<String, LocalDateTime> dates = new HashMap<>();
+	   // Determine the start and end date based on the given frequency
+	    if(frequency.equals("WEEK")) {
+	    	dates = Utility.getWeekStartEndDate(currentDateTime);
+	    }else if(frequency.equals("MONTH")) {
+	    	// Get start and end date for the current month
+	    	dates = Utility.getMonthStartEndDate(currentDateTime);
+	    }else {
+	    	dates.put("start", LocalDateTime.now());
+	    	dates.put("end", LocalDateTime.now());
+	    }
+	    		
+	   // Extract start and end dates from the map
+	    LocalDateTime startDate = dates.get("start");
+	    LocalDateTime endDate = dates.get("end");
+	    
+	    String sumColumn = isMaxToken ? "  SUM(MESSAGE_TOKENS) " : " SUM(RESPONSE_TIME)" ;
+        //SQL query to fetch the total tokens or response time
+	    String query = "SELECT "+ sumColumn +" AS max "+
+	                   "FROM MESSAGE WHERE USER_ID = ? AND DATE_CREATED BETWEEN ? AND ?";
+	    PreparedStatement ps = null;
+	    ResultSet rs = null;
+	    Map<String, Object> result = new HashMap<>();
 
+	    try {
+	        ps = modelInferenceLogsDb.getPreparedStatement(query);
+	        ps.setString(1, user.getAccessToken(user.getLogins().get(0)).getId());
+	        ps.setDate(2, java.sql.Date.valueOf(startDate.toLocalDate()));
+	        ps.setDate(3, java.sql.Date.valueOf(endDate.toLocalDate()));
+
+	        rs = ps.executeQuery();
+	        if (rs.next()) {
+	            result.put("totalTokenResponse", rs.getInt("max"));
+	        }
+	    } catch (SQLException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	    } finally {
+	        ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null , ps, rs);
+	    }
+	    // Return the result map containing the total token count or response time
+	    return result;
+	}
+	
 }

@@ -2778,4 +2778,38 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return valid;
 	}
 	
+	/**
+	 * Get the Engine Users Permission Object
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+
+	public static List<Map<String, Object>> getEngineUsersPermissionObject(User user, String engineId) {
+
+		if (user == null || engineId == null || engineId.trim().isEmpty()) {
+			return null;
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MAXTOKENS", "user_max_token"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MAXRESPONSETIME", "user_max_response_time"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__FREQUENCY", "user_frequency"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ISMAXTOKEN", "engine_is_max_token"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", "engine_max_token"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", "engine_max_response_time"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__FREQUENCY", "engine_frequency"));
+		// filter to the engine
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", user.getAccessToken(user.getLogins().get(0)).getId()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		 //relationship between SMSS_USER and ENGINEPERMISSION tables
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+
 }

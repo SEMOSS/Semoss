@@ -34,12 +34,18 @@ public class AccessToken implements Serializable {
 	String phone = null;
 	String phoneExtension = null;
 	String countryCode = null;
+	int maxTokens = 0;
+	double maxResponseTime = 0.0;
+	String frequency = null;
+	
 	
 	Map<String, String> sans = null;
+	
 
 	boolean locked = false;
 	SemossDate lastLogin = null;
 	SemossDate lastPasswordReset = null;
+	
 	
 	public AccessToken() {
 		this.userGroups = new HashSet<>();
@@ -224,4 +230,28 @@ public class AccessToken implements Serializable {
 		this.lastPasswordReset = lastPasswordReset;
 	}
 
+	public int getMaxToken() {
+		return maxTokens;
+	}
+
+	public void setMaxTokens(int maxTokens) {
+		this.maxTokens = maxTokens;
+	}
+
+	public double getMaxResponseTime() {
+		return maxResponseTime;
+	}
+
+	public void setMaxResponseTime(double maxResponseTime) {
+		this.maxResponseTime = maxResponseTime;
+	}
+
+	public String getFrequency() {
+		return frequency;
+	}
+
+	public void setFrequency(String frequency) {
+		this.frequency = frequency;
+	}
+	
 }

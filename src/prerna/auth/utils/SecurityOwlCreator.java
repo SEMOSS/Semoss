@@ -101,8 +101,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/"+Constants.ENGINE_METAKEYS);
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/"+Constants.ENGINE_METAKEYS+"/DEFAULTVALUES")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SMSS_USER/FREQUENCY")) {
 				return true;
 			}
 		}
@@ -179,6 +179,10 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("ENGINEPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("ENGINEPERMISSION", "ISMAXTOKEN", "BOOLEAN");
+		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
+		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
+		owler.addProp("ENGINEPERMISSION", "FREQUENCY", "VARCHAR(255)");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);
@@ -308,6 +312,9 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "PHONE", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "PHONEEXTENSION", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "COUNTRYCODE", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "MAXTOKENS", "INT");
+		owler.addProp("SMSS_USER", "MAXRESPONSETIME", "DOUBLE");
+		owler.addProp("SMSS_USER", "FREQUENCY", "VARCHAR(255)");
 		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
