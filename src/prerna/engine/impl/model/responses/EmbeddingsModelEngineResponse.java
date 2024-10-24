@@ -14,9 +14,12 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
-	
 	@SuppressWarnings("unchecked")
 	public static EmbeddingsModelEngineResponse fromMap(Map<String, Object> modelResponse) {
+		Object responseObj = modelResponse.get(RESPONSE);
+		if(responseObj instanceof String) {
+			throw new IllegalArgumentException((String) responseObj);
+		}
 		List<List<Double>> responseObject = (List<List<Double>>) modelResponse.get(RESPONSE);
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
@@ -26,7 +29,6 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 	
 	@SuppressWarnings("unchecked")
 	public static EmbeddingsModelEngineResponse fromObject(Object responseObject) {
-		
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
     }
