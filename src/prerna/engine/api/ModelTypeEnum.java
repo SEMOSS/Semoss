@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
+import prerna.engine.impl.model.NamedEntityRecognitionEngine;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
@@ -13,6 +14,7 @@ public enum ModelTypeEnum {
 	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
 	EMBEDDED("EMBEDDED", EmbeddedModelEngine.class.getName()),
 	// FAST_CHAT("FAST_CHAT", FastChatProcessModel.class.getName()),
+	NAMED_ENTITY_RECOGNITION("NAMED_ENTITY_RECOGNITION", NamedEntityRecognitionEngine.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
 	REMOTE("REMOTE", RemoteModelEngine.class.getName()),
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
