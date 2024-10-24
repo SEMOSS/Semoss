@@ -5,6 +5,7 @@ import java.util.Map;
 
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.NerModelEngineResponse;
 import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {
@@ -55,7 +56,6 @@ public interface IModelEngine extends IEngine {
 	 */
 	EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters);
 	
-
 	/**
 	 * Passes a list of strings to the model client to be embedded. Each string in the {@code stringsToEmbed} will be returned as its own vector.
 	 * 
