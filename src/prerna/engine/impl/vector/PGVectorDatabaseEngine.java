@@ -621,12 +621,15 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
 			// '<=>' cosine similarity operator
 			// cosine distance is between -1 and 1
+			// Using 1 - cosine distance converts the distance metric into a similarity metric.
 			// 1 = identical
 			// 0 = orthogonal
 			// -1 = opposite
 			// so need to show results as desc
-			qs.addSelector(new QueryOpaqueSelector("(EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
-			qs.addOrderBy("Score", "DESC");
+			qs.addSelector(new QueryOpaqueSelector("1 - (EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
+			// This allows us to sort results by similarity in descending order 
+			// (from most similar to least similar).
+			qs.addOrderBy("Score", "DESC"); 
 		} else {
 			// '<->' Euclidean (L2) distance operator
 			// The POWER function is used to square the distance to avoid the computational cost of square roots
