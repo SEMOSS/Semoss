@@ -18,6 +18,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.io.connector.secrets.ISecrets;
@@ -128,6 +129,31 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 
 		return askModelResponse;
+	}
+	
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
+	 * @param task
+	 * @param context
+	 * @param insight
+	 * @param hyperParameters
+	 * @return
+	 */
+	protected abstract InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters);
+	
+	@Override
+	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+		
+		InstructModelEngineResponse instructModelResponse = instructCall(task, context, projectData, insight, parameters);
+		
+		instructModelResponse.setMessageId(UUID.randomUUID().toString());
+		instructModelResponse.setRoomId(insight.getInsightId());
+		
+		return instructModelResponse;
 	}
 	
 	/**

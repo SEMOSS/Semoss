@@ -101,6 +101,56 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return model_response
 
+    def instruct(
+        self,
+        task: str,
+        context: Optional[str] = None,
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ) -> List[Dict]:
+        """This method is responsible for interacting with models that can perform instruction based text-generation.
+        This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
+
+        Args:
+            - task (str): The task to instruct.
+            - context (Optional[str]): Context for the task.
+            - insight_id (Optional[str]): Identifier for insights.
+            - param_dict (Optional[Dict]): Additional parameters.
+
+        Returns:
+            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
+            - response
+            - numberOfTokensInPrompt
+            - numberOfTokensInResponse
+            - messageId
+            - roomId
+        """
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        if param_dict is None:
+            param_dict = {}
+
+        epoc = super().get_next_epoc()
+
+        model_response = super().call(
+            epoc=epoc,
+            engine_type="Model",
+            engine_id=self.engine_id,
+            method_name="instruct",
+            method_args=[task, context, insight_id, param_dict],
+            method_arg_types=[
+                "java.lang.String",
+                "java.lang.String",
+                "prerna.om.Insight",
+                "java.util.Map",
+            ],
+            insight_id=insight_id,
+        )
+
+        return model_response
+
     def embeddings(
         self,
         strings_to_embed: List[str],
@@ -412,6 +462,15 @@ class ModelEngine(AbstractModelEngine):
         **kwargs,
     ) -> Dict:
         return self.model_engine.ask(**kwargs)
+
+    def instruct(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ) -> Dict:
+        return self.model_engine.instruct(**kwargs)
 
     def embeddings(
         self,
