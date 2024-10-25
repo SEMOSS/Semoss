@@ -1,7 +1,5 @@
 package prerna.reactor.model;
 
-import prerna.reactor.AbstractReactor;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,8 +51,6 @@ public class PredictReactor extends AbstractReactor {
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
-		
 		
 		IModelEngine targetModel = Utility.getModel(engineId);
 		NamedEntityRecognitionEngine targetEngine = (NamedEntityRecognitionEngine) targetModel;
