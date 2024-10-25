@@ -999,10 +999,15 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(cmdUtil != null && this.cpw.getSocketClient() != null || !this.cpw.getSocketClient().isConnected()) {
-			cmdUtil.setTcpClient(this.cpw.getSocketClient());
-		}
-		return this.cmdUtil;
+	    if (this.cpw.getSocketClient() == null) {
+	        this.getPyTranslator();
+	    }
+	    if (cmdUtil != null) {
+	        if (this.cpw.getSocketClient() != null && !this.cpw.getSocketClient().isConnected()) {
+	            cmdUtil.setTcpClient(this.cpw.getSocketClient());
+	        }
+	    }
+	    return this.cmdUtil;
 	}
 	
 	public MountHelper getUserMountHelper() {
