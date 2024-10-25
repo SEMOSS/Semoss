@@ -237,9 +237,15 @@ public class ApiSemossTestEngineUtils {
 				idList = idList + " '" + x + "',";
 			}
 			idList = idList.substring(0, idList.length() - 1) + ")";
-			st.addBatch("DELETE FROM ENGINE WHERE ID" + idList);
-			st.addBatch("DELETE FROM ENGINECONCEPT WHERE ENGINE" + idList);
-			st.addBatch("DELETE FROM ENGINERELATION WHERE ENGINE" + idList);
+			if (IDS_TO_AVOID.size() == 0) {
+				st.addBatch("DELETE FROM ENGINE");
+				st.addBatch("DELETE FROM ENGINECONCEPT");
+				st.addBatch("DELETE FROM ENGINERELATION");
+			} else {
+				st.addBatch("DELETE FROM ENGINE WHERE ID" + idList);
+				st.addBatch("DELETE FROM ENGINECONCEPT WHERE ENGINE" + idList);
+				st.addBatch("DELETE FROM ENGINERELATION WHERE ENGINE" + idList);
+			}
 
 			st.executeBatch();
 
