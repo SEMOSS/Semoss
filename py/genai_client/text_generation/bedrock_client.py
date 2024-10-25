@@ -35,7 +35,7 @@ class BedrockClient(AbstractTextGenerationClient):
         secret_key=None,
         region=None,
         template_name=None,
-        response_stream=False,
+        response_stream=None,
         guardrail_identifier=None,
         guardrail_version=None,
         **kwargs,
@@ -257,6 +257,7 @@ class BedrockClient(AbstractTextGenerationClient):
         top_p=None,
         stop_sequences=None,
         prefix="",
+        stream = None,
         **kwargs,
     ) -> AskModelEngineResponse:
         client = self._get_client()
@@ -321,8 +322,11 @@ class BedrockClient(AbstractTextGenerationClient):
             inference_config = self.create_inference_config(
                 max_new_tokens, temperature, top_p
             )
+            
+            if stream is None:
+                stream = self.response_stream
 
-            if self.response_stream == True:
+            if stream == "true" or stream == True:
                 if (
                     self.guardrail_identifier is not None
                     and self.guardrail_version is not None
@@ -348,11 +352,11 @@ class BedrockClient(AbstractTextGenerationClient):
                         # additionalModelRequestFields=additional_model_fields
                     )
 
-                stream = response.get("stream")
-                if stream:
-                    for event in stream:
+                stream_response = response.get("stream")
+                if stream_response:
+                    for event in stream_response:
                         if "contentBlockDelta" in event:
-                            full_response += event["contentBlockDelta"]["delta"]["text"]
+                            final_response += event["contentBlockDelta"]["delta"]["text"]
 
                     model_engine_response.response_tokens = self.tokenizer.count_tokens(
                         final_response
@@ -390,12 +394,9 @@ class BedrockClient(AbstractTextGenerationClient):
                 model_engine_response.response_tokens = response["usage"][
                     "outputTokens"
                 ]
-
             model_engine_response.response = final_response
             return model_engine_response
 
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
             raise Exception(f"Error while making request to Bedrock: {e}")
-
-        return final_response
