@@ -280,7 +280,7 @@ public class ApiSemossTestEngineUtils {
 			assertTrue(connectiondetails.getLeft().contains("testfolder"));
 
 			ps = conn
-					.prepareStatement("select table_nAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
+					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
 			ps.execute();
 			ResultSet rs = ps.getResultSet();
 			List<String> al = new ArrayList<>();
