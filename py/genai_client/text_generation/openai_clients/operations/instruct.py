@@ -20,28 +20,36 @@ class Instruct:
         Handles the 'instruct' operation.
         """
         print("Executing Instruct Operation...")
+        print(projectData)
 
         projects_df = self.convert_data_to_dataframe(projectData)
 
-        task_target, detect_task_response = self._detect_task_target(
+        detect_task_response = self._detect_task_target(
             task, context, max_new_tokens, prefix, **kwargs
         )
 
-        steps_data, decompose_response = self._decompose_task(
-            task, task_target, context, max_new_tokens, prefix, **kwargs
+        decompose_response = self._decompose_task(
+            task,
+            detect_task_response.response,
+            context,
+            max_new_tokens,
+            prefix,
+            **kwargs,
         )
 
-        project_ids_data, align_tasks_response = self._align_tasks(
-            steps_data, projects_df
+        align_tasks_response = self._align_tasks(
+            decompose_response.response, projects_df
         )
 
-        final_data = self.combine_projects_and_steps(project_ids_data, steps_data)
+        # Merge the projects and steps into a single list of dictionaries
+        final_data = self.combine_projects_and_steps(
+            align_tasks_response.response, decompose_response.response
+        )
 
         final_response = InstructModelEngineResponse()
         final_response.response = final_data
         final_response.prompt_tokens = align_tasks_response.prompt_tokens
-
-        final_response.response_tokens = 1
+        final_response.response_tokens = align_tasks_response.response_tokens
         warnings = [detect_task_response.warning, decompose_response.warning]
         final_response.warning = "\n\n".join(filter(None, warnings))
 
@@ -99,9 +107,15 @@ class Instruct:
 
         response = self.client.inference_call(prefix="", **payload)
 
+        # Count the tokens of this response I guess..
+        response_tokens = self.client.tokenizer.count_tokens(response)
+
         parsed_response = self.parse_response(response)
 
-        return parsed_response, align_tasks_response
+        align_tasks_response.response = parsed_response
+        align_tasks_response.response_tokens = response_tokens
+
+        return align_tasks_response
 
     def _detect_task_target(
         self, question: str, context: str, max_new_tokens: int, prefix: str, **kwargs
@@ -139,11 +153,11 @@ class Instruct:
             }
         )
 
-        response = self.client.inference_call(prefix=prefix, **updated_kwargs)
+        response = self.client.inference_call(prefix=prefix, **updated_kwargs).strip()
 
-        task_target = response.strip()
+        detect_task_response.response = response
 
-        return task_target, detect_task_response
+        return detect_task_response
 
     def _decompose_task(
         self,
@@ -203,7 +217,9 @@ class Instruct:
 
         parsed_response = self.parse_response(response)
 
-        return parsed_response, decompose_response
+        decompose_response.response = parsed_response
+
+        return decompose_response
 
     def parse_response(self, response):
         import json
