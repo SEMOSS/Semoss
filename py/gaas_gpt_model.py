@@ -101,6 +101,45 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return model_response
 
+    def predict(
+        self,
+        text: str,
+        labels: str,
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ):
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+
+        # Check if labels are a string or a list and convert to a list
+        if isinstance(labels, str):
+            try:
+                labels_list = labels.split(",")
+            except Exception as e:
+                print(f"Error converting labels to list: {e}")
+                raise
+        else:
+            labels_list = labels
+
+        model_response = super().call(
+            epoc=epoc,
+            engine_type="Model",
+            engine_id=self.engine_id,
+            method_name="predict",
+            method_args=[text, labels_list, insight_id, param_dict],
+            method_arg_types=[
+                "java.lang.String",
+                "java.util.List",
+                "prerna.om.Insight",
+                "java.util.Map",
+            ],
+            insight_id=insight_id,
+        )
+
+        return model_response
+
     def embeddings(
         self,
         strings_to_embed: List[str],
@@ -430,6 +469,15 @@ class ModelEngine(AbstractModelEngine):
         **kwargs,
     ):
         return self.model_engine.model(**kwargs)
+
+    def predict(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ):
+        return self.model_engine.predict(**kwargs)
 
     def get_model_type(self, **kwargs):
         return self.model_engine.get_model_type(**kwargs)
