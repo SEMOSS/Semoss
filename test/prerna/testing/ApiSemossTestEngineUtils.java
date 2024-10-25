@@ -1,19 +1,12 @@
 package prerna.testing;
 
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import com.amazonaws.opensearch.sql.jdbc.shadow.com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.FileOutputStream;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,16 +28,20 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
-import prerna.testing.utility.TestExcelInputObject;
-import prerna.testing.utility.TestExcelInputUtility;
-import prerna.testing.utility.TestExcelType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.testing.utility.TestExcelInputObject;
+import prerna.testing.utility.TestExcelType;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
@@ -57,9 +54,10 @@ public class ApiSemossTestEngineUtils {
 			"engines.txt");
 	private static List<String> CORE_DBS = null;
 
+	private static List<String> IDS_TO_AVOID = null;
+
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
-			Pair.of(Constants.LOCAL_MASTER_DB, Arrays.asList(new String[] {})),
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
 			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {})),
@@ -197,6 +195,10 @@ public class ApiSemossTestEngineUtils {
 			connectAndClearDb(connectionDetails, x.getRight());
 		}
 
+		Triple<String, String, String> lmdConnDetails = getTestDatabaseConnection(Constants.LOCAL_MASTER_DB);
+		connectAndClearLocalMaster(lmdConnDetails);
+
+
 		try {
 			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
 		} catch (Exception e) {
@@ -205,8 +207,7 @@ public class ApiSemossTestEngineUtils {
 		}
 	}
 
-	private static void connectAndClearDb(Triple<String, String, String> connectionDetails,
-			List<String> ignoredTables) {
+	private static void connectAndClearLocalMaster(Triple<String, String, String> connectionDetails) {
 		PreparedStatement ps = null;
 		Statement st = null;
 		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
@@ -223,7 +224,66 @@ public class ApiSemossTestEngineUtils {
 			}
 			ps.close();
 
-			al.removeAll(ignoredTables);
+			List<String> manualDelete = Arrays.asList("ENGINE", "ENGINECONCEPT", "ENGINERELATION");
+			al.removeAll(manualDelete);
+			// delete * from databases
+			st = conn.createStatement();
+			for (String x : al) {
+				st.addBatch("delete from " + x);
+			}
+
+			String idList = " NOT IN (";
+			for (String x : IDS_TO_AVOID) {
+				idList = idList + " '" + x + "',";
+			}
+			idList = idList.substring(0, idList.length() - 1) + ")";
+			st.addBatch("DELETE FROM ENGINE WHERE ID" + idList);
+			st.addBatch("DELETE FROM ENGINECONCEPT WHERE ENGINE" + idList);
+			st.addBatch("DELETE FROM ENGINERELATION WHERE ENGINE" + idList);
+
+			st.executeBatch();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("could not clear core dbs");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (st != null) {
+				try {
+					st.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private static void connectAndClearDb(Triple<String, String, String> connectiondetails,
+			List<String> ignoredtables) {
+		PreparedStatement ps = null;
+		Statement st = null;
+		try (Connection conn = DriverManager.getConnection(connectiondetails.getLeft(), connectiondetails.getMiddle(),
+				connectiondetails.getRight())) {
+			assertTrue(connectiondetails.getLeft().contains("testfolder"));
+
+			ps = conn
+					.prepareStatement("select table_nAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
+			ps.execute();
+			ResultSet rs = ps.getResultSet();
+			List<String> al = new ArrayList<>();
+			while (rs.next()) {
+				al.add(rs.getString(1));
+			}
+			ps.close();
+
+			al.removeAll(ignoredtables);
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
@@ -304,6 +364,13 @@ public class ApiSemossTestEngineUtils {
 
 		CORE_DBS = Files.readAllLines(ENGINES_CONFIG_FILE).stream().map(s -> s.trim()).filter(s -> !s.isEmpty())
 				.collect(Collectors.toList());
+
+		IDS_TO_AVOID = new ArrayList<>();
+		for (String x : CORE_DBS) {
+			if (x.contains("__")) {
+				IDS_TO_AVOID.add(x.split("__")[1]);
+			}
+		}
 		return CORE_DBS;
 	}
 
