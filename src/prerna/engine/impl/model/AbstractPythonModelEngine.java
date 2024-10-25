@@ -218,7 +218,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 		}
 		
-		if(parameters != null) {
+		if(parameters != null && !parameters.isEmpty()) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();
 			while(paramKeys.hasNext()) {
 				String key = paramKeys.next();
@@ -228,15 +228,16 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				         .append("=")
 						 .append(PyUtils.determineStringType(value));
 			}
-		}
-
-		if (parameters.isEmpty() || ! (parameters.containsKey("max_new_tokens") || parameters.containsKey("max_tokens"))) {
-			if (this.vars.containsKey("MAX_TOKENS")) {
-				callMaker.append(", max_new_tokens=")
-						 .append(this.vars.get("MAX_TOKENS").toString());
+		} 
+		// check for these values from smss
+		if(parameters == null || !parameters.containsKey("max_new_tokens")) {
+			if(this.vars.containsKey("MAX_NEW_TOKENS")) {
+				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_NEW_TOKENS"));
+			} else if (this.vars.containsKey("MAX_TOKENS")) {
+				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_TOKENS"));
 			}
 		}
-		
+
 		if(this.prefix != null) {
 			callMaker.append(", prefix='")
 			 		 .append(prefix)
