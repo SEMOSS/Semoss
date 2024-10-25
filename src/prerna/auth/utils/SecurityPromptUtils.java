@@ -577,6 +577,44 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
+	public static Map<String, Object> getPrompt(String promptID) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String pc : PROMPT_COLUMNS) {
+			if(pc != "IS_LATEST") {
+				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
+			}
+		}
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptID));
+		
+		
+		Map<String, Object> promptDetails = QueryExecutionUtility.flushRsToMap(securityDb, qs).get(0);
+		
+		//Append Tags
+		getPromptTags(promptID, promptDetails);
+		return promptDetails;
+	}
+
+	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptID));
+		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
+		qs.addOrderBy("PROMPTMETA__METAORDER");
+		// Loop through get tags 
+		List<String> tagList = new ArrayList<>();
+		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		for(Map<String, Object> ret: retList) {
+			String tag = (String) ret.get("METAVALUE");
+			tagList.add(tag);
+		}
+		promptDetails.put("tags", tagList);
+	}
+
 
 	
 }
