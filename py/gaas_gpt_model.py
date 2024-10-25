@@ -104,7 +104,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     def predict(
         self,
         text: str,
-        labels: str,
+        entities: List[str],
+        mask_entities: List[str] = [],
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ):
@@ -113,24 +114,21 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        # Check if labels are a string or a list and convert to a list
-        if isinstance(labels, str):
-            try:
-                labels_list = labels.split(",")
-            except Exception as e:
-                print(f"Error converting labels to list: {e}")
-                raise
-        else:
-            labels_list = labels
-
         model_response = super().call(
             epoc=epoc,
             engine_type="Model",
             engine_id=self.engine_id,
             method_name="predict",
-            method_args=[text, labels_list, insight_id, param_dict],
+            method_args=[
+                text,
+                entities,
+                mask_entities,
+                insight_id,
+                param_dict,
+            ],
             method_arg_types=[
                 "java.lang.String",
+                "java.util.List",
                 "java.util.List",
                 "prerna.om.Insight",
                 "java.util.Map",

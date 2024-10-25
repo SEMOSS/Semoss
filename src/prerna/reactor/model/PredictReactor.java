@@ -1,11 +1,9 @@
 package prerna.reactor.model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,10 +27,11 @@ public class PredictReactor extends AbstractReactor {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.PROMPT.getKey(),
-				ReactorKeysEnum.LABELS.getKey(),
+				ReactorKeysEnum.ENTITIES.getKey(),
+				ReactorKeysEnum.MASK_ENTITIES.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
 		};
-		this.keyRequired = new int[] {1, 1, 0};
+		this.keyRequired = new int[] {1, 1, 1, 0, 0};
 	}
 	
 	@Override
@@ -45,32 +44,26 @@ public class PredictReactor extends AbstractReactor {
 		}
 		
 		String prompt = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-		String labels = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
-		List<String> labelsList = parseLabels(labels);
+		List<String> entities = this.getListInput("entities");
+		List<String> maskEntities = this.getListInput("maskEntities");
+
 		Map<String, Object> paramMap = getMap();
 		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+		// CASTING TO CORRECT ENGINE.. NER is not abstracted
 		IModelEngine targetModel = Utility.getModel(engineId);
 		NamedEntityRecognitionEngine targetEngine = (NamedEntityRecognitionEngine) targetModel;
 
-		Map<String, Object> output = targetEngine.predict(prompt, labelsList, this.insight, paramMap).toMap();
+		Map<String, Object> output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap).toMap();
 		
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
-    private List<String> parseLabels(String labels) {
-        if (labels == null || labels.isEmpty()) {
-            return new ArrayList<>();
-        }
-        return Arrays.stream(labels.split(","))
-                     .map(String::trim)
-                     .collect(Collectors.toList());
-    }
 
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
+        GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -83,4 +76,17 @@ public class PredictReactor extends AbstractReactor {
         }
         return null;
     }
+	
+	private List<String> getListInput(String noun) {
+		List<String> colInputs = new Vector<String>();
+		GenRowStruct colGRS = this.store.getNoun(noun);
+		if (colGRS != null) {
+			for (int i = 0; i < colGRS.size(); i++) {
+				String stringValue = colGRS.get(i).toString();
+				colInputs.add(stringValue);
+			}
+		}
+		return colInputs;
+	}
+
 }

@@ -23,19 +23,21 @@ public class NamedEntityRecognitionEngine extends AbstractPythonModelEngine {
 	
 	/**
 	 * Passes a text string a list of labels to perform entity prediction from a NER model.
-	 * @param text			The text to perform predictions on
-	 * @param labels		The labels used for entity recognition
-	 * @param insight		The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
-	 * @param parameters    Additional parameters such as temperature, top_k, max_new_tokens etc
-	 * @return				A List of objects including the result text ("text"), the associated label ("label"), the confidence score ("score") and the start and end indexs of the entity in the text ("start") ("end")
+	 * @param text			 The text to perform predictions on
+	 * @param entities		 The labels used for entity recognition
+	 * @param maskedEntities The lables to mask after recognition
+	 * @param insight		 The insight from where the call is being made. The insight holds user credentials, project information and conversation history tied to the insightId
+	 * @param parameters     Additional parameters such as temperature, top_k, max_new_tokens etc
+	 * @return				 A List of objects including the result text ("text"), the associated label ("label"), the confidence score ("score") and the start and end indexs of the entity in the text ("start") ("end")
 	 */
-	public NerModelEngineResponse predict(String text, List<String> labels, Insight insight, Map <String, Object> parameters) {
+	public NerModelEngineResponse predict(String text, List<String> entities, List<String> maskEntities, Insight insight, Map <String, Object> parameters) {
 		checkSocketStatus();
 		
 		StringBuilder callMaker = new StringBuilder(this.varName + ".predict(");
 		
 		callMaker.append("text=\"\"\"").append(text.replace("\"", "\\\"")).append("\"\"\"");
-		callMaker.append(",").append("labels=").append(PyUtils.determineStringType(labels));
+		callMaker.append(",").append("entities=").append(PyUtils.determineStringType(entities));
+		callMaker.append(",").append("mask_entities=").append(PyUtils.determineStringType(maskEntities));
 		
 		if(parameters != null) {
 			Iterator <String> paramKeys = parameters.keySet().iterator();
