@@ -53,8 +53,11 @@ public class ImagePDFProcessor {
         this.imageMap = new HashMap<>();
         
     }
+    
 
     public void process() {
+    	
+    	
     	try (PDDocument document = PDDocument.load(new File(filePath))) {
     		PDFTextStripper stripper = new PDFTextStripper();
     		String source = getSource(filePath);
@@ -101,6 +104,7 @@ public class ImagePDFProcessor {
     			classLogger.error("Unexpected error processing image: " + name, e);
     		}
     	}
+    	
     	return imageIds;
     }
     
@@ -151,6 +155,31 @@ public class ImagePDFProcessor {
     public Map<String, String> getImageMap() {
         return imageMap;
     }
+
+
+	public void readTextfromPdf(String csvFileName, File file, List<String> result) throws IOException {
+		
+		
+		PDFTextStripper pdfStripper = new PDFTextStripper();
+		String source = null;
+		File file2 = new File(file.getAbsolutePath());
+		if(file.exists()) {
+			source = file2.getName();
+		}
+		
+		if(result.size()>0) {
+			//List<String> result = (List<String>) parsedText;
+
+			for (int pageIndex = 0; pageIndex < result.size(); pageIndex++) {
+				pdfStripper.setStartPage(pageIndex);
+				pdfStripper.setEndPage(pageIndex);
+				System.out.println(result.get(pageIndex) + ":" + pageIndex);
+				writer.writeRow(source, pageIndex + "", result.get(pageIndex), "");
+
+			}
+	}
+		
+	}
 
 
    

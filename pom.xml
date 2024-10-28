@@ -2310,6 +2310,11 @@
 		    <artifactId>commons-imaging</artifactId>
 		    <version>1.0-alpha2</version>
 		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-ai-formrecognizer</artifactId>
+			<version>4.1.9</version>
+		</dependency>
 
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->

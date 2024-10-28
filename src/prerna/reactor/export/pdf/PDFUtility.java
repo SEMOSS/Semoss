@@ -38,6 +38,7 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.jsoup.nodes.Attributes;
@@ -981,5 +982,36 @@ public final class PDFUtility {
 			}
 		}
 	}
+	
+	public static boolean validatePDImages(String filePath) throws IOException {
+		boolean status = false;
+		PDDocument pdDoc = null;
+		try {
+			File f = new File(filePath);
+			pdDoc = PDDocument.load(f);
+
+			PDFRenderer pdfRenderer = new PDFRenderer(pdDoc);
+
+			if (pdfRenderer.renderImage(0) != null) {
+
+			status = true;
+
+			}
+		}
+			catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (pdDoc != null) {
+					try {
+						pdDoc.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+
+		return status;
+	}
+
 	
 }
