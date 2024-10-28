@@ -10,11 +10,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.om.Insight;
-import prerna.reactor.VectorStorage;
 
 public class LogManagerUtil {
 	
-	private static final Logger classLogger = LogManager.getLogger(VectorStorage.class);
+	private static final Logger classLogger = LogManager.getLogger(LogManagerUtil.class);
 	
 	private static final String TABLE_NAME = "system_logs"; 
 	private static final String DATABASE_ENGINE_ID = "eb98274a-1e5c-46fb-9423-ce43bb595dad";
