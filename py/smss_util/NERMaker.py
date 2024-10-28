@@ -7,7 +7,7 @@ import uuid
 
 class NERMaker:
 
-  def init(self, model_name=None, tokenizer_name=None, file_name=None, snapshot=None, repo_type=None, local_files_only=True, **kwargs):
+  def __init__(self, model_name=None, tokenizer_name=None, file_name=None, snapshot=None, repo_type=None, local_files_only=True, **kwargs):
     self.model = GLiNER.from_pretrained(model_name, local_files_only=local_files_only, **kwargs)
     
     
