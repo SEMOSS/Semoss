@@ -101,7 +101,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return model_response
 
-    def predict(
+    def ner(
         self,
         text: str,
         entities: List[str],
@@ -468,14 +468,14 @@ class ModelEngine(AbstractModelEngine):
     ):
         return self.model_engine.model(**kwargs)
 
-    def predict(
+    def ner(
         self,
         insight_id: Optional[
             str
         ] = None,  # TODO remove once users stop using it. No longer needs to be set.
         **kwargs,
     ):
-        return self.model_engine.predict(**kwargs)
+        return self.model_engine.ner(**kwargs)
 
     def get_model_type(self, **kwargs):
         return self.model_engine.get_model_type(**kwargs)

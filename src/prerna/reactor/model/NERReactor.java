@@ -19,11 +19,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class PredictReactor extends AbstractReactor {
+public class NERReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(PredictReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(NERReactor.class);
 	
-	public PredictReactor() {
+	public NERReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.PROMPT.getKey(),
