@@ -21,7 +21,10 @@ def __getattr__(name: str) -> Any:
             NamedEntityRecognitionRemoteClient,
         )
 
-        return NamedEntityRecognitionRemoteClient
+    elif name == "NERRemoteClient":
+        from .remote_client.ner_client import NERClient
+
+        return NERClient
     elif name == "BedrockClient":
         from .text_generation.bedrock_client import BedrockClient
 
