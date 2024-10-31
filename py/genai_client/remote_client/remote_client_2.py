@@ -4,6 +4,7 @@ from kazoo.client import KazooClient
 import httpx
 import json
 import asyncio
+from threading import Thread
 
 
 class ModelStatus(BaseModel):
@@ -131,30 +132,55 @@ class RemoteClient2:
         print(f"Model {self.config.model_id} not found in either path.")
         return "cold"
 
-    def _deploy_model(self) -> None:
+    def _deploy_model(self) -> Dict[str, str]:
+        """
+        Initiate model deployment using a separate thread
+        """
         url = f"{self.config.deployer_endpoint}/start"
-        payload = self.config.model_dump(exclude={"deployer_endpoint"})
+        payload = self.config.model_dump(exclude={"deployer_endpoint", "is_dev"})
 
-        try:
-            response = httpx.post(url, json=payload)
-            response.raise_for_status()
-            print(f"Model {self.config.model_id} deployed successfully.")
-        except httpx.HTTPError as e:
-            print(f"Failed to deploy model: {e}")
+        def _deploy_thread():
+            try:
+                with httpx.Client() as client:
+                    response = client.post(url, json=payload)
+                    print(f"Deployment request sent: {response.status_code}")
+            except Exception as e:
+                print(f"Deployment request error (non-blocking): {e}")
+
+        # Starting deployment in background thread
+        thread = Thread(target=_deploy_thread)
+        thread.daemon = True  # Thread will terminate when main program exits
+        thread.start()
+
+        return {
+            "result": "initiated",
+            "message": f"Model {self.config.model_name} deployment has been initiated",
+        }
 
     def initialize_model(self) -> ModelStatus:
+        """
+        Check model status and initiate deployment if needed
+        """
         model_status = self._get_model_status()
 
         if model_status == "cold":
+            # Fire off deployment request in background thread.. I need to get this request through but don't care about results right now.. (It can take a few minutes..)
+            deployment_result = self._deploy_model()
             return ModelStatus(
                 status="cold",
-                message=f"There are no current deployments of {self.config.model_name}... Starting model...",
+                message="Model deployment has been initiated.",
+                cluster_ip=None,
+            )
+        elif model_status == "warming":
+            return ModelStatus(
+                status="warming",
+                message="Model is currently initializing.",
                 cluster_ip=None,
             )
 
         return ModelStatus(
             status=model_status,
-            message=f"Model {self.config.model_id} is already {model_status} at {self.cluster_ip}.",
+            message=f"Model {self.config.model_id} is {model_status}.",
             cluster_ip=self.cluster_ip if model_status == "active" else None,
         )
 

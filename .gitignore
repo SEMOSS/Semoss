@@ -59,9 +59,6 @@ vector/**
 *.mv.db
 InsightCache/
 
-# Python local log file
-py/log.txt
-
 # test folder stuff
 testfolder/project/**
 testfolder/user/**
@@ -77,3 +74,9 @@ test/resources/RDF_MAP.prop
 
 # Python Virtual Environments 
 venv/*
+
+# Python local log file
+py/log.txt
+
+# Python .env
+py/.env

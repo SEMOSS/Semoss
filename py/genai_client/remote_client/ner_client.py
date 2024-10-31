@@ -40,12 +40,17 @@ class NERClient(RemoteClient2):
         mask_entities: List[str],
         prefix: Optional[str] = "",
         **kwargs,
-    ) -> Optional[Dict[str, Any]]:
-        # check if model is available
+    ) -> Dict[str, Any]:
+        # Check if model is available
         model_status = self.initialize_model()
+        print(f"Model Status: {model_status.status}")
+
         if model_status.status != "active":
-            logger.error(f"Model is not active. Current status: {model_status.status}")
-            return None
+            return {
+                "status": model_status.status,
+                "message": model_status.message,
+                "retry_suggested": True,
+            }
 
         response = asyncio.run(self._predict_call(text, entities))
         if not response:
@@ -54,6 +59,7 @@ class NERClient(RemoteClient2):
         masked_data = self._mask_entities(text, response, mask_entities)
 
         return {
+            "status": "success",
             "output": masked_data["masked_text"],
             "raw_output": response,
             "mask_values": masked_data["mask_values"],
