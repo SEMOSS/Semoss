@@ -77,3 +77,9 @@ test/resources/RDF_MAP.prop
 
 # Python Virtual Environments 
 venv/*
+
+# Server Env Vars that shouldn't be tracked
+RDF_Map.prop
+db/security/security_OWL.OWL
+db/themes/themes_OWL.OWL
+social.properties

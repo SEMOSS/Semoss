@@ -9,7 +9,7 @@ public enum ReactorKeysEnum {
 	ALL("all",                                              	"Boolean to use all the values"),
 	ALL_NUMERIC_KEY("allNumeric", 								"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 												"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 
-//	APP("app", 													"Name of the app on the local SEMOSS instance"),
+	APP_ID("appId", 											"ID of the app on the local SEMOSS instance"),
 	ANIMATE("animate", 											"Specifies if the ggplot needs to be animated"),
 	API_KEY("apikey", 									    	"API key being used for the specific insight / project"),
 	ARRAY("array", 												"An array of input values"),
