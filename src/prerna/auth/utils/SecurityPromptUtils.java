@@ -19,9 +19,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -161,10 +159,8 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		promptDeatilsValidation(promptDetails);
 		updatePrompt(promptId);
 		insertPrompt(promptDetails, userId, allowClob, promptId);
-		if(tags != null && !tags.isEmpty())
-		{
 			updatePromptTags(promptId, tags);
-		}
+		
 	}
 	
 	/**
@@ -217,7 +213,9 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
-		insertTags(tags, promptId);
+		if(tags != null && !tags.isEmpty()) {
+			insertTags(tags, promptId);
+		}
 	}
 
 	/**
@@ -615,6 +613,65 @@ public class SecurityPromptUtils extends AbstractSecurityUtils {
 		promptDetails.put("tags", tagList);
 	}
 
-
 	
+	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROMPTMETA WHERE METAKEY=? AND PROMPT_ID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(String field : metadata.keySet()) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, field);
+				deletePs.setString(parameterIndex++, promptId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+		
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA", new String[]{"PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER"});
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for(String field : metadata.keySet()) {
+				Object val = metadata.get(field);
+				List<Object> values = new ArrayList<>();
+				if(val instanceof List) {
+					values = (List<Object>) val;
+				} else if(val instanceof Collection) {
+					values.addAll( (Collection<Object>) val);
+				} else {
+					values.add(val);
+				}
+				
+				for(int i = 0; i < values.size(); i++) {
+					int parameterIndex = 1;
+					Object fieldVal = values.get(i);
+					
+					ps.setString(parameterIndex++, promptId);
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, i);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
 }
