@@ -57,10 +57,10 @@ public class ApiSemossTestEngineUtils {
 	
 	private static List<String> CURRENT_NAMES = new ArrayList<>();
 	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
+	private static List<String> IDS_TO_AVOID = null;
 
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
-			Pair.of(Constants.LOCAL_MASTER_DB, Arrays.asList(new String[] {})),
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
 			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {})),
@@ -198,6 +198,10 @@ public class ApiSemossTestEngineUtils {
 			connectAndClearDb(connectionDetails, x.getRight());
 		}
 
+		Triple<String, String, String> lmdConnDetails = getTestDatabaseConnection(Constants.LOCAL_MASTER_DB);
+		connectAndClearLocalMaster(lmdConnDetails);
+
+
 		try {
 			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
 		} catch (Exception e) {
@@ -206,8 +210,7 @@ public class ApiSemossTestEngineUtils {
 		}
 	}
 
-	private static void connectAndClearDb(Triple<String, String, String> connectionDetails,
-			List<String> ignoredTables) {
+	private static void connectAndClearLocalMaster(Triple<String, String, String> connectionDetails) {
 		PreparedStatement ps = null;
 		Statement st = null;
 		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
@@ -224,7 +227,72 @@ public class ApiSemossTestEngineUtils {
 			}
 			ps.close();
 
-			al.removeAll(ignoredTables);
+			List<String> manualDelete = Arrays.asList("ENGINE", "ENGINECONCEPT", "ENGINERELATION");
+			al.removeAll(manualDelete);
+			// delete * from databases
+			st = conn.createStatement();
+			for (String x : al) {
+				st.addBatch("delete from " + x);
+			}
+
+			String idList = " NOT IN (";
+			for (String x : IDS_TO_AVOID) {
+				idList = idList + " '" + x + "',";
+			}
+			idList = idList.substring(0, idList.length() - 1) + ")";
+			if (IDS_TO_AVOID.size() == 0) {
+				st.addBatch("DELETE FROM ENGINE");
+				st.addBatch("DELETE FROM ENGINECONCEPT");
+				st.addBatch("DELETE FROM ENGINERELATION");
+			} else {
+				st.addBatch("DELETE FROM ENGINE WHERE ID" + idList);
+				st.addBatch("DELETE FROM ENGINECONCEPT WHERE ENGINE" + idList);
+				st.addBatch("DELETE FROM ENGINERELATION WHERE ENGINE" + idList);
+			}
+
+			st.executeBatch();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("could not clear core dbs");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (st != null) {
+				try {
+					st.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private static void connectAndClearDb(Triple<String, String, String> connectiondetails,
+			List<String> ignoredtables) {
+		PreparedStatement ps = null;
+		Statement st = null;
+		try (Connection conn = DriverManager.getConnection(connectiondetails.getLeft(), connectiondetails.getMiddle(),
+				connectiondetails.getRight())) {
+			assertTrue(connectiondetails.getLeft().contains("testfolder"));
+
+			ps = conn
+					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
+			ps.execute();
+			ResultSet rs = ps.getResultSet();
+			List<String> al = new ArrayList<>();
+			while (rs.next()) {
+				al.add(rs.getString(1));
+			}
+			ps.close();
+
+			al.removeAll(ignoredtables);
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
@@ -307,6 +375,13 @@ public class ApiSemossTestEngineUtils {
 
 		CORE_DBS = Files.readAllLines(ENGINES_CONFIG_FILE).stream().map(s -> s.trim()).filter(s -> !s.isEmpty())
 				.collect(Collectors.toList());
+
+		IDS_TO_AVOID = new ArrayList<>();
+		for (String x : CORE_DBS) {
+			if (x.contains("__")) {
+				IDS_TO_AVOID.add(x.split("__")[1]);
+			}
+		}
 		return CORE_DBS;
 	}
 
