@@ -82,6 +82,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		try {
 			nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
 		}
+		//Added exception for auth error
 		catch(Exception e) {
 			classLogger.error("Unable to create connection");
 			throw new SemossPixelException("Unable to create connection");
@@ -97,6 +98,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// if the collection Name doesn't exist, create it and return the ID
+		nearestNeigborResponse = null;
 		Map<String, String> collectionNameToCreate = new HashMap<>();
 		collectionNameToCreate.put("name", collectionName);
 		String body = gson.toJson(collectionNameToCreate);
