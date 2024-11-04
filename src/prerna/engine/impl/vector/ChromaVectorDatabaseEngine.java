@@ -24,6 +24,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -70,7 +71,22 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// if not create a collection and get the ID
 		collectionName = collectionName.replaceAll(" ", "_");
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, null, null, null, null);
+		Map<String, String> headersMap = new HashMap<>();
+		if (this.apiKey != null && !this.apiKey.isEmpty()) {
+				headersMap.put("X-Chroma-Token", this.apiKey);
+				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+			} else {
+				headersMap = null;
+			}
+		String nearestNeigborResponse = null;
+		try {
+			nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
+		}
+		catch(Exception e) {
+			classLogger.error("Unable to create connection");
+			throw new SemossPixelException("Unable to create connection");
+			
+		}
 		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse,
 				new TypeToken<List<Map<String, Object>>>() {}.getType());
 //		System.out.println(responseListMap);
@@ -81,12 +97,12 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// if the collection Name doesn't exist, create it and return the ID
-		nearestNeigborResponse = null;
 		Map<String, String> collectionNameToCreate = new HashMap<>();
 		collectionNameToCreate.put("name", collectionName);
 		String body = gson.toJson(collectionNameToCreate);
-		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, null, body, ContentType.APPLICATION_JSON, null, null, null);
+		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+		
 		return (String) responseMap.get("id");
 	}
 
@@ -139,11 +155,10 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		vectors.put("metadatas", metadatas);
 
 		String body = new Gson().toJson(vectors);
-//		System.out.println(body);
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("Api-Key", this.apiKey);
+			headersMap.put("X-Chroma-Token", this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
@@ -151,6 +166,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, 
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+		
+		//TODO: let us add validation by looking at the response
 	}
 
 	@Override
@@ -182,7 +199,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			Map<String, String> headersMap = new HashMap<>();
 			if (this.apiKey != null && !this.apiKey.isEmpty()) {
-				headersMap.put("Api-Key", this.apiKey);
+				headersMap.put("X-Chroma-Token", this.apiKey);
 				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 			} else {
 				headersMap = null;
@@ -191,6 +208,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_DELETE,
 					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
+			//TODO: let us add validation by looking at the response			
+			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
 			File documentFile = new File(
@@ -226,7 +245,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			limit = 3;
 		}
 		
-		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
 		Gson gson = new Gson();
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
@@ -244,18 +262,20 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("Api-Key", this.apiKey);
+			headersMap.put("X-Chroma-Token", this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
 		}
-
+		
 		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-		retOut.add(responseMap);
-		return retOut;
+		
+		// Retrieve the metadatas list response
+		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
+		return (List<Map<String, Object>>) resultMap.get(0);
 	}
 	
 	@Override
