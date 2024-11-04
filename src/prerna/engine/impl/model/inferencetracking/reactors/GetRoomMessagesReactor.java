@@ -17,7 +17,7 @@ public class GetRoomMessagesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(GetRoomMessagesReactor.class);
 
     public GetRoomMessagesReactor() {
-        this.keysToGet = new String[] {"roomId"};
+        this.keysToGet = new String[] {"roomId","limit","offset"};
         this.keyRequired = new int[] {1};
     }
     
@@ -28,8 +28,13 @@ public class GetRoomMessagesReactor extends AbstractReactor {
         if (user == null) {
             throw new IllegalArgumentException("You are not properly logged in");
         }
+        Integer limit = -1, offset = -1;
         String roomId = this.keyValue.get(this.keysToGet[0]);
-        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, "ASC");
+        if (this.keyValue.get(this.keysToGet[1])!= null && this.keyValue.get(this.keysToGet[2]) != null) {
+        	limit = Integer.parseInt(this.keyValue.get(this.keysToGet[1]));
+        	offset = Integer.parseInt(this.keyValue.get(this.keysToGet[2]));
+        }
+        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, "DESC", limit, offset);
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 	

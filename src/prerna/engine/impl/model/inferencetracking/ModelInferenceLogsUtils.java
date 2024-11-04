@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -782,7 +783,13 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort) {
+		SelectQueryStruct qs = addColumns(userId, insightId, dateSort);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	private static SelectQueryStruct addColumns(String userId, String insightId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
@@ -797,7 +804,16 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		return qs;
+	}
+	
+	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
+		SelectQueryStruct qs = addColumns(userId, insightId, dateSort);
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
+		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		Collections.reverse(response);
+		return response;
 	}
 	
 	/**
