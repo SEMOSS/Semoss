@@ -36,7 +36,7 @@ public class Settings {
 	public static final String REQUIREMENTS = "REQUIREMENTS"; // this is a JSON of all the requirements for a SMSS engine like GPU requirement etc. etc.
 	
 	// FOR REMOTE CLIENTS
-	public static final String MODEL = "MODEL_NAME"; // The short name for a model.. Can't use the HuggingFace model repo id here due to naming restrictions on kubernetes resources
+	public static final String MODEL = "MODEL"; // The short name for a model.. Can't use the HuggingFace model repo id here due to naming restrictions on kubernetes resources
 	public static final String DEPLOYER_ENDPOINT = "DEPLOYER_ENDPOINT"; // The endpoint where the Kubernetes Model Scaler is deployed..
 	
 	

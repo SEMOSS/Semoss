@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.NEREngine;
 import prerna.engine.impl.model.NamedEntityRecognitionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -52,8 +53,13 @@ public class RemoteNERReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+		// CASTING TO CORRECT ENGINE.. NER is not abstracted
+		IModelEngine targetModel = Utility.getModel(engineId);
+		NEREngine targetEngine = (NEREngine) targetModel;
 		
-		return new NounMetadata("Test", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		String output = targetEngine.predict();
+		
+		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 		
 	}
 	

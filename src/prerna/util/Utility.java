@@ -2679,7 +2679,6 @@ public final class Utility {
 							|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
 							|| engineId.startsWith("UserTrackingDatabase") )) {
 						Map<String, String> envMap = System.getenv();
-						classLogger.info("envMap!!!! {}", envMap);
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
 							if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
