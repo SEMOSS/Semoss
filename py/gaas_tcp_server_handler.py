@@ -184,8 +184,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # Receive the first 4 bytes to get the size
                 data = self.request.recv(4)
                 if not data:
-                    raise RuntimeError(
-                        "No data received or connection closed.")
+                    raise RuntimeError("No data received or connection closed.")
 
                 size = int.from_bytes(data, "big")
 
@@ -196,8 +195,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 while len(epoc) < epoc_size:
                     chunk = self.request.recv(epoc_size - len(epoc))
                     if not chunk:
-                        raise RuntimeError(
-                            "No data received or connection closed.")
+                        raise RuntimeError("No data received or connection closed.")
                     epoc += chunk
 
                 # Decode the epoc data as UTF-8
@@ -209,15 +207,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 while len(data) < size:
                     chunk = self.request.recv(size - len(data))
                     if not chunk:
-                        raise RuntimeError(
-                            "No data received or connection closed.")
+                        raise RuntimeError("No data received or connection closed.")
                     data += chunk
 
                 # print(f"process the data ---- {data.decode('utf-8')}")
                 # payload = data.decode('utf-8')
                 if self.server.blocking:
-                    self.custom_dev_logger(
-                        "Server is BLOCKING: Getting final output.")
+                    self.custom_dev_logger("Server is BLOCKING: Getting final output.")
                     self.get_final_output(data, epoc)
                 else:
                     self.custom_dev_logger(
@@ -247,13 +243,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         """
         try:
             if isinstance(data, bytes):
-                data = json.loads(data.decode('utf-8'))
+                data = json.loads(data.decode("utf-8"))
             elif data is None:
                 data = {}
 
-            payload = data.get('payload', [])
-            trimmed_payload = payload[0][:50] if isinstance(
-                payload, list) and payload else "N/A"
+            payload = data.get("payload", [])
+            trimmed_payload = (
+                payload[0][:50] if isinstance(payload, list) and payload else "N/A"
+            )
 
             log_message = f"Final Output: epoc={data.get('epoc', 'N/A')}, payload={trimmed_payload}, operation={data.get('operation', 'N/A')}"
 
@@ -313,8 +310,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     print("The prefix is None")
                 else:
                     print("The prefix is set to value = " + self.prefix)
-                self.send_output(
-                    "prefix set", operation="PYTHON", response=True)
+                self.send_output("prefix set", operation="PYTHON", response=True)
 
             # handle log out
             elif command == "CLOSE_ALL_LOGOUT<o>" and payload["operation"] == "CMD":
@@ -417,8 +413,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         }
 
         if "insightId" in self.thread_local.payload:
-            payload.update(
-                {"insightId": self.thread_local.payload["insightId"]})
+            payload.update({"insightId": self.thread_local.payload["insightId"]})
 
         if exception:
             payload.update(
@@ -491,8 +486,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 self.log_file.write("\n")
                 self.log_file.write(f"New Payload: {new_payload}")
                 self.log_file.write("\n")
-                self.log_file.write(
-                    f"New Payload Insight ID: {new_payload_insight_id}")
+                self.log_file.write(f"New Payload Insight ID: {new_payload_insight_id}")
                 self.log_file.write("\n")
                 self.log_file.write("\n")
                 self.log_file.write(
@@ -667,8 +661,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
         )
         if payload["epoc"] in self.monitors:
-            self.prod_logger(
-                f"handle_response() -- Payload Response: {payload}")
+            self.prod_logger(f"handle_response() -- Payload Response: {payload}")
 
             condition = self.monitors[payload["epoc"]]
             self.monitors.update({payload["epoc"]: payload})
@@ -718,29 +711,22 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # need to see the process of cd etc.
                 cur_dir = self.get_cd(mount_name)
                 commands = payload["payload"][0].split(" ")
-                commands = [
-                    command for command in commands if len(command) > 0]
+                commands = [command for command in commands if len(command) > 0]
                 command = commands[0]
                 output = "Command not allowed"
                 # mounts =
                 if command == "cd" or command.startswith("cd"):
-                    output = self.exec_cd(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_cd(mount_name=mount_name, payload=commands)
                 elif command == "dir" or command == "ls":
-                    output = self.exec_dir(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_dir(mount_name=mount_name, payload=commands)
                 elif command == "cp" or command == "copy":
-                    output = self.exec_cp(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_cp(mount_name=mount_name, payload=commands)
                 elif command == "mv" or command == "move":
-                    output = self.exec_cp(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_cp(mount_name=mount_name, payload=commands)
                 elif command == "git":
-                    output = self.exec_generic(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_generic(mount_name=mount_name, payload=commands)
                 elif command == "mvn":
-                    output = self.exec_generic(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_generic(mount_name=mount_name, payload=commands)
                 elif command == "rm" or command == "del":
                     # if commands has -r
                     # get the third argument and try to see it can resolve to a directory
@@ -748,16 +734,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     dir_name = commands[1]
                     # dir_name = self.exec_cd(mount_name = mount_name, payload=["cd", dir_name])
                     # if not dir_name.startswith("Sorry"):
-                    output = self.exec_generic(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_generic(mount_name=mount_name, payload=commands)
                     # else:
                     #  output = dir_name
                 elif command == "pwd":
-                    output = self.exec_generic(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_generic(mount_name=mount_name, payload=commands)
                 elif command == "deltree":
-                    output = self.exec_generic(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_generic(mount_name=mount_name, payload=commands)
                 elif command == "mkdir":
                     dir_name = commands[1]
                     dir_name = self.exec_cd(
@@ -770,8 +753,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     else:
                         output = dir_name
                 elif command == "pnpm":
-                    output = self.exec_generic(
-                        mount_name=mount_name, payload=commands)
+                    output = self.exec_generic(mount_name=mount_name, payload=commands)
                 else:
                     output = "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, deltree, pwd, git, mvn (Experimental), mkdir, pnpm(Experimental)"
 
@@ -779,8 +761,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 output = output.replace("\\", "/")
                 orig_dir = self.orig_mount_points[mount_name]
                 orig_dir_opt1 = orig_dir.replace("\\", "/")
-                insensitive_orig_dir = re.compile(
-                    re.escape(orig_dir), re.IGNORECASE)
+                insensitive_orig_dir = re.compile(re.escape(orig_dir), re.IGNORECASE)
                 output = insensitive_orig_dir.sub("_", output)
                 insensitive_orig_dir = re.compile(
                     re.escape(orig_dir_opt1), re.IGNORECASE
@@ -788,8 +769,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 output = insensitive_orig_dir.sub("_", output)
 
                 # send the output
-                self.send_output(
-                    output, operation=payload["operation"], response=True)
+                self.send_output(output, operation=payload["operation"], response=True)
                 # if command == 'ls' or command == 'dir':
                 #  exec_cd(mount_name=mount_name, payload=payload['payload'])
             self.cmd_monitor.release()
