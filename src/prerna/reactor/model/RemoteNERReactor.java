@@ -57,17 +57,18 @@ public class RemoteNERReactor extends AbstractReactor {
 		IModelEngine targetModel = Utility.getModel(engineId);
 		NEREngine targetEngine = (NEREngine) targetModel;
 		
-		String output = targetEngine.predict();
+		String output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
 		
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 		
 	}
 	
-	
-	
-	
-	
-	
+//    public Map<String, Object> toMap(){
+//    	Map<String, Object> responseMap = new HashMap<>();
+//    	responseMap.put("response", this.response);
+//    	return responseMap;
+//    }
+
 	private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);
         if(mapGrs != null && !mapGrs.isEmpty()) {

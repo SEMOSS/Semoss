@@ -40,12 +40,18 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.client.config.RequestConfig;
 import org.json.JSONObject;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONException;
 
 import prerna.cluster.util.clients.AppCloudClientProperties;
 import prerna.engine.api.ModelTypeEnum;
@@ -76,7 +82,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	private CuratorCache activeCache;
 	
 	private String deployerEndpoint;
-	private String model;
+	protected String model;
 	
 	
 	String host;
@@ -195,7 +201,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
         } else if (currentState == RemoteModelStateEnum.FAILED) {
             return RemoteModelStateEnum.FAILED;
         } else {
-        	boolean success = initiateAndWaitForDeployment(60000);
+        	boolean success = initiateAndWaitForDeployment(120000);
         	if(success) {
         		classLogger.info("Model {} is now active", this.engineId);
         	} else {
@@ -314,17 +320,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    return false;
 	}
 
-	public boolean isModelWarming() throws Exception {
-	    return client.checkExists().forPath(WARMING_PATH + "/" +  this.engineId) != null;
-	}
-	
-	public List<String> getActiveModels() throws Exception {
-	    return client.getChildren().forPath(ACTIVE_PATH);
-	}
 
-	public List<String> getWarmingModels() throws Exception {
-	    return client.getChildren().forPath(WARMING_PATH);
-	}
 
 	// wait for model to become active with a timeout
 	public boolean waitForModelActive(long timeoutMs) throws Exception {
@@ -339,13 +335,11 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	}
 	
 	private CompletableFuture<Boolean> deployModel() {
-	    classLogger.info("Initiating model deployment request for model ID: {}", this.engineId);
+		classLogger.info("Deploying model {} with engine ID {}", this.model, this.engineId);
 	    
 	    return CompletableFuture.supplyAsync(() -> {
 	        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 	            HttpPost httpPost = new HttpPost(this.deployerEndpoint);
-	            
-	            classLogger.info("Deploying model {} !!!!!", this.model);
 	            
 	            JSONObject payload = new JSONObject();
 	            payload.put("model_id", this.engineId);
@@ -377,7 +371,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    });
 	}
 
-	// method for initiate deployment and wait for model to become active
+	// initiate deployment and wait for model to become active
 	protected boolean initiateAndWaitForDeployment(long timeoutMs) {
 	    try {
 	        // First check if the model is already active
@@ -408,6 +402,106 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        classLogger.error("Error during model deployment process", e);
 	        return false;
 	    }
+	}
+	
+	protected JSONObject makeModelRequest(JSONObject requestPayload) throws Exception {
+	    // First ensure model is active and get current state
+	    RemoteModelStateEnum currentState = getCurrentModelState();
+	    if (currentState != RemoteModelStateEnum.ACTIVE) {
+	        classLogger.error("Model {} is not active. Current state: {}", this.engineId, currentState);
+	        return null;
+	    }
+
+	    if (clusterIp == null) {
+	        classLogger.error("No cluster IP available for model {}", this.engineId);
+	        return null;
+	    }
+
+	    // Construct the URL using cluster IP
+//	    String url = String.format("http://%s:8888/api/generate", clusterIp);
+	    // TEMP FOR LOCAL DEVELOPMENT
+	    String url = "http://localhost:8888/api/generate";
+	    
+	    RequestConfig requestConfig = RequestConfig.custom()
+	            .setConnectTimeout(30000)
+	            .setSocketTimeout(900000) // 15 minutes is probably too long
+	            .build();
+
+	    try (CloseableHttpClient httpClient = HttpClients.custom()
+	            .setDefaultRequestConfig(requestConfig)
+	            .build()) {
+	            
+	        HttpPost httpPost = new HttpPost(url);
+	        httpPost.setHeader("Accept", "text/event-stream");
+	        httpPost.setHeader("Content-Type", "application/json");
+	        
+	        // Set the request payload
+	        StringEntity entity = new StringEntity(requestPayload.toString(), ContentType.APPLICATION_JSON);
+	        httpPost.setEntity(entity);
+
+	        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            if (statusCode != 200) {
+	                classLogger.error("Request failed with status code: {}", statusCode);
+	                return null;
+	            }
+
+	            HttpEntity responseEntity = response.getEntity();
+	            if (responseEntity == null) {
+	                classLogger.error("No response entity received");
+	                return null;
+	            }
+
+	            // Create a buffered reader for the SSE stream
+	            try (BufferedReader reader = new BufferedReader(
+	                    new InputStreamReader(responseEntity.getContent(), StandardCharsets.UTF_8))) {
+	                
+	                String line;
+	                while ((line = reader.readLine()) != null) {
+	                    if (line.startsWith("data:")) {
+	                        String dataStr = line.substring(5).trim();
+	                        if (!dataStr.isEmpty()) {
+	                            JSONObject data = new JSONObject(dataStr);
+	                            String status = data.optString("status");
+	                            String message = data.optString("message");
+
+	                            classLogger.info("Status Update: {} - {}", status, message);
+
+	                            switch (status) {
+	                                case "complete":
+	                                    return data;
+	                                case "error":
+	                                case "cancelled":
+	                                case "timeout":
+	                                    classLogger.error("Job {}: {}", status, message);
+	                                    return null;
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    } catch (IOException e) {
+	        classLogger.error("HTTP request failed", e);
+	    } catch (JSONException e) {
+	        classLogger.error("Failed to decode JSON response", e);
+	    } catch (Exception e) {
+	        classLogger.error("Unexpected error", e);
+	    }
+
+	    return null;
+	}
+	
+	public boolean isModelWarming() throws Exception {
+	    return client.checkExists().forPath(WARMING_PATH + "/" +  this.engineId) != null;
+	}
+	
+	public List<String> getActiveModels() throws Exception {
+	    return client.getChildren().forPath(ACTIVE_PATH);
+	}
+
+	public List<String> getWarmingModels() throws Exception {
+	    return client.getChildren().forPath(WARMING_PATH);
 	}
 	
 	// Thread-safe singleton getter
