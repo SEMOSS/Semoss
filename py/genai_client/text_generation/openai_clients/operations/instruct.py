@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 from ....constants import InstructModelEngineResponse
 import pandas as pd
 
@@ -58,13 +58,10 @@ class Instruct:
     def _align_tasks(self, tasks: List[str], projects: pd.DataFrame):
         print("Aligning Steps...")
 
-        # Convert tasks list to a numbered string
         tasks_str = "\n".join([f"{i+1}. {task}" for i, task in enumerate(tasks)])
 
-        # Convert projects dataframe to a list of dictionaries
         projects_list = projects.to_dict("records")
 
-        # Convert projects list to a string
         projects_str = "\n".join(
             [
                 f"Project ID: {proj['project_id']}\n"
@@ -75,16 +72,17 @@ class Instruct:
         )
 
         system_message = (
-            "You are an AI assistant tasked with matching each task step to the most relevant project based on its description.\n\n"
+            "You are an AI assistant tasked with matching each task step to the most relevant project(s) based on its description.\n\n"
             "### Tasks:\n"
             f"{tasks_str}\n\n"
             "### Projects:\n"
             f"{projects_str}\n"
             "### Instructions:\n"
-            "- Analyze each task step and find the project whose description best matches the task.\n"
-            "- Return a JSON array where each element corresponds to the project ID matching each task step.\n"
+            "- Analyze each task step and find all projects whose descriptions match the task requirements.\n"
+            "- If multiple projects can be used to complete a task, include all relevant project IDs.\n"
+            "- Return a JSON array where each element is either a single project ID string or an array of project IDs.\n"
             f"- The JSON array MUST have the same length as the tasks list. The length of the task list is {len(tasks)}\n"
-            '- **Output Format**: ["project_id_1", "project_id_2", "project_id_3", ...]\n'
+            '- **Output Format**: ["project_id_1", ["project_id_2", "project_id_3"], "project_id_4", ...]\n'
             "- **Do not** include any additional text or explanation.\n"
         )
 
@@ -107,15 +105,83 @@ class Instruct:
 
         response = self.client.inference_call(prefix="", **payload)
 
-        # Count the tokens of this response I guess..
+        # Count the tokens of this response
         response_tokens = self.client.tokenizer.count_tokens(response)
 
-        parsed_response = self.parse_response(response)
+        parsed_response = self.parse_alignment_response(response)
 
         align_tasks_response.response = parsed_response
         align_tasks_response.response_tokens = response_tokens
 
         return align_tasks_response
+
+    def parse_alignment_response(self, response):
+        """
+        Parses the alignment response which may contain single project IDs or arrays of project IDs.
+
+        Args:
+            response (str): JSON string containing project alignments
+
+        Returns:
+            List[Union[str, List[str]]]: List where each element is either a project ID string
+                                    or a list of project ID strings
+        """
+        import json
+
+        try:
+            alignments = json.loads(response)
+
+            # Validate and normalize the response
+            normalized = []
+            for item in alignments:
+                if isinstance(item, list):
+                    normalized.append(item)
+                elif isinstance(item, str):
+                    normalized.append(item)
+                else:
+                    raise ValueError(f"Invalid alignment format: {item}")
+
+            return normalized
+
+        except json.JSONDecodeError as e:
+            print("Error parsing response with json:", e)
+            return ["Error parsing response."]
+        except ValueError as e:
+            print("Error validating response format:", e)
+            return ["Error validating response format."]
+
+    def combine_projects_and_steps(
+        self, projects: List[Union[str, List[str]]], steps: List[str]
+    ):
+        """
+        Combines projects and steps, handling cases where a step may have multiple projects.
+
+        Args:
+            projects: List where each element is either a project ID string or a list of project IDs
+            steps: List of step descriptions
+
+        Returns:
+            List[Dict]: List of dictionaries containing project_ids and steps
+        """
+        if len(projects) != len(steps):
+            print("PROBLEM!: The number of projects and steps must be equal.")
+            print(f"There are {len(projects)} Projects:", projects)
+            print(f"There are {len(steps)} Steps:", steps)
+            raise ValueError("The number of projects and steps must be equal.")
+
+        result = []
+        for project, step in zip(projects, steps):
+            if isinstance(project, list):
+                result.append({"project_ids": project, "step": step})
+            else:
+                result.append(
+                    {
+                        "project_ids": [project],
+                        "step": step,
+                    }
+                )
+
+        return result
 
     def _detect_task_target(
         self, question: str, context: str, max_new_tokens: int, prefix: str, **kwargs
@@ -240,17 +306,6 @@ class Instruct:
             if s.startswith("r'''") and s.endswith("'''"):
                 return s[4:-3]
         return s
-
-    def combine_projects_and_steps(self, projects: List[str], steps: List[str]):
-        if len(projects) != len(steps):
-            print("PROBLEM!: The number of projects and steps must be equal.")
-            print(f"There are {len(projects)} Projects:", projects)
-            print(f"There are {len(steps)} Steps:", steps)
-            raise ValueError("The number of projects and steps must be equal.")
-        return [
-            {"project_id": project, "step": step}
-            for project, step in zip(projects, steps)
-        ]
 
     def convert_data_to_dataframe(self, data_list):
         cleaned_data_list = []
