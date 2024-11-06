@@ -19,6 +19,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.engine.impl.model.responses.NerModelEngineResponse;
 
 public class RemoteNERReactor extends AbstractReactor {
 	
@@ -57,9 +58,9 @@ public class RemoteNERReactor extends AbstractReactor {
 		IModelEngine targetModel = Utility.getModel(engineId);
 		NEREngine targetEngine = (NEREngine) targetModel;
 		
-		String output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
+		NerModelEngineResponse output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
 		
-		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 		
 	}
 	
