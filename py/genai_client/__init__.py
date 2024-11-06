@@ -16,15 +16,6 @@ def __getattr__(name: str) -> Any:
         from .text_generation.textgen_client import TextGenClient
 
         return TextGenClient
-    elif name == "NamedEntityRecognitionRemoteClient":
-        from .remote_client.named_entity_recognition_client import (
-            NamedEntityRecognitionRemoteClient,
-        )
-
-    elif name == "NERRemoteClient":
-        from .remote_client.ner_client import NERClient
-
-        return NERClient
     elif name == "BedrockClient":
         from .text_generation.bedrock_client import BedrockClient
 

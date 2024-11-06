@@ -7,7 +7,6 @@ import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.responses.NerModelEngineResponse;
 import prerna.om.Insight;
 import prerna.engine.api.ModelTypeEnum;
@@ -27,9 +26,7 @@ public class NEREngine extends AbstractRemoteModelEngine {
 	    try {
 	        response = this.makeModelRequest(payload);
 	        
-	        if (response != null) {
-	            classLogger.info("Response from model: {}", response.toString());
-	            
+	        if (response != null) {          
 	            // Converting JSONObject to Map<String, Object>
 	            Map<String, Object> responseMap = new HashMap<>();
 	            for (String key : response.keySet()) {
@@ -63,23 +60,6 @@ public class NEREngine extends AbstractRemoteModelEngine {
 	        return new NerModelEngineResponse(errorMap, 0, 0);
 	    }
 	}
-	
-	// Check if the model is active and if not attempt to start the model
-	public String getModelStatus() {
-		try {
-		RemoteModelStateEnum currentState = getCurrentModelState();
-        classLogger.info("Current state for engineId {} is: {}", this.engineId, currentState);
-        // Turn it into a string
-		String modelState = currentState.name();
-        return modelState;
-		} catch (Exception e) {
-			classLogger.error("Error getting model state", e);
-			return "ERROR";
-		}
-		
-	}
-	
-	
 	
 	@Override
 	public ModelTypeEnum getModelType() {

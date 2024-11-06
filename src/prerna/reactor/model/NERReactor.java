@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.NamedEntityRecognitionEngine;
+import prerna.engine.impl.model.NEREngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -18,6 +18,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.engine.impl.model.responses.NerModelEngineResponse;
 
 public class NERReactor extends AbstractReactor {
 	
@@ -54,13 +55,19 @@ public class NERReactor extends AbstractReactor {
 		
 		// CASTING TO CORRECT ENGINE.. NER is not abstracted
 		IModelEngine targetModel = Utility.getModel(engineId);
-		NamedEntityRecognitionEngine targetEngine = (NamedEntityRecognitionEngine) targetModel;
-
-		Map<String, Object> output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap).toMap();
+		NEREngine targetEngine = (NEREngine) targetModel;
+		
+		NerModelEngineResponse output = targetEngine.predict(prompt, entities, maskEntities, this.insight, paramMap);
 		
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+		
 	}
 	
+//    public Map<String, Object> toMap(){
+//    	Map<String, Object> responseMap = new HashMap<>();
+//    	responseMap.put("response", this.response);
+//    	return responseMap;
+//    }
 
 	private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);

@@ -1,17 +1,13 @@
 package prerna.engine.impl.model;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
@@ -21,37 +17,18 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.zookeeper.ZooKeeper;
-
-
 import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.client.config.RequestConfig;
 import org.json.JSONObject;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import org.json.JSONException;
+import java.nio.charset.StandardCharsets;
 
 import prerna.cluster.util.clients.AppCloudClientProperties;
 import prerna.engine.api.ModelTypeEnum;
@@ -83,7 +60,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	
 	private String deployerEndpoint;
 	protected String model;
-	
 	
 	String host;
 	
@@ -153,7 +129,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
             byte[] data = client.getData().forPath(path);
             if (data != null && data.length > 0) {
                 this.clusterIp = new String(data, "UTF-8");
-                classLogger.info("Model {} is active with cluster IP: {}", this.engineId, this.clusterIp);
             }
             setModelState(RemoteModelStateEnum.ACTIVE);
         }
@@ -184,7 +159,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
             byte[] data = client.getData().forPath(path);
             if (data != null && data.length > 0) {
                 this.clusterIp = new String(data, "UTF-8");
-                classLogger.info("Model {} updated with cluster IP: {}", this.engineId, this.clusterIp);
             }
             setModelState(RemoteModelStateEnum.ACTIVE);
         }
@@ -222,9 +196,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
         return false;
     }
 
-	
 	private void initializeEngine() {
-		classLogger.info("Starting up the remote model engine...");
+		classLogger.info("Starting up the Remote Model Engine...");
 		
 		AppCloudClientProperties clientProps = new AppCloudClientProperties();
 		
@@ -243,20 +216,17 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		   host="node_"+Utility.getRandomString(5);
 		}
 		
-		// make the curator
 		try {
 			client =  CuratorFrameworkFactory.newClient(zk_server, new RetryNTimes(3, 10));
 			client.start();
 			
 	        // Check if the ZNode exists before trying to create it - project
 	        if (client.checkExists().forPath(WARMING_PATH) == null) {
-	        	classLogger.info("Warming path does not exist, creating...");
 	            client.create().creatingParentsIfNeeded().forPath(WARMING_PATH);
 	        }
 	        
 	        // Check if the ZNode exists before trying to create it - engine
 	        if (client.checkExists().forPath(ACTIVE_PATH) == null) {
-	        	classLogger.info("Active path does not exist, creating...");
 	            client.create().creatingParentsIfNeeded().forPath(ACTIVE_PATH);
 	        }
 	        
@@ -288,7 +258,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	                }
 	            })
 	            .build();
-
 	    cache.listenable().addListener(listener);
 	    cache.start();
 
@@ -310,7 +279,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    }
 	}
 
-	
 	public boolean isModelActive() throws Exception {
 	    String path = ACTIVE_PATH + "/" + this.engineId;
 	    if (client.checkExists().forPath(path) != null) {
@@ -320,9 +288,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    return false;
 	}
 
-
-
-	// wait for model to become active with a timeout
 	public boolean waitForModelActive(long timeoutMs) throws Exception {
 	    long startTime = System.currentTimeMillis();
 	    while (System.currentTimeMillis() - startTime < timeoutMs) {
@@ -380,7 +345,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	            return true;
 	        }
 	        
-	        // If model is warming wait for it
 	        if (isModelWarming()) {
 	            classLogger.info("Model {} is already warming, waiting for activation", this.engineId);
 	            return waitForModelActive(timeoutMs);
@@ -394,10 +358,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	            classLogger.error("Failed to initiate deployment for model {}", this.engineId);
 	            return false;
 	        }
-	        
-	        // Wait for model to become active
 	        return waitForModelActive(timeoutMs);
-	        
 	    } catch (Exception e) {
 	        classLogger.error("Error during model deployment process", e);
 	        return false;
@@ -405,8 +366,20 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	}
 	
 	protected JSONObject makeModelRequest(JSONObject requestPayload) throws Exception {
-	    // First ensure model is active and get current state
+	    // Get current state and handle warming/cold states
 	    RemoteModelStateEnum currentState = getCurrentModelState();
+	    
+	    // If model is warming, wait for it to become active
+	    if (currentState == RemoteModelStateEnum.WARMING) {
+	        classLogger.info("Model {} is warming, waiting for activation...", this.engineId);
+	        boolean becameActive = waitForState(RemoteModelStateEnum.ACTIVE, 300000); // 5 minute timeout
+	        if (!becameActive) {
+	            classLogger.error("Model {} failed to become active after warming", this.engineId);
+	            return null;
+	        }
+	        currentState = RemoteModelStateEnum.ACTIVE;
+	    }
+	    // If not active after handling warming state, return null
 	    if (currentState != RemoteModelStateEnum.ACTIVE) {
 	        classLogger.error("Model {} is not active. Current state: {}", this.engineId, currentState);
 	        return null;
@@ -419,12 +392,11 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 
 	    // Construct the URL using cluster IP
 //	    String url = String.format("http://%s:8888/api/generate", clusterIp);
-	    // TEMP FOR LOCAL DEVELOPMENT
-	    String url = "http://localhost:8888/api/generate";
+	    String url = "http://localhost:8888/api/generate"; // TEMP FOR LOCAL DEVELOPMENT
 	    
 	    RequestConfig requestConfig = RequestConfig.custom()
 	            .setConnectTimeout(30000)
-	            .setSocketTimeout(900000) // 15 minutes is probably too long
+	            .setSocketTimeout(900000)
 	            .build();
 
 	    try (CloseableHttpClient httpClient = HttpClients.custom()
@@ -435,7 +407,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        httpPost.setHeader("Accept", "text/event-stream");
 	        httpPost.setHeader("Content-Type", "application/json");
 	        
-	        // Set the request payload
 	        StringEntity entity = new StringEntity(requestPayload.toString(), ContentType.APPLICATION_JSON);
 	        httpPost.setEntity(entity);
 
@@ -452,7 +423,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	                return null;
 	            }
 
-	            // Create a buffered reader for the SSE stream
 	            try (BufferedReader reader = new BufferedReader(
 	                    new InputStreamReader(responseEntity.getContent(), StandardCharsets.UTF_8))) {
 	                
@@ -504,22 +474,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    return client.getChildren().forPath(WARMING_PATH);
 	}
 	
-	// Thread-safe singleton getter
-	public static AbstractRemoteModelEngine getInstance() throws Exception {
-		if(sync != null) {
-			return sync;
-		}
-		if(sync == null) {
-			synchronized (AbstractRemoteModelEngine.class) {
-				if(sync != null) {
-					return sync;
-				}
-				sync = new AbstractRemoteModelEngine();
-			}
-		}
-		return sync;
-	}
-
 	@Override
 	public ModelTypeEnum getModelType() {
 		// TODO Auto-generated method stub
@@ -551,7 +505,4 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
-	
-	
 }
