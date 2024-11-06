@@ -62,12 +62,6 @@ public class NERReactor extends AbstractReactor {
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 		
 	}
-	
-//    public Map<String, Object> toMap(){
-//    	Map<String, Object> responseMap = new HashMap<>();
-//    	responseMap.put("response", this.response);
-//    	return responseMap;
-//    }
 
 	private Map<String, Object> getMap() {
         GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);
