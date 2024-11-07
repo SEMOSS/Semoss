@@ -114,29 +114,20 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        model_response = super().call(
+        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, mask_entities={mask_entities});'
+
+        print(f"Pixel: {pixel}")
+        pixelReturn = super().callReactor(
             epoc=epoc,
-            engine_type="Model",
-            engine_id=self.engine_id,
-            method_name="predict",
-            method_args=[
-                text,
-                entities,
-                mask_entities,
-                insight_id,
-                param_dict,
-            ],
-            method_arg_types=[
-                "java.lang.String",
-                "java.util.List",
-                "java.util.List",
-                "prerna.om.Insight",
-                "java.util.Map",
-            ],
+            pixel=pixel,
             insight_id=insight_id,
         )
 
-        return model_response
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
 
     def embeddings(
         self,
