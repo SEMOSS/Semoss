@@ -14,7 +14,11 @@ import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.curator.retry.RetryOneTime;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.http.HttpEntity;
@@ -61,11 +65,12 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	private String deployerEndpoint;
 	protected String model;
 	
-	String host;
+	// This provides a thread safe state tracking of initial connection attempt and stops ZK from trying to continually reconnect under the hood
+    private final AtomicBoolean initialConnectionComplete = new AtomicBoolean(false);
+    private final CountDownLatch connectionLatch = new CountDownLatch(1);
+	private Boolean initialized = false;
 	
-	public AbstractRemoteModelEngine() {
-		initializeEngine();
-	}
+	String host;
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -165,6 +170,9 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     }
     
     public RemoteModelStateEnum getCurrentModelState() throws Exception {
+    	 if (!initialized) {
+            initializeEngine();
+    	 }
     	RemoteModelStateEnum currentState = getModelState();
         
         // Verify against ZK
@@ -196,47 +204,112 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
         return false;
     }
 
-	private void initializeEngine() {
-		classLogger.info("Starting up the Remote Model Engine...");
-		
-		AppCloudClientProperties clientProps = new AppCloudClientProperties();
-		
-		// what is the zk server ip 
-//		String zk_server = clientProps.get(ZK_SERVER_STRING);
-		String zk_server = "localhost:2181";
-		
-		if (zk_server == null || zk_server.isEmpty()) {
-			throw new IllegalArgumentException("Zookeeper Server endpoint is not defined");
-		}
-		
-		// what is the host ip of the container/pod/box - this is used as a unique id for the container/singleton
-		host = clientProps.get(HOST_IP);
-		if (host == null || host.isEmpty()) {
-			classLogger.info("Host IP is not set");
-		   host="node_"+Utility.getRandomString(5);
-		}
-		
-		try {
-			client =  CuratorFrameworkFactory.newClient(zk_server, new RetryNTimes(3, 10));
-			client.start();
-			
-	        // Check if the ZNode exists before trying to create it - project
-	        if (client.checkExists().forPath(WARMING_PATH) == null) {
-	            client.create().creatingParentsIfNeeded().forPath(WARMING_PATH);
-	        }
-	        
-	        // Check if the ZNode exists before trying to create it - engine
-	        if (client.checkExists().forPath(ACTIVE_PATH) == null) {
-	            client.create().creatingParentsIfNeeded().forPath(ACTIVE_PATH);
-	        }
-	        
-	        warmingCache = createCacheListener(WARMING_PATH);
-	        activeCache = createCacheListener(ACTIVE_PATH);
-			
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
+
+    
+    private void initializeEngine() {
+        classLogger.info("Starting up the Remote Model Engine...");
+        
+        AppCloudClientProperties clientProps = new AppCloudClientProperties();
+//        String zk_server = clientProps.get(ZK_SERVER_STRING);
+        String zk_server = "localhost:2181";
+        
+        if (zk_server == null || zk_server.isEmpty()) {
+            throw new IllegalArgumentException("Zookeeper Server endpoint is not defined");
+        }
+        
+        host = clientProps.get(HOST_IP);
+        if (host == null || host.isEmpty()) {
+            classLogger.info("Host IP is not set");
+            host = "node_" + Utility.getRandomString(5);
+        }
+        
+        try {
+            RetryOneTime retryPolicy = new RetryOneTime(1000);
+            
+            CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                .connectString(zk_server)
+                .retryPolicy(retryPolicy)
+                .connectionTimeoutMs(5000)
+                .sessionTimeoutMs(10000)
+                .maxCloseWaitMs(2000);
+            
+            client = builder.build();
+            
+            // Add connection state listener
+            client.getConnectionStateListenable().addListener((client, state) -> {
+                classLogger.info("ZooKeeper connection state changed to: " + state);
+                
+                if (state == ConnectionState.CONNECTED || state == ConnectionState.RECONNECTED) {
+                    if (!initialConnectionComplete.get()) {
+                        initialConnectionComplete.set(true);
+                        connectionLatch.countDown();
+                    }
+                } else if (state == ConnectionState.LOST || state == ConnectionState.SUSPENDED) {
+                    if (!initialConnectionComplete.get()) {
+                        // If we lose connection before initial connection is complete, fail fast
+                        connectionLatch.countDown();
+                        closeResources();
+                    }
+                }
+            });
+            
+            client.start();
+            
+            // Wait for initial connection with timeout
+            boolean connected = connectionLatch.await(10, TimeUnit.SECONDS);
+            if (!connected || !initialConnectionComplete.get()) {
+                closeResources();
+                throw new Exception("Failed to establish initial connection to ZooKeeper");
+            }
+            
+            // Only proceed with initialization if we have a good connection
+            if (initialConnectionComplete.get()) {
+                // Check if the ZNode exists before trying to create it - project
+                if (client.checkExists().forPath(WARMING_PATH) == null) {
+                    client.create().creatingParentsIfNeeded().forPath(WARMING_PATH);
+                }
+                
+                // Check if the ZNode exists before trying to create it - engine
+                if (client.checkExists().forPath(ACTIVE_PATH) == null) {
+                    client.create().creatingParentsIfNeeded().forPath(ACTIVE_PATH);
+                }
+                
+                warmingCache = createCacheListener(WARMING_PATH);
+                activeCache = createCacheListener(ACTIVE_PATH);
+                
+                this.initialized = true;
+            }
+            
+        } catch (Exception e) {
+            classLogger.error("Failed to initialize ZooKeeper connection", e);
+            closeResources();
+            throw new RuntimeException("Failed to initialize ZooKeeper connection", e);
+        }
+    }
+    
+    private void closeResources() {
+        try {
+            if (warmingCache != null) {
+                warmingCache.close();
+                warmingCache = null;
+            }
+            if (activeCache != null) {
+                activeCache.close();
+                activeCache = null;
+            }
+            if (client != null) {
+                client.close();
+                client = null;
+            }
+        } catch (Exception e) {
+            classLogger.error("Error closing resources", e);
+        }
+    }
+    
+    @Override
+    public void close() throws IOException {
+        closeResources();
+    }
 	
 	private CuratorCache createCacheListener(String pathToWatch) {
 	    CuratorCache cache = CuratorCache.build(client, pathToWatch);
@@ -478,12 +551,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	public ModelTypeEnum getModelType() {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
