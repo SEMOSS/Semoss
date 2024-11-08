@@ -54,6 +54,8 @@ public class RemoteClientServerZK {
     private final ConcurrentMap<String, String> modelClusterIps = new ConcurrentHashMap<>();
     private CuratorCache warmingCache;
     private CuratorCache activeCache;
+    
+    private Boolean devPortFowarding = false;
 
     private RemoteClientServerZK() {
         classLogger.info("RemoteClientServerZK being initialized...");
@@ -264,10 +266,13 @@ public class RemoteClientServerZK {
             classLogger.error("No cluster IP available for health check of model {}", modelId);
             return false;
         }
+         String healthUrl = "";
+         if (devPortFowarding) {
+        	 healthUrl = "http://localhost:8888/api/health";
+         } else {
+        	 healthUrl = String.format("http://%s:8888/health", clusterIp);
+         }
 
-        // String healthUrl = String.format("http://%s:8888/health", clusterIp);
-        String healthUrl = "http://localhost:8888/api/health";  // For local dev
-        
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(1000)
                 .setSocketTimeout(1000)

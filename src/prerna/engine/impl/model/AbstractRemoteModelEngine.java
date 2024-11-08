@@ -43,6 +43,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     protected String model;
     private String deployerEndpoint;
     private RemoteClientServerZK zkClient;
+    private Boolean devPortFowarding = false;
     
     @Override
     public void open(Properties smssProp) throws Exception {
@@ -160,9 +161,13 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     }
     
     private JSONObject makeHttpRequest(String clusterIp, JSONObject requestPayload) {
-        String url = "http://localhost:8888/api/generate"; // TEMP FOR LOCAL DEVELOPMENT
-        // String url = String.format("http://%s:8888/api/generate", clusterIp);
-        
+    	String url = "";
+    	if (devPortFowarding) {
+    		url = "http://localhost:8888/api/generate";
+    	} else {
+    		url = String.format("http://%s:8888/api/generate", clusterIp);
+    	}
+
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(30000)
                 .setSocketTimeout(900000)
