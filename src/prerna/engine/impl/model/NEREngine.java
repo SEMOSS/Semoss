@@ -11,6 +11,10 @@ import prerna.engine.impl.model.responses.NerModelEngineResponse;
 import prerna.om.Insight;
 import prerna.engine.api.ModelTypeEnum;
 
+/**
+ * This is a class representing a RemoteClientServer deployed instance of a Named Entity Recognition model.
+ * See https://github.com/SEMOSS/remote-client-server for RemoteClientServer implementation.
+ */
 public class NEREngine extends AbstractRemoteModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractRemoteModelEngine.class);
