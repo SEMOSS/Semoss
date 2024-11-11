@@ -43,6 +43,7 @@ import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
 import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
+import prerna.sablecc2.PixelRunner;
 import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 
@@ -197,6 +198,12 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	List<File> writeNotebooks();
+	
+	/**
+	 * 
+	 * @return
+	 */
+	PixelRunner executeNotebooks();
 	
 	/**
 	 * Return if an asset
