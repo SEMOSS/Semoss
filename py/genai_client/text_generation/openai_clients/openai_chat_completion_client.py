@@ -121,16 +121,18 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 image_payload = []
                 image_payload.append({"type": "text", "text": question})
                 image_url = {}
-                image_url["url"] = f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
+                image_url["url"] = (
+                    f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
+                )
                 image_payload.append({"type": "image_url", "image_url": image_url})
                 message_payload.append({"role": "user", "content": image_payload})
-        else: 
+        else:
             # add the new question to the payload
             if question != None and len(question) > 0:
                 message_payload.append({"role": "user", "content": question})
 
         return message_payload
-        
+
     def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
         if isinstance(full_prompt, list):
             listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
@@ -152,30 +154,15 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
     def _check_token_limits(
         self, prompt_payload: List, max_new_tokens: int
     ) -> Tuple[str, int, AskModelEngineResponse]:
-        """
-        The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
-        Instead we rather will send back a flag indicating adjustments have
-        """
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
         specific_tokenizer = self.tokenizer._get_tokenizer(self.model_name)
-        if hasattr(specific_tokenizer, "apply_chat_template"):
-            # Apply the chat template to the prompt if no chat template was provided
-            if specific_tokenizer.chat_template == None:
-                specific_tokenizer.chat_template = "chatml"
-            # there is a apply chat template available for this model - transformers tokenizer
-            prompt = specific_tokenizer.apply_chat_template(
-                prompt_payload, tokenize=False
-            )
-            # use the models tokenizer to get the number of tokens in the prompt
-            prompt_tokens = self.tokenizer.get_tokens_ids(prompt)
-            num_token_in_prompt = len(prompt_tokens)
-        else:
-            # use the models tokenizer to get the number of tokens in the prompt
-            # this is likely directly openai
-            num_token_in_prompt = self.tokenizer.count_tokens(prompt_payload)
+        # Identify and format the prompt with the appropriate chat template based on model type
+        formatted_prompt = self.tokenizer.format_with_chat_template(prompt_payload)
+        input_ids = specific_tokenizer.encode(formatted_prompt)
 
+        num_token_in_prompt = len(input_ids)
         max_prompt_tokens = self.tokenizer.get_max_input_token_length()
 
         if max_prompt_tokens != None:
