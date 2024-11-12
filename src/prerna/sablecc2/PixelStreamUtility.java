@@ -357,7 +357,6 @@ public class PixelStreamUtility {
 			ps.print("\"output\":");
 			ps.print(gson.toJson(storageData));
 			ps.print(",\"operationType\":");
-			List<PixelOperationType> opTypes = noun.getOpType();
 			ps.print(gson.toJson(noun.getOpType()));
 			
 		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
