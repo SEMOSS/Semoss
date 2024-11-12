@@ -201,9 +201,10 @@ public interface IProject extends IEngine, Closeable {
 	
 	/**
 	 * 
+	 * @param insight
 	 * @return
 	 */
-	PixelRunner executeNotebooks();
+	PixelRunner executeNotebooks(Insight insight);
 	
 	/**
 	 * Return if an asset
