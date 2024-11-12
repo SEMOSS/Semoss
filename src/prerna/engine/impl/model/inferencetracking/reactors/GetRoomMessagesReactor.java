@@ -30,7 +30,9 @@ public class GetRoomMessagesReactor extends AbstractReactor {
         }
         Integer limit = -1, offset = -1;
         String roomId = this.keyValue.get(this.keysToGet[0]);
-        if (this.keyValue.get(this.keysToGet[1])!= null && this.keyValue.get(this.keysToGet[2]) != null) {
+        if ( (this.keyValue.get(this.keysToGet[1])!= null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) 
+        		&& 
+        	(this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty())) {
         	limit = Integer.parseInt(this.keyValue.get(this.keysToGet[1]));
         	offset = Integer.parseInt(this.keyValue.get(this.keysToGet[2]));
         }

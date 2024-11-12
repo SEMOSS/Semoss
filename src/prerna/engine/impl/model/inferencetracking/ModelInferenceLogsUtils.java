@@ -783,11 +783,21 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort) {
-		SelectQueryStruct qs = addColumns(userId, insightId, dateSort);
+		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
+	
 
-	private static SelectQueryStruct addColumns(String userId, String insightId, String dateSort) {
+	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
+		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
+		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		Collections.reverse(response);
+		return response;
+	}
+	
+	private static SelectQueryStruct retrieveMessageQS(String userId, String insightId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
@@ -807,14 +817,7 @@ public class ModelInferenceLogsUtils {
 		return qs;
 	}
 	
-	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
-		SelectQueryStruct qs = addColumns(userId, insightId, dateSort);
-		qs.setLimit(limit);
-		qs.setOffSet(offset);
-		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-		Collections.reverse(response);
-		return response;
-	}
+
 	
 	/**
 	 * 
