@@ -31,11 +31,16 @@ public class UnmountReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Var or App Name cannot be null ");			
 		}
 
-		// remove from R and Py as well
-		insight.getPyTranslator().runPyAndReturnOutput(insight.getUser().getVarMap(), "del " + varName);
-		insight.getRJavaTranslator(getLogger(CLASS_NAME)).runRAndReturnOutput("rm(" + varName + ")", insight.getUser().getVarMap());
+		//TODO: not sure this has any use anymore...
+		//TODO: not sure this has any use anymore...
+		//TODO: not sure this has any use anymore...
+		//TODO: not sure this has any use anymore...
 		
-		insight.getUser().removeVarString(varName, null);
+//		// remove from R and Py as well
+//		insight.getPyTranslator().runPyAndReturnOutput(insight.getUser().getVarMap(), "del " + varName);
+//		insight.getRJavaTranslator(getLogger(CLASS_NAME)).runRAndReturnOutput("rm(" + varName + ")", insight.getUser().getVarMap());
+//		
+//		insight.getUser().removeVarString(varName, null);
 		return new NounMetadata("Mount point " + varName + " Unmounted " , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 

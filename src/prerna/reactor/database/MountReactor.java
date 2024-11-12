@@ -30,7 +30,12 @@ public class MountReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Var or App Name cannot be null ");			
 		}
 		
-		boolean success = insight.getUser().addVarMap(varName, projectId);
+		//TODO: not sure this has any use anymore...
+		//TODO: not sure this has any use anymore...
+		//TODO: not sure this has any use anymore...
+		//TODO: not sure this has any use anymore...
+		
+		boolean success = true;//insight.getUser().addVarMap(varName, projectId);
 		//String varString = insight.getUser().getVarString(false);
 		if(!success) {
 			throw new IllegalArgumentException("No project with " + projectId + " available ");			

@@ -248,7 +248,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		
 		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
 		
@@ -286,7 +286,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runScript(callMaker.toString(), insight);
+		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
 		return embeddingsResponse;
 	}
@@ -303,7 +303,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		callMaker.append(")");
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		return output;
 	}
 
