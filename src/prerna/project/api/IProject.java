@@ -30,6 +30,7 @@ package prerna.project.api;
 import java.io.Closeable;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -202,9 +203,10 @@ public interface IProject extends IEngine, Closeable {
 	/**
 	 * 
 	 * @param insight
+	 * @param inputReplacements
 	 * @return
 	 */
-	PixelRunner executeNotebooks(Insight insight);
+	PixelRunner executeNotebooks(Insight insight, Map<String, String> inputReplacements);
 	
 	/**
 	 * Return if an asset

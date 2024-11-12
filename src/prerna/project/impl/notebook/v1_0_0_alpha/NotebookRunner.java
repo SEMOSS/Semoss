@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 import prerna.om.Insight;
 import prerna.project.impl.notebook.INotebookRunner;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
@@ -41,7 +42,7 @@ public class NotebookRunner implements INotebookRunner {
 	}
 	
 	@Override
-	public PixelRunner executeNotebook(Insight insight) {
+	public PixelRunner executeNotebook(Insight insight, Map<String, String> inputReplacements) {
 		PixelRunner runner = new PixelRunner();
 		
 		// grab all the values for replacement
@@ -52,6 +53,10 @@ public class NotebookRunner implements INotebookRunner {
 			if(varMap.has("value")) {
 				replacements.put(varName, varMap.get("value").getAsString());
 			}
+		}
+		// add user defined replacements
+		if(inputReplacements != null) {
+			replacements.putAll(inputReplacements);
 		}
 		
 		// determine the order of execution
@@ -75,7 +80,7 @@ public class NotebookRunner implements INotebookRunner {
 			JsonObject blocksNotebook = blocksQueryMap.getAsJsonObject(notebookName);
 			String notebookId = blocksNotebook.get("id").getAsString();
 			
-			NounMetadata lastResult = null;
+			String lastResultReplacement = null;
 			List<JsonElement> blocksCells = blocksNotebook.getAsJsonArray("cells").asList();
 			for(JsonElement blocksCellEle : blocksCells) {
 				JsonObject blocksCellObj = blocksCellEle.getAsJsonObject();
@@ -100,16 +105,21 @@ public class NotebookRunner implements INotebookRunner {
 				insight.runPixel(runner, finalPixel);
 				
 				List<NounMetadata> allResults = runner.getResults();
-				lastResult = allResults.get(allResults.size()-1);
-				
-				//TODO: need a way to grab the response based on the op type
-				//for example, py/r return an array 
+				NounMetadata lastResult = allResults.get(allResults.size()-1);
+				lastResultReplacement = lastResult.getValue()+"";
+				// TODO: what other special op types do we have to account for ???
+				// TODO: what other special op types do we have to account for ???
+				// TODO: what other special op types do we have to account for ???
+				// TODO: what other special op types do we have to account for ???
+				if(lastResult.getOpType().contains(PixelOperationType.CODE_EXECUTION)) {
+					lastResultReplacement = ((List) lastResult.getValue()).get(0)+"";;
+				}
 				
 				// store cellId to value
-				replacements.put(cellId, lastResult.getValue()+"");
+				replacements.put(cellId, lastResultReplacement);
 			}
 			// store notebookId to last cell value
-			replacements.put(notebookId, lastResult.getValue()+"");
+			replacements.put(notebookId, lastResultReplacement);
 		}
 		
 		return runner;

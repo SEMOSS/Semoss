@@ -1160,7 +1160,7 @@ public class Project implements IProject {
 		return null;
 	}
 	@Override
-	public PixelRunner executeNotebooks(Insight insight) {
+	public PixelRunner executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
 		// if not blocks json
 		// then ignore for now
 		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
@@ -1176,7 +1176,7 @@ public class Project implements IProject {
 		
 		try {
 			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
-			return runner.executeNotebook(insight);
+			return runner.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {

@@ -1,5 +1,7 @@
 package prerna.project.impl.notebook;
 
+import java.util.Map;
+
 import com.google.gson.JsonElement;
 
 import prerna.om.Insight;
@@ -22,8 +24,9 @@ public interface INotebookRunner {
 	/**
 	 * 
 	 * @param insight
+	 * @param inputReplacements
 	 * @return
 	 */
-	PixelRunner executeNotebook(Insight insight);
+	PixelRunner executeNotebook(Insight insight, Map<String, String> inputReplacements);
 
 }

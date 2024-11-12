@@ -1,6 +1,7 @@
 package prerna.reactor.project;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,6 +12,7 @@ import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -27,7 +29,7 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 	 */
 
 	public ExecuteAppNotebookReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MAP.getKey()};
 	}
 
 	@Override
@@ -39,12 +41,14 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 			// you don't have access
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
-		
+		// grab user inputs
+		Map<String, String> inputMap = getInputMap();
+
 		Insight newInsight = new Insight();
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 
 		IProject project = Utility.getProject(projectId);
-		PixelRunner runner = project.executeNotebooks(newInsight);
+		PixelRunner runner = project.executeNotebooks(newInsight, inputMap);
 		
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
@@ -52,4 +56,18 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 		return noun;
 	}
 	
+	private Map<String, String> getInputMap() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, String>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, String>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 }
