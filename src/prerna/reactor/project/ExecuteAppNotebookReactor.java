@@ -42,13 +42,17 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		// grab user inputs
+		Map<String, String> inputValueMap = new HashMap<>();
 		Map<String, String> inputMap = getInputMap();
-
+		for(String key : inputMap.keySet()) {
+			inputValueMap.put(key+".value", inputMap.get(key));
+		}
+		
 		Insight newInsight = new Insight();
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 
 		IProject project = Utility.getProject(projectId);
-		PixelRunner runner = project.executeNotebooks(newInsight, inputMap);
+		PixelRunner runner = project.executeNotebooks(newInsight, inputValueMap);
 		
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
