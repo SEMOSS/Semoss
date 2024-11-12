@@ -232,9 +232,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		// check for these values from smss
 		if(parameters == null || !parameters.containsKey("max_new_tokens")) {
 			if(this.vars.containsKey("MAX_NEW_TOKENS")) {
-				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_NEW_TOKENS"));
+				String maxNewTokens = this.vars.get("MAX_NEW_TOKENS");
+				maxNewTokens = maxNewTokens.replace(",", "");
+				callMaker.append(", max_new_tokens=").append(maxNewTokens);
 			} else if (this.vars.containsKey("MAX_TOKENS")) {
-				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_TOKENS"));
+				String maxNewTokens = this.vars.get("MAX_TOKENS");
+				maxNewTokens = maxNewTokens.replace(",", "");
+				callMaker.append(", max_new_tokens=").append(maxNewTokens);
 			}
 		}
 
