@@ -107,11 +107,11 @@ public class NotebookRunner implements INotebookRunner {
 				List<NounMetadata> allResults = runner.getResults();
 				NounMetadata lastResult = allResults.get(allResults.size()-1);
 				lastResultReplacement = lastResult.getValue()+"";
-				// TODO: what other special op types do we have to account for ???
-				// TODO: what other special op types do we have to account for ???
-				// TODO: what other special op types do we have to account for ???
-				// TODO: what other special op types do we have to account for ???
-				if(lastResult.getOpType().contains(PixelOperationType.CODE_EXECUTION)) {
+
+				// we want to keep this logic to match the FE replacement logic
+				List<PixelOperationType> opTypes = lastResult.getOpType();
+				if(opTypes.contains(PixelOperationType.CODE_EXECUTION)
+						|| opTypes.contains(PixelOperationType.VECTOR)) {
 					lastResultReplacement = ((List) lastResult.getValue()).get(0)+"";;
 				}
 				
