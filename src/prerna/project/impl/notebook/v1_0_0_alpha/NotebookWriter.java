@@ -21,10 +21,9 @@ import prerna.project.impl.notebook.INotebookBuilder;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+public class NotebookWriter implements INotebookBuilder {
 
-public class NotebookHelper implements INotebookBuilder {
-
-	private static final Logger classLogger = LogManager.getLogger(NotebookHelper.class);
+	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
 
 	private JsonObject blocksFileJson = null;
 	
