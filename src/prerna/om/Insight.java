@@ -1464,6 +1464,9 @@ public class Insight implements Serializable {
 			return true;
 		}
 		if(this.user != null) {
+			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+				return false;
+			}
 			this.contextProjectId = projectId;
 			this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 			this.user.setContext(contextProjectId, contextProjectName);
