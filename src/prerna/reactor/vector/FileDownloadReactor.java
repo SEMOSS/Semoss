@@ -1,7 +1,7 @@
 package prerna.reactor.vector;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class FileDownloadReactor extends AbstractReactor {
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
-	public String getDownload(List<String> fileNameList) throws FileNotFoundException {
+	public String getDownload(List<String> fileNameList) {
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 
@@ -75,15 +75,46 @@ public class FileDownloadReactor extends AbstractReactor {
 				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 		String outputDir = this.insight.getInsightFolder();
-		String outFilePath = outputDir + "/" + engineNameAndId + "_engine.zip";
+		String outFilePath = null;
 
-		FileOutputStream fileoutStream = new FileOutputStream(outFilePath);
-		ZipOutputStream zos = new ZipOutputStream(fileoutStream);
+		FileOutputStream fileoutStream = null;
+		ZipOutputStream zos = null;
 		try {
-			for (String filename : fileNameList) {
 
-				File filetozip = new File(thisEngineDir + DIR_SEPARATOR + filename);
-				ZipUtils.addToZipFile(filetozip, zos);
+			if (fileNameList.size() == 1) {
+				// Logic for single file download
+				outFilePath = thisEngineDir + DIR_SEPARATOR + fileNameList.get(0);
+				fileoutStream = new FileOutputStream(outFilePath);
+				File fileToDownload = new File(outFilePath);
+				FileInputStream fis = new FileInputStream(fileToDownload);
+				try {
+					byte[] buffer = new byte[1024];
+					int length;
+					while ((length = fis.read(buffer)) > 0) {
+						fileoutStream.write(buffer, 0, length);
+					}
+				} finally {
+					try {
+						if (fis != null) {
+							fis.close();
+						}
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			} else if (fileNameList.size() > 1) {
+
+				// Logic for multifile download as Zip
+				outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_engine.zip";
+				fileoutStream = new FileOutputStream(outFilePath);
+				zos = new ZipOutputStream(fileoutStream);
+				for (String filename : fileNameList) {
+					File filetozip = new File(thisEngineDir + DIR_SEPARATOR + filename);
+					ZipUtils.addToZipFile(filetozip, zos);
+				}
+			} else {
+				logger.error(Constants.STACKTRACE, "Kindly provide a valid filename to download");
+				throw new SemossPixelException("Kindly provide a valid filename to download ");
 			}
 		} catch (Exception e) {
 			logger.info("Error occurred on download engine");
