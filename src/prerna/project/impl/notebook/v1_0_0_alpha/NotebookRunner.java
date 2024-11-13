@@ -9,6 +9,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -19,6 +20,7 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.gson.GsonUtility;
 
 public class NotebookRunner implements INotebookRunner {
 
@@ -43,15 +45,27 @@ public class NotebookRunner implements INotebookRunner {
 	
 	@Override
 	public PixelRunner executeNotebook(Insight insight, Map<String, String> inputReplacements) {
+		Gson gson = GsonUtility.getDefaultGson();
+		
 		PixelRunner runner = new PixelRunner();
 		
-		// grab all the values for replacement
+		// grab all the values for replacement'
+		Map<String, String> idToVariable = new HashMap<>();
 		Map<String, String> replacements = new HashMap<>();
 		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
 		for(String varName : variables.keySet()) {
 			JsonObject varMap = variables.get(varName).getAsJsonObject();
 			if(varMap.has("value")) {
 				replacements.put(varName, varMap.get("value").getAsString());
+			} else {
+				String cellType = varMap.get("type").getAsString();
+				if(cellType.equalsIgnoreCase("cell")) {
+					String cellId = varMap.get("cellId").getAsString();
+					idToVariable.put(cellId, varName);
+				} else {
+					String pointer = varMap.get("to").getAsString();
+					idToVariable.put(pointer, varName);
+				}
 			}
 		}
 		// add user defined replacements
@@ -106,20 +120,30 @@ public class NotebookRunner implements INotebookRunner {
 				
 				List<NounMetadata> allResults = runner.getResults();
 				NounMetadata lastResult = allResults.get(allResults.size()-1);
-				lastResultReplacement = lastResult.getValue()+"";
+				Object lastResultValue = lastResult.getValue();
 
 				// we want to keep this logic to match the FE replacement logic
 				List<PixelOperationType> opTypes = lastResult.getOpType();
 				if(opTypes.contains(PixelOperationType.CODE_EXECUTION)
 						|| opTypes.contains(PixelOperationType.VECTOR)) {
-					lastResultReplacement = ((List) lastResult.getValue()).get(0)+"";;
+					lastResultValue = ((List) lastResult.getValue()).get(0);
 				}
 				
+				lastResultReplacement = gson.toJson(lastResultValue);
+				
 				// store cellId to value
-				replacements.put(cellId, lastResultReplacement);
+				if(idToVariable.containsKey(cellId)) {
+					String pointer = idToVariable.get(cellId);
+					replacements.put(pointer, lastResultReplacement);
+					replacements.put(pointer+".value", lastResultReplacement);
+				}
 			}
 			// store notebookId to last cell value
-			replacements.put(notebookId, lastResultReplacement);
+			if(idToVariable.containsKey(notebookId)) {
+				String pointer = idToVariable.get(notebookId);
+				replacements.put(pointer, lastResultReplacement);
+				replacements.put(pointer+".value", lastResultReplacement);
+			}
 		}
 		
 		return runner;
