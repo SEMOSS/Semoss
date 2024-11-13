@@ -57,7 +57,12 @@ function/**
 storage/**
 vector/**
 *.mv.db
-InsightCache/
+# Don't track anything but CSV_Insights folder
+InsightCache/*
+!InsightCache/CSV_Insights/
+# Don't track anything but the .gitkeep folder in CSV_Insights. This is redundant but having .gitkeep is helpful reminder not to delete this folder
+InsightCache/CSV_Insights/*
+!InsightCache/CSV_Insights/.gitkeep
 
 # Python local log file
 py/log.txt
