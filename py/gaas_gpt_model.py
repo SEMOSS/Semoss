@@ -134,22 +134,38 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        model_response = super().call(
+        context_str = f'context="{context}",' if context is not None else ""
+
+        pixel = f'LLMInstruct(engine="{self.engine_id}", command="{task}", {context_str} insight_id="{insight_id}");'
+
+        pixelReturn = super().callReactor(
             epoc=epoc,
-            engine_type="Model",
-            engine_id=self.engine_id,
-            method_name="instruct",
-            method_args=[task, context, insight_id, param_dict],
-            method_arg_types=[
-                "java.lang.String",
-                "java.lang.String",
-                "prerna.om.Insight",
-                "java.util.Map",
-            ],
+            pixel=pixel,
             insight_id=insight_id,
         )
 
-        return model_response
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
+        # model_response = super().call(
+        #     epoc=epoc,
+        #     engine_type="Model",
+        #     engine_id=self.engine_id,
+        #     method_name="instruct",
+        #     method_args=[task, context, insight_id, param_dict],
+        #     method_arg_types=[
+        #         "java.lang.String",
+        #         "java.lang.String",
+        #         "prerna.om.Insight",
+        #         "java.util.Map",
+        #     ],
+        #     insight_id=insight_id,
+        # )
+
+        # return model_response
 
     def embeddings(
         self,

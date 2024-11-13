@@ -1,9 +1,10 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
+    IMAGE_ENCODED,
     InstructModelEngineResponse,
 )
 
@@ -43,33 +44,90 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         return final_query
 
+    def _process_chat_completion(
+        self,
+        question: str,
+        context: str,
+        history: List[Dict],
+        template_name: str,
+        fill_variables: Dict,
+    ) -> List[Dict]:
+        # the list to construct the payload from
+        message_payload = []
+
+        # if the user provided context, use that. Otherwise, try to get it from the template
+        mapping = {"question": question} | fill_variables
+        if context is not None and template_name == None:
+            if isinstance(context, str):
+                context = self.fill_context(context, **mapping)[0]
+                message_payload.append({"role": "system", "content": context})
+        elif context != None and template_name != None:
+            mapping.update({"context": context})
+            context = self.fill_template(template_name=template_name, **mapping)[0]
+            message_payload.append({"role": "system", "content": context})
+        else:
+            if template_name != None:
+                possibleContent = self.fill_template(
+                    template_name=template_name, **mapping
+                )[0]
+                if possibleContent != None:
+                    message_payload.append(
+                        {"role": "system", "content": possibleContent}
+                    )
+
+        # if history was added, then add it to the payload. Currently history is being like OpenAI prompts
+        if history is not None:
+            message_payload.extend(history)
+
+        # check if images are in the fill args
+        if IMAGE_ENCODED in fill_variables:
+            # add the new question to the payload
+            if question != None and len(question) > 0:
+                image_payload = []
+                image_payload.append({"type": "text", "text": question})
+                image_url = {}
+                image_url["url"] = (
+                    f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
+                )
+                image_payload.append({"type": "image_url", "image_url": image_url})
+                message_payload.append({"role": "user", "content": image_payload})
+        else:
+            # add the new question to the payload
+            if question != None and len(question) > 0:
+                message_payload.append({"role": "user", "content": question})
+
+        return message_payload
+
+    def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
+        if isinstance(full_prompt, list):
+            listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
+            if listOfDicts == False:
+                raise ValueError("The provided payload is not valid")
+
+            # now we have to check the key value pairs are valid
+            all_keys_set = {key for d in full_prompt for key in d.keys()}
+            validOpenAiDictKey = sorted(all_keys_set) == ["content", "role"]
+            if validOpenAiDictKey == False:
+                raise ValueError("There are invalid OpenAI dictionary keys")
+            # add it the message payload
+            return full_prompt
+        else:
+            raise TypeError(
+                "Please make sure the full prompt for OpenAI Chat-Completion is a list"
+            )
+
     def check_token_limits(
         self, prompt_payload: List, max_new_tokens: int
     ) -> Tuple[str, int, AskModelEngineResponse]:
-        """
-        The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
-        Instead we rather will send back a flag indicating adjustments have
-        """
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
         specific_tokenizer = self.tokenizer._get_tokenizer(self.model_name)
-        if hasattr(specific_tokenizer, "apply_chat_template"):
-            # Apply the chat template to the prompt if no chat template was provided
-            if specific_tokenizer.chat_template == None:
-                specific_tokenizer.chat_template = "chatml"
-            # there is a apply chat template available for this model - transformers tokenizer
-            prompt = specific_tokenizer.apply_chat_template(
-                prompt_payload, tokenize=False
-            )
-            # use the models tokenizer to get the number of tokens in the prompt
-            prompt_tokens = self.tokenizer.get_tokens_ids(prompt)
-            num_token_in_prompt = len(prompt_tokens)
-        else:
-            # use the models tokenizer to get the number of tokens in the prompt
-            # this is likely directly openai
-            num_token_in_prompt = self.tokenizer.count_tokens(prompt_payload)
+        # Identify and format the prompt with the appropriate chat template based on model type
+        formatted_prompt = self.tokenizer.format_with_chat_template(prompt_payload)
+        input_ids = specific_tokenizer.encode(formatted_prompt)
 
+        num_token_in_prompt = len(input_ids)
         max_prompt_tokens = self.tokenizer.get_max_input_token_length()
 
         if max_prompt_tokens != None:
