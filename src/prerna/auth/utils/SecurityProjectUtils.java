@@ -2528,28 +2528,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get a list of project names, ids and descriptions which the user has access to. (Used the LLMInstruct Reactor)
-	 * @param userId
-	 */
-	public static List<Map<String, Object>> getUserProjectDescriptions(User user) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-		
-		{
-			OrQueryFilter orFilter = new OrQueryFilter();
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-			qs.addExplicitFilter(orFilter);
-		}
-		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	
-	/**
 	 * Determine if a user can request a project
 	 * @param projectId
 	 * @return
