@@ -45,6 +45,7 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 		Map<String, String> inputValueMap = new HashMap<>();
 		Map<String, String> inputMap = getInputMap();
 		for(String key : inputMap.keySet()) {
+			inputValueMap.put(key, inputMap.get(key));
 			inputValueMap.put(key+".value", inputMap.get(key));
 		}
 		
