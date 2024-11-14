@@ -4,7 +4,6 @@ from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
-    IMAGE_ENCODED,
     InstructModelEngineResponse,
 )
 
@@ -44,128 +43,115 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         return final_query
 
-    def _process_chat_completion(
-        self,
-        question: str,
-        context: str,
-        history: List[Dict],
-        template_name: str,
-        fill_variables: Dict,
-    ) -> List[Dict]:
-        # the list to construct the payload from
-        message_payload = []
+    def get_token_config(self, model_name: str) -> Dict[str, int]:
+        """
+        If the context window and max completion tokens are not provided in the SMSS we can grab them here.
+        This will need to be continuously updated as new models are released if we are to maintain it.
+        Args:
+            model_name (str): name of model
 
-        # if the user provided context, use that. Otherwise, try to get it from the template
-        mapping = {"question": question} | fill_variables
-        if context is not None and template_name == None:
-            if isinstance(context, str):
-                context = self.fill_context(context, **mapping)[0]
-                message_payload.append({"role": "system", "content": context})
-        elif context != None and template_name != None:
-            mapping.update({"context": context})
-            context = self.fill_template(template_name=template_name, **mapping)[0]
-            message_payload.append({"role": "system", "content": context})
-        else:
-            if template_name != None:
-                possibleContent = self.fill_template(
-                    template_name=template_name, **mapping
-                )[0]
-                if possibleContent != None:
-                    message_payload.append(
-                        {"role": "system", "content": possibleContent}
-                    )
+        Returns:
+            _type_: _description_
+        """
+        model = model_name.lower()
+        token_config = {
+            "gpt-4o": {"context_window": 128000, "max_completion_tokens": 16384},
+            "gpt-4o-mini": {"context_window": 128000, "max_completion_tokens": 16384},
+            "o1-preview": {"context_window": 128000, "max_completion_tokens": 32768},
+            "o1-mini": {"context_window": 128000, "max_completion_tokens": 65536},
+            "gpt-4-turbo": {"context_window": 128000, "max_completion_tokens": 4096},
+            "gpt-4": {"context_window": 8192, "max_completion_tokens": 8192},
+            "gpt-3.5-turbo": {"context_window": 16385, "max_completion_tokens": 4096},
+        }
+        FALLBACK_CONFIG = {"context_window": 8192, "max_completion_tokens": 4096}
 
-        # if history was added, then add it to the payload. Currently history is being like OpenAI prompts
-        if history is not None:
-            message_payload.extend(history)
-
-        # check if images are in the fill args
-        if IMAGE_ENCODED in fill_variables:
-            # add the new question to the payload
-            if question != None and len(question) > 0:
-                image_payload = []
-                image_payload.append({"type": "text", "text": question})
-                image_url = {}
-                image_url["url"] = (
-                    f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
-                )
-                image_payload.append({"type": "image_url", "image_url": image_url})
-                message_payload.append({"role": "user", "content": image_payload})
-        else:
-            # add the new question to the payload
-            if question != None and len(question) > 0:
-                message_payload.append({"role": "user", "content": question})
-
-        return message_payload
-
-    def _process_full_prompt(self, full_prompt: List) -> List[Dict]:
-        if isinstance(full_prompt, list):
-            listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
-            if listOfDicts == False:
-                raise ValueError("The provided payload is not valid")
-
-            # now we have to check the key value pairs are valid
-            all_keys_set = {key for d in full_prompt for key in d.keys()}
-            validOpenAiDictKey = sorted(all_keys_set) == ["content", "role"]
-            if validOpenAiDictKey == False:
-                raise ValueError("There are invalid OpenAI dictionary keys")
-            # add it the message payload
-            return full_prompt
-        else:
-            raise TypeError(
-                "Please make sure the full prompt for OpenAI Chat-Completion is a list"
-            )
+        return token_config.get(model, FALLBACK_CONFIG)
 
     def check_token_limits(
-        self, prompt_payload: List, max_new_tokens: int
+        self,
+        prompt_payload: List,
+        **kwargs,  # TODO: remove this after updating the calls to this method
+        # max_new_tokens: int
     ) -> Tuple[str, int, AskModelEngineResponse]:
+        """
+        The purpose of this method is to calculate the number of tokens in the prompt and adjust the max_completion_tokens to fit within the context window.
+        Args:
+            prompt_payload (List): The prompt in the form of chat history
+        Returns:
+            Tuple[str, int, AskModelEngineResponse]: The truncated prompt, the adjusted max_completion_tokens, and the model engine response dataclass
+        """
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
-        specific_tokenizer = self.tokenizer._get_tokenizer(self.model_name)
-        # Identify and format the prompt with the appropriate chat template based on model type
-        formatted_prompt = self.tokenizer.format_with_chat_template(prompt_payload)
-        input_ids = specific_tokenizer.encode(formatted_prompt)
+        # 1. Get our prompt token count
+        num_tokens_in_prompt = len(
+            self.tokenizer._get_tokenizer(self.model_name).encode(
+                self.tokenizer.format_with_chat_template(prompt_payload)
+            )
+        )
 
-        num_token_in_prompt = len(input_ids)
-        max_prompt_tokens = self.tokenizer.get_max_input_token_length()
+        # 2. Get model limits
+        # Tokenizer should have this value from the SMSS as context_window (RIght now its max_tokens....)
+        context_window = self.tokenizer.get_max_token_length()
+        # This is what max_completion_tokens should be from the SMSS (doesn't exist right now)
+        max_completion_tokens = kwargs.get("max_completion_tokens", None)
+        token_config = self.get_token_config(self.model_name)
 
-        if max_prompt_tokens != None:
-            max_tokens = max_prompt_tokens
-        else:
-            max_tokens = self.tokenizer.get_max_token_length()
+        if max_completion_tokens == None:
+            max_completion_tokens = token_config["max_completion_tokens"]
 
-        # perform the checks using max_tokens
-        if num_token_in_prompt > max_tokens:
+        if context_window == None:
+            context_window = token_config["context_window"]
+
+        # 3. Define safety margins.. I need this for discrepancy between token counts and actual text length
+        SAFETY_PERCENTAGE = 0.01  # 1% for token count safety
+        TRUNCATION_THRESHOLD = 0.9  # 90% for truncation decisions
+
+        safety_margin = int(context_window * SAFETY_PERCENTAGE)
+        safe_prompt_tokens = num_tokens_in_prompt + safety_margin
+
+        # 4. Check if we need to truncate
+        if safe_prompt_tokens > (context_window * TRUNCATION_THRESHOLD):
             token_counter = 0
+            truncation_limit = int(context_window * TRUNCATION_THRESHOLD)
+
             for i, message in enumerate(prompt_payload):
-                num_message_tokens = self.tokenizer.count_tokens(message)
-                token_counter += num_message_tokens
+                message_tokens = self.tokenizer.count_tokens(message)
+                next_count = token_counter + message_tokens
 
-                if token_counter > max_tokens:
-                    # calculate how many tokens we can take from this message
-                    num_tokens_to_remove = token_counter - max_tokens
+                if next_count > truncation_limit:
+                    # Calculate safe tokens for this message
+                    available_tokens = truncation_limit - token_counter
+                    if available_tokens > 0:
+                        # Truncate this message
+                        tokens = self.tokenizer.get_tokens(message["content"])
+                        tokens = tokens[:available_tokens]
+                        prompt_payload[i]["content"] = "".join(tokens)
+                        prompt_payload = prompt_payload[: i + 1]
+                    else:
+                        # No room for this message
+                        prompt_payload = prompt_payload[:i]
 
-                    message_tokens = self.tokenizer.get_tokens(message["content"])
-                    message_tokens = message_tokens[
-                        : len(message_tokens) - num_tokens_to_remove
-                    ]
+                    warnings.append("Prompt was truncated to fit within context window")
 
-                    prompt_payload[i]["content"] = "".join(message_tokens)
-                    prompt_payload = prompt_payload[: i + 1]
-                    warnings.append(f"The prompt was truncated to:\n {prompt_payload}")
-                    num_token_in_prompt = self.tokenizer.count_tokens(prompt_payload)
+                    # Recalculate prompt tokens after truncation
+                    num_tokens_in_prompt = len(
+                        self.tokenizer._get_tokenizer(self.model_name).encode(
+                            self.tokenizer.format_with_chat_template(prompt_payload)
+                        )
+                    )
+                    safe_prompt_tokens = num_tokens_in_prompt + safety_margin
                     break
 
-        # now we also need to make sure the max_new_tokens passed in is adjusted
-        if max_new_tokens > (max_tokens - num_token_in_prompt):
-            max_new_tokens = max_new_tokens + (
-                (max_tokens - num_token_in_prompt) - max_new_tokens
-            )
-            warnings.append(f"max_new_tokens was changed to: {max_new_tokens}")
+                token_counter = next_count
 
-        model_engine_response.prompt_tokens = num_token_in_prompt
+        # 5. Calculate available context and final tokens
+        available_context = context_window - safe_prompt_tokens
+        final_max_tokens = min(available_context, max_completion_tokens)
+        final_max_tokens = max(0, final_max_tokens)
+
+        model_engine_response.prompt_tokens = num_tokens_in_prompt
         if len(warnings) > 0:
             model_engine_response.warning = "\\n\\n".join(warnings)
 
-        return prompt_payload, int(max_new_tokens), model_engine_response
+        return prompt_payload, int(final_max_tokens), model_engine_response

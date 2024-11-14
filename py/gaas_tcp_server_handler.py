@@ -151,12 +151,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # The logs can become very heavy during streamed responses so for some log statements we want to only write them when we are developing locally
         # I don't have a way of knowing what env we are in so adding a manual dev switch here.
         # If you use this, be sure to turn it off before committing your code.
-        env_value = os.getenv('PYTHON_DEV_LOGS')
-        
+        env_value = os.getenv("PYTHON_DEV_LOGS")
+
         # Convert the environment variable to a boolean
         if env_value is not None:
             # Convert to boolean by checking against common true values
-            self.dev_log_switch = env_value.lower() in ['true', '1', 'yes', 'on']
+            self.dev_log_switch = env_value.lower() in ["true", "1", "yes", "on"]
         else:
             # Default to False if the environment variable is not set
             self.dev_log_switch = False

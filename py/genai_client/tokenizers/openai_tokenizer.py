@@ -62,7 +62,7 @@ class OpenAiTokenizer(AbstractTokenizer):
             for message in input:
                 num_tokens += self.tokens_per_message
                 for key, value in message.items():
-                    num_tokens += len(self.get_tokens_ids(input=value))
+                    num_tokens += len(self.get_tokens_ids(input=str(value)))
 
                     if key == "name":
                         num_tokens += self.tokens_per_name

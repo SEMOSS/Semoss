@@ -53,6 +53,8 @@ class Instruct:
         warnings = [detect_task_response.warning, decompose_response.warning]
         final_response.warning = "\n\n".join(filter(None, warnings))
 
+        print(final_response.response)
+
         return final_response
 
     def _align_tasks(self, tasks: List[str], projects: pd.DataFrame):
@@ -92,7 +94,7 @@ class Instruct:
         ]
 
         prompt_payload, max_new_tokens, align_tasks_response = (
-            self.client.check_token_limits(prompt_payload=messages, max_new_tokens=3000)
+            self.client.check_token_limits(prompt_payload=messages)
         )
 
         payload = {
