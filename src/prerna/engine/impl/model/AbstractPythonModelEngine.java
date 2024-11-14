@@ -242,6 +242,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 //				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_TOKENS"));
 //			}
 //		}
+		
+		if (this.vars.containsKey("MAX_TOKENS")) {
+			classLogger.info("MAX_TOKENS is being set to {}", this.vars.get("MAX_TOKENS"));
+//			callMaker.append(", max_tokens=").append(this.vars.get("MAX_TOKENS"));
+        
+		}
 
 		if(this.prefix != null) {
 			callMaker.append(", prefix='")
