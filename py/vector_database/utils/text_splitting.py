@@ -191,14 +191,18 @@ def split_text_recursively(
         is_separator_regex=False,
     )
 
+    identified_pages = (
+            "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
+        )
+
     # Handle different chunking strategies
     if (isinstance(chunking_strategy, List) and len(chunking_strategy) == 0) or (
         chunking_strategy == "ALL"
     ):
         # Create chunks from all text combined but keep track of page numbers for metadata
-        identified_pages = (
-            "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
-        )
+        # identified_pages = (
+        #     "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
+        # )
         chunks = text_splitter.create_documents(
             [
                 " ".join(
@@ -239,6 +243,31 @@ def split_text_recursively(
                 chunks.append(chunk)
                 page_numbers.append(page_number)
                 parts.append(part)
+    
+    elif (chunking_strategy == 'MARKDOWN'): 
+        chunks = []
+        page_numbers = []
+        parts = []
+        from langchain.text_splitter import MarkdownTextSplitter
+
+        Mtext_splitter = MarkdownTextSplitter( 
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            length_function=length_function,
+        )
+        
+        chunks = Mtext_splitter.create_documents(
+            [' '.join(identified_pages + text_results_df['Content'].apply(clean_up_string))]
+        )                         
+        
+        page_numbers, chunks = find_keyword_indices([document.page_content for document in chunks], identified_pages.to_list()[1:])
+
+        counter = {}    # initialize the counter
+        parts = []      # keep track of the parts list
+        for i in page_numbers:
+            part = counter.get(i, 0)
+            counter[i] = part + 1
+            parts.append(part)  
 
     elif all(isinstance(sublist, list) for sublist in chunking_strategy):
         # Raise exception for unsupported chunking strategy not implemented

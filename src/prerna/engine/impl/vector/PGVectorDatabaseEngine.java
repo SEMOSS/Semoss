@@ -75,10 +75,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
-	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
+	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";	
 
 	private int contentLength = 512;
 	private int contentOverlap = 0;
+	private String chunking_Strategy = "ALL";
 	
 	private String defaultChunkUnit;
 	private String defaultIndexClass;
@@ -148,8 +149,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
 		}
 		
+		if (this.smssProp.containsKey(AbstractVectorDatabaseEngine.CHUNKING_STRATEGY)) {
+			this.chunking_Strategy = this.smssProp.getProperty(AbstractVectorDatabaseEngine.CHUNKING_STRATEGY);
+		}		
 		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
-			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
+			if(this.chunking_Strategy.equalsIgnoreCase(AbstractVectorDatabaseEngine.MARKDOWN) || 
+					this.chunking_Strategy.equalsIgnoreCase(AbstractVectorDatabaseEngine.PAGE_BY_PAGE)) {
+				this.contentLength = 0;
+			}else {
+				this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
+			}
 		}
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
@@ -896,7 +905,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 			List<File> extractedFiles = new ArrayList<>();
 			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we can push them to the cloud
-			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
+			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", this.chunking_Strategy));
 
 			// move the documents from insight into documents folder
 			Set<File> fileToExtractFrom = new HashSet<File>();

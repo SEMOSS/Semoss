@@ -70,6 +70,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String METADATA = "metadata";
 	public static final String FILTERS_KEY = "filters";
 	public static final String METADATA_FILTERS_KEY = "metaFilters";
+	public static final String CHUNKING_STRATEGY = "CHUNKING_STRATEGY";
+	public static final String PAGE_BY_PAGE = "PAGE_BY_PAGE";
+	public static final String MARKDOWN = "MARKDOWN";
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -82,6 +85,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected int contentLength = 512;
 	protected int contentOverlap = 0;
+	private String chunking_Strategy = "ALL";
 	
 	protected boolean modelPropsLoaded = false;
 	protected String embedderEngineId = null;
@@ -135,12 +139,20 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			}
 		}
 		
+		if (this.smssProp.containsKey(CHUNKING_STRATEGY)) {
+			this.chunking_Strategy = this.smssProp.getProperty(CHUNKING_STRATEGY);
+		}		
 		if (this.smssProp.containsKey(Constants.CONTENT_LENGTH)) {
-			this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
+			if(this.chunking_Strategy.equalsIgnoreCase(MARKDOWN) || this.chunking_Strategy.equalsIgnoreCase(PAGE_BY_PAGE)) {
+				this.contentLength = 0;
+			}else {
+				this.contentLength = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_LENGTH));
+			}			
 		}
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
+		
 
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 
@@ -256,7 +268,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 			List<File> extractedFiles = new ArrayList<>();
 			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we can push them to the cloud
-			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
+			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", this.chunking_Strategy));
 
 			// move the documents from insight into documents folder
 			Set<File> fileToExtractFrom = new HashSet<File>();
