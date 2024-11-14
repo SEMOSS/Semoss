@@ -89,7 +89,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		// + print("monkeshwaran")}, error = function(e){"error"; e$message}),
 		// + file="c:/users/pkapaleeswaran/workspacej3/r.out")
 
-		String output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getVarMap());
+		String output = rJavaTranslator.runRAndReturnOutput(code);
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 
