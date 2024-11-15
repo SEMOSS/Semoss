@@ -45,7 +45,6 @@ public class GetRoomMessagesReactor extends AbstractReactor {
         if (isDesc)
         	dateSort = "DESC";
         
-        
         List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, dateSort, limit, offset);
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
