@@ -16,7 +16,9 @@ class Chat:
         context: str = None,
         template_name: str = None,
         history: List[Dict] = None,
-        max_new_tokens=1000,
+        # We should now expect max_completion_tokens but I can't get rid of this yet..
+        max_new_tokens=None,  # Deprecated
+        max_completion_tokens=None,
         prefix="",
         **kwargs,
     ) -> AskModelEngineResponse:
@@ -28,9 +30,7 @@ class Chat:
         if template_name == None:
             template_name = self.client.template_name
 
-        # first we determine the type of completion, since this determines how we
-        # structure the payload
-        # the list to construct the payload from
+        # first we determine the type of completion, since this determines how we structure the payload
         message_payload = []
 
         if FULL_PROMPT not in kwargs.keys():
@@ -46,14 +46,22 @@ class Chat:
         else:
             message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
 
-        # check to see if we need to adjust the prompt or max_new_tokens
-        prompt, kwargs["max_tokens"], model_engine_response = (
+        # We want to honor the new variable name first, then the old variable name but its okay if both are None
+        # Once everyone is using the new variable name, we can remove this
+        user_max_tokens = (
+            max_completion_tokens
+            if max_completion_tokens is not None
+            else max_new_tokens
+        )
+
+        # Check to see if we need to truncate the prompt or adjust max_completion_tokens
+        prompt, kwargs["max_completion_tokens"], model_engine_response = (
             self.client.check_token_limits(
-                prompt_payload=message_payload, max_new_tokens=max_new_tokens
+                prompt_payload=message_payload, user_max_tokens=user_max_tokens
             )
         )
 
-        # add the message payload as a kwarg
+        # Add the message payload as a kwarg
         kwargs["messages"] = prompt
 
         model_engine_response.response = self.client.inference_call(

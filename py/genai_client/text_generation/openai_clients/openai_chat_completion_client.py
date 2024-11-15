@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Optional, Tuple, Dict
 from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
@@ -20,10 +20,18 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
         return self.chat_operation.ask(**kwargs)
 
+    def kwargs_printer(self, **kwargs):
+        kwarg_items = []
+        for key, value in kwargs.items():
+            kwarg_items.append(f"{key}={value}")
+        print("HERE ARE MY KWARGS!!!")
+        print(", ".join(kwarg_items))
+
     def inference_call(self, prefix: str, **kwargs) -> str:
         final_query = ""
 
         kwargs["stream"] = kwargs.get("stream", True)
+        self.kwargs_printer(**kwargs)
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs
         )
@@ -43,33 +51,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         return final_query
 
-    def get_token_config(self, model_name: str) -> Dict[str, int]:
-        """
-        If the context window and max completion tokens are not provided in the SMSS we can grab them here.
-        This will need to be continuously updated as new models are released if we are to maintain it.
-        Args:
-            model_name (str): name of model
-
-        Returns:
-            _type_: _description_
-        """
-        model = model_name.lower()
-        token_config = {
-            "gpt-4o": {"context_window": 128000, "max_completion_tokens": 16384},
-            "gpt-4o-mini": {"context_window": 128000, "max_completion_tokens": 16384},
-            "o1-preview": {"context_window": 128000, "max_completion_tokens": 32768},
-            "o1-mini": {"context_window": 128000, "max_completion_tokens": 65536},
-            "gpt-4-turbo": {"context_window": 128000, "max_completion_tokens": 4096},
-            "gpt-4": {"context_window": 8192, "max_completion_tokens": 8192},
-            "gpt-3.5-turbo": {"context_window": 16385, "max_completion_tokens": 4096},
-        }
-        FALLBACK_CONFIG = {"context_window": 8192, "max_completion_tokens": 4096}
-
-        return token_config.get(model, FALLBACK_CONFIG)
-
     def check_token_limits(
         self,
         prompt_payload: List,
+        user_max_tokens: Optional[int] = None,
         **kwargs,  # TODO: remove this after updating the calls to this method
         # max_new_tokens: int
     ) -> Tuple[str, int, AskModelEngineResponse]:
@@ -80,6 +65,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         Returns:
             Tuple[str, int, AskModelEngineResponse]: The truncated prompt, the adjusted max_completion_tokens, and the model engine response dataclass
         """
+        print("CHECKING TOKEN LIMITS")
+        self.kwargs_printer(**kwargs)
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
@@ -91,17 +78,12 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         )
 
         # 2. Get model limits
-        # Tokenizer should have this value from the SMSS as context_window (RIght now its max_tokens....)
-        context_window = self.tokenizer.get_max_token_length()
-        # This is what max_completion_tokens should be from the SMSS (doesn't exist right now)
-        max_completion_tokens = kwargs.get("max_completion_tokens", None)
-        token_config = self.get_token_config(self.model_name)
-
-        if max_completion_tokens == None:
-            max_completion_tokens = token_config["max_completion_tokens"]
-
-        if context_window == None:
-            context_window = token_config["context_window"]
+        model_limits = self.tokenizer.get_model_limits(self.model_name)
+        context_window = model_limits["context_window"]
+        max_completion_tokens = model_limits["max_completion_tokens"]
+        # If the user provides a token limit for completions we can honor it as long as it is less than the model limit
+        if user_max_tokens is not None and user_max_tokens < max_completion_tokens:
+            max_completion_tokens = user_max_tokens
 
         # 3. Define safety margins.. I need this for discrepancy between token counts and actual text length
         SAFETY_PERCENTAGE = 0.01  # 1% for token count safety
