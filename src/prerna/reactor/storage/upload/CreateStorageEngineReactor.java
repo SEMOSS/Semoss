@@ -77,10 +77,10 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		}
 		
 		//String storageName = getStorageName();
-		Map<String, String> storageDetails = getStorageDetails();
+		Map<String, Object> storageDetails = getStorageDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
-		String storageTypeStr = storageDetails.get(IStorageEngine.STORAGE_TYPE);
+		String storageTypeStr = (String) storageDetails.get(IStorageEngine.STORAGE_TYPE);
 		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
 		}
@@ -195,18 +195,18 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getStorageDetails() {
+	private Map<String, Object> getStorageDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, String>) mapNouns.get(0).getValue();
+				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
 		
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, String>) mapNouns.get(0).getValue();
+			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 		
 		throw new NullPointerException("Must define the properties for the new storage engine");

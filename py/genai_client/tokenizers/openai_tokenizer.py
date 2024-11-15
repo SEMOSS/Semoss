@@ -42,6 +42,20 @@ class OpenAiTokenizer(AbstractTokenizer):
                 logger.warning("Warning: model not found. Using cl100k_base encoding.")
                 return tiktoken.get_encoding("cl100k_base")
 
+    def format_with_chat_template(self, messages: List[Dict]) -> str:
+        """
+        Applies the appropriate chat template for OpenAI models.
+        Args:
+            messages: List of message dictionaries with 'role' and 'content'
+        Returns:
+            str: Formatted prompt string
+        """
+        if hasattr(self.tokenizer, "apply_chat_template"):
+            if self.tokenizer.chat_template is None:
+                self.tokenizer.chat_template = "chatml"
+            return self.tokenizer.apply_chat_template(messages, tokenize=False)
+        return "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
+
     def count_tokens(self, input: Union[List[Dict], str]) -> int:
         num_tokens = 0
         if isinstance(input, list):

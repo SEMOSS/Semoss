@@ -66,14 +66,6 @@ public interface IRJavaTranslator {
 	String runRAndReturnOutput(String rScript);
 
 	/**
-	 * Run a combination of r scripts
-	 * @param rScript
-	 * @param appMap - custom var set for folder names
-	 */
-	String runRAndReturnOutput(String rScript, Map appMap);
-
-	
-	/**
 	 * Get a string from an r script
 	 * @param script
 	 * @return

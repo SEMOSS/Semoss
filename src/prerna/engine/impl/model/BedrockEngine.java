@@ -42,7 +42,7 @@ public class BedrockEngine extends AbstractPythonModelEngine {
 		callMaker.append(")");
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
 		return response;
 	}

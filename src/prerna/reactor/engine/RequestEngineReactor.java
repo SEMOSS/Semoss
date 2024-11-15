@@ -71,7 +71,7 @@ public class RequestEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException("This user already has access to this engine with the given permission level");
 		}
 		//check user pending permission for engine
-		Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestDatabasePermission(userId, engineId);
+		Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestEnginePermission(userId, engineId);
 		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
 			throw new IllegalArgumentException("This user has already requested access to this engine with the given permission level");
 		}

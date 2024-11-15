@@ -2126,6 +2126,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__EMAIL"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -2477,6 +2480,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		engineMap.addAll(allGlobalEnginesMap);
 		return engineMap;
 	}
+	
+	
 	
 	/**
 	 * Get the list of the project information that the user has access to

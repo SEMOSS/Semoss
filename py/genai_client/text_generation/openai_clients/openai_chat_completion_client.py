@@ -1,62 +1,27 @@
-from typing import List, Dict, Tuple
-
+from typing import List, Tuple, Dict
+from .operations.instruct import Instruct
+from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
-from ...constants import FULL_PROMPT, AskModelEngineResponse
+from ...constants import (
+    AskModelEngineResponse,
+    IMAGE_ENCODED,
+    InstructModelEngineResponse,
+)
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
-    def ask_call(
-        self,
-        question: str = None,
-        context: str = None,
-        template_name: str = None,
-        history: List[Dict] = None,
-        max_new_tokens=1000,
-        prefix="",
-        **kwargs,
-    ) -> AskModelEngineResponse:
-        if "repetition_penalty" in kwargs.keys():
-            kwargs["frequency_penalty"] = float(kwargs.pop("repetition_penalty"))
-        if "stop_sequences" in kwargs.keys():
-            kwargs["stop"] = kwargs.pop("stop_sequences")
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.instruct_operation = Instruct(client=self)
+        self.chat_operation = Chat(client=self)
 
-        if template_name == None:
-            template_name = self.template_name
+    def instruct(self, **kwargs) -> InstructModelEngineResponse:
+        return self.instruct_operation.instruct(**kwargs)
 
-        # first we determine the type of completion, since this determines how we
-        # structure the payload
-        # the list to construct the payload from
-        message_payload = []
+    def ask_call(self, **kwargs) -> AskModelEngineResponse:
+        return self.chat_operation.ask(**kwargs)
 
-        if FULL_PROMPT not in kwargs.keys():
-            # if the user provided context, use that. Otherwise, try to get it from the template
-            message_payload = self._process_chat_completion(
-                question=question,
-                context=context,
-                history=history,
-                template_name=template_name,
-                fill_variables=kwargs,
-            )
-
-        else:
-            message_payload = self._process_full_prompt(kwargs.pop(FULL_PROMPT))
-
-        # check to see if we need to adjust the prompt or max_new_tokens
-        prompt, kwargs["max_tokens"], model_engine_response = self._check_token_limits(
-            prompt_payload=message_payload, max_new_tokens=max_new_tokens
-        )
-
-        # add the message payload as a kwarg
-        kwargs["messages"] = prompt
-
-        model_engine_response.response = self._inference_call(prefix=prefix, **kwargs)
-        model_engine_response.response_tokens = self.tokenizer.count_tokens(
-            model_engine_response.response
-        )
-
-        return model_engine_response
-
-    def _inference_call(self, prefix: str, **kwargs) -> str:
+    def inference_call(self, prefix: str, **kwargs) -> str:
         final_query = ""
 
         kwargs["stream"] = kwargs.get("stream", True)
@@ -114,9 +79,22 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if history is not None:
             message_payload.extend(history)
 
-        # add the new question to the payload
-        if question != None and len(question) > 0:
-            message_payload.append({"role": "user", "content": question})
+        # check if images are in the fill args
+        if IMAGE_ENCODED in fill_variables:
+            # add the new question to the payload
+            if question != None and len(question) > 0:
+                image_payload = []
+                image_payload.append({"type": "text", "text": question})
+                image_url = {}
+                image_url["url"] = (
+                    f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
+                )
+                image_payload.append({"type": "image_url", "image_url": image_url})
+                message_payload.append({"role": "user", "content": image_payload})
+        else:
+            # add the new question to the payload
+            if question != None and len(question) > 0:
+                message_payload.append({"role": "user", "content": question})
 
         return message_payload
 
@@ -138,30 +116,18 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 "Please make sure the full prompt for OpenAI Chat-Completion is a list"
             )
 
-    def _check_token_limits(
+    def check_token_limits(
         self, prompt_payload: List, max_new_tokens: int
     ) -> Tuple[str, int, AskModelEngineResponse]:
-        """
-        The method is used to truncate the the number of tokens in the prompt and adjust the `max_new_tokens` so that the text generation does not fail.
-        Instead we rather will send back a flag indicating adjustments have
-        """
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
         specific_tokenizer = self.tokenizer._get_tokenizer(self.model_name)
-        if hasattr(specific_tokenizer, "apply_chat_template"):
-            # there is a apply chat template available for this model - transformers tokenizer
-            prompt = specific_tokenizer.apply_chat_template(
-                prompt_payload, tokenize=False
-            )
-            # use the models tokenizer to get the number of tokens in the prompt
-            prompt_tokens = self.tokenizer.get_tokens_ids(prompt)
-            num_token_in_prompt = len(prompt_tokens)
-        else:
-            # use the models tokenizer to get the number of tokens in the prompt
-            # this is likely directly openai
-            num_token_in_prompt = self.tokenizer.count_tokens(prompt_payload)
+        # Identify and format the prompt with the appropriate chat template based on model type
+        formatted_prompt = self.tokenizer.format_with_chat_template(prompt_payload)
+        input_ids = specific_tokenizer.encode(formatted_prompt)
 
+        num_token_in_prompt = len(input_ids)
         max_prompt_tokens = self.tokenizer.get_max_input_token_length()
 
         if max_prompt_tokens != None:

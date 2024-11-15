@@ -12,7 +12,6 @@ import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -83,7 +82,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 //					output = pyTranslator.runScript(code, this.insight) + "";
 //				}
 //				else
-					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
+					output = pyTranslator.runSingle(code, this.insight) + "";
 					execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
 			} 
 			/*else {
