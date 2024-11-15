@@ -17,7 +17,7 @@ public class GetRoomMessagesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(GetRoomMessagesReactor.class);
 
     public GetRoomMessagesReactor() {
-        this.keysToGet = new String[] {"roomId","limit","offset"};
+        this.keysToGet = new String[] {"roomId","limit","offset","isDesc"};
         this.keyRequired = new int[] {1};
     }
     
@@ -30,13 +30,23 @@ public class GetRoomMessagesReactor extends AbstractReactor {
         }
         Integer limit = -1, offset = -1;
         String roomId = this.keyValue.get(this.keysToGet[0]);
+        String dateSort = "ASC";
+        Boolean isDesc = false;
+        
         if ( (this.keyValue.get(this.keysToGet[1])!= null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) 
         		&& 
         	(this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty())) {
         	limit = Integer.parseInt(this.keyValue.get(this.keysToGet[1]));
         	offset = Integer.parseInt(this.keyValue.get(this.keysToGet[2]));
         }
-        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, "DESC", limit, offset);
+        if(this.keyValue.get(this.keysToGet[3]) != null && !this.keyValue.get(this.keysToGet[3]).isEmpty())
+        	isDesc = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
+        
+        if (isDesc)
+        	dateSort = "DESC";
+        
+        
+        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, dateSort, limit, offset);
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 	

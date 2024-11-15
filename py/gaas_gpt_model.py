@@ -266,7 +266,7 @@ class LocalModelEngine(AbstractModelEngine):
         engine_id: Optional[str] = None,
         engine_smss_file_path: Optional[str] = None,
         semoss_dev_path: Optional[str] = (
-            "C:/workspace/Semoss_Dev" if os.name == "nt" else "/opt/semosshome"
+            "C:/workspace/Semoss" if os.name == "nt" else "/opt/semosshome"
         ),
     ):
 

@@ -793,7 +793,8 @@ public class ModelInferenceLogsUtils {
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
 		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-		Collections.reverse(response);
+		if (dateSort.equals("DESC"))
+			Collections.reverse(response);
 		return response;
 	}
 	
@@ -816,8 +817,6 @@ public class ModelInferenceLogsUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
 		return qs;
 	}
-	
-
 	
 	/**
 	 * 
