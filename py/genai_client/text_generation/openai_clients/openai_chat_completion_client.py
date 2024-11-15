@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple
 from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
@@ -20,18 +20,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
         return self.chat_operation.ask(**kwargs)
 
-    def kwargs_printer(self, **kwargs):
-        kwarg_items = []
-        for key, value in kwargs.items():
-            kwarg_items.append(f"{key}={value}")
-        print("HERE ARE MY KWARGS!!!")
-        print(", ".join(kwarg_items))
-
     def inference_call(self, prefix: str, **kwargs) -> str:
         final_query = ""
 
         kwargs["stream"] = kwargs.get("stream", True)
-        self.kwargs_printer(**kwargs)
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs
         )
@@ -55,8 +47,6 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         self,
         prompt_payload: List,
         user_max_tokens: Optional[int] = None,
-        **kwargs,  # TODO: remove this after updating the calls to this method
-        # max_new_tokens: int
     ) -> Tuple[str, int, AskModelEngineResponse]:
         """
         The purpose of this method is to calculate the number of tokens in the prompt and adjust the max_completion_tokens to fit within the context window.
@@ -65,8 +55,6 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         Returns:
             Tuple[str, int, AskModelEngineResponse]: The truncated prompt, the adjusted max_completion_tokens, and the model engine response dataclass
         """
-        print("CHECKING TOKEN LIMITS")
-        self.kwargs_printer(**kwargs)
         model_engine_response = AskModelEngineResponse()
         warnings = []
 
@@ -82,6 +70,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         context_window = model_limits["context_window"]
         max_completion_tokens = model_limits["max_completion_tokens"]
         # If the user provides a token limit for completions we can honor it as long as it is less than the model limit
+        print(f"USER MAX TOKENS: {user_max_tokens}")
+        print(f"MAX COMPLETION TOKENS: {max_completion_tokens}")
         if user_max_tokens is not None and user_max_tokens < max_completion_tokens:
             max_completion_tokens = user_max_tokens
 

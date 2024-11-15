@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 from ....constants import InstructModelEngineResponse
 import pandas as pd
 
@@ -12,10 +12,13 @@ class Instruct:
         task: str,
         projectData,
         context: str = None,
-        max_new_tokens: int = 2000,
+        max_new_tokens: Optional[int] = None,
+        max_completion_tokens: Optional[int] = None,
         prefix: str = "",
         **kwargs,
     ) -> InstructModelEngineResponse:
+        # Until we fully remove max_new_tokens
+        max_completion_tokens = max_completion_tokens or max_new_tokens
         """
         Handles the 'instruct' operation.
         """
@@ -25,15 +28,19 @@ class Instruct:
         projects_df = self.scrub_df(projects_df_raw)
 
         detect_task_response = self._detect_task_target(
-            task, context, max_new_tokens, prefix, **kwargs
+            question=task,
+            context=context,
+            prefix=prefix,
+            max_completion_tokens=max_completion_tokens,
+            **kwargs,
         )
 
         decompose_response = self._decompose_task(
-            task,
-            detect_task_response.response,
-            context,
-            max_new_tokens,
-            prefix,
+            question=task,
+            task_target=detect_task_response.response,
+            context=context,
+            prefix=prefix,
+            max_completion_tokens=max_completion_tokens,
             **kwargs,
         )
 
@@ -52,8 +59,6 @@ class Instruct:
         final_response.response_tokens = align_tasks_response.response_tokens
         warnings = [detect_task_response.warning, decompose_response.warning]
         final_response.warning = "\n\n".join(filter(None, warnings))
-
-        print(final_response.response)
 
         return final_response
 
@@ -94,7 +99,7 @@ class Instruct:
             {"role": "user", "content": ""},
         ]
 
-        prompt_payload, max_new_tokens, align_tasks_response = (
+        prompt_payload, adjusted_max_completion_tokens, align_tasks_response = (
             self.client.check_token_limits(prompt_payload=messages)
         )
 
@@ -102,13 +107,12 @@ class Instruct:
             "messages": prompt_payload,
             "temperature": 0.1,
             "top_p": 0.2,
-            "max_tokens": max_new_tokens,
+            "max_completion_tokens": adjusted_max_completion_tokens,
             "stream": False,
         }
 
         response = self.client.inference_call(prefix="", **payload)
 
-        # Count the tokens of this response
         response_tokens = self.client.tokenizer.count_tokens(response)
 
         parsed_response = self.parse_alignment_response(response)
@@ -187,12 +191,16 @@ class Instruct:
         return result
 
     def _detect_task_target(
-        self, question: str, context: str, max_new_tokens: int, prefix: str, **kwargs
+        self,
+        question: str,
+        context: str,
+        prefix: str,
+        max_completion_tokens: int = None,
+        **kwargs,
     ):
         print("Detecting Task Target...")
         temp = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 0.2)
-        max_tokens = max_new_tokens
 
         system_message = f"""Imagine you have a task {question}. Explain in a single sentence who the task should be intended for."""
 
@@ -205,9 +213,9 @@ class Instruct:
 
         messages.append({"role": "user", "content": ""})
 
-        prompt_payload, adjusted_max_new_tokens, detect_task_response = (
+        prompt_payload, adjusted_max_completion_tokens, detect_task_response = (
             self.client.check_token_limits(
-                prompt_payload=messages, max_new_tokens=max_tokens
+                prompt_payload=messages, user_max_tokens=max_completion_tokens
             )
         )
 
@@ -217,7 +225,7 @@ class Instruct:
                 "messages": prompt_payload,
                 "temperature": temp,
                 "top_p": top_p,
-                "max_tokens": adjusted_max_new_tokens,
+                "max_completion_tokens": adjusted_max_completion_tokens,
                 "stream": False,
             }
         )
@@ -233,14 +241,13 @@ class Instruct:
         question: str,
         task_target: str,
         context: str,
-        max_new_tokens,
         prefix: str,
+        max_completion_tokens: int = None,
         **kwargs,
     ):
         print("Decomposing Task...")
         temp = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 0.2)
-        max_tokens = max_new_tokens
         system_message = (
             f"As an AI assistant, your task is to decompose the following task into a sequence of clear and actionable steps. "
             f"Please present the steps in JSON array format.\n\n"
@@ -265,9 +272,9 @@ class Instruct:
         user_message = f"### Task:\n{question}\n### Response:"
         messages.append({"role": "user", "content": user_message})
 
-        prompt_payload, adjusted_max_new_tokens, decompose_response = (
+        prompt_payload, adjusted_max_completion_tokens, decompose_response = (
             self.client.check_token_limits(
-                prompt_payload=messages, max_new_tokens=max_tokens
+                prompt_payload=messages, user_max_tokens=max_completion_tokens
             )
         )
 
@@ -277,7 +284,7 @@ class Instruct:
                 "messages": prompt_payload,
                 "temperature": temp,
                 "top_p": top_p,
-                "max_tokens": adjusted_max_new_tokens,
+                "max_completion_tokens": adjusted_max_completion_tokens,
                 "stream": False,
             }
         )
