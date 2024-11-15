@@ -55,7 +55,7 @@ class Chat:
         )
 
         # Check to see if we need to truncate the prompt or adjust max_completion_tokens
-        prompt, kwargs["max_completion_tokens"], model_engine_response = (
+        prompt, kwargs["max_tokens"], model_engine_response = (
             self.client.check_token_limits(
                 prompt_payload=message_payload, user_max_tokens=user_max_tokens
             )

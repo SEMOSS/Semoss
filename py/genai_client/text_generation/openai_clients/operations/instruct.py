@@ -107,7 +107,7 @@ class Instruct:
             "messages": prompt_payload,
             "temperature": 0.1,
             "top_p": 0.2,
-            "max_completion_tokens": adjusted_max_completion_tokens,
+            "max_tokens": adjusted_max_completion_tokens,
             "stream": False,
         }
 
@@ -225,7 +225,7 @@ class Instruct:
                 "messages": prompt_payload,
                 "temperature": temp,
                 "top_p": top_p,
-                "max_completion_tokens": adjusted_max_completion_tokens,
+                "max_tokens": adjusted_max_completion_tokens,
                 "stream": False,
             }
         )
@@ -284,7 +284,7 @@ class Instruct:
                 "messages": prompt_payload,
                 "temperature": temp,
                 "top_p": top_p,
-                "max_completion_tokens": adjusted_max_completion_tokens,
+                "max_tokens": adjusted_max_completion_tokens,
                 "stream": False,
             }
         )

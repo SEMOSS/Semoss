@@ -28,6 +28,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             model=self.model_name, **kwargs
         )
 
+        if self.model_name == "o1-preview" or self.model_name == "o1-mini":
+            max_tokens = kwargs.pop("max_tokens")
+            kwargs["max_completion_tokens"] = max_tokens
+
         if kwargs["stream"]:
             for chunk in openai_response:
                 if chunk.choices and (len(chunk.choices) > 0):
@@ -70,8 +74,6 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         context_window = model_limits["context_window"]
         max_completion_tokens = model_limits["max_completion_tokens"]
         # If the user provides a token limit for completions we can honor it as long as it is less than the model limit
-        print(f"USER MAX TOKENS: {user_max_tokens}")
-        print(f"MAX COMPLETION TOKENS: {max_completion_tokens}")
         if user_max_tokens is not None and user_max_tokens < max_completion_tokens:
             max_completion_tokens = user_max_tokens
 

@@ -8,9 +8,13 @@ model_limits_config = {
     "gpt-4-turbo": {"context_window": 128000, "max_completion_tokens": 4096},
     "gpt-4": {"context_window": 8192, "max_completion_tokens": 8192},
     "gpt-3.5-turbo": {"context_window": 16385, "max_completion_tokens": 4096},
+    "meta-llama/Meta-Llama-3.1-8B-Instruct": {
+        "context_window": 128000,
+        "max_completion_tokens": 4096,
+    },
 }
 
-FALLBACK_CONFIG = {"context_window": 8192, "max_completion_tokens": 4096}
+FALLBACK_CONFIG = {"context_window": 8192, "max_completion_tokens": 2048}
 
 
 def get_model_limits(model_name: str):
