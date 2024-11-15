@@ -243,10 +243,21 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 //			}
 //		}
 		
+		
+		
 		if (this.vars.containsKey("MAX_TOKENS")) {
 			classLogger.info("MAX_TOKENS is being set to {}", this.vars.get("MAX_TOKENS"));
 //			callMaker.append(", max_tokens=").append(this.vars.get("MAX_TOKENS"));
-        
+		}
+		
+		if (this.vars.containsKey("CONTEXT_WINDOW")) {
+			classLogger.info("CONTEXT_WINDOW is being set to {}", this.vars.get("CONTEXT_WINDOW"));
+//			callMaker.append(", context_window=").append(this.vars.get("CONTEXT_WINDOW"));
+		}
+		
+		if (this.vars.containsKey("MAX_COMPLETION_TOKENS")) {
+			classLogger.info("MAX_COMPLETION_TOKENS is being set to {}", this.vars.get("MAX_COMPLETION_TOKENS"));
+//            callMaker.append(", max_completion_tokens=").append(this.vars.get("MAX_COMPLETION_TOKENS"));   
 		}
 
 		if(this.prefix != null) {
