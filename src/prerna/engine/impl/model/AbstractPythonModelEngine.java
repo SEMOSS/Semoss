@@ -329,7 +329,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		
 		InstructModelEngineResponse response = InstructModelEngineResponse.fromObject(output);
 		

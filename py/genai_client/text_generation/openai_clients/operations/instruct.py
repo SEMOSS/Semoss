@@ -20,9 +20,9 @@ class Instruct:
         Handles the 'instruct' operation.
         """
         print("Executing Instruct Operation...")
-        print(projectData)
 
-        projects_df = self.convert_data_to_dataframe(projectData)
+        projects_df_raw = self.convert_data_to_dataframe(projectData)
+        projects_df = self.scrub_df(projects_df_raw)
 
         detect_task_response = self._detect_task_target(
             task, context, max_new_tokens, prefix, **kwargs
@@ -83,6 +83,7 @@ class Instruct:
             "- Analyze each task step and find all projects whose descriptions match the task requirements.\n"
             "- If multiple projects can be used to complete a task, include all relevant project IDs.\n"
             "- Return a JSON array where each element is either a single project ID string or an array of project IDs.\n"
+            "- Each step MUST be matched to at least one project.\n"
             f"- The JSON array MUST have the same length as the tasks list. The length of the task list is {len(tasks)}\n"
             '- **Output Format**: ["project_id_1", ["project_id_2", "project_id_3"], "project_id_4", ...]\n'
             "- **Do not** include any additional text or explanation.\n"
@@ -322,3 +323,7 @@ class Instruct:
         # Convert the cleaned list of dictionaries into a DataFrame
         df = pd.DataFrame(cleaned_data_list)
         return df
+
+    def scrub_df(self, df):
+        scrubbed_df = df[["description", "project_id", "project_name"]]
+        return scrubbed_df

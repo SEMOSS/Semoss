@@ -487,7 +487,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 self.log_file.write("\n")
                 self.log_file.write(f"The Operation is {operation}")
                 self.log_file.write("\n")
-                self.log_file.write(f"Original Payload: {orig_payload_value}")
+                # self.log_file.write(f"Original Payload: {orig_payload_value}")
                 self.log_file.write("\n")
                 self.log_file.write(
                     f"Original Payload Insight ID: {orig_payload_insight_id}"
