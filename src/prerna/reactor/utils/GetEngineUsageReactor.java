@@ -30,6 +30,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		// get the selectors
+		System.out.println("hot load");
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
@@ -285,9 +286,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"vectorEngine.addVectorCSVFile(file_paths = ['fileName1.csv', 'fileName2.csv', ..., 'fileNameX.csv'])\r\n" + 
 							
 							"\n# Perform a nearest neighbor search on the embedded documents\r\n" +
-							"# filter_str of the form 'Filter(Source == [\"your document name 1\", \"your document name 2\"])'\r\n" +
-							"# metafilter_str of the form 'Filter( MetadataKey == \"Metadata Value\" )'\r\n" +
-							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filter_str='', metafilter_str='')\r\n" + 
+							"# filters is Optional[Dict] | Optional[str]\r\n" + 
+							"# \tstr of the form 'Filter(Source == [\"your document name 1\", \"your document name 2\"])'\r\n" +
+							"# \tdict of the form {\"Source\": [\"constitution.pdf\", \"scientific_journal.pdf\"] and comparator is assumed to be '=' for all values\r\n" +
+							"# metafilters is Optional[Dict] | Optional[str].\r\n" +
+							"# \tstr of the form 'Filter( MetadataKey == \"Metadata Value\" )'\r\n" +
+							"# \tdict of the form {\"age\": [5,6,7]} and comparator is assumed to be '=' for all values\r\n" +
+							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filters='', metafilters='')\r\n" + 
 							
 							"\n# Remove document(s) from the vector database\r\n" +
 							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])"
