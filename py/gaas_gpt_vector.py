@@ -143,6 +143,7 @@ class VectorEngine(ServerProxy):
         search_statement: str,
         limit: Optional[int] = 5,
         param_dict: Optional[Dict] = {},
+        filters: Optional[Dict] = {},
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
         """
@@ -161,12 +162,32 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
+        # Building limits param
         optionalLimit = f",limit=[{limit}]" if (limit is not None and limit > 0) else ""
+
+        # Building filters param
+        filter_conditions = []
+        for key, value in filters.items():
+            formatted_key = key.capitalize()
+            if isinstance(value, str):
+                formatted_values = f'"{value}"'
+            else:
+                formatted_values = ", ".join([f'"{v}"' for v in value])
+            filter_conditions.append(
+                f"Filter ( {formatted_key} == [{formatted_values}] )"
+            )
+
+        optional_filters = (
+            f",filters = [{', '.join(filter_conditions)}]" if filter_conditions else ""
+        )
+
+        # Building the rest of the optional parameters in paramValues
         optionalParams = (
             f",paramValues=[{param_dict}]" if param_dict is not None else ""
         )
 
-        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optionalParams});'
+        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optional_filters}{optionalParams});'
+        print(f"HERE IS MY PIXEL!!: {pixel}")
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
