@@ -166,6 +166,7 @@ class VectorEngine(ServerProxy):
         # Building limits param
         optionalLimit = f",limit=[{limit}]" if (limit is not None and limit > 0) else ""
 
+        # Building filters param
         if filters is not None:
             if isinstance(filters, str):
                 optional_filters = filters
@@ -178,12 +179,10 @@ class VectorEngine(ServerProxy):
                         formatted_values = f'"{value}"'
                     else:
                         formatted_values = ", ".join([f'"{v}"' for v in value])
-                    filter_conditions.append(
-                        f"Filter ( {formatted_key} == [{formatted_values}] )"
-                    )
+                    filter_conditions.append(f"{formatted_key} == [{formatted_values}]")
 
                 optional_filters = (
-                    f",filters = [{', '.join(filter_conditions)}]"
+                    f",filters = [ Filter({', '.join(filter_conditions)})]"
                     if filter_conditions
                     else ""
                 )
