@@ -210,7 +210,7 @@ class VectorEngine(ServerProxy):
             elif isinstance(metafilters, dict):
                 metafilter_conditions = []
                 for key, value in metafilters.items():
-                    formatted_key = key.capitalize()
+                    # formatted_key = key.capitalize() # Assuming the user has passed the key in the correct format
                     if isinstance(value, str):
                         formatted_values = f'"{value}"'
                     else:
