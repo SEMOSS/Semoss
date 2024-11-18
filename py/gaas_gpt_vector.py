@@ -143,7 +143,9 @@ class VectorEngine(ServerProxy):
         search_statement: str,
         limit: Optional[int] = 5,
         filters: Optional[Dict] | Optional[str] = None,
-        meta_filters: Optional[str] = None,
+        filters_str: Optional[str] = None,
+        metafilters: Optional[str] = None,
+        metafilter_str: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
@@ -166,10 +168,17 @@ class VectorEngine(ServerProxy):
         # Building limits param
         optionalLimit = f",limit=[{limit}]" if (limit is not None and limit > 0) else ""
 
+        optional_filters = ""
+
+        # 1. Check if filters_str parameter is provided (if so use this)
+        # 2. If not, check if filters parameter is provided and check if it is a string (if so use this)
+        # 3. If not, check if filters parameter is provided and check if it is a dictionary (if so build the string)
+        if filters_str is not None:
+            optional_filters = f",filter=[{filters_str}]"
         # Building filters param
-        if filters is not None:
+        if filters is not None and optional_filters == "":
             if isinstance(filters, str):
-                optional_filters = filters
+                optional_filters = f",filter=[{filters}]"
             elif isinstance(filters, dict):
                 # Building filters param
                 filter_conditions = []
@@ -190,12 +199,12 @@ class VectorEngine(ServerProxy):
                 raise ValueError(
                     "Invalid filters type. Filter must be string or dictionary"
                 )
-        else:
-            optional_filters = ""
 
-        optional_meta_filters = (
-            f",metaFilters=[{meta_filters}]" if meta_filters is not None else ""
-        )
+        optional_meta_filters = ""
+        if metafilter_str is not None:
+            optional_meta_filters = f",metaFilters=[{metafilter_str}]"
+        if metafilters is not None and optional_meta_filters == "":
+            optional_meta_filters = f",metaFilters=[{metafilters}]"
 
         # Building the rest of the optional parameters in paramValues
         optionalParams = (
