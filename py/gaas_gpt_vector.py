@@ -142,9 +142,9 @@ class VectorEngine(ServerProxy):
         self,
         search_statement: str,
         limit: Optional[int] = 5,
-        param_dict: Optional[Dict] = {},
         filters: Optional[Dict] | Optional[str] = None,
         meta_filters: Optional[str] = None,
+        param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
         """
