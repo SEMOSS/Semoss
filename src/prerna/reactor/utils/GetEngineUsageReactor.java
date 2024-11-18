@@ -259,7 +259,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.csv\", \"fileName2.csv\", ..., \"fileNameX.csv\"]);\r\n" +
 
 							"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
-							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5);\r\n" +
+							"# filters of the form Filter(Source == [\"your document name 1\", \"your document name 2\"])\r\n" +
+							"# metaFilters of the form Filter( MetadataKey == \"Metadata Value\" )\r\n" +
+							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5, filters=[], metaFilters=[]);\r\n" +
 							
 							"\n## Remove document(s) from the vector database ##\r\n" +
 							"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
@@ -283,7 +285,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"vectorEngine.addVectorCSVFile(file_paths = ['fileName1.csv', 'fileName2.csv', ..., 'fileNameX.csv'])\r\n" + 
 							
 							"\n# Perform a nearest neighbor search on the embedded documents\r\n" +
-							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5)\r\n" + 
+							"# filter_str of the form 'Filter(Source == [\"your document name 1\", \"your document name 2\"])'\r\n" +
+							"# metafilter_str of the form 'Filter( MetadataKey == \"Metadata Value\" )'\r\n" +
+							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filter_str='', metafilter_str='')\r\n" + 
 							
 							"\n# Remove document(s) from the vector database\r\n" +
 							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])"

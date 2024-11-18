@@ -143,6 +143,8 @@ class VectorEngine(ServerProxy):
         search_statement: str,
         limit: Optional[int] = 5,
         param_dict: Optional[Dict] = {},
+        filter_str: Optional[str] = None,
+        metafilter_str: Optional[str] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
         """
@@ -165,8 +167,11 @@ class VectorEngine(ServerProxy):
         optionalParams = (
             f",paramValues=[{param_dict}]" if param_dict is not None else ""
         )
+        
+        optionalFilter = f",filter=[{filter_str}]" if filter is not None else ""
+        optionalMetaFilter = f",metaFilters=[{metafilter_str}]" if filter is not None else ""
 
-        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optionalParams});'
+        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optionalParams}{optionalFilter}{optionalMetaFilter});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
