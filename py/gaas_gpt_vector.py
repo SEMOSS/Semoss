@@ -174,11 +174,11 @@ class VectorEngine(ServerProxy):
         # 2. If not, check if filters parameter is provided and check if it is a string (if so use this)
         # 3. If not, check if filters parameter is provided and check if it is a dictionary (if so build the string)
         if filters_str is not None:
-            optional_filters = f",filter=[{filters_str}]"
+            optional_filters = f",filters=[{filters_str}]"
         # Building filters param
         if filters is not None and optional_filters == "":
             if isinstance(filters, str):
-                optional_filters = f",filter=[{filters}]"
+                optional_filters = f",filters=[{filters}]"
             elif isinstance(filters, dict):
                 # Building filters param
                 filter_conditions = []
