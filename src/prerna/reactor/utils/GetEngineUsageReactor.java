@@ -30,7 +30,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		// get the selectors
-		System.out.println("hot load");
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
