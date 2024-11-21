@@ -178,23 +178,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-        # model_response = super().call(
-        #     epoc=epoc,
-        #     engine_type="Model",
-        #     engine_id=self.engine_id,
-        #     method_name="instruct",
-        #     method_args=[task, context, insight_id, param_dict],
-        #     method_arg_types=[
-        #         "java.lang.String",
-        #         "java.lang.String",
-        #         "prerna.om.Insight",
-        #         "java.util.Map",
-        #     ],
-        #     insight_id=insight_id,
-        # )
-
-        # return model_response
-
     def embeddings(
         self,
         strings_to_embed: List[str],
