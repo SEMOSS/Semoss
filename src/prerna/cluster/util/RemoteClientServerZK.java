@@ -42,6 +42,7 @@ public class RemoteClientServerZK {
     
     private static final String WARMING_PATH = "/models/warming";
     private static final String ACTIVE_PATH = "/models/active";
+    private static final String MODEL_SCALER_PATH = "/services/kube-model-deployer";
     
     // Connection-related fields
     private CuratorFramework client;
@@ -54,6 +55,8 @@ public class RemoteClientServerZK {
     private final ConcurrentMap<String, String> modelClusterIps = new ConcurrentHashMap<>();
     private CuratorCache warmingCache;
     private CuratorCache activeCache;
+    
+    public String modelScalerIp;
     
     private Boolean devPortFowarding = false;
 
@@ -120,6 +123,19 @@ public class RemoteClientServerZK {
 
     private void loadInitialState() {
         try {
+            // Loading model scaler IP first
+            if (client.checkExists().forPath(MODEL_SCALER_PATH) != null) {
+                byte[] scalerData = client.getData().forPath(MODEL_SCALER_PATH);
+                if (scalerData != null && scalerData.length > 0) {
+                    modelScalerIp = new String(scalerData, "UTF-8");
+                    classLogger.info("Discovered model scaler IP: {}", modelScalerIp);
+                } else {
+                    classLogger.error("Model scaler path exists but no IP data found");
+                }
+            } else {
+                classLogger.error("Model scaler path {} does not exist in ZooKeeper", MODEL_SCALER_PATH);
+            }
+
             // Load active models
             List<String> activeModels = client.getChildren().forPath(ACTIVE_PATH);
             for (String modelId : activeModels) {
@@ -140,6 +156,10 @@ public class RemoteClientServerZK {
         } catch (Exception e) {
             classLogger.error("Error loading initial state", e);
         }
+    }
+
+    public String getModelScalerIp() {
+        return modelScalerIp;
     }
 
     public void close() {

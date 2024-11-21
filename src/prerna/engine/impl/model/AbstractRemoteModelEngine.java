@@ -41,19 +41,12 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     private static final Logger classLogger = LogManager.getLogger(AbstractRemoteModelEngine.class);
     
     protected String model;
-    private String deployerEndpoint;
     private RemoteClientServerZK zkClient;
     private Boolean devPortFowarding = false;
     
     @Override
     public void open(Properties smssProp) throws Exception {
         super.open(smssProp);
-        
-        if(this.smssProp.containsKey(Settings.DEPLOYER_ENDPOINT)) {
-            this.deployerEndpoint = this.smssProp.getProperty(Settings.DEPLOYER_ENDPOINT);
-        } else {
-            throw new IllegalArgumentException("Deployer endpoint is not defined in SMSS file.");
-        }
         
         if (this.smssProp.containsKey(Settings.MODEL)) {
             this.model = this.smssProp.getProperty(Settings.MODEL).trim();
@@ -76,10 +69,25 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
             return zkClient.waitForModelActive(this.engineId, timeoutMs);
         }
         
+        // Get model scaler IP from ZooKeeper
+        String modelScalerIp = zkClient.getModelScalerIp();
+        if (modelScalerIp == null) {
+            classLogger.error("Unable to get model scaler IP from ZooKeeper");
+            return false;
+        }
+        
+        // Construct the deployment endpoint URL
+        String deploymentUrl;
+        if (devPortFowarding) {
+            deploymentUrl = "http://localhost:8888/api/start";
+        } else {
+            deploymentUrl = String.format("http://%s:8888/api/start", modelScalerIp);
+        }
+        
         // Initiate deployment through HTTP request
         CompletableFuture<Boolean> deploymentFuture = CompletableFuture.supplyAsync(() -> {
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                HttpPost httpPost = new HttpPost(this.deployerEndpoint);
+                HttpPost httpPost = new HttpPost(deploymentUrl);
                 
                 JSONObject payload = new JSONObject();
                 payload.put("model_id", this.engineId);
