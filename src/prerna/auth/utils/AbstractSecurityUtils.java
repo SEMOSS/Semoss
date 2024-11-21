@@ -1706,33 +1706,6 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// TODO Remove after second push? 
-//			colNames = new String[] { "ID", "PROMPT_ID", "INDEX", "KEY", "DISPLAY", "TYPE",
-//					"IS_HIDDEN_PHRASE_INPUT_TOKEN", "LINKED_INPUT_TOKEN" };
-//			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(255)",
-//					"VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)" };
-//			if (allowIfExistsTable) {
-//				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_INPUT", colNames, types));
-//			} else {
-//				// see if table exists
-//				if (!queryUtil.tableExists(conn, "PROMPT_INPUT", database, schema)) {
-//					// make the table
-//					securityDb.insertData(queryUtil.createTable("PROMPT_INPUT", colNames, types));
-//				}
-//			}
-//
-//			colNames = new String[] { "ID", "PROMPT_ID", "PROMPT_INPUT_ID", "TYPE", "META", "VALUE" };
-//			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
-//					"VARCHAR(255)" };
-//			if (allowIfExistsTable) {
-//				securityDb.insertData(queryUtil.createTableIfNotExists("PROMPT_VARIABLE", colNames, types));
-//			} else {
-//				// see if table exists
-//				if (!queryUtil.tableExists(conn, "PROMPT_VARIBALE", database, schema)) {
-//					// make the table
-//					securityDb.insertData(queryUtil.createTable("PROMPT_VARIABLE", colNames, types));
-//				}
-//			}
 
 			// PROMPTMETA
 			// check if column exists
