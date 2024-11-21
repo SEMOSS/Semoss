@@ -15,6 +15,7 @@ public class ThemeOwlCreator {
 	
 	// each column name paired to its type in a var
 	private List<Pair<String, String>> adminThemeColumns = null;
+	private List<Pair<String, String>> blockThemeColumns = null;
 
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
@@ -24,6 +25,7 @@ public class ThemeOwlCreator {
 	private static List<String> conceptsRequired = new ArrayList<>();
 	static {
 		conceptsRequired.add("ADMIN_THEME");
+		conceptsRequired.add("BLOCK_TEMPLATE");
 	}
 	
 	private IRDBMSEngine themesDb;
@@ -43,9 +45,18 @@ public class ThemeOwlCreator {
 				Pair.with("THEME_MAP", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME)
 			);
+		this.blockThemeColumns = Arrays.asList(
+				Pair.with("ID","VARCHAR(255)"),
+				Pair.with("NAME","VARCHAR(255)"),
+				Pair.with("SECTION","VARCHAR(255)"),
+				Pair.with("IMAGE","VARCHAR(255)"),
+				Pair.with("HOVER_IMAGE","VARCHAR(255)"),
+				Pair.with("JSON", CLOB_DATATYPE_NAME)
+				);
 		
 		this.allSchemas = Arrays.asList(
-				Pair.with("ADMIN_THEME", this.adminThemeColumns)
+				Pair.with("ADMIN_THEME", this.adminThemeColumns),
+				Pair.with("BLOCK_TEMPLATE", this.blockThemeColumns)
 			);
 	}
 	
