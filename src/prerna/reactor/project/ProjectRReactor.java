@@ -44,7 +44,7 @@ public class ProjectRReactor extends AbstractReactor {
 
 		IProject project = Utility.getProject(projectId);
 		TCPRTranslator projectRTranslator = project.getProjectRTranslator();
-		String output = projectRTranslator.runRAndReturnOutput(code, insight.getUser().getVarMap());
+		String output = projectRTranslator.runRAndReturnOutput(code);
 		
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));

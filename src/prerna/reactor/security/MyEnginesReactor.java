@@ -56,9 +56,6 @@ public class MyEnginesReactor extends AbstractReactor {
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		
 		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset);
-		if(!favoritesOnly) {
-			this.insight.getUser().setEngines(engineInfo);
-		}
 
 		if(!engineInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(engineInfo.size());

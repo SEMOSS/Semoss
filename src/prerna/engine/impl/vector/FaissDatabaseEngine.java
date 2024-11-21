@@ -261,7 +261,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runScript(script, insight);
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runSmssWrapperEval(script, insight);
 
 		if (ClusterUtil.IS_CLUSTER) {
 			// this should already be handled, but just in case...
@@ -544,7 +544,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// close the method
  		callMaker.append(")");
  		classLogger.info("Running >>>" + callMaker.toString());
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		
 		return (List<Map<String, Object>>) output;
 	}
