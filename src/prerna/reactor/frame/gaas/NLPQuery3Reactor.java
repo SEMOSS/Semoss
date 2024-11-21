@@ -206,8 +206,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				String frameMaker = frameName + " = pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ")";
 				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				insight.getPyTranslator().runEmptyPy(frameMaker);
-				String sampleOut = insight.getPyTranslator().runSingle(insight.getUser().getVarMap(),
-						frameName + ".head(20)", this.insight); // load the sql df
+				String sampleOut = insight.getPyTranslator().runSingle(frameName + ".head(20)", this.insight);
 
 				System.err.println(sampleOut);
 				// send information

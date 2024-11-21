@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 from ....constants import InstructModelEngineResponse
 import pandas as pd
 
@@ -12,28 +12,35 @@ class Instruct:
         task: str,
         projectData,
         context: str = None,
-        max_new_tokens: int = 2000,
+        max_new_tokens: Optional[int] = None,
+        max_completion_tokens: Optional[int] = None,
         prefix: str = "",
         **kwargs,
     ) -> InstructModelEngineResponse:
+        # Until we fully remove max_new_tokens
+        max_completion_tokens = max_completion_tokens or max_new_tokens
         """
         Handles the 'instruct' operation.
         """
         print("Executing Instruct Operation...")
-        print(projectData)
 
-        projects_df = self.convert_data_to_dataframe(projectData)
+        projects_df_raw = self.convert_data_to_dataframe(projectData)
+        projects_df = self.scrub_df(projects_df_raw)
 
         detect_task_response = self._detect_task_target(
-            task, context, max_new_tokens, prefix, **kwargs
+            question=task,
+            context=context,
+            prefix=prefix,
+            max_completion_tokens=max_completion_tokens,
+            **kwargs,
         )
 
         decompose_response = self._decompose_task(
-            task,
-            detect_task_response.response,
-            context,
-            max_new_tokens,
-            prefix,
+            question=task,
+            task_target=detect_task_response.response,
+            context=context,
+            prefix=prefix,
+            max_completion_tokens=max_completion_tokens,
             **kwargs,
         )
 
@@ -81,6 +88,7 @@ class Instruct:
             "- Analyze each task step and find all projects whose descriptions match the task requirements.\n"
             "- If multiple projects can be used to complete a task, include all relevant project IDs.\n"
             "- Return a JSON array where each element is either a single project ID string or an array of project IDs.\n"
+            "- Each step MUST be matched to at least one project.\n"
             f"- The JSON array MUST have the same length as the tasks list. The length of the task list is {len(tasks)}\n"
             '- **Output Format**: ["project_id_1", ["project_id_2", "project_id_3"], "project_id_4", ...]\n'
             "- **Do not** include any additional text or explanation.\n"
@@ -91,21 +99,20 @@ class Instruct:
             {"role": "user", "content": ""},
         ]
 
-        prompt_payload, max_new_tokens, align_tasks_response = (
-            self.client.check_token_limits(prompt_payload=messages, max_new_tokens=3000)
+        prompt_payload, adjusted_max_completion_tokens, align_tasks_response = (
+            self.client.check_token_limits(prompt_payload=messages)
         )
 
         payload = {
             "messages": prompt_payload,
             "temperature": 0.1,
             "top_p": 0.2,
-            "max_tokens": max_new_tokens,
+            "max_tokens": adjusted_max_completion_tokens,
             "stream": False,
         }
 
         response = self.client.inference_call(prefix="", **payload)
 
-        # Count the tokens of this response
         response_tokens = self.client.tokenizer.count_tokens(response)
 
         parsed_response = self.parse_alignment_response(response)
@@ -184,12 +191,16 @@ class Instruct:
         return result
 
     def _detect_task_target(
-        self, question: str, context: str, max_new_tokens: int, prefix: str, **kwargs
+        self,
+        question: str,
+        context: str,
+        prefix: str,
+        max_completion_tokens: int = None,
+        **kwargs,
     ):
         print("Detecting Task Target...")
         temp = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 0.2)
-        max_tokens = max_new_tokens
 
         system_message = f"""Imagine you have a task {question}. Explain in a single sentence who the task should be intended for."""
 
@@ -202,9 +213,9 @@ class Instruct:
 
         messages.append({"role": "user", "content": ""})
 
-        prompt_payload, adjusted_max_new_tokens, detect_task_response = (
+        prompt_payload, adjusted_max_completion_tokens, detect_task_response = (
             self.client.check_token_limits(
-                prompt_payload=messages, max_new_tokens=max_tokens
+                prompt_payload=messages, user_max_tokens=max_completion_tokens
             )
         )
 
@@ -214,7 +225,7 @@ class Instruct:
                 "messages": prompt_payload,
                 "temperature": temp,
                 "top_p": top_p,
-                "max_tokens": adjusted_max_new_tokens,
+                "max_tokens": adjusted_max_completion_tokens,
                 "stream": False,
             }
         )
@@ -230,14 +241,13 @@ class Instruct:
         question: str,
         task_target: str,
         context: str,
-        max_new_tokens,
         prefix: str,
+        max_completion_tokens: int = None,
         **kwargs,
     ):
         print("Decomposing Task...")
         temp = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 0.2)
-        max_tokens = max_new_tokens
         system_message = (
             f"As an AI assistant, your task is to decompose the following task into a sequence of clear and actionable steps. "
             f"Please present the steps in JSON array format.\n\n"
@@ -262,9 +272,9 @@ class Instruct:
         user_message = f"### Task:\n{question}\n### Response:"
         messages.append({"role": "user", "content": user_message})
 
-        prompt_payload, adjusted_max_new_tokens, decompose_response = (
+        prompt_payload, adjusted_max_completion_tokens, decompose_response = (
             self.client.check_token_limits(
-                prompt_payload=messages, max_new_tokens=max_tokens
+                prompt_payload=messages, user_max_tokens=max_completion_tokens
             )
         )
 
@@ -274,7 +284,7 @@ class Instruct:
                 "messages": prompt_payload,
                 "temperature": temp,
                 "top_p": top_p,
-                "max_tokens": adjusted_max_new_tokens,
+                "max_tokens": adjusted_max_completion_tokens,
                 "stream": False,
             }
         )
@@ -320,3 +330,7 @@ class Instruct:
         # Convert the cleaned list of dictionaries into a DataFrame
         df = pd.DataFrame(cleaned_data_list)
         return df
+
+    def scrub_df(self, df):
+        scrubbed_df = df[["description", "project_id", "project_name"]]
+        return scrubbed_df

@@ -11,7 +11,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -53,10 +53,11 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 
 		IProject project = Utility.getProject(projectId);
-		PixelRunner runner = project.executeNotebooks(newInsight, inputValueMap);
+		NotebookExecution execution = project.executeNotebooks(newInsight, inputValueMap);
 		
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
-		runnerWraper.put("runner", runner);
+		runnerWraper.put("runner", execution.getRunner());
+		runnerWraper.put("variableOutput", execution.getVariableOutput());
 		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER);
 		return noun;
 	}

@@ -701,7 +701,8 @@ public class PixelStreamUtility {
 			PixelRunner runner = (PixelRunner) runnerWraper.get("runner");
 			Object params = runnerWraper.get("params");
 			List<String> additionalPixels = (List<String>) runnerWraper.get("additionalPixels");
-
+			Map<String, Object> variableOutput = (Map<String, Object>) runnerWraper.get("variableOutput");
+			
 			Insight innerInsight = runner.getInsight();
 			ps.print("\"output\":{");
 			ps.print("\"name\":" + gson.toJson(innerInsight.getInsightName()));
@@ -710,6 +711,9 @@ public class PixelStreamUtility {
 			ps.print(",\"recipe\":" + gson.toJson(innerInsight.getPixelList().getPixelRecipe()));
 			ps.print(",\"params\":" + gson.toJson(params));
 			ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
+			if(variableOutput != null) {
+				ps.print(",\"variableOutput\":" + gson.toJson(variableOutput));
+			}
 			ps.flush();
 			ps.print(",\"insightData\":");
 			// process the inner recipe
