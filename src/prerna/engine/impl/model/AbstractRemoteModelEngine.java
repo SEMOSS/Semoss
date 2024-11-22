@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Settings;
 import prerna.engine.api.RemoteModelStateEnum;
@@ -267,6 +268,13 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 
 	@Override
 	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	protected InstructModelEngineResponse instructCall(String task, String context,
+			List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}

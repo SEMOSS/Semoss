@@ -53,6 +53,7 @@ public class RemoteClientServerZK {
     // State tracking
     private final ConcurrentMap<String, RemoteModelStateEnum> modelStates = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> modelClusterIps = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> modelNames = new ConcurrentHashMap<>();
     private CuratorCache warmingCache;
     private CuratorCache activeCache;
     
@@ -142,9 +143,21 @@ public class RemoteClientServerZK {
                 String path = ACTIVE_PATH + "/" + modelId;
                 byte[] data = client.getData().forPath(path);
                 if (data != null && data.length > 0) {
-                    String clusterIp = new String(data, "UTF-8");
-                    modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
-                    modelClusterIps.put(modelId, clusterIp);
+                    try {
+                        JSONObject jsonData = new JSONObject(new String(data, "UTF-8"));
+                        String clusterIp = jsonData.getString("ip");
+                        String modelName = jsonData.getString("model_name");
+                        
+                        modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+                        modelClusterIps.put(modelId, clusterIp);
+                        modelNames.put(modelId, modelName);
+                    } catch (Exception e) {
+                        // Fallback for backward compatibility
+                        String clusterIp = new String(data, "UTF-8");
+                        modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+                        modelClusterIps.put(modelId, clusterIp);
+                        classLogger.warn("Model {} data not in JSON format, using legacy format", modelId);
+                    }
                 }
             }
 
@@ -157,6 +170,7 @@ public class RemoteClientServerZK {
             classLogger.error("Error loading initial state", e);
         }
     }
+
 
     public String getModelScalerIp() {
         return modelScalerIp;
@@ -221,19 +235,34 @@ public class RemoteClientServerZK {
                     String modelId = getModelIdFromPath(node.getPath());
                     classLogger.info("Model {} became active", modelId);
                     modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
-                    // Extract cluster IP from node data
+                    // Extract cluster IP and model name from node data
                     try {
-                        String clusterIp = new String(node.getData(), "UTF-8");
+                        JSONObject jsonData = new JSONObject(new String(node.getData(), "UTF-8"));
+                        String clusterIp = jsonData.getString("ip");
+                        String modelName = jsonData.getString("model_name");
+                        
                         modelClusterIps.put(modelId, clusterIp);
-                        classLogger.info("Updated cluster IP for model {}: {}", modelId, clusterIp);
+                        modelNames.put(modelId, modelName);
+                        classLogger.info("Updated cluster IP for model {} ({}): {}", 
+                            modelId, modelName, clusterIp);
                     } catch (Exception e) {
-                        classLogger.error("Error extracting cluster IP for model {}", modelId, e);
+                        // Fallback for backward compatibility
+                        try {
+                            String clusterIp = new String(node.getData(), "UTF-8");
+                            modelClusterIps.put(modelId, clusterIp);
+                            classLogger.info("Updated cluster IP for model {} using legacy format: {}", 
+                                modelId, clusterIp);
+                        } catch (Exception ex) {
+                            classLogger.error("Error extracting data for model {}", modelId, ex);
+                        }
                     }
                 })
                 .forDeletes(node -> {
                     String modelId = getModelIdFromPath(node.getPath());
-                    classLogger.info("Model {} is no longer active", modelId);
+                    String modelName = modelNames.get(modelId);
+                    classLogger.info("Model {} ({}) is no longer active", modelId, modelName);
                     modelClusterIps.remove(modelId);
+                    modelNames.remove(modelId);
                     if (isModelWarming(modelId)) {
                         modelStates.put(modelId, RemoteModelStateEnum.WARMING);
                     } else {
@@ -247,6 +276,10 @@ public class RemoteClientServerZK {
         } catch (Exception e) {
             classLogger.error("Error setting up ZK caches", e);
         }
+    }
+
+    public String getModelName(String modelId) {
+        return modelNames.get(modelId);
     }
 
     private String getModelIdFromPath(String path) {
@@ -282,16 +315,18 @@ public class RemoteClientServerZK {
     // I need this because there is a period of time between when the model is on the active path but the FastAPI service is not quite ready
     private boolean checkModelHealth(String modelId) {
         String clusterIp = modelClusterIps.get(modelId);
+        String modelName = modelNames.get(modelId);
         if (clusterIp == null) {
-            classLogger.error("No cluster IP available for health check of model {}", modelId);
+            classLogger.error("No cluster IP available for health check of model {} ({})", 
+                modelId, modelName);
             return false;
         }
-         String healthUrl = "";
-         if (devPortFowarding) {
-        	 healthUrl = "http://localhost:8888/api/health";
-         } else {
-        	 healthUrl = String.format("http://%s:8888/health", clusterIp);
-         }
+        String healthUrl = "";
+        if (devPortFowarding) {
+            healthUrl = "http://localhost:8888/api/health";
+        } else {
+            healthUrl = String.format("http://%s:8888/health", clusterIp);
+        }
 
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(1000)
@@ -316,10 +351,12 @@ public class RemoteClientServerZK {
                         }
                     }
                 }
-                classLogger.debug("Health check failed for model {}: status code {}", modelId, statusCode);
+                classLogger.debug("Health check failed for model {} ({}): status code {}", 
+                    modelId, modelName, statusCode);
             }
         } catch (Exception e) {
-            classLogger.debug("Health check failed for model {}: {}", modelId, e.getMessage());
+            classLogger.debug("Health check failed for model {} ({}): {}", 
+                modelId, modelName, e.getMessage());
         }
         return false;
     }
