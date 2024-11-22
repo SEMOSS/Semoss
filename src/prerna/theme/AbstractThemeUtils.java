@@ -2,6 +2,7 @@ package prerna.theme;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.Vector;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -43,8 +45,10 @@ public abstract class AbstractThemeUtils {
 	}
 
 	private static void initialize() throws SQLException {
-		String[] colNames = null;
-		String[] types = null;
+		String[] adminThemeColNames = null;
+		String[] adminThemeTypes = null;
+		String[] blocksTemplateColNames = null;
+		String[] blocksTemplateTypes = null;
 		/*
 		 * Currently used
 		 */
@@ -52,13 +56,25 @@ public abstract class AbstractThemeUtils {
 		// ADMIN_THEME
 		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
 		
-		colNames = new String[] { "ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE" };
-		types = new String[] { "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getBooleanDataTypeName() };
+		adminThemeColNames = new String[] { "ID", "THEME_NAME", "THEME_MAP", "IS_ACTIVE" };
+		adminThemeTypes = new String[] { "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), queryUtil.getBooleanDataTypeName() };
 		if(queryUtil.allowsIfExistsTableSyntax()) {
-			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", colNames, types));
+			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", adminThemeColNames, adminThemeTypes));
 		} else {
 			if(!queryUtil.tableExists(themeDb.getConnection(), "ADMIN_THEME", themeDb.getDatabase(), themeDb.getSchema())) {
-				themeDb.insertData(queryUtil.createTable("ADMIN_THEME", colNames, types));
+				themeDb.insertData(queryUtil.createTable("ADMIN_THEME", adminThemeColNames, adminThemeTypes));
+			}
+		}
+		
+		// BLOCKS_TEMPLATE
+		
+		blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "JSON" };
+		blocksTemplateTypes = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName() };
+		if(queryUtil.allowsIfExistsTableSyntax()) {
+			themeDb.insertData(queryUtil.createTableIfNotExists("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes));
+		} else {
+			if(!queryUtil.tableExists(themeDb.getConnection(), "BLOCKS_TEMPLATE", themeDb.getDatabase(), themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes));
 			}
 		}
 
