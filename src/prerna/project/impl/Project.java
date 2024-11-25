@@ -74,7 +74,7 @@ import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
-import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
@@ -1160,7 +1160,7 @@ public class Project implements IProject {
 		return null;
 	}
 	@Override
-	public PixelRunner executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
+	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
 		// if not blocks json
 		// then ignore for now
 		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
@@ -1169,18 +1169,11 @@ public class Project implements IProject {
 			return null;
 		}
 		
-		File projectNotebookF = new File(this.projectNotebookFolder);
-		if(!projectNotebookF.exists() || !projectNotebookF.isDirectory()) {
-			projectNotebookF.mkdirs();
-		}
-		
 		try {
 			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
 			return runner.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ClusterUtil.pushProjectFolder(this, this.projectNotebookFolder);
 		}
 		
 		return null;
