@@ -1,6 +1,5 @@
 package prerna.engine.api;
 
-import prerna.engine.impl.model.AwsTitanTextEmbeddingsEngine;
 import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.OpenAiEngine;
