@@ -905,7 +905,9 @@ public final class HttpHelperUtility {
 		    }
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
-
+		    String responseCode = String.valueOf(con.getResponseCode());
+		    if (responseCode.startsWith("5") || responseCode.startsWith("4"))
+		    	throw new IllegalArgumentException();
 		    isr = new InputStreamReader(con.getInputStream(), "UTF-8");
 		    br = new BufferedReader(isr);
 		    StringBuilder str = new StringBuilder();
@@ -915,7 +917,12 @@ public final class HttpHelperUtility {
 		    }
 		    retString = str.toString();
 		    classLogger.info("Return from " + urlStr + " = " + retString);
-		} catch (MalformedURLException e) {
+		}
+		catch (IllegalArgumentException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect!");
+		}
+		catch (MalformedURLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
