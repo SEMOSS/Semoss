@@ -56,14 +56,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
 
 	private SecurityAdminUtils() {
-		
+
 	}
-	
+
 	public static SecurityAdminUtils getInstance(User user) {
-		if(user == null) {
+		if (user == null) {
 			return null;
 		}
-		if(userIsAdmin(user)) {
+		if (userIsAdmin(user)) {
 			return instance;
 		}
 		return null;
@@ -71,7 +71,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Check if the user is an admin
-	 * @param userId	String representing the id of the user to check
+	 * 
+	 * @param userId String representing the id of the user to check
 	 */
 	public static Boolean userIsAdmin(User user) {
 //		String userFilters = getUserFilters(user);
@@ -81,7 +82,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -89,7 +91,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -97,12 +99,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * See if the user is an admin
+	 * 
 	 * @param userId
 	 * @param type
 	 * @return
@@ -112,7 +115,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -120,7 +124,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -128,22 +132,22 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public boolean otherAdminsExist(String userId, String type) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
-				if( (row[0] + "").equals(userId)
-						&& (row[1] + "").equals(type) ) {
+				if ((row[0] + "").equals(userId) && (row[1] + "").equals(type)) {
 					continue;
 				} else {
 					return true;
@@ -152,7 +156,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -160,24 +164,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/*
-	 * all other methods should be on the instance
-	 * so that we cannot bypass security easily
+	 * all other methods should be on the instance so that we cannot bypass security
+	 * easily
 	 */
-	
+
 	/**
 	 * Get all users
-	 * @param offset 
-	 * @param limit 
+	 * 
+	 * @param offset
+	 * @param limit
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUsers(String searchTerm, long limit, long offset) throws IllegalArgumentException {
-		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+	public List<Map<String, Object>> getAllUsers(String searchTerm, long limit, long offset)
+			throws IllegalArgumentException {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
@@ -193,30 +199,67 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
-		if(hasSearchTerm) {
+		if (hasSearchTerm) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+
 			qs.addExplicitFilter(or);
 		}
-		if(limit > 0) {
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
 	}
-	
+
+	public List<Map<String, Object>> getUserByID(String userID, long limit, long offset)
+			throws IllegalArgumentException {
+		boolean hasSearchTerm = userID != null && !(userID = userID.trim()).isEmpty();
+		if (hasSearchTerm) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
+			qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+			qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
+
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "=", userID));
+			qs.addExplicitFilter(or);
+
+			if (limit > 0) {
+				qs.setLimit(limit);
+			}
+			if (offset > 0) {
+				qs.setOffSet(offset);
+			}
+			return getSimpleQuery(qs);
+		}
+		return null;
+	}
+
 	/**
 	 * Get all user engines
+	 * 
 	 * @param userId
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserEngines(String userId, List<String> engineTypes) throws IllegalArgumentException {
+	public List<Map<String, Object>> getAllUserEngines(String userId, List<String> engineTypes)
+			throws IllegalArgumentException {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID", "user_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "app_permission"));
@@ -224,7 +267,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
-		if(engineTypes != null && !engineTypes.isEmpty()) {
+		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 		}
 		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
@@ -232,15 +275,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-	
+
 	/**
 	 * Get all user projects
+	 * 
 	 * @param userId
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserProjects(String userId) throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUserProjects(String userId) throws IllegalArgumentException {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID", "user_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "project_permission"));
@@ -253,9 +296,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
 	 * Get all user insights
+	 * 
 	 * @param user
 	 * @param searchTerm
 	 * @param limit
@@ -263,18 +307,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserInsights(User user, List<String> projectFilter, String searchTerm, long limit, long offset) throws IllegalArgumentException{
-		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+	public List<Map<String, Object>> getAllUserInsights(User user, List<String> projectFilter, String searchTerm,
+			long limit, long offset) throws IllegalArgumentException {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 		boolean hasProjectFilters = projectFilter != null && !projectFilter.isEmpty();
 		Collection<String> userIds = getUserFiltersQs(user);
-		
+
 		String insightPrefix = "INSIGHT__";
 		String projectPrefix = "PROJECT__";
 		String userInsightPrefix = "USERINSIGHTPERMISSION__";
 		String userProjectPrefix = "PROJECTPERMISSION__";
 		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
 		String groupInsightPermission = "GROUPINSIGHTPERMISSION__";
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// TODO: delete the below 3 in the future once FE moves to project_
 		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
@@ -297,7 +342,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
 		// lower name for sorting
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, insightPrefix + "INSIGHTNAME", "low_name"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+				insightPrefix + "INSIGHTNAME", "low_name"));
 		// add the USER PERMISSIONS subquery returns
 		qs.addSelector(new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION", "insight_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT_USER_PERMISSIONS__PERMISSION", "project_permission"));
@@ -307,119 +353,123 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		// if user project owner - return owner
 		// if group project owner - return owner
-		// if user and group null - return User (which will be null, but that is desired)
+		// if user and group null - return User (which will be null, but that is
+		// desired)
 		// if user or group null - return non null permission level
 		// if both non null - return max permissions
 		{
 			// setup
 			AndQueryFilter and = new AndQueryFilter();
-			and.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
-			and.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
-				
-			AndQueryFilter and1 = new AndQueryFilter();
-			and1.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
-			and1.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
-		
-			AndQueryFilter and2 = new AndQueryFilter();
-			and2.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
-			and2.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
-			
-			SimpleQueryFilter maxPermFilter = SimpleQueryFilter.makeColToColFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "<", "INSIGHT_GROUP_PERMISSIONS__PERMISSION");
-			SimpleQueryFilter userOwnerFilter = SimpleQueryFilter.makeColToValFilter("PROJECT_USER_PERMISSIONS__PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT);
-			SimpleQueryFilter groupOwnerFilter = SimpleQueryFilter.makeColToValFilter("PROJECT_GROUP_PERMISSIONS__PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT);
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "==", null,
+					PixelDataType.CONST_INT));
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "==", null,
+					PixelDataType.CONST_INT));
 
+			AndQueryFilter and1 = new AndQueryFilter();
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "!=", null,
+					PixelDataType.CONST_INT));
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "==", null,
+					PixelDataType.CONST_INT));
+
+			AndQueryFilter and2 = new AndQueryFilter();
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "==", null,
+					PixelDataType.CONST_INT));
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT_USER_PERMISSIONS__PERMISSION", "!=", null,
+					PixelDataType.CONST_INT));
+
+			SimpleQueryFilter maxPermFilter = SimpleQueryFilter.makeColToColFilter(
+					"INSIGHT_USER_PERMISSIONS__PERMISSION", "<", "INSIGHT_GROUP_PERMISSIONS__PERMISSION");
+			SimpleQueryFilter userOwnerFilter = SimpleQueryFilter.makeColToValFilter(
+					"PROJECT_USER_PERMISSIONS__PERMISSION", "==", AccessPermissionEnum.OWNER.getId(),
+					PixelDataType.CONST_INT);
+			SimpleQueryFilter groupOwnerFilter = SimpleQueryFilter.makeColToValFilter(
+					"PROJECT_GROUP_PERMISSIONS__PERMISSION", "==", AccessPermissionEnum.OWNER.getId(),
+					PixelDataType.CONST_INT);
 
 			// logic
 			QueryIfSelector qis5 = QueryIfSelector.makeQueryIfSelector(maxPermFilter,
-						new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION"),
-						new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION"),
-						"permission"
-					);
-			
+					new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION"),
+					new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION"), "permission");
+
 			QueryIfSelector qis4 = QueryIfSelector.makeQueryIfSelector(and2,
-						new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION"),
-						qis5,
-						"permission"
-					);
-			
+					new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION"), qis5, "permission");
+
 			QueryIfSelector qis3 = QueryIfSelector.makeQueryIfSelector(and1,
-						new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION"),
-						qis4,
-						"permission"
-					);
+					new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION"), qis4, "permission");
 
 			QueryIfSelector qis2 = QueryIfSelector.makeQueryIfSelector(and,
-						new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION"),
-						qis3,
-						"permission"
-					);
-			
+					new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__PERMISSION"), qis3, "permission");
+
 			QueryIfSelector qis1 = QueryIfSelector.makeQueryIfSelector(groupOwnerFilter,
-						new QueryConstantSelector(AccessPermissionEnum.OWNER.getId()),
-						qis2,
-						"permission"
-					);
-			
+					new QueryConstantSelector(AccessPermissionEnum.OWNER.getId()), qis2, "permission");
+
 			QueryIfSelector qis = QueryIfSelector.makeQueryIfSelector(userOwnerFilter,
-						new QueryConstantSelector(AccessPermissionEnum.OWNER.getId()),
-						qis1,
-						"permission"
-					);
-			
+					new QueryConstantSelector(AccessPermissionEnum.OWNER.getId()), qis1, "permission");
+
 			qs.addSelector(qis);
 		}
-		
+
 		// add PROJECT relation
 		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
 		// add a join to get the user permission level and if favorite
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, userInsightPrefix + "FAVORITE", "FAVORITE"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, userInsightPrefix + "PERMISSION", "PERMISSION"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
+					userInsightPrefix + "FAVORITE", "FAVORITE"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					userInsightPrefix + "PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
 			IRelation subQuery = null;
-			subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join", new String[] {"INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "="});
+			subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join",
+					new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
 			qs.addRelation(subQuery);
 		}
 		// add a join to get the user project permission
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID", "PROJECTID"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, userProjectPrefix + "PERMISSION", "PERMISSION"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					userProjectPrefix + "PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector(userProjectPrefix + "PROJECTID", "PROJECTID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-			IRelation subQuery = new SubqueryRelationship(qs2, "PROJECT_USER_PERMISSIONS", "left.outer.join", new String[] {"PROJECT_USER_PERMISSIONS__PROJECTID", insightPrefix + "PROJECTID", "="});
+			IRelation subQuery = new SubqueryRelationship(qs2, "PROJECT_USER_PERMISSIONS", "left.outer.join",
+					new String[] { "PROJECT_USER_PERMISSIONS__PROJECTID", insightPrefix + "PROJECTID", "=" });
 			qs.addRelation(subQuery);
 		}
-		
+
 		// add a join to get the group insight permission level
 		{
 			SelectQueryStruct qs3 = new SelectQueryStruct();
 			qs3.addSelector(new QueryColumnSelector(groupInsightPermission + "INSIGHTID", "INSIGHTID"));
-			qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupInsightPermission + "PERMISSION", "PERMISSION"));
+			qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					groupInsightPermission + "PERMISSION", "PERMISSION"));
 			qs3.addGroupBy(new QueryColumnSelector(groupInsightPermission + "INSIGHTID", "INSIGHTID"));
-			
+
 			// filter on groups
 			OrQueryFilter groupInsightOrFilters = new OrQueryFilter();
 			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
 			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider login : logins) {
-				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+			for (AuthProvider login : logins) {
+				if (user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
 				}
 				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==",
+						user.getAccessToken(login).getUserGroupType()));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==",
+						user.getAccessToken(login).getUserGroups()));
 				groupInsightOrFilters.addFilter(andFilter1);
-				
+
 				AndQueryFilter andFilter2 = new AndQueryFilter();
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==",
+						user.getAccessToken(login).getUserGroupType()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==",
+						user.getAccessToken(login).getUserGroups()));
 				groupProjectOrFilters.addFilter(andFilter2);
 			}
-			
+
 			if (!groupInsightOrFilters.isEmpty()) {
 				qs3.addExplicitFilter(groupInsightOrFilters);
 			} else {
@@ -428,33 +478,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", null));
 				qs3.addExplicitFilter(andFilter1);
 			}
-			
-			IRelation subQuery = new SubqueryRelationship(qs3, "INSIGHT_GROUP_PERMISSIONS", "left.outer.join", new String[] {"INSIGHT_GROUP_PERMISSIONS__INSIGHTID", "INSIGHT__INSIGHTID", "="});
+
+			IRelation subQuery = new SubqueryRelationship(qs3, "INSIGHT_GROUP_PERMISSIONS", "left.outer.join",
+					new String[] { "INSIGHT_GROUP_PERMISSIONS__INSIGHTID", "INSIGHT__INSIGHTID", "=" });
 			qs.addRelation(subQuery);
 		}
-		
-		
+
 		// add a join to get the group project permission level
 		{
 			SelectQueryStruct qs4 = new SelectQueryStruct();
 			qs4.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
-			qs4.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupProjectPermission + "PERMISSION", "PERMISSION"));
+			qs4.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					groupProjectPermission + "PERMISSION", "PERMISSION"));
 			qs4.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
-			
+
 			// filter on groups
 			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
 			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider login : logins) {
-				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+			for (AuthProvider login : logins) {
+				if (user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
 				}
-				
+
 				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==",
+						user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==",
+						user.getAccessToken(login).getUserGroups()));
 				groupProjectOrFilters.addFilter(andFilter);
 			}
-			
+
 			if (!groupProjectOrFilters.isEmpty()) {
 				qs4.addExplicitFilter(groupProjectOrFilters);
 			} else {
@@ -463,24 +516,25 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", null));
 				qs4.addExplicitFilter(andFilter1);
 			}
-			
-			IRelation subQuery = new SubqueryRelationship(qs4, "PROJECT_GROUP_PERMISSIONS", "left.outer.join", new String[] {"PROJECT_GROUP_PERMISSIONS__PROJECTID", insightPrefix + "PROJECTID", "="});
+
+			IRelation subQuery = new SubqueryRelationship(qs4, "PROJECT_GROUP_PERMISSIONS", "left.outer.join",
+					new String[] { "PROJECT_GROUP_PERMISSIONS__PROJECTID", insightPrefix + "PROJECTID", "=" });
 			qs.addRelation(subQuery);
 		}
 
-		
 		// remove hidden projects
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-			
+
 			// fill in the sub query with the single return + filters
 			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false,
+					PixelDataType.BOOLEAN));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
 		}
-		
+
 		// filter the insight ids based on
 		OrQueryFilter orFilter = new OrQueryFilter();
 		qs.addExplicitFilter(orFilter);
@@ -489,7 +543,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
 			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
-			
+
 			// fill in the sub query with the single return + filters
 			subQs.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
@@ -499,10 +553,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
 			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
-			
+
 			// fill in the sub query with the single return + filters
 			subQs.addSelector(new QueryColumnSelector(insightPrefix + "INSIGHTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(insightPrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			SelectQueryStruct subQs2 = new SelectQueryStruct();
 			// store the subquery
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs2));
@@ -512,7 +567,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			subQs2.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
 			// project and insight must be global must be global
 			OrQueryFilter projectSubset = new OrQueryFilter();
-			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			projectSubset.addFilter(
+					SimpleQueryFilter.makeColToValFilter(projectPrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
 			subQs2.addExplicitFilter(projectSubset);
 		}
@@ -521,11 +577,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
 			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs));
-			
+
 			// fill in the sub query with the single return + filters
 			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "PERMISSION", "==",
+					AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
 		}
 		// 4 insights i have access to from group permissions
 		{
@@ -533,96 +590,102 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			OrQueryFilter groupInsightOrFilters = new OrQueryFilter();
 			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
 			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider login : logins) {
-				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+			for (AuthProvider login : logins) {
+				if (user.getAccessToken(login).getUserGroups().isEmpty()) {
 					continue;
 				}
 				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==",
+						user.getAccessToken(login).getUserGroupType()));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==",
+						user.getAccessToken(login).getUserGroups()));
 				groupInsightOrFilters.addFilter(andFilter1);
-				
+
 				AndQueryFilter andFilter2 = new AndQueryFilter();
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==",
+						user.getAccessToken(login).getUserGroupType()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==",
+						user.getAccessToken(login).getUserGroups()));
 				groupProjectOrFilters.addFilter(andFilter2);
 			}
 			// 4.a does the group have explicit access
-			if(!groupInsightOrFilters.isEmpty()) {
+			if (!groupInsightOrFilters.isEmpty()) {
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				// store first and fill in sub query after
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
-				
+
 				// we need to have the insight filters
 				subQs.addSelector(new QueryColumnSelector(groupInsightPermission + "INSIGHTID"));
 				subQs.addExplicitFilter(groupInsightOrFilters);
 			}
 			// 4.b does the group have project owner access
-			if(!groupProjectOrFilters.isEmpty()) {
+			if (!groupProjectOrFilters.isEmpty()) {
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				// store first and fill in sub query after
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "==", subQs));
-				
+
 				// we need to have the insight filters
 				subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID"));
 				subQs.addExplicitFilter(groupProjectOrFilters);
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "PERMISSION",
+						"==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
 			}
 		}
 		// optional filters
 		// on the project
-		if(hasProjectFilters) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "PROJECTID", "==", projectFilter));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectFilter));
+		if (hasProjectFilters) {
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(insightPrefix + "PROJECTID", "==", projectFilter));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectFilter));
 		}
 		// optional word filter on the engine name
-		if(hasSearchTerm) {
+		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
-			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix+"INSIGHTNAME", searchTerm));
-			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix+"INSIGHTID", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix + "INSIGHTNAME", searchTerm));
+			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(insightPrefix + "INSIGHTID", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-		qs.addOrderBy("low_name");;
-		if(limit > 0) {
+		qs.addOrderBy("low_name");
+		;
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-	//TODO >>> Kunal: update below method	
+
+	// TODO >>> Kunal: update below method
 	/**
 	 * Get all user databases
+	 * 
 	 * @param userId
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserInsightAccess(String projectId, String userId) throws IllegalArgumentException{
-		String query = "SELECT DISTINCT " 
-				+ "INSIGHT.INSIGHTID AS \"insight_id\", "
-				+ "INSIGHT.INSIGHTNAME AS \"insight_name\", " 
-				+ "INSIGHT.GLOBAL AS \"insight_public\", " 
-				+ "INSIGHT.PROJECTID AS \"project_id\", " 
-				+ "SUB_Q.NAME AS \"insight_permission\", " 
-				+ "SUB_Q.USERID AS \"user_id\" " 
-				+ "FROM INSIGHT LEFT OUTER JOIN ( "
-					+ "SELECT USERINSIGHTPERMISSION.INSIGHTID, "
-						+ "PERMISSION.NAME, "
-						+ "USERINSIGHTPERMISSION.USERID "
-						+ "FROM USERINSIGHTPERMISSION "
-						+ "INNER JOIN PERMISSION on USERINSIGHTPERMISSION.PERMISSION=PERMISSION.ID "
-						+ "WHERE USERINSIGHTPERMISSION.PROJECTID = '" + projectId + "' AND USERINSIGHTPERMISSION.USERID = '" + userId + "'" 
-					+ ") AS SUB_Q ON SUB_Q.INSIGHTID = INSIGHT.INSIGHTID "
-				+ "WHERE INSIGHT.PROJECTID = '" + projectId + "' ORDER BY INSIGHT.INSIGHTNAME";
-		
+	public List<Map<String, Object>> getAllUserInsightAccess(String projectId, String userId)
+			throws IllegalArgumentException {
+		String query = "SELECT DISTINCT " + "INSIGHT.INSIGHTID AS \"insight_id\", "
+				+ "INSIGHT.INSIGHTNAME AS \"insight_name\", " + "INSIGHT.GLOBAL AS \"insight_public\", "
+				+ "INSIGHT.PROJECTID AS \"project_id\", " + "SUB_Q.NAME AS \"insight_permission\", "
+				+ "SUB_Q.USERID AS \"user_id\" " + "FROM INSIGHT LEFT OUTER JOIN ( "
+				+ "SELECT USERINSIGHTPERMISSION.INSIGHTID, " + "PERMISSION.NAME, " + "USERINSIGHTPERMISSION.USERID "
+				+ "FROM USERINSIGHTPERMISSION "
+				+ "INNER JOIN PERMISSION on USERINSIGHTPERMISSION.PERMISSION=PERMISSION.ID "
+				+ "WHERE USERINSIGHTPERMISSION.PROJECTID = '" + projectId + "' AND USERINSIGHTPERMISSION.USERID = '"
+				+ userId + "'" + ") AS SUB_Q ON SUB_Q.INSIGHTID = INSIGHT.INSIGHTID " + "WHERE INSIGHT.PROJECTID = '"
+				+ projectId + "' ORDER BY INSIGHT.INSIGHTNAME";
+
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
 	 * Update user information.
 	 * 
@@ -751,9 +814,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			columns.add("USERNAME");
 			columnValues.add(newUsername);
 		}
-		if (isNative 
-				&& password != null 
-				&& !password.isEmpty()) {
+		if (isNative && password != null && !password.isEmpty()) {
 			try {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
@@ -813,12 +874,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		/**
-		 * Create ps and add updated rows to ps and values 
+		 * Create ps and add updated rows to ps and values
 		 */
 
 		String[] colToUpdate = columns.toArray(new String[0]);
 		String[] whereCol = { "ID" };
-		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", colToUpdate, whereCol);
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", colToUpdate,
+				whereCol);
 		PreparedStatement editUserPs = null;
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
@@ -826,7 +888,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (newUserId != null && !newUserId.isEmpty()) {
 				editUserPs.setString(i++, newUserId);
 			}
-			if(newEmail != null && !newEmail.isEmpty()) {
+			if (newEmail != null && !newEmail.isEmpty()) {
 				editUserPs.setString(i++, newEmail);
 			}
 			if (newUsername != null && !newUsername.isEmpty()) {
@@ -845,21 +907,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				editUserPs.setString(i++, type);
 			}
 			if (adminChange != null) {
-				if(adminChange) {
+				if (adminChange) {
 					editUserPs.setBoolean(i++, true);
 				} else {
 					editUserPs.setBoolean(i++, false);
 				}
 			}
 			if (publisherChange != null) {
-				if(publisherChange) {
+				if (publisherChange) {
 					editUserPs.setBoolean(i++, true);
 				} else {
 					editUserPs.setBoolean(i++, false);
 				}
 			}
 			if (exporterChange != null) {
-				if(exporterChange) {
+				if (exporterChange) {
 					editUserPs.setBoolean(i++, true);
 				} else {
 					editUserPs.setBoolean(i++, false);
@@ -874,7 +936,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (countryCode != null && !countryCode.isEmpty()) {
 				editUserPs.setString(i++, countryCode);
 			}
-			// Where 
+			// Where
 			editUserPs.setString(i++, userId);
 			editUserPs.execute();
 			if (!editUserPs.getConnection().getAutoCommit()) {
@@ -923,36 +985,34 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Delete a user and all its relationships.
+	 * 
 	 * @param userIdToDelete
 	 * @param userTypeToDelete
 	 * @return
 	 */
 	public boolean deleteUser(String userIdToDelete, String userTypeToDelete) {
-		//TODO: need to start binding on userId + type
-		//TODO: need to start binding on userId + type
-		//TODO: need to start binding on userId + type
-		//TODO: need to start binding on userId + type
-		//TODO: need to start binding on userId + type
-		//TODO: need to start binding on userId + type
-		//TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
+		// TODO: need to start binding on userId + type
 		{
-			String[] deleteQueries = new String[] {
-					"DELETE FROM ENGINEPERMISSION WHERE USERID=?",
+			String[] deleteQueries = new String[] { "DELETE FROM ENGINEPERMISSION WHERE USERID=?",
 					"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
-					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?",
-					"DELETE FROM SMSS_USER WHERE ID=?",
-			};
-			for(String query : deleteQueries) {
+					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?", "DELETE FROM SMSS_USER WHERE ID=?", };
+			for (String query : deleteQueries) {
 				PreparedStatement ps = null;
 				try {
 					ps = securityDb.getPreparedStatement(query);
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, userIdToDelete);
 					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
@@ -987,7 +1047,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //		}
 		return true;
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -1000,7 +1060,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			if(newEmail == null || (newEmail=newEmail.trim()).isEmpty()) {
+			if (newEmail == null || (newEmail = newEmail.trim()).isEmpty()) {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			} else {
 				ps.setString(parameterIndex++, newEmail);
@@ -1008,7 +1068,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, userType);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -1018,9 +1078,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Set the user's publishing rights
+	 * 
 	 * @param userId
 	 * @param isPublisher
 	 */
@@ -1033,7 +1094,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, isPublisher);
 			ps.setString(parameterIndex++, userId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -1043,9 +1104,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Set the user's exporting rights
+	 * 
 	 * @param userId
 	 * @param isExporter
 	 */
@@ -1058,7 +1120,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, isExporter);
 			ps.setString(parameterIndex++, userId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -1069,15 +1131,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		}
 	}
-	
+
 	/**
 	 * Set the user locked/unlocked
+	 * 
 	 * @param userId
 	 * @param isExporter
 	 */
 	public void setUserLock(String userId, String type, boolean isLocked) {
 		String query = null;
-		if(isLocked) {
+		if (isLocked) {
 			query = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
 		} else {
 			query = "UPDATE SMSS_USER SET LOCKED=?, LASTLOGIN=? WHERE ID=? AND TYPE=?";
@@ -1087,7 +1150,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, isLocked);
-			if(!isLocked) {
+			if (!isLocked) {
 				// we reset the counter so lastlogin will be today
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 				ps.setTimestamp(parameterIndex++, timestamp);
@@ -1095,7 +1158,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -1105,7 +1168,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -1115,7 +1178,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/*
 	 * METHODS FOR DATABASE AUTHORIZATION THAT ARE AT THE ADMIN LEVEL
 	 */
-	
+
 	/**
 	 * 
 	 * @param engineFilter
@@ -1126,15 +1189,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllEngineSettings(
-			List<String> engineFilter, 
-			List<String> engineTypes,
-			Map<String, Object> engineMetadataFilter, 
-			String searchTerm, 
-			String limit, 
-			String offset) {
-		
-		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+	public List<Map<String, Object>> getAllEngineSettings(List<String> engineFilter, List<String> engineTypes,
+			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset) {
+
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
@@ -1147,50 +1205,54 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_engine_name"));
-		
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
+				"low_engine_name"));
+
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
+				"low_database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
-		
-		if(engineFilter != null && !engineFilter.isEmpty()) {
+
+		if (engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
 		}
-		if(engineTypes != null && !engineTypes.isEmpty()) {
+		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 		}
-		if(hasSearchTerm) {
+		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
-		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
+		// add in-filter against engineids from subquery
+		if (engineMetadataFilter != null && !engineMetadataFilter.isEmpty()) {
 			for (String k : engineMetadataFilter.keySet()) {
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==",
+						engineMetadataFilter.get(k)));
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
 			}
 		}
-		
+
 		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
-		
+
 		Long long_limit = -1L;
 		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
+		if (limit != null && !limit.trim().isEmpty()) {
 			long_limit = Long.parseLong(limit);
 		}
-		if(offset != null && !offset.trim().isEmpty()) {
+		if (offset != null && !offset.trim().isEmpty()) {
 			long_offset = Long.parseLong(offset);
 		}
 		qs.setLimit(long_limit);
@@ -1198,7 +1260,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param projectFilter
@@ -1208,68 +1270,71 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllProjectSettings(
-			List<String> projectFilter, 
-			Map<String, Object> projectMetadataFilter, 
-			String searchTerm,  
-			String limit, 
-			String offset) {
-		
-		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter,
+			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset) {
+
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
 		String projectPrefix = "PROJECT__";
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTID", "project_id"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTNAME", "project_name"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"DISCOVERABLE", "project_discoverable"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID", "project_id"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "TYPE", "project_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
 		// dont forget reactors/portal information
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHED", "project_portal_published_date"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDUSER", "project_published_user"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDTYPE", "project_published_user_type"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILED", "project_reactors_compiled_date"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "HASPORTAL", "project_has_portal"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALNAME", "project_portal_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHED", "project_portal_published_date"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDUSER", "project_published_user"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDTYPE", "project_published_user_type"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "REACTORSCOMPILED", "project_reactors_compiled_date"));
+		qs.addSelector(
+				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
+		qs.addSelector(
+				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		// for sort
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
-		
-		if(projectFilter != null && !projectFilter.isEmpty()) {
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+				"low_project_name"));
+
+		if (projectFilter != null && !projectFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
 		}
-		if(hasSearchTerm) {
+		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
-			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTID", searchTerm));
-			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix+"PROJECTNAME", searchTerm));
+			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
-		if (projectMetadataFilter!=null && !projectMetadataFilter.isEmpty()) {
+		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair,
+		// add in-filter against projectids from subquery
+		if (projectMetadataFilter != null && !projectMetadataFilter.isEmpty()) {
 			for (String k : projectMetadataFilter.keySet()) {
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				subQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", k));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAVALUE", "==", projectMetadataFilter.get(k)));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAVALUE", "==",
+						projectMetadataFilter.get(k)));
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "==", subQs));
 			}
 		}
-		
+
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-		
+
 		Long long_limit = -1L;
 		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
+		if (limit != null && !limit.trim().isEmpty()) {
 			long_limit = Long.parseLong(limit);
 		}
-		if(offset != null && !offset.trim().isEmpty()) {
+		if (offset != null && !offset.trim().isEmpty()) {
 			long_offset = Long.parseLong(offset);
 		}
 		qs.setLimit(long_limit);
@@ -1278,9 +1343,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
-	
 	/**
 	 * Set if engine should be public or not
+	 * 
 	 * @param engineId
 	 * @param global
 	 */
@@ -1291,10 +1356,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(1, global);
 			ps.setString(2, engineId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting the engine public");
 		} finally {
@@ -1302,9 +1367,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Set if the engine is discoverable to all users on this instance
+	 * 
 	 * @param user
 	 * @param engineId
 	 * @param discoverable
@@ -1318,10 +1384,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(1, discoverable);
 			ps.setString(2, engineId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting the engine discoverable flag");
 		} finally {
@@ -1329,9 +1395,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Set if project should be public or not
+	 * 
 	 * @param projectId
 	 * @param isPublic
 	 */
@@ -1342,10 +1409,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(1, global);
 			ps.setString(2, projectId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting the project public");
 		} finally {
@@ -1353,14 +1420,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Change if this project has a portal or not
+	 * 
 	 * @param user
 	 * @param projectId
 	 * @param visibility
-	 * @throws SQLException 
-	 * @throws IllegalAccessException 
+	 * @throws SQLException
+	 * @throws IllegalAccessException
 	 */
 	public void setProjectPortal(User user, String projectId, boolean hasPortal, String portalName) {
 		PreparedStatement ps = null;
@@ -1368,26 +1436,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?");
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, hasPortal);
-			if(portalName != null) {
+			if (portalName != null) {
 				ps.setString(parameterIndex++, portalName);
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting the project portal active");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Set if the project is discoverable to all users on this instance
+	 * 
 	 * @param user
 	 * @param projectId
 	 * @param discoverable
@@ -1401,10 +1470,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(1, discoverable);
 			ps.setString(2, projectId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting the project discoverable flag");
 		} finally {
@@ -1412,9 +1481,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Get all the users for a databases
+	 * 
 	 * @param engineId
 	 * @param userId
 	 * @param permission
@@ -1422,10 +1492,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getEngineUsers(String engineId, String searchParam, String permission, long limit, long offset) {
+	public List<Map<String, Object>> getEngineUsers(String engineId, String searchParam, String permission, long limit,
+			long offset) {
 		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -1434,14 +1505,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static long getEngineUsersCount(String engineId, String searchParam, String permission) {
-		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector fSelector = new QueryFunctionSelector();
-        fSelector.setAlias("count");
-        fSelector.setFunction(QueryFunctionHelper.COUNT);
-        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
-        qs.addSelector(fSelector);
+		fSelector.setAlias("count");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fSelector);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (hasSearchParam) {
 			OrQueryFilter or = new OrQueryFilter();
@@ -1452,33 +1523,35 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==",
+					AccessPermissionEnum.getIdByPermission(permission)));
 		}
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
-	
-	
+
 	/**
 	 * Get all the users for a project
+	 * 
 	 * @param projectId
 	 * @return
 	 */
-	public List<Map<String, Object>> getProjectUsers(String projectId, String searchParam, String permission, long limit, long offset) {
+	public List<Map<String, Object>> getProjectUsers(String projectId, String searchParam, String permission,
+			long limit, long offset) {
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
-	
+
 	public static long getProjectUsersCount(String projectId, String searchParam, String permission) {
-		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector fSelector = new QueryFunctionSelector();
-        fSelector.setAlias("count");
-        fSelector.setFunction(QueryFunctionHelper.COUNT);
-        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
-        qs.addSelector(fSelector);
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		fSelector.setAlias("count");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		if (hasSearchParam) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", searchParam));
@@ -1488,13 +1561,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(or);
 		}
 		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==",
+					AccessPermissionEnum.getIdByPermission(permission)));
 		}
 		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param newUserId
@@ -1506,20 +1580,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user doesn't already exist for this database
-		if(SecurityUserEngineUtils.getUserEnginePermission(newUserId, engineId) != null) {
+		if (SecurityUserEngineUtils.getUserEnginePermission(newUserId, engineId) != null) {
 			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this engine. Please edit the existing permission level.");
+			throw new IllegalArgumentException(
+					"This user already has access to this engine. Please edit the existing permission level.");
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		PreparedStatement ps = null;	
+		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
 			int parameterIndex = 1;
@@ -1532,17 +1607,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param newUserId
@@ -1550,22 +1625,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addEngineUserPermissions(String databaseId, List<Map<String,String>> permission, User user, String endDate) {
-		// first, check to make sure these users do not already have permissions to database
+	public void addEngineUserPermissions(String databaseId, List<Map<String, String>> permission, User user,
+			String endDate) {
+		// first, check to make sure these users do not already have permissions to
+		// database
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
 		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(userIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(userIds,
+				databaseId);
 		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+			throw new IllegalArgumentException(
+					"The following users already have access to this database. Please edit the existing permission level: "
+							+ String.join(",", existingUserPermission.keySet()));
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// insert new user permissions in bulk
@@ -1573,11 +1653,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
-			for(int i=0; i<permission.size(); i++) {
+			for (int i = 0; i < permission.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, permission.get(i).get("userid"));
 				ps.setString(parameterIndex++, databaseId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
@@ -1586,17 +1667,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting the permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param newUserId
@@ -1604,34 +1685,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addProjectUserPermissions(String projectId, List<Map<String,String>> permission, User user, String endDate) {
-		// first, check to make sure these users do not already have permissions to project
+	public void addProjectUserPermissions(String projectId, List<Map<String, String>> permission, User user,
+			String endDate) {
+		// first, check to make sure these users do not already have permissions to
+		// project
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
 		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(userIds, projectId);
+		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(userIds,
+				projectId);
 		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException("The following users already have access to this project. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+			throw new IllegalArgumentException(
+					"The following users already have access to this project. Please edit the existing permission level: "
+							+ String.join(",", existingUserPermission.keySet()));
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
-			for(int i=0; i<permission.size(); i++) {
+			for (int i = 0; i < permission.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, permission.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
@@ -1640,17 +1727,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param newUserId
@@ -1658,16 +1745,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addInsightUserPermissions(String projectId, String insightId, List<Map<String,String>> permission, User user, String endDate) {
-		// first, check to make sure these users do not already have permissions to insight
+	public void addInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> permission,
+			User user, String endDate) {
+		// first, check to make sure these users do not already have permissions to
+		// insight
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
 		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(userIds, projectId, insightId);
+		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(userIds, projectId,
+				insightId);
 		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException("The following users already have access to this insight. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+			throw new IllegalArgumentException(
+					"The following users already have access to this insight. Please edit the existing permission level: "
+							+ String.join(",", existingUserPermission.keySet()));
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -1675,18 +1767,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
-			for(int i=0; i<permission.size(); i++) {
+			for (int i = 0; i < permission.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, permission.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
@@ -1694,17 +1787,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param newUserId
@@ -1714,19 +1807,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void addProjectUser(String newUserId, String projectId, String permission, User user, String endDate) {
 		// make sure user doesn't already exist for this project
-		if(SecurityUserProjectUtils.getUserProjectPermission(newUserId, projectId) != null) {
+		if (SecurityUserProjectUtils.getUserProjectPermission(newUserId, projectId) != null) {
 			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
+			throw new IllegalArgumentException(
+					"This user already has access to this project. Please edit the existing permission level.");
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
@@ -1742,19 +1836,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Return the databases the user has explicit access to
+	 * 
 	 * @param singleUserId
 	 * @return
 	 */
@@ -1764,9 +1859,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
-	
+
 	/**
 	 * Return the databases the user has explicit access to
+	 * 
 	 * @param singleUserId
 	 * @return
 	 */
@@ -1779,14 +1875,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				values.put((String) row[0], (Boolean) row[1]);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1794,21 +1890,23 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return values;
 	}
-	
-	/** 
+
+	/**
 	 * Give user permission for all the projects
-	 * @param userId		String - 	The user id we are providing permissions to
-	 * @param permission	String - 	The permission level for the access
-	 * @param isAddNew 		boolean - 	If false, modifying existing project permissions to the new permission level
-	 * 									If true, adding new projects with the permission level specified
+	 * 
+	 * @param userId     String - The user id we are providing permissions to
+	 * @param permission String - The permission level for the access
+	 * @param isAddNew   boolean - If false, modifying existing project permissions
+	 *                   to the new permission level If true, adding new projects
+	 *                   with the permission level specified
 	 */
 	public void grantAllProjects(String userId, String permission, boolean isAddNew, User user) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
-		if(isAddNew) {
+
+		if (isAddNew) {
 			List<String> currentProjectAccess = getProjectsUserHasExplicitAccess(userId);
 			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
 			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?, ?,?,?,?,?,?)";
@@ -1819,7 +1917,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps = securityDb.getPreparedStatement(insertQuery);
 				// add new permission for projects
 				for (String projectId : projectIds) {
-					if(currentProjectAccess.contains(projectId)) {
+					if (currentProjectAccess.contains(projectId)) {
 						// only add for new projects, not existing projects
 						continue;
 					}
@@ -1834,22 +1932,23 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 				}
 				ps.executeBatch();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
+				throw new IllegalArgumentException(
+						"An error occurred granting the user permission for all the projects");
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		} else {
 			// first grab the projects and visibility
 			Map<String, Boolean> currentProjectToVisibilityMap = getProjectsAndVisibilityUserHasExplicitAccess(userId);
-			
+
 			// we will remove all the current permissions
 			// and then re-add the ones they used to have but with the new level
-			
+
 			// delete first
 			{
 				String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=?";
@@ -1858,12 +1957,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(deleteQuery);
 					ps.setString(1, userId);
 					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
+					throw new IllegalArgumentException(
+							"An error occurred granting the user permission for all the projects");
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
@@ -1891,21 +1991,23 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
+					throw new IllegalArgumentException(
+							"An error occurred granting the user permission for all the projects");
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Return the databases the user has explicit access to
+	 * 
 	 * @param singleUserId
 	 * @return
 	 */
@@ -1913,24 +2015,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
-		if(engineTypes != null && !engineTypes.isEmpty()) {
+		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
 		}
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
-	
+
 	/**
 	 * Return the databases the user has explicit access to
+	 * 
 	 * @param singleUserId
 	 * @return
 	 */
-	public Map<String, Boolean> getEnginesAndVisibilityUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
+	public Map<String, Boolean> getEnginesAndVisibilityUserHasExplicitAccess(String singleUserId,
+			List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
-		if(engineTypes != null && !engineTypes.isEmpty()) {
+		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
 		}
@@ -1938,14 +2042,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				values.put((String) row[0], (Boolean) row[1]);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -1953,23 +2057,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return values;
 	}
-	
+
 	/**
 	 * Give user permission for all the engines
-	 * @param userId		String - 	The user id we are providing permissions to
-	 * @param permission	String - 	The permission level for the access
-	 * @param isAddNew 		boolean - 	If false, modifying existing project permissions to the new permission level
-	 * 									If true, adding new projects with the permission level specified
+	 * 
+	 * @param userId      String - The user id we are providing permissions to
+	 * @param permission  String - The permission level for the access
+	 * @param isAddNew    boolean - If false, modifying existing project permissions
+	 *                    to the new permission level If true, adding new projects
+	 *                    with the permission level specified
 	 * @param engineTypes
 	 */
-	public void grantAllEngines(String userId, String permission, boolean isAddNew, List<String> engineTypes, User user) {
-		String logETypes = (engineTypes == null || engineTypes.isEmpty()) ? "[ALL]" : ("[" + String.join(", ", engineTypes) + "]");
+	public void grantAllEngines(String userId, String permission, boolean isAddNew, List<String> engineTypes,
+			User user) {
+		String logETypes = (engineTypes == null || engineTypes.isEmpty()) ? "[ALL]"
+				: ("[" + String.join(", ", engineTypes) + "]");
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		if(isAddNew) {
+		if (isAddNew) {
 			List<String> currentEngineAccess = getEnginesUserHasExplicitAccess(userId, engineTypes);
 			List<String> engineIds = SecurityEngineUtils.getAllEngineIds();
 			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
@@ -1981,7 +2089,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps = securityDb.getPreparedStatement(insertQuery);
 				// add new permission for databases
 				for (String databaseId : engineIds) {
-					if(currentEngineAccess.contains(databaseId)) {
+					if (currentEngineAccess.contains(databaseId)) {
 						// only add for new databases, not existing databases
 						continue;
 					}
@@ -1996,22 +2104,24 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 				}
 				ps.executeBatch();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occurred granting the user permission for all the engines of type "+logETypes);
+				throw new IllegalArgumentException(
+						"An error occurred granting the user permission for all the engines of type " + logETypes);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		} else {
 			// first grab the databases and visibility
-			Map<String, Boolean> currentEngineToVisibilityMap = getEnginesAndVisibilityUserHasExplicitAccess(userId, engineTypes);
-			
+			Map<String, Boolean> currentEngineToVisibilityMap = getEnginesAndVisibilityUserHasExplicitAccess(userId,
+					engineTypes);
+
 			// we will remove all the current permissions
 			// and then re-add the ones they used to have but with the new level
-			
+
 			// delete first
 			{
 				String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=?";
@@ -2020,12 +2130,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(deleteQuery);
 					ps.setString(1, userId);
 					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occurred granting the user permission for all the engines of type "+logETypes);
+					throw new IllegalArgumentException(
+							"An error occurred granting the user permission for all the engines of type " + logETypes);
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
@@ -2053,22 +2164,23 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occurred granting the user permission for all the engines of type "+logETypes);
+					throw new IllegalArgumentException(
+							"An error occurred granting the user permission for all the engines of type " + logETypes);
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		}
 	}
-	
-	
-	/** 
+
+	/**
 	 * give new users access to a database
+	 * 
 	 * @param engineId
 	 * @param permission
 	 * @param user
@@ -2080,7 +2192,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
@@ -2104,17 +2216,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for engine "+engineId + " with permission " + permission);
+			throw new IllegalArgumentException("An error occurred adding user permissions for engine " + engineId
+					+ " with permission " + permission);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -2128,7 +2241,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
@@ -2152,7 +2265,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -2160,11 +2273,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}		
+		}
 	}
-	
+
 	/**
 	 * Give the user permission for all the insights in a project
+	 * 
 	 * @param projectId
 	 * @param userId
 	 * @param permission
@@ -2185,7 +2299,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			deletePs.setString(parameterIndex++, userId);
 			deletePs.setString(parameterIndex++, projectId);
 			deletePs.execute();
-			
+
 			insertPs = securityDb.getPreparedStatement(insertQuery);
 			// add new permission for all insights
 			List<String> insightIds = getAllProjectInsights(projectId);
@@ -2201,12 +2315,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
-			
+
 			// do commits
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-			if(!insertPs.getConnection().getAutoCommit()) {
+			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -2217,6 +2331,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 	}
+
 	/**
 	 * 
 	 * @param existingUserId
@@ -2224,47 +2339,49 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newPermission
 	 * @return
 	 */
-	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user, String endDate) {
+	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user,
+			String endDate) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
-		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the engine");
+		if (existingUserPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for a user who does not currently have access to the engine");
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
-			//SET
+			// SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			//WHERE
+			// WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}	
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -2274,32 +2391,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param endDate
 	 * @return
-	 * @throws IllegalAccessException 
+	 * @throws IllegalAccessException
 	 */
-	public static void editEngineUserPermissions(String engineId, List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
+	public static void editEngineUserPermissions(String engineId, List<Map<String, String>> requests, User user,
+			String endDate) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
-	    for(Map<String,String> i:requests){
-	    	String userId=Utility.inputSQLSanitizer(i.get("userid"));
-	    	existingUserIds.add(userId);
-	    }
-			    
+		for (Map<String, String> i : requests) {
+			String userId = Utility.inputSQLSanitizer(i.get("userid"));
+			existingUserIds.add(userId);
+		}
+
 		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds, engineId);
-		
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds,
+				engineId);
+
 		// make sure all users to edit currently has access to database
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the engine: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
+							+ String.join(",", toRemoveUserIds));
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// update user permissions in bulk
@@ -2307,32 +2428,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
-				//SET
+				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
 				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				//WHERE
+				// WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, engineId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	
+
 	/**
 	 * 
 	 * @param existingUserId
@@ -2340,48 +2460,50 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newPermission
 	 * @return
 	 */
-	public void editProjectUserPermission(String existingUserId, String projectId, String newPermission, User user, String endDate) {
+	public void editProjectUserPermission(String existingUserId, String projectId, String newPermission, User user,
+			String endDate) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
-		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
+		if (existingUserPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for a user who does not currently have access to the project");
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		// update user permissions in bulk
 		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
-			//SET
+			// SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			//WHERE
+			// WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -2391,65 +2513,70 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param endDate
 	 * @return
-	 * @throws IllegalAccessException 
+	 * @throws IllegalAccessException
 	 */
-	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
+	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user,
+			String endDate) throws IllegalAccessException {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
-	    for(Map<String,String> i:requests){
-	    	existingUserIds.add(i.get("userid"));
-	    }
-			    
+		for (Map<String, String> i : requests) {
+			existingUserIds.add(i.get("userid"));
+		}
+
 		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds, projectId);
-		
+		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds,
+				projectId);
+
 		// make sure all users to edit currently has access to database
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the project: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for the following users who do not currently have access to the project: "
+							+ String.join(",", toRemoveUserIds));
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		// update user permissions in bulk
 		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
-				//SET
+				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
 				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				//WHERE
+				// WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}	
+		}
 	}
-	
+
 	/**
 	 * Edit insight user permissions in bulk
+	 * 
 	 * @param projectId
 	 * @param insightId
 	 * @param requests
@@ -2457,61 +2584,66 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 * @throws IllegalAccessException
 	 */
-	public static void editInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
+	public static void editInsightUserPermissions(String projectId, String insightId,
+			List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
-	    for(Map<String,String> i:requests){
-	    	existingUserIds.add(i.get("userid"));
-	    }
-			    
+		for (Map<String, String> i : requests) {
+			existingUserIds.add(i.get("userid"));
+		}
+
 		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds, projectId, insightId);
-		
+		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds,
+				projectId, insightId);
+
 		// make sure all users to edit currently has access to database
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the insight: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for the following users who do not currently have access to the insight: "
+							+ String.join(",", toRemoveUserIds));
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		// update user permissions in bulk
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
-				//SET
+				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, startDate);
 				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				//WHERE
+				// WHERE
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}	
+		}
 	}
+
 	/**
 	 * 
 	 * @param editedUserId
@@ -2521,10 +2653,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void removeEngineUser(String existingUserId, String engineId) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
-		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the engine");
+		if (existingUserPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for a user who does not currently have access to the engine");
 		}
-		
+
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		PreparedStatement ps = null;
 		try {
@@ -2533,7 +2666,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -2543,7 +2676,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param editedUserId
@@ -2551,37 +2684,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public void removeEngineUsers(List<String> existingUserIds, String engineId) {
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds, engineId);
-		
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds,
+				engineId);
+
 		// make sure these users all exist and have access
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the engine: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
+							+ String.join(",", toRemoveUserIds));
 		}
 
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<existingUserIds.size(); i++) {
+			for (int i = 0; i < existingUserIds.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, existingUserIds.get(i));
 				ps.setString(parameterIndex++, engineId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing user permissions from this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param editedUserId
@@ -2589,37 +2725,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public void removeProjectUsers(List<String> existingUserIds, String projectId) {
-		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds, projectId);
-		
+		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds,
+				projectId);
+
 		// make sure these users all exist and have access
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the project: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for the following users who do not currently have access to the project: "
+							+ String.join(",", toRemoveUserIds));
 		}
 
 		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<existingUserIds.size(); i++) {
+			for (int i = 0; i < existingUserIds.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, existingUserIds.get(i));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing user permissions from this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param editedUserId
@@ -2627,18 +2766,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public void removeInsightUsers(List<String> existingUserIds, String projectId, String insightId) {
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds, projectId, insightId);
+		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds,
+				projectId, insightId);
 		// make sure these users all exist and have access
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the insight: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for the following users who do not currently have access to the insight: "
+							+ String.join(",", toRemoveUserIds));
 		}
 		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<existingUserIds.size(); i++) {
+			for (int i = 0; i < existingUserIds.size(); i++) {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, existingUserIds.get(i));
 				ps.setString(parameterIndex++, projectId);
@@ -2646,18 +2788,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing insight permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	
+
 	/**
 	 * 
 	 * @param editedUserId
@@ -2667,10 +2808,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void removeProjectUser(String existingUserId, String projectId) {
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
-		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
+		if (existingUserPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for a user who does not currently have access to the project");
 		}
-		
+
 		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -2679,17 +2821,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -2699,7 +2841,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/*
 	 * METHODS FOR INSIGHT AUTHORIZATION THAT ARE AT THE ADMIN LEVEL
 	 */
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -2720,41 +2862,44 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
 	 * @param projectId
 	 * @param insightIds
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public void deleteProjectInsights(String projectId, List<String> insightIds) throws Exception {
-		IProject project =  Utility.getProject(projectId);
+		IProject project = Utility.getProject(projectId);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-	
+
 		// delete from insights database
 		admin.dropInsight(insightIds);
 
 		// delete from the security database
 		String insightFilters = createFilter(insightIds);
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
+		// TODO:
+		// TODO:
+		// TODO:
+		// TODO:
 		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId + "';";
-		query += "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId + "'";
+		query += "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId
+				+ "'";
 		securityDb.insertData(query);
 		securityDb.commit();
 	}
-	
+
 	/**
 	 * Retrieve the list of users for a given insight
+	 * 
 	 * @param projectId
 	 * @param insightId
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public List<Map<String, Object>> getInsightUsers(String projectId, String insightId, String userId, String permission, long limit, long offset) {
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+	public List<Map<String, Object>> getInsightUsers(String projectId, String insightId, String userId,
+			String permission, long limit, long offset) {
+		boolean hasUserId = userId != null && !(userId = userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
@@ -2763,24 +2908,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
 		}
 		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==",
+					AccessPermissionEnum.getIdByPermission(permission)));
 		}
 		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-		if(limit > 0) {
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -2790,27 +2937,29 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static long getInsightUsersCount(String projectId, String insightId, String userId, String permission) {
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		boolean hasUserId = userId != null && !(userId = userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector fSelector = new QueryFunctionSelector();
-        fSelector.setAlias("count");
-        fSelector.setFunction(QueryFunctionHelper.COUNT);
-        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
-        qs.addSelector(fSelector);
-        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		fSelector.setAlias("count");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
 		}
 		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==",
+					AccessPermissionEnum.getIdByPermission(permission)));
 		}
 		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
-	
+
 	/**
 	 * 
 	 * @param newUserId
@@ -2819,21 +2968,23 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addInsightUser(String newUserId, String projectId, String insightId, String permission, User user, String endDate) {
+	public void addInsightUser(String newUserId, String projectId, String insightId, String permission, User user,
+			String endDate) {
 		// make sure user doesn't already exist for this insight
-		if(SecurityInsightUtils.getUserInsightPermission(newUserId, projectId, insightId) != null) {
+		if (SecurityInsightUtils.getUserInsightPermission(newUserId, projectId, insightId) != null) {
 			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
+			throw new IllegalArgumentException(
+					"This user already has access to this insight. Please edit the existing permission level.");
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
@@ -2848,19 +2999,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Add all users to an insight with permission level
+	 * 
 	 * @param projectId
 	 * @param insightId
 	 * @param permission
@@ -2874,7 +3026,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
@@ -2898,7 +3050,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 				}
 				ps.executeBatch();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 				// update existing permissions for users
@@ -2911,7 +3063,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param existingUserId
@@ -2920,49 +3072,52 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param newPermission
 	 * @return
 	 */
-	public void editInsightUserPermission(String existingUserId, String projectId, String insightId, String newPermission, User user, String endDate) {
+	public void editInsightUserPermission(String existingUserId, String projectId, String insightId,
+			String newPermission, User user, String endDate) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
-		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
+		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId,
+				insightId);
+		if (existingUserPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		// update user permissions in bulk
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
 			int parameterIndex = 1;
-			//SET
+			// SET
 			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			//WHERE
+			// WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param editedUserId
@@ -2972,35 +3127,37 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void removeInsightUser(String existingUserId, String projectId, String insightId) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
-		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
+		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId,
+				insightId);
+		if (existingUserPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
-		
+
 		// update user permissions in bulk
 		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(deleteQ);
 			int parameterIndex = 1;
-			//WHERE
+			// WHERE
 			ps.setString(parameterIndex++, existingUserId);
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred deleting user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
-	 * 	
+	 * 
 	 * @param projectId
 	 * @param isPublic
 	 */
@@ -3017,40 +3174,43 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred setting this insight global");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Returns List of users that have no access credentials to a given engine
+	 * 
 	 * @param engineId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getEngineUsersNoCredentials(String engineId, String searchTerm, long limit, long offset) {
+	public List<Map<String, Object>> getEngineUsersNoCredentials(String engineId, String searchTerm, long limit,
+			long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		//Filter for sub-query
+		// Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
-			//Sub-query itself
+			// Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",engineId));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null,
+					PixelDataType.NULL_VALUE));
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
@@ -3066,34 +3226,37 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-	
+
 	/**
 	 * Returns List of users that have no access credentials to a given project
+	 * 
 	 * @param projectId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getProjectUsersNoCredentials(String projectId, String searchTerm, long limit, long offset) {
+	public List<Map<String, Object>> getProjectUsersNoCredentials(String projectId, String searchTerm, long limit,
+			long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		//Filter for sub-query
+		// Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
-			//Sub-query itself
+			// Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID","==",projectId));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+			subQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
+					PixelDataType.NULL_VALUE));
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
@@ -3109,13 +3272,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-	
+
 	/**
-	 * Returns List of users that have no access credentials to a given insight 
+	 * Returns List of users that have no access credentials to a given insight
+	 * 
 	 * @param projectId
 	 * @param insightId
 	 * @param searchTerm
@@ -3123,23 +3286,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getInsightUsersNoCredentials(String projectId, String insightId, String searchTerm, long limit, long offset) {
+	public List<Map<String, Object>> getInsightUsersNoCredentials(String projectId, String insightId, String searchTerm,
+			long limit, long offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		//Filter for sub-query
+		// Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
-			//Sub-query itself
+			// Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION","!=", null, PixelDataType.NULL_VALUE));
+			subQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+			subQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "!=",
+					null, PixelDataType.NULL_VALUE));
 		}
-		
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -3152,7 +3319,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void updateEngineUserPermissions(String engineId, String newPermission, User user, String endDate) {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -3173,17 +3340,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			// WHERE
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -3197,7 +3364,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE PROJECTID=?";
@@ -3214,10 +3381,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			// WHERE
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
 		} finally {
@@ -3227,6 +3394,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Add all users to an database with the same permission
+	 * 
 	 * @param engineId
 	 * @param permission
 	 * @param user
@@ -3238,7 +3406,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
@@ -3262,7 +3430,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 				}
 				ps.executeBatch();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 				// update existing user permissions
@@ -3275,10 +3443,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	
+
 	/**
 	 * Add all users to an project with the same permission
+	 * 
 	 * @param projectId
 	 * @param permission
 	 * @param user
@@ -3290,7 +3458,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
@@ -3314,7 +3482,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 				}
 				ps.executeBatch();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 				// update existing user permissions
@@ -3327,7 +3495,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -3336,13 +3504,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param endDate
 	 */
-	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission, User user, String endDate) {
+	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission, User user,
+			String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE PROJECTID=? AND INSIGHTID=?";
@@ -3360,17 +3529,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -3391,13 +3560,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param endDate
 	 */
-	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission, User user, String endDate) {
+	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission, User user,
+			String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		
+
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId, null, -1, -1);
@@ -3420,7 +3590,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -3430,9 +3600,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Lock accounts
+	 * 
 	 * @param numDaysSinceLastLogin
 	 */
 	public int lockAccounts(int numDaysSinceLastLogin) {
@@ -3440,7 +3611,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		ZonedDateTime dateToFilter = ZonedDateTime.now(ZoneId.of("UTC"));
 		dateToFilter = dateToFilter.minusDays(numDaysSinceLastLogin);
-		
+
 		String query = "UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?";
 		PreparedStatement ps = null;
 		try {
@@ -3449,7 +3620,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, true);
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(dateToFilter));
 			numUpdated = ps.executeUpdate();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -3458,13 +3629,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		
+
 		classLogger.info("Number of accounts locked = " + numUpdated);
 		return numUpdated;
 	}
-	
+
 	/**
 	 * Lock accounts
+	 * 
 	 * @param numDaysSinceLastLogin
 	 */
 	public List<Object[]> getUserEmailsGettingLocked() {
@@ -3478,54 +3650,56 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		if(daysToLock < 0) {
+		if (daysToLock < 0) {
 			return new ArrayList<>();
 		}
 		int daysSinceLastLoginToSendEmail = (daysToLock - daysToLockEmail);
-		if(daysSinceLastLoginToSendEmail < 0) {
-			classLogger.warn("Days to Lock is less than the Days To Lock Email Warning. Would result in constant emails. Returning empty set until configured properly");
+		if (daysSinceLastLoginToSendEmail < 0) {
+			classLogger.warn(
+					"Days to Lock is less than the Days To Lock Email Warning. Would result in constant emails. Returning empty set until configured properly");
 			return new ArrayList<>();
 		}
-		
+
 		LocalDateTime now = LocalDateTime.now();
-		
+
 		List<Object[]> emailsToSend = new ArrayList<>();
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__LASTLOGIN"));
 		List<Boolean> values = new ArrayList<>();
 		values.add(null);
 		values.add(false);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", values, PixelDataType.BOOLEAN));
-		
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", values, PixelDataType.BOOLEAN));
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				String email = (String) row[0];
-				if(email != null) {
+				if (email != null) {
 					SemossDate lastLogin = null;
-					if(row[1] != null) {
+					if (row[1] != null) {
 						Object potentialDateValue = row[1];
-						if(potentialDateValue instanceof SemossDate) {
+						if (potentialDateValue instanceof SemossDate) {
 							lastLogin = (SemossDate) potentialDateValue;
-						} else if(potentialDateValue instanceof String) {
+						} else if (potentialDateValue instanceof String) {
 							lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "");
 						}
 					}
-					
+
 					long daysSinceLastLogin = Duration.between(lastLogin.getLocalDateTime(), now).toDays();
-					if(daysSinceLastLogin >= daysSinceLastLoginToSendEmail) {
-						emailsToSend.add(new Object[] {email, daysSinceLastLogin});
+					if (daysSinceLastLogin >= daysSinceLastLoginToSendEmail) {
+						emailsToSend.add(new Object[] { email, daysSinceLastLogin });
 					}
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -3533,12 +3707,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		/*
-		 * Sadly, the below does work with sqlite since it is a dumb db 
-		 * and doesn't store dates properly as one would expect
+		 * Sadly, the below does work with sqlite since it is a dumb db and doesn't
+		 * store dates properly as one would expect
 		 */
-		
+
 //		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
 //		String dateDiff = queryUtil.getDateDiffFunctionSyntax("day", "SMSS_USER.LASTLOGIN", queryUtil.getCurrentSqlTimestampUTC());
 //
@@ -3561,28 +3735,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //				wrapper.cleanUp();
 //			}
 //		}
-		
+
 		return emailsToSend;
 	}
-	
+
 	/**
 	 * Lock accounts
+	 * 
 	 * @param numDaysSinceLastLogin
 	 */
 	public int setLockAccountsAndRecalculate(int numDaysSinceLastLogin) {
 		int numUpdated = 0;
-		
+
 		ZonedDateTime dateToFilter = ZonedDateTime.now(ZoneId.of("UTC"));
 		dateToFilter = dateToFilter.minusDays(numDaysSinceLastLogin);
 		java.sql.Timestamp sqlTimestamp = Utility.getSqlTimestampUTC(dateToFilter);
-		
-		String[] queries = new String[] {
-				"UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?",
-				"UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN>?"
-		};
-		boolean [] queryUpdateBool = new boolean[] {true, false};
-		
-		for(int i = 0; i < queries.length; i++) {
+
+		String[] queries = new String[] { "UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?",
+				"UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN>?" };
+		boolean[] queryUpdateBool = new boolean[] { true, false };
+
+		for (int i = 0; i < queries.length; i++) {
 			String query = queries[i];
 			boolean updateBool = queryUpdateBool[i];
 			PreparedStatement ps = null;
@@ -3592,23 +3765,25 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setBoolean(parameterIndex++, updateBool);
 				ps.setTimestamp(parameterIndex++, sqlTimestamp);
 				numUpdated = ps.executeUpdate();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
+				throw new IllegalArgumentException(
+						"An error occurred granting the user permission for all the projects");
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
-		
+
 		classLogger.info("Number of accounts locked = " + numUpdated);
 		return numUpdated;
 	}
-	
+
 	/**
 	 * Return the number of admins
+	 * 
 	 * @return
 	 */
 	public int getNumAdmins() {
@@ -3617,17 +3792,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		fun.setFunction(QueryFunctionHelper.COUNT);
 		fun.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(fun);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -3635,19 +3811,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return 0;
 	}
-	
+
 	/**
 	 * Approving user access requests and giving user access in permissions
+	 * 
 	 * @param userId
 	 * @param userType
 	 * @param engineId
 	 * @param requests
 	 * @param endDate
 	 */
-	public void approveEngineUserAccessRequests(String userId, String userType, String engineId, List<Map<String, Object>> requests, String endDate) {
+	public void approveEngineUserAccessRequests(String userId, String userType, String engineId,
+			List<Map<String, Object>> requests, String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -3658,19 +3836,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				deletePs.setString(parameterIndex++, engineId);
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -3679,11 +3858,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
 				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				insertPs.setString(parameterIndex++, engineId);
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				insertPs.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
 				insertPs.setString(parameterIndex++, userId);
 				insertPs.setString(parameterIndex++, userType);
@@ -3692,10 +3872,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
-			if(!insertPs.getConnection().getAutoCommit()) {
+			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		} finally {
@@ -3708,33 +3888,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int index = 1;
-				//set
-				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				// set
+				updatePs.setInt(index++,
+						AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
 				updatePs.setTimestamp(index++, timestamp);
-				//where
+				// where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.setString(index++, engineId);
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
-			if(!updatePs.getConnection().getAutoCommit()) {
+			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 	}
-	
+
 	/**
 	 * Denying user access requests to engine
+	 * 
 	 * @param userId
 	 * @param userType
 	 * @param engineId
@@ -3747,39 +3930,42 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i = 0; i < requestIds.size(); i++) {
+			for (int i = 0; i < requestIds.size(); i++) {
 				int index = 1;
-				//set
+				// set
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
 				ps.setTimestamp(index++, timestamp);
-				//where
+				// where
 				ps.setString(index++, requestIds.get(i));
 				ps.setString(index++, engineId);
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Approving user access requests and giving user access in permissions
+	 * 
 	 * @param userId
 	 * @param userType
 	 * @param projectId
 	 * @param requests
 	 * @param endDate
 	 */
-	public void approveProjectUserAccessRequests(String userId, String userType, String projectId, List<Map<String, Object>> requests, String endDate) {
+	public void approveProjectUserAccessRequests(String userId, String userType, String projectId,
+			List<Map<String, Object>> requests, String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -3790,19 +3976,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				deletePs.setString(parameterIndex++, projectId);
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -3811,11 +3998,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
 				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				insertPs.setString(parameterIndex++, projectId);
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				insertPs.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
 				insertPs.setString(parameterIndex++, userId);
 				insertPs.setString(parameterIndex++, userType);
@@ -3824,12 +4012,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
-			if(!insertPs.getConnection().getAutoCommit()) {
+			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred inserting user project permissions on request approval");
+			throw new IllegalArgumentException(
+					"An error occurred inserting user project permissions on request approval");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3840,69 +4029,75 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int index = 1;
-				//set
-				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				// set
+				updatePs.setInt(index++,
+						AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
 				updatePs.setTimestamp(index++, timestamp);
-				//where
+				// where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
-			if(!updatePs.getConnection().getAutoCommit()) {
+			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 	}
-	
+
 	/**
 	 * Denying user access requests to project
+	 * 
 	 * @param userId
 	 * @param userType
 	 * @param projectId
 	 * @param requests
 	 */
-	public void denyProjectUserAccessRequests(String userId, String userType, String projectId, List<String> RequestIdList) {
+	public void denyProjectUserAccessRequests(String userId, String userType, String projectId,
+			List<String> RequestIdList) {
 		// bulk update to projectaccessrequest table
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<RequestIdList.size(); i++) {
+			for (int i = 0; i < RequestIdList.size(); i++) {
 				int index = 1;
-				//set
+				// set
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
 				ps.setTimestamp(index++, timestamp);
-				//where
+				// where
 				ps.setString(index++, RequestIdList.get(i));
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Approving user access requests and giving user access in permissions
+	 * 
 	 * @param userId
 	 * @param userType
 	 * @param projectId
@@ -3910,7 +4105,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 * @param endDate
 	 */
-	public void approveInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<Map<String, Object>> requests, String endDate) {
+	public void approveInsightUserAccessRequests(String userId, String userType, String projectId, String insightId,
+			List<Map<String, Object>> requests, String endDate) {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
 		if (endDate != null) {
@@ -3921,7 +4117,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				deletePs.setString(parameterIndex++, projectId);
@@ -3929,12 +4125,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -3943,12 +4140,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PreparedStatement insertPs = null;
 		try {
 			insertPs = securityDb.getPreparedStatement(insertQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
 				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setString(parameterIndex++, insightId);
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				insertPs.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setString(parameterIndex++, userId);
 				insertPs.setString(parameterIndex++, userType);
 				insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
@@ -3956,12 +4154,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
-			if(!insertPs.getConnection().getAutoCommit()) {
+			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred inserting user insight permissions on request approval");
+			throw new IllegalArgumentException(
+					"An error occurred inserting user insight permissions on request approval");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3972,70 +4171,76 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			updatePs = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<requests.size(); i++) {
+			for (int i = 0; i < requests.size(); i++) {
 				int index = 1;
-				//set
-				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				// set
+				updatePs.setInt(index++,
+						AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				updatePs.setString(index++, userId);
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
 				updatePs.setTimestamp(index++, timestamp);
-				//where
+				// where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
-			if(!updatePs.getConnection().getAutoCommit()) {
+			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 	}
-	
+
 	/**
 	 * Denying user access requests
+	 * 
 	 * @param userId
 	 * @param userType
 	 * @param projectId
 	 * @param insightId
 	 * @param requests
 	 */
-	public void denyInsightUserAccessRequests(String userId, String userType, String projectId, String insightId, List<String> RequestIdList) {
+	public void denyInsightUserAccessRequests(String userId, String userType, String projectId, String insightId,
+			List<String> RequestIdList) {
 		// bulk update to accessrequest table
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 		PreparedStatement ps = null;
 		try {
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			ps = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<RequestIdList.size(); i++) {
+			for (int i = 0; i < RequestIdList.size(); i++) {
 				int index = 1;
-				//set
+				// set
 				ps.setString(index++, userId);
 				ps.setString(index++, userType);
 				ps.setString(index++, "DENIED");
 				ps.setTimestamp(index++, timestamp);
-				//where
+				// where
 				ps.setString(index++, RequestIdList.get(i));
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Get markdown for a given project
+	 * 
 	 * @param projectId
 	 * @return
 	 */
@@ -4046,9 +4251,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushToString(securityDb, qs);
 	}
-	
+
 	/**
 	 * Get markdown for a given engine
+	 * 
 	 * @param user
 	 * @param engineId
 	 * @return
