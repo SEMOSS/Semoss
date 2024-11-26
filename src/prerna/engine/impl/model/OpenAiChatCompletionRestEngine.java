@@ -3,7 +3,10 @@ package prerna.engine.impl.model;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -14,6 +17,8 @@ import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -99,10 +104,19 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			this.headersMap = new HashMap<>();
 			this.headersMap.put("api-key", this.openAiApiKey);
 			this.headersMap.put("Content-Type","application/json");
-		} else {
+		}
+		else if(this.endpoint.contains("googleapis.com")) {
+			this.headersMap = new HashMap<>();
+			String accessToken = getAccessToken();
+			if (accessToken != null)
+				this.headersMap.put("api-key", accessToken);
+			this.headersMap.put("Content-Type","application/json");
+		}
+		else {
 			this.headersMap = new HashMap<>();
 			this.headersMap.put("Authorization", "Bearer " + this.openAiApiKey);
 		}
+		
 	}
 	
 	@Override
@@ -295,6 +309,23 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		conversationChain.addUserInput(question, tokens);
 		
 		return conversationChain;
+	}
+	
+	private String getAccessToken() {
+		String serviceAccountKeyFile = this.smssProp.getProperty("service_account_key_file");
+		if (serviceAccountKeyFile != null || !serviceAccountKeyFile.trim().isEmpty()) {
+			try {
+
+				GoogleCredentials credentials = ServiceAccountCredentials.fromStream(Files.newInputStream(Paths.get(serviceAccountKeyFile)))
+						.createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+				credentials.refreshIfExpired();
+				return credentials.getAccessToken().getTokenValue();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
 	}
 	
 	private Integer getCountTokenScript(PyTranslator pyt, String tokenizerVarName, String message) {
