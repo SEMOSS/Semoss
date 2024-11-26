@@ -5,7 +5,7 @@ import java.util.Map;
 import com.google.gson.JsonElement;
 
 import prerna.om.Insight;
-import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.NotebookExecution;
 
 public interface INotebookRunner {
 
@@ -27,6 +27,6 @@ public interface INotebookRunner {
 	 * @param inputReplacements
 	 * @return
 	 */
-	PixelRunner executeNotebook(Insight insight, Map<String, String> inputReplacements);
+	NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements);
 
 }

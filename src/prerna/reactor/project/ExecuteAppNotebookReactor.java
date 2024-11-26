@@ -11,7 +11,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,16 +42,22 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		// grab user inputs
+		Map<String, String> inputValueMap = new HashMap<>();
 		Map<String, String> inputMap = getInputMap();
-
+		for(String key : inputMap.keySet()) {
+			inputValueMap.put(key, inputMap.get(key));
+			inputValueMap.put(key+".value", inputMap.get(key));
+		}
+		
 		Insight newInsight = new Insight();
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 
 		IProject project = Utility.getProject(projectId);
-		PixelRunner runner = project.executeNotebooks(newInsight, inputMap);
+		NotebookExecution execution = project.executeNotebooks(newInsight, inputValueMap);
 		
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
-		runnerWraper.put("runner", runner);
+		runnerWraper.put("runner", execution.getRunner());
+		runnerWraper.put("variableOutput", execution.getVariableOutput());
 		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER);
 		return noun;
 	}
