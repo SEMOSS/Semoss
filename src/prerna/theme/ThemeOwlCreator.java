@@ -51,7 +51,8 @@ public class ThemeOwlCreator {
 				Pair.with("SECTION","VARCHAR(255)"),
 				Pair.with("IMAGE","VARCHAR(255)"),
 				Pair.with("HOVER_IMAGE","VARCHAR(255)"),
-				Pair.with("JSON", CLOB_DATATYPE_NAME)
+				Pair.with("JSON", CLOB_DATATYPE_NAME),
+				Pair.with("CLASSIFICATION","VARCHAR(255)")
 				);
 		
 		this.allSchemas = Arrays.asList(
