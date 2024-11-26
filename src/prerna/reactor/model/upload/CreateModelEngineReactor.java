@@ -1,6 +1,8 @@
 package prerna.reactor.model.upload;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,6 +22,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.security.SetEngineMetadataReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -34,6 +37,9 @@ import prerna.util.Utility;
 public class CreateModelEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
+	private static final String META = "meta";
+	private static final String MODEL_KEY_TAG = "TAG";
+	private static final String META_KEY_TAG ="tag";
 
 	public CreateModelEngineReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
@@ -78,8 +84,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		
 		//String modelName = getModelName();
 		Map<String, String> modelDetails = getModelDetails();
+		
+		Map<String, Object> metadataMap = extractTagMetadata(modelDetails);
+		
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
-
 		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_TYPE);
 		if(modelTypeStr == null || (modelTypeStr=modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
@@ -128,6 +136,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+		}
+		
+		if (!metadataMap.isEmpty()) {
+			executeSetEngineMetadataReactor(metadataMap, modelId);		
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
@@ -202,6 +214,31 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		}
 		
 		throw new NullPointerException("Must define the properties for the new model engine");
+	}
+	
+	private Map<String, Object> extractTagMetadata(Map<String, String> modelDetails) {
+		Map<String, Object> metadataMap = new HashMap<String, Object>();
+		if (modelDetails.containsKey(MODEL_KEY_TAG)) {
+			metadataMap.put(META_KEY_TAG, Arrays.asList(modelDetails.get(MODEL_KEY_TAG)));
+			modelDetails.remove(MODEL_KEY_TAG);
+		}
+		return metadataMap;
+	}
+	
+	private void executeSetEngineMetadataReactor(Map<String, Object> metadataMap, String modelId) {
+		SetEngineMetadataReactor engineMetadataReactor = new SetEngineMetadataReactor();
+
+		GenRowStruct grs = new GenRowStruct();
+		grs.add(new NounMetadata(metadataMap, PixelDataType.MAP));
+		this.getNounStore().addNoun(META, grs);
+
+		grs = new GenRowStruct();
+		grs.add(new NounMetadata(modelId, PixelDataType.CONST_STRING));
+		this.getNounStore().addNoun(ReactorKeysEnum.ENGINE.getKey(), grs);
+
+		engineMetadataReactor.setNounStore(this.getNounStore());
+		engineMetadataReactor.setInsight(this.insight);
+		engineMetadataReactor.execute();
 	}
 
 }
