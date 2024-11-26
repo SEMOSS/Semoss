@@ -273,21 +273,21 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			}
 		} else {
 			conversationChain = new ConversationChain();
-//			String tokenizerVarName = Utility.getRandomString(6);
-//			conversationChain.setTokenizerVarName(tokenizerVarName);
-//			
-//			// add the model tokenizer to users py process
-//			insight.getPyTranslator().runScript(tokenizerImportScript);
-//			
-//			StringBuilder createVarScript = new StringBuilder(tokenizerVarName);
-//			createVarScript.append(" = ")
-//						   .append("OpenAiTokenizer('")
-//						   .append(this.modelName)
-//						   .append("', ")
-//						   .append(this.maxTokens)
-//						   .append(")");
-//			
-//			insight.getPyTranslator().runScript(createVarScript.toString());
+			String tokenizerVarName = Utility.getRandomString(6);
+			conversationChain.setTokenizerVarName(tokenizerVarName);
+			
+			// add the model tokenizer to users py process
+			insight.getPyTranslator().runScript(tokenizerImportScript);
+			
+			StringBuilder createVarScript = new StringBuilder(tokenizerVarName);
+			createVarScript.append(" = ")
+						   .append("OpenAiTokenizer('")
+						   .append(this.modelName)
+						   .append("', ")
+						   .append(this.maxTokens)
+						   .append(")");
+			
+			insight.getPyTranslator().runScript(createVarScript.toString());
 		}
 				
 		if (context != null) {
