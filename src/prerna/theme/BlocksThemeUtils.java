@@ -22,6 +22,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(BlocksThemeUtils.class);
 
+//	
 	private static BlocksThemeUtils instance = new BlocksThemeUtils();
 
 	private BlocksThemeUtils() {
