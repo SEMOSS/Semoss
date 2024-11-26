@@ -44,7 +44,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 				output.put("section", rs.getString("SECTION"));
 				output.put("image", rs.getString("IMAGE"));
 				output.put("hover_image", rs.getString("HOVER_IMAGE"));
-//				output.put("json", rs.getClob("JSON").getCharacterStream());
+				output.put("json", rs.getString("JSON"));
 				output.put("classification", rs.getString("CLASSIFICATION"));
 			} else {
 				throw new IllegalArgumentException("Block ID not found");
