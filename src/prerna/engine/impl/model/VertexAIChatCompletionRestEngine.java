@@ -23,7 +23,13 @@ public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEn
         if (accessToken != null) {
             this.headersMap.put("Authorization", "Bearer " + accessToken);
         }
-
+        // add safety_settings to parameters if present
+        String safetySettings = this.smssProp.getProperty("SAFETY_SETTINGS");
+        if (safetySettings != null && !safetySettings.isEmpty())
+        {
+        	parameters.put("safety_settings", getVertexAiSafetySettings(safetySettings));		
+        }
+        
         // Call the superclass's askCall method
         return super.askCall(question, fullPrompt, context, insight, parameters);
     }
@@ -49,5 +55,21 @@ public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEn
             e.printStackTrace();
             return null;
         }
+    }
+    
+    private SafetySettings getVertexAiSafetySettings(String safetyParam) {
+    	try {
+    		String[] safetySettingsString = safetyParam.replaceAll("[{}]", "").trim().split(":");
+    		SafetySettings safetySettings = new SafetySettings();
+    		safetySettings.setCategory(safetySettingsString[0]);
+    		safetySettings.setThresold(safetySettingsString[1]);
+    		return safetySettings;
+    	}
+    	catch (Exception e) {
+    		e.printStackTrace();
+            return null;
+    		
+    	}
+    	
     }
 }
