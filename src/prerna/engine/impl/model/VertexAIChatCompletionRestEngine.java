@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -22,6 +24,8 @@ import prerna.util.insight.TextHelper;
 public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEngine {
 
     private GoogleCredentials credentials = null;
+	private static final Logger logger = LogManager.getLogger(VertexAIChatCompletionRestEngine.class);
+
 
     @Override
     protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
@@ -80,7 +84,7 @@ public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEn
     		return safetySettings;
     	}
     	catch (Exception e) {
-    		e.printStackTrace();
+			logger.warn("Unable to set safety_settings", e);
             return null;
     		
     	}
