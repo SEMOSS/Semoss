@@ -799,7 +799,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		}
 	}
 	
-	protected class SafetySettings{
+	protected class SafetySetting{
 		@Expose
 		String category;
 		@Expose

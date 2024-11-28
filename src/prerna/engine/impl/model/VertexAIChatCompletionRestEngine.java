@@ -3,14 +3,21 @@ package prerna.engine.impl.model;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+
+import org.json.JSONObject;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
+import prerna.util.insight.TextHelper;
 
 public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEngine {
 
@@ -57,12 +64,19 @@ public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEn
         }
     }
     
-    private SafetySettings getVertexAiSafetySettings(String safetyParam) {
+    private List<SafetySetting> getVertexAiSafetySettings(String safetyParam) {
+    	List<SafetySetting> safetySettings = new ArrayList<>();
     	try {
-    		String[] safetySettingsString = safetyParam.replaceAll("[{}]", "").trim().split(":");
-    		SafetySettings safetySettings = new SafetySettings();
-    		safetySettings.setCategory(safetySettingsString[0]);
-    		safetySettings.setThresold(safetySettingsString[1]);
+    		 
+    		Map<String, String> map = TextHelper.convertJsonStringToHashMap(safetyParam);
+   	     	for (Map.Entry<String,String> entry : map.entrySet()) 
+   	     	{
+   	     		SafetySetting safetySetting = new SafetySetting();
+   	     		safetySetting.setCategory(entry.getKey());
+   	     		safetySetting.setThresold(entry.getValue());
+   	     		safetySettings.add(safetySetting);
+   	     	}
+                   
     		return safetySettings;
     	}
     	catch (Exception e) {
