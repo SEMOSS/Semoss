@@ -19,14 +19,12 @@ class Instruct:
     ) -> InstructModelEngineResponse:
         # Until we fully remove max_new_tokens
         max_completion_tokens = max_completion_tokens or max_new_tokens
-        """
-        Handles the 'instruct' operation.
-        """
+        """Handles the 'instruct' operation"""
         print("Executing Instruct Operation...")
 
         projects_df_raw = self.convert_data_to_dataframe(projectData)
         projects_df = self.scrub_df(projects_df_raw)
-
+        # Identify the target audience for the task
         detect_task_response = self._detect_task_target(
             question=task,
             context=context,
@@ -34,7 +32,7 @@ class Instruct:
             max_completion_tokens=max_completion_tokens,
             **kwargs,
         )
-
+        # Decompose the task into a sequence of steps
         decompose_response = self._decompose_task(
             question=task,
             task_target=detect_task_response.response,
@@ -43,14 +41,24 @@ class Instruct:
             max_completion_tokens=max_completion_tokens,
             **kwargs,
         )
-
+        # Align the steps with the most relevant projects
         align_tasks_response = self._align_tasks(
             decompose_response.response, projects_df
         )
-
+        # Generate descriptions for each step
+        descriptions = self.generate_descriptions(
+            decompose_task_results=decompose_response.response, task=task
+        )
+        # Generate expected inputs and outputs for each step
+        io_results = self.generate_inputs_and_outputs(
+            decompose_task_results=decompose_response.response, task=task
+        )
         # Merge the projects and steps into a single list of dictionaries
         final_data = self.combine_projects_and_steps(
-            align_tasks_response.response, decompose_response.response
+            align_tasks_response.response,
+            decompose_response.response,
+            descriptions,
+            io_results,
         )
 
         final_response = InstructModelEngineResponse()
@@ -137,8 +145,7 @@ class Instruct:
 
         try:
             alignments = json.loads(response)
-
-            # Validate and normalize the response
+            # Normalizing response
             normalized = []
             for item in alignments:
                 if isinstance(item, list):
@@ -158,37 +165,180 @@ class Instruct:
             return ["Error validating response format."]
 
     def combine_projects_and_steps(
-        self, projects: List[Union[str, List[str]]], steps: List[str]
+        self,
+        projects: List[Union[str, List[str]]],
+        steps: List[str],
+        descriptions: List[str],
+        io_results: List[dict],
     ):
-        """
-        Combines projects and steps, handling cases where a step may have multiple projects.
-
-        Args:
-            projects: List where each element is either a project ID string or a list of project IDs
-            steps: List of step descriptions
-
-        Returns:
-            List[Dict]: List of dictionaries containing project_ids and steps
-        """
+        """Combines projects and steps, handling cases where a step may have multiple projects."""
         if len(projects) != len(steps):
-            print("PROBLEM!: The number of projects and steps must be equal.")
-            print(f"There are {len(projects)} Projects:", projects)
-            print(f"There are {len(steps)} Steps:", steps)
             raise ValueError("The number of projects and steps must be equal.")
 
+        if len(descriptions) != len(steps):
+            raise ValueError("The number of descriptions and steps must be equal.")
+
         result = []
-        for project, step in zip(projects, steps):
+        for project, step, description, io in zip(
+            projects, steps, descriptions, io_results
+        ):
             if isinstance(project, list):
-                result.append({"project_ids": project, "step": step})
+                result.append(
+                    {
+                        "project_ids": project,
+                        "step": step,
+                        "description": description,
+                        "io": io,
+                    }
+                )
             else:
                 result.append(
                     {
                         "project_ids": [project],
                         "step": step,
+                        "description": description,
+                        "io": io,
                     }
                 )
 
         return result
+
+    def generate_inputs_and_outputs(
+        self, decompose_task_results: List[str], task: str
+    ) -> List[dict]:
+        """Generates expected inputs and outputs for each task step."""
+        system_message = (
+            f"For the task: '{task}', analyze each step and determine its expected inputs and outputs.\n\n"
+            "### Instructions:\n"
+            "- For each step, identify required inputs and expected outputs\n"
+            "- Keep inputs and outputs concise and specific\n"
+            "- Return a JSON array where each element has 'inputs' and 'outputs' arrays\n"
+            f"- The array MUST have {len(decompose_task_results)} items\n"
+            '- **Output Format**: [{"inputs": ["input1", "input2"], "outputs": ["output1"]}, ...]\n'
+            "- **Do not** include any additional text or explanation\n"
+        )
+
+        steps_str = "\n".join(
+            [f"{i+1}. {step}" for i, step in enumerate(decompose_task_results)]
+        )
+        user_message = f"### Steps:\n{steps_str}\n### Response:"
+
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_message},
+        ]
+
+        prompt_payload, adjusted_max_completion_tokens, _ = (
+            self.client.check_token_limits(prompt_payload=messages)
+        )
+
+        payload = {
+            "messages": prompt_payload,
+            "temperature": 0.1,
+            "top_p": 0.2,
+            "max_tokens": adjusted_max_completion_tokens,
+            "stream": False,
+        }
+
+        response = self.client.inference_call(prefix="", **payload)
+
+        try:
+            import json
+
+            io_specifications = json.loads(response)
+
+            if len(io_specifications) != len(decompose_task_results):
+                raise ValueError(
+                    "Number of IO specifications does not match number of steps"
+                )
+
+            for spec in io_specifications:
+                if (
+                    not isinstance(spec, dict)
+                    or "inputs" not in spec
+                    or "outputs" not in spec
+                ):
+                    raise ValueError("Invalid IO specification format")
+                if not isinstance(spec["inputs"], list) or not isinstance(
+                    spec["outputs"], list
+                ):
+                    raise ValueError("Inputs and outputs must be arrays")
+
+            return io_specifications
+
+        except json.JSONDecodeError:
+            print("Error parsing response with json")
+            return [{"inputs": ["Error"], "outputs": ["Error"]}] * len(
+                decompose_task_results
+            )
+        except ValueError as e:
+            print(f"Error validating response: {e}")
+            return [{"inputs": ["Error"], "outputs": ["Error"]}] * len(
+                decompose_task_results
+            )
+
+    def generate_descriptions(
+        self, decompose_task_results: List[str], task: str
+    ) -> List[str]:
+        """Generates descriptions explaining the importance of each step in the decomposed task."""
+
+        system_message = (
+            f"For each step in completing the task: '{task}', explain why it is important in just one sentence.\n\n"
+            "### Instructions:\n"
+            "- Analyze each step and explain its significance to the overall task\n"
+            "- Each explanation should be clear and specific\n"
+            "- Focus on the value and purpose of each step\n"
+            "- Present the explanations in JSON array format\n"
+            "- Each explanation must directly correspond to its step\n"
+            f"- The array MUST have {len(decompose_task_results)} items\n"
+            '- **Output Format**: ["Description 1", "Description 2", ...]\n'
+            "- **Do not** include any additional text or explanation\n"
+        )
+        steps_str = "\n".join(
+            [f"{i+1}. {step}" for i, step in enumerate(decompose_task_results)]
+        )
+
+        user_message = f"### Steps:\n{steps_str}\n### Response:"
+
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_message},
+        ]
+
+        prompt_payload, adjusted_max_completion_tokens, _ = (
+            self.client.check_token_limits(prompt_payload=messages)
+        )
+
+        payload = {
+            "messages": prompt_payload,
+            "temperature": 0.1,
+            "top_p": 0.2,
+            "max_tokens": adjusted_max_completion_tokens,
+            "stream": False,
+        }
+
+        response = self.client.inference_call(prefix="", **payload)
+
+        try:
+            import json
+
+            descriptions = json.loads(response)
+
+            if len(descriptions) != len(decompose_task_results):
+                raise ValueError(
+                    "Number of descriptions does not match number of steps"
+                )
+
+            return descriptions
+
+        except json.JSONDecodeError:
+            print("Error parsing response with json")
+            return ["Error: Could not generate description."] * len(
+                decompose_task_results
+            )
+        except ValueError as e:
+            print(f"Error validating response: {e}")
+            return ["Error: Invalid response format."] * len(decompose_task_results)
 
     def _detect_task_target(
         self,
