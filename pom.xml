@@ -2333,6 +2333,12 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>				
+		
 		<!--  please add jars above and not within the testing block -->
+		   <dependency>
+      <groupId>com.microsoft.playwright</groupId>
+      <artifactId>playwright</artifactId>
+      <version>1.48.0</version>
+    </dependency>
 	</dependencies>
 </project>
