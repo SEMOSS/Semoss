@@ -22,6 +22,38 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	}
 	
+	public static Map<String, Map<String, Object>> getBlocks() throws SQLException {
+		
+		String query = "SELECT * FROM BLOCKS_TEMPLATE";
+		
+		Map<String, Map<String, Object>> output = new HashMap<>();
+		
+		PreparedStatement ps = null;
+		
+		try {
+			ps = themeDb.getPreparedStatement(query);
+			ResultSet rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> innerQuery = new HashMap<>();
+				innerQuery.put("id", rs.getString("ID"));
+				innerQuery.put("name", rs.getString("NAME"));
+				innerQuery.put("section", rs.getString("SECTION"));
+				innerQuery.put("image", rs.getString("IMAGE"));
+				innerQuery.put("hover_image", rs.getString("HOVER_IMAGE"));
+				innerQuery.put("json", rs.getString("JSON"));
+				innerQuery.put("classification", rs.getString("CLASSIFICATION"));
+				output.put(rs.getString("ID"), innerQuery);
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+		}
+		
+		return output;
+	}
+	
 	public static Map<String, Object> getBlock(String blockId) throws SQLException {
 		
 		String query = "SELECT * FROM BLOCKS_TEMPLATE WHERE ID = ?";
