@@ -3,6 +3,7 @@ package prerna.engine.impl.model;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -13,6 +14,7 @@ import java.util.Properties;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -51,7 +53,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 	private String openAiApiKey;
 	private String modelName;
 	private Integer maxTokens = null;
-	private Map<String, String> headersMap;
+	protected Map<String, String> headersMap;
 	private String provider="openai";
 	
 	private Map<String, ConversationChain> conversationHisotry = new Hashtable<>();
@@ -99,10 +101,12 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			this.headersMap = new HashMap<>();
 			this.headersMap.put("api-key", this.openAiApiKey);
 			this.headersMap.put("Content-Type","application/json");
-		} else {
+		}
+		else {
 			this.headersMap = new HashMap<>();
 			this.headersMap.put("Authorization", "Bearer " + this.openAiApiKey);
 		}
+		
 	}
 	
 	@Override
@@ -269,21 +273,21 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 			}
 		} else {
 			conversationChain = new ConversationChain();
-//			String tokenizerVarName = Utility.getRandomString(6);
-//			conversationChain.setTokenizerVarName(tokenizerVarName);
-//			
-//			// add the model tokenizer to users py process
-//			insight.getPyTranslator().runScript(tokenizerImportScript);
-//			
-//			StringBuilder createVarScript = new StringBuilder(tokenizerVarName);
-//			createVarScript.append(" = ")
-//						   .append("OpenAiTokenizer('")
-//						   .append(this.modelName)
-//						   .append("', ")
-//						   .append(this.maxTokens)
-//						   .append(")");
-//			
-//			insight.getPyTranslator().runScript(createVarScript.toString());
+			String tokenizerVarName = Utility.getRandomString(6);
+			conversationChain.setTokenizerVarName(tokenizerVarName);
+			
+			// add the model tokenizer to users py process
+			insight.getPyTranslator().runScript(tokenizerImportScript);
+			
+			StringBuilder createVarScript = new StringBuilder(tokenizerVarName);
+			createVarScript.append(" = ")
+						   .append("OpenAiTokenizer('")
+						   .append(this.modelName)
+						   .append("', ")
+						   .append(this.maxTokens)
+						   .append(")");
+			
+			insight.getPyTranslator().runScript(createVarScript.toString());
 		}
 				
 		if (context != null) {
@@ -297,6 +301,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		return conversationChain;
 	}
 	
+
 	private Integer getCountTokenScript(PyTranslator pyt, String tokenizerVarName, String message) {
 		
 
