@@ -84,5 +84,27 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		
 		return output;
 	}
+	
+	public static boolean deleteBlock(String blockId) throws SQLException {
+	    String query = "DELETE FROM BLOCKS_TEMPLATE WHERE ID = ?";
+	    PreparedStatement ps = null;
+
+	    try {
+	        ps = themeDb.getPreparedStatement(query);
+	        ps.setString(1, blockId);
+	        int rowsAffected = ps.executeUpdate();
+
+	        if (rowsAffected > 0) {
+	            return true;
+	        } else {
+	            throw new IllegalArgumentException("Block ID not found");
+	        }
+	    } catch (SQLException | IllegalArgumentException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        return false;
+	    } finally {
+	        ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+	    }
+	}
 
 }
