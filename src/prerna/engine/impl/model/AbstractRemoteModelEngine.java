@@ -80,9 +80,9 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
         // Construct the deployment endpoint URL
         String deploymentUrl;
         if (devPortFowarding) {
-            deploymentUrl = "http://localhost:8888/api/start";
+            deploymentUrl = "http://localhost:8000/api/start";
         } else {
-            deploymentUrl = String.format("http://%s:8888/api/start", modelScalerIp);
+            deploymentUrl = String.format("http://%s/api/start", modelScalerIp);
         }
         
         // Initiate deployment through HTTP request
@@ -174,7 +174,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     	if (devPortFowarding) {
     		url = "http://localhost:8888/api/generate";
     	} else {
-    		url = String.format("http://%s:8888/api/generate", clusterIp);
+    		url = String.format("http://%s/api/generate", clusterIp);
     	}
 
         RequestConfig requestConfig = RequestConfig.custom()

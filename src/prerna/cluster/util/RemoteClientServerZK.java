@@ -325,7 +325,7 @@ public class RemoteClientServerZK {
         if (devPortFowarding) {
             healthUrl = "http://localhost:8888/api/health";
         } else {
-            healthUrl = String.format("http://%s:8888/health", clusterIp);
+            healthUrl = String.format("http://%s/api/health", clusterIp);
         }
 
         RequestConfig requestConfig = RequestConfig.custom()
