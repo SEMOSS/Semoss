@@ -799,27 +799,6 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		}
 	}
 	
-	protected class SafetySetting{
-		@Expose
-		String category;
-		@Expose
-		String thresold;
-		
-		public void setCategory(String category) {
-			this.category = category;
-		}
-		
-		public void setThresold(String thresold) {
-			this.thresold = thresold;
-		}
-		
-		public String getCategory() {
-			return this.category;
-		}
-		public String setThresold() {
-			return this.thresold;
-		}
-	}
 	
 	@Override
 	public void close() throws IOException {

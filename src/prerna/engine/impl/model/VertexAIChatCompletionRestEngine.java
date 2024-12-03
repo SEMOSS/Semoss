@@ -16,6 +16,7 @@ import org.json.JSONObject;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.gson.annotations.Expose;
 
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
@@ -90,4 +91,25 @@ public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEn
     	}
     	
     }
+	protected class SafetySetting{
+		@Expose
+		String category;
+		@Expose
+		String thresold;
+		
+		public void setCategory(String category) {
+			this.category = category;
+		}
+		
+		public void setThresold(String thresold) {
+			this.thresold = thresold;
+		}
+		
+		public String getCategory() {
+			return this.category;
+		}
+		public String setThresold() {
+			return this.thresold;
+		}
+	}
 }
