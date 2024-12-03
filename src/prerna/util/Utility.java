@@ -69,13 +69,11 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -5849,8 +5847,8 @@ public final class Utility {
 	 * @param utcDateTime
 	 * @return the map containing start and end of the week.
 	 */
-	public static Map<String, LocalDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
-		Map<String, LocalDateTime> weekDates = new HashMap<>();
+	public static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> weekDates = new HashMap<>();
 
 		// Find the start of the week (Sunday)
 		ZonedDateTime start = utcDateTime;
@@ -5864,8 +5862,8 @@ public final class Utility {
 			end = end.plusDays(1);
 		}
 		// Convert ZonedDateTime to LocalDateTime
-		weekDates.put("start", start.toLocalDateTime());
-		weekDates.put("end", end.toLocalDateTime());
+		weekDates.put("start", start);
+		weekDates.put("end", end);
 
 		return weekDates;
 	}
@@ -5875,12 +5873,12 @@ public final class Utility {
 	 * @param utcDateTime
 	 * @return the map containing start and end of the month.
 	 */
-	public static Map<String, LocalDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
-		Map<String, LocalDateTime> dates = new HashMap<>();
+	public static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
 		 // Find the start of the month by setting the day to 1.
-		dates.put("start", utcDateTime.withDayOfMonth(1).toLocalDateTime());
+		dates.put("start", utcDateTime.withDayOfMonth(1));
 		// Find the end of the month by setting the day to the last day of the month.
-		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()).toLocalDateTime());
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
 
 		return dates;
 	}
