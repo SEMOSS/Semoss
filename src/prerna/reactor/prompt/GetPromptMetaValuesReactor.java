@@ -3,7 +3,7 @@ package prerna.reactor.prompt;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -24,7 +24,7 @@ public class GetPromptMetaValuesReactor extends AbstractReactor {
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
-        List<Map<String, Object>> ret = SecurityPromptUtils.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()) );
+        List<Map<String, Object>> ret = PromptUtils.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()) );
         return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 

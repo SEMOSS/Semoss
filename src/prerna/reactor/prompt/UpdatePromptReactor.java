@@ -5,7 +5,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,7 +41,7 @@ public class UpdatePromptReactor extends AbstractReactor {
 		
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
-		SecurityPromptUtils.editPrompt(promptDetails, userId);
+		PromptUtils.editPrompt(promptDetails, userId);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}

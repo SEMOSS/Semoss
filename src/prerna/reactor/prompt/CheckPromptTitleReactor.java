@@ -2,7 +2,7 @@ package prerna.reactor.prompt;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -38,7 +38,7 @@ public class CheckPromptTitleReactor extends AbstractReactor {
 		
 		organizeKeys();
 		String promptTitle = this.keyValue.get(this.keysToGet[0]);
-		Boolean promptTitleUsed = SecurityPromptUtils.checkPromptTitle(promptTitle);
+		Boolean promptTitleUsed = PromptUtils.checkPromptTitle(promptTitle);
 		NounMetadata nm = new NounMetadata(promptTitleUsed, PixelDataType.BOOLEAN);
 		return nm;
 	}

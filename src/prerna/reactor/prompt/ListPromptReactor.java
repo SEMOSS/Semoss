@@ -3,7 +3,7 @@ package prerna.reactor.prompt;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.reactor.AbstractReactor;
@@ -32,7 +32,7 @@ public class ListPromptReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[0]);
 		String offset = this.keyValue.get(this.keysToGet[1]);
 		Map<String, Object> promptMetadataFilter = getMetaMap();
-		List<Map<String, Object>> response = SecurityPromptUtils.getPrompts(userId, filters, promptMetadataFilter, limit, offset);
+		List<Map<String, Object>> response = PromptUtils.getPrompts(userId, filters, promptMetadataFilter, limit, offset);
 		
 		NounMetadata nm = new NounMetadata(response, PixelDataType.MAP);
 		return nm;

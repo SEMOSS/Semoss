@@ -603,6 +603,9 @@ public class Constants {
 	
 	// Theming
 	public static final String THEMING_DB = "themes";
+	
+	// Prompt
+	public static final String PROMPT_DB = "prompts";
 
 	// Quartz Scheduler
 	public static final String SCHEDULER_DB = "scheduler";

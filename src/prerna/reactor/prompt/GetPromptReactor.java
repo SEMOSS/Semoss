@@ -1,9 +1,8 @@
 package prerna.reactor.prompt;
 
-import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,7 +29,7 @@ organizeKeys();
 			throw new IllegalArgumentException("PROMPT ID must be passed in to get details for a specific prompt");
 		}
 		
-		Map<String, Object> promptDetails = SecurityPromptUtils.getPrompt(promptID);
+		Map<String, Object> promptDetails = PromptUtils.getPrompt(promptID);
 		NounMetadata nm = new NounMetadata(promptDetails, PixelDataType.MAP);
 		return nm;
 	}

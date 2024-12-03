@@ -2,11 +2,10 @@ package prerna.reactor.prompt;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -38,7 +37,7 @@ public class DeletePromptReactor extends AbstractReactor {
 		
 		organizeKeys();
 		String promptId = this.keyValue.get(this.keysToGet[0]);
-		SecurityPromptUtils.deletePrompt(promptId);
+		PromptUtils.deletePrompt(promptId);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}

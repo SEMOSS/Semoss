@@ -44,6 +44,7 @@ import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.prompt.AbstractPromptUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -58,6 +59,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		ignoreSmssList.add(Constants.LOCAL_MASTER_DB);
 		ignoreSmssList.add(Constants.SECURITY_DB);
 		ignoreSmssList.add(Constants.THEMING_DB);
+		ignoreSmssList.add(Constants.PROMPT_DB);
 		ignoreSmssList.add(Constants.SCHEDULER_DB);
 		ignoreSmssList.add(Constants.USER_TRACKING_DB);
 //		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
@@ -204,6 +206,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+		
+		String promptDbName = Constants.PROMPT_DB + this.extension;
+		int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
+		if(promptDbNameIndex > -1) {
+			loadExistingEngine(fileNames[promptDbNameIndex]);
+			// initialize the security database
+			try {
+				AbstractPromptUtils.loadPromptDatabase();
+			} catch (Exception e) {
+				// we couldn't initialize the db
+				// remove it from DIHelper
+				DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 
 		// change to scheduler info
 		if(!Utility.schedulerForceDisable()) {
@@ -281,6 +298,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String localMasterDBName = Constants.LOCAL_MASTER_DB + this.extension;
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		String themeDBName = Constants.THEMING_DB + this.extension;
+		String promptDBName = Constants.PROMPT_DB + this.extension;
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
 		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
@@ -291,7 +309,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			try {
 				String fileName = fileNames[fileIdx];
 				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) 
-						|| fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName) 
+						|| fileName.equals(schedulerDBName) || fileName.equals(promptDBName) || fileName.equals(userTrackingDBName) 
 						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())
 					) {
 					// ignore - we have already loaded these or they are disabled and need to be ignored
