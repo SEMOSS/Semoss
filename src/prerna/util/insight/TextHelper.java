@@ -27,6 +27,12 @@
  *******************************************************************************/
 package prerna.util.insight;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.json.JSONObject;
+
 import prerna.util.ArrayUtilityMethods;
 
 public final class TextHelper {
@@ -57,6 +63,25 @@ public final class TextHelper {
 	public static String[] breakCompoundText(String s) {
 		s = formatCompountText(s);
 		return splitRemovingEmptyValuesAndNulls(s);
+	}
+	
+	public static Map<String,String> convertJsonStringToHashMap(String s) {
+		try {
+			Map<String, String> map = new HashMap<String, String>();
+			JSONObject jObject = new JSONObject(s);
+			Iterator<?> keys = jObject.keys();
+
+			while( keys.hasNext() ){
+				String key = (String)keys.next();
+				String value = jObject.getString(key); 
+				map.put(key, value);
+			}
+			return map;
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 }

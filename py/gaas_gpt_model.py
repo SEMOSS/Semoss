@@ -101,6 +101,34 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return model_response
 
+    def ner(
+        self,
+        text: str,
+        entities: List[str],
+        mask_entities: List[str] = [],
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ):
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+
+        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, mask_entities={mask_entities});'
+
+        print(f"Pixel: {pixel}")
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
     def instruct(
         self,
         task: str,
@@ -166,6 +194,43 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         # )
 
         # return model_response
+
+
+
+
+    def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
+        """This method is responsible to get message history back from the model logs database.
+
+        Args:
+            - insight_id (Optional[str]): Identifier for insights.
+
+        Returns:
+            `List[Dict]`: A dictionary with the response the model logs database. The dictionary in the response will contain the following keys:
+            - MESSAGE_DATA
+            - DATE_CREATED
+            - MESSAGE_ID
+            - MESSAGE_TYPE
+        """
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+
+        pixel = f'GetRoomMessages(roomId="{insight_id}");'
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
 
     def embeddings(
         self,
@@ -322,7 +387,7 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
 
     def get_model_engine_id(self) -> str:
         return self.engine_id
-
+    
 
 class LocalModelEngine(AbstractModelEngine):
 
@@ -506,6 +571,15 @@ class ModelEngine(AbstractModelEngine):
     ):
         return self.model_engine.model(**kwargs)
 
+    def ner(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ):
+        return self.model_engine.ner(**kwargs)
+
     def get_model_type(self, **kwargs):
         return self.model_engine.get_model_type(**kwargs)
 
@@ -514,6 +588,9 @@ class ModelEngine(AbstractModelEngine):
 
     def get_model_engine_id(self) -> str:
         return self.model_engine.get_model_engine_id()
+
+    def get_conversation_history(self):
+        return self.model_engine.get_conversation_history()
 
     def to_langchain_embedder(self):
         """Transform the model engine into a langchain `Embeddings`object so that it can be used with langchain code"""
