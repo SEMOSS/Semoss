@@ -487,7 +487,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		List<Map<String, Object>> vectorSearchResponse = nearestNeighborCall(insight, searchStatement, limit, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
-		if (inferenceLogsEnbaled) {
+		if (inferenceLogsEnbaled && this.keepInputOutput) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/UUID.randomUUID().toString(), 

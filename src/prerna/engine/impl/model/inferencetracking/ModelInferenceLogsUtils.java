@@ -6,10 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -784,7 +784,24 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort) {
+		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+
+	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
+		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
+		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		if (dateSort.equals("DESC"))
+			Collections.reverse(response);
+		return response;
+	}
+	
+	private static SelectQueryStruct retrieveMessageQS(String userId, String insightId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
@@ -799,7 +816,7 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		return qs;
 	}
 	
 	/**
@@ -908,7 +925,6 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
-	
 	/**
 	 * 
 	 * @param user
@@ -918,9 +934,8 @@ public class ModelInferenceLogsUtils {
 	 * @return  total token count or response time within the specified period, with the key "totalToken"
 	 */
 	public static Map<String, Object> getTotalTokensOrTotalResponseTime(User user, ZonedDateTime currentDateTime, String frequency, boolean isMaxToken) {
-		
 		 // Initialize the date range map (start and end dates)
-	    Map<String, LocalDateTime> dates = new HashMap<>();
+	    Map<String, ZonedDateTime> dates = new HashMap<>();
 	   // Determine the start and end date based on the given frequency
 	    if(frequency.equals("WEEK")) {
 	    	dates = Utility.getWeekStartEndDate(currentDateTime);
@@ -928,13 +943,13 @@ public class ModelInferenceLogsUtils {
 	    	// Get start and end date for the current month
 	    	dates = Utility.getMonthStartEndDate(currentDateTime);
 	    }else {
-	    	dates.put("start", LocalDateTime.now());
-	    	dates.put("end", LocalDateTime.now());
+	    	dates.put("start", Utility.getCurrentZonedDateTimeUTC());
+	    	dates.put("end", Utility.getCurrentZonedDateTimeUTC());
 	    }
 	    		
 	   // Extract start and end dates from the map
-	    LocalDateTime startDate = dates.get("start");
-	    LocalDateTime endDate = dates.get("end");
+	    ZonedDateTime startDate = dates.get("start");
+	    ZonedDateTime endDate = dates.get("end");
 	    
 	    String sumColumn = isMaxToken ? "  SUM(MESSAGE_TOKENS) " : " SUM(RESPONSE_TIME)" ;
         //SQL query to fetch the total tokens or response time

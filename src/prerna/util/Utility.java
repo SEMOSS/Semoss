@@ -246,7 +246,7 @@ public final class Utility {
 
 		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS).and(Sanitizers.BLOCKS).and(Sanitizers.STYLES)
 				.and(Sanitizers.IMAGES).and(Sanitizers.TABLES);
-		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		MySQLCodec mySQLCodec = new MySQLCodec(MySQLCodec.Mode.ANSI);
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, policy.sanitize(stringToNormalize));
 	}
 
@@ -263,7 +263,7 @@ public final class Utility {
 			return stringToNormalize;
 		}
 
-		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		MySQLCodec mySQLCodec = new MySQLCodec(MySQLCodec.Mode.ANSI);
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
 	}
 	

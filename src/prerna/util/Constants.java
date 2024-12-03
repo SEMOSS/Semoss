@@ -472,8 +472,12 @@ public class Constants {
 	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
 	
 	// Model Configurations
+	@Deprecated
 	public static final String MAX_TOKENS = "MAX_TOKENS";
+	@Deprecated
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
+	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
+	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
 	
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";

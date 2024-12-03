@@ -3,6 +3,9 @@ package prerna.engine.impl.model;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -24,6 +27,8 @@ import com.google.gson.Gson;
 
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
+import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
@@ -182,4 +187,15 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 		IModelEngineResponseHandler responseObject = new Gson().fromJson(responseData, responseType);
         return responseObject;
 	}
+	
+	@Override
+	protected InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+	    Map<String, String> messageMap = new HashMap<>();
+	    messageMap.put("message", "This model does not support the instruct method.");
+
+	    List<Map<String, String>> responseList = Collections.singletonList(messageMap);
+
+	    return new InstructModelEngineResponse(responseList, 0, 0);
+	}
 }
+

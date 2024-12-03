@@ -32,6 +32,9 @@ class VertexGenerativeModelClient(AbstractVertextAiTextGeneration):
         **kwargs
     ):
         assert self.client != None
+        
+        if self.max_tokens != None:
+            max_new_tokens = self.max_tokens
 
         chat = None
         if FULL_PROMPT in kwargs.keys():
