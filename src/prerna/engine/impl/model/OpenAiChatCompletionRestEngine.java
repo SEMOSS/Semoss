@@ -799,6 +799,7 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 		}
 	}
 	
+	
 	@Override
 	public void close() throws IOException {
 		this.conversationHisotry.clear();
