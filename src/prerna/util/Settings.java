@@ -25,7 +25,8 @@ public class Settings {
 	public static final String PYTHONHOME = "PYTHONHOME";
 	public static final String PYTHONHOME_SITE_PACKAGES = "PYTHONHOME_SITE_PACKAGES";
 	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
-	
+	public static final String NATIVE_PY_SERVER_USER = "NATIVE_PY_SERVER_USER";
+
 	public static final String PROMPT_STOPPER = "PROMPT_STOPPER";
 	public static final String VAR_NAME = "VAR_NAME";
 	public static final String TIMEOUT = "TIMEOUT";
