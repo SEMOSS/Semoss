@@ -5136,7 +5136,7 @@ public final class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String pythonUser = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER_USER);
+			String pythonUser = Utility.getDIHelperProperty(Settings.USERNAME_NATIVE_PY_SERVER);
 					
 			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 			
