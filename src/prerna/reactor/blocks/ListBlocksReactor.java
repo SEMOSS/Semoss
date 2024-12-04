@@ -10,13 +10,20 @@ import prerna.theme.BlocksThemeUtils;
 import prerna.theme.ThemeDbTable;
 
 public class ListBlocksReactor extends AbstractReactor {
+	
+	public ListBlocksReactor() {
+		this.keysToGet =  new String[] {"tableName"};
+		this.keyRequired = new int[] {1};
+	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
+		String tableName = this.keyValue.get("tableName");
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		Map<String, Map<String, Object>> blocks = null;
 		try {
-			blocks = BlocksThemeUtils.getBlocks(ThemeDbTable.BLOCKS_TEMPLATE);
+			blocks = BlocksThemeUtils.getBlocks(table);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

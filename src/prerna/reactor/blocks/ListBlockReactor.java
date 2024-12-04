@@ -12,17 +12,19 @@ import prerna.theme.ThemeDbTable;
 public class ListBlockReactor extends AbstractReactor {
 
 	public ListBlockReactor() {
-		this.keysToGet =  new String[] {"blockId"};
-		this.keyRequired = new int[] {1};
+		this.keysToGet =  new String[] {"blockId", "tableName"};
+		this.keyRequired = new int[] {1, 1};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String blockId = this.keyValue.get("blockId");
+		String tableName = this.keyValue.get("tableName");
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		Map<String, Object> block = null;
 		try {
-			block = BlocksThemeUtils.getBlock(blockId, ThemeDbTable.BLOCKS_TEMPLATE);
+			block = BlocksThemeUtils.getBlock(blockId, table);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

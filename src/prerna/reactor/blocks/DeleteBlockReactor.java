@@ -12,17 +12,19 @@ import prerna.theme.ThemeDbTable;
 public class DeleteBlockReactor extends AbstractReactor {
 
 	public DeleteBlockReactor() {
-		this.keysToGet =  new String[] {"blockId"};
-		this.keyRequired = new int[] {1};
+		this.keysToGet =  new String[] {"blockId", "tableName"};
+		this.keyRequired = new int[] {1, 1};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String blockId = this.keyValue.get("blockId");
+		String tableName = this.keyValue.get("tableName");
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		boolean result = false;
 		try {
-			result = BlocksThemeUtils.deleteBlock(blockId, ThemeDbTable.BLOCKS_TEMPLATE);
+			result = BlocksThemeUtils.deleteBlock(blockId, table);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
