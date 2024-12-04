@@ -55,11 +55,6 @@ public class SecurityOwlCreator {
 		// trusted token security
 		conceptsRequired.add("TOKEN");
 		
-		// prompts
-		conceptsRequired.add("PROMPT");
-		conceptsRequired.add(Constants.PROMPT_METAKEYS);
-		conceptsRequired.add("PROMPTMETA");
-//		conceptsRequired.add("PROMPTPERMISSION");
 	}
 	
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -514,35 +509,10 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
-		// PROMPT
-		owler.addConcept("PROMPT", null, null);
-		owler.addProp("PROMPT", "ID", "VARCHAR(255)");
-		owler.addProp("PROMPT", "TITLE", "VARCHAR(255)");
-		owler.addProp("PROMPT", "CONTEXT", "CLOB");
-		owler.addProp("PROMPT", "VERSION", "INT");
-		owler.addProp("PROMPT", "INTENT", "VARCHAR(255)");
-		owler.addProp("PROMPT", "CREATED_BY", "VARCHAR(255)");
-		owler.addProp("PROMPT", "DATE_CREATED", "TIMESTAMP");
-		owler.addProp("PROMPT", "IS_LATEST", "BOOLEAN");
-
-		// PROMPTMETA
-		owler.addConcept("PROMPTMETA", null, null);
-		owler.addProp("PROMPTMETA", "PROMPT_ID", "VARCHAR(255)");
-		owler.addProp("PROMPTMETA", "METAKEY", "VARCHAR(255)");
-		owler.addProp("PROMPTMETA", "METAVALUE", "CLOB");
-		owler.addProp("PROMPTMETA", "METAORDER", "INT");
-
-//		// PROMPTPERMISSION
-//		owler.addConcept("PROMPTPERMISSION", null, null);
-//		owler.addProp("PROMPTPERMISSION", "PROMPT_ID", "VARCHAR(255)");
-//		owler.addProp("PROMPTPERMISSION", "USERID", "VARCHAR(255)");
-//		owler.addProp("PROMPTPERMISSION", "FAVORITE", "BOOLEAN");
-//		owler.addProp("PROMPTPERMISSION", "DATEADDED", "TIMESTAMP");
-
 
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS, PROMPTMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
-				Constants.INSIGHT_METAKEYS, Constants.PROMPT_METAKEYS);
+				Constants.INSIGHT_METAKEYS);
 		for(String tableName : metaKeyTableNames) {
 			// all have the same columns and default values
 			owler.addConcept(tableName, null, null);
