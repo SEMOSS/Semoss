@@ -16,7 +16,6 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityPromptUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -31,7 +30,7 @@ import prerna.util.QueryExecutionUtility;
 
 public class PromptUtils extends AbstractPromptUtils {
 
-	private static Logger classLogger = LogManager.getLogger(SecurityPromptUtils.class);
+	private static Logger classLogger = LogManager.getLogger(PromptUtils.class);
 	private final static String PROMPT = "PROMPT";
 	private final static String PROMPT_INPUT = "PROMPT_INPUT";
 	private final static String PROMPT_VARIABLE = "PROMPT_VARIABLE";
@@ -59,8 +58,6 @@ public class PromptUtils extends AbstractPromptUtils {
 			"IS_LATEST"
 			);
 
-	
-	
 	/**
 	 * MAIN PROMPT REACTOR FUNCTIONS 
 	 */
