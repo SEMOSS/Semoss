@@ -74,7 +74,7 @@ public class PromptOwlCreator {
 		this.allSchemas = Arrays.asList(
 				Pair.with("PROMPT", this.promptColumns),
 				Pair.with("PROMPTMETA", this.promptMetaColumns),
-				Pair.with("PROMPT", this.promptMetaKeysColumns)				
+				Pair.with("PROMPTMETAKEYS", this.promptMetaKeysColumns)				
 			);
 	}
 	

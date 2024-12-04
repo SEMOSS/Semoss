@@ -38,7 +38,7 @@ public class AbstractPromptUtils {
 	
 	public static void loadPromptDatabase() throws Exception {
 		promptDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.PROMPT_DB);
-		ThemeOwlCreator owlCreator = new ThemeOwlCreator(promptDb);
+		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb);
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
 		}
