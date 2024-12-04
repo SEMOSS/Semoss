@@ -53,10 +53,6 @@ public class MyProjectsReactor extends AbstractReactor {
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectIdFilters, 
 				favoritesOnly, portalsOnly, projectMetadataFilter, permissionFilters, searchTerm, limit, offset);
 		
-		if(!favoritesOnly && (projectMetadataFilter==null || projectMetadataFilter.isEmpty()) ) {
-			this.insight.getUser().setProjects(projectInfo);
-		}
-
 		if(!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
 			int size = projectInfo.size();

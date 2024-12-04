@@ -56,9 +56,6 @@ public class MyDatabasesReactor extends AbstractReactor {
 		
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		List<Map<String, Object>> dbInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, databaseFilter, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset);
-		if(!favoritesOnly) {
-			this.insight.getUser().setEngines(dbInfo);
-		}
 
 		if(!dbInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(dbInfo.size());

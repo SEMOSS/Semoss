@@ -2481,6 +2481,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return engineMap;
 	}
 	
+	
+	
 	/**
 	 * Get the list of the project information that the user has access to
 	 * @param userId

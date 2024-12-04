@@ -24,6 +24,7 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -36,6 +37,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
+	private final String API_TOKEN_KEY = "X-Chroma-Token";
+	
 	private final String API_ADD = "/add";
 	private final String API_DELETE = "/delete";
 	private final String API_QUERY = "/query";
@@ -70,10 +73,23 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// if not create a collection and get the ID
 		collectionName = collectionName.replaceAll(" ", "_");
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, null, null, null, null);
-		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse,
-				new TypeToken<List<Map<String, Object>>>() {}.getType());
-//		System.out.println(responseListMap);
+		Map<String, String> headersMap = new HashMap<>();
+		if (this.apiKey != null && !this.apiKey.isEmpty()) {
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		} else {
+			headersMap = null;
+		}
+		
+		String nearestNeigborResponse = null;
+		try {
+			nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
+		} catch(Exception e) {
+			classLogger.error("Unable to create connection");
+			throw new SemossPixelException("Unable to create connection");
+		}
+		
+		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse, new TypeToken<List<Map<String, Object>>>() {}.getType());
 		for (Map<String, Object> responseMap : responseListMap) {
 			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
 				return (String) responseMap.get("id");
@@ -85,8 +101,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Map<String, String> collectionNameToCreate = new HashMap<>();
 		collectionNameToCreate.put("name", collectionName);
 		String body = gson.toJson(collectionNameToCreate);
-		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, null, body, ContentType.APPLICATION_JSON, null, null, null);
+		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+		
 		return (String) responseMap.get("id");
 	}
 
@@ -139,11 +156,10 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		vectors.put("metadatas", metadatas);
 
 		String body = new Gson().toJson(vectors);
-//		System.out.println(body);
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("Api-Key", this.apiKey);
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
@@ -169,22 +185,23 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			String fileName = fileNames.get(fileIndex);
 
 			// Delete document in ChromaDB using their ID, but to get the ID we need to find
-			// the ID of a document first. Check the delete API call params -
+			// the ID of a document first. Check the delete API call params
 			// http://localhost:5000/api/v1/collections/{}/delete
 
 			Map<String, Object> fileNamesForDelete = new HashMap<>();
 			Map<String, String> sourceProperty = new HashMap<>();
 
-			sourceProperty.put("Source", fileName.replaceAll(" ", "_")); // replace spaces with _ since thats how
-																			// readCSV creates Source Property.
+			// replace spaces with _ since thats how
+			// readCSV creates Source Property.
+			sourceProperty.put("Source", fileName.replaceAll(" ", "_")); 
+																			
 			fileNamesForDelete.put("where", sourceProperty);
 
 			String body = new Gson().toJson(fileNamesForDelete);
-//			System.out.println(body);
 
 			Map<String, String> headersMap = new HashMap<>();
 			if (this.apiKey != null && !this.apiKey.isEmpty()) {
-				headersMap.put("Api-Key", this.apiKey);
+				headersMap.put(API_TOKEN_KEY, this.apiKey);
 				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 			} else {
 				headersMap = null;
@@ -247,7 +264,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("Api-Key", this.apiKey);
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
