@@ -30,7 +30,6 @@ import time
 import os
 from typing import Any, List, Optional, Dict
 
-from gaas_gpt_model import ModelEngine
 
 from pydantic.v1 import PrivateAttr
 
