@@ -21,6 +21,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.theme.BlocksThemeUtils;
 
 public abstract class AbstractThemeUtils {
 
@@ -79,9 +80,11 @@ public abstract class AbstractThemeUtils {
 				themeDb.insertData(queryUtil.createTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes));
 			}
 		}
+		
+		if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
 			//delete the contents of the table
 			themeDb.removeData("DELETE FROM BLOCKS_TEMPLATE");
-
+		
 			// insert default blocks
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 					    new Object[] {
@@ -197,63 +200,63 @@ public abstract class AbstractThemeUtils {
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT017", "Text", "SECTION_TEXT", "BLOCK_H1_STYLED", "BLOCK_H1_STYLED",
+				        "BT017", "Text H1 styled", "SECTION_TEXT", "BLOCK_H1_STYLED", "BLOCK_H1_STYLED",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis', color: 'rgb(0,76,255)', fontFamily: 'Times New Roman'}, text: 'Hello world', variant: 'h1'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT018", "Text", "SECTION_TEXT", "BLOCK_H1", "BLOCK_H1",
+				        "BT018", "Text H1", "SECTION_TEXT", "BLOCK_H1", "BLOCK_H1",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h1'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT019", "Text", "SECTION_TEXT", "BLOCK_H2", "BLOCK_H2",
+				        "BT019", "Text H2", "SECTION_TEXT", "BLOCK_H2", "BLOCK_H2",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h2'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT020", "Text", "SECTION_TEXT", "BLOCK_H3", "BLOCK_H3",
+				        "BT020", "Text H3", "SECTION_TEXT", "BLOCK_H3", "BLOCK_H3",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h3'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT021", "Text", "SECTION_TEXT", "BLOCK_H4", "BLOCK_H4",
+				        "BT021", "Text H4", "SECTION_TEXT", "BLOCK_H4", "BLOCK_H4",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h4'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT022", "Text", "SECTION_TEXT", "BLOCK_H5", "BLOCK_H5",
+				        "BT022", "Text H5", "SECTION_TEXT", "BLOCK_H5", "BLOCK_H5",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h5'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT023", "Text", "SECTION_TEXT", "BLOCK_H6", "BLOCK_H6",
+				        "BT023", "Text H6", "SECTION_TEXT", "BLOCK_H6", "BLOCK_H6",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h6'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT024", "Text", "SECTION_TEXT", "BLOCK_P", "BLOCK_P",
+				        "BT024", "Text P", "SECTION_TEXT", "BLOCK_P", "BLOCK_P",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
 
 				themeDb.insertData(queryUtil.insertIntoTable("BLOCKS_TEMPLATE", blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT025", "Text", "SECTION_TEXT", "BLOCK_P_ITALICS", "BLOCK_P_ITALICS",
+				        "BT025", "Text P Italics", "SECTION_TEXT", "BLOCK_P_ITALICS", "BLOCK_P_ITALICS",
 				        "{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis', fontStyle: 'italic'}, text: 'Hello world', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT"
 				    })
 				);
@@ -462,6 +465,7 @@ public abstract class AbstractThemeUtils {
 				    })
 				);
 
+		}
 
 		// commit the changes
 		themeDb.commit();

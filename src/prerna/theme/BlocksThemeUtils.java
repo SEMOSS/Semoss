@@ -3,6 +3,8 @@ package prerna.theme;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,9 +19,89 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	private static final Logger classLogger = LogManager.getLogger(BlocksThemeUtils.class);
 
 	private static BlocksThemeUtils instance = new BlocksThemeUtils();
+	
+	public static final ArrayList<String> BASE_BLOCKS = new ArrayList<String>(Arrays.asList(
+			"Audio Player",
+		    "Button",
+		    "Checkbox",
+		    "Input",
+		    "Select",
+		    "Upload",
+		    "Container",
+		    "Progress",
+		    "Iframe",
+		    "PDF Viewer",
+		    "Image",
+		    "Logs",
+		    "Toggle Button",
+		    "Link",
+		    "Markdown",
+		    "HTML",
+		    "Text H1 styled",
+		    "Text H1",
+		    "Text H2",
+		    "Text H3",
+		    "Text H4",
+		    "Text H5",
+		    "Text H6",
+		    "Text P",
+		    "Text P Italics",
+		    "Mermaid",
+		    "Vega",
+		    "Grid",
+		    "Bar Chart",
+		    "Grouped Bar Chart",
+		    "Pie Chart",
+		    "Radial Plot",
+		    "Line Chart",
+		    "Area Chart",
+		    "Area Chart with Gradient",
+		    "Scatter Plot",
+		    "General Mermaid",
+		    "Class Diagram",
+		    "Sequence Diagram",
+		    "State Diagram",
+		    "Entity Relationship Diagram",
+		    "User Journey",
+		    "Gantt",
+		    "Pie Chart",
+		    "Quadrant Chart",
+		    "Requirement Diagram",
+		    "Git Diagram",
+		    "C4 Diagram",
+		    "Mindmap",
+		    "Timeline",
+		    "Sankey",
+		    "XY Chart",
+		    "Block Diagram"
+			));
 
 	private BlocksThemeUtils() {
 
+	}
+	
+	public static ArrayList<String> getBlockNames() throws SQLException {
+		
+		String query = "SELECT bt.NAME FROM BLOCKS_TEMPLATE bt ";
+		
+		ArrayList<String> namesInTable = new ArrayList<>();
+		
+		PreparedStatement ps = null;
+		
+		try {
+			ps = themeDb.getPreparedStatement(query);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				String name = rs.getString("NAME");
+				namesInTable.add(name);
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+		}
+		return namesInTable;
 	}
 	
 	public static Map<String, Map<String, Object>> getBlocks() throws SQLException {
@@ -106,5 +188,27 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	        ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 	    }
 	}
+	
+//	public static boolean editBlock(String blockId) throws SQLException {
+//		String query = "";
+//		
+//		PreparedStatement ps = null;
+//		try {
+//	        ps = themeDb.getPreparedStatement(query);
+//	        ps.setString(1, blockId);
+//	        int rowsAffected = ps.executeUpdate();
+//
+//	        if (rowsAffected > 0) {
+//	            return true;
+//	        } else {
+//	            throw new IllegalArgumentException("Block ID not found");
+//	        }
+//	    } catch (SQLException | IllegalArgumentException e) {
+//	        classLogger.error(Constants.STACKTRACE, e);
+//	        return false;
+//	    } finally {
+//	        ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+//	    }
+//	}
 
 }
