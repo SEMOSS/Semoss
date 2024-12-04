@@ -7,6 +7,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
+import prerna.theme.ThemeDbTable;
 
 public class DeleteBlockReactor extends AbstractReactor {
 
@@ -21,7 +22,7 @@ public class DeleteBlockReactor extends AbstractReactor {
 		String blockId = this.keyValue.get("blockId");
 		boolean result = false;
 		try {
-			result = BlocksThemeUtils.deleteBlock(blockId);
+			result = BlocksThemeUtils.deleteBlock(blockId, ThemeDbTable.BLOCKS_TEMPLATE);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

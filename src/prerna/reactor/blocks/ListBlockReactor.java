@@ -7,6 +7,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
+import prerna.theme.ThemeDbTable;
 
 public class ListBlockReactor extends AbstractReactor {
 
@@ -21,7 +22,7 @@ public class ListBlockReactor extends AbstractReactor {
 		String blockId = this.keyValue.get("blockId");
 		Map<String, Object> block = null;
 		try {
-			block = BlocksThemeUtils.getBlock(blockId);
+			block = BlocksThemeUtils.getBlock(blockId, ThemeDbTable.BLOCKS_TEMPLATE);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

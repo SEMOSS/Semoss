@@ -22,9 +22,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	}
 	
-	public static Map<String, Map<String, Object>> getBlocks() throws SQLException {
+	public static Map<String, Map<String, Object>> getBlocks(ThemeDbTable tableName) throws SQLException {
 		
-		String query = "SELECT * FROM BLOCKS_TEMPLATE";
+		String query = "SELECT * FROM " + tableName.getThemeDbTableName();
 		
 		Map<String, Map<String, Object>> output = new HashMap<>();
 		
@@ -54,9 +54,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return output;
 	}
 	
-	public static Map<String, Object> getBlock(String blockId) throws SQLException {
+	public static Map<String, Object> getBlock(String blockId, ThemeDbTable tableName) throws SQLException {
 		
-		String query = "SELECT * FROM BLOCKS_TEMPLATE WHERE ID = ?";
+		String query = "SELECT * FROM " + tableName.getThemeDbTableName() + " WHERE ID = ?";
 		
 		Map<String, Object> output = new HashMap<>();
 		PreparedStatement ps = null;
@@ -85,8 +85,8 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return output;
 	}
 	
-	public static boolean deleteBlock(String blockId) throws SQLException {
-	    String query = "DELETE FROM BLOCKS_TEMPLATE WHERE ID = ?";
+	public static boolean deleteBlock(String blockId, ThemeDbTable tableName) throws SQLException {
+	    String query = "DELETE FROM " + tableName.getThemeDbTableName() + " WHERE ID = ?";
 	    PreparedStatement ps = null;
 
 	    try {
