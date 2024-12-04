@@ -21,10 +21,9 @@ public class ListBlockReactor extends AbstractReactor {
 		this.organizeKeys();
 		String blockId = this.keyValue.get("blockId");
 		String tableName = this.keyValue.get("tableName");
-		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		Map<String, Object> block = null;
 		try {
-			block = BlocksThemeUtils.getBlock(blockId, table);
+			block = BlocksThemeUtils.getBlock(blockId, tableName);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

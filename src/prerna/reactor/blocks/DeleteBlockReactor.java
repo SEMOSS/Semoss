@@ -21,10 +21,9 @@ public class DeleteBlockReactor extends AbstractReactor {
 		this.organizeKeys();
 		String blockId = this.keyValue.get("blockId");
 		String tableName = this.keyValue.get("tableName");
-		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		boolean result = false;
 		try {
-			result = BlocksThemeUtils.deleteBlock(blockId, table);
+			result = BlocksThemeUtils.deleteBlock(blockId, tableName);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

@@ -20,10 +20,9 @@ public class ListBlocksReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String tableName = this.keyValue.get("tableName");
-		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		Map<String, Map<String, Object>> blocks = null;
 		try {
-			blocks = BlocksThemeUtils.getBlocks(table);
+			blocks = BlocksThemeUtils.getBlocks(tableName);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

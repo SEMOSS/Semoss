@@ -22,9 +22,16 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	}
 	
-	public static Map<String, Map<String, Object>> getBlocks(ThemeDbTable tableName) throws SQLException {
-		
-		String query = "SELECT * FROM " + tableName.getThemeDbTableName();
+	private static void validateThemeDbTable(ThemeDbTable table) {
+		if (table == null || table.equals(ThemeDbTable.ADMIN_THEME)) {
+			throw new IllegalArgumentException("Requested table not found");
+		}
+	}
+	
+	public static Map<String, Map<String, Object>> getBlocks(String tableName) throws SQLException {
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
+		validateThemeDbTable(table);
+		String query = "SELECT * FROM " + table.getThemeDbTableName();
 		
 		Map<String, Map<String, Object>> output = new HashMap<>();
 		
@@ -54,9 +61,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return output;
 	}
 	
-	public static Map<String, Object> getBlock(String blockId, ThemeDbTable tableName) throws SQLException {
-		
-		String query = "SELECT * FROM " + tableName.getThemeDbTableName() + " WHERE ID = ?";
+	public static Map<String, Object> getBlock(String blockId, String tableName) throws SQLException {
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
+		validateThemeDbTable(table);
+		String query = "SELECT * FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
 		
 		Map<String, Object> output = new HashMap<>();
 		PreparedStatement ps = null;
@@ -85,8 +93,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return output;
 	}
 	
-	public static boolean deleteBlock(String blockId, ThemeDbTable tableName) throws SQLException {
-	    String query = "DELETE FROM " + tableName.getThemeDbTableName() + " WHERE ID = ?";
+	public static boolean deleteBlock(String blockId, String tableName) throws SQLException {
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
+		validateThemeDbTable(table);
+	    String query = "DELETE FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
 	    PreparedStatement ps = null;
 
 	    try {
