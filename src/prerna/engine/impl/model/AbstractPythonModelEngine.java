@@ -20,6 +20,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -229,14 +230,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 						 .append(PyUtils.determineStringType(value));
 			}
 		} 
-		// check for these values from smss
-		if(parameters == null || !parameters.containsKey("max_new_tokens")) {
-			if(this.vars.containsKey("MAX_NEW_TOKENS")) {
-				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_NEW_TOKENS"));
-			} else if (this.vars.containsKey("MAX_TOKENS")) {
-				callMaker.append(", max_new_tokens=").append(this.vars.get("MAX_TOKENS"));
-			}
-		}
 
 		if(this.prefix != null) {
 			callMaker.append(", prefix='")
@@ -248,7 +241,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		
 		classLogger.debug("Running >>>" + callMaker.toString());
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		
 		AskModelEngineResponse response = AskModelEngineResponse.fromObject(output);
 		
@@ -269,6 +262,51 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		return response;
 	}
 	
+	@Override
+	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+		checkSocketStatus();
+		
+		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
+		
+		callMaker.append("task=\"\"\"").append(task.replace("\"", "\\\"")).append("\"\"\"");
+		if(context != null) {
+			callMaker.append(",")
+					 .append("context=\"\"\"")
+					 .append(context.replace("\"", "\\\""))
+					 .append("\"\"\"");	
+		}
+		
+		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
+		
+		if(parameters != null) {
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
+			}
+		}
+		
+		if(this.prefix != null) {
+			callMaker.append(", prefix='")
+			 		 .append(prefix)
+			 		 .append("'");
+		}
+		
+		callMaker.append(")");
+		
+		classLogger.debug("Running >>>" + callMaker.toString());
+		
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		
+		InstructModelEngineResponse response = InstructModelEngineResponse.fromObject(output);
+		
+		return response;
+	}
+	
 
 	@Override
 	protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters) {
@@ -286,7 +324,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		callMaker.append(")");
 		
-		Object responseObject = pyt.runScript(callMaker.toString(), insight);
+		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
 		return embeddingsResponse;
 	}
@@ -303,7 +341,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		callMaker.append(")");
 		
-		Object output = pyt.runScript(callMaker.toString(), insight);
+		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
 		return output;
 	}
 
