@@ -13,12 +13,16 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
@@ -128,6 +132,53 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 
 		return askModelResponse;
+	}
+	
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
+	 * @param task
+	 * @param context
+	 * @param insight
+	 * @param hyperParameters
+	 * @return
+	 */
+	protected abstract InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters);
+	
+	@Override
+	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+		
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		InstructModelEngineResponse instructModelResponse = instructCall(task, context, projectData, insight, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+
+		String messageId = UUID.randomUUID().toString();
+		instructModelResponse.setMessageId(UUID.randomUUID().toString());
+		instructModelResponse.setRoomId(insight.getInsightId());
+		
+		if (inferenceLogsEnbaled) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId, 
+					/*messageMethod*/"instruct", 
+					/*engine*/this, 
+					/*insight*/insight, 
+					/*context*/context,
+					/*prompt*/null,
+					/*fullPrompt*/task,
+					/*promptTokens*/instructModelResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/gson.toJson(instructModelResponse.getResponse()),
+					/*responseTokens*/instructModelResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+ 		
+		return instructModelResponse;
 	}
 	
 	/**

@@ -65,6 +65,8 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 			return ((Long) numTokens).intValue();
 		} else if (numTokens instanceof Double) {
 			return ((Double) numTokens).intValue();
+		} else if (numTokens instanceof Number) {
+			return ((Number) numTokens).intValue();
 		} else if (numTokens instanceof String){
 			return Integer.valueOf((String) numTokens);
 		} else {

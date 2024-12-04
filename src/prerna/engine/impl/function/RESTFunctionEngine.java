@@ -11,7 +11,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.security.HttpHelperUtility;
@@ -49,7 +49,7 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 		
 		String headersStr = smssProp.getProperty("HEADERS");
 		if(headersStr!= null && !(headersStr=headersStr.trim()).isEmpty()) {
-			this.headers = new Gson().fromJson(headersStr, new TypeToken<Map<String, String>>() {}.getType());
+			this.headers = new GsonBuilder().disableHtmlEscaping().create().fromJson(headersStr, new TypeToken<Map<String, String>>() {}.getType());
 		}
 		
 		if(smssProp.containsKey("CONTENT_TYPE")) {
@@ -105,24 +105,26 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 			output = HttpHelperUtility.headRequest(runTimeUrl, this.headers, null, null, null);
 		} else if(httpMethod.equalsIgnoreCase("PUT")) {
 			// for PUT, will assume we are constructing a JSON body
-			Map<String, String> bodyMap = new HashMap<>();
-			for(String k : parameterValues.keySet()) {
-				bodyMap.put(k, parameterValues.get(k) + "");
-			}
 			if(this.contentType.equalsIgnoreCase("JSON")) {
-				output = HttpHelperUtility.putRequestStringBody(this.url, this.headers, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
+				// gson the input as is
+				output = HttpHelperUtility.putRequestStringBody(this.url, this.headers, new GsonBuilder().disableHtmlEscaping().create().toJson(parameterValues), ContentType.APPLICATION_JSON, null, null, null);
 			} else {
+				Map<String, String> bodyMap = new HashMap<>();
+				for(String k : parameterValues.keySet()) {
+					bodyMap.put(k, parameterValues.get(k) + "");
+				}
 				output = HttpHelperUtility.putRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
 			}
 		} else {
 			// for POST, will assume we are constructing a JSON body
-			Map<String, String> bodyMap = new HashMap<>();
-			for(String k : parameterValues.keySet()) {
-				bodyMap.put(k, parameterValues.get(k) + "");
-			}
 			if(this.contentType.equalsIgnoreCase("JSON")) {
-				output = HttpHelperUtility.postRequestStringBody(this.url, this.headers, new Gson().toJson(bodyMap), ContentType.APPLICATION_JSON, null, null, null);
+				// gson the input as is
+				output = HttpHelperUtility.postRequestStringBody(this.url, this.headers, new GsonBuilder().disableHtmlEscaping().create().toJson(parameterValues), ContentType.APPLICATION_JSON, null, null, null);
 			} else {
+				Map<String, String> bodyMap = new HashMap<>();
+				for(String k : parameterValues.keySet()) {
+					bodyMap.put(k, parameterValues.get(k) + "");
+				}
 				output = HttpHelperUtility.postRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
 			}
 		}
