@@ -59,7 +59,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		ignoreSmssList.add(Constants.LOCAL_MASTER_DB);
 		ignoreSmssList.add(Constants.SECURITY_DB);
 		ignoreSmssList.add(Constants.THEMING_DB);
-		ignoreSmssList.add(Constants.PROMPT_DB);
 		ignoreSmssList.add(Constants.SCHEDULER_DB);
 		ignoreSmssList.add(Constants.USER_TRACKING_DB);
 //		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
@@ -207,18 +206,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
-		String promptDbName = Constants.PROMPT_DB + this.extension;
-		int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
-		if(promptDbNameIndex > -1) {
-			loadExistingEngine(fileNames[promptDbNameIndex]);
-			// initialize the security database
-			try {
-				AbstractPromptUtils.loadPromptDatabase();
-			} catch (Exception e) {
-				// we couldn't initialize the db
-				// remove it from DIHelper
-				DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
-				classLogger.error(Constants.STACKTRACE, e);
+		
+		if(Utility.isPromptDatabaseEnabled()) {
+			String promptDbName = Constants.PROMPT_DB + this.extension;
+			int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
+			if (promptDbNameIndex > -1) {
+				loadExistingEngine(fileNames[promptDbNameIndex]);
+				// initialize the security database
+				try {
+					AbstractPromptUtils.loadPromptDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -309,7 +311,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			try {
 				String fileName = fileNames[fileIdx];
 				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) 
-						|| fileName.equals(schedulerDBName) || fileName.equals(promptDBName) || fileName.equals(userTrackingDBName) 
+						|| fileName.equals(schedulerDBName) || (fileName.equals(promptDBName)  && !Utility.isPromptDatabaseEnabled()) || fileName.equals(userTrackingDBName) 
 						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())
 					) {
 					// ignore - we have already loaded these or they are disabled and need to be ignored

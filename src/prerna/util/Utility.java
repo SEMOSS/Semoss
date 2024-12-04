@@ -4076,6 +4076,20 @@ public final class Utility {
 	}
 	
 	/**
+	 * Determine if promptdb logs db is enabled
+	 * @return
+	 */
+	public static boolean isPromptDatabaseEnabled() {
+		String promptDB = Utility.getDIHelperProperty(Constants.PROMPT_DB_ENABLED);
+		if(promptDB == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(promptDB);
+	}
+	
+	/**
 	 * Determine if user tracking enabled
 	 * @return
 	 */

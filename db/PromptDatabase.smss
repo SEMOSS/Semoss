@@ -1,5 +1,5 @@
 #Base Properties 
-ENGINE	prompts
+ENGINE	PromptDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
 OWL	db/prompts/prompts_OWL.OWL
 
