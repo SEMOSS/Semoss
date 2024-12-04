@@ -30,8 +30,6 @@ public abstract class AbstractThemeUtils {
 	static boolean initialized = false;
 	static RDBMSNativeEngine themeDb;
 	
-	private static final boolean test = true;
-	
 	/**
 	 * Only used for static references
 	 */
@@ -83,7 +81,7 @@ public abstract class AbstractThemeUtils {
 				populateBlocksTemplateTable(blocksTemplateColNames, blocksTemplateTypes, queryUtil);
 			}
 		}
-			if (test) {
+			if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
 				populateBlocksTemplateTable(blocksTemplateColNames, blocksTemplateTypes, queryUtil);
 			}
 
@@ -93,7 +91,6 @@ public abstract class AbstractThemeUtils {
 
 	private static void populateBlocksTemplateTable(String[] blocksTemplateColNames, String[] blocksTemplateTypes,
 			AbstractSqlQueryUtil queryUtil) throws SQLException {
-		// TODO: Need to move this to conditionally add data only if the table doesn't exist
 		//delete the contents of the table
 		themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName());
 

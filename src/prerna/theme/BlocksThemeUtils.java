@@ -86,6 +86,30 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 	
+	public static ArrayList<String> getBlockNames() throws SQLException {
+			
+			String query = "SELECT bt.NAME FROM BLOCKS_TEMPLATE bt ";
+			
+			ArrayList<String> namesInTable = new ArrayList<>();
+			
+			PreparedStatement ps = null;
+			
+			try {
+				ps = themeDb.getPreparedStatement(query);
+				ResultSet rs = ps.executeQuery();
+				while(rs.next()) {
+					String name = rs.getString("NAME");
+					namesInTable.add(name);
+				}
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				return null;
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+			}
+			return namesInTable;
+		}
+	
 	public static Map<String, Map<String, Object>> getBlocks(String tableName) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
