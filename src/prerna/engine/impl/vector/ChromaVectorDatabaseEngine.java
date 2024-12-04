@@ -37,6 +37,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
+	private final String API_TOKEN_KEY = "X-Chroma-Token";
+	
 	private final String API_ADD = "/add";
 	private final String API_DELETE = "/delete";
 	private final String API_QUERY = "/query";
@@ -73,24 +75,21 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-				headersMap.put("X-Chroma-Token", this.apiKey);
-				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-			} else {
-				headersMap = null;
-			}
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		} else {
+			headersMap = null;
+		}
+		
 		String nearestNeigborResponse = null;
 		try {
 			nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
-		}
-		//Added exception for auth error
-		catch(Exception e) {
+		} catch(Exception e) {
 			classLogger.error("Unable to create connection");
 			throw new SemossPixelException("Unable to create connection");
-			
 		}
-		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse,
-				new TypeToken<List<Map<String, Object>>>() {}.getType());
-//		System.out.println(responseListMap);
+		
+		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse, new TypeToken<List<Map<String, Object>>>() {}.getType());
 		for (Map<String, Object> responseMap : responseListMap) {
 			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
 				return (String) responseMap.get("id");
@@ -160,7 +159,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("X-Chroma-Token", this.apiKey);
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
@@ -186,22 +185,23 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			String fileName = fileNames.get(fileIndex);
 
 			// Delete document in ChromaDB using their ID, but to get the ID we need to find
-			// the ID of a document first. Check the delete API call params -
+			// the ID of a document first. Check the delete API call params
 			// http://localhost:5000/api/v1/collections/{}/delete
 
 			Map<String, Object> fileNamesForDelete = new HashMap<>();
 			Map<String, String> sourceProperty = new HashMap<>();
 
-			sourceProperty.put("Source", fileName.replaceAll(" ", "_")); // replace spaces with _ since thats how
-																			// readCSV creates Source Property.
+			// replace spaces with _ since thats how
+			// readCSV creates Source Property.
+			sourceProperty.put("Source", fileName.replaceAll(" ", "_")); 
+																			
 			fileNamesForDelete.put("where", sourceProperty);
 
 			String body = new Gson().toJson(fileNamesForDelete);
-//			System.out.println(body);
 
 			Map<String, String> headersMap = new HashMap<>();
 			if (this.apiKey != null && !this.apiKey.isEmpty()) {
-				headersMap.put("X-Chroma-Token", this.apiKey);
+				headersMap.put(API_TOKEN_KEY, this.apiKey);
 				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 			} else {
 				headersMap = null;
@@ -264,7 +264,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put("X-Chroma-Token", this.apiKey);
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		} else {
 			headersMap = null;
