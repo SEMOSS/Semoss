@@ -5137,13 +5137,19 @@ public final class Utility {
 			String outputFile = finalDir + "/console.txt";
 			
 			String pythonUser = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER_USER);
-
+					
+			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			
 			String[] commands;
-						
-			if (pythonUser != null && !(pythonUser.trim().isEmpty()) ) {
-			    commands = new String[] { "sudo", "-u", pythonUser, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel};
+		
+			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			    commands = new String[baseCommand.length + 3];
+			    commands[0] = "sudo";
+			    commands[1] = "-u";
+			    commands[2] = pythonUser;
+			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
 			} else {
-			    commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel};
+			    commands = baseCommand;
 			}
 			
 			// need to make sure we are not windows cause ulimit will not work
