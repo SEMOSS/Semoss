@@ -66,155 +66,155 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_ACTIVE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:domain>noData</rdfs:domain>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BLOCK_TEMPLATE</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BLOCKS_TEMPLATE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NAME/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">NAME</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SECTION/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SECTION</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IMAGE/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IMAGE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/HOVER_IMAGE/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">HOVER_IMAGE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:CLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BLOCK_JSON</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CLASSIFICATION</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_DELETABLE/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_DELETABLE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATE_ADDED/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE_ADDED</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCK_TEMPLATE"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCKS_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCKS_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCK_TEMPLATE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/BLOCKS_TEMPLATE"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_LATEST</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:12:05 11:58:05</TIME>
+	<TIME xmlns="ENGINE:">2024:12:05 13:45:19</TIME>
 </rdf:Description>
 
 </rdf:RDF>

@@ -1,5 +1,6 @@
 package prerna.theme;
 
+import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -8,9 +9,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -19,6 +22,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
 
 public class BlocksThemeUtils extends AbstractThemeUtils {
 
@@ -35,6 +39,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			"Entity Relationship Diagram", "User Journey", "Gantt", "Pie Chart", "Quadrant Chart",
 			"Requirement Diagram", "Git Diagram", "C4 Diagram", "Mindmap", "Timeline", "Sankey", "XY Chart",
 			"Block Diagram"));
+
+	private static final String BLOCK_QUERY = "INSERT INTO BLOCKS_TEMPLATE (ID, NAME, SECTION, IMAGE, HOVER_IMAGE, BLOCK_JSON, CLASSIFICATION, IS_DELETABLE, DATE_ADDED, IS_LATEST)"
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private BlocksThemeUtils() {
 
@@ -183,26 +190,78 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 
-//	public static boolean editBlock(String blockId) throws SQLException {
-//		String query = "";
-//		
-//		PreparedStatement ps = null;
-//		try {
-//	        ps = themeDb.getPreparedStatement(query);
-//	        ps.setString(1, blockId);
-//	        int rowsAffected = ps.executeUpdate();
-//
-//	        if (rowsAffected > 0) {
-//	            return true;
-//	        } else {
-//	            throw new IllegalArgumentException("Block ID not found");
-//	        }
-//	    } catch (SQLException | IllegalArgumentException e) {
-//	        classLogger.error(Constants.STACKTRACE, e);
-//	        return false;
-//	    } finally {
-//	        ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
-//	    }
-//	}
+	//add block function
+	public static void addBlock(Map<String, Object> blockDetails) {
+		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
+		String blockId = UUID.randomUUID().toString();
+		validateBlockDetails(blockDetails);
+		insertBlock(blockDetails, allowClob, blockId);
+		
+		
+	}
+	
+	//validate the input map for required fields
+	private static void validateBlockDetails(Map<String, Object> blockDetails) {
+		validateString(blockDetails, "name", false, false);
+		validateString(blockDetails, "section", false, false);
+		validateString(blockDetails, "image", false, false);
+		validateString(blockDetails, "block_json", false, false);
+	}
+	
+	//validate the individual fields
+	private static void validateString(Map<String, Object> blockDetails, String mapKey, boolean nullable, boolean allowEmpty) {
+		String value = null;
+		try {
+			value = (String) blockDetails.get(mapKey);
+			value = value != null ? value.trim(): value;
+			
+			if(value == null && !nullable) {
+				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Block");
+			}
+			
+			if(value != null && value.isEmpty() && !allowEmpty) {
+				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Block");
+			}
+			
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		}
+	}
+	
+	//insert the row into blocks_template table
+	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
+		PreparedStatement blockPS = null;
+		try {
+			blockPS = themeDb.getPreparedStatement(BLOCK_QUERY);
+			int parameterIndex = 1;
+			blockPS.setString(parameterIndex++, blockId);
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("image")).toUpperCase());
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_image")).toUpperCase());
+			if(allowClob) {
+				Clob toclob = themeDb.getConnection().createClob();
+				toclob.setString(1,  String.valueOf(blockDetails.get("block_json")));
+				blockPS.setClob(parameterIndex++, toclob);
+			} else {
+				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("block_json")));
+			}
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("classification")).toUpperCase());
+			blockPS.setBoolean(parameterIndex++, true);
+			blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			blockPS.setBoolean(parameterIndex++, true);
+			blockPS.executeUpdate();
+			if (!blockPS.getConnection().getAutoCommit()) {
+				blockPS.getConnection().commit();
+			}
+			
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, null, blockPS, null);
+		}
+	}
 
 }
