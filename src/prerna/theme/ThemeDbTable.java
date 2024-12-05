@@ -1,16 +1,24 @@
 package prerna.theme;
 
 public enum ThemeDbTable {
-	ADMIN_THEME("ADMIN_THEME"),
-	BLOCKS_TEMPLATE("BLOCKS_TEMPLATE");
+	ADMIN_THEME("ADMIN_THEME", "ADMIN_THEME__"),
+	BLOCKS_TEMPLATE("BLOCKS_TEMPLATE", "BLOCKS_TEMPLATE__");
 	
 	private final String themeDbTableName;
+	private final String themeDbTablePrefix;
 	
-	private ThemeDbTable(String themeDbTableName) {
+	private ThemeDbTable(String themeDbTableName,
+			String themeDbTablePrefix) {
 		this.themeDbTableName = themeDbTableName;
+		this.themeDbTablePrefix = themeDbTablePrefix;
 	}
 	
 	public String getThemeDbTableName() {
-		return this.themeDbTableName;
+		return themeDbTableName;
 	}
+
+	public String getThemeDbTablePrefix() {
+		return themeDbTablePrefix;
+	}
+	
 }
