@@ -31,7 +31,7 @@ public abstract class AbstractThemeUtils {
 	static boolean initialized = false;
 	static RDBMSNativeEngine themeDb;
 	
-	public static String[] blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "JSON_1" , "CLASSIFICATION", "IS_DELETABLE", "DATE_ADDED", "IS_LATEST"};
+	public static String[] blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "BLOCK_JSON" , "CLASSIFICATION", "IS_DELETABLE", "DATE_ADDED", "IS_LATEST"};
 	
 	/**
 	 * Only used for static references
