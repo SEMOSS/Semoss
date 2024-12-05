@@ -25,7 +25,7 @@ public class ThemeOwlCreator {
 	private static List<String> conceptsRequired = new ArrayList<>();
 	static {
 		conceptsRequired.add("ADMIN_THEME");
-		conceptsRequired.add("BLOCK_TEMPLATE");
+		conceptsRequired.add("BLOCKS_TEMPLATE");
 	}
 	
 	private IRDBMSEngine themesDb;
@@ -61,7 +61,7 @@ public class ThemeOwlCreator {
 		
 		this.allSchemas = Arrays.asList(
 				Pair.with("ADMIN_THEME", this.adminThemeColumns),
-				Pair.with("BLOCK_TEMPLATE", this.blockThemeColumns)
+				Pair.with("BLOCKS_TEMPLATE", this.blockThemeColumns)
 			);
 	}
 	
