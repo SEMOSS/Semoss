@@ -200,6 +200,15 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		
 	}
 	
+	//edit block function
+	public static void editBlock(Map<String, Object> editDetails) {
+		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
+		String blockId = (String) editDetails.get("id");
+		validateBlockDetails(editDetails);
+		updateBlock(blockId);
+		insertBlock(editDetails, allowClob, blockId);
+	}
+	
 	//validate the input map for required fields
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
 		validateString(blockDetails, "name", false, false);
@@ -263,5 +272,31 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, null, blockPS, null);
 		}
 	}
+	
+	//update the row in blocks_template associated with the ID to be latest (similar to soft delete)
+	private static void updateBlock(String blockId) {
+		String[] colToUpdate = {"IS_LATEST"};
+		String[] whereCol = {"ID"};
+		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString("BLOCKS_TEMPLATE", colToUpdate, whereCol);
+
+		PreparedStatement ps = null;
+		
+		try {
+			ps = themeDb.getPreparedStatement(promptPermissionQuery);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, false);
+			ps.setString(parameterIndex++, blockId);
+			ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+		}
+		
+	}
+
 
 }
