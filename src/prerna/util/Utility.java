@@ -5151,8 +5151,29 @@ public final class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-				
+			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+					
+			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			
+			String[] commands;
+		
+			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			    commands = new String[baseCommand.length + 3];
+			    commands[0] = "sudo";
+			    commands[1] = "-u";
+			    commands[2] = pythonUser;
+			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+			    
+			    File pythonProcessFolder = new File(finalDir);
+			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+			    	pythonProcessFolder.setReadable(true, false);  
+			    	pythonProcessFolder.setWritable(true, false); 
+			    	pythonProcessFolder.setExecutable(true, false); 
+			    }	
+			} else {
+			    commands = baseCommand;
+			}
+			
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
