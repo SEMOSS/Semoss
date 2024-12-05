@@ -31,6 +31,8 @@ public abstract class AbstractThemeUtils {
 	static boolean initialized = false;
 	static RDBMSNativeEngine themeDb;
 	
+	public static String[] blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "JSON_1" , "CLASSIFICATION", "IS_DELETABLE", "DATE_ADDED", "IS_LATEST"};
+	
 	/**
 	 * Only used for static references
 	 */
@@ -51,7 +53,6 @@ public abstract class AbstractThemeUtils {
 	private static void initialize() throws SQLException {
 		String[] adminThemeColNames = null;
 		String[] adminThemeTypes = null;
-		String[] blocksTemplateColNames = null;
 		String[] blocksTemplateTypes = null;
 		/*
 		 * Currently used
@@ -72,7 +73,7 @@ public abstract class AbstractThemeUtils {
 		
 		// BLOCKS_TEMPLATE
 		
-		blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "JSON" , "CLASSIFICATION", "IS_DELETABLE", "DATE_ADDED", "IS_LATEST"};
+//		blocksTemplateColNames =
 		blocksTemplateTypes = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), "varchar(255)", queryUtil.getBooleanDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName() };
 		if(queryUtil.allowsIfExistsTableSyntax()) {
 			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes));

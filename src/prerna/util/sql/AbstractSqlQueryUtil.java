@@ -410,6 +410,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public boolean isSelectorKeyword(String selector) {
+		classLogger.info(selector);
 		return this.reservedWords != null && this.reservedWords.contains(selector.toUpperCase());
 	}
 
