@@ -143,18 +143,18 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">HOVER_IMAGE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JSON/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCK_TEMPLATE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JSON/BLOCK_TEMPLATE"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/JSON/BLOCK_TEMPLATE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE">
 	<rdfs:Class rdf:resource="TYPE:CLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/JSON/BLOCK_TEMPLATE"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">JSON</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCK_TEMPLATE"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">BLOCK_JSON</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLASSIFICATION/BLOCK_TEMPLATE">
@@ -214,7 +214,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:12:04 12:39:14</TIME>
+	<TIME xmlns="ENGINE:">2024:12:05 11:58:05</TIME>
 </rdf:Description>
 
 </rdf:RDF>

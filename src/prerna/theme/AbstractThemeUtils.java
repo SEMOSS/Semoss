@@ -72,7 +72,7 @@ public abstract class AbstractThemeUtils {
 		
 		// BLOCKS_TEMPLATE
 		
-		blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "JSON" , "CLASSIFICATION", "IS_DELETABLE", "DATE_ADDED", "IS_LATEST"};
+		blocksTemplateColNames = new String[] { "ID", "NAME", "SECTION", "IMAGE", "HOVER_IMAGE", "BLOCK_JSON" , "CLASSIFICATION", "IS_DELETABLE", "DATE_ADDED", "IS_LATEST"};
 		blocksTemplateTypes = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", queryUtil.getClobDataTypeName(), "varchar(255)", queryUtil.getBooleanDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName() };
 		if(queryUtil.allowsIfExistsTableSyntax()) {
 			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes));
