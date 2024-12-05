@@ -5148,6 +5148,13 @@ public final class Utility {
 			    commands[1] = "-u";
 			    commands[2] = pythonUser;
 			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+			    
+			    File pythonProcessFolder = new File(finalDir);
+			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+			    	pythonProcessFolder.setReadable(true, false);  
+			    	pythonProcessFolder.setWritable(true, false); 
+			    	pythonProcessFolder.setExecutable(true, false); 
+			    }	
 			} else {
 			    commands = baseCommand;
 			}
