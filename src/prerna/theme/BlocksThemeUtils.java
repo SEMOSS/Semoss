@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,8 +18,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -53,28 +56,26 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 
-	public static ArrayList<String> getBlockNames() throws SQLException {
-
-		String query = "SELECT bt.NAME FROM BLOCKS_TEMPLATE bt ";
-
-		ArrayList<String> namesInTable = new ArrayList<>();
-
-		PreparedStatement ps = null;
-
+	public static List<String> getBlockNames() throws SQLException {
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix()+"NAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix()+"IS_DELETABLE", "==", false, PixelDataType.BOOLEAN));
+		
+		List<Map<String, Object>> queryRes = null;
 		try {
-			ps = themeDb.getPreparedStatement(query);
-			ResultSet rs = ps.executeQuery();
-			while (rs.next()) {
-				String name = rs.getString("NAME");
-				namesInTable.add(name);
-			}
-		} catch (SQLException e) {
+			queryRes = QueryExecutionUtility.flushRsToMap(themeDb, qs);
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return null;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
-		return namesInTable;
+
+		if (queryRes == null || queryRes.isEmpty()) {
+			return new ArrayList<>();
+		}
+		
+		List<String> output = queryRes.parallelStream().map(mapObj -> (String) mapObj.get("NAME")).collect(Collectors.toList());
+		
+		return output;
 	}
 
 	public static Object getBlocks(String tableName) throws SQLException {
@@ -86,9 +87,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		for (String colName : AbstractThemeUtils.blocksTemplateColNames) {
-			if (!colName.equals("JSON_1")) {
-				qs.addSelector(new QueryColumnSelector(blocksPrefix + colName));
-			}
+			qs.addSelector(new QueryColumnSelector(blocksPrefix + colName));
 		}
 
 		List<Map<String, Object>> retVal = null;
@@ -103,67 +102,59 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 
 		return retVal;
-
-//		String query = "SELECT * FROM " + table.getThemeDbTableName();
-//		
-//		Map<String, Map<String, Object>> output = new HashMap<>();
-//		
-//		PreparedStatement ps = null;
-//		
-//		try {
-//			ps = themeDb.getPreparedStatement(query);
-//			ResultSet rs = ps.executeQuery();
-//			while (rs.next()) {
-//				Map<String, Object> innerQuery = new HashMap<>();
-//				innerQuery.put("id", rs.getString("ID"));
-//				innerQuery.put("name", rs.getString("NAME"));
-//				innerQuery.put("section", rs.getString("SECTION"));
-//				innerQuery.put("image", rs.getString("IMAGE"));
-//				innerQuery.put("hover_image", rs.getString("HOVER_IMAGE"));
-//				innerQuery.put("json", rs.getString("JSON"));
-//				innerQuery.put("classification", rs.getString("CLASSIFICATION"));
-//				output.put(rs.getString("ID"), innerQuery);
-//			}
-//		} catch (SQLException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			return null;
-//		} finally {
-//			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
-//		}
-//		
-//		return output;
 	}
 
 	public static Map<String, Object> getBlock(String blockId, String tableName) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
-		String query = "SELECT * FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
-
-		Map<String, Object> output = new HashMap<>();
-		PreparedStatement ps = null;
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		
+		for (String colName : AbstractThemeUtils.blocksTemplateColNames) {
+			qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + colName));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix()+"ID", "==", blockId, PixelDataType.CONST_STRING));
+		
+		List<Map<String, Object>> retVal = null;
 		try {
-			ps = themeDb.getPreparedStatement(query);
-			ps.setString(1, blockId);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
-				output.put("id", rs.getString("ID"));
-				output.put("name", rs.getString("NAME"));
-				output.put("section", rs.getString("SECTION"));
-				output.put("image", rs.getString("IMAGE"));
-				output.put("hover_image", rs.getString("HOVER_IMAGE"));
-				output.put("json", rs.getString("JSON"));
-				output.put("classification", rs.getString("CLASSIFICATION"));
-			} else {
-				throw new IllegalArgumentException("Block ID not found");
-			}
-		} catch (SQLException | IllegalArgumentException e) {
+			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			return null;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
-		return output;
+		if (retVal == null || retVal.isEmpty()) {
+			return new HashMap<>();
+		}
+
+		return retVal.get(0);
+		
+//		String query = "SELECT * FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
+//
+//		Map<String, Object> output = new HashMap<>();
+//		PreparedStatement ps = null;
+//		try {
+//			ps = themeDb.getPreparedStatement(query);
+//			ps.setString(1, blockId);
+//			ResultSet rs = ps.executeQuery();
+//			if (rs.next()) {
+//				output.put("id", rs.getString("ID"));
+//				output.put("name", rs.getString("NAME"));
+//				output.put("section", rs.getString("SECTION"));
+//				output.put("image", rs.getString("IMAGE"));
+//				output.put("hover_image", rs.getString("HOVER_IMAGE"));
+//				output.put("json", rs.getString("JSON"));
+//				output.put("classification", rs.getString("CLASSIFICATION"));
+//			} else {
+//				throw new IllegalArgumentException("Block ID not found");
+//			}
+//		} catch (SQLException | IllegalArgumentException e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//			return null;
+//		} finally {
+//			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+//		}
+//
+//		return output;
 	}
 
 	public static boolean deleteBlock(String blockId, String tableName) throws SQLException {
