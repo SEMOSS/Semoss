@@ -62,6 +62,7 @@ public class Playwrighter2 {
 		String fileName = "c:/users/pkapaleeswaran/workspacegit/playwright/playwright.json";
 		fileName = "c:/users/pkapaleeswaran/workspacegit/playwright/timesheet.json";
 		fileName = "c:/users/pkapaleeswaran/workspacegit/playwright/downloader.json";
+		fileName = "c:/users/pkapaleeswaran/workspacegit/playwright/timesheet_time_approval.json";
 		
 		Playwrighter2 pw = new Playwrighter2();
 		pw.initPlaywright();
@@ -442,8 +443,11 @@ public class Playwrighter2 {
 			{
 				do
 				{
+					String message = "Enter value";
+					if(payload.has("message"))
+						message = payload.getString("message");
 					try {
-						System.err.println("enter value");
+						System.err.println(message);
 						data = br.readLine();
 						if(data.startsWith("!") && search) // this is a search we found our value come out of it
 							break;
