@@ -12,8 +12,8 @@ import prerna.theme.ThemeDbTable;
 public class DeleteBlockReactor extends AbstractReactor {
 
 	public DeleteBlockReactor() {
-		this.keysToGet =  new String[] {"blockId", "tableName"};
-		this.keyRequired = new int[] {1, 1};
+		this.keysToGet =  new String[] {"blockId", "tableName", "hardDelete"};
+		this.keyRequired = new int[] {1, 1, 0};
 	}
 
 	@Override

@@ -131,27 +131,60 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	public static boolean deleteBlock(String blockId, String tableName) throws SQLException {
+		return deleteBlock(blockId, tableName, false);
+	}
+
+	public static boolean deleteBlock(String blockId, String tableName, boolean hardDelete) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
-		String query = "DELETE FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
-		PreparedStatement ps = null;
 
 		try {
-			ps = themeDb.getPreparedStatement(query);
-			ps.setString(1, blockId);
-			int rowsAffected = ps.executeUpdate();
-
-			if (rowsAffected > 0) {
-				return true;
-			} else {
-				throw new IllegalArgumentException("Block ID not found");
+			if (!isDeletable(blockId, table)) {
+				throw new SecurityException("Not allowed to delete this block");
 			}
-		} catch (SQLException | IllegalArgumentException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
+
+		if (hardDelete) {
+			String query = "DELETE FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
+			PreparedStatement ps = null;
+
+			try {
+				ps = themeDb.getPreparedStatement(query);
+				ps.setString(1, blockId);
+				int rowsAffected = ps.executeUpdate();
+				return (rowsAffected > 0);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				return false;
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
+			}
+		} else {
+			return updateBlock(blockId);
+		}
+	}
+
+	private static boolean isDeletable(String blockId, ThemeDbTable table) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + "IS_DELETABLE"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "ID", "==",
+						blockId, PixelDataType.CONST_STRING));
+		List<Map<String, Object>> retVal = null;
+		try {
+			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		if (retVal == null || retVal.isEmpty()) {
+			throw new IllegalArgumentException("Block Id does not exist");
+		}
+
+		return (boolean) retVal.get(0).get("IS_DELETABLE");
 	}
 
 	// add block function
@@ -239,7 +272,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	// update the row in blocks_template associated with the ID to be latest
 	// (similar to soft delete)
-	private static void updateBlock(String blockId) {
+	private static boolean updateBlock(String blockId) {
 		String[] colToUpdate = { "IS_LATEST" };
 		String[] whereCol = { "ID" };
 		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString("BLOCKS_TEMPLATE",
@@ -252,12 +285,14 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, false);
 			ps.setString(parameterIndex++, blockId);
-			ps.executeUpdate();
+			int rowsAffected = ps.executeUpdate();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			return (rowsAffected > 0);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			return false;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
