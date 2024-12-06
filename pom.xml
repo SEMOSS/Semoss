@@ -2315,6 +2315,11 @@
 		    <artifactId>commons-imaging</artifactId>
 		    <version>1.0-alpha2</version>
 		</dependency>
+		<dependency>
+      		<groupId>com.microsoft.playwright</groupId>
+	      <artifactId>playwright</artifactId>
+	      <version>1.48.0</version>
+	    </dependency>
 
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
@@ -2338,6 +2343,7 @@
 		    <version>1.19.6</version>
 		    <scope>test</scope>
 		</dependency>				
+		
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
