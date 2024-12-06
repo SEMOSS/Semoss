@@ -21,7 +21,6 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 	
 	public LoadPyFromFileProjectPyReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PROJECT.getKey()};
-		this.keyRequired = new int[] {4};
 	}
 	
 	@Override
