@@ -157,8 +157,6 @@ public class ProjectHelper {
 				for (AuthProvider ap : logins) {
 					SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 				}
-				user.setProject(projectId, projectName);
-				user.addVarMap(projectId);
 			}
 
 			return project;

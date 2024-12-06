@@ -66,12 +66,15 @@ import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.project.impl.notebook.NotebookFactory;
+import prerna.project.impl.notebook.INotebookRunner;
+import prerna.project.impl.notebook.NotebookRunnerFactory;
+import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
+import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
@@ -1146,12 +1149,31 @@ public class Project implements IProject {
 		}
 		
 		try {
-			INotebookBuilder builder = NotebookFactory.getNotebookBuilder(blocksF);
+			INotebookBuilder builder = NotebookWriterFactory.getNotebookBuilder(blocksF);
 			return builder.createNotebooks(projectNotebookF);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ClusterUtil.pushProjectFolder(this, this.projectNotebookFolder);
+		}
+		
+		return null;
+	}
+	@Override
+	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
+		// if not blocks json
+		// then ignore for now
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			return runner.executeNotebook(insight, inputReplacements);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;

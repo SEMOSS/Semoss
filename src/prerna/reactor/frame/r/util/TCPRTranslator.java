@@ -158,27 +158,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public String runRAndReturnOutput(String rScript, Map appMap) {
-		if(nc != null)
-		{
-			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-			PayloadStruct ps = constructPayload(methodName, rScript, appMap);
-			ps.payloadClasses = new Class[] {String.class, Map.class};
-			ps.longRunning = true;
-			//ps.payload = new Object[] {"2+2"};
-			//if(rScript.equalsIgnoreCase("yo"))
-			ps = (PayloadStruct)nc.executeCommand(ps);
-			if(ps != null  &&  ps.processed)
-			{
-				//System.err.println("Output is " + ps.payload[0]);
-				return ps.payload[0] + "";
-			}
-			else if(ps != null && !ps.processed) return ps.payload[0] + "  Failed to execute. Please check syntax ::: " + ps.ex;
-		}
-		return null;
-	}
-
-	@Override
 	public String getString(String script) {
 		// TODO Auto-generated method stub
 		if(nc != null)
