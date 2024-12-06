@@ -2,7 +2,6 @@ package prerna.theme;
 
 import java.sql.Clob;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,12 +14,9 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -57,11 +53,13 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	public static List<String> getBlockNames() throws SQLException {
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix()+"NAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix()+"IS_DELETABLE", "==", false, PixelDataType.BOOLEAN));
-		
+		qs.addSelector(new QueryColumnSelector(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "NAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "IS_DELETABLE", "==", false,
+				PixelDataType.BOOLEAN));
+
 		List<Map<String, Object>> queryRes = null;
 		try {
 			queryRes = QueryExecutionUtility.flushRsToMap(themeDb, qs);
@@ -72,9 +70,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		if (queryRes == null || queryRes.isEmpty()) {
 			return new ArrayList<>();
 		}
-		
-		List<String> output = queryRes.parallelStream().map(mapObj -> (String) mapObj.get("NAME")).collect(Collectors.toList());
-		
+
+		List<String> output = queryRes.parallelStream().map(mapObj -> (String) mapObj.get("NAME"))
+				.collect(Collectors.toList());
+
 		return output;
 	}
 
@@ -107,14 +106,16 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	public static Map<String, Object> getBlock(String blockId, String tableName) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
+
 		for (String colName : AbstractThemeUtils.blocksTemplateColNames) {
 			qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + colName));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix()+"ID", "==", blockId, PixelDataType.CONST_STRING));
-		
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "ID", "==",
+						blockId, PixelDataType.CONST_STRING));
+
 		List<Map<String, Object>> retVal = null;
 		try {
 			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
@@ -127,34 +128,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 
 		return retVal.get(0);
-		
-//		String query = "SELECT * FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
-//
-//		Map<String, Object> output = new HashMap<>();
-//		PreparedStatement ps = null;
-//		try {
-//			ps = themeDb.getPreparedStatement(query);
-//			ps.setString(1, blockId);
-//			ResultSet rs = ps.executeQuery();
-//			if (rs.next()) {
-//				output.put("id", rs.getString("ID"));
-//				output.put("name", rs.getString("NAME"));
-//				output.put("section", rs.getString("SECTION"));
-//				output.put("image", rs.getString("IMAGE"));
-//				output.put("hover_image", rs.getString("HOVER_IMAGE"));
-//				output.put("json", rs.getString("JSON"));
-//				output.put("classification", rs.getString("CLASSIFICATION"));
-//			} else {
-//				throw new IllegalArgumentException("Block ID not found");
-//			}
-//		} catch (SQLException | IllegalArgumentException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			return null;
-//		} finally {
-//			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
-//		}
-//
-//		return output;
 	}
 
 	public static boolean deleteBlock(String blockId, String tableName) throws SQLException {
@@ -181,17 +154,16 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 
-	//add block function
+	// add block function
 	public static void addBlock(Map<String, Object> blockDetails) {
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
 		String blockId = UUID.randomUUID().toString();
 		validateBlockDetails(blockDetails);
 		insertBlock(blockDetails, allowClob, blockId);
-		
-		
+
 	}
-	
-	//edit block function
+
+	// edit block function
 	public static void editBlock(Map<String, Object> editDetails) {
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
 		String blockId = (String) editDetails.get("id");
@@ -199,37 +171,38 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		updateBlock(blockId);
 		insertBlock(editDetails, allowClob, blockId);
 	}
-	
-	//validate the input map for required fields
+
+	// validate the input map for required fields
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
 		validateString(blockDetails, "name", false, false);
 		validateString(blockDetails, "section", false, false);
 		validateString(blockDetails, "image", false, false);
 		validateString(blockDetails, "block_json", false, false);
 	}
-	
-	//validate the individual fields
-	private static void validateString(Map<String, Object> blockDetails, String mapKey, boolean nullable, boolean allowEmpty) {
+
+	// validate the individual fields
+	private static void validateString(Map<String, Object> blockDetails, String mapKey, boolean nullable,
+			boolean allowEmpty) {
 		String value = null;
 		try {
 			value = (String) blockDetails.get(mapKey);
-			value = value != null ? value.trim(): value;
-			
-			if(value == null && !nullable) {
+			value = value != null ? value.trim() : value;
+
+			if (value == null && !nullable) {
 				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Block");
 			}
-			
-			if(value != null && value.isEmpty() && !allowEmpty) {
+
+			if (value != null && value.isEmpty() && !allowEmpty) {
 				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Block");
 			}
-			
-		} catch(Exception e) {
+
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
-	
-	//insert the row into blocks_template table
+
+	// insert the row into blocks_template table
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
 		PreparedStatement blockPS = null;
 		try {
@@ -240,9 +213,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("image")).toUpperCase());
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_image")).toUpperCase());
-			if(allowClob) {
+			if (allowClob) {
 				Clob toclob = themeDb.getConnection().createClob();
-				toclob.setString(1,  String.valueOf(blockDetails.get("block_json")));
+				toclob.setString(1, String.valueOf(blockDetails.get("block_json")));
 				blockPS.setClob(parameterIndex++, toclob);
 			} else {
 				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("block_json")));
@@ -255,23 +228,25 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			if (!blockPS.getConnection().getAutoCommit()) {
 				blockPS.getConnection().commit();
 			}
-			
-		} catch(Exception e) {
+
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, null, blockPS, null);
 		}
 	}
-	
-	//update the row in blocks_template associated with the ID to be latest (similar to soft delete)
+
+	// update the row in blocks_template associated with the ID to be latest
+	// (similar to soft delete)
 	private static void updateBlock(String blockId) {
-		String[] colToUpdate = {"IS_LATEST"};
-		String[] whereCol = {"ID"};
-		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString("BLOCKS_TEMPLATE", colToUpdate, whereCol);
+		String[] colToUpdate = { "IS_LATEST" };
+		String[] whereCol = { "ID" };
+		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString("BLOCKS_TEMPLATE",
+				colToUpdate, whereCol);
 
 		PreparedStatement ps = null;
-		
+
 		try {
 			ps = themeDb.getPreparedStatement(promptPermissionQuery);
 			int parameterIndex = 1;
@@ -286,8 +261,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
-		
-	}
 
+	}
 
 }
