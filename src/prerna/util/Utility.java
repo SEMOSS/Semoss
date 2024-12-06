@@ -5884,7 +5884,7 @@ public final class Utility {
 	}
 	
 	/**
-	 *  @param value
+	 * @param value
 	 * @param type
 	 * @return default values based on type
 	 */
@@ -5902,6 +5902,5 @@ public final class Utility {
 		}
 		return type.cast(value);
 	}
-	
 
 }

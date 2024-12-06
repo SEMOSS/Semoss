@@ -632,6 +632,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public boolean editUser(Map<String, Object> userInfo) {
+		
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+
 		// input fields
 		String userId = userInfo.get("id") != null ? userInfo.get("id").toString() : "";
 		if (userId == null || userId.isEmpty()) {

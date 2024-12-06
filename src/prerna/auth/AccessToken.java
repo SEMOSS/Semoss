@@ -34,18 +34,20 @@ public class AccessToken implements Serializable {
 	String phone = null;
 	String phoneExtension = null;
 	String countryCode = null;
+	
+	//TODO: need to update for usage restriction
+	//TODO: need to update for usage restriction
+	//TODO: need to update for usage restriction
+	//TODO: need to update for usage restriction
 	int maxTokens = 0;
 	double maxResponseTime = 0.0;
 	String frequency = null;
 	
-	
 	Map<String, String> sans = null;
 	
-
 	boolean locked = false;
 	SemossDate lastLogin = null;
 	SemossDate lastPasswordReset = null;
-	
 	
 	public AccessToken() {
 		this.userGroups = new HashSet<>();

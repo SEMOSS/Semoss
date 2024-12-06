@@ -36,6 +36,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
+import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -924,58 +925,73 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
-	
+
 	/**
 	 * 
+	 * @param restrictionMode
 	 * @param user
-	 * @param utcDateTime
+	 * @param currentDateTime
 	 * @param frequency
-	 * @param isMaxToken
-	 * @return  total token count or response time within the specified period, with the key "totalToken"
+	 * @return
 	 */
-	public static Map<String, Object> getTotalTokensOrTotalResponseTime(User user, ZonedDateTime currentDateTime, String frequency, boolean isMaxToken) {
-		 // Initialize the date range map (start and end dates)
-	    Map<String, ZonedDateTime> dates = new HashMap<>();
-	   // Determine the start and end date based on the given frequency
-	    if(frequency.equals("WEEK")) {
-	    	dates = Utility.getWeekStartEndDate(currentDateTime);
-	    }else if(frequency.equals("MONTH")) {
-	    	// Get start and end date for the current month
-	    	dates = Utility.getMonthStartEndDate(currentDateTime);
-	    }else {
-	    	dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-	    	dates.put("end", Utility.getCurrentZonedDateTimeUTC());
-	    }
-	    		
-	   // Extract start and end dates from the map
-	    ZonedDateTime startDate = dates.get("start");
-	    ZonedDateTime endDate = dates.get("end");
-	    
-	    String sumColumn = isMaxToken ? "  SUM(MESSAGE_TOKENS) " : " SUM(RESPONSE_TIME)" ;
-        //SQL query to fetch the total tokens or response time
-	    String query = "SELECT "+ sumColumn +" AS max "+
-	                   "FROM MESSAGE WHERE USER_ID = ? AND DATE_CREATED BETWEEN ? AND ?";
-	    PreparedStatement ps = null;
-	    ResultSet rs = null;
-	    Map<String, Object> result = new HashMap<>();
+	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId, ZonedDateTime currentDateTime, String frequency) {
+		if(restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+		// Initialize the date range map (start and end dates)
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Determine the start and end date based on the given frequency
+		if(frequency.equals("WEEK")) {
+			dates = Utility.getWeekStartEndDate(currentDateTime);
+		} else if(frequency.equals("MONTH")) {
+			// Get start and end date for the current month
+			dates = Utility.getMonthStartEndDate(currentDateTime);
+		} else {
+			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
+			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
+		}
 
-	    try {
-	        ps = modelInferenceLogsDb.getPreparedStatement(query);
-	        ps.setString(1, user.getAccessToken(user.getLogins().get(0)).getId());
-	        ps.setDate(2, java.sql.Date.valueOf(startDate.toLocalDate()));
-	        ps.setDate(3, java.sql.Date.valueOf(endDate.toLocalDate()));
+		// Extract start and end dates from the map
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
 
-	        rs = ps.executeQuery();
-	        if (rs.next()) {
-	            result.put("totalTokenResponse", rs.getInt("max"));
-	        }
-	    } catch (SQLException e) {
-	        classLogger.error(Constants.STACKTRACE, e);
-	    } finally {
-	        ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null , ps, rs);
-	    }
-	    // Return the result map containing the total token count or response time
-	    return result;
+		String sumColumn = null;
+		if(restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		} else if(restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(RESPONSE_TIME) ";
+		}
+		
+		//SQL query to fetch the total tokens or response time
+		String query = "SELECT " + sumColumn + " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setString(psIndex++, engineId);			
+			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
+			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+		
+			rs = ps.executeQuery();
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
+					ps.getConnection(),
+					ps,
+					rs,
+					query,
+					false
+					);
+			
+			if(wrapper.hasNext()) {
+				return (Number) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null , ps, rs);
+		}
+		return null;
 	}
-	
+
 }

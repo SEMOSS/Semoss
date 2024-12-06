@@ -35,6 +35,12 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
 		newToken.lastPasswordReset = token.lastPasswordReset;
+		
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		
 		return newToken;
 	}
 	
