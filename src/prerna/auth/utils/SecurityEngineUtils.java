@@ -707,6 +707,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addEngineUser(User user, String newUserId, String engineId, String permission, String endDate) throws IllegalAccessException {
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -770,6 +775,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void addEngineUserPermissions(User user, String engineId, List<Map<String,String>> permission, String endDate) throws IllegalAccessException {
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
 		
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
@@ -839,6 +848,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editEngineUserPermission(User user, String existingUserId, String engineId, String newPermission, String endDate) throws IllegalAccessException {
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -910,6 +924,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void editEngineUserPermissions(User user, String engineId, List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1623,6 +1642,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static void copyEnginePermissions(String sourceEngineId, String targetEngineId) throws Exception {
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		//TODO: need to update for usage restriction
+		
 		String insertTargetEnginePermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
 		PreparedStatement insertTargetEnginePermissionStatement = securityDb.getPreparedStatement(insertTargetEnginePermissionSql);
 		
