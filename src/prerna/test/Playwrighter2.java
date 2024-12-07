@@ -283,17 +283,18 @@ public class Playwrighter2 {
 		List <Locator> allLoc = null;
 		
 		GetByRoleOptions options = createByRoleOptions(payload);
+		com.microsoft.playwright.Locator.GetByRoleOptions options2 = createByRoleOptions2(payload);
 		// need to trap exceptions
 		
 		if(payload.has("parent_action"))
 		{
 			parent_action = payload.getString("parent_action");
 			if(placeholder.equalsIgnoreCase("AriaRole.LIST"))
-				allLoc = locators.get(parent_action).getByRole(AriaRole.LIST).all();
+				allLoc = locators.get(parent_action).getByRole(AriaRole.LIST, options2).all();
 			else if(placeholder.equalsIgnoreCase("AriaRole.BUTTON"))
-				allLoc = locators.get(parent_action).getByRole(AriaRole.BUTTON).all();
+				allLoc = locators.get(parent_action).getByRole(AriaRole.BUTTON, options2).all();
 			else if(placeholder.equalsIgnoreCase("AriaRole.LINK"))
-				allLoc = locators.get(parent_action).getByRole(AriaRole.LINK).all();
+				allLoc = locators.get(parent_action).getByRole(AriaRole.LINK, options2).all();
 		}
 		else
 		{
@@ -327,6 +328,10 @@ public class Playwrighter2 {
 				        newLoc.click();
 				      });
 			    }
+	    	}
+	    	else if(event.equalsIgnoreCase("hover"))
+	    	{
+	    		loc.hover();
 	    	}
 	    }
 	}
@@ -384,19 +389,20 @@ public class Playwrighter2 {
 		String placeholder = params.get(0).toString();
 		placeholder = evalPlaceholder(placeholder);
 		String parent_action = null;
+		List <Locator> allLoc = null;
 		Locator loc = null;
 
 		if(payload.has("parent_action"))
 		{
 			parent_action = payload.getString("parent_action");
-			loc = locators.get(parent_action).getByText(placeholder);
+			allLoc = locators.get(parent_action).getByText(placeholder).all();
 		}
 		else
 		{
-			loc = cur_page.getByText(placeholder);
+			allLoc = cur_page.getByText(placeholder).all();
 		}
+		loc = resolveLocator(allLoc, payload);
 		locators.put(actionName, loc);
-		
 	    if(payload.has("event"))
 	    {
 		    String event = payload.getString("event");
@@ -524,6 +530,27 @@ public class Playwrighter2 {
 	{
 		//page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Search")).click();
 		GetByRoleOptions options = new Page.GetByRoleOptions();
+		if(payload.has("options"))
+		{
+			JSONArray optionArray = payload.getJSONArray("options");
+			JSONArray optionValues = payload.getJSONArray("option_values");
+			for(int optionIndex = 0;optionIndex < optionArray.length();optionIndex++)
+			{
+				String optionName = optionArray.getString(optionIndex);
+				String optionValue = optionValues.getString(optionIndex);
+				if(optionName.equalsIgnoreCase("setName"))
+					options.setName(optionValue);
+			}
+		}
+		
+		options.setExact(payload.has("options_exact") && payload.getString("options_exact").equalsIgnoreCase("True"));
+		return options;
+	}
+
+	private com.microsoft.playwright.Locator.GetByRoleOptions createByRoleOptions2(JSONObject payload)
+	{
+		//page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Search")).click();
+		com.microsoft.playwright.Locator.GetByRoleOptions options = new com.microsoft.playwright.Locator.GetByRoleOptions();
 		if(payload.has("options"))
 		{
 			JSONArray optionArray = payload.getJSONArray("options");
