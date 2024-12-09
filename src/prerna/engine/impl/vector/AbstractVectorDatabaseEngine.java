@@ -700,11 +700,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			//if we have a python specific user, make sure that user can access the schema folder
 			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-			    if(schemaFolder.exists() && schemaFolder.isDirectory()) {
-			    	schemaFolder.setReadable(true, false);  
-			    	schemaFolder.setWritable(true, false); 
-			    	schemaFolder.setExecutable(true, false); 
-			    }
+				Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
 			}
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python

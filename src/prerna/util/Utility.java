@@ -5875,5 +5875,44 @@ public final class Utility {
 		return name.matches(regex);
 	}
 	
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+        	return;
+        }
+        
+    	if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String command = String.format("chmod -R 770 %s", Utility.normalizePath(directory.getAbsolutePath()));
+
+        // Execute the command
+        Process process;
+		try {
+			process = Runtime.getRuntime().exec(command);
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+
+	        if (exitCode != 0) {
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        }
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+    }
+
 
 }
