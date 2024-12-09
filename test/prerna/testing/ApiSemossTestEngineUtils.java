@@ -360,7 +360,11 @@ public class ApiSemossTestEngineUtils {
 			if (Files.isDirectory(p)) {
 				Files.walk(p).sorted().map(Path::toFile).forEach(File::delete);
 				if (Files.exists(p)) {
-					Files.delete(p);
+					try {
+						Files.delete(p);
+					} catch(IOException e) {
+						// ignore
+					}
 				}
 			} else {
 				Files.delete(p);
