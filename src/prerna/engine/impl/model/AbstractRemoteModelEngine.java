@@ -54,35 +54,34 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     
     @Override
     public void open(Properties smssProp) throws Exception {
-        super.open(smssProp);
-        
-        if (this.smssProp.containsKey(Settings.MODEL)) {
-            this.model = this.smssProp.getProperty(Settings.MODEL).trim();
-        } else {
-            throw new IllegalArgumentException("Model is not defined in SMSS file.");
-        }
-        
-        this.zkClient = RemoteClientServerZK.getInstance();
-        
-        // THIS EQUALS == INIT_ENGINE_TYPE
-        String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
-        String initEngineType = smssProp.getProperty(initEngineTypeKey);
- 
-        if (initEngineType != null && !initEngineType.isEmpty()){
-		
-        implementingEngineClass = (AbstractModelEngine) Class.forName(initEngineType).newInstance();
-        Properties implEngineSmss = new Properties();
-        for(Object key : smssProp.keySet()) {
-        	String keyStr = (String) key;
-        	if(keyStr.equals(Constants.ENGINE_TYPE)) {
-        		implEngineSmss.put(Constants.ENGINE_TYPE, initEngineType);
-        	} else {
-        		implEngineSmss.put(keyStr, smssProp.getProperty(keyStr));
-        	}
-        }
-        String engineId = smssProp.getProperty(Constants.ENGINE);
-        implementingEngineClass.open(implEngineSmss);
-        }
+    	super.open(smssProp);
+
+    	if (this.smssProp.containsKey(Settings.MODEL)) {
+    		this.model = this.smssProp.getProperty(Settings.MODEL).trim();
+    	} else {
+    		throw new IllegalArgumentException("Model is not defined in SMSS file.");
+    	}
+
+    	this.zkClient = RemoteClientServerZK.getInstance();
+
+    	// THIS EQUALS == INIT_ENGINE_TYPE
+    	String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
+    	String initEngineType = smssProp.getProperty(initEngineTypeKey);
+
+    	if (initEngineType != null && !initEngineType.isEmpty()){
+    		implementingEngineClass = (AbstractModelEngine) Class.forName(initEngineType).newInstance();
+    		Properties implEngineSmss = new Properties();
+    		for(Object key : smssProp.keySet()) {
+    			String keyStr = (String) key;
+    			if(keyStr.equals(Constants.ENGINE_TYPE)) {
+    				implEngineSmss.put(Constants.ENGINE_TYPE, initEngineType);
+    			} else {
+    				implEngineSmss.put(keyStr, smssProp.getProperty(keyStr));
+    			}
+    		}
+    		String engineId = smssProp.getProperty(Constants.ENGINE);
+    		implementingEngineClass.open(implEngineSmss);
+    	}
     }
     
     protected boolean initiateAndWaitForDeployment(long timeoutMs) throws Exception {
