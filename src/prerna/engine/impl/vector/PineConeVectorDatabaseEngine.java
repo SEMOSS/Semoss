@@ -40,7 +40,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private final String LIST_QUERY = "/vectors/list?namespace=";
 	private final String HASH = "#";
 	private final String PREFIX = "&prefix=";
-	
+
 	private String hostname = null;
 	private String apiKey = null;
 	private String defaultNamespace = null;
@@ -57,27 +57,27 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.hostname = smssProp.getProperty(Constants.HOSTNAME);
 		this.defaultNamespace = this.smssProp.getProperty(NAMESPACE);
 	}
-	
+
 	@Override
 	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		
+
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
-		
+
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-		
 		try {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
+		
 		// Sample URL:
-		// "https://docs-quickstart-index3-fiarr5p.svc.aped-4627-b74a.pinecone.io/vectors/upsert";
+		// https://docs-quickstart-index3-fiarr5p.svc.aped-4627-b74a.pinecone.io/vectors/upsert;
 		String url = this.hostname + API_UPSERT;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(API_KY, this.apiKey);
@@ -102,7 +102,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			properties.put("Content", row.getContent());
 
 			List<Double> vector = getEmbeddingsDouble(row.getContent(), insight);
-
 			if (row.getSource().equals(previousFileName)) {
 				fileCounter = 0;
 			}
@@ -116,8 +115,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		vectorsMap.put("vectors", vectors);
 		String body = new Gson().toJson(vectorsMap);
-//		System.out.println(body);
-
 		HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 	}
 
@@ -136,15 +133,13 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		for (int fileIndex = 0; fileIndex < fileNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
 
-			String urlforIDList = this.hostname + LIST_QUERY + this.defaultNamespace + PREFIX
-					+ fileName.replaceAll(" ", "_") + HASH;
+			String urlforIDList = this.hostname + LIST_QUERY + this.defaultNamespace + PREFIX + fileName.replaceAll(" ", "_") + HASH;
 			Map<String, String> headersMap = new HashMap<>();
 			headersMap.put(API_KY, this.apiKey);
 			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
 			String idListResponse = HttpHelperUtility.getRequest(urlforIDList, headersMap, null, null, null);
 			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
-//			System.out.println(responseMap);
 
 			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
 			List<String> idsToBeDeleted = new ArrayList<String>();
@@ -157,16 +152,12 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			fileNamesForDelete.put("namespace", this.defaultNamespace);
 
 			String body = gson.toJson(fileNamesForDelete);
-//			System.out.println(body);
 
-			HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null,
-					null);
+			HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(
-					this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents",
-					documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -178,12 +169,11 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
-					this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
+			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
 		}
 	}
-	
+
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
 		if (insight == null) {
@@ -195,52 +185,62 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
-		
+
 		Gson gson = new Gson();
-		
+
 		String url = this.hostname + API_QUERY;
 		List<Map<String, Object>> retOut = new ArrayList<Map<String, Object>>();
 		List<Map<String, Object>> matchesOut = new ArrayList<Map<String, Object>>();
 
 		Map<String, Object> query = new HashMap<>();
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
+		List<Double> queryEmbeddings = new ArrayList<>();
+		for (int i = 0; i < vector.size(); i++) {
+			// this is done to put a list of embeddings inside another list
+			// otherwise the API throws error.
+			queryEmbeddings.add(vector.get(i));
+		}
+
 		query.put("topK", limit);
 		query.put("includeMetadata", true);
 		query.put("includeValues", true);
 		query.put("namespace", this.defaultNamespace);
-		query.put("vector", vector);
+		query.put("vector", queryEmbeddings);
+
 		String body = gson.toJson(query);
 
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(API_KY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body,
-				ContentType.APPLICATION_JSON, null, null, null);
-
+		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-	
 		for (int outputIndex = 0; outputIndex < responseMap.size(); outputIndex++) {
-			Map<String, Object> outputMap = new HashMap();
+			Map<String, Object> outputMap = new HashMap<>();
 			outputMap.put("matches", responseMap.get("matches"));
 			matchesOut.add(outputMap);
 		}
 
 		for (int i = 0; i < matchesOut.size(); i++) {
+			Map<String,Object> resultMap = new HashMap<>();
 			List<Map<String, Object>> matches = (List<Map<String, Object>>) matchesOut.get(i).get("matches");
 			Map<String, Object> metadataMap = (Map<String, Object>) matches.get(i).get("metadata");
-			Map<String, Object> idMap = new HashMap<String, Object>();
-			idMap.put("id", matches.get(i).get("id"));
-			Map<String, Object> scoreMap = new HashMap<String, Object>();
-			scoreMap.put("score", matches.get(i).get("score"));
-			retOut.add(idMap);
-			retOut.add(scoreMap);
-			retOut.add(metadataMap);
+
+			resultMap.put("Id", matches.get(i).get("id"));
+			resultMap.put("Score", matches.get(i).get("score"));
+			resultMap.put("Content", metadataMap.get("Content"));
+			resultMap.put("Divider", metadataMap.get("Divider"));
+			resultMap.put("Modality", metadataMap.get("Modality"));
+			resultMap.put("Part", metadataMap.get("Part"));
+			resultMap.put("Source", metadataMap.get("Source"));
+			resultMap.put("Tokens", metadataMap.get("Tokens"));
+
+			retOut.add(resultMap);
 		}
 
 		return retOut;
 	}
-	
+
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.PINECONE;

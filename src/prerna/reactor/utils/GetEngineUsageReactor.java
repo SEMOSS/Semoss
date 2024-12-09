@@ -106,10 +106,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"# import the ai platform package - requires user access/secret, service account, or bearer_token"
 					+ "\r\n"
 					+ "import ai_server\r\n"
-					+ "server_connection=ai_server.RESTServer(\r\n"
-					+ "    base=\"<the api endpoint>\"			# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
+					+ "server_connection=ai_server.ServerClient(\r\n"
+					+ "    base=\"<the api endpoint>\",			# example: https://{domain}/{direcotry/path segment}/Monolith/api\r\n"
 					+ "    access_key=\"<your access key>\",		# example: \"d0033d40-ea83-4083-96ce-17a01451f831\"\r\n"
-					+ "    secret_key=\"<your secret key>\",		# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
+					+ "    secret_key=\"<your secret key>\"		# example: \"c2b3fae8-20d1-458c-8565-30ae935c4dfb\"\r\n"
 					+ ")"
 					+ "\r\n"
 					+ "\r\n"
@@ -150,13 +150,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					+ "\r\n"
 					+ "\r\n"
 					+ "# embeddings using openai\r\n"
-					+ "client.embeddings.create(\r\n"
+					+ "embeddings = client.embeddings.create(\r\n"
 					+ "    model=\""+engineId+"\",\r\n"
 					+ "    input=[\"Your text string goes here\"],\r\n"
 					+ "    extra_body={\"insight_id\":server_connection.cur_insight}\r\n"
 					+ ")"
 					);
-			System.out.println("again4");
 			usage.add(usageMap);
 		}
 		return usage;
@@ -260,7 +259,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"CreateEmbeddingsFromVectorCSVFile (engine = \""+engineId+"\", filePaths = [\"fileName1.csv\", \"fileName2.csv\", ..., \"fileNameX.csv\"]);\r\n" +
 
 							"\n## Perform a nearest neighbor search on the embedded documents ##\r\n" +
-							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5);\r\n" +
+							"# filters of the form Filter(Source == [\"your document name 1\", \"your document name 2\"])\r\n" +
+							"# metaFilters of the form Filter( MetadataKey == \"Metadata Value\" )\r\n" +
+							"VectorDatabaseQuery (engine = \""+engineId+"\", command = \"Sample Search Statement\", limit = 5, filters=[], metaFilters=[]);\r\n" +
 							
 							"\n## Remove document(s) from the vector database ##\r\n" +
 							"RemoveDocumentFromVectorDatabase (engine = \""+engineId+"\", filePaths = [\"fileName1.pdf\", \"fileName2.pdf\", ..., \"fileNameX.pdf\"]);"
@@ -284,7 +285,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							"vectorEngine.addVectorCSVFile(file_paths = ['fileName1.csv', 'fileName2.csv', ..., 'fileNameX.csv'])\r\n" + 
 							
 							"\n# Perform a nearest neighbor search on the embedded documents\r\n" +
-							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5)\r\n" + 
+							"# filters is Optional[Dict] | Optional[str]\r\n" + 
+							"# \tstr of the form 'Filter(Source == [\"your document name 1\", \"your document name 2\"])'\r\n" +
+							"# \tdict of the form {\"Source\": [\"constitution.pdf\", \"scientific_journal.pdf\"] and comparator is assumed to be '=' for all values\r\n" +
+							"# metafilters is Optional[Dict] | Optional[str].\r\n" +
+							"# \tstr of the form 'Filter( MetadataKey == \"Metadata Value\" )'\r\n" +
+							"# \tdict of the form {\"age\": [5,6,7]} and comparator is assumed to be '=' for all values\r\n" +
+							"vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filters='', metafilters='')\r\n" + 
 							
 							"\n# Remove document(s) from the vector database\r\n" +
 							"vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])"
