@@ -15,11 +15,9 @@ public class DeletePromptReactor extends AbstractReactor {
 		this.keysToGet = new String[] {"promptId"};
 	}
 
-
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account in order to create a prompt", PixelDataType.CONST_STRING,
@@ -34,7 +32,7 @@ public class DeletePromptReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-		
+
 		organizeKeys();
 		String promptId = this.keyValue.get(this.keysToGet[0]);
 		PromptUtils.deletePrompt(promptId);

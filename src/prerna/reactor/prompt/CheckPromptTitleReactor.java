@@ -18,9 +18,7 @@ public class CheckPromptTitleReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account in order to create prompt", PixelDataType.CONST_STRING,

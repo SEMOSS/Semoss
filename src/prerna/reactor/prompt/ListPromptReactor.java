@@ -11,19 +11,20 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
 public class ListPromptReactor extends AbstractReactor {
-	
+
 	public ListPromptReactor() {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-			};
+		};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String userId = this.insight.getUserId();
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
@@ -33,7 +34,7 @@ public class ListPromptReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[1]);
 		Map<String, Object> promptMetadataFilter = getMetaMap();
 		List<Map<String, Object>> response = PromptUtils.getPrompts(userId, filters, promptMetadataFilter, limit, offset);
-		
+
 		NounMetadata nm = new NounMetadata(response, PixelDataType.MAP);
 		return nm;
 	}
@@ -51,10 +52,10 @@ public class ListPromptReactor extends AbstractReactor {
 		if(grf != null && !grf.isEmpty()) {
 			return grf;
 		}
-		
+
 		return null;
 	}
-	
+
 	private Map<String, Object> getMetaMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
