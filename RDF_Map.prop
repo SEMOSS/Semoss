@@ -203,7 +203,7 @@ ADMIN_ONLY_INSIGHT_SET_PUBLIC	false
 USER_TRACKING_ENABLED	false
 USER_TRACKING_METHOD	GEOIP2
 
-MODEL_INFERENCE_LOGS_ENABLED false
+MODEL_INFERENCE_LOGS_ENABLED true
 
 ##################################################
 ##################################################

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -19,8 +20,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class VectorDatabaseQueryReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseQueryReactor.class);
 
 	public VectorDatabaseQueryReactor() {
 		this.keysToGet = new String[] {

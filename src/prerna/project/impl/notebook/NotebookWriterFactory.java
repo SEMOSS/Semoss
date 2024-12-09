@@ -9,7 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public class NotebookFactory {
+public class NotebookWriterFactory {
 
 	/**
 	 * 
@@ -31,10 +31,10 @@ public class NotebookFactory {
 		
 		INotebookBuilder builder = null;
 		if(version == null) {
-			builder = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookHelper();
+			builder = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookWriter();
 		} else {
 			// only really have one, but this is to build out in the future
-			builder = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookHelper();
+			builder = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookWriter();
 		}
 		
 		builder.setBlocksFileJson(blocksFileJson);
