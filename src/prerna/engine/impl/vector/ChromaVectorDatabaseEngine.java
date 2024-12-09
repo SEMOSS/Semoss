@@ -276,7 +276,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			limit = 3;
 		}
 		
-		Gson gson = new Gson();
+	//	Gson gson = new Gson();
 
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
@@ -339,7 +339,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		}
 
-
+		
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
 
@@ -356,7 +356,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		
 		// Retrieve the metadatas list response
-		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
+		resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
 		return (List<Map<String, Object>>) resultMap.get(0);
 
 	}
