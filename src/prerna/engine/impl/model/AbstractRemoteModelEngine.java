@@ -46,7 +46,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     
     protected String model;
     private RemoteClientServerZK zkClient;
-    private Boolean devPortFowarding = true;
+    private Boolean devPortFowarding = false;
     
     private AbstractModelEngine implementingEngineClass = null;
     

@@ -69,7 +69,7 @@ class OpenAiCompletion(AbstractOpenAiClient):
         final_query = ""
         finish = False
 
-        kwargs["stream"] = kwargs.get("stream", False)
+        kwargs["stream"] = kwargs.get("stream", True)
         stream = self.client.completions.create(
             model=self.model_name, prompt=prompt, **kwargs
         )
@@ -81,7 +81,6 @@ class OpenAiCompletion(AbstractOpenAiClient):
                     final_query += response
                     print(prefix + response, end="")
         else:
-            print(stream)
             final_query = stream.choices[0].text
 
         return final_query
