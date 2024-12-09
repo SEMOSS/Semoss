@@ -53,6 +53,7 @@ import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileStore;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -191,6 +192,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.git.GitAssetUtils;
+import java.nio.file.attribute.PosixFilePermission;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -5875,5 +5877,44 @@ public final class Utility {
 		return name.matches(regex);
 	}
 	
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+        	return;
+        }
+        
+    	if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String command = String.format("chmod -R 770 %s", Utility.normalizePath(directory.getAbsolutePath()));
+
+        // Execute the command
+        Process process;
+		try {
+			process = Runtime.getRuntime().exec(command);
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+
+	        if (exitCode != 0) {
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        }
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+    }
+
 
 }
