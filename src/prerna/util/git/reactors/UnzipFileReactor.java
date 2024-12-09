@@ -1,7 +1,15 @@
 package prerna.util.git.reactors;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -45,9 +53,35 @@ public class UnzipFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "')");
 		}
 
-		try {
-			ZipUtils.unzip(zipFileLocation, zipFile.getParent());
-		} catch (IOException e) {
+		try {	
+			Tika tika = new Tika();
+			FileInputStream inputstream = new FileInputStream(zipFile);
+			String mimeType = tika.detect(inputstream, new Metadata());
+			if (mimeType.equalsIgnoreCase("application/zip")) {
+				//check if assets file is not uploaded, looks for the assets folder in the uploaded zip file and extract it.
+				if(zipFile.getParent().contains("project")&& !zipFile.getName().equalsIgnoreCase("assets.zip")) {				
+					ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFileLocation));
+					ZipEntry entry;
+					Boolean assetsFound = false;
+		            while ((entry = zipIn.getNextEntry()) != null) {
+		            	if (entry.getName().startsWith("assets")) {
+		            		assetsFound = true;
+	                      extractFile(zipIn, entry, "assets",zipFile.getParent());
+	                    }
+	                    zipIn.closeEntry(); 
+		            }	
+		            zipIn.close();
+		            if(!assetsFound) {
+		            	throw new IllegalArgumentException("Assets folder not found in the zip file.");
+		            }
+				}else {
+					ZipUtils.unzip(zipFileLocation, zipFile.getParent());
+				}				
+			}else {
+				throw new IllegalArgumentException("Please upload the zip file.");
+			}
+			
+		} catch (IOException | IllegalArgumentException e ) {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
 		
@@ -74,5 +108,24 @@ public class UnzipFileReactor extends AbstractReactor {
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
+	
+	 private static void extractFile(ZipInputStream zipIn, ZipEntry entry, String folderToExtract,String outputDir) {
+         File outputFile = new File(outputDir + entry.getName().substring(folderToExtract.length()));
+         if (entry.isDirectory()) {
+             outputFile.mkdirs(); 
+         } else {            
+             new File(outputFile.getParent()).mkdirs();
+  
+             try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+                 byte[] buffer = new byte[1024];
+                 int len;
+                 while ((len = zipIn.read(buffer)) != -1) {
+                     bos.write(buffer, 0, len);
+                 }                
+             } catch (IOException e) {
+                 e.printStackTrace();
+             }
+         }
+     }
 	
 }
