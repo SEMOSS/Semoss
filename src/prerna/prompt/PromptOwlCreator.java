@@ -20,7 +20,6 @@ public class PromptOwlCreator {
 
 	private List<Pair<String, String>> promptMetaKeysColumns = null;
 
-
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 	
