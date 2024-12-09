@@ -9,9 +9,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
 import prerna.theme.ThemeDbTable;
 
-public class ListBlockReactor extends AbstractReactor {
+public class GetBlockReactor extends AbstractReactor {
 
-	public ListBlockReactor() {
+	public GetBlockReactor() {
 		this.keysToGet =  new String[] {"blockId", "tableName"};
 		this.keyRequired = new int[] {1, 1};
 	}
