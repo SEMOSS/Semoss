@@ -59,7 +59,7 @@ public class RemoteClientServerZK {
     
     public String modelScalerIp;
     
-    private Boolean devPortFowarding = false;
+    private Boolean devPortFowarding = true;
 
     private RemoteClientServerZK() {
         classLogger.info("RemoteClientServerZK being initialized...");
