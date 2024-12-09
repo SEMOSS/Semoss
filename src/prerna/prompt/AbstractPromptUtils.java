@@ -16,13 +16,11 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.theme.ThemeOwlCreator;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AbstractPromptUtils {
-
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractPromptUtils.class);
 
@@ -63,10 +61,11 @@ public class AbstractPromptUtils {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		
 		// PROMPT STUFF
 		colNames = new String[] { "ID", "TITLE", "CONTEXT", "VERSION", "INTENT", "CREATED_BY", "DATE_CREATED", "IS_LATEST" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT", "VARCHAR(255)",  "VARCHAR(255)",
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME, "VARCHAR(255)",  "VARCHAR(255)",
 				TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		if (allowIfExistsTable) {
 			promptDb.insertData(queryUtil.createTableIfNotExists("PROMPT", colNames, types));
@@ -81,7 +80,7 @@ public class AbstractPromptUtils {
 		// PROMPTMETA
 		// check if column exists
 		colNames = new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("PROMPTMETA", colNames, types);
 			classLogger.info("Running sql " + sql);
@@ -114,7 +113,7 @@ public class AbstractPromptUtils {
 		for(String tableName : metaKeyTableNames) {
 			// all have the same columns and default values
 			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES"};
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(500)"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(500)"};
 			defaultValues = new Object[]{null, null, null, true, false};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
