@@ -1691,7 +1691,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
 				}
 			}
-			
 	
 			if(!conn.getAutoCommit()) {
 				conn.commit();

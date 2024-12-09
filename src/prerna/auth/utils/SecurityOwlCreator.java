@@ -54,7 +54,6 @@ public class SecurityOwlCreator {
 		
 		// trusted token security
 		conceptsRequired.add("TOKEN");
-		
 	}
 	
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -509,10 +508,8 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		
-
-		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS, PROMPTMETAKEYS"
-		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
-				Constants.INSIGHT_METAKEYS);
+		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
 		for(String tableName : metaKeyTableNames) {
 			// all have the same columns and default values
 			owler.addConcept(tableName, null, null);
