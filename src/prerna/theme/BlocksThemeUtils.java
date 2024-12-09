@@ -46,12 +46,14 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	}
 
+	
 	private static void validateThemeDbTable(ThemeDbTable table) {
 		if (table == null || table.equals(ThemeDbTable.ADMIN_THEME)) {
 			throw new IllegalArgumentException("Requested table not found");
 		}
 	}
 
+	
 	public static List<String> getBlockNames() throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -77,6 +79,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return output;
 	}
 
+	
 	public static Object getBlocks(String tableName) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
@@ -103,6 +106,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return retVal;
 	}
 
+	
 	public static Map<String, Object> getBlock(String blockId, String tableName) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
@@ -130,10 +134,12 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return retVal.get(0);
 	}
 
+	
 	public static boolean deleteBlock(String blockId, String tableName) throws SQLException {
 		return deleteBlock(blockId, tableName, false);
 	}
 
+	
 	public static boolean deleteBlock(String blockId, String tableName, boolean hardDelete) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
@@ -166,7 +172,8 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			return updateBlock(blockId);
 		}
 	}
-
+	
+	
 	private static boolean isDeletable(String blockId, ThemeDbTable table) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + "IS_DELETABLE"));
@@ -187,6 +194,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return (boolean) retVal.get(0).get("IS_DELETABLE");
 	}
 
+	
 	// add block function
 	public static void addBlock(Map<String, Object> blockDetails) {
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
@@ -196,15 +204,26 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	}
 
-	// edit block function
-	public static void editBlock(Map<String, Object> editDetails) {
+	
+	// edit block function 
+	public static boolean editBlock(Map<String, Object> editDetails, String tableName) {
+		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
 		String blockId = (String) editDetails.get("id");
-		validateBlockDetails(editDetails);
+		try {
+			if (!isDeletable(blockId, table)) {
+				throw new SecurityException("Not allowed to delete this block");
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		}
 		updateBlock(blockId);
 		insertBlock(editDetails, allowClob, blockId);
+		return true;
 	}
 
+	
 	// validate the input map for required fields
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
 		validateString(blockDetails, "name", false, false);
@@ -213,6 +232,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		validateString(blockDetails, "block_json", false, false);
 	}
 
+	
 	// validate the individual fields
 	private static void validateString(Map<String, Object> blockDetails, String mapKey, boolean nullable,
 			boolean allowEmpty) {
@@ -220,21 +240,19 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		try {
 			value = (String) blockDetails.get(mapKey);
 			value = value != null ? value.trim() : value;
-
 			if (value == null && !nullable) {
 				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Block");
 			}
-
 			if (value != null && value.isEmpty() && !allowEmpty) {
 				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Block");
 			}
-
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
 
+	
 	// insert the row into blocks_template table
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
 		PreparedStatement blockPS = null;
@@ -245,7 +263,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("image")).toUpperCase());
-			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_image")).toUpperCase());
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("image")).toUpperCase());
 			if (allowClob) {
 				Clob toclob = themeDb.getConnection().createClob();
 				toclob.setString(1, String.valueOf(blockDetails.get("block_json")));
@@ -261,7 +279,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			if (!blockPS.getConnection().getAutoCommit()) {
 				blockPS.getConnection().commit();
 			}
-
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
@@ -270,6 +287,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 
+	
 	// update the row in blocks_template associated with the ID to be latest
 	// (similar to soft delete)
 	private static boolean updateBlock(String blockId) {
@@ -277,9 +295,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		String[] whereCol = { "ID" };
 		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString("BLOCKS_TEMPLATE",
 				colToUpdate, whereCol);
-
 		PreparedStatement ps = null;
-
 		try {
 			ps = themeDb.getPreparedStatement(promptPermissionQuery);
 			int parameterIndex = 1;

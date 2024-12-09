@@ -14,16 +14,17 @@ import prerna.theme.BlocksThemeUtils;
 public class EditBlockReactor extends AbstractReactor {
 
 	public EditBlockReactor() {
-		this.keysToGet =  new String[] {ReactorKeysEnum.MAP.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet =  new String[] {ReactorKeysEnum.MAP.getKey(), "tableName"};
+		this.keyRequired = new int[] {1, 1};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		Map<String, Object> blockDetails = getBlockDetails();
-		BlocksThemeUtils.editBlock(blockDetails);
-		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
+		String tableName = this.keyValue.get("tableName");
+		boolean done = BlocksThemeUtils.editBlock(blockDetails, tableName);
+		NounMetadata nm = new NounMetadata(done, PixelDataType.BOOLEAN);
 		return nm;
 	}
 	
