@@ -67,6 +67,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
         // THIS EQUALS == INIT_ENGINE_TYPE
         String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
         String initEngineType = smssProp.getProperty(initEngineTypeKey);
+ 
+        if (initEngineType != null && !initEngineType.isEmpty()){
 		
         implementingEngineClass = (AbstractModelEngine) Class.forName(initEngineType).newInstance();
         Properties implEngineSmss = new Properties();
@@ -80,6 +82,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
         }
         String engineId = smssProp.getProperty(Constants.ENGINE);
         implementingEngineClass.open(implEngineSmss);
+        }
     }
     
     protected boolean initiateAndWaitForDeployment(long timeoutMs) throws Exception {
