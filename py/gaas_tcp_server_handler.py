@@ -6,6 +6,7 @@ import socketserver
 import traceback as tb
 import threading
 
+import os
 import gc as gc
 import sys
 import re
@@ -150,7 +151,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # The logs can become very heavy during streamed responses so for some log statements we want to only write them when we are developing locally
         # I don't have a way of knowing what env we are in so adding a manual dev switch here.
         # If you use this, be sure to turn it off before committing your code.
-        self.dev_log_switch = False
+        env_value = os.getenv("PYTHON_DEV_LOGS")
+
+        # Convert the environment variable to a boolean
+        if env_value is not None:
+            # Convert to boolean by checking against common true values
+            self.dev_log_switch = env_value.lower() in ["true", "1", "yes", "on"]
+        else:
+            # Default to False if the environment variable is not set
+            self.dev_log_switch = False
 
         # define_root_logger_script = "import sys\nroot_logger = logging.getLogger()\nroot_logger.setLevel(logging.WARNING)\nhandler = logging.StreamHandler(sys.stdout)\nformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nhandler.setFormatter(formatter)\nroot_logger.addHandler(handler)"
         # with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(self.console):
@@ -236,8 +245,30 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # print("all processing has finished !!")
         # self.get_final_output(data)
 
+    def log_data(self, data):
+        """
+        Log the data to the log file. This is useful for debugging purposes.
+        Trimming the payload to 50 characters to avoid log file bloat.
+        """
+        try:
+            if isinstance(data, bytes):
+                data = json.loads(data.decode("utf-8"))
+            elif data is None:
+                data = {}
+
+            payload = data.get("payload", [])
+            trimmed_payload = (
+                payload[0][:50] if isinstance(payload, list) and payload else "N/A"
+            )
+
+            log_message = f"Final Output: epoc={data.get('epoc', 'N/A')}, payload={trimmed_payload}, operation={data.get('operation', 'N/A')}"
+
+            self.prod_logger(log_message)
+        except Exception as e:
+            self.prod_logger(f"Error in get_final_output: {str(e)}")
+
     def get_final_output(self, data=None, epoc=None):
-        self.prod_logger(f"Getting Final Output for Data === {data}")
+        self.log_data(data)
 
         payload = ""
         # payload = data
@@ -456,7 +487,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 self.log_file.write("\n")
                 self.log_file.write(f"The Operation is {operation}")
                 self.log_file.write("\n")
-                self.log_file.write(f"Original Payload: {orig_payload_value}")
+                # self.log_file.write(f"Original Payload: {orig_payload_value}")
                 self.log_file.write("\n")
                 self.log_file.write(
                     f"Original Payload Insight ID: {orig_payload_insight_id}"
@@ -541,7 +572,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     def handle_python(self, command):
         is_exception = False
-        print(f"Executing command {command.encode('utf-8')}")
+        # print(f"Executing command {command.encode('utf-8')}")
 
         payload = self.thread_local.payload
         # set the payload coming in
@@ -654,7 +685,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # we can look at changing it to a lower point
             self.cmd_monitor.acquire()
             method_name = payload["methodName"]
-            print(f"insight id is {payload['insightId']}")
             mount_name, mount_dir = payload["insightId"].split("__", 1)
             if method_name == "constructor":
                 # set the mount point
@@ -854,4 +884,5 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
 if __name__ == "__main__":
     from gaas_tcp_socket_server import Server
+
     Server(port=9999, start=True)

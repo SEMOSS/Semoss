@@ -201,6 +201,7 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		if(owlPropStr == null || (owlPropStr=owlPropStr.trim()).isEmpty()) {
 			// make a new empty owl
 			owlFile = UploadUtilities.generateOwlFile(getCatalogType(), this.engineId, this.engineName).getAbsolutePath();
+			setOwlFilePath(owlFile);
 		} else if(owlPropStr.equalsIgnoreCase("REMAKE")) {
 			classLogger.info("Attempting to create new OWL file");
 			// the process of remake will start here

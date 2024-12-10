@@ -30,10 +30,12 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
@@ -65,6 +67,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String DOCUMENTS_FOLDER_NAME = "documents";
 	public static final String INDEXED_FOLDER_NAME = "indexed_files";
 	
+	public static final String METADATA = "metadata";
+	public static final String FILTERS_KEY = "filters";
+	public static final String METADATA_FILTERS_KEY = "metaFilters";
+	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -84,6 +90,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	protected String defaultChunkUnit;
 	protected String defaultExtractionMethod;
 	
+    protected boolean customDocumentProcessor = false;
+    protected String customDocumentProcessorFunctionID = null;
+
+    protected String imageEngineId;
+    
 	// our paradigm for how we store files
 	protected String defaultIndexClass;
 	protected List<String> indexClasses;
@@ -148,6 +159,15 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 		
+        // 2 smss properties for custom document processing
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
+        	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
+        }
+        
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
+        	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
+        }
+        
 		// highest directory (first layer inside vector db base folder)
 		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
 		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
@@ -203,7 +223,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
 			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
 		}
-		
+
+        
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
@@ -284,7 +305,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 						FileUtils.copyFileToDirectory(document, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
-						// determine which text extraction method to use
 						int rowsCreated;
 						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
@@ -298,6 +318,16 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
 
 							rowsCreated = rows.intValue();
+						} else if(this.customDocumentProcessor) {
+							if(this.customDocumentProcessorFunctionID == null || this.customDocumentProcessorFunctionID.isEmpty()) {
+								throw new IllegalArgumentException("Must define custom document processing function engine id in the SMSS");
+							}
+							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
+							Map<String, Object> functionInputs = new HashMap<>();
+							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
+							functionInputs.put("document", document);
+							functionInputs.put("parameters", parameters);
+							rowsCreated = (int) functionEngine.execute(functionInputs);
 						} else {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
 						}
@@ -308,8 +338,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							FileUtils.forceDelete(extractedFile); // delete the csv
 							FileUtils.forceDelete(document); // delete the input file e.g pdf
 							continue;
-						}
-
+						}                    
+						
 						classLogger.info("Creating chunks from extracted text for " + documentName);
 
 						StringBuilder splitTextCommand = new StringBuilder();
@@ -362,6 +392,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
+	
 	
 	/**
 	 * 
@@ -428,6 +459,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws Exception {
 		// TODO Auto-generated method stub
 	}
+	
+	@Override
+	public void addMetadata(VectorDatabaseMetadataCSVTable vectorCsvTable) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	/**
 	 * This is an abstract method for the implementation class such that tracking occurs
@@ -450,7 +487,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		List<Map<String, Object>> vectorSearchResponse = nearestNeighborCall(insight, searchStatement, limit, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
-		if (inferenceLogsEnbaled) {
+		if (inferenceLogsEnbaled && this.keepInputOutput) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/UUID.randomUUID().toString(), 
@@ -536,7 +573,12 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
 			this.smssProp.put(Constants.MAX_TOKENS, "None");
 		} else {
-			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
+			String modelMaxTokens = modelProperties.getProperty(Constants.MAX_TOKENS);
+			if(modelMaxTokens == null || (modelMaxTokens=modelMaxTokens.trim()).isEmpty()) {
+				this.smssProp.put(Constants.MAX_TOKENS, "None");
+			} else {
+				this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens);
+			}
 		}
 
 		// model engine responsible for creating keywords
@@ -655,6 +697,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				}
 			}
 			
+			//if we have a python specific user, make sure that user can access the schema folder
+			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+				Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+			}
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {

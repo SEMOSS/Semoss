@@ -1,8 +1,8 @@
 package prerna.engine.impl.model.inferencetracking;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
 import org.javatuples.Pair;
 
@@ -29,7 +29,7 @@ public class ModelInferenceLogsOwlCreator {
 	
 	// concepts are tables within db
 	// props are cols w/i concepts
-	private static List<String> conceptsRequired = new Vector<String>();
+	private static List<String> conceptsRequired = new ArrayList<>();
 	static {
 		conceptsRequired.add("AGENT");
 		conceptsRequired.add("ROOM");
@@ -139,7 +139,7 @@ public class ModelInferenceLogsOwlCreator {
 		 * Not doing anything with columns but should eventually do that
 		 */
 		
-		List<String> cleanConcepts = new Vector<String>();
+		List<String> cleanConcepts = new ArrayList<>();
 		List<String> concepts = modelInferenceDb.getPhysicalConcepts();
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {

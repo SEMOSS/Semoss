@@ -243,11 +243,27 @@ public final class Utility {
 
 		PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS).and(Sanitizers.BLOCKS).and(Sanitizers.STYLES)
 				.and(Sanitizers.IMAGES).and(Sanitizers.TABLES);
-		MySQLCodec mySQLCodec=new MySQLCodec(MySQLCodec.Mode.ANSI);
+		MySQLCodec mySQLCodec = new MySQLCodec(MySQLCodec.Mode.ANSI);
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, policy.sanitize(stringToNormalize));
 	}
 
 
+	/**
+	 * This is to remove sql injection from strings
+	 * 
+	 * @param stringToNormalize
+	 * @return
+	 */
+	public static String inputSQLSanitizer(String stringToNormalize) {
+		if (stringToNormalize == null) {
+			classLogger.debug("input to sanitzer is null, returning null");
+			return stringToNormalize;
+		}
+
+		MySQLCodec mySQLCodec = new MySQLCodec(MySQLCodec.Mode.ANSI);
+		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
+	}
+	
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with
@@ -615,7 +631,7 @@ public final class Utility {
 			return "";
 		}
 
-		String query = DIHelper.getInstance().getProperty(Constants.SUBJECT_TYPE_QUERY);
+		String query = Utility.getDIHelperProperty(Constants.SUBJECT_TYPE_QUERY);
 		Map<String, List<Object>> paramHash = new Hashtable<>();
 		List<Object> values = new ArrayList<>();
 		values.add(subjectURI);
@@ -634,13 +650,13 @@ public final class Utility {
 		while (sjw.hasNext()) {
 			ISelectStatement stmt = sjw.next();
 			String objURI = stmt.getRawVar(vars[0]) + "";
-			if (!objURI.equals(DIHelper.getInstance().getProperty(Constants.SEMOSS_URI) + "/Concept")) {
+			if (!objURI.equals(Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept")) {
 				returnType = objURI;
 			}
 
 		}
 		if (returnType == null) {
-			returnType = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI) + "/Concept";
+			returnType = Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept";
 		}
 
 		return returnType;
@@ -1520,7 +1536,7 @@ public final class Utility {
 			psClassName = (String) DIHelper.getInstance().getLocalProp(psName);
 		}
 		if (psClassName == null) {
-			psClassName = DIHelper.getInstance().getProperty(psName);
+			psClassName = Utility.getDIHelperProperty(psName);
 		}
 		if (psClassName == null) {
 			psClassName = PlaySheetRDFMapBasedEnum.getClassFromName(psName);
@@ -1544,7 +1560,7 @@ public final class Utility {
 			dmClassName = (String) DIHelper.getInstance().getLocalProp(dataMakerName);
 		}
 		if (dmClassName == null) {
-			dmClassName = DIHelper.getInstance().getProperty(dataMakerName);
+			dmClassName = Utility.getDIHelperProperty(dataMakerName);
 		}
 		if (dmClassName == null) {
 			dmClassName = PlaySheetRDFMapBasedEnum.getClassFromName(dataMakerName);
@@ -1562,7 +1578,7 @@ public final class Utility {
 		classLogger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
 		if (transClassName == null) {
-			transClassName = DIHelper.getInstance().getProperty(transName);
+			transClassName = Utility.getDIHelperProperty(transName);
 		}
 		if (transClassName == null || transClassName.isEmpty()) {
 			transClassName = transName;
@@ -1576,7 +1592,7 @@ public final class Utility {
 		classLogger.info("Trying to get action for " + Utility.cleanLogString(actionName));
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
 		if (actionClassName == null) {
-			actionClassName = DIHelper.getInstance().getProperty(actionName);
+			actionClassName = Utility.getDIHelperProperty(actionName);
 		}
 		if (actionClassName == null || actionClassName.isEmpty()) {
 			actionClassName = actionName;
@@ -2021,7 +2037,14 @@ public final class Utility {
 				syncToLocalMaster = true;
 			}
 		} catch(Exception e) {
-			classLogger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+		}
+		if(engineType == null) {
+			return;
 		}
 		
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
@@ -2492,7 +2515,7 @@ public final class Utility {
 				} else {
 					folderName = "Workplace";
 				}
-				String smssFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
 						+ "/" + Constants.USER_FOLDER + "/" + SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
 				// Start up the engine using the details in the smss
 				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
@@ -2890,7 +2913,7 @@ public final class Utility {
 				// replace it in the properties
 				// write the properties file or not
 				// return the properties
-				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 				File engineDir = new File(Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
 				if(!engineDir.exists()) {
 					engineDir.mkdirs();
@@ -2928,12 +2951,12 @@ public final class Utility {
 //		int lowPort = 5355;
 //		int highPort = lowPort + 10_000;
 //
-//		if (DIHelper.getInstance().getProperty("LOW_PORT") != null) {
-//			try {lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT")); } catch (Exception ignore) {};
+//		if (Utility.getDIHelperProperty("LOW_PORT") != null) {
+//			try {lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT")); } catch (Exception ignore) {};
 //		}
 //		
-//		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null) {
-//			try {highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT")); } catch (Exception ignore) {};
+//		if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
+//			try {highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT")); } catch (Exception ignore) {};
 //		}
 //		
 //		for (; !found && lowPort < highPort; lowPort++) {
@@ -3572,7 +3595,7 @@ public final class Utility {
 		}
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
 
-		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.LOG_ENCODING) + "")) {
+		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.LOG_ENCODING) + "")) {
 			message = ESAPI.encoder().encodeForHTML(message);
 		}
 
@@ -3706,7 +3729,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectAdd() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_ADD);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_ADD);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3720,7 +3743,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectDelete() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_DELETE);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_DELETE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3734,7 +3757,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectAddAccess() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_ADD_ACCESS);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_ADD_ACCESS);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3748,7 +3771,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyInsightAddAccess() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_ADD_ACCESS);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_ADD_ACCESS);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3762,7 +3785,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectSetPublic() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_SET_PUBLIC);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3776,7 +3799,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectSetDiscoverable() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_SET_DISCOVERABLE);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3790,7 +3813,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbAdd() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_ADD);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3804,7 +3827,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyInsightShare() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3818,7 +3841,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbDelete() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_DELETE);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_DELETE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3832,7 +3855,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbAddAccess() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_ADD_ACCESS);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD_ACCESS);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3846,7 +3869,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbSetPublic() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_SET_PUBLIC);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3860,7 +3883,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbSetDiscoverable() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_SET_DISCOVERABLE);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3874,7 +3897,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyInsightSetPublic() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3889,7 +3912,7 @@ public final class Utility {
 	 */
 	@Deprecated
 	public static String[] getApplicationPipelineLandingFilter() {
-		String filterList = DIHelper.getInstance().getProperty(Constants.PIPELINE_LANDING_FILTER);
+		String filterList = Utility.getDIHelperProperty(Constants.PIPELINE_LANDING_FILTER);
 		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
 			// default null
 			return null;
@@ -3904,7 +3927,7 @@ public final class Utility {
 	 */
 	@Deprecated
 	public static String[] getApplicationPipelineSourceFilter() {
-		String filterList = DIHelper.getInstance().getProperty(Constants.PIPELINE_SOURCE_FILTER);
+		String filterList = Utility.getDIHelperProperty(Constants.PIPELINE_SOURCE_FILTER);
 		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
 			// default null
 			return null;
@@ -3919,7 +3942,7 @@ public final class Utility {
 	 */
 	@Deprecated
 	public static String[] getApplicationWidgetTabShareExportList() {
-		String filterList = DIHelper.getInstance().getProperty(Constants.WIDGET_TAB_SHARE_EXPORT_LIST);
+		String filterList = Utility.getDIHelperProperty(Constants.WIDGET_TAB_SHARE_EXPORT_LIST);
 		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
 			// default null
 			return null;
@@ -3933,7 +3956,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationCacheInsight() {
-		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHEABLE);
+		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHEABLE);
 		if(cacheSetting == null) {
 			// default cache is true
 			return true;
@@ -3947,7 +3970,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static int getApplicationCacheInsightMinutes() {
-		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHE_MINUTES);
+		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHE_MINUTES);
 		if(cacheSetting == null) {
 			// default is no limit 
 			return -1;
@@ -3961,7 +3984,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static String getApplicationCacheCron() {
-		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHE_CRON);
+		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHE_CRON);
 		if(cacheSetting == null) {
 			// default is false
 			return null;
@@ -3982,7 +4005,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getApplicationCacheEncrypt() {
-		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHE_ENCRYPT);
+		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHE_ENCRYPT);
 		if(cacheSetting == null) {
 			// default is false
 			return false;
@@ -3996,7 +4019,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean isSecretsStoreEnabled() {
-		String hashiCorpEnabled = DIHelper.getInstance().getProperty(Constants.SECRET_STORE_ENABLED);
+		String hashiCorpEnabled = Utility.getDIHelperProperty(Constants.SECRET_STORE_ENABLED);
 		if(hashiCorpEnabled == null) {
 			// default configuration is false
 			return false;
@@ -4010,7 +4033,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean isVirusScanningEnabled() {
-		String virusScanning = DIHelper.getInstance().getProperty(Constants.VIRUS_SCANNING_ENABLED);
+		String virusScanning = Utility.getDIHelperProperty(Constants.VIRUS_SCANNING_ENABLED);
 		if(virusScanning == null) {
 			// default configuration is false
 			return false;
@@ -4028,7 +4051,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean isUserTrackingEnabled() {
-		String userTracking = DIHelper.getInstance().getProperty(Constants.USER_TRACKING_ENABLED);
+		String userTracking = Utility.getDIHelperProperty(Constants.USER_TRACKING_ENABLED);
 		if(userTracking == null) {
 			// default configuration is false
 			return false;
@@ -4042,7 +4065,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean isModelInferenceLogsEnabled() {
-		String modelInferenceLogs = DIHelper.getInstance().getProperty(Constants.MODEL_INFERENCE_LOGS_ENABLED);
+		String modelInferenceLogs = Utility.getDIHelperProperty(Constants.MODEL_INFERENCE_LOGS_ENABLED);
 		if(modelInferenceLogs == null) {
 			// default configuration is false
 			return false;
@@ -4052,11 +4075,25 @@ public final class Utility {
 	}
 	
 	/**
+	 * Determine if promptdb logs db is enabled
+	 * @return
+	 */
+	public static boolean isPromptDatabaseEnabled() {
+		String promptDB = Utility.getDIHelperProperty(Constants.PROMPT_DB_ENABLED);
+		if(promptDB == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(promptDB);
+	}
+	
+	/**
 	 * Determine if user tracking enabled
 	 * @return
 	 */
 	public static boolean schedulerForceDisable() {
-		String schedulerForceDisable  = DIHelper.getInstance().getProperty(Constants.SCHEDULER_FORCE_DISABLE);
+		String schedulerForceDisable  = Utility.getDIHelperProperty(Constants.SCHEDULER_FORCE_DISABLE);
 		if(schedulerForceDisable == null) {
 			// default configuration is false
 			return false;
@@ -4070,7 +4107,7 @@ public final class Utility {
 	}
 	
 	public static String getUserTrackingMethod() {
-		return DIHelper.getInstance().getProperty(Constants.USER_TRACKING_METHOD);
+		return Utility.getDIHelperProperty(Constants.USER_TRACKING_METHOD);
 	}
 	
 	/**
@@ -4078,7 +4115,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static String getDefaultTerminalMode() {
-		String terminalMode  = DIHelper.getInstance().getProperty(Constants.TERMINAL_MODE);
+		String terminalMode  = Utility.getDIHelperProperty(Constants.TERMINAL_MODE);
 		if(terminalMode == null || (terminalMode=terminalMode.trim()).isEmpty()) {
 			// default configuration is false
 			return "cmd";
@@ -4100,7 +4137,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static boolean getWelcomeBannerOption() {
-		String welcomeDialog = DIHelper.getInstance().getProperty(Constants.SHOW_WELCOME_BANNER);
+		String welcomeDialog = Utility.getDIHelperProperty(Constants.SHOW_WELCOME_BANNER);
 		if(welcomeDialog == null) {
 			// default option is true
 			return true;
@@ -4118,7 +4155,7 @@ public final class Utility {
 	 */
 	@Deprecated
 	public static String getApplicationTimeZoneId() {
-		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
+		String timeZone = Utility.getDIHelperProperty(Constants.DEFAULT_TIME_ZONE);
 		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
 			// default to ET
 			return "America/New_York";
@@ -4132,7 +4169,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static String getApplicationZoneId() {
-		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
+		String timeZone = Utility.getDIHelperProperty(Constants.DEFAULT_TIME_ZONE);
 		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
 			// default to system location
 			return ZoneId.systemDefault().getId();
@@ -4151,7 +4188,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static Boolean getApplicationAdminOnlyCreateAPIUser() {
-		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_CREATE_API_USER);
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_CREATE_API_USER);
 		if(boolString == null || (boolString=boolString.trim()).isEmpty()) {
 			// default to true
 			return true;
@@ -4165,7 +4202,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static String getSameSiteCookieValue() {
-		String sameSiteString = DIHelper.getInstance().getProperty(Constants.SAMESITE_COOKIE);
+		String sameSiteString = Utility.getDIHelperProperty(Constants.SAMESITE_COOKIE);
 		if(sameSiteString == null || (sameSiteString=sameSiteString.trim()).isEmpty()) {
 			return "none";
 		}
@@ -4278,8 +4315,8 @@ public final class Utility {
 	 */
 	public static String getPublicHomeFolder() {
 		String publicHomeFolder = "public_home";
-		if(DIHelper.getInstance().getProperty(Settings.PUBLIC_HOME) != null) {
-			publicHomeFolder = DIHelper.getInstance().getProperty(Settings.PUBLIC_HOME);
+		if(Utility.getDIHelperProperty(Settings.PUBLIC_HOME) != null) {
+			publicHomeFolder = Utility.getDIHelperProperty(Settings.PUBLIC_HOME);
 		}
 		// assume public home is clean for lower paths
 		if(publicHomeFolder.startsWith("/")) {
@@ -4319,7 +4356,7 @@ public final class Utility {
 	public static Map<String, Class> loadReactors(String folder, String key) {
 		HashMap<String, Class> thisMap = new HashMap<>();
 		
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 				 classLogger.debug("Project specific reactors are disabled");
@@ -4429,7 +4466,7 @@ public final class Utility {
 	// loads classes through this specific class loader for the insight
 	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader, String outputFolder) {
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 				 classLogger.debug("Project specific reactors are disabled");
@@ -4519,7 +4556,7 @@ public final class Utility {
 	// loads classes through this specific class loader for the insight
 	public static Map<String, Class<IReactor>> loadReactorsFromPom(String folder, JarClassLoader cl, String outputFolder) {
 		Map<String, Class<IReactor>> reactors = new HashMap<>();
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 				 classLogger.debug("Project specific reactors are disabled");
@@ -4608,7 +4645,7 @@ public final class Utility {
 	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
 		URLClassLoader cl = null;
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
 				classLogger.debug("Project specific reactors are disabled");
@@ -4786,7 +4823,7 @@ public final class Utility {
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
-				java = DIHelper.getInstance().getProperty(Constants.JAVA_HOME);
+				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
 			if(!java.endsWith("bin")) {
 				//seems like for graal
@@ -4801,7 +4838,7 @@ public final class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = DIHelper.getInstance().getProperty(Constants.LD_LIBRARY_PATH);
+			String jep = Utility.getDIHelperProperty(Constants.LD_LIBRARY_PATH);
 			if (jep == null) {
 				jep = System.getenv(Constants.LD_LIBRARY_PATH);
 			}
@@ -4811,7 +4848,7 @@ public final class Utility {
 			}
 			jep = jep.replace("\\", "/");
 
-			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
+			String pyWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
 			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
 				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
 			}
@@ -4837,8 +4874,8 @@ public final class Utility {
 				commands[1] = "-Djava.library.path=" + jep;
 			}
 			// compose for memory
-			String xms = DIHelper.getInstance().getProperty("Xms");
-			String xmx = DIHelper.getInstance().getProperty("Xmx");
+			String xms = Utility.getDIHelperProperty("Xms");
+			String xmx = Utility.getDIHelperProperty("Xmx");
 			
 			String memory = "";
 			if(xms != null && xmx != null)
@@ -4879,8 +4916,8 @@ public final class Utility {
 			// pb.command(commands);
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
@@ -4929,7 +4966,7 @@ public final class Utility {
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
-				java = DIHelper.getInstance().getProperty(Constants.JAVA_HOME);
+				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
 			if(!java.endsWith("bin")) {
 				//seems like for graal
@@ -4944,7 +4981,7 @@ public final class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = DIHelper.getInstance().getProperty(Constants.LD_LIBRARY_PATH);
+			String jep = Utility.getDIHelperProperty(Constants.LD_LIBRARY_PATH);
 			if (jep == null) {
 				jep = System.getenv(Constants.LD_LIBRARY_PATH);
 			}
@@ -4954,7 +4991,7 @@ public final class Utility {
 			}
 			jep = jep.replace("\\", "/");
 
-			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
+			String pyWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
 			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
 				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
 			}
@@ -4980,8 +5017,8 @@ public final class Utility {
 				commands[1] = "-Djava.library.path=" + jep;
 			}
 			// compose for memory
-			String xms = DIHelper.getInstance().getProperty("Xms");
-			String xmx = DIHelper.getInstance().getProperty("Xmx");
+			String xms = Utility.getDIHelperProperty("Xms");
+			String xmx = Utility.getDIHelperProperty("Xmx");
 			
 			String memory = "";
 			if(xms != null && xmx != null)
@@ -5021,8 +5058,8 @@ public final class Utility {
 			// pb.command(commands);
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
@@ -5074,13 +5111,13 @@ public final class Utility {
 			if (py == null || py.isEmpty()) {
 				py = System.getenv(Settings.PYTHONHOME);
 				if(py == null) {
-					py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+					py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
 				}
 				if(py == null) {
 					System.getenv(Settings.PY_HOME);
 				}
 				if (py == null) {
-					py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+					py = Utility.getDIHelperProperty(Settings.PY_HOME);
 				}
 				if(py == null) {
 					throw new NullPointerException("Must define python home");
@@ -5098,7 +5135,13 @@ public final class Utility {
 			
 			classLogger.info("The python executable being used is: " + py);
 
-			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+			// check to see if the py folder is there
+			// if not go into base folder
+			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null
+					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
+						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
+			
+			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
 			pyBase = pyBase.replace("\\", "/");
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
@@ -5107,11 +5150,32 @@ public final class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-				
+			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+					
+			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			
+			String[] commands;
+		
+			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			    commands = new String[baseCommand.length + 3];
+			    commands[0] = "sudo";
+			    commands[1] = "-u";
+			    commands[2] = pythonUser;
+			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+			    
+			    File pythonProcessFolder = new File(finalDir);
+			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+			    	pythonProcessFolder.setReadable(true, false);  
+			    	pythonProcessFolder.setWritable(true, false); 
+			    	pythonProcessFolder.setExecutable(true, false); 
+			    }	
+			} else {
+			    commands = baseCommand;
+			}
+			
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
@@ -5183,13 +5247,13 @@ public final class Utility {
 		try {
 			String py = System.getenv(Settings.PYTHONHOME);
 			if(py == null) {
-				py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+				py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
 			}
 			if(py == null) {
 				System.getenv(Settings.PY_HOME);
 			}
 			if (py == null) {
-				py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
+				py = Utility.getDIHelperProperty(Settings.PY_HOME);
 			}
 			if(py == null) {
 				throw new NullPointerException("Must define python home");
@@ -5203,7 +5267,11 @@ public final class Utility {
 			
 			py = py.replace("\\", "/");
 
-			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null 
+					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
+						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);			
+			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
+
 			pyBase = pyBase.replace("\\", "/");
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
@@ -5221,8 +5289,8 @@ public final class Utility {
 			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
-				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
@@ -5305,7 +5373,7 @@ public final class Utility {
 		try {
 			String java = System.getenv("JAVA_HOME");
 			if (java == null) {
-				java = DIHelper.getInstance().getProperty("JAVA_HOME");
+				java = Utility.getDIHelperProperty("JAVA_HOME");
 			}
 			if(!java.endsWith("bin")) //seems like for graal
 				java = java + "/bin/java";
@@ -5318,7 +5386,7 @@ public final class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
+			String jep = Utility.getDIHelperProperty("LD_LIBRARY_PATH");
 			if (jep == null) {
 				jep = System.getenv("LD_LIBRARY_PATH");
 			}
@@ -5328,7 +5396,7 @@ public final class Utility {
 			}
 			jep = jep.replace("\\", "/");
 
-			String pyWorker = DIHelper.getInstance().getProperty("RMI_WORKER");
+			String pyWorker = Utility.getDIHelperProperty("RMI_WORKER");
 			if(pyWorker == null)
 				pyWorker = "prerna.rmi.Server";
 			String[] commands = null;
@@ -5353,8 +5421,8 @@ public final class Utility {
 				commands[1] = "-Djava.library.path=" + jep;
 			}
 			// compose for memory
-			String xms = DIHelper.getInstance().getProperty("Xms");
-			String xmx = DIHelper.getInstance().getProperty("Xmx");
+			String xms = Utility.getDIHelperProperty("Xms");
+			String xmx = Utility.getDIHelperProperty("Xmx");
 			
 			String memory = "";
 			if(xms != null && xmx != null)
@@ -5460,7 +5528,7 @@ public final class Utility {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 		
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) { 
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) { 
 			commandsStarter =  new String[5];
 			starter = dir + "/starter.sh";
 			commandsStarter[0] = "fakechroot";
@@ -5493,7 +5561,7 @@ public final class Utility {
 			starter = dir + "/starter.sh";
 			commandsStarter[1] = starter;
 		}
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) { 
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) { 
 			commandsStarter =  new String[6];
 			starter = dir + "/starter.sh";
 			commandsStarter[0] = "fakechroot";
@@ -5541,7 +5609,7 @@ public final class Utility {
 		try {
 			// read the file first
 			dir = dir.replace("\\", "/");
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
 			//property.filename = target/rolling/rollingtest.log
@@ -5562,7 +5630,7 @@ public final class Utility {
 		try {
 			// read the file first
 			dir = dir.replace("\\", "/");
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
 			//property.filename = target/rolling/rollingtest.log
@@ -5801,5 +5869,53 @@ public final class Utility {
 		return ZonedDateTime.now(zoneId);
 	}
 	
+	//helper to validate names across webapp 
+	public static Boolean validateName(String name) {
+		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
+		return name.matches(regex);
+	}
+	
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+        	return;
+        }
+        
+    	if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+
+        // Execute the command
+        Process process;
+		try {
+			process = Runtime.getRuntime().exec(command);
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+
+	        if (exitCode != 0) {
+	        	classLogger.info("Failed running - " + command);
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        } else {
+	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+	        }
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+    }
+
 
 }

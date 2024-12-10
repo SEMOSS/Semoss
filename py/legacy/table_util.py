@@ -1,7 +1,6 @@
 # main class responsible for giving all table specific operations
 from paddleocr import PaddleOCR
 import gaas_gpt_model as ggm
-import pytesseract as tess
 from PIL import Image
 from pathlib import Path
 import pandas as pd
@@ -15,7 +14,6 @@ from paddleocr.ppstructure.recovery.recovery_to_doc import (
     sorted_layout_boxes,
     convert_info_docx,
 )
-import torch
 import numpy
 import json
 

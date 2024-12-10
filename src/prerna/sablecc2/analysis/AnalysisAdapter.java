@@ -693,6 +693,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMapOperationValues(AMapOperationValues node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAMapList(AMapList node)
     {
         defaultCase(node);

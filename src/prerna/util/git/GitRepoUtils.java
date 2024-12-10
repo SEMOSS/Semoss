@@ -64,6 +64,8 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.security.InstallCertNow;
 import prerna.util.Constants;
@@ -1139,6 +1141,13 @@ public class GitRepoUtils {
 	
 	public static void commitAddedFiles(String gitFolder, String message) {
 		commitAddedFiles(gitFolder, message, null, null);
+	}
+	
+	public static void commitAddedFiles(String gitFolder, String message, User user) {
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
+		commitAddedFiles(gitFolder, message, author, email);
 	}
 
 	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {

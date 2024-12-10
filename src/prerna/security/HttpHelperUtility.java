@@ -863,6 +863,9 @@ public final class HttpHelperUtility {
 
 	// makes the call to every resource going forward with the specified keys as get
 	public static String makeGetCall(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
+		if(urlStr == null) {
+			throw new NullPointerException("Must provide the URL");
+		}
 		String retString = null;
 		// fill the params on the get since it is not null
 		if(params != null) {
@@ -1172,7 +1175,7 @@ public final class HttpHelperUtility {
 	 	String [] retString = new String[2];
 		String[] inputCodes = URLDecoder.decode(queryStr).split("&");
 		for(int inputIndex = 0;inputIndex < inputCodes.length;inputIndex++) {
-			String thisToken = Utility.inputSanitizer(inputCodes[inputIndex]);
+			String thisToken = Utility.inputSQLSanitizer(inputCodes[inputIndex]);
 			if(thisToken.startsWith("state")) {
 				retString[1] = thisToken.replaceAll("state=", "");
 			}

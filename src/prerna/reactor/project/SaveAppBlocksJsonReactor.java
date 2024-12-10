@@ -4,11 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
@@ -23,6 +23,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
 
 public class SaveAppBlocksJsonReactor extends AbstractReactor {
@@ -32,7 +33,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 	private static final String CLASS_NAME = SaveAppBlocksJsonReactor.class.getName();
 
 	public SaveAppBlocksJsonReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JSON.getKey() };
+		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JSON.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
 
 	@Override
@@ -59,8 +60,13 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide the blocks JSON");
 		}
 		
+		String comment = this.keyValue.get(this.keysToGet[2]);
+		if(comment != null && !comment.isEmpty()) {
+			comment = Utility.decodeURIComponent(comment);
+		}
+		
 		IProject project = Utility.getProject(projectId);
-		String portalsFolder = AssetUtility.getProjectPortalsFolder(project.getProjectId());
+		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
 		File blocksJsonFile = new File(portalsFolder+"/"+IProject.BLOCK_FILE_NAME);
 		if(blocksJsonFile.exists() && blocksJsonFile.isFile()) {
 			blocksJsonFile.delete();
@@ -73,10 +79,17 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Was unable to save the blocks json to the project folder. Errror = " + e.getMessage());
 		}
 		
-		String newProjectAssetFolder = AssetUtility.getProjectAssetFolder(project.getProjectId());
+		// add file to git
+		List<String> files = new Vector<>();
+		files.add(blocksJsonFile.getAbsolutePath());
+		String projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+		GitRepoUtils.addSpecificFiles(projectVersionFolder, files);
+		// commit it
+		GitRepoUtils.commitAddedFiles(projectVersionFolder, comment, user);
+		
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Syncing project for cloud backup");
-			ClusterUtil.pushProjectFolder(project, newProjectAssetFolder);
+			ClusterUtil.pushProjectFolder(project, projectVersionFolder);
 			SecurityProjectUtils.setPortalPublish(user, projectId);
 		}
 		
@@ -95,7 +108,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			if(encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
 				String encodedStr = (String) encodedStrGrs.get(0).getValue();
 				String mapStr = Utility.decodeURIComponent(encodedStr);
-				return new Gson().fromJson(mapStr, Map.class);
+				return new GsonBuilder().disableHtmlEscaping().create().fromJson(mapStr, Map.class);
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);

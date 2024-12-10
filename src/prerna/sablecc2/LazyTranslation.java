@@ -74,6 +74,7 @@ import prerna.sablecc2.node.AMainCommentRoutine;
 import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapList;
 import prerna.sablecc2.node.AMapNegNum;
+import prerna.sablecc2.node.AMapOperationValues;
 import prerna.sablecc2.node.AMapVar;
 import prerna.sablecc2.node.AMetaRoutine;
 import prerna.sablecc2.node.AMinusBaseExpr;
@@ -1429,6 +1430,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     		value = new NounMetadata("{" + variable + "}", PixelDataType.CONST_STRING);
     	}
     	this.curReactor.getCurRow().add(value);
+    }
+    
+    @Override
+    public void inAMapOperationValues(AMapOperationValues node) {
+        classLogger.debug("Starting a map operation " + node.toString());
+    }
+    
+    @Override
+    public void outAMapOperationValues(AMapOperationValues node) {
+		classLogger.debug("Ending map operation " + node.toString());
     }
     
     @Override

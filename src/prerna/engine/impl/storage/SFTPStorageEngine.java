@@ -56,7 +56,11 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		this.password = smssProp.getProperty(Constants.PASSWORD);
 
 		sshClient = new SSHClient();
-		sshClient.loadKnownHosts();
+		try {
+			sshClient.loadKnownHosts();
+		} catch(IOException e) {
+			classLogger.warn("Unable to find/load known hosts... ignoring error");
+		}
 		sshClient.addHostKeyVerifier(new PromiscuousVerifier());
 		sshClient.connect(this.host, Integer.parseInt(this.port.trim()));
 		sshClient.getConnection().getKeepAlive().setKeepAliveInterval(5);

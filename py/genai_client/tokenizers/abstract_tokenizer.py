@@ -1,17 +1,22 @@
 from typing import Any, List
 from abc import ABC, abstractmethod
 
+
 class AbstractTokenizer(ABC):
 
     def __init__(
-        self, 
-        encoder_name:str,
-        max_tokens:int,
-        max_input_tokens:int = None
+        self,
+        encoder_name: str,
+        max_tokens: int,
+        max_input_tokens: int = None,
+        context_window: int = None,
+        max_completion_tokens: int = None,
     ):
         self.tokenizer = self._get_tokenizer(encoder_name)
-        self.max_tokens = max_tokens
-        self.max_input_tokens = max_input_tokens
+        self.max_tokens = max_tokens  # Deprecated
+        self.max_input_tokens = max_input_tokens  # Deprecated
+        self.context_window = context_window  # This is the same as max_tokens
+        self.max_completion_tokens = max_completion_tokens  # Same as max_input_tokens
 
     @abstractmethod
     def count_tokens(self, *args: Any, **kwargs: Any) -> int:
@@ -36,9 +41,9 @@ class AbstractTokenizer(ABC):
         1. max_input_tokens, if not None.
         2. max_tokens, if not None.
         3. tokenizer_max_tokens (the tokenizer's maximum tokens), if not None -- hopefully not.
-        
+
         If all of the above values are None, it returns None.
-        
+
         Parameters:
         - max_input_tokens (int or None): The maximum tokens specified for input.
         - max_tokens (int or None): The maximum tokens specified globally.

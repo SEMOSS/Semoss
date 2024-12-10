@@ -279,7 +279,7 @@ Productions
  // we already have a way to take vectors
  // this is just because we only want to maintain scalars and not allow for
  // evaluations in maps that are being stored on the BE
- values = {simple} map_base_input | {list} map_list | {nested_map} map;
+ values = {simple} map_base_input | {list} map_list | {nested_map} map | {map_operation} operation;
  
  map_list = l_brac map_extended_input? map_list_extend* r_brac;
  map_list_extend = comma map_extended_input;

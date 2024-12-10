@@ -892,7 +892,9 @@ public class SchedulerDatabaseUtility {
 		jobDetailsMap.put(ReactorKeysEnum.CRON_TZ.getKey(), cronTimeZone);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
-		jobDetailsMap.put(ScheduleJobReactor.UI_STATE, uiState);
+		if(uiState != null && !(uiState=uiState.trim()).isEmpty()) {
+			jobDetailsMap.put(ScheduleJobReactor.UI_STATE, uiState);
+		}
 		// setting the prev_fire_time fom the smss audit table
 		if(previousRun != null) {
 			jobDetailsMap.put(PREV_FIRE_TIME, previousRun.toString());			

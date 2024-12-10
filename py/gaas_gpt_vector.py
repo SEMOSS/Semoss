@@ -27,12 +27,13 @@ class VectorEngine(ServerProxy):
         file_paths: List[str],
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
+        space: Optional[str] = None,
     ) -> bool:
         """
         Add the documents into the vector database
 
         Args:
-            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 
+            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
@@ -40,9 +41,15 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
-        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
+        optionalSpace = (
+            f",space=['{space}']" if (space is not None and space != "") else ""
+        )
+
+        pixel = f'CreateEmbeddingsFromDocuments(engine="{self.engine_id}",filePaths={file_paths}{optionalParams}{optionalSpace});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
@@ -56,7 +63,7 @@ class VectorEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
-    
+
     def addVectorCSVFile(
         self,
         file_paths: List[str],
@@ -67,7 +74,7 @@ class VectorEngine(ServerProxy):
         Add the vector csv file format documents into the vector database
 
         Args:
-            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add 
+            file_paths (`List[str]`):  The paths (relative to the insight_id) of the files to add
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
         """
@@ -75,7 +82,9 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
         pixel = f'CreateEmbeddingsFromVectorCSVFile(engine="{self.engine_id}",filePaths={file_paths}{optionalParams});'
         epoc = super().get_next_epoc()
@@ -90,7 +99,7 @@ class VectorEngine(ServerProxy):
             output = pixelReturn[0]["pixelReturn"][0]
             return output["output"]
 
-        return pixelReturn    
+        return pixelReturn
 
     def removeDocument(
         self,
@@ -110,7 +119,9 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
         pixel = f'RemoveDocumentFromVectorDatabase(engine="{self.engine_id}",fileNames={file_names}{optionalParams});'
         epoc = super().get_next_epoc()
@@ -131,6 +142,10 @@ class VectorEngine(ServerProxy):
         self,
         search_statement: str,
         limit: Optional[int] = 5,
+        filters: Optional[Dict] | Optional[str] = None,
+        filters_str: Optional[str] = None,
+        metafilters: Optional[Dict] | Optional[str] = None,
+        metafilters_str: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
@@ -150,10 +165,76 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
+        # Building limits param
         optionalLimit = f",limit=[{limit}]" if (limit is not None and limit > 0) else ""
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
 
-        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optionalParams});'
+        optional_filters = ""
+
+        # 1. Check if filters_str parameter is provided (if so use this)
+        # 2. If not, check if filters parameter is provided and check if it is a string (if so use this)
+        # 3. If not, check if filters parameter is provided and check if it is a dictionary (if so build the string)
+        if filters_str is not None:
+            optional_filters = f",filters=[{filters_str}]"
+        if filters is not None and optional_filters == "":
+            if isinstance(filters, str):
+                optional_filters = f",filters=[{filters}]"
+            elif isinstance(filters, dict):
+                filter_conditions = []
+                for key, value in filters.items():
+                    formatted_key = key.capitalize()
+                    if isinstance(value, str):
+                        formatted_values = f'"{value}"'
+                    else:
+                        formatted_values = ", ".join([f'"{v}"' for v in value])
+                    filter_conditions.append(f"{formatted_key} == [{formatted_values}]")
+
+                optional_filters = (
+                    f",filters = [ Filter({', '.join(filter_conditions)})]"
+                    if filter_conditions
+                    else ""
+                )
+            else:
+                raise ValueError(
+                    "Invalid filters type. Filter must be string or dictionary"
+                )
+
+        # 1. Check if metafilters_str parameter is provided (if so use this)
+        # 2. If not, check if metafilters parameter is provided and check if it is a string (if so use this)
+        # 3. If not, check if metafilters parameter is provided and check if it is a dictionary (if so build the string)
+        optional_meta_filters = ""
+        if metafilters_str is not None:
+            optional_meta_filters = f",metaFilters=[{metafilters_str}]"
+        if metafilters is not None and optional_meta_filters == "":
+            if isinstance(metafilters, str):
+                optional_meta_filters = f",metaFilters=[{metafilters}]"
+            elif isinstance(metafilters, dict):
+                metafilter_conditions = []
+                for key, value in metafilters.items():
+                    # formatted_key = key.capitalize() # Assuming the user has passed the key in the correct format
+                    if isinstance(value, str):
+                        formatted_values = f'"{value}"'
+                    else:
+                        formatted_values = ", ".join([f'"{v}"' for v in value])
+                    metafilter_conditions.append(
+                        f"{formatted_key} == [{formatted_values}]"
+                    )
+
+                optional_meta_filters = (
+                    f",metaFilters=[ Filter({', '.join(metafilter_conditions)})]"
+                    if metafilter_conditions
+                    else ""
+                )
+            else:
+                raise ValueError(
+                    "Invalid metafilters type. Metafilters must be string or dictionary"
+                )
+
+        # Building the rest of the optional parameters in paramValues
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
+
+        pixel = f'VectorDatabaseQuery(engine="{self.engine_id}",command=["<encode>{search_statement}</encode>"]{optionalLimit}{optional_filters}{optional_meta_filters}{optionalParams});'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(
@@ -183,9 +264,13 @@ class VectorEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        optionalParams = f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        optionalParams = (
+            f",paramValues=[{param_dict}]" if param_dict is not None else ""
+        )
 
-        pixel = f'ListDocumentsInVectorDatabase(engine="{self.engine_id}"{optionalParams});'
+        pixel = (
+            f'ListDocumentsInVectorDatabase(engine="{self.engine_id}"{optionalParams});'
+        )
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(

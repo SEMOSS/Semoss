@@ -1,12 +1,10 @@
 import psutil
 import GPUtil
-import platform
-from datetime import datetime
 import re
 
 
 # sourced from - https://www.thepythoncode.com/article/get-hardware-system-information-python
-class HardwareUtil():
+class HardwareUtil:
 
     def __init__(self):
         self.stats = {}
@@ -46,8 +44,7 @@ class HardwareUtil():
         # disk_io = psutil.disk_io_counters()
         # print(f"Total read: {self.get_size(disk_io.read_bytes)}")
         # print(f"Total write: {self.get_size(disk_io.write_bytes)}")
-        storage = {"total": all_total, "used": all_used,
-                   "available": all_available}
+        storage = {"total": all_total, "used": all_used, "available": all_available}
         self.stats.update({"storage": storage})
         return storage
 
@@ -84,13 +81,26 @@ class HardwareUtil():
             #    gpu_id, gpu_name, gpu_load, gpu_free_memory, gpu_used_memory,
             #    gpu_total_memory, gpu_temperature, gpu_uuid
             # ))
-            gpu_details = {"name": gpu_name,  "total": gpu_total_memory,
-                           "available": gpu_free_memory, "used": gpu_used_memory, "temperature": gpu_temperature}
+            gpu_details = {
+                "name": gpu_name,
+                "total": gpu_total_memory,
+                "available": gpu_free_memory,
+                "used": gpu_used_memory,
+                "temperature": gpu_temperature,
+            }
             gpu_data.update({gpu_id: gpu_details})
 
         # sort the info (highest to lowest)
-        gpu_data = {'gpus': {k: v for k, v in sorted(
-            gpu_data.items(), key=lambda item: item[1]['available'], reverse=True)}}
+        gpu_data = {
+            "gpus": {
+                k: v
+                for k, v in sorted(
+                    gpu_data.items(),
+                    key=lambda item: item[1]["available"],
+                    reverse=True,
+                )
+            }
+        }
 
         gpu_data.update({"total": all_total})
         gpu_data.update({"available": all_available})
@@ -136,13 +146,11 @@ class HardwareUtil():
 
     def parse_to_bytes(self, readable_value):
         try:
-            numeric_value = float(re.findall(
-                r"[-+]?\d*\.?\d+", readable_value)[0])
-            alpha_value = ''.join(x for x in readable_value if x.isalpha())[0]
+            numeric_value = float(re.findall(r"[-+]?\d*\.?\d+", readable_value)[0])
+            alpha_value = "".join(x for x in readable_value if x.isalpha())[0]
             return self.convert_to_bytes(numeric_value, alpha_value)
         except IndexError:
-            raise ValueError(
-                "Invalid input format: unable to parse numeric value")
+            raise ValueError("Invalid input format: unable to parse numeric value")
         except Exception as e:
             raise ValueError(f"An error occurred: {e}")
 
@@ -163,13 +171,13 @@ class HardwareUtil():
         self.get_gpu()
 
         gpu_to_allocate = []
-        if (memory_needed >= self.stats['gpu']['available']):
+        if memory_needed >= self.stats["gpu"]["available"]:
             return gpu_to_allocate
 
-        for k, v in self.stats['gpu']['gpus'].items():
-            memory_needed -= v['available']
+        for k, v in self.stats["gpu"]["gpus"].items():
+            memory_needed -= v["available"]
             gpu_to_allocate.append(k)
-            if (memory_needed < 0):
+            if memory_needed < 0:
                 break
 
         return gpu_to_allocate

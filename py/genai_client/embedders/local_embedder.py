@@ -1,4 +1,4 @@
-from typing import Optional, Union, List, Dict, Any
+from typing import Optional, Union, List, Dict
 from sentence_transformers import SentenceTransformer, util
 from huggingface_hub import (
     try_to_load_from_cache,
@@ -9,14 +9,15 @@ from huggingface_hub import (
 from transformers import AutoModel
 from pathlib import Path
 
-from.abstract_embedder import AbstractEmbedder
+from .abstract_embedder import AbstractEmbedder
 from ..tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..constants import MAX_TOKENS, MAX_INPUT_TOKENS, EmbeddingsModelEngineResponse
 
 import torch
 
+
 class LocalEmbedder(AbstractEmbedder):
-    
+
     def __init__(
         self,
         model_name: str,
@@ -32,9 +33,9 @@ class LocalEmbedder(AbstractEmbedder):
         )
 
         assert self.model_folder != None
-        
+
         # sometimes the model folder from self.get_physical_folder is a PosixPath and the get embedder call fails since
-        #  embedder = SentenceTransformer( self.model_folder,device=self.device) needs string for model_folder 
+        #  embedder = SentenceTransformer( self.model_folder,device=self.device) needs string for model_folder
 
         self.model_folder = str(self.model_folder)
         # if a device number was passed in, make sure its available
@@ -58,14 +59,14 @@ class LocalEmbedder(AbstractEmbedder):
         )
 
         self.key_bert_model = None
-        
+
     def _get_tokenizer(self, init_args: Dict) -> HuggingfaceTokenizer:
         tokenizer = HuggingfaceTokenizer(
             encoder_name=self.model_name,
             max_tokens=init_args.pop(MAX_TOKENS, None),
             max_input_tokens=init_args.pop(MAX_INPUT_TOKENS, None),
         )
-        
+
         return tokenizer
 
     def get_physical_folder(self, repo_id: str) -> str:
@@ -111,7 +112,9 @@ class LocalEmbedder(AbstractEmbedder):
 
         return embedder
 
-    def embeddings_call(self, strings_to_embed: List[str], prefix="") -> EmbeddingsModelEngineResponse:
+    def embeddings_call(
+        self, strings_to_embed: List[str], prefix=""
+    ) -> EmbeddingsModelEngineResponse:
         # Determine what object was bassed in so we can pre-configure it before making the call
         assert isinstance(strings_to_embed, List)
 

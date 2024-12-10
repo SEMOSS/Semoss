@@ -1,8 +1,8 @@
 package prerna.usertracking;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
 import org.javatuples.Pair;
 
@@ -26,7 +26,7 @@ public class UserTrackingOwlCreator {
 	
 	// concepts are tables within db
 	// props are cols w/i concepts
-	private static List<String> conceptsRequired = new Vector<String>();
+	private static List<String> conceptsRequired = new ArrayList<>();
 	static {
 		conceptsRequired.add("USER_TRACKING");
 		conceptsRequired.add("ENGINE_VIEWS");
@@ -138,7 +138,7 @@ public class UserTrackingOwlCreator {
 		 * Not doing anything with columns but should eventually do that
 		 */
 		
-		List<String> cleanConcepts = new Vector<String>();
+		List<String> cleanConcepts = new ArrayList<>();
 		List<String> concepts = userTrackingDb.getPhysicalConcepts();
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {

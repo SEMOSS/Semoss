@@ -341,7 +341,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static Integer getUserAccessRequestDatabasePermission(String userId, String databaseId) {
+	public static Integer getUserAccessRequestEnginePermission(String userId, String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID", "==", userId));
@@ -654,7 +654,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getEngineUsers(User user, String engineId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this database");
+			throw new IllegalArgumentException("The user does not have access to view this engine");
 		}
 		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
@@ -1727,6 +1727,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__EMAIL"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}

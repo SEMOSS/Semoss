@@ -73,8 +73,14 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		// get the reactor inputs
 		String vectorDbName = getVectorDatabaseName();
+		//if vector db name is not valid throw error
+		if (!Utility.validateName(vectorDbName)) {
+			//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+		
+		//String vectorDbName = getVectorDatabaseName();
 		Map<String, Object> vectorDbDetails = getVectorDatabaseDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 

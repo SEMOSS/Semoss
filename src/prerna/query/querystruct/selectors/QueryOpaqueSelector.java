@@ -21,6 +21,11 @@ public class QueryOpaqueSelector extends AbstractQuerySelector {
 		this.querySelectorSyntax = querySelectorSyntax;
 	}
 	
+	public QueryOpaqueSelector(String querySelectorSyntax, String alias) {
+		this.querySelectorSyntax = querySelectorSyntax;
+		this.alias = alias;
+	}
+	
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
 		return SELECTOR_TYPE;

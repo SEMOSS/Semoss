@@ -666,6 +666,46 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @param password
 	 * @return
 	 */
+	public static boolean isCurrentPassword(String userId, AuthProvider type, String password) {
+		String hashedPassword = null;
+		String salt = null;
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(PASSWORD_COL));
+		qs.addSelector(new QueryColumnSelector(SALT_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", type.toString()));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				hashedPassword = (String) values[0];
+				salt = (String) values[1];
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		String typedHash = hash(password, salt);
+		return hashedPassword.equals(typedHash);
+	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param password
+	 * @return
+	 */
 	public static boolean isPreviousPassword(String userId, AuthProvider type, String password) {
 		int passReuseCount = -1;
 		try {

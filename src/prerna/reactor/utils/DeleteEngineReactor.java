@@ -1,5 +1,6 @@
 package prerna.reactor.utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -64,10 +66,19 @@ public class DeleteEngineReactor extends AbstractReactor {
 		for (String engineId : engineIds) {
 			// we may have the alias
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			IEngine engine = Utility.getEngine(engineId);
-			IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+			IEngine engine = Utility.getEngine(engineId, false);
+			String engineName = null;
+			IEngine.CATALOG_TYPE engineType = null;
+			if(engine != null) {
+				engineName = engine.getEngineName();
+				engineType = engine.getCatalogType();
+			} else {
+				engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+				engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+			}
 			
-			deleteEngines(engine, engineType);
+			deleteEngines(engine, engineId, engineName, engineType);
 			EngineSyncUtility.clearEngineCache(engineId);
 			UserTrackingUtils.deleteEngine(engineId);
 			// Run the delete thread in the background for removing from cloud storage
@@ -85,8 +96,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 	 * @param engine
 	 * @return
 	 */
-	private boolean deleteEngines(IEngine engine, IEngine.CATALOG_TYPE engineType) {
-		String engineId = engine.getEngineId();
+	private boolean deleteEngines(IEngine engine, String engineId, String engineName, IEngine.CATALOG_TYPE engineType) {
 		UploadUtilities.removeEngineFromDIHelper(engineId);
 		// remove from local master if database
 		if(IEngine.CATALOG_TYPE.DATABASE == engineType) {
@@ -99,10 +109,25 @@ public class DeleteEngineReactor extends AbstractReactor {
 		UserTrackingUtils.deleteEngine(engineId);
 		
 		// now try to actually remove from disk
-		try {
-			engine.delete();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		if(engine != null) {
+			try {
+				engine.delete();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			// try to delete based on the name of the folder and smss file
+			// which we expect to be based on enginename__engineid
+			String thisEngineFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
+			File thisEngineF = new File(thisEngineFolder);
+			if(thisEngineF.exists() && thisEngineF.isDirectory()) {
+				thisEngineF.delete();
+			}
+			String smssFile = thisEngineFolder+".smss";
+			File thisSmssF = new File(smssFile);
+			if(thisSmssF.exists() && thisSmssF.isFile()) {
+				thisSmssF.delete();
+			}
 		}
 		
 		return true;

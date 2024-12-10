@@ -1,6 +1,8 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.Array;
 import java.sql.Connection;
@@ -225,8 +227,25 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							val = rs.getString(colNum);
 						}
 					}
-				} 
-				else if(type == Types.ARRAY) {
+				}
+				else if(type == Types.BINARY) {
+					try(InputStream is = rs.getBinaryStream(colNum);
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					) {
+						if(is != null) {
+					        byte[] buffer = new byte[1024];
+					        int length;
+	
+					        while ((length = is.read(buffer)) != -1) {
+					            baos.write(buffer, 0, length);
+					        }
+	
+					        val = baos.toString("UTF-8"); 
+						}
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				} else if(type == Types.ARRAY) {
 					Array arrVal = rs.getArray(colNum);
 					if(arrVal != null) {
 						val = arrVal.getArray();

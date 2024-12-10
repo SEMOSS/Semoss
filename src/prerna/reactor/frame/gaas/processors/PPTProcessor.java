@@ -8,6 +8,11 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.hslf.usermodel.HSLFNotes;
+import org.apache.poi.hslf.usermodel.HSLFShape;
+import org.apache.poi.hslf.usermodel.HSLFSlide;
+import org.apache.poi.hslf.usermodel.HSLFSlideShow;
+import org.apache.poi.hslf.usermodel.HSLFTextShape;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFNotes;
 import org.apache.poi.xslf.usermodel.XSLFShape;
@@ -41,39 +46,48 @@ public class PPTProcessor {
 	/**
 	 * 
 	 */
-	public void process() {
+	public void process(String fileType) {
 		FileInputStream is = null;
-		XMLSlideShow ppt = null;
+		Object ppt = null; // To hold either HSLFSlideShow or XMLSlideShow
 		try {
-			try {
-				is = new FileInputStream(this.filePath);
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				return;
-			}
+			is = new FileInputStream(this.filePath);
 
-			try {
+			if (fileType.equalsIgnoreCase("ppt")) {
+				ppt = new HSLFSlideShow(is);
+				processSlides((HSLFSlideShow) ppt);
+			} else {
 				ppt = new XMLSlideShow(is);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				return;
+				processSlides((XMLSlideShow) ppt);
 			}
-
-			processSlides(ppt);
+		} catch (FileNotFoundException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ppt != null) {
-				try {
-					ppt.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(is != null) {
-				try {
-					is.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+			closeDocument(ppt);
+			closeInputStream(is);
+		}
+	}
+
+	private void closeDocument(Object ppt) {
+	    if (ppt != null) {
+	        try {
+	            if (ppt instanceof HSLFSlideShow) {
+	                ((HSLFSlideShow) ppt).close();
+	            } else if (ppt instanceof XMLSlideShow) {
+	                ((XMLSlideShow) ppt).close();
+	            }
+	        } catch (IOException e) {
+	            classLogger.error("Error closing PowerPoint document", e);
+	        }
+	    }
+	}
+	private void closeInputStream(FileInputStream is) {
+		if (is != null) {
+			try {
+				is.close();
+			} catch (IOException e) {
+				classLogger.error("Error closing FileInputStream", e);
 			}
 		}
 	}
@@ -121,7 +135,42 @@ public class PPTProcessor {
         	//System.out.println("----------------------------");
         	count++;
         }	 
-	}	
+	}
+	
+	private void processSlides(HSLFSlideShow ppt) {
+		String source = getSource(this.filePath);
+		int count = 1;
+
+		for (HSLFSlide slide : ppt.getSlides()) {
+			StringBuilder slideText = new StringBuilder();
+			List<HSLFShape> shapes = slide.getShapes();
+
+			for (HSLFShape shape : shapes) {
+				if (shape instanceof HSLFTextShape) {
+					HSLFTextShape textShape = (HSLFTextShape) shape;
+					// Get the complete text from the text shape
+					slideText.append(textShape.getText()); // This retrieves all text in the shape
+					slideText.append("\n"); //  Add a newline for better formatting
+				}
+			}
+
+			HSLFNotes notes = slide.getNotes();
+			if (notes != null) {
+				for (HSLFShape shape : notes.getShapes()) {
+					if (shape instanceof HSLFTextShape) {
+						HSLFTextShape textShape = (HSLFTextShape) shape;
+						// Get the complete text from the notes text shape
+						slideText.append(textShape.getText()); // This retrieves all text in the shape
+						slideText.append("\n"); // Optional: Add a newline for better formatting
+					}
+				}
+			}
+
+			this.writer.writeRow(source, count + "", slideText.toString(), "");
+			count++;
+		}
+	}
+
 
 	/**
 	 * 

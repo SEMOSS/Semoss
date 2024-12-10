@@ -472,8 +472,12 @@ public class Constants {
 	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
 	
 	// Model Configurations
+	@Deprecated
 	public static final String MAX_TOKENS = "MAX_TOKENS";
+	@Deprecated
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
+	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
+	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
 	
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -599,6 +603,10 @@ public class Constants {
 	
 	// Theming
 	public static final String THEMING_DB = "themes";
+	
+	// Prompt
+	public static final String PROMPT_DB = "PromptDatabase";
+	public static final String PROMPT_DB_ENABLED = "PROMPT_DB_ENABLED";
 
 	// Quartz Scheduler
 	public static final String SCHEDULER_DB = "scheduler";
@@ -816,6 +824,7 @@ public class Constants {
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
 	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String PROMPT_METAKEYS = "PROMPTMETAKEYS";
 	public static final String METAKEY = "METAKEY";
 	public static final String SINGLE_MULTI = "SINGLEMULTI";
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
@@ -900,6 +909,10 @@ public class Constants {
 	public static final String KEYWORD_ENGINE_ID = "KEYWORD_ENGINE_ID";
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
 	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR = "CUSTOM_DOCUMENT_PROCESSOR";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID = "CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID";
+	public static final String EMBED_IMAGES = "EMBED_IMAGES";
+	public static final String IMAGE_ENGINE_ID = "IMAGE_ENGINE_ID";
 
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
@@ -911,4 +924,25 @@ public class Constants {
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
 	
 	public static final String WHITE_LIST_DOMAINS =  "WHITE_LIST_DOMAINS";
+	
+	public static final String SMSS_USER_NAME = "name";
+	public static final String SMSS_USER_EMAIL = "email";
+	//MS_GRAPH_USER
+	public static final String MS_GRAPH_DISPLAY_NAME = "displayName";
+	public static final String MS_GRAPH_EMAIL = "mail";
+	public static final String MS_GRAPH_ID = "id";
+	public static final String MS_GRAPH_USERNAME = "username";
+	public static final String MS_GRAPH_USER_PRINCIPAL_NAME = "userPrincipalName";
+	public static final String MS_GRAPH_VALUE = "value";
+	//USER_MAP 
+	public static final String USER_MAP_NAME = "name";
+	public static final String USER_MAP_ID = "id";
+	public static final String USER_MAP_TYPE = "type";
+	public static final String USER_MAP_EMAIL = "email";
+	public static final String USER_MAP_USERNAME = "username";
+	// MAP user
+	public static final String MAP_USERID = "userid";
+	public static final String MAP_EMAIL = "email";
+	public static final String MAP_NAME = "name";
+	public static final String MAP_USERNAME = "username";
 }

@@ -1,6 +1,4 @@
 import boto3
-import json
-from string import Template
 import logging
 
 from .abstract_text_generation_client import AbstractTextGenerationClient
@@ -36,7 +34,7 @@ class BedrockClient(AbstractTextGenerationClient):
         secret_key=None,
         region=None,
         template_name=None,
-        response_stream=False,
+        response_stream=None,
         guardrail_identifier=None,
         guardrail_version=None,
         **kwargs,
@@ -74,29 +72,6 @@ class BedrockClient(AbstractTextGenerationClient):
                 region_name=self.region,
             )
 
-    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
-        # Create a dictionary with the desired parameters
-        body_dict = {
-            "prompt": prompt,
-            "max_tokens_to_sample": max_new_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
     def create_inference_config(self, max_new_tokens, temperature, top_p):
         if top_p is None:
             top_p = 0.9
@@ -113,69 +88,6 @@ class BedrockClient(AbstractTextGenerationClient):
 
         return inference_config
 
-    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
-        # Create a dictionary with the desired parameters
-        body_dict = {
-            "prompt": prompt,
-            "max_tokens_to_sample": max_new_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
-    def create_json_body_titan(
-        self, prompt, max_new_tokens, temperature, top_p, stop_sequences
-    ):
-        # Create a dictionary with the desired parameters
-        if stop_sequences is None:
-            stop_sequences = []
-
-        if top_p is None:
-            top_p = 0.9
-
-        if max_new_tokens is None:
-            max_new_tokens = 200
-
-        if temperature is None:
-            temperature = 0.9
-
-        body_dict = {
-            "inputText": prompt,
-            "textGenerationConfig": {
-                "maxTokenCount": max_new_tokens,
-                "stopSequences": stop_sequences,
-                "temperature": temperature,
-                "topP": top_p,
-            },
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
     def summarize(self, **kwargs):
         client = self._get_client()
         model_engine_response = AskModelEngineResponse()
@@ -187,7 +99,6 @@ class BedrockClient(AbstractTextGenerationClient):
             csv_args={
                 "delimiter": ",",
                 "quotechar": '"',
-                "fieldnames": ["Content"],
             },
         )
         docs = loader.load()
@@ -236,9 +147,6 @@ class BedrockClient(AbstractTextGenerationClient):
 
         summary_results = map_reduce_chain.invoke(split_docs)
 
-        # results_map = {}
-        # results_map["response"] = summary_results["output_text"]
-        # results_map["file_path"] = csv_path
         final_response = summary_results["output_text"]
         model_engine_response.response_tokens = self.tokenizer.count_tokens(
             final_response
@@ -259,6 +167,7 @@ class BedrockClient(AbstractTextGenerationClient):
         top_p=None,
         stop_sequences=None,
         prefix="",
+        stream = None,
         **kwargs,
     ) -> AskModelEngineResponse:
         client = self._get_client()
@@ -312,7 +221,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     prompt_content = (
                         "\n\nHuman:" + kwargs[FULL_PROMPT] + "\n\nAssistant:"
                     )
-                elif self.modelId == "amazon.titan-text-express-v1":
+                else:
                     prompt_content = kwargs[FULL_PROMPT]
 
             model_engine_response.prompt_tokens = self.tokenizer.count_tokens(
@@ -323,8 +232,11 @@ class BedrockClient(AbstractTextGenerationClient):
             inference_config = self.create_inference_config(
                 max_new_tokens, temperature, top_p
             )
+            
+            if stream is None:
+                stream = self.response_stream
 
-            if self.response_stream == True:
+            if stream == "true" or stream == True:
                 if (
                     self.guardrail_identifier is not None
                     and self.guardrail_version is not None
@@ -350,11 +262,11 @@ class BedrockClient(AbstractTextGenerationClient):
                         # additionalModelRequestFields=additional_model_fields
                     )
 
-                stream = response.get("stream")
-                if stream:
-                    for event in stream:
+                stream_response = response.get("stream")
+                if stream_response:
+                    for event in stream_response:
                         if "contentBlockDelta" in event:
-                            full_response += event["contentBlockDelta"]["delta"]["text"]
+                            final_response += event["contentBlockDelta"]["delta"]["text"]
 
                     model_engine_response.response_tokens = self.tokenizer.count_tokens(
                         final_response
@@ -392,12 +304,9 @@ class BedrockClient(AbstractTextGenerationClient):
                 model_engine_response.response_tokens = response["usage"][
                     "outputTokens"
                 ]
-
             model_engine_response.response = final_response
             return model_engine_response
 
         except Exception as e:
             logger.error(f"Error while making request to Bedrock: {e}")
             raise Exception(f"Error while making request to Bedrock: {e}")
-
-        return final_response

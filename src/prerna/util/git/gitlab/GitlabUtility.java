@@ -8,7 +8,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;

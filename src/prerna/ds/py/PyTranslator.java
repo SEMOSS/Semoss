@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -35,11 +34,11 @@ public class PyTranslator {
 	// this is the default all of the pandas stuff would use
 
 	// sets the insight
-	Insight insight = null;
+	protected Insight insight = null;
 
-	Logger logger = null;
+	protected Logger logger = null;
 
-	PyExecutorThread pt = null;
+	private PyExecutorThread pt = null;
 	public static String curEncoding = null;
 	public static String NO_OUTPUT = "<e>";
 	public static String NEED_OUTPUT = "<o>";
@@ -285,10 +284,6 @@ public class PyTranslator {
 	}
 
 	public synchronized String runPyAndReturnOutput(String... inscript) {
-		return runPyAndReturnOutput(null, inscript);
-	}
-
-	public synchronized String runPyAndReturnOutput(Map<String, StringBuffer> appMap, String... inscript) {
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -314,7 +309,13 @@ public class PyTranslator {
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
 			removePathVariables = " ROOT";
 
-			if (this.insight.isSavedInsight()) {
+			// context project takes precedence
+			if (this.insight.getContextProjectId() != null) {
+				appRootPath = AssetUtility.getProjectAssetFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId());
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				removePathVariables += ", APP_ROOT";
+			} else if (this.insight.isSavedInsight()) {
 				appRootPath = this.insight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
@@ -337,10 +338,6 @@ public class PyTranslator {
 		if (!removePathVariables.isEmpty()) {
 			removePathVariables = "del " + removePathVariables;
 		}
-		// get the custom var String
-		String varFolderAssignment = "";
-		if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
-			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
 
 		File pyTempF = new File(Utility.normalizePath(pyTemp));
 		if (!pyTempF.exists()) {
@@ -372,8 +369,7 @@ public class PyTranslator {
 		}
 
 		// attempt to put it into environment
-		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n"
-				+ varFolderAssignment;
+		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment;
 
 		if (multi) {
 			// Try writing the script to a file
@@ -415,9 +411,6 @@ public class PyTranslator {
 					}
 					if (insightRootPath != null && output.contains(insightRootPath)) {
 						output = output.replace(insightRootPath, "$IF");
-					}
-					if (varFolderAssignment != null && varFolderAssignment.length() > 0) {
-						output = cleanCustomVar(output, appMap);
 					}
 
 					if (error != null) {
@@ -469,8 +462,7 @@ public class PyTranslator {
 		}
 	}
 
-	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript, Insight in) {
-
+	public synchronized String runSingle(String inscript, Insight in) {
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -489,12 +481,18 @@ public class PyTranslator {
 		String userRootPath = null;
 
 		String pyTemp = null;
-		if (this.insight != null) {
+		if (in != null) {
 			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
 			removePathVariables = " ROOT";
 
-			if (this.insight.isSavedInsight()) {
+			// context project takes precedence
+			if (in.getContextProjectId() != null) {
+				appRootPath = AssetUtility.getProjectAssetFolder(in.getContextProjectName(), in.getContextProjectId());
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				removePathVariables += ", APP_ROOT";
+			} else if (in.isSavedInsight()) {
 				appRootPath = this.insight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
@@ -517,11 +515,6 @@ public class PyTranslator {
 		if (!removePathVariables.isEmpty()) {
 			removePathVariables = "del " + removePathVariables;
 		}
-
-		// get the custom var String
-		String varFolderAssignment = "";
-		if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
-			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
 
 		File pyTempF = new File(pyTemp);
 		if (!pyTempF.exists()) {
@@ -547,8 +540,8 @@ public class PyTranslator {
 		File outputFile = new File(outputPath);
 
 		// attempt to put it into environment
-		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n"
-				+ varFolderAssignment;
+		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment;
+		
 		// execute all the commands for setting variables etc.
 		// Try writing the script to a file
 		ErrorSenderThread est = new ErrorSenderThread();
@@ -575,7 +568,7 @@ public class PyTranslator {
 				// Start the error sender thread
 				if (this instanceof TCPPyTranslator
 						&& ((TCPPyTranslator) this).getSocketClient() instanceof NativePySocketClient) {
-					Object pythonReturnObject = runScript(script, insight);
+					Object pythonReturnObject = runSmssWrapperEval(script, insight);
 
 					if (pythonReturnObject instanceof String) {
 						output = (String) pythonReturnObject;
@@ -612,9 +605,6 @@ public class PyTranslator {
 				}
 				if (insightRootPath != null && output.contains(insightRootPath)) {
 					output = output.replace(insightRootPath, "$IF");
-				}
-				if (varFolderAssignment != null && varFolderAssignment.length() > 0) {
-					output = cleanCustomVar(output, appMap);
 				}
 
 				// Successful case
@@ -654,8 +644,7 @@ public class PyTranslator {
 
 	// overloading the run script method to pass in the user map
 
-	public String runScript(Map<String, StringBuffer> appMap, String script, Insight in) {
-
+	public String runScript(String script, Insight in) {
 		String removePathVariables = "";
 		String insightRootAssignment = "";
 		String appRootAssignment = "";
@@ -665,12 +654,18 @@ public class PyTranslator {
 		String appRootPath = null;
 		String userRootPath = null;
 
-		if (this.insight != null) {
-			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+		if (in != null) {
+			insightRootPath = in.getInsightFolder().replace('\\', '/');
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
 			removePathVariables = ", ROOT";
 
-			if (this.insight.isSavedInsight()) {
+			// context project takes precedence
+			if (in.getContextProjectId() != null) {
+				appRootPath = AssetUtility.getProjectAssetFolder(in.getContextProjectName(), in.getContextProjectId());
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				removePathVariables += ", APP_ROOT";
+			} else if (in.isSavedInsight()) {
 				appRootPath = this.insight.getAppFolder();
 				appRootPath = appRootPath.replace('\\', '/');
 				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
@@ -684,20 +679,9 @@ public class PyTranslator {
 			} catch (Exception ignore) {
 				// ignore
 			}
-
 		}
 
-		// get the custom var String
-		String varFolderAssignment = "";
-		if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
-			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
-
-		// flatten the FolderAssignment string
-		varFolderAssignment = varFolderAssignment.replaceAll("[\\r\\n]+", ";");
-
-		String assignmentString = insightRootAssignment + appRootAssignment + userRootAssignment + varFolderAssignment;
-
-		// String assignmentScript = getAssignments(appMap);
+		String assignmentString = insightRootAssignment + appRootAssignment + userRootAssignment;
 		executeEmptyPyDirect(assignmentString, in);
 		String output = runScript(script) + "";
 
@@ -710,9 +694,6 @@ public class PyTranslator {
 		}
 		if (insightRootPath != null && output.contains(insightRootPath)) {
 			output = output.replace(insightRootPath, "$IF");
-		}
-		if (varFolderAssignment != null && varFolderAssignment.length() > 0) {
-			output = cleanCustomVar(output, appMap);
 		}
 
 		// Successful case
@@ -752,35 +733,6 @@ public class PyTranslator {
 		}
 	}
 
-	// the output pragma here is not useful. This is purely done so as to avoid
-	// copying over all the other methods to TCPPyTranslator
-	// and to avoid casting everywhere
-	public synchronized Object runScript(String script, String outputPragma) {
-		this.pt.command = new String[] { script };
-		Object monitor = this.pt.getMonitor();
-		Object response = null;
-		synchronized (monitor) {
-			try {
-				monitor.notify();
-				monitor.wait(4000);
-			} catch (Exception ignored) {
-
-			}
-			/*
-			 * if(script.length == 1) { response = this.pt.response.get(script[0]); } else {
-			 * response = this.pt.response; }
-			 */
-			response = this.pt.response;
-		}
-
-		Object scriptResponse = ((Hashtable) response).get(script);
-		if (scriptResponse instanceof SemossPixelException) {
-			throw (SemossPixelException) scriptResponse;
-		} else {
-			return scriptResponse;
-		}
-	}
-
 	protected String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
 		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
@@ -793,21 +745,6 @@ public class PyTranslator {
 
 	public void setLogger(Logger logger) {
 		this.logger = logger;
-	}
-
-	// make the custom var String
-	private String cleanCustomVar(String output, Map<String, StringBuffer> appMap) {
-		Iterator<String> varIt = appMap.keySet().iterator();
-
-		while (varIt.hasNext()) {
-			// get this key
-			String thisKey = varIt.next();
-			String thisVal = appMap.get(thisKey).toString();
-
-			output = output.replace(thisVal, thisKey);
-		}
-
-		return output;
 	}
 
 	// this becomes an issue on windows where it only consumes specific encoding
@@ -868,7 +805,7 @@ public class PyTranslator {
 	// System.out.println("Output >> " + output);
 	// }
 
-	public synchronized Object runScript(String script, Insight insight) {
+	public synchronized Object runSmssWrapperEval(String script, Insight insight) {
 		ErrorSenderThread est = null;
 		String payload = script;
 		if (insight != null) {

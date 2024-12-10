@@ -5,11 +5,11 @@ class SemossConsole(object):
         self.output = []
 
     def write(self, console_line):
-        if (self.socket_handler is not None):
+        if self.socket_handler is not None:
             self.socket_handler.send_output(console_line, self.payload, response=False)
         else:
             self.output.append(console_line)
-            
+
     def set_payload(self, payload):
         self.payload = payload
 

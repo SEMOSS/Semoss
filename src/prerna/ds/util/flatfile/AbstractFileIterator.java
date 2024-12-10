@@ -110,18 +110,28 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			} else if(type == SemossDataType.DOUBLE) {
 				// so we are consistent with the predict types
 				cleanRow[i] = Utility.getDouble(val.replaceAll("[$,\\s]", ""));
-			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
-				String additionalTypeData = additionalTypes[i];
-				
-				// if we have additional data format for the date
-				// send the date object
-				Object date = null;
-				if(additionalTypeData != null) {
-					date = new SemossDate(val, additionalTypeData);
+			} else if(type == SemossDataType.BOOLEAN) {
+				if(val.equals("null")) {
+					cleanRow[i] = null;
 				} else {
-					date = val;
+					cleanRow[i] = Boolean.parseBoolean(val);
 				}
-				cleanRow[i] = date;
+			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+				if(val.equals("null")) {
+					cleanRow[i] = null;
+				} else {
+					String additionalTypeData = additionalTypes[i];
+					
+					// if we have additional data format for the date
+					// send the date object
+					Object date = null;
+					if(additionalTypeData != null) {
+						date = new SemossDate(val, additionalTypeData);
+					} else {
+						date = val;
+					}
+					cleanRow[i] = date;
+				}
 			} else {
 				cleanRow[i] = val; //Utility.cleanString(val, true, true, false);
 			}

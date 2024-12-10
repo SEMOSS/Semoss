@@ -37,6 +37,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 
 	public static final String AZ_ACCOUNT_NAME = "AZ_ACCOUNT_NAME";
 	public static final String AZ_PRIMARY_KEY = "AZ_PRIMARY_KEY";
+	public static final String AZ_USE_MSI = "AZ_USE_MSI";
 
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
 	public static final String AZ_SAS_URL = "SAS_URL";
@@ -46,7 +47,9 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 	
 	private transient String accountName = null;
 	private transient String primaryKey = null;
-	
+	private transient boolean useMsi = false;
+	private transient boolean keysProvided = false;
+
 	private transient CloudBlobClient serviceClient = null;
 	private transient String connectionString = null;
 
@@ -57,12 +60,20 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		
 		this.accountName = smssProp.getProperty(AZ_ACCOUNT_NAME);
 		this.primaryKey = smssProp.getProperty(AZ_PRIMARY_KEY);
-		this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
+		// determine if keys provided or not
+		if(this.accountName != null && !this.accountName.isEmpty() 
+				&& this.primaryKey != null && !primaryKey.isEmpty()) {
+			this.keysProvided = true;
+		} else {
+			this.keysProvided = false;
+		}
+		this.useMsi = Boolean.parseBoolean(smssProp.getProperty(AZ_USE_MSI, "false"));
 		
 		// default to using dynamic SAS
 		this.generateDynamicSAS = Boolean.parseBoolean(smssProp.getProperty(AZ_GENERATE_DYNAMIC_SAS, "true"));
 		
 		if(this.generateDynamicSAS) {
+			this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
 			createServiceClient();
 		}
 	}
@@ -154,8 +165,12 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		if(this.generateDynamicSAS) {
 			String sasUrl = getDynamicSAS(containerName);
 			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
-		} else {
+		} else if(this.useMsi) {
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "use_msi", "true");
+		} else if(this.keysProvided) {
 			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "account", accountName, "key", primaryKey);
+		} else {
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "env_auth", "true");
 		}
 		
 		return rcloneConfig;

@@ -1,15 +1,15 @@
 from typing import List, Dict, Union, Optional, Any
 from .faiss_client import FAISSSearcher
 from gaas_gpt_model import ModelEngine
-from genai_client import get_tokenizer
 
-class FAISSDatabase():
-    '''
+
+class FAISSDatabase:
+    """
     This the primary class to store all the FAISSSearcher for a given faiss database
-    '''
+    """
 
     def __init__(
-        self, 
+        self,
         tokenizer,
         distance_method: str,
         embedder_engine_id: Optional[str] = None,
@@ -19,9 +19,9 @@ class FAISSDatabase():
         embedder_engine: ModelEngine = None,
         keyword_engine: ModelEngine = None,
     ) -> None:
-        '''
+        """
         Create an instance of FAISSDatabase
-        '''
+        """
         # first we have to determine what tokenizer we need
         self.tokenizer = tokenizer
 
@@ -29,69 +29,62 @@ class FAISSDatabase():
         if embedder_engine is not None:
             self.embeddings_engine = embedder_engine
         else:
-            self.embeddings_engine = model_engine_class(engine_id = embedder_engine_id)
-        
-        if (keyword_engine_id != None and keyword_engine_id != ''):
-            self.keyword_engine = model_engine_class(engine_id = keyword_engine_id)
+            self.embeddings_engine = model_engine_class(engine_id=embedder_engine_id)
+
+        if keyword_engine_id != None and keyword_engine_id != "":
+            self.keyword_engine = model_engine_class(engine_id=keyword_engine_id)
         else:
             self.keyword_engine = keyword_engine
-        
+
         # what type of similarity search are we performing
         self.metric_type_is_cosine_similarity = False
-        if distance_method.lower().find('cosine') > -1:
+        if distance_method.lower().find("cosine") > -1:
             self.metric_type_is_cosine_similarity = True
-        
+
         # register all the searchers passed in
         self.searchers = {
-            searcher:FAISSSearcher(
-                embeddings_engine = self.embeddings_engine,
-                keywords_engine = self.keyword_engine,
-                tokenizer = self.tokenizer, 
-                metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity
-            ) 
+            searcher: FAISSSearcher(
+                embeddings_engine=self.embeddings_engine,
+                keywords_engine=self.keyword_engine,
+                tokenizer=self.tokenizer,
+                metric_type_is_cosine_similarity=self.metric_type_is_cosine_similarity,
+            )
             for searcher in searchers
         }
 
-    def create_searcher(
-        self, 
-        searcher_name: str, 
-        **kwargs: Any
-    ) -> None:
-        '''
+    def create_searcher(self, searcher_name: str, **kwargs: Any) -> None:
+        """
         Create a new searchers/indexClasses to which a set of documents will be added.
 
         Args:
             searcher_name(`str`):
                 The name of the searcher to be added.
-        
+
         Returns:
             `None`
-        '''
-        if (searcher_name in self.searchers.keys()):
+        """
+        if searcher_name in self.searchers.keys():
             raise ValueError("The searcher/table/class already exists")
-        
+
         self.searchers[searcher_name] = FAISSSearcher(
-            embeddings_engine = self.embeddings_engine,
-            keywords_engine = self.keyword_engine,
-            tokenizer = self.tokenizer, 
-            metric_type_is_cosine_similarity = self.metric_type_is_cosine_similarity,
+            embeddings_engine=self.embeddings_engine,
+            keywords_engine=self.keyword_engine,
+            tokenizer=self.tokenizer,
+            metric_type_is_cosine_similarity=self.metric_type_is_cosine_similarity,
             **kwargs
         )
 
-    def delete_searcher(
-        self, 
-        searcher_name: str
-    ) -> None:
-        '''
+    def delete_searcher(self, searcher_name: str) -> None:
+        """
         Remove a searcher/indexClass from the the main database object
 
         Args:
             searcher_name(`str`):
                 The name of the searcher to be removed from memory after the files have been deleted
-        
+
         Returns:
             `None`
-        '''
+        """
         del self.searchers[searcher_name]
 
     def nearestNeighbor(
@@ -111,7 +104,7 @@ class FAISSDatabase():
                 The number of matches under the threshold that will be returned. This same limit will be used for every index class search in case all of the top results come from a singular class
             ascending(`Optional[Union[bool, None]]`):
                  A boolean flag to return results in ascending order or not. Default is True.
-        
+
         Return:
             `List[Dict]` consisting of Score and columns
 
@@ -141,20 +134,19 @@ class FAISSDatabase():
         for indexClass in indexClasses:
             # perform the nn search in the index class
             index_class_output = self.searchers[indexClass].nearestNeighbor(
-                results = results, 
-                ascending = ascending, 
-                **kwargs
+                results=results, ascending=ascending, **kwargs
             )
 
             # add the index class to the return payload for every object so the end user knows where the results are coming from
-            index_class_output = [{**output, "indexClass": indexClass} for output in index_class_output]
+            index_class_output = [
+                {**output, "indexClass": indexClass} for output in index_class_output
+            ]
 
-            index_outputs.extend(
-                index_class_output
-            )
-        
+            index_outputs.extend(index_class_output)
+
         # sort the total output and retrun the specified limit
-        index_outputs = sorted(index_outputs, key=lambda x: x['Score'], reverse= not ascending)[:results]
-        
+        index_outputs = sorted(
+            index_outputs, key=lambda x: x["Score"], reverse=not ascending
+        )[:results]
+
         return index_outputs
-    

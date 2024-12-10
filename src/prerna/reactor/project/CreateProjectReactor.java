@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class CreateProjectReactor extends AbstractReactor {
 
@@ -36,7 +37,15 @@ public class CreateProjectReactor extends AbstractReactor {
 		IProject.PROJECT_TYPE projectType = null;
 
 		int index = 0;
-		String projectName = this.keyValue.get(this.keysToGet[index++]);
+		
+		String projectName = this.keyValue.get(this.keysToGet[index++]); 
+		//if projectName is valid then set the name, else throw error
+		if (!Utility.validateName(projectName)) {
+		//error and redirect to try again
+			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+		
+		//String projectName = this.keyValue.get(this.keysToGet[index++]);
 		String projectTypeStr = this.keyValue.get(this.keysToGet[index++]);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
 		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
@@ -62,8 +71,6 @@ public class CreateProjectReactor extends AbstractReactor {
 		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, hasPortal, portalName, 
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 		
-		this.insight.getUser().setProject(project.getProjectId(), projectName);
-
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}

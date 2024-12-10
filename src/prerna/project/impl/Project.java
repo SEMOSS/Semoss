@@ -66,12 +66,15 @@ import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.project.impl.notebook.NotebookFactory;
+import prerna.project.impl.notebook.INotebookRunner;
+import prerna.project.impl.notebook.NotebookRunnerFactory;
+import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
+import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
@@ -798,12 +801,25 @@ public class Project implements IProject {
 	 * 
 	 */
 	public void compileReactors(SemossClassloader customLoader) {
-		File javaDirectory = new File(this.projectAssetFolder + DIR_SEPARATOR + "java");
+		File javaDirectory = new File(this.projectAssetFolder + "/java");
 		
 		// if there is no java.. dont even bother with this
 		// no need to spend time on any of this
 		if( !javaDirectory.exists() ) {
 			return;
+		}
+		
+		String classesFolder = this.projectAssetFolder + "/classes";
+		File classesDir = new File(classesFolder);
+		// delete the existing classes folder if it exists
+		// so we know the reactor files are fresh
+		if(classesDir.exists() && classesDir.isDirectory()) {
+			try {
+				FileUtils.cleanDirectory(classesDir);
+				classesDir.mkdir();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		
 		File[] jars = javaDirectory.listFiles(new FilenameFilter() {
@@ -832,16 +848,8 @@ public class Project implements IProject {
 	}
 	
 	private void compileReactorsFromJavaFiles(SemossClassloader customLoader) {
+		//set path and create a new file in path
 		String classesFolder = this.projectAssetFolder + "/classes";
-		File classesDir = new File(classesFolder);
-//		if(classesDir.exists() && classesDir.isDirectory()) {
-//			try {
-//				//FileUtils.cleanDirectory(classesDir);
-//				//classesDir.mkdir();
-//			} catch (Exception e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//			}
-//		}
 		
 		SemossClassloader cl = projectClassLoader;
 		if(customLoader != null) {
@@ -1141,12 +1149,31 @@ public class Project implements IProject {
 		}
 		
 		try {
-			INotebookBuilder builder = NotebookFactory.getNotebookBuilder(blocksF);
+			INotebookBuilder builder = NotebookWriterFactory.getNotebookBuilder(blocksF);
 			return builder.createNotebooks(projectNotebookF);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ClusterUtil.pushProjectFolder(this, this.projectNotebookFolder);
+		}
+		
+		return null;
+	}
+	@Override
+	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
+		// if not blocks json
+		// then ignore for now
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			return runner.executeNotebook(insight, inputReplacements);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
