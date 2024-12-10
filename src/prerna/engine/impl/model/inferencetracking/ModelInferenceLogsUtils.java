@@ -27,6 +27,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -48,7 +49,13 @@ public class ModelInferenceLogsUtils {
 	
 	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 	
-	private static IRDBMSEngine modelInferenceLogsDb;
+	// Constants for Table 
+	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
+	private static final String AGENT_TABLE_NAME = "AGENT__";
+	private static final String ROOM_TABLE_NAME = "ROOM__";
+	
+	static IRDBMSEngine modelInferenceLogsDb;
+	static boolean initialized = false;
 	
 	/**
 	 * 
@@ -391,6 +398,172 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	/**
+	 * USAGE HELPER FUNCTIONS  
+	 * 
+	 */
+	
+	/**
+	 * Function returns the number of unique calls (Inputs) per a model 
+	 * 
+	 * @param engineId
+	 * @param offset 
+	 * @param limit 
+	 * @param dateFilter 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+		
+		addLimitAndOffSet(qs, limit, offset);
+		// order descending
+		qs.addOrderBy(MESSAGE_TABLE_NAME + "DATE_CREATED", "DESC");
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * Returns a list of total tokens used per project for engineId passed in 
+	 * @param engineId
+	 * @param dateFilter 
+	 * @param offset 
+	 * @param limit 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
+		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
+		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
+		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(countNumberRequestSelector);
+		
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * @param qs
+	 * @param limit
+	 * @param offset
+	 */
+	private static void addLimitAndOffSet(SelectQueryStruct qs, String limit, String offset) {
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = ((Number) Double.parseDouble(limit)).longValue();
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = ((Number) Double.parseDouble(offset)).longValue();
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param limit
+	 * @param offset
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+		
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String startDate, String endDate) {
+		if((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();	
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", startDate));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+	}
+
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
+		// First get a list of insightIDs from Room 
+		List<String> insightIdList = getInsightIdListPerProject(projectId);
+		// Second query against message to find number of unique calls? Not sure what we are tracking from projects just yet 
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Unique_Calls");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightIdList));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static List<String> getInsightIdListPerProject(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
+		return insightIdList;
+	}
+	
+	
+	/**
 	 * @param user
 	 */
 	public static void doCreateNewUser(User user) {
@@ -577,8 +750,7 @@ public class ModelInferenceLogsUtils {
 	 * @param author
 	 * @return
 	 */
-	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType,
-			String author) {
+	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType, String author) {
 		String agentId = UUID.randomUUID().toString();
 		doCreateNewAgent(agentId, agentName, agentDescription, agentType, author);
 		return agentId;
@@ -591,8 +763,7 @@ public class ModelInferenceLogsUtils {
 	 * @param agentType
 	 * @param author
 	 */
-	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType,
-			 String author) {
+	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType, String author) {
 		String query = "INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, "
 				+ "AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
@@ -787,20 +958,35 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
-
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param dateSort
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
 		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
 		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-		if (dateSort.equals("DESC"))
+		if (dateSort.equals("DESC")) {
 			Collections.reverse(response);
+		}
 		return response;
 	}
 	
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param dateSort
+	 * @return
+	 */
 	private static SelectQueryStruct retrieveMessageQS(String userId, String insightId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
