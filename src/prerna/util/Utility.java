@@ -4076,6 +4076,20 @@ public final class Utility {
 	}
 	
 	/**
+	 * Determine if promptdb logs db is enabled
+	 * @return
+	 */
+	public static boolean isPromptDatabaseEnabled() {
+		String promptDB = Utility.getDIHelperProperty(Constants.PROMPT_DB_ENABLED);
+		if(promptDB == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(promptDB);
+	}
+	
+	/**
 	 * Determine if user tracking enabled
 	 * @return
 	 */
@@ -5861,8 +5875,7 @@ public final class Utility {
 		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
 		return name.matches(regex);
 	}
-	
-	
+		
 	/**
 	 * 
 	 * @param utcDateTime
@@ -5903,25 +5916,51 @@ public final class Utility {
 
 		return dates;
 	}
-	
+  
 	/**
-	 * @param value
-	 * @param type
-	 * @return default values based on type
+	 * 
+	 * @param directory
 	 */
-	public static <T> T nullCheckUtility(Object value, Class<T> type) {
-		if (value == null) {
-			if (type == Integer.class) {
-				return type.cast(0);
-			} else if (type == Double.class) {
-				return type.cast(0.0);
-			} else if (type == String.class) {
-				return type.cast(null);
-			} else if (type == Boolean.class) {
-				return type.cast(true);
-			}
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+        	return;
+        }
+        
+    	if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+
+        // Execute the command
+        Process process;
+		try {
+			process = Runtime.getRuntime().exec(command);
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+
+	        if (exitCode != 0) {
+	        	classLogger.info("Failed running - " + command);
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        } else {
+	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+	        }
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		return type.cast(value);
-	}
+
+    }
 
 }

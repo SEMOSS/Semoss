@@ -114,7 +114,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, mask_entities={mask_entities});'
+        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, maskEntities={mask_entities});'
 
         print(f"Pixel: {pixel}")
         pixelReturn = super().callReactor(
@@ -195,9 +195,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         # return model_response
 
-
-
-
     def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
         """This method is responsible to get message history back from the model logs database.
 
@@ -230,7 +227,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             return output["output"]
 
         return pixelReturn
-
 
     def embeddings(
         self,
@@ -387,7 +383,7 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
 
     def get_model_engine_id(self) -> str:
         return self.engine_id
-    
+
 
 class LocalModelEngine(AbstractModelEngine):
 
