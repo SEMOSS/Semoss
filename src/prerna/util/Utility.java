@@ -5894,7 +5894,7 @@ public final class Utility {
         }
 
         // Construct the chmod command
-        String command = String.format("chmod -R 770 %s", Utility.normalizePath(directory.getAbsolutePath()));
+        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
 
         // Execute the command
         Process process;
@@ -5904,7 +5904,10 @@ public final class Utility {
 	        int exitCode = process.waitFor();
 
 	        if (exitCode != 0) {
+	        	classLogger.info("Failed running - " + command);
 	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        } else {
+	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
 	        }
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
