@@ -101,6 +101,133 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return model_response
 
+    def ner(
+        self,
+        text: str,
+        entities: List[str],
+        mask_entities: List[str] = [],
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ):
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+
+        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, maskEntities={mask_entities});'
+
+        print(f"Pixel: {pixel}")
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
+    def instruct(
+        self,
+        task: str,
+        context: Optional[str] = None,
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ) -> List[Dict]:
+        """This method is responsible for interacting with models that can perform instruction based text-generation.
+        This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
+
+        Args:
+            - task (str): The task to instruct.
+            - context (Optional[str]): Context for the task.
+            - insight_id (Optional[str]): Identifier for insights.
+            - param_dict (Optional[Dict]): Additional parameters.
+
+        Returns:
+            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
+            - response
+            - numberOfTokensInPrompt
+            - numberOfTokensInResponse
+            - messageId
+            - roomId
+        """
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        if param_dict is None:
+            param_dict = {}
+
+        epoc = super().get_next_epoc()
+
+        context_str = f'context="{context}",' if context is not None else ""
+
+        pixel = f'LLMInstruct(engine="{self.engine_id}", command="{task}", {context_str} insight_id="{insight_id}");'
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
+        # model_response = super().call(
+        #     epoc=epoc,
+        #     engine_type="Model",
+        #     engine_id=self.engine_id,
+        #     method_name="instruct",
+        #     method_args=[task, context, insight_id, param_dict],
+        #     method_arg_types=[
+        #         "java.lang.String",
+        #         "java.lang.String",
+        #         "prerna.om.Insight",
+        #         "java.util.Map",
+        #     ],
+        #     insight_id=insight_id,
+        # )
+
+        # return model_response
+
+    def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
+        """This method is responsible to get message history back from the model logs database.
+
+        Args:
+            - insight_id (Optional[str]): Identifier for insights.
+
+        Returns:
+            `List[Dict]`: A dictionary with the response the model logs database. The dictionary in the response will contain the following keys:
+            - MESSAGE_DATA
+            - DATE_CREATED
+            - MESSAGE_ID
+            - MESSAGE_TYPE
+        """
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+
+        pixel = f'GetRoomMessages(roomId="{insight_id}");'
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
     def embeddings(
         self,
         strings_to_embed: List[str],
@@ -413,6 +540,15 @@ class ModelEngine(AbstractModelEngine):
     ) -> Dict:
         return self.model_engine.ask(**kwargs)
 
+    def instruct(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ) -> Dict:
+        return self.model_engine.instruct(**kwargs)
+
     def embeddings(
         self,
         insight_id: Optional[
@@ -431,6 +567,15 @@ class ModelEngine(AbstractModelEngine):
     ):
         return self.model_engine.model(**kwargs)
 
+    def ner(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ):
+        return self.model_engine.ner(**kwargs)
+
     def get_model_type(self, **kwargs):
         return self.model_engine.get_model_type(**kwargs)
 
@@ -439,6 +584,9 @@ class ModelEngine(AbstractModelEngine):
 
     def get_model_engine_id(self) -> str:
         return self.model_engine.get_model_engine_id()
+
+    def get_conversation_history(self):
+        return self.model_engine.get_conversation_history()
 
     def to_langchain_embedder(self):
         """Transform the model engine into a langchain `Embeddings`object so that it can be used with langchain code"""

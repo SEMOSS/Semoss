@@ -1,5 +1,4 @@
 import boto3
-import json
 import logging
 
 from .abstract_text_generation_client import AbstractTextGenerationClient
@@ -73,29 +72,6 @@ class BedrockClient(AbstractTextGenerationClient):
                 region_name=self.region,
             )
 
-    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
-        # Create a dictionary with the desired parameters
-        body_dict = {
-            "prompt": prompt,
-            "max_tokens_to_sample": max_new_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
     def create_inference_config(self, max_new_tokens, temperature, top_p):
         if top_p is None:
             top_p = 0.9
@@ -111,69 +87,6 @@ class BedrockClient(AbstractTextGenerationClient):
         }
 
         return inference_config
-
-    def create_json_body(self, prompt, max_new_tokens, temperature, top_p):
-        # Create a dictionary with the desired parameters
-        body_dict = {
-            "prompt": prompt,
-            "max_tokens_to_sample": max_new_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
-
-    def create_json_body_titan(
-        self, prompt, max_new_tokens, temperature, top_p, stop_sequences
-    ):
-        # Create a dictionary with the desired parameters
-        if stop_sequences is None:
-            stop_sequences = []
-
-        if top_p is None:
-            top_p = 0.9
-
-        if max_new_tokens is None:
-            max_new_tokens = 200
-
-        if temperature is None:
-            temperature = 0.9
-
-        body_dict = {
-            "inputText": prompt,
-            "textGenerationConfig": {
-                "maxTokenCount": max_new_tokens,
-                "stopSequences": stop_sequences,
-                "temperature": temperature,
-                "topP": top_p,
-            },
-        }
-
-        # Filter out parameters with null or empty values
-        filtered_body_dict = {
-            key: value
-            for key, value in body_dict.items()
-            if value is not None and value != ""
-        }
-
-        # Convert the filtered dictionary to JSON
-        body_json = json.dumps(
-            filtered_body_dict
-        )  # Optional: indent for pretty printing
-
-        return body_json
 
     def summarize(self, **kwargs):
         client = self._get_client()
@@ -234,9 +147,6 @@ class BedrockClient(AbstractTextGenerationClient):
 
         summary_results = map_reduce_chain.invoke(split_docs)
 
-        # results_map = {}
-        # results_map["response"] = summary_results["output_text"]
-        # results_map["file_path"] = csv_path
         final_response = summary_results["output_text"]
         model_engine_response.response_tokens = self.tokenizer.count_tokens(
             final_response
@@ -311,7 +221,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     prompt_content = (
                         "\n\nHuman:" + kwargs[FULL_PROMPT] + "\n\nAssistant:"
                     )
-                elif self.modelId == "amazon.titan-text-express-v1":
+                else:
                     prompt_content = kwargs[FULL_PROMPT]
 
             model_engine_response.prompt_tokens = self.tokenizer.count_tokens(
