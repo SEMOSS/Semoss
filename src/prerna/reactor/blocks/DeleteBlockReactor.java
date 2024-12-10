@@ -26,7 +26,6 @@ public class DeleteBlockReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed in to delete a block", PixelDataType.CONST_STRING,

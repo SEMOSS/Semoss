@@ -18,6 +18,12 @@ public class ListBlocksReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		
+		String userId = this.insight.getUserId();
+		if (userId == null || userId.isEmpty()) {
+			throw new IllegalArgumentException("User is not properly logged in.");
+		}
+		
 		this.organizeKeys();
 		String tableName = this.keyValue.get("tableName");
 		Object blocks = null;
