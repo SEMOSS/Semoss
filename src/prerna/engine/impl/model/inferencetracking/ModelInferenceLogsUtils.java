@@ -414,7 +414,6 @@ public class ModelInferenceLogsUtils {
 	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String startDate, String endDate) {
 	
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
@@ -538,8 +537,6 @@ public class ModelInferenceLogsUtils {
 	}
 
 	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
-		//TODO - Figure out what exactly we mean by usage cause i have no idea 
-		// TODO - take in limit and offset 
 		// First get a list of insightIDs from Room 
 		List<String> insightIdList = getInsightIdListPerProject(projectId);
 		// Second query against message to find number of unique calls? Not sure what we are tracking from projects just yet 
