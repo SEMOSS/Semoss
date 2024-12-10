@@ -13,9 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -25,21 +24,19 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
-public class FileDownloadReactor extends AbstractReactor {
+public class VectorFileDownloadReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(FileDownloadReactor.class);
+	private static final Logger logger = LogManager.getLogger(VectorFileDownloadReactor.class);
 
 	private String engineId;
 	private String downloadKey;
 
-	public FileDownloadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "filenames",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+	public VectorFileDownloadReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "filenames" };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -52,9 +49,8 @@ public class FileDownloadReactor extends AbstractReactor {
 		}
 
 		List<String> fileNames = getFiles();
-
 		try {
-			downloadKey = getDownload(fileNames);
+			downloadKey = getDownload(engineId, fileNames);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -64,23 +60,23 @@ public class FileDownloadReactor extends AbstractReactor {
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
-	public String getDownload(List<String> fileNameList) {
-
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-
-		IEngine engine = Utility.getEngine(engineId);
-		String engineName = engine.getEngineName();
-		String thisEngineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineId,
-				engineName) + DIR_SEPARATOR + "schema" + DIR_SEPARATOR + "default" + DIR_SEPARATOR
-				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+	/**
+	 * 
+	 * @param fileNameList
+	 * @return
+	 */
+	private String getDownload(String engineId, List<String> fileNameList) {
+		IVectorDatabaseEngine vectorDb = Utility.getVectorDatabase(engineId);
+		String engineName = vectorDb.getEngineName();
 		String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
+
+		String thisEngineDir = vectorDb.getDocumentsFilesPath(null);
 		String outputDir = this.insight.getInsightFolder();
 		String outFilePath = null;
 
 		FileOutputStream fileoutStream = null;
 		ZipOutputStream zos = null;
 		try {
-
 			if (fileNameList.size() == 1) {
 				// Logic for single file download
 				outFilePath = thisEngineDir + DIR_SEPARATOR + fileNameList.get(0);
@@ -103,7 +99,6 @@ public class FileDownloadReactor extends AbstractReactor {
 					}
 				}
 			} else if (fileNameList.size() > 1) {
-
 				// Logic for multifile download as Zip
 				outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_engine.zip";
 				fileoutStream = new FileOutputStream(outFilePath);
@@ -114,13 +109,12 @@ public class FileDownloadReactor extends AbstractReactor {
 				}
 			} else {
 				logger.error(Constants.STACKTRACE, "Kindly provide a valid filename to download");
-				throw new SemossPixelException("Kindly provide a valid filename to download ");
+				throw new SemossPixelException("Kindly provide a valid filename to download");
 			}
 		} catch (Exception e) {
 			logger.info("Error occurred on download engine");
 			logger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					"Error occurred while downloding file. Detailed message = " + e.getMessage());
+			throw new SemossPixelException("Error occurred while downloding file. Detailed message = " + e.getMessage());
 		} finally {
 			try {
 				if (zos != null) {
@@ -148,7 +142,6 @@ public class FileDownloadReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 
 		return downloadKey;
-
 	}
 
 	/**
