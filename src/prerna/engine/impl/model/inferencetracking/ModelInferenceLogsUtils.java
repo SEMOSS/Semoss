@@ -417,18 +417,18 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
-		
+
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
-//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
-//		}
 		
 		addLimitAndOffSet(qs, limit, offset);
+		// order descending
+		qs.addOrderBy(MESSAGE_TABLE_NAME + "DATE_CREATED", "DESC");
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
@@ -460,10 +460,7 @@ public class ModelInferenceLogsUtils {
 		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
-//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
-//		}
-		
+
 		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
@@ -509,9 +506,6 @@ public class ModelInferenceLogsUtils {
 		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
-//		if(dateFilter != null && !dateFilter.trim().isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", dateFilter));
-//		}
 		
 		addLimitAndOffSet(qs, limit, offset);
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
