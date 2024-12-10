@@ -5909,58 +5909,57 @@ public final class Utility {
 	 */
 	public static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
 		Map<String, ZonedDateTime> dates = new HashMap<>();
-		 // Find the start of the month by setting the day to 1.
+		// Find the start of the month by setting the day to 1.
 		dates.put("start", utcDateTime.withDayOfMonth(1));
 		// Find the end of the month by setting the day to the last day of the month.
 		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
 
 		return dates;
 	}
-  
+
 	/**
 	 * 
 	 * @param directory
 	 */
-    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
-        	return;
-        }
-        
-    	if (directory == null) {
-            throw new IllegalArgumentException("Directory cannot be null");
-        }
+	public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+		String osName = System.getProperty("os.name").toLowerCase();
+		if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+			return;
+		}
 
-        if (!directory.exists()) {
-            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
-        }
+		if (directory == null) {
+			throw new IllegalArgumentException("Directory cannot be null");
+		}
 
-        if (!directory.isDirectory()) {
-            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
-        }
+		if (!directory.exists()) {
+			throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+		}
 
-        // Construct the chmod command
-        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+		if (!directory.isDirectory()) {
+			throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+		}
 
-        // Execute the command
-        Process process;
+		// Construct the chmod command
+		String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+
+		// Execute the command
+		Process process;
 		try {
 			process = Runtime.getRuntime().exec(command);
-	        // Wait for the process to complete
-	        int exitCode = process.waitFor();
+			// Wait for the process to complete
+			int exitCode = process.waitFor();
 
-	        if (exitCode != 0) {
-	        	classLogger.info("Failed running - " + command);
-	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
-	        } else {
-	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
-	        }
+			if (exitCode != 0) {
+				classLogger.info("Failed running - " + command);
+				throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+			} else {
+				classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-
-    }
+	}
 
 }
