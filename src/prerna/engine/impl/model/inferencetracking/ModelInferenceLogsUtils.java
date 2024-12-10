@@ -412,7 +412,6 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String startDate, String endDate) {
-	
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
@@ -533,9 +532,13 @@ public class ModelInferenceLogsUtils {
 			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<=", endDate));
 			qs.addExplicitFilter(andFilters);
 		}
-		
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
 	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
 		// First get a list of insightIDs from Room 
 		List<String> insightIdList = getInsightIdListPerProject(projectId);
@@ -552,6 +555,11 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
 	public static List<String> getInsightIdListPerProject(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
@@ -748,8 +756,7 @@ public class ModelInferenceLogsUtils {
 	 * @param author
 	 * @return
 	 */
-	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType,
-			String author) {
+	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType, String author) {
 		String agentId = UUID.randomUUID().toString();
 		doCreateNewAgent(agentId, agentName, agentDescription, agentType, author);
 		return agentId;
@@ -762,8 +769,7 @@ public class ModelInferenceLogsUtils {
 	 * @param agentType
 	 * @param author
 	 */
-	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType,
-			 String author) {
+	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType, String author) {
 		String query = "INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, "
 				+ "AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
@@ -958,20 +964,35 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
-
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param dateSort
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
 		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
 		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-		if (dateSort.equals("DESC"))
+		if (dateSort.equals("DESC")) {
 			Collections.reverse(response);
+		}
 		return response;
 	}
 	
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param dateSort
+	 * @return
+	 */
 	private static SelectQueryStruct retrieveMessageQS(String userId, String insightId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
