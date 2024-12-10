@@ -315,6 +315,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 								.append("', output_file_name = '")
 								.append(extractedFileName)
 								.append("')");
+							setVectorFolderPermissions();
 							Number rows = (Number) pyt.runScript(extractTextFromDocScript.toString());
 
 							rowsCreated = rows.intValue();
@@ -339,7 +340,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							FileUtils.forceDelete(document); // delete the input file e.g pdf
 							continue;
 						}                    
-						
+						setVectorFolderPermissions();
 						classLogger.info("Creating chunks from extracted text for " + documentName);
 
 						StringBuilder splitTextCommand = new StringBuilder();
@@ -698,10 +699,8 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			}
 			
 			//if we have a python specific user, make sure that user can access the schema folder
-			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-				Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
-			}
+			setVectorFolderPermissions();
+			
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
@@ -896,4 +895,11 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return false;
 	}
 	
+	public void setVectorFolderPermissions() {
+	//if we have a python specific user, make sure that user can access the schema folder
+	String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+	if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+		Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+		}
+	}
 }
