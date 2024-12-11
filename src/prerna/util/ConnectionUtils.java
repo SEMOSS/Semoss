@@ -51,10 +51,10 @@ public class ConnectionUtils {
 		}
 		if(engine!=null && engine.isConnectionPooling()) {
 			try{
-				Connection conn;
-				conn = ps.getConnection();
-				if(conn != null)
-					conn.close();
+				if(con == null && ps != null)
+					con = ps.getConnection();
+				if(con != null)
+					con.close();
 			} catch (Exception e){
 				classLogger.error(Constants.STACKTRACE, e);
 			}
