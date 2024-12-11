@@ -20,48 +20,40 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 	
 	
 	public LoadPyFromFileProjectPyReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PROJECT.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(), ReactorKeysEnum.SPACE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		// this also validates
-		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		
-		String projectId =  keyValue.get(keysToGet[3]);
 		
 		String appFolder = null;
+		String space = keyValue.get(keysToGet[2]);
 		
-		if(keyValue.containsKey(keysToGet[2]))
+		if(space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY) && !space.equals(AssetUtility.USER_SPACE_KEY))
 		{
-			String space = keyValue.get(keysToGet[2]);
-			if(space != AssetUtility.INSIGHT_SPACE_KEY && space != AssetUtility.USER_SPACE_KEY)
-			{
-				appFolder = AssetUtility.getProjectAssetFolder(space) + "/" + Constants.PY_BASE_FOLDER;
-				appFolder = appFolder.replace("\\", "/");
-			}
+			appFolder = AssetUtility.getProjectAssetFolder(space) + "/" + Constants.PY_BASE_FOLDER;
+			appFolder = appFolder.replace("\\", "/");
 		}
-
+		else {
+			throw new IllegalArgumentException("Project space is needed");
+		}
+		
+		
+		// this also validates
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);		
+		
 		String alias = keyValue.get(keysToGet[1]);
 		
-		
-		IProject project = Utility.getProject(projectId);
+		IProject project = Utility.getProject(space);
 
 		try {
-			if(appFolder != null)
-			{
-				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
-				project.getProjectPyTranslator(this.insight).runScript(script);
-			}
-			else
-			{
-				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search=None)";
-				project.getProjectPyTranslator(this.insight).runScript(script);
-				
-			}
+			String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+			project.getProjectPyTranslator(this.insight).runScript(script);
 			return new NounMetadata("Variable set " + alias, PixelDataType.CONST_STRING);
-		} catch (Exception e) {
+
+		}
+		catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Unable to load python file as module");
 		}
