@@ -108,7 +108,7 @@ public class User implements Serializable {
 	public String prefix = "";
 	
 	// this is a unique identifier for this user instance
-	private String state = null;
+	private String userEpoch = null;
 	
 	public User() {
 		// transient objects should be defined in the constructor
@@ -119,7 +119,7 @@ public class User implements Serializable {
 		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
-		this.state = UUID.randomUUID().toString();
+		this.userEpoch = UUID.randomUUID().toString();
 	}
 	
 	/**
@@ -313,14 +313,10 @@ public class User implements Serializable {
 		return this.assetProjectMap;
 	}
 	
-	public String getState() {
-		return state;
+	public String getUserEpoch() {
+		return userEpoch;
 	}
 
-	public void setState(String state) {
-		this.state = state;
-	}
-	
 	////////////////////////////////////////////////////////////////////////
 
 	public IRUserConnection getRcon() {
