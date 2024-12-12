@@ -69,14 +69,18 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		} else {
 			throw new IllegalArgumentException("Model Repo ID is not defined in SMSS file.");
 		}
+		
+		if (this.smssProp.containsKey(Settings.MODEL_TYPE)) {
+			this.modelType = this.smssProp.getProperty(Settings.MODEL_TYPE).trim();
+			} else {
+				throw new IllegalArgumentException("Model Type is not defined in SMSS file.");
+		}
 
     	this.zkClient = RemoteClientServerZK.getInstance();
 
     	// THIS EQUALS == INIT_ENGINE_TYPE
     	String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
     	String initEngineType = smssProp.getProperty(initEngineTypeKey);
-    	modelRepoId = smssProp.getProperty(Settings.MODEL_REPO_ID);
-    	modelType = smssProp.getProperty(Settings.MODEL_TYPE);
 
     	if (initEngineType != null && !initEngineType.isEmpty()){
     		implementingEngineClass = (AbstractModelEngine) Class.forName(initEngineType).newInstance();
