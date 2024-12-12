@@ -49,24 +49,25 @@ public class ConnectionUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		if(engine!=null && engine.isConnectionPooling()) {
-			try{
-				if(con == null && ps != null)
-					con = ps.getConnection();
-				if(con != null)
-					con.close();
-			} catch (Exception e){
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
 		if(ps!=null){
 			try{
+				if(engine!=null && engine.isConnectionPooling() && con == null) {
+					con = ps.getConnection();
+				}
 				ps.close();
 			} catch (Exception e){
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+		if(engine!=null && engine.isConnectionPooling()) {
+			try{
+				if(con != null) {
+					con.close();
+				}
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 	}
 
 	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps, ResultSet rs){
