@@ -45,6 +45,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     private static final Logger classLogger = LogManager.getLogger(AbstractRemoteModelEngine.class);
     
     protected String model;
+    protected String modelRepoId;
+    protected String modelType;
     private RemoteClientServerZK zkClient;
     private Boolean devPortFowarding = false;
     
@@ -61,12 +63,20 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
     	} else {
     		throw new IllegalArgumentException("Model is not defined in SMSS file.");
     	}
+    	
+		if (this.smssProp.containsKey(Settings.MODEL_REPO_ID)) {
+			this.modelRepoId = this.smssProp.getProperty(Settings.MODEL_REPO_ID).trim();
+		} else {
+			throw new IllegalArgumentException("Model Repo ID is not defined in SMSS file.");
+		}
 
     	this.zkClient = RemoteClientServerZK.getInstance();
 
     	// THIS EQUALS == INIT_ENGINE_TYPE
     	String initEngineTypeKey = INIT_PREFIX+Constants.ENGINE_TYPE;
     	String initEngineType = smssProp.getProperty(initEngineTypeKey);
+    	modelRepoId = smssProp.getProperty(Settings.MODEL_REPO_ID);
+    	modelType = smssProp.getProperty(Settings.MODEL_TYPE);
 
     	if (initEngineType != null && !initEngineType.isEmpty()){
     		implementingEngineClass = (AbstractModelEngine) Class.forName(initEngineType).newInstance();
@@ -119,6 +129,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
                 JSONObject payload = new JSONObject();
                 payload.put("model_id", this.engineId);
                 payload.put("model", this.model);
+                payload.put("model_repo_id", this.modelRepoId);
+                payload.put("model_type", this.modelType);
                 
                 StringEntity entity = new StringEntity(
                     payload.toString(),
