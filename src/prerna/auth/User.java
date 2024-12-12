@@ -107,6 +107,9 @@ public class User implements Serializable {
 	// this is what will distinguish between output vs. stdout
 	public String prefix = "";
 	
+	// this is a unique identifier for this user instance
+	private String state = null;
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -116,6 +119,7 @@ public class User implements Serializable {
 		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
+		this.state = UUID.randomUUID().toString();
 	}
 	
 	/**
@@ -307,6 +311,14 @@ public class User implements Serializable {
 	
 	public Map<AuthProvider, String> getAssetEngineMap() {
 		return this.assetProjectMap;
+	}
+	
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
 	}
 	
 	////////////////////////////////////////////////////////////////////////
