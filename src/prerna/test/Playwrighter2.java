@@ -105,7 +105,21 @@ public class Playwrighter2 {
 				JSONObject action = root.getJSONObject(actionId);
 				String actionName = action.getString("action");
 				String actor = action.getString("actor");
-				go = processAction(action, actionId);
+				boolean each = action.has("each") && action.getString("each").equalsIgnoreCase("true");
+				if(each)
+				{
+					JSONArray params = action.getJSONArray("params");
+					for(int paramIndex = 0;paramIndex < params.length();paramIndex++)
+					{
+						JSONArray arr = new JSONArray();
+						arr.put(params.getString(paramIndex));
+						action.put("params", arr);
+						System.err.println("Processing EACH >>>> " + params.getString(paramIndex)+ "<<<<<<");
+						go = processAction(action, actionId);
+					}
+				}
+				else
+					go = processAction(action, actionId);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -120,85 +134,95 @@ public class Playwrighter2 {
 		String actor = action.getString("actor");
 		boolean critical = action.has("critical") && action.getString("critical").equalsIgnoreCase("True");
 		System.err.println("Processing ::: " + actionId);
-		if(actor.equalsIgnoreCase("system"))
+		int retry = 1; // default is execute atleast once
+		if(critical && action.has("retry"))
 		{
-			try {
-				if(actionName.equalsIgnoreCase("navigate"))
-				{
-					navigate(action);
-					handleSleep(action);
-					trace(actionId, actionName);
-				}
-				if(actionName.equalsIgnoreCase("getByPlaceHolder"))
-				{
-						getByPlaceHolder(action, actionId);
+			retry = action.getInt("retry");
+			
+		}
+		int attempt = 0;
+		while(attempt < retry)
+		{
+			if(actor.equalsIgnoreCase("system"))
+			{
+				try {
+					if(actionName.equalsIgnoreCase("navigate"))
+					{
+						navigate(action);
 						handleSleep(action);
 						trace(actionId, actionName);
-					
+					}
+					if(actionName.equalsIgnoreCase("getByPlaceHolder"))
+					{
+							getByPlaceHolder(action, actionId);
+							handleSleep(action);
+							trace(actionId, actionName);
+						
+					}
+					if(actionName.equalsIgnoreCase("locator"))
+					{
+						locator(action, actionId);
+						handleSleep(action);
+						trace(actionId, actionName);
+					}
+					if(actionName.equalsIgnoreCase("getByRole"))
+					{
+						getByRole(action, actionId);
+						handleSleep(action);
+						trace(actionId, actionName);
+					}
+					if(actionName.equalsIgnoreCase("getByLabel"))
+					{
+						getByLabel(action, actionId);
+						handleSleep(action);
+						trace(actionId, actionName);
+					}
+					if(actionName.equalsIgnoreCase("getByText"))
+					{
+						getByText(action, actionId);
+						handleSleep(action);
+						trace(actionId, actionName);
+					}
+					if(actionName.equalsIgnoreCase("filter"))
+					{
+						doFilter(action, actionId);
+						handleSleep(action);
+						trace(actionId, actionName);
+					}
+					if(actionName.equalsIgnoreCase("download"))
+					{
+						downloadFile(action, actionId);
+						handleSleep(action);
+						trace(actionId, actionName);
+					}
+			// other cases follow} 
 				}
-				if(actionName.equalsIgnoreCase("locator"))
-				{
-					locator(action, actionId);
-					handleSleep(action);
-					trace(actionId, actionName);
+				catch (Exception e) {
+				// TODO Auto-generated catch block
+					e.printStackTrace();
+					if(!critical)
+						System.err.println("Failed " + actionId);
+					else
+					{
+						go = false;
+					}
 				}
-				if(actionName.equalsIgnoreCase("getByRole"))
-				{
-					getByRole(action, actionId);
-					handleSleep(action);
-					trace(actionId, actionName);
-				}
-				if(actionName.equalsIgnoreCase("getByLabel"))
-				{
-					getByLabel(action, actionId);
-					handleSleep(action);
-					trace(actionId, actionName);
-				}
-				if(actionName.equalsIgnoreCase("getByText"))
-				{
-					getByText(action, actionId);
-					handleSleep(action);
-					trace(actionId, actionName);
-				}
-				if(actionName.equalsIgnoreCase("filter"))
-				{
-					doFilter(action, actionId);
-					handleSleep(action);
-					trace(actionId, actionName);
-				}
-				if(actionName.equalsIgnoreCase("download"))
-				{
-					downloadFile(action, actionId);
-					handleSleep(action);
-					trace(actionId, actionName);
-				}
-		// other cases follow} 
+			}	
+			else if(actor.equalsIgnoreCase("user"))
+			{
+				getUserInput(action, actionId);
+				handleSleep(action);
+				trace(actionId, actionName);
 			}
-			catch (Exception e) {
-			// TODO Auto-generated catch block
-				e.printStackTrace();
-				if(!critical)
-					System.err.println("Failed " + actionId);
-				else
-				{
-					go = false;
-				}
+			else if(actor.equalsIgnoreCase("pause"))
+			{
+				go = pause(action, actionId);
 			}
-		}
-		
-		else if(actor.equalsIgnoreCase("user"))
-		{
-			getUserInput(action, actionId);
-			handleSleep(action);
-			trace(actionId, actionName);
-		}
-		else if(actor.equalsIgnoreCase("pause"))
-		{
-			go = pause(action, actionId);
-		}
-		else if(actor.equalsIgnoreCase("trace"))
-		{
-			// this is where trace should go.. 
+			else if(actor.equalsIgnoreCase("trace"))
+			{
+				// this is where trace should go.. 
+			}
+			attempt++;
 		}
 		
 		if(action.has("debug") && action.getString("debug").equalsIgnoreCase("true") && locators.containsKey(actionId))
@@ -271,6 +295,8 @@ public class Playwrighter2 {
 		    // another event loop goes here
 		    if(event.equalsIgnoreCase("click"))
 		    	loc.click();
+		    if(event.equalsIgnoreCase("hover"))
+		    	loc.hover();
 	    }
 	}
 
