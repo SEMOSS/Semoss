@@ -38,6 +38,7 @@ public class GetUserInfoReactor extends AbstractReactor {
 				providerMap.put("groupInfo", groupMap);
 				returnMap.put(providerName, providerMap);
 			}
+			returnMap.put("userEpoch", user.getUserEpoch());
 		} else {
 			returnMap.put("No User", "User is not logged in");
 		}
