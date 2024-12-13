@@ -1,0 +1,22 @@
+name: Comment on PR Close
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  comment-on-close:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Add update changelog comment to PR
+        if: github.event.pull_request.merged == true
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            @CodiumAI-Agent /update_changelog
