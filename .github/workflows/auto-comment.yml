@@ -9,13 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
       - name: Add describe comment to PR
         uses: peter-evans/create-or-update-comment@v2
         with:
-          token: ${{ secrets.SEMOSS_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             @CodiumAI-Agent /describe
@@ -26,7 +23,7 @@ jobs:
       - name: Add review comment to PR
         uses: peter-evans/create-or-update-comment@v2
         with:
-          token: ${{ secrets.SEMOSS_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             @CodiumAI-Agent /review
@@ -37,7 +34,7 @@ jobs:
       - name: Add improve comment to PR
         uses: peter-evans/create-or-update-comment@v2
         with:
-          token: ${{ secrets.SEMOSS_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             @CodiumAI-Agent /improve
