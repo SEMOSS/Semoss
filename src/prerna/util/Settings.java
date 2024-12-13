@@ -38,7 +38,8 @@ public class Settings {
 	
 	// FOR REMOTE CLIENTS
 	public static final String MODEL = "MODEL"; // The short name for a model.. Can't use the HuggingFace model repo id here due to naming restrictions on kubernetes resources
-	public static final String DEPLOYER_ENDPOINT = "DEPLOYER_ENDPOINT"; // The endpoint where the Kubernetes Model Scaler is deployed..
+	public static final String MODEL_REPO_ID = "MODEL_REPO_ID"; // The HuggingFace model repo id
+	public static final String MODEL_TYPE = "MODEL_TYPE"; // The type of model
 	
 	
 	// debugging
