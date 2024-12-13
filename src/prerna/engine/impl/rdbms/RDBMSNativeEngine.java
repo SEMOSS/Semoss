@@ -136,6 +136,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		if(this.dbType == null) {
 			this.dbType = RdbmsTypeEnum.H2_DB;
 		}
+		// override the driver based on the db type enum
+		this.driver = this.dbType.getDriver();
+		
 		// make the query util first
 		// since this will help with getting the correct keys for the connection
 		this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
@@ -341,6 +344,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
+		dataSource.setAutoCommit(this.autoCommit);
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);

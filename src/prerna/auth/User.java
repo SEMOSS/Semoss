@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyExecutorThread;
@@ -33,7 +32,6 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
-import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
@@ -85,10 +83,6 @@ public class User implements Serializable {
 	// shared sessions
 	private List<String> sharedSessions = new Vector<>();
 	
-	// we use this in set context and need to review if best to store this
-	private Map<String, String> projectIdMap = new HashMap<>();
-	private Map<String, String> engineIdMap = new HashMap<>();
-	private Map<String, StringBuffer> varMap = new HashMap<>();
 	private transient Map<String, IStorageMount> externalMounts = new HashMap<>();
 	
 	private boolean anonymous;
@@ -113,6 +107,9 @@ public class User implements Serializable {
 	// this is what will distinguish between output vs. stdout
 	public String prefix = "";
 	
+	// this is a unique identifier for this user instance
+	private String userEpoch = null;
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -122,6 +119,7 @@ public class User implements Serializable {
 		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
+		this.userEpoch = UUID.randomUUID().toString();
 	}
 	
 	/**
@@ -315,6 +313,10 @@ public class User implements Serializable {
 		return this.assetProjectMap;
 	}
 	
+	public String getUserEpoch() {
+		return userEpoch;
+	}
+
 	////////////////////////////////////////////////////////////////////////
 
 	public IRUserConnection getRcon() {
@@ -667,209 +669,6 @@ public class User implements Serializable {
 		return this.cpw.getSocketClient();
 	}
 
-	/**
-	 * Storing the engine id to engine name
-	 * @param allEngines
-	 */
-	public void setEngines(List<Map<String, Object>> allEngines) {
-		// I still need to check multiple engines with the same name. why not
-		if(this.engineIdMap.size() == 0 || 
-				(this.engineIdMap.size() != 0 && Integer.parseInt(this.engineIdMap.get("COUNT")) != allEngines.size()))
-		{
-			this.engineIdMap = new HashMap<>();
-			// need to redo
-			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++) {
-				Map <String, Object> engineValues = allEngines.get(engineIndex);
-				String engineName = (String)engineValues.get("database_name");
-				String engineId = (String)engineValues.get("database_id");
-			
-				this.engineIdMap.put(engineId, engineName);
-			}
-			this.engineIdMap.put("COUNT", allEngines.size() + "");
-		}
-	}
-
-	/**
-	 * Storing the project id to project name
-	 * @param allProjects
-	 */
-	public void setProjects(List<Map<String, Object>> allProjects) {
-		// I still need to check multiple engines with the same name. why not
-		if(this.projectIdMap.size() == 0 || 
-				(this.projectIdMap.size() != 0 && Integer.parseInt(this.projectIdMap.get("COUNT")) != allProjects.size()))
-		{
-			this.projectIdMap = new HashMap<>();
-			// need to redo
-			for(int projectIndex = 0;projectIndex < allProjects.size();projectIndex++) {
-				Map <String, Object> projectValues = allProjects.get(projectIndex);
-				String projectName = (String) projectValues.get("project_name");
-				String projectId = (String) projectValues.get("project_id");
-			
-				this.projectIdMap.put(projectId, projectName);
-			}
-			this.projectIdMap.put("COUNT", allProjects.size() + "");
-		}
-	}
-	
-	/**
-	 * Append project id and project name to this.projectIdMap
-	 * @param projectId
-	 * @param projectName
-	 */
-	public void setProject(String projectId, String projectName) {
-		// only add it if the ID is not already in the map
-		if(!this.projectIdMap.containsKey(projectId)) {
-			this.projectIdMap.put(projectId, projectName);
-			int updatedCount = Integer.parseInt(this.projectIdMap.getOrDefault("COUNT", "0")) + 1;
-			this.projectIdMap.put("COUNT",  Integer.toString(updatedCount));
-		}
-	}
-	
-	/**
-	 * Add a var using the project id - var name will be cleaned project name
-	 * @param projectId
-	 * @return	String - the clean project name used as the var name
-	 */
-	public String addVarMap(String projectId) {
-		// initialize in case MyProjects has never been called
-		if(this.projectIdMap == null || this.projectIdMap.isEmpty()) {
-			setProjects(SecurityProjectUtils.getUserProjectList(this, null, false, false, null, null, null, null, null));
-		}
-		String projectName = this.projectIdMap.get(projectId);
-		if(projectName == null) {
-			return null;
-		}
-		projectName = Utility.makeAlphaNumeric(projectName);
-		if(addVarMap(projectName, projectId, false)) {
-			return projectName;
-		}
-		
-		return null;
-	}
-	
-	public boolean addVarMap(String varName, String projectId) {
-		return addVarMap(varName, projectId, false);
-	}
-
-	/**
-	 * 
-	 * @param varName
-	 * @param projectId
-	 * @param override
-	 * @return
-	 */
-	private boolean addVarMap(String varName, String projectId, boolean override) {
-		//TODO: what was override supposed to do from an input standpoint???
-		//TODO: what was override supposed to do from an input standpoint???
-		//TODO: what was override supposed to do from an input standpoint???
-		//TODO: what was override supposed to do from an input standpoint???
-		
-		/*
-		 * Previous code would just break when override was set to true...
-		 */
-
-		String [] pathTokens = projectId.split("/");
-		String subFolder = "";
-		if(pathTokens.length > 1) {
-			subFolder = projectId.replace(pathTokens[0],"");
-			projectId = pathTokens[0];
-		}
-		
-		String projectName = this.projectIdMap.get(projectId);
-		if(projectName == null) {
-			return false;
-		}
-		
-		// giving it the main folder instead of the version
-		String varValue = AssetUtility.getProjectBaseFolder(projectName, projectId) + subFolder;
-		varValue = varValue.replace("\\", "/");
-
-		// only pull the project
-		IProject project = Utility.getProject(projectId);
-		// do not pull the latest from cloud - just leads to issues 
-		// on portals when trying to git pull and sync  across pods
-//		ClusterUtil.reactorPullProjectFolder(project, varValue);
-		
-		StringBuffer oldValue = varMap.get(varName);
-		if(oldValue != null) {
-			removeVarString(varName, oldValue);
-		}
-		
-		this.varMap.put(varName, new StringBuffer(varValue));
-		addVarString(varName);
-
-		return true;
-	}
-	
-	public void removeVarString(String varName, StringBuffer oldValue) {
-		StringBuffer retRString = this.varMap.get("R_VAR_STRING");
-		StringBuffer retPyString = this.varMap.get("PY_VAR_STRING");
-
-		StringBuffer varValue = oldValue;
-		if(oldValue == null) {
-			varValue = this.varMap.get(varName);
-		}
-		
-		if(retRString != null) {
-			StringBuffer remRString = new StringBuffer("").append(varName).append(" <- '").append(varValue).append("';\n");
-			String finalRString = retRString.toString();
-			finalRString = finalRString.replace(remRString.toString(), "");
-			retRString = new StringBuffer(finalRString);
-			if(retRString.length() == 0) {
-				varMap.remove("R_VAR_STRING");
-			} else {
-				varMap.put("R_VAR_STRING", retRString);			
-			}
-		}
-		
-		if(retPyString != null) {
-			StringBuffer remPyString = new StringBuffer("").append(varName).append(" = '").append(varValue).append("'\n");
-			String finalPyString = retPyString.toString();
-			finalPyString = finalPyString.replace(remPyString.toString(), "");
-			retPyString = new StringBuffer(finalPyString);
-			if(retPyString.length() == 0) {
-				varMap.remove("PY_VAR_STRING");
-			} else {
-				varMap.put("PY_VAR_STRING", retPyString);
-			}
-		}
-	}
-	
-	private void addVarString(String varName) {
-		StringBuffer retRString = varMap.get("R_VAR_STRING");
-		StringBuffer retPyString = varMap.get("PY_VAR_STRING");
-		
-		if(retRString == null || retRString.length() == 0) {
-			// first time
-			retRString = new StringBuffer("");
-		}
-		if(retPyString == null || retPyString.length() == 0) {
-			// first time
-			retPyString = new StringBuffer("");
-		}
-		
-		retRString.append(varName).append(" <- '").append(varMap.get(varName)).append("';\n");
-		varMap.put("R_VAR_STRING", retRString);			
-		retPyString.append(varName).append(" = '").append(varMap.get(varName)).append("'\n");
-		varMap.put("PY_VAR_STRING", retPyString);			
-	}
-	
-	private String getVarString(boolean r) {
-		if(r) {
-			return varMap.get("R_VAR_STRING").toString();
-		} else {
-			return varMap.get("PY_VAR_STRING").toString();
-		}
-	}
-	
-	/**
-	 * Returns the paths for the asset folders
-	 * @return
-	 */
-	public Map<String, StringBuffer> getVarMap() {
-		return this.varMap;
-	}
-	
 	public void addExternalMount(String name, IStorageMount mountHelper)
 	{
 		// name is what is recorded
@@ -891,8 +690,6 @@ public class User implements Serializable {
 		if(!mountFile.exists())
 			mountFile.mkdir();
 
-		addVarMap(name, appName + "__" + appId + "/" + name, true);
-		
 		// at some point I need to also set a watcher to ferret things back and forth
 	}
 	
@@ -968,21 +765,10 @@ public class User implements Serializable {
 	}
 	
 	/**
-	 * Check if the user has access to a database
-	 * @param databaseName
-	 * @param databaseId
-	 * @return
-	 */
-	public boolean checkDatabaseAccess(String databaseName, String databaseId) {
-		return this.engineIdMap.containsKey(databaseId) && 
-				this.engineIdMap.get(databaseId).equalsIgnoreCase(databaseName);	
-	}
-
-	/**
 	 * Set the context for the user based on the path defined in the varMap
 	 * @param context
 	 */
-	public void setContext(String context) {
+	public void setContext(String projectId, String projectName) {
 		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
 				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(!useNettyPy) {
@@ -990,19 +776,22 @@ public class User implements Serializable {
 			return;
 		}
 		// sets the context space for the user
-		String mountDir = this.varMap.get(context) + "";
-		// remove the last assets
-		mountDir = mountDir.replace("/assets", "");
-
+		String projectBaseFolder = AssetUtility.getProjectBaseFolder(projectName, projectId);
+		projectBaseFolder = projectBaseFolder.replace("\\", "/");
 		// also set the cmd context right here
-		this.cmdUtil = new CmdExecUtil(context, mountDir, null);
+		this.cmdUtil = new CmdExecUtil(projectId, projectBaseFolder, null);
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(cmdUtil != null && this.cpw.getSocketClient() != null || !this.cpw.getSocketClient().isConnected()) {
-			cmdUtil.setTcpClient(this.cpw.getSocketClient());
-		}
-		return this.cmdUtil;
+	    if (this.cpw.getSocketClient() == null) {
+	        this.getPyTranslator();
+	    }
+	    if (cmdUtil != null) {
+	        if (this.cpw.getSocketClient() != null && !this.cpw.getSocketClient().isConnected()) {
+	            cmdUtil.setTcpClient(this.cpw.getSocketClient());
+	        }
+	    }
+	    return this.cmdUtil;
 	}
 	
 	public MountHelper getUserMountHelper() {

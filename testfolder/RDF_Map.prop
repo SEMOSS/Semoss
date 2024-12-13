@@ -1,76 +1,56 @@
 #This section is for properties
 
-SQL_MOOSE_MODEL 4801422a-5c62-421e-a00c-05c6a9e15de8
-MOOSE_MODEL guanaco
-MOOSE_ENDPOINT https://play.semoss.org/moose
-GUANACO_ENDPOINT https://play.semoss.org/moose/guanaco/
-
-#SEMOSS_IS_CLUSTER true
-#STORAGE LOCAL
-#SEMOSS_STORAGE_PROVIDER MINIO
-
-#AZ_KEY  ***REMOVED***
-#AZ_NAME kunalp3
-#AZ_CONN_STRING   AccountName=kunalp3;AccountKey=***REMOVED***;EndpointSuffix=core.windows.net;DefaultEndpointsProtocol=https;
-
-MINIO_REGION us-east-1
-#MINIO_BUCKET semoss
-MINIO_ACCESS_KEY ***REMOVED***
-MINIO_SECRET_KEY ***REMOVED***
-MINIO_ENDPOINT http://localhost:9000
-
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSVenvWatcher
 PROJECT_WATCHER	ProjectWatcher
 
-INSIGHT_CACHE_DIR	C:/workspace/Semoss_Dev/testfolder/InsightCache
+INSIGHT_CACHE_DIR	C:/workspace/Semoss/testfolder/InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/db
+SMSSWebWatcher_DIR	C:/workspace/Semoss/testfolder/db
 SMSSWebWatcher_EXT	.smss
 SMSSWebWatcher_ETYPE	DATABASE
 
 SMSSStorageWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSStorageWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/storage
+SMSSStorageWatcher_DIR	C:/workspace/Semoss/testfolder/storage
 SMSSStorageWatcher_EXT	.smss
 SMSSStorageWatcher_ETYPE	STORAGE
 
 SMSSModelWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSModelWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/model
+SMSSModelWatcher_DIR	C:/workspace/Semoss/testfolder/model
 SMSSModelWatcher_EXT	.smss
 SMSSModelWatcher_ETYPE	MODEL
 
 SMSSVectorWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSVectorWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/vector
+SMSSVectorWatcher_DIR	C:/workspace/Semoss/testfolder/vector
 SMSSVectorWatcher_EXT	.smss
 SMSSVectorWatcher_ETYPE	VECTOR
 
 SMSSFunctionWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSFunctionWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/function
+SMSSFunctionWatcher_DIR	C:/workspace/Semoss/testfolder/function
 SMSSFunctionWatcher_EXT	.smss
 SMSSFunctionWatcher_ETYPE	FUNCTION
 
 SMSSVenvWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSVenvWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/venv
+SMSSVenvWatcher_DIR	C:/workspace/Semoss/testfolder/venv
 SMSSVenvWatcher_EXT	.smss
 SMSSVenvWatcher_ETYPE	VENV
 
 ProjectWatcher	prerna.util.ProjectWatcher
-ProjectWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/project
+ProjectWatcher_DIR	C:/workspace/Semoss/testfolder/project
 ProjectWatcher_EXT	.smss
 
 #JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
-JobSchedulerWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/rpa/json
+JobSchedulerWatcher_DIR	C:/workspace/Semoss/testfolder/rpa/json
 #JobSchedulerWatcher_EXT	.json
-rpa.config.directory	C:/workspace/Semoss_Dev/testfolder/rpa
+rpa.config.directory	C:/workspace/Semoss/testfolder/rpa
 
-BaseFolder	C:/workspace/Semoss_Dev/testfolder
-ADDITIONAL_REACTORS	C:/workspace/Semoss_Dev/testfolder/reactors.json
-#ADDITIONAL_REACTOR_PACKAGES	policy
-ADDITIONAL_REACTOR_PACKAGES	chat,policy,vha
-SOCIAL	C:/workspace/Semoss_Dev/testfolder/social.properties
-EMAIL_TEMPLATES	C:/workspace/Semoss_Dev/testfolder/emailTemplates/
+BaseFolder	C:/workspace/Semoss/testfolder
+ADDITIONAL_REACTORS	C:/workspace/Semoss/testfolder/reactors.json
+ADDITIONAL_REACTOR_PACKAGES
+SOCIAL	C:/workspace/Semoss/testfolder/social.properties
+EMAIL_TEMPLATES	C:/workspace/Semoss/testfolder/emailTemplates/
 
 #Caching for tasks
 X_CACHE false
@@ -78,16 +58,17 @@ X_CACHE false
 #Encrypt the SMSS file passwords
 ENCRYPT_SMSS false
 
+#THIS IS FOR TESTING ONLY
 #FORCE_PORT 9999
-NETTY_R true
-NETTY_PYTHON true
 
-TCP_CLIENT prerna.tcp.client.NativePySocketClient
+#USE SOCKET FOR RUNNING R/PYTHON IN SEPARATE PROCESS
+NETTY_R false
+NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
 PY_WORKER prerna.pyserve.FileBasedPyWorker
-LD_LIBRARY_PATH	C:\\Users\\mahkhalil\\Documents\\Python\\Python310\\Lib\\site-packages\\jep
+LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
 USE_PY_FILE	TRUE 
 
 USE_R true
@@ -113,16 +94,16 @@ FRAME_SIZE_LIMIT_NATIVE false
 FILE_TRANSFER_LIMIT 5000
 USER_WORKSPACE false
 
+#DEFAULT TERMINAL MODE
+#VALID ONLY FOR WINDOWS
+#USE "cmd" or "powershell"
+TERMINAL_MODE cmd
+
 #SET DEFAULT FRAME TO LOAD DATA
 #Frame type options: GRID, R, NATIVE, GRAPH, PY
 DEFAULT_FRAME_TYPE GRID
 #CURRENTLY ONLY SUPPORT VALUES OF : H2_DB OR SQLITE
 DEFAULT_GRID_TYPE H2_DB
-
-#DEFAULT TERMINAL MODE
-#VALID ONLY FOR WINDOWS
-#USE "cmd" or "powershell"
-TERMINAL_MODE cmd
 
 #SET THE DEFAULT SCRIPTING LANGUAGE
 #THIS WILL DETERMINE IF WE SWITCH TO R OR PY IN CLEAN/ANALYTICS
@@ -144,17 +125,17 @@ LOG_ENCODING false
 #Use a custom chrome binary
 #GOOGLE_CHROME_BINARY C:\\Users\\mahkhalil\\Desktop\\GoogleChromePortable\\GoogleChromePortable.exe
 #SEMOSS logo used for exporting files
-EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss_Dev\\images\\embed\\semoss_logo.png
+EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss\\images\\embed\\semoss_logo.png
 
-#SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith_Dev
-SCHEDULER_ENDPOINT	http://localhost:8080/Monolith_Dev
+#SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
+SCHEDULER_ENDPOINT	http://localhost:8080/Monolith
 SCHEDULER_KEYSTORE
 SCHEDULER_KEYSTORE_PASSWORD
 SCHEDULER_CERTIFICATE_PASSWORD
 
 #SAML CONFIG
-SAML_PROP_LOC	C:\\workspace\\Semoss_Dev\\saml\\mesoc\\conf	
-SAML_FEDERATION_LOG_PATH	C:\\workspace\\Semoss_Dev\\saml\\mesoc\\conf\\debug\\Federation
+SAML_PROP_LOC	C:\\workspace\\Semoss\\saml\\mesoc\\conf	
+SAML_FEDERATION_LOG_PATH	C:\\workspace\\Semoss\\saml\\mesoc\\conf\\debug\\Federation
 
 #SET THIS TO TRUE IF RUNNING LOCALLY ON LAPTOP
 #OTHERWISE, KEEP THIS FALSE FOR SERVER DEPLOYMENT
@@ -162,7 +143,7 @@ LOCAL_DEPLOYMENT false
 
 #WHAT SAMESITE COOKIE VALUE DO YOU WANT
 #POSSIBLE VALUES INCLUDE strict, lax, none
-#SAMESITE_COOKIE none
+SAMESITE_COOKIE none
 
 #POST MESSAGE SPECIFIC KEYS
 PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD	password123
@@ -176,20 +157,36 @@ PIVOT_COL_MAX	100
 
 #Secrets
 SECRET_STORE_ENABLED	false
-SECRET_STORE_TYPE		VAULT
-VAULT_DB_PATH			semoss_db
-VAULT_PROJECT_PATH		semoss_project
+#HASHICORP_VAULT or AZURE_KEYVAULT
+SECRET_STORE_TYPE		
+#Base Paths For Resources
+SECRETS_DB_PATH			semoss-db
+SECRETS_STORAGE_PATH	semoss-storage
+SECRETS_MODEL_PATH		semoss-model
+SECRETS_VECTOR_PATH		semoss-vector
+SECRETS_FUNCTION_PATH 	semoss-function
+SECRETS_PROJECT_PATH	semoss-project
+SECRETS_VENV_PATH		semoss-venv
+
+#Hashicorp Vault
+VAULT_ADDR				
 VAULT_TOKEN				
 
-#Virus Scanning
-VIRUS_SCANNING_ENABLED 	true
-VIRUS_SCANNING_METHOD 	APACHE_TIKA
-CLAMAV_SCANNING_PORT 	3310
-CLAMAV_SCANNING_ADDRESS	127.0.0.1
-CLAMAV_SCANNING_FS		WINDOWS	
+#Azure KeyVault
+#Note SECRET_*_PATH can only be contain alphanumeric and dashes
+#ClientSecretCredential if passing in client/secret/tenant
+AZURE_AUTHENTICATE_MODE	
+AZURE_KEYVAULT_NAME	
+AZURE_CLIENT_ID	
+AZURE_CLIENT_SECRET	
+AZURE_TENANT_ID 		
 
-VIRUSTOTAL_API_KEY	21afaa2a137e9a132f14c052184b5c3c3fa8609eafc9bf315731dcd505244916
-VIRUSTOTAL_USE_CERT false
+#Virus Scanning
+VIRUS_SCANNING_ENABLED 	false
+VIRUS_SCANNING_METHOD 	ClamAV
+CLAMAV_SCANNING_PORT 	3310
+CLAMAV_SCANNING_ADDRESS	 
+CLAMAV_SCANNING_FS		
 
 #Limit to only admins
 ADMIN_ONLY_PROJECT_ADD	false
@@ -203,10 +200,11 @@ ADMIN_ONLY_DB_SET_PUBLIC	false
 ADMIN_ONLY_DB_SET_DISCOVERABLE	false
 ADMIN_ONLY_INSIGHT_SET_PUBLIC	false
 
-USER_TRACKING_ENABLED	true
+USER_TRACKING_ENABLED	false
 USER_TRACKING_METHOD	GEOIP2
 
 MODEL_INFERENCE_LOGS_ENABLED true
+PROMPT_DB_ENABLED true
 
 ##################################################
 ##################################################
@@ -214,7 +212,7 @@ MODEL_INFERENCE_LOGS_ENABLED true
 # BELOW ARE LEGACY PARAMS
 # DO NOT UPDATE OR MODIFY
 
-T_ON false
+T_ON true
 T_ENDPOINT https://play.semoss.org/track/
 
 BROWSER_TYPE	Mozilla15
@@ -222,7 +220,7 @@ URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
 SOLR_BASE_URL	http://localhost:80/solr
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	C:/workspace/Semoss_Dev/testfolder/db
+SMSSWatcher_DIR	C:/workspace/Semoss/testfolder/db
 SMSSWatcher_EXT	.smss
 
 SHOW_GOV_WARNING	false

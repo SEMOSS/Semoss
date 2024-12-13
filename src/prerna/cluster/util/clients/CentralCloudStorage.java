@@ -113,14 +113,11 @@ public class CentralCloudStorage implements ICloudClient {
 				if(ClusterUtil.IS_CLUSTER_ZK) {
 					ClusterSynchronizer.getInstance();		
 				}
-	
-				
 			}
 		}
 		
 		return instance;
 	}
-	
 	
 	private static synchronized void buildStorageEngine() throws Exception {
 		Properties props = new Properties();
