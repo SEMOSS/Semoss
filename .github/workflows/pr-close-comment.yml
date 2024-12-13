@@ -9,9 +9,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
       - name: Add update changelog comment to PR
         if: github.event.pull_request.merged == true
         uses: peter-evans/create-or-update-comment@v2
