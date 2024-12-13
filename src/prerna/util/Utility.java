@@ -5875,7 +5875,7 @@ public final class Utility {
 		return name.matches(regex);
 	}
 	
-    public static void setOwnerAndGroupPermissionsRecursively(File directory) {
+    public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
         String osName = System.getProperty("os.name").toLowerCase();
         if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
         	return;
@@ -5916,6 +5916,52 @@ public final class Utility {
 		}
 
     }
+    
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+            return;
+        }
+
+        if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
+
+        // Use ProcessBuilder to execute the command
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+
+        Process process = processBuilder.start();
+
+        // Capture and log the output
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Replace with your logger
+            }
+        }
+
+        // Wait for the process to complete
+        int exitCode = process.waitFor();
+
+        if (exitCode != 0) {
+            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+        } else {
+            System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace with your logger
+        }
+    }
+
 
 
 }
