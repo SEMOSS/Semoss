@@ -15,9 +15,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -80,7 +84,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	
-	public static Object getBlocks(String tableName) throws SQLException {
+	public static Object getThemeData(String tableName, GenRowFilters filters) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
 
@@ -91,7 +95,11 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		for (String colName : AbstractThemeUtils.blocksTemplateColNames) {
 			qs.addSelector(new QueryColumnSelector(blocksPrefix + colName));
 		}
-
+		
+		if(filters != null) {
+			qs.mergeExplicitFilters(filters);
+		}
+		
 		List<Map<String, Object>> retVal = null;
 		try {
 			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
