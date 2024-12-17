@@ -322,8 +322,14 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		} catch(Exception e) {
 			classLogger.error("Error deploying model", e);
 		}
-		// we are up
-		// use the base impl to make the call
+		String modelUrl = getModelUrl();
+		classLogger.info("Adding cluster address to parameters: {}", modelUrl);
+		if (hyperParameters != null) {
+			hyperParameters.put("base_url", modelUrl);
+		} else {
+			hyperParameters = new HashMap<>();
+			hyperParameters.put("base_url", modelUrl);
+		}
 		return implementingEngineClass.askCall(question, fullPrompt, context, insight, hyperParameters);
 	}
 
