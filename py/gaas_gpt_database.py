@@ -104,7 +104,8 @@ class DatabaseEngine(ServerProxy):
         commitStr = "true" if commit else "false"
 
         # assert insight_id is not None
-        epoc = super().get_next_epoc()
+        #epoc = super().get_next_epoc()
+        epoc = "py_" + str (random.randint(1,9999))
         pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery(commit={commitStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
