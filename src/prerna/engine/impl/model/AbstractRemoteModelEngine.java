@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -305,6 +306,14 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			initiateAndWaitForDeployment(0);
 		}
 	}
+	
+	private String getModelUrl() {
+		String clusterAddress = zkClient.getModelClusterIp(this.engineId);
+		if (this.devPortFowarding) {
+			return "http://localhost:8888/api";
+		}
+		return String.format("http://%s/api", clusterAddress);
+	}
 
 	@Override
 	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters)  {
@@ -325,8 +334,14 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		} catch(Exception e) {
 			classLogger.error("Error deploying model", e);
 		}
-		// we are up
-		// use the base impl to make the call
+		String modelUrl = getModelUrl();
+		classLogger.info("Adding cluster address to parameters: {}", modelUrl);
+		if (parameters != null) {
+		    parameters.put("base_url", modelUrl);
+		} else {
+		    parameters = new HashMap<>();
+		    parameters.put("base_url", modelUrl);
+		}
 		return implementingEngineClass.embeddingsCall(stringsToEmbed, insight, parameters);
 	}
 
