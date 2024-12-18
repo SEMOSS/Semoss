@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
@@ -19,7 +18,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -97,86 +95,80 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			implementingEngineClass.open(implEngineSmss);
 		}
 	}
-
+	
 	protected boolean initiateAndWaitForDeployment(long timeoutMs) throws Exception {
-		// First check if the model is already active
-		if (zkClient.isModelActive(this.engineId)) {
-			classLogger.info("Model {} is already active", this.engineId);
-			return true;
-		}
+	    if (zkClient.isModelActive(this.engineId)) {
+	        classLogger.info("Model {} is already active", this.engineId);
+	        return true;
+	    }
 
-		if (zkClient.isModelWarming(this.engineId)) {
-			classLogger.info("Model {} is already warming, waiting for activation", this.engineId);
-			return zkClient.waitForModelActive(this.engineId, timeoutMs);
-		}
+	    if (zkClient.isModelWarming(this.engineId)) {
+	        classLogger.info("Model {} is already warming, waiting for activation", this.engineId);
+	        return zkClient.waitForModelActive(this.engineId, timeoutMs);
+	    }
 
-		// Get model scaler IP from ZooKeeper
-		String modelScalerIp = zkClient.getModelScalerIp();
-		if (modelScalerIp == null) {
-			classLogger.error("Unable to get model scaler IP from ZooKeeper");
-			return false;
-		}
+	    String modelScalerIp = zkClient.getModelScalerIp();
+	    if (modelScalerIp == null) {
+	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
+	        return false;
+	    }
 
-		// Construct the deployment endpoint URL
-		String deploymentUrl;
-		if (devPortFowarding) {
-			deploymentUrl = "http://localhost:8000/api/start";
-		} else {
-			deploymentUrl = String.format("http://%s/api/start", modelScalerIp);
-		}
+	    // Construct the deployment endpoint URL
+	    String deploymentUrl;
+	    if (devPortFowarding) {
+	        deploymentUrl = "http://localhost:8000/api/start";
+	    } else {
+	        deploymentUrl = String.format("http://%s/api/start", modelScalerIp);
+	    }
 
-		// Initiate deployment through HTTP request
-		CompletableFuture<Boolean> deploymentFuture = CompletableFuture.supplyAsync(() -> {
-			try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-				HttpPost httpPost = new HttpPost(deploymentUrl);
+	    // Deployment request in separate thread
+	    CompletableFuture<Void> deploymentFuture = CompletableFuture.runAsync(() -> {
+	        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+	            HttpPost httpPost = new HttpPost(deploymentUrl);
+	            
+	            JSONObject payload = new JSONObject();
+	            payload.put("model_id", this.engineId);
+	            payload.put("model", this.model);
+	            payload.put("model_repo_id", this.modelRepoId);
+	            payload.put("model_type", this.modelType);
 
-				JSONObject payload = new JSONObject();
-				payload.put("model_id", this.engineId);
-				payload.put("model", this.model);
-				payload.put("model_repo_id", this.modelRepoId);
-				payload.put("model_type", this.modelType);
+	            StringEntity entity = new StringEntity(
+	                payload.toString(),
+	                ContentType.APPLICATION_JSON
+	            );
+	            httpPost.setEntity(entity);
 
-				StringEntity entity = new StringEntity(
-						payload.toString(),
-						ContentType.APPLICATION_JSON
-						);
-				httpPost.setEntity(entity);
+	            httpClient.execute(httpPost).close();
+	        } catch (Exception e) {
+	            // I'm not hanging the main thread on this request, I'll just monitor ZK for the model status
+	            classLogger.warn("HTTP request to model scaler stilling progress, dropping connection but continuing to check ZooKeeper status", e);
+	        }
+	    });
 
-				try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-					int statusCode = response.getStatusLine().getStatusCode();
+	    long startTime = System.currentTimeMillis();
+	    long warmingTimeout = Math.min(30000, timeoutMs); // 30 seconds or remaining timeout
+	    
+	    while (System.currentTimeMillis() - startTime < warmingTimeout) {
+	        if (zkClient.isModelWarming(this.engineId)) {
+	            classLogger.info("Model {} has entered warming state, waiting for activation", this.engineId);
+	            // Canceling the HTTP request if still running
+	            deploymentFuture.cancel(true);
+	            return zkClient.waitForModelActive(this.engineId, timeoutMs - (System.currentTimeMillis() - startTime));
+	        }
+	        Thread.sleep(1000); // 1 sec polling
+	    }
 
-					if (statusCode >= 200 && statusCode < 300) {
-						classLogger.info("Successfully initiated deployment for model ID: {}", this.engineId);
-						return true;
-					} else {
-						String responseBody = EntityUtils.toString(response.getEntity());
-						classLogger.error("Failed to deploy model ID: {}. Status code: {}, Response: {}", 
-								this.engineId, statusCode, responseBody);
-						return false;
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error("Error deploying model ID: " + this.engineId, e);
-				return false;
-			}
-		});
-
-		// Wait for deployment initiation to complete
-		if (!deploymentFuture.get(30, TimeUnit.SECONDS)) {
-			classLogger.error("Failed to initiate deployment for model {}", this.engineId);
-			return false;
-		}
-
-		return zkClient.waitForModelActive(this.engineId, timeoutMs);
+	    classLogger.error("Timeout waiting for model {} to enter warming state", this.engineId);
+	    return false;
 	}
 
 	protected JSONObject makeModelRequest(JSONObject requestPayload) throws Exception {
 		// Get current state and handle warming/cold states
 		RemoteModelStateEnum currentState = zkClient.getModelState(this.engineId);
 
-		// If cold, try to deploy
+		// If cold try deploy
 		if (currentState == RemoteModelStateEnum.COLD) {
-			boolean deployed = initiateAndWaitForDeployment(120000); // 2 minute timeout for deployment
+			boolean deployed = initiateAndWaitForDeployment(120000); // 2 min
 			if (!deployed) {
 				classLogger.error("Failed to deploy model {}", this.engineId);
 				return null;
@@ -184,10 +176,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			currentState = zkClient.getModelState(this.engineId);
 		}
 
-		// Always wait for active state, whether it started as WARMING or just became WARMING after deployment
+		// Always wait for active state whether it started as WARMING or just became WARMING after deployment
 		if (currentState == RemoteModelStateEnum.WARMING) {
 			classLogger.info("Model {} is warming, waiting for activation...", this.engineId);
-			boolean becameActive = zkClient.waitForModelActive(this.engineId, 300000); // 5 minute timeout
+			boolean becameActive = zkClient.waitForModelActive(this.engineId, 300000); // 5 min
 			if (!becameActive) {
 				classLogger.error("Model {} failed to become active after warming", this.engineId);
 				return null;
@@ -195,7 +187,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			currentState = zkClient.getModelState(this.engineId);
 		}
 
-		// If not active after handling warming/cold states, return null
 		if (currentState != RemoteModelStateEnum.ACTIVE) {
 			classLogger.error("Model {} is not active. Current state: {}", this.engineId, currentState);
 			return null;
@@ -207,12 +198,11 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			return null;
 		}
 
-		// Make the actual HTTP request
-		return makeHttpRequest(clusterIp, requestPayload);
+		return makeGenerateRequest(clusterIp, requestPayload);
 	}
 
 	// For models that don't go through the OpenAI API (ie. NER, etc.)
-	private JSONObject makeHttpRequest(String clusterIp, JSONObject requestPayload) {
+	private JSONObject makeGenerateRequest(String clusterIp, JSONObject requestPayload) {
 		String url = "";
 		if (devPortFowarding) {
 			url = "http://localhost:8888/api/generate";
