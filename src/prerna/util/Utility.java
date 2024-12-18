@@ -192,6 +192,11 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.git.GitAssetUtils;
 
+
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
  * extensively throughout SEMOSS. Some of these functionalities include getting
@@ -5150,25 +5155,20 @@ public final class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 					
 			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 			
 			String[] commands;
 		
+			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
 			    commands = new String[baseCommand.length + 3];
 			    commands[0] = "sudo";
 			    commands[1] = "-u";
 			    commands[2] = pythonUser;
 			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
-			    
-			    File pythonProcessFolder = new File(finalDir);
-			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-			    	pythonProcessFolder.setReadable(true, false);  
-			    	pythonProcessFolder.setWritable(true, false); 
-			    	pythonProcessFolder.setExecutable(true, false); 
-			    }	
+				Utility.setPythonUserOwnership(finalDir);
+
 			} else {
 			    commands = baseCommand;
 			}
@@ -5917,51 +5917,71 @@ public final class Utility {
 
     }
     
-    public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
-            return;
-        }
-
-        if (directory == null) {
-            throw new IllegalArgumentException("Directory cannot be null");
-        }
-
-        if (!directory.exists()) {
-            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
-        }
-
-        if (!directory.isDirectory()) {
-            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
-        }
-
-        // Construct the chmod command
-        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
-
-        // Use ProcessBuilder to execute the command
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
-
-        Process process = processBuilder.start();
-
-        // Capture and log the output
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line); // Replace with your logger
-            }
-        }
-
-        // Wait for the process to complete
-        int exitCode = process.waitFor();
-
-        if (exitCode != 0) {
-            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
-        } else {
-            System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace with your logger
-        }
+    public static void setPythonUserOwnership(String pathToFolder)  {
+    	try {
+			setPythonUserOwnership(new File(pathToFolder));
+		} catch (IOException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			classLogger.error(Constants.ERROR_MESSAGE, e);
+		}
     }
-
+    
+    public static void setPythonUserOwnership(File directory) throws IOException, InterruptedException {
+       
+    	String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+    	if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+	    	String osName = System.getProperty("os.name").toLowerCase();
+	        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+	            return;
+	        }
+	
+	        if (directory == null) {
+	            throw new IllegalArgumentException("Directory cannot be null");
+	        }
+	
+	        if (!directory.exists()) {
+	            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+	        }
+	
+	        if (!directory.isDirectory()) {
+	            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+	        }
+	
+	        // Log current owner, group, and permissions
+	        Path path = directory.toPath();
+	        PosixFileAttributes attrs = Files.readAttributes(path, PosixFileAttributes.class);
+	        String owner = attrs.owner().getName();
+	        String group = attrs.group().getName();
+	        Set<PosixFilePermission> permissions = attrs.permissions();
+	        classLogger.info("Current owner: {}, group: {}, permissions: {}", owner, group, PosixFilePermissions.toString(permissions));
+	
+	        // Construct the chmod command
+	        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
+	
+	        // Use ProcessBuilder to execute the command
+	        ProcessBuilder processBuilder = new ProcessBuilder(command);
+	        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+	
+	        Process process = processBuilder.start();
+	
+	        // Capture and log the output
+	        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+	            String line;
+	            while ((line = reader.readLine()) != null) {
+	                classLogger.info(line);
+	            }
+	        }
+	
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+	
+	        if (exitCode != 0) {
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        } else {
+	            classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+	        }
+    	}
+    }
 
 
 }

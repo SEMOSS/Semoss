@@ -895,12 +895,13 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return false;
 	}
 	
+	//TODO remove extra checks on this method
 	public void setVectorFolderPermissions() {
 	//if we have a python specific user, make sure that user can access the schema folder
 	String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 	if (pythonUser != null && !pythonUser.trim().isEmpty()) {
 		try {
-			Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+			Utility.setPythonUserOwnership(schemaFolder);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			classLogger.error(Constants.STACKTRACE, e);

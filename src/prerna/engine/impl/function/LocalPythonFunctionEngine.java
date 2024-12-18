@@ -46,6 +46,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		
 		this.engineDirectoryPath = EngineUtility.getSpecificEngineBaseFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
+		Utility.setPythonUserOwnership(engineDirectoryPath);
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 		
 		// vars for string substitution
@@ -69,6 +70,13 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		if(!this.cacheFolder.exists()) {
 			this.cacheFolder.mkdirs();
 		}
+		try {
+			Utility.setPythonUserOwnership(cacheFolder);
+		} catch (IOException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+
 		
 		// check if we have already created a process wrapper
 		if(this.cpw == null) {
@@ -103,6 +111,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			}
 			
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			Utility.setPythonUserOwnership(serverDirectory);		
 			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
 			try {
 				this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
@@ -129,7 +138,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 				+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
 				+ "os.chdir('" + this.engineDirectoryPath + "')\n"
 				+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
-
+		
 		// execute all the basic commands
 		String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
 		if(initCommands != null && !(initCommands=initCommands.trim()).isEmpty()) {
@@ -141,6 +150,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			}
 		}
 		
+		Utility.setPythonUserOwnership(engineDirectoryPath);		
 		this.pyt.runScript(execCommand);
 	}
 	
@@ -163,8 +173,9 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		Utility.setPythonUserOwnership(engineDirectoryPath);		
 		checkSocketStatus();
-		
+		Utility.setPythonUserOwnership(engineDirectoryPath);		
 		StringBuilder callMaker = new StringBuilder(this.functionName);
 		callMaker.append("(**")
 				 .append(PyUtils.determineStringType(parameterValues))
