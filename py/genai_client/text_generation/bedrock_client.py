@@ -216,12 +216,15 @@ class BedrockClient(AbstractTextGenerationClient):
 
         return params
 
-    def _handle_stream_response(self, stream_response):
+    def _handle_stream_response(self, prefix: str, stream_response):
         """Process streaming response from Bedrock."""
         final_response = ""
         for event in stream_response:
             if "contentBlockDelta" in event:
-                final_response += event["contentBlockDelta"]["delta"]["text"]
+                text = event["contentBlockDelta"]["delta"]["text"]
+                if text != None:
+                    final_response += text
+                    print(prefix + text, end="")                
         return final_response
 
     def _get_guardrail_config(self):
@@ -275,7 +278,7 @@ class BedrockClient(AbstractTextGenerationClient):
         top_p=None,
         stop_sequences=None,
         prefix="",
-        stream=None,
+        stream=True,
         **kwargs,
     ) -> AskModelEngineResponse:
         try:
@@ -314,7 +317,7 @@ class BedrockClient(AbstractTextGenerationClient):
                         messages, inference_config, guardrail_config
                     )
                 )
-                final_response = self._handle_stream_response(
+                final_response = self._handle_stream_response(prefix,
                     response.get("stream", [])
                 )
                 model_engine_response.response_tokens = self.tokenizer.count_tokens(

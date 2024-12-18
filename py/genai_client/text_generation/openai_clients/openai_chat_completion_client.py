@@ -135,6 +135,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                     response = chunk.choices[0].delta.content
                     if response != None:
                         final_query += response
+                        print(prefix + response, end="")
         else:
             if "function_call" in kwargs.keys():
                 final_query = openai_response.choices[0].message.function_call.arguments
