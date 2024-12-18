@@ -198,6 +198,8 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 					// we need to grab the current concept/columns
 					// and we need to delete them
 					// then do the add new table logic
+					String conceptPhysical = owlEngine.getPhysicalUriFromPixelSelector(targetTable);
+					if(conceptPhysical != null)
 					{
 						long start2 = System.currentTimeMillis();
 						logger.info("Need to first remove the exisitng concept from the OWL");
