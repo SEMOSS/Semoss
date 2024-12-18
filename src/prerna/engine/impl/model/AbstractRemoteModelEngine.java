@@ -303,7 +303,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		RemoteModelStateEnum currentState = zkClient.getModelState(this.engineId);
 		// If not active after handling warming/cold states, return null
 		if (currentState != RemoteModelStateEnum.ACTIVE) {
-			initiateAndWaitForDeployment(0);
+			initiateAndWaitForDeployment(300000);
 		}
 	}
 	
@@ -370,8 +370,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		} catch(Exception e) {
 			classLogger.error("Error deploying model", e);
 		}
-		// we are up
-		// use the base impl to make the call
 		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
 	}
 }

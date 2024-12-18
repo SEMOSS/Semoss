@@ -377,8 +377,10 @@ public class RemoteClientServerZK {
 					classLogger.info("Model {} was found in the active path", modelId);
 					foundInActivePath = true;
 					break;
+				} else {
+					classLogger.info("Model {} in a warming wait loop..", modelId);
 				}
-				Thread.sleep(1000);
+				Thread.sleep(3000);
 			}
 
 			if (!foundInActivePath) {

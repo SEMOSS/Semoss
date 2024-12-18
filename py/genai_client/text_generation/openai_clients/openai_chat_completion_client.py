@@ -22,6 +22,11 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
     def inference_call(self, prefix: str, **kwargs) -> str:
         final_query = ""
+        # For Remote Client Server Models
+        if "base_url" in kwargs.keys():
+            base_url = kwargs.pop("base_url")
+            self.client.base_url = base_url
+            self.client.api_key = "EMPTY"
 
         kwargs["stream"] = kwargs.get("stream", True)
         openai_response = self.client.chat.completions.create(
