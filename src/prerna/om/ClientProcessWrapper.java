@@ -104,6 +104,8 @@ public class ClientProcessWrapper {
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					} else {
+						
+						Utility.setPythonUserOwnership(this.serverDirectory);		
 						// write the log4j file in the server directory
 						Utility.writeLogConfigurationFile(this.serverDirectory);
 											
