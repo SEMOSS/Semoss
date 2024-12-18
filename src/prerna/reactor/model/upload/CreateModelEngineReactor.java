@@ -1,11 +1,13 @@
 package prerna.reactor.model.upload;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,6 +28,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AddFileUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
@@ -34,9 +37,15 @@ import prerna.util.Utility;
 public class CreateModelEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
-
+	public static final String FILE_PATHS_KEY = "filePaths";
+	public static final String FILE_PATH_KEY = "filePath";
+	public static final String DOUBLE_BACKWARD_SLASH = "\\\\";
+	public static final String NEW_LINE = "\n";
+	public static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
+	private final static String FILE_NAME_SUFFIX = "_service_account_file";
+	
 	public CreateModelEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(), ReactorKeysEnum.GLOBAL.getKey(), FILE_PATHS_KEY};
 	}
 	
 	@Override
@@ -78,6 +87,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		
 		//String modelName = getModelName();
 		Map<String, String> modelDetails = getModelDetails();
+
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
 		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_TYPE);
@@ -100,6 +110,17 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.MODEL, user, modelName, modelId);
 			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
+			
+			//Check if filePaths exists
+			String filePaths = this.keyValue.get(FILE_PATHS_KEY);
+			if (StringUtils.isNotEmpty(filePaths)) {
+				List<Map<String, String>> responseMap = AddFileUtils.addFileToModel(this.store, modelId, modelName,
+						this.insight, IEngine.CATALOG_TYPE.MODEL, FILE_NAME_SUFFIX);
+				String filePath = Utility.normalizePath(responseMap.get(0).get(FILE_PATH_KEY));
+				String fileContent = FileUtils.readFileToString(new File(filePath), StandardCharsets.UTF_8)
+						.replaceAll(NEW_LINE, "").replaceAll(DOUBLE_BACKWARD_SLASH, DOUBLE_BACKWARD_SLASH + DOUBLE_BACKWARD_SLASH);
+				modelDetails.put(SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS, fileContent);
+			}
 			
 			String modelClass = modelType.getModelClass();
 			model = (IModelEngine) Class.forName(modelClass).newInstance();
@@ -128,6 +149,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
@@ -203,5 +225,4 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		
 		throw new NullPointerException("Must define the properties for the new model engine");
 	}
-
 }
