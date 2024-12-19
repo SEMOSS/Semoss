@@ -170,17 +170,18 @@ class BedrockClient(AbstractTextGenerationClient):
         message_payload = []
         mapping = {"question": question} | kwargs
 
-        if context:
-            content = self._handle_context(context, template_name, **mapping)
-            message_payload.append(
-                self._format_message_content({"role": "system", "content": content})
-            )
-        elif template_name:
-            content = self.fill_template(template_name=template_name, **mapping)[0]
-            if content:
-                message_payload.append(
-                    self._format_message_content({"role": "system", "content": content})
-                )
+#TODO context here should not be user but system...anthropic doesnt like system prompts tho.
+        # if context:
+        #     content = self._handle_context(context, template_name, **mapping)
+        #     message_payload.append(
+        #         self._format_message_content({"role": "system", "content": content})
+        #     )
+        # elif template_name:
+        #     content = self.fill_template(template_name=template_name, **mapping)[0]
+        #     if content:
+        #         message_payload.append(
+        #             self._format_message_content({"role": "system", "content": content})
+        #         )
 
         if history is not None:
             message_payload.extend(
@@ -203,7 +204,7 @@ class BedrockClient(AbstractTextGenerationClient):
             return self.fill_context(context, **mapping)[0]
         return context
 
-    def _create_request_params(self, messages, inference_config, guardrail_config=None):
+    def _create_request_params(self, messages, inference_config, guardrail_config=None, system_prompt=None):
         """Create the request parameters for the Bedrock API."""
         params = {
             "modelId": self.modelId,
@@ -213,7 +214,8 @@ class BedrockClient(AbstractTextGenerationClient):
 
         if guardrail_config:
             params["guardrailConfig"] = guardrail_config
-
+        if system_prompt:
+            params["system"]=system_prompt
         return params
 
     def _handle_stream_response(self, prefix: str, stream_response):
@@ -288,6 +290,9 @@ class BedrockClient(AbstractTextGenerationClient):
             message_payload = self._prepare_message_payload(
                 question, context, template_name, history, **kwargs
             )
+            system_prompt = None
+            if context is not None and isinstance(context, str):
+                system_prompt = [{'text':context}]
 
             if kwargs.get(FULL_PROMPT):
                 raw_content = kwargs[FULL_PROMPT]
@@ -314,7 +319,7 @@ class BedrockClient(AbstractTextGenerationClient):
             if should_stream:
                 response = client.converse_stream(
                     **self._create_request_params(
-                        messages, inference_config, guardrail_config
+                        messages, inference_config, guardrail_config, system_prompt
                     )
                 )
                 final_response = self._handle_stream_response(prefix,
@@ -326,7 +331,7 @@ class BedrockClient(AbstractTextGenerationClient):
             else:
                 response = client.converse(
                     **self._create_request_params(
-                        messages, inference_config, guardrail_config
+                        messages, inference_config, guardrail_config, system_prompt
                     )
                 )
                 output_message = response["output"]["message"]["content"]
