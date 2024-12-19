@@ -322,6 +322,19 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		if(this.prefix != null) {
 			callMaker.append(", prefix='").append(this.prefix).append("'");
 		}
+		
+		if(parameters != null && !parameters.isEmpty()) {
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
+			}
+		}
+			
 		callMaker.append(")");
 		
 		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
