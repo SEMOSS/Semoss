@@ -35,13 +35,10 @@ public class AccessToken implements Serializable {
 	String phoneExtension = null;
 	String countryCode = null;
 	
-	//TODO: need to update for usage restriction
-	//TODO: need to update for usage restriction
-	//TODO: need to update for usage restriction
-	//TODO: need to update for usage restriction
-	int maxTokens = 0;
-	double maxResponseTime = 0.0;
-	String frequency = null;
+	int modelMaxTokens = 0;
+	double modelMaxResponseTime = 0.0;
+	String modelUsageFrequency = null;
+	String modelUsageRestriction = null;
 	
 	Map<String, String> sans = null;
 	
@@ -232,28 +229,37 @@ public class AccessToken implements Serializable {
 		this.lastPasswordReset = lastPasswordReset;
 	}
 
-	public int getMaxToken() {
-		return maxTokens;
+	public int getModelMaxTokens() {
+		return modelMaxTokens;
 	}
 
-	public void setMaxTokens(int maxTokens) {
-		this.maxTokens = maxTokens;
+	public void setModelMaxTokens(int modelMaxTokens) {
+		this.modelMaxTokens = modelMaxTokens;
 	}
 
-	public double getMaxResponseTime() {
-		return maxResponseTime;
+	public double getModelMaxResponseTime() {
+		return modelMaxResponseTime;
 	}
 
-	public void setMaxResponseTime(double maxResponseTime) {
-		this.maxResponseTime = maxResponseTime;
+	public void setModelMaxResponseTime(double modelMaxResponseTime) {
+		this.modelMaxResponseTime = modelMaxResponseTime;
 	}
 
-	public String getFrequency() {
-		return frequency;
+	public String getModelUsageFrequency() {
+		return modelUsageFrequency;
 	}
 
-	public void setFrequency(String frequency) {
-		this.frequency = frequency;
+	public void setModelUsageFrequency(String modelUsageFrequency) {
+		this.modelUsageFrequency = modelUsageFrequency;
 	}
+
+	public String getModelUsageRestriction() {
+		return modelUsageRestriction;
+	}
+
+	public void setModelUsageRestriction(String modelUsageRestriction) {
+		this.modelUsageRestriction = modelUsageRestriction;
+	}
+
 	
 }

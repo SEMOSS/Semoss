@@ -101,8 +101,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SMSS_USER/MODELUSAGERESTRICTION")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_USER");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SMSS_USER/DEFAULTVALUES")) {
 				return true;
 			}
 		}

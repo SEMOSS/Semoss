@@ -22,6 +22,7 @@ import org.javatuples.Pair;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -1124,6 +1125,7 @@ public class ModelInferenceLogsUtils {
 		if(restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
+		
 		// Initialize the date range map (start and end dates)
 		Map<String, ZonedDateTime> dates = new HashMap<>();
 		// Determine the start and end date based on the given frequency
@@ -1179,5 +1181,81 @@ public class ModelInferenceLogsUtils {
 		}
 		return null;
 	}
+	
+	/**
+	 * 
+	 * @param restrictionMode
+	 * @param user
+	 * @param engineId
+	 * @param currentDateTime
+	 * @param frequency
+	 * @return
+	 */
+	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
+			ZonedDateTime currentDateTime, String frequency) {
+		if (restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+		
+		// Step 1: Get the list of Engine IDs with MAXRESPONSETIME or MAXTOKENS for the specific user
+		List<String> engineIdList = SecurityEngineUtils.getEngineIds(user, engineId);
+        String engineIdListStr = "'"+engineIdList.toString().substring(1,engineIdList.toString().length()-1).replace(", ", "','")+"'";
+		// Step 2: Get the date range based on the frequency
+		// Initialize the date range map (start and end dates)
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Determine the start and end date based on the given frequency
+		if (frequency.equals("WEEK")) {
+			dates = Utility.getWeekStartEndDate(currentDateTime);
+		} else if (frequency.equals("MONTH")) {
+			// Get start and end date for the current month
+			dates = Utility.getMonthStartEndDate(currentDateTime);
+		} else {
+			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
+			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
+		}
+		// Extract start and end dates from the map
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		// Step 3: Determine which column to sum (tokens or response time) based on
+		// restrictionMode
+		String sumColumn = null;
+		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(RESPONSE_TIME) ";
+		}
+
+		// Step 4: Get total usage for the user excluding the engines in the
+		// engineIdList
+		String query = "SELECT " + sumColumn
+				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID NOT IN ("+engineIdListStr+") AND DATE_CREATED BETWEEN ? AND ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+        
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
+			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+
+			rs = ps.executeQuery();
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
+					ps.getConnection(), ps, rs, query, false);
+
+			if (wrapper.hasNext()) {
+				return (Number) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+
+		return null;
+	}
+	
+	
 
 }

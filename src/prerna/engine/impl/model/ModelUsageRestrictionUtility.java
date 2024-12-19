@@ -48,7 +48,7 @@ public final class ModelUsageRestrictionUtility {
 					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime, engineLvlModelUsageFrequency);
 					
 					if(currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
-						throw new IllegalArgumentException(String.format(Constants.TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
+						throw new IllegalArgumentException(String.format(Constants.ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
 					}
 					
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE, Constants.MODEL_TOKEN_RESTRICTION_VALUE);
@@ -59,7 +59,7 @@ public final class ModelUsageRestrictionUtility {
 					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime, engineLvlModelUsageFrequency);
 					
 					if(currentUsage.doubleValue() > engineLvlModelUsageMaxResponseTime.doubleValue()) {
-						throw new IllegalArgumentException(String.format(Constants.TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), engineLvlModelUsageMaxResponseTime.intValue()));
+						throw new IllegalArgumentException(String.format(Constants.ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), engineLvlModelUsageMaxResponseTime.doubleValue()));
 					}
 					
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE, Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
@@ -72,24 +72,30 @@ public final class ModelUsageRestrictionUtility {
 			}
 			// user general restriction
 			else if(userLvlModelUsageRestriction != null && !userLvlModelUsageRestriction.isEmpty()) {
-				if(Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
+				if(Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
-					//TODO: need to add query for calculating current usage
+					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime, userLvlModelUsageFrequency);
 					
+					if(currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
+						throw new IllegalArgumentException(String.format(Constants.USER_TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
+					}
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE, Constants.MODEL_TOKEN_RESTRICTION_VALUE);
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE, userLvlModelUsageMaxTokens.intValue());
 
-				} else if(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
+				} else if(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
-					//TODO: need to add query for calculating current usage
-
+					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE,user, engineId, currentDateTime, userLvlModelUsageFrequency);
+					
+					if(currentUsage.doubleValue() > userLvlModelUsageMaxResponseTime.doubleValue()) {
+						throw new IllegalArgumentException(String.format(Constants.USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), userLvlModelUsageMaxResponseTime.doubleValue()));
+					}
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE, Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE, userLvlModelUsageMaxResponseTime.intValue());
 					
 				} else {
-					classLogger.warn("Unknown user level model restriction type = '"+engineLvlModelUsageRestriction+"' for user = " + User.getSingleLogginName(user));
+					classLogger.warn("Unknown user level model restriction type = '"+userLvlModelUsageRestriction+"' for user = " + User.getSingleLogginName(user));
 				}
 			}
 		}
