@@ -344,7 +344,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
-		dataSource.setAutoCommit(this.autoCommit);
+		if(this.autoCommit != null) {
+			dataSource.setAutoCommit(this.autoCommit);
+		}
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
