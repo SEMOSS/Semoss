@@ -1,7 +1,10 @@
 from typing import List, Dict
+import requests
+import base64
 from ....constants import (
     FULL_PROMPT,
     IMAGE_ENCODED,
+    IMAGE_URL,
     AskModelEngineResponse,
 )
 
@@ -110,7 +113,7 @@ class Chat:
         if history is not None:
             message_payload.extend(history)
 
-        # check if images are in the fill args
+        # If the image is already base64 encoded we can add it to the payload
         if IMAGE_ENCODED in fill_variables:
             # add the new question to the payload
             if question != None and len(question) > 0:
@@ -120,6 +123,15 @@ class Chat:
                 image_url["url"] = (
                     f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
                 )
+                image_payload.append({"type": "image_url", "image_url": image_url})
+                message_payload.append({"role": "user", "content": image_payload})
+        # If the image is a URL we need to convert it to base64
+        elif IMAGE_URL in fill_variables:
+            if question != None and len(question) > 0:
+                image_payload = []
+                image_payload.append({"type": "text", "text": question})
+                image_url = {}
+                image_url["url"] = self.url_to_base64(fill_variables.pop(IMAGE_URL))
                 image_payload.append({"type": "image_url", "image_url": image_url})
                 message_payload.append({"role": "user", "content": image_payload})
         else:
@@ -146,3 +158,16 @@ class Chat:
             raise TypeError(
                 "Please make sure the full prompt for OpenAI Chat-Completion is a list"
             )
+
+    def url_to_base64(self, image_url: str):
+        try:
+            response = requests.get(image_url)
+            response.raise_for_status()
+
+            base64_string = base64.b64encode(response.content).decode("utf-8")
+
+            return f"data:image/{response.headers['Content-Type'].split('/')[-1]};base64,{base64_string}"
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching image: {e}")
+            return None
