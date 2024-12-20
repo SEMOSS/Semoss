@@ -53,11 +53,17 @@ class OpenAiTokenizer(AbstractTokenizer):
     def format_with_chat_template(self, messages: List[Dict]) -> str:
         """
         Applies the appropriate chat template for OpenAI models.
-        Args:
-            messages: List of message dictionaries with 'role' and 'content'
-        Returns:
-            str: Formatted prompt string
+        Handles both regular messages and messages with image content.
         """
+        # Check if any message contains image content
+        has_image_content = any(
+            isinstance(msg.get("content"), list) for msg in messages
+        )
+
+        # We can't use the chat template for messages with image content
+        if has_image_content:
+            return ""  # Return empty since we can't be using this for token counting
+
         if hasattr(self.tokenizer, "apply_chat_template"):
             if self.tokenizer.chat_template is None:
                 self.tokenizer.chat_template = "chatml"
@@ -70,22 +76,22 @@ class OpenAiTokenizer(AbstractTokenizer):
             for message in input:
                 num_tokens += self.tokens_per_message
                 for key, value in message.items():
-                    num_tokens += len(self.get_tokens_ids(input=str(value)))
-
-                    if key == "name":
+                    if key == "content":
+                        if isinstance(value, list):
+                            # Handle structured content with images
+                            for content_item in value:
+                                if content_item["type"] == "text":
+                                    num_tokens += len(
+                                        self.get_tokens_ids(content_item["text"])
+                                    )
+                                # Skip token counting for image_url content
+                        else:
+                            num_tokens += len(self.get_tokens_ids(str(value)))
+                    elif key == "name":
                         num_tokens += self.tokens_per_name
             num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
-        elif isinstance(input, dict):
-            num_tokens += self.tokens_per_message
-            for key, value in input.items():
-                num_tokens += len(self.get_tokens_ids(input=value))
-
-                if key == "name":
-                    num_tokens += self.tokens_per_name
-
-            num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
         elif isinstance(input, str):
-            num_tokens = len(self.get_tokens_ids(input=input))
+            num_tokens = len(self.get_tokens_ids(input))
 
         return num_tokens
 
