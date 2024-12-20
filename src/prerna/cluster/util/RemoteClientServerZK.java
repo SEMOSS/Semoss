@@ -59,7 +59,7 @@ public class RemoteClientServerZK {
 
 	public String modelScalerIp;
 
-	private Boolean devPortFowarding = false;
+	private Boolean devPortFowarding = true;
 
 	private RemoteClientServerZK() {
 		classLogger.info("RemoteClientServerZK being initialized...");
@@ -267,6 +267,18 @@ public class RemoteClientServerZK {
 				            classLogger.error("Error processing data for model {}: {}", modelId, e.getMessage(), e);
 				        }
 				    })
+					.forDeletes(node -> {
+						String modelId = getModelIdFromPath(node.getPath());
+						String modelName = modelNames.get(modelId);
+						classLogger.info("Model {} ({}) is no longer active", modelId, modelName);
+						modelClusterIps.remove(modelId);
+						modelNames.remove(modelId);
+						if (isModelWarming(modelId)) {
+							modelStates.put(modelId, RemoteModelStateEnum.WARMING);
+						} else {
+							modelStates.put(modelId, RemoteModelStateEnum.COLD);
+						}
+					})
 				    .build();
 			activeCache.listenable().addListener(activeListener);
 			activeCache.start();
