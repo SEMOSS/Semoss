@@ -7,7 +7,13 @@ from ...constants import AskModelEngineResponse
 
 class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
 
-    def __init__(self, model_name: str = None, api_key: str = None, **kwargs):
+    def __init__(
+        self,
+        model_name: str = None,
+        api_key: str = None,
+        model_type: str = None,
+        **kwargs
+    ):
         assert api_key != None
 
         super().__init__(
@@ -16,10 +22,11 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
         )
 
         self.model_name = model_name
-
+        self.model_type = model_type
         self.tokenizer = self._get_tokenizer(kwargs)
-
         self.client = self._get_client(api_key=api_key, **kwargs)
+        if self.model_type == None:
+            self._temp_model_identifier()
 
     @abstractmethod
     def ask_call(self, *args: Any, **kwargs: Any) -> AskModelEngineResponse:
@@ -38,3 +45,12 @@ class AbstractOpenAiClient(AbstractTextGenerationClient, ABC):
         from openai import OpenAI
 
         return OpenAI(api_key=api_key, **kwargs)
+
+    def _temp_model_identifier(self):
+        """
+        I need to identify the model_type for structured outputs. The solution to this is updating the SMSS files
+        to pass the MODEL_TYPE parameter in the init command. This method will temporarily identify the model_type
+        until we update these files by using a substring since I really only need to OpenAI models..
+        """
+        if "gpt-4o" in self.model_name or "o1" in self.model_name:
+            self.model_type = "OPEN_AI"
