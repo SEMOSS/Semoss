@@ -346,6 +346,62 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENDDATE</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USAGERESTRICTION/ENGINEPERMISSION">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEPERMISSION">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USAGERESTRICTION/ENGINEPERMISSION"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USAGERESTRICTION/ENGINEPERMISSION">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USAGERESTRICTION/ENGINEPERMISSION"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USAGERESTRICTION</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USAGEFREQUENCY/ENGINEPERMISSION">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEPERMISSION">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USAGEFREQUENCY/ENGINEPERMISSION"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USAGEFREQUENCY/ENGINEPERMISSION">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USAGEFREQUENCY/ENGINEPERMISSION"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USAGEFREQUENCY</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MAXTOKENS/ENGINEPERMISSION">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEPERMISSION">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MAXTOKENS/ENGINEPERMISSION"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MAXTOKENS/ENGINEPERMISSION">
+	<rdfs:Class rdf:resource="TYPE:INT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MAXTOKENS/ENGINEPERMISSION"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MAXTOKENS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MAXRESPONSETIME/ENGINEPERMISSION">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEPERMISSION">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MAXRESPONSETIME/ENGINEPERMISSION"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MAXRESPONSETIME/ENGINEPERMISSION">
+	<rdfs:Class rdf:resource="TYPE:DOUBLE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MAXRESPONSETIME/ENGINEPERMISSION"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MAXRESPONSETIME</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PROJECT">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:domain>noData</rdfs:domain>
@@ -1751,6 +1807,62 @@
 	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/COUNTRYCODE/SMSS_USER"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">COUNTRYCODE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELUSAGERESTRICTION/SMSS_USER">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELUSAGERESTRICTION/SMSS_USER"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELUSAGERESTRICTION/SMSS_USER">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELUSAGERESTRICTION/SMSS_USER"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MODELUSAGERESTRICTION</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELUSAGEFREQUENCY/SMSS_USER">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELUSAGEFREQUENCY/SMSS_USER"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELUSAGEFREQUENCY/SMSS_USER">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELUSAGEFREQUENCY/SMSS_USER"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MODELUSAGEFREQUENCY</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELMAXTOKENS/SMSS_USER">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELMAXTOKENS/SMSS_USER"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELMAXTOKENS/SMSS_USER">
+	<rdfs:Class rdf:resource="TYPE:INT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELMAXTOKENS/SMSS_USER"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MODELMAXTOKENS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELMAXRESPONSETIME/SMSS_USER">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELMAXRESPONSETIME/SMSS_USER"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MODELMAXRESPONSETIME/SMSS_USER">
+	<rdfs:Class rdf:resource="TYPE:DOUBLE"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MODELMAXRESPONSETIME/SMSS_USER"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MODELMAXRESPONSETIME</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER_ACCESS_KEYS">
@@ -4082,7 +4194,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:12:09 11:38:48</TIME>
+	<TIME xmlns="ENGINE:">2024:12:19 18:40:41</TIME>
 </rdf:Description>
 
 </rdf:RDF>

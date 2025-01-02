@@ -68,6 +68,7 @@ import java.text.Normalizer.Form;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -5962,6 +5963,45 @@ public final class Utility {
         }
     }
 
+/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the week.
+	 */
+	public static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> weekDates = new HashMap<>();
 
+		// Find the start of the week (Sunday)
+		ZonedDateTime start = utcDateTime;
+		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
+			start = start.minusDays(1);
+		}
+
+		// Find the end of the week (Saturday)
+		ZonedDateTime end = utcDateTime;
+		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
+			end = end.plusDays(1);
+		}
+		// Convert ZonedDateTime to LocalDateTime
+		weekDates.put("start", start);
+		weekDates.put("end", end);
+
+		return weekDates;
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the month.
+	 */
+	public static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the month by setting the day to 1.
+		dates.put("start", utcDateTime.withDayOfMonth(1));
+		// Find the end of the month by setting the day to the last day of the month.
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
+
+		return dates;
+	}
 
 }
