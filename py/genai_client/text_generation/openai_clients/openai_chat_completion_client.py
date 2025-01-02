@@ -165,11 +165,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         warnings = []
 
         # 1. Get our prompt token count
-        num_tokens_in_prompt = len(
-            self.tokenizer._get_tokenizer(self.model_name).encode(
-                self.tokenizer.format_with_chat_template(prompt_payload)
-            )
-        )
+        num_tokens_in_prompt = self.tokenizer.count_tokens(prompt_payload)
 
         # 2. Get model limits
         model_limits = self.tokenizer.get_model_limits(self.model_name)

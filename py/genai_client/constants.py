@@ -11,6 +11,7 @@ TEMPLATE = "template"
 TEMPLATE_NAME = "template_name"
 FULL_PROMPT = "full_prompt"
 IMAGE_ENCODED = "image_encoded"
+IMAGE_URL = "image_url"
 
 
 @dataclasses.dataclass
