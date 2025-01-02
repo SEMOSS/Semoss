@@ -12,18 +12,18 @@ import prerna.theme.ThemeDbTable;
 public class GetBlockReactor extends AbstractReactor {
 
 	public GetBlockReactor() {
-		this.keysToGet =  new String[] {"blockId", "tableName"};
-		this.keyRequired = new int[] {1, 1};
+		this.keysToGet = new String[] { "blockId", "tableName" };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		
+
 		String userId = this.insight.getUserId();
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
-		
+
 		this.organizeKeys();
 		String blockId = this.keyValue.get("blockId");
 		String tableName = this.keyValue.get("tableName");

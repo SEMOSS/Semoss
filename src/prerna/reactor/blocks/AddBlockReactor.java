@@ -17,17 +17,16 @@ import prerna.theme.BlocksThemeUtils;
 public class AddBlockReactor extends AbstractReactor {
 
 	public AddBlockReactor() {
-		this.keysToGet =  new String[] {ReactorKeysEnum.DATA_TYPE_MAP.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATA_TYPE_MAP.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		
+
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed in to delete a block", PixelDataType.CONST_STRING,
+			NounMetadata noun = new NounMetadata("User must be signed in to delete a block", PixelDataType.CONST_STRING,
 					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
@@ -46,18 +45,18 @@ public class AddBlockReactor extends AbstractReactor {
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}
-	
+
 	private Map<String, Object> getBlockDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if(mapNouns != null && !mapNouns.isEmpty()) {
+			if (mapNouns != null && !mapNouns.isEmpty()) {
 				return (Map<String, Object>) mapNouns.get(0).getValue();
-				}
+			}
 		}
-		
+
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapNouns != null && !mapNouns.isEmpty()) {
+		if (mapNouns != null && !mapNouns.isEmpty()) {
 			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 

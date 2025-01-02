@@ -14,20 +14,20 @@ import prerna.theme.BlocksThemeUtils;
 import prerna.theme.ThemeDbTable;
 
 public class ListThemeDataReactor extends AbstractReactor {
-	
+
 	public ListThemeDataReactor() {
-		this.keysToGet =  new String[] {"tableName", ReactorKeysEnum.FILTERS.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { "tableName", ReactorKeysEnum.FILTERS.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		
+
 		String userId = this.insight.getUserId();
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
-		
+
 		this.organizeKeys();
 		String tableName = this.keyValue.get("tableName");
 		GenRowFilters additionalFilters = getFilters();
@@ -39,7 +39,7 @@ public class ListThemeDataReactor extends AbstractReactor {
 		}
 		return new NounMetadata(blocks, PixelDataType.MAP);
 	}
-	
+
 	protected GenRowFilters getFilters() {
 		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.FILTERS.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
