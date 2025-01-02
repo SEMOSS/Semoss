@@ -1689,10 +1689,26 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertTargetEnginePermissionStatement.setString(2, (String) row[1]);
 				insertTargetEnginePermissionStatement.setInt(3, ((Number) row[2]).intValue() );
 				insertTargetEnginePermissionStatement.setBoolean(4, (Boolean) row[3]);
-				insertTargetEnginePermissionStatement.setString(5, (String) row[4]);
-				insertTargetEnginePermissionStatement.setString(6, (String) row[5]);
-				insertTargetEnginePermissionStatement.setInt(7, ((Number) row[6]).intValue() );
-				insertTargetEnginePermissionStatement.setDouble(8, ((Number) row[7]).doubleValue() );
+				if(row[4] == null) {
+					insertTargetEnginePermissionStatement.setNull(5, java.sql.Types.VARCHAR);
+				} else {
+					insertTargetEnginePermissionStatement.setString(5, (String) row[4]);
+				}
+				if(row[5] == null) {
+					insertTargetEnginePermissionStatement.setNull(6, java.sql.Types.VARCHAR);
+				} else {
+					insertTargetEnginePermissionStatement.setString(6, (String) row[5]);
+				}
+				if(row[6] == null) {
+					insertTargetEnginePermissionStatement.setNull(7, java.sql.Types.INTEGER);
+				} else {
+					insertTargetEnginePermissionStatement.setInt(7, ((Number) row[6]).intValue() );
+				}
+				if(row[7] == null) {
+					insertTargetEnginePermissionStatement.setNull(8, java.sql.Types.DOUBLE);
+				} else {
+					insertTargetEnginePermissionStatement.setDouble(8, ((Number) row[7]).doubleValue() );
+				}
 				// add to batch
 				insertTargetEnginePermissionStatement.addBatch();
 			}
@@ -2864,35 +2880,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get a list of engine IDs where MODELMAXTOKENS and MODELMAXRESPONSETIME in ENGINEPERMISSION are not null.
+	 * Get a list of engine IDs where USAGERESTRICTION is set (not empty or null)
 	 * 
 	 * @param user
 	 * @param engineId
 	 * @return
 	 */
-	public static List<String> getEngineIds(User user, String engineId) {
+	public static List<String> getModelEngineIdsWithRestrictions(User user, String engineId) {
 	    if (user == null || engineId == null || engineId.trim().isEmpty()) {
 	        return null;
 	    }
 	    
 	    SelectQueryStruct qs = new SelectQueryStruct();
-	    
 	    qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "engineId"));
-	    
 	    Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userDetails.getValue0()));
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__MAXTOKENS","!=",0 ));
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__MAXRESPONSETIME","!=",0));
-	    
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USAGERESTRICTION","!=", Arrays.asList("", null) ));
 	    qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "left.outer.join");
 
-	    List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	    
-	    List<String> engineIds = new ArrayList<>();
-	    for (Map<String, Object> result : resultList) {
-	        engineIds.add((String) result.get("engineId"));
-	    }
-	    
-	    return engineIds;
+	    return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 }

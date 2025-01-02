@@ -1191,15 +1191,26 @@ public class ModelInferenceLogsUtils {
 	 * @param frequency
 	 * @return
 	 */
-	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId, ZonedDateTime currentDateTime, String frequency) {
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
 		
 		// Step 1: Get the list of Engine IDs with MAXRESPONSETIME or MAXTOKENS for the specific user
-		List<String> engineIdList = SecurityEngineUtils.getEngineIds(user, engineId);
-        String engineIdListStr = "'"+engineIdList.toString().substring(1,engineIdList.toString().length()-1).replace(", ", "','")+"'";
+		List<String> engineIdExcludeList = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, engineId);
+		String excludePSString = "";
+		if(engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
+			StringBuilder excludeSB = new StringBuilder("AND AGENT_ID NOT IN (");
+			for(int i = 0; i < engineIdExcludeList.size(); i++) {
+				if(i>0) {
+					excludeSB.append(",");
+				}
+				excludeSB.append("?");
+			}
+			excludeSB.append(")");
+			excludePSString = excludeSB.toString();
+		}
+		
 		// Step 2: Get the date range based on the frequency
 		// Initialize the date range map (start and end dates)
 		Map<String, ZonedDateTime> dates = new HashMap<>();
@@ -1229,7 +1240,7 @@ public class ModelInferenceLogsUtils {
 		// Step 4: Get total usage for the user excluding the engines in the
 		// engineIdList
 		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID NOT IN ("+engineIdListStr+") AND DATE_CREATED BETWEEN ? AND ?";
+				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? " + excludePSString;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
         
@@ -1239,7 +1250,11 @@ public class ModelInferenceLogsUtils {
 			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
 			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
 			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
-
+			if(engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
+				for(String excludeEngineId : engineIdExcludeList) {
+					ps.setString(psIndex++, excludeEngineId);
+				}
+			}
 			rs = ps.executeQuery();
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
 					ps.getConnection(), ps, rs, query, false);
