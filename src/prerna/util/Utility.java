@@ -4075,6 +4075,20 @@ public final class Utility {
 	}
 	
 	/**
+	 * Determine if promptdb logs db is enabled
+	 * @return
+	 */
+	public static boolean isPromptDatabaseEnabled() {
+		String promptDB = Utility.getDIHelperProperty(Constants.PROMPT_DB_ENABLED);
+		if(promptDB == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(promptDB);
+	}
+	
+	/**
 	 * Determine if user tracking enabled
 	 * @return
 	 */
@@ -5136,8 +5150,29 @@ public final class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String[] commands = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-				
+			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+					
+			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			
+			String[] commands;
+		
+			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			    commands = new String[baseCommand.length + 3];
+			    commands[0] = "sudo";
+			    commands[1] = "-u";
+			    commands[2] = pythonUser;
+			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+			    
+			    File pythonProcessFolder = new File(finalDir);
+			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+			    	pythonProcessFolder.setReadable(true, false);  
+			    	pythonProcessFolder.setWritable(true, false); 
+			    	pythonProcessFolder.setExecutable(true, false); 
+			    }	
+			} else {
+			    commands = baseCommand;
+			}
+			
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5840,5 +5875,93 @@ public final class Utility {
 		return name.matches(regex);
 	}
 	
+    public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+        	return;
+        }
+        
+    	if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+
+        // Execute the command
+        Process process;
+		try {
+			process = Runtime.getRuntime().exec(command);
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+
+	        if (exitCode != 0) {
+	        	classLogger.info("Failed running - " + command);
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        } else {
+	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+	        }
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+    }
+    
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+            return;
+        }
+
+        if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
+
+        // Use ProcessBuilder to execute the command
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+
+        Process process = processBuilder.start();
+
+        // Capture and log the output
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Replace with your logger
+            }
+        }
+
+        // Wait for the process to complete
+        int exitCode = process.waitFor();
+
+        if (exitCode != 0) {
+            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+        } else {
+            System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace with your logger
+        }
+    }
+
+
 
 }

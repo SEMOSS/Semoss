@@ -36,6 +36,7 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 	
 	public AbstractDatasourceModificationTranslation(Insight insight) {
 		super(insight);
+		this.isTimeTracking = false;
 	}
 	
 	/**

@@ -15,24 +15,33 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.testcontainers.containers.GenericContainer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ApiSemossTestEmailUtils {
-	
+
 	private static String MAILPIT_FOLDER = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "mailpit").toString();
 	private static String MAILPIT_WINDOWS_EXE = Paths.get(MAILPIT_FOLDER, "mailpit.exe").toString();
 	private static String MAILPIT_MAC_EXE = Paths.get(MAILPIT_FOLDER, "mailpit").toString();
 	private static String MAILPIT_LOG = Paths.get(MAILPIT_FOLDER, "mailpit.log").toString();
-	
+
 	private static String OS = System.getProperty("os.name").toLowerCase();
 	private static boolean isWin = false;
 	static {
 		isWin = (OS.indexOf("win") >= 0);
 	}
-	
+
+	public static void addStartupTasks(List<Callable<Void>> tasks) {
+		if (ApiSemossTestUtils.usingDocker()) {
+			tasks.add(ApiSemossTestEmailUtils::startEmailDockerContainer);
+		} else {
+			tasks.add(ApiSemossTestEmailUtils::startEmailLocalServer);
+		}
+	}
+
 	public static boolean serverRunning() {
 		try {
 			URL url = new URL("http://localhost:8025/api/v1/info");
@@ -44,20 +53,14 @@ public class ApiSemossTestEmailUtils {
 			return false;
 		}
 	}
-	
-	public static void deleteAllEmails() {
-		try {
-			URL url = new URL("http://localhost:8025/api/v1/messages");
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("DELETE");
-			int status = conn.getResponseCode();
-			assertEquals(status, 200);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.toString());
-		}
+
+	public static void deleteAllEmails() throws IOException {
+		URL url = new URL("http://localhost:8025/api/v1/messages");
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("DELETE");
+		int status = conn.getResponseCode();
+		assertEquals(status, 200);
 	}
-	
 
 	public static List<Map<String, Object>> getAllEmails() {
 		List<Map<String, Object>> m = new ArrayList<>();
@@ -75,10 +78,10 @@ public class ApiSemossTestEmailUtils {
 			e.printStackTrace();
 			fail(e.toString());
 		}
-		
+
 		return m;
 	}
-	
+
 	public static Map<String, Object> getEmail(String id) {
 		Map<String, Object> m = new HashMap<>();
 		try {
@@ -94,14 +97,12 @@ public class ApiSemossTestEmailUtils {
 			e.printStackTrace();
 			fail(e.toString());
 		}
-		
+
 		return m;
 	}
 
-
 	public static Void startEmailDockerContainer() {
-		GenericContainer<?> mailpit = new GenericContainer<>("axllent/mailpit")
-				.withExposedPorts(1025, 8025);
+		GenericContainer<?> mailpit = new GenericContainer<>("axllent/mailpit").withExposedPorts(1025, 8025);
 		List<String> portBindings = new ArrayList<>();
 		portBindings.add("1025:1025");
 		portBindings.add("8025:8025");
@@ -110,34 +111,33 @@ public class ApiSemossTestEmailUtils {
 		return null;
 	}
 
-
 	public static Void startEmailLocalServer() throws IOException, InterruptedException {
 		if (!serverRunning()) {
 			String processStr = null;
-			if(isWin) {
+			if (isWin) {
 				processStr = MAILPIT_WINDOWS_EXE;
 				if (Files.notExists(Paths.get(MAILPIT_WINDOWS_EXE))) {
 					fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
-				}	
+				}
 			} else {
 				processStr = MAILPIT_MAC_EXE;
 				if (Files.notExists(Paths.get(MAILPIT_MAC_EXE))) {
 					fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
 				}
 			}
-			
+
 			ProcessBuilder pb = new ProcessBuilder(processStr);
 			pb.directory(new File(MAILPIT_FOLDER));
-			
+
 			if (Files.exists(Paths.get(MAILPIT_LOG))) {
 				Files.delete(Paths.get(MAILPIT_LOG));
 			}
-			
+
 			File log = new File(MAILPIT_LOG);
 			pb.redirectErrorStream(true);
 			pb.redirectOutput(Redirect.appendTo(log));
 			Process p = pb.start();
-			
+
 			int i = 0;
 			boolean found = false;
 			while (i < 10 && !found) {
@@ -148,10 +148,10 @@ public class ApiSemossTestEmailUtils {
 				i++;
 				Thread.sleep(1000L);
 			}
-			
+
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> p.destroy()));
 		}
 		return null;
 	}
-	
+
 }
