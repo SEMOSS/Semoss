@@ -35,6 +35,12 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
 		newToken.lastPasswordReset = token.lastPasswordReset;
+	
+		newToken.modelMaxTokens = token.modelMaxTokens;
+		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
+		newToken.modelUsageFrequency = token.modelUsageFrequency;
+		newToken.modelUsageRestriction = token.modelUsageRestriction;
+		
 		return newToken;
 	}
 	
@@ -119,6 +125,22 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	}
 
 	public void setLastPasswordReset(SemossDate lastPasswordReset) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelMaxTokens(int modelMaxTokens) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelMaxResponseTime(double modelMaxResponseTime) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelUsageFrequency(String modelUsageFrequency) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelUsageRestriction(String modelUsageRestriction) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
