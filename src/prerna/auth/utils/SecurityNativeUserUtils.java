@@ -100,7 +100,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, "
+						+ "MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? "
+						+ "WHERE ID=?";
 				PreparedStatement ps = null;
 				try {
 					int parameterIndex = 1;
@@ -150,12 +152,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					} else {
 						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 					}
-					if(newUser.getModelUsageRestriction() == null) {
+					if(newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
 					}
-					if(newUser.getModelUsageFrequency() == null) {
+					if(newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
@@ -220,7 +222,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 					
 					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY,MODELUSAGERESTRICTION) "
+							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
+							+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
 							+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 					
 					PreparedStatement ps = null;
@@ -276,12 +279,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						} else {
 							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 						}
-						if(newUser.getModelUsageRestriction() == null) {
+						if(newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
 						}
-						if(newUser.getModelUsageFrequency() == null) {
+						if(newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
