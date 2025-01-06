@@ -48,7 +48,7 @@ public class SetContextReactor extends AbstractReactor {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(context);
-			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder, projectAppRootFolder, false);
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		// if python enabled
