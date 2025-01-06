@@ -245,7 +245,12 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             engine_id=self.engine_id,
             method_name="embeddings",
             method_args=[strings_to_embed, images_to_embed, insight_id, param_dict],
-            method_arg_types=["java.util.List", "prerna.om.Insight", "java.util.Map"],
+            method_arg_types=[
+                "java.util.List",
+                "java.util.List",
+                "prerna.om.Insight",
+                "java.util.Map",
+            ],
             insight_id=insight_id,
         )
 
