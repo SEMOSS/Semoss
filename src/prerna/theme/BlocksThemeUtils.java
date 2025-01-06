@@ -141,12 +141,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 		return retVal.get(0);
 	}
-
-	
-	public static boolean deleteBlock(String blockId, String tableName) throws SQLException {
-		return deleteBlock(blockId, tableName, false);
-	}
-
 	
 	public static boolean deleteBlock(String blockId, String tableName, boolean hardDelete) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
@@ -234,6 +228,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	
 	// validate the input map for required fields
 	private static void validateBlockDetails(Map<String, Object> blockDetails) {
+		validateString(blockDetails, "id", false, false);
 		validateString(blockDetails, "name", false, false);
 		validateString(blockDetails, "section", false, false);
 		validateString(blockDetails, "image", false, false);
