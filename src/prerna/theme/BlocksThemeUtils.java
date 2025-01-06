@@ -36,7 +36,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	public static final ArrayList<String> BASE_BLOCKS = new ArrayList<String>(Arrays.asList("Audio Player", "Button",
 			"Checkbox", "Input", "Select", "Upload", "Container", "Progress", "Iframe", "PDF Viewer", "Image", "Logs",
 			"Toggle Button", "Link", "Markdown", "HTML", "Text H1 styled", "Text H1", "Text H2", "Text H3", "Text H4",
-			"Text H5", "Text H6", "Text P", "Text P Italics", "Mermaid", "Vega", "Grid", "Bar Chart",
+			"Text H5", "Text H6", "Text P", "Text P Italics", "Compare LLMs", "Mermaid", "Vega", "Grid", "Bar Chart",
 			"Grouped Bar Chart", "Pie Chart", "Radial Plot", "Line Chart", "Area Chart", "Area Chart with Gradient",
 			"Scatter Plot", "General Mermaid", "Class Diagram", "Sequence Diagram", "State Diagram",
 			"Entity Relationship Diagram", "User Journey", "Gantt", "Pie Chart", "Quadrant Chart",

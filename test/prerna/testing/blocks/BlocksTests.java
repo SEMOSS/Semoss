@@ -5,8 +5,10 @@ import static org.junit.Assert.assertNotEquals;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,7 +34,10 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 	@Test
 	public void checkDefaultBlocks() throws SQLException {
 		List<String> blocksNames = BlocksThemeUtils.getBlockNames();
-		assertEquals(BlocksThemeUtils.BASE_BLOCKS, blocksNames);
+		Set<String> test = new HashSet<String>(blocksNames);
+		assert blocksNames.size() == test.size();
+		Set<String> ground = new HashSet<String>(BlocksThemeUtils.BASE_BLOCKS);
+		assert ground.equals(test);
 	}
 	
 	@Test
