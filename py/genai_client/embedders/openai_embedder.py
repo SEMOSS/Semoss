@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from genai_client.tokenizers.abstract_tokenizer import AbstractTokenizer
 from ..tokenizers.openai_tokenizer import OpenAiTokenizer
 from ..constants import MAX_TOKENS, EmbeddingsModelEngineResponse
@@ -19,13 +19,39 @@ class OpenAiEmbedder(AbstractEmbedder):
         self.client = self._get_client(api_key=api_key, **kwargs)
 
     def embeddings_call(
-        self, strings_to_embed: List[str], prefix: str = "", **kwargs
+        self,
+        strings_to_embed: Optional[List[str]] = None,
+        images_to_embed: Optional[List[str]] = None,
+        prefix: str = "",
+        **kwargs
     ) -> EmbeddingsModelEngineResponse:
-        assert isinstance(strings_to_embed, list)
+        if strings_to_embed:
+            assert isinstance(strings_to_embed, list)
+            text_or_image = "text"
+        else:
+            assert isinstance(images_to_embed, list)
+            text_or_image = "image"
 
         if "base_url" in kwargs:
             self.client.base_url = kwargs["base_url"]
 
+        if text_or_image == "text":
+            return self._handle_text_embeddings(strings_to_embed)
+
+    def _handle_image_embeddings(
+        self, images_to_embed: List[str]
+    ) -> EmbeddingsModelEngineResponse:
+        image_input_list = self._create_image_payloads(images_to_embed)
+        results = self._make_openai_embedding_call(image_input_list)
+        return EmbeddingsModelEngineResponse(
+            response=[vector.embedding for vector in results.data],
+            prompt_tokens=0,
+            response_tokens=0,
+        )
+
+    def _handle_text_embeddings(
+        self, strings_to_embed: List[str]
+    ) -> EmbeddingsModelEngineResponse:
         total_num_of_tokens = self.tokenizer.count_tokens("".join(strings_to_embed))
 
         # If no max token length or within limits, process all at once
@@ -41,9 +67,9 @@ class OpenAiEmbedder(AbstractEmbedder):
             response=embedded_list, prompt_tokens=total_num_of_tokens, response_tokens=0
         )
 
-    def _make_openai_embedding_call(self, list_of_text: List[str]):
+    def _make_openai_embedding_call(self, input_list):
         """Executes the embedding call via the OpenAI API"""
-        return self.client.embeddings.create(model=self.model_name, input=list_of_text)
+        return self.client.embeddings.create(model=self.model_name, input=input_list)
 
     def _get_tokenizer(self, init_args: Dict) -> AbstractTokenizer:
         return OpenAiTokenizer(
@@ -54,6 +80,11 @@ class OpenAiEmbedder(AbstractEmbedder):
         from openai import OpenAI
 
         return OpenAI(api_key=api_key, **kwargs)
+
+    def _create_image_payloads(self, images_to_embed: List[str]) -> List[Dict]:
+        image_payloads = []
+        for image in images_to_embed:
+            image_payloads.append({"type": "image_url", "image_url": {"url": image}})
 
     def _process_single_batch(self, strings_to_embed: List[str]) -> List:
         results = self._make_openai_embedding_call(strings_to_embed)

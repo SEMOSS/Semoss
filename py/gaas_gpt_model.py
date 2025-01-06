@@ -178,23 +178,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-        # model_response = super().call(
-        #     epoc=epoc,
-        #     engine_type="Model",
-        #     engine_id=self.engine_id,
-        #     method_name="instruct",
-        #     method_args=[task, context, insight_id, param_dict],
-        #     method_arg_types=[
-        #         "java.lang.String",
-        #         "java.lang.String",
-        #         "prerna.om.Insight",
-        #         "java.util.Map",
-        #     ],
-        #     insight_id=insight_id,
-        # )
-
-        # return model_response
-
     def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
         """This method is responsible to get message history back from the model logs database.
 
@@ -230,15 +213,28 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
     def embeddings(
         self,
-        strings_to_embed: List[str],
+        strings_to_embed: Optional[List[str]] = None,
+        images_to_embed: Optional[List[str]] = None,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
+        if strings_to_embed is None and images_to_embed is None:
+            raise ValueError(
+                "Must provide either strings_to_embed or images_to_embed..."
+            )
+        elif strings_to_embed is not None and images_to_embed is not None:
+            raise ValueError(
+                "Must provide either strings_to_embed or images_to_embed, not both..."
+            )
+
         if insight_id is None:
             insight_id = self.insight_id
 
         if isinstance(strings_to_embed, str):
             strings_to_embed = [strings_to_embed]
+
+        if isinstance(images_to_embed, str):
+            images_to_embed = [images_to_embed]
 
         assert isinstance(strings_to_embed, list)
 
@@ -248,7 +244,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             engine_type="Model",
             engine_id=self.engine_id,
             method_name="embeddings",
-            method_args=[strings_to_embed, insight_id, param_dict],
+            method_args=[strings_to_embed, images_to_embed, insight_id, param_dict],
             method_arg_types=["java.util.List", "prerna.om.Insight", "java.util.Map"],
             insight_id=insight_id,
         )
