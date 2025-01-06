@@ -44,7 +44,14 @@ class HuggingfaceTokenizer(AbstractTokenizer):
                     super().__init__(*args, **kwargs)
 
                 def _tokenize(self, text, **kwargs):
-                    # Simple whitespace-based tokenization
+                    if isinstance(text, list):
+                        contents = []
+                        for msg in text:
+                            if isinstance(msg, dict) and "content" in msg:
+                                contents.append(msg["content"])
+                        text = " ".join(contents)
+                    elif isinstance(text, dict) and "content" in text:
+                        text = text["content"]
                     return text.split()
 
                 # need this so the object can be initialized
@@ -101,6 +108,16 @@ class HuggingfaceTokenizer(AbstractTokenizer):
         return len(input_tokens_ids)
 
     def get_tokens_ids(self, input: str, add_special_tokens: bool = False) -> List[int]:
+        if isinstance(input, list):
+            input = " ".join(
+                [
+                    message.get("content") or message.get("text")
+                    for message in input
+                    if "content" in message or "text" in message
+                ]
+            )
+        elif isinstance(input, dict):
+            input = input["content"]
         return self.tokenizer.encode(input, add_special_tokens=add_special_tokens)
 
     def get_tokens(self, input: str) -> List[str]:
