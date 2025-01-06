@@ -63,7 +63,7 @@ public class ApiSemossTestEngineUtils {
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
-			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {})),
+			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {"BLOCKS_TEMPLATE"})),
 			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})));
 
 	static void checkDatabasePropMapping() {
