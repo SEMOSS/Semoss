@@ -108,6 +108,16 @@ class HuggingfaceTokenizer(AbstractTokenizer):
         return len(input_tokens_ids)
 
     def get_tokens_ids(self, input: str, add_special_tokens: bool = False) -> List[int]:
+        if isinstance(input, list):
+            input = " ".join(
+                [
+                    message.get("content") or message.get("text")
+                    for message in input
+                    if "content" in message or "text" in message
+                ]
+            )
+        elif isinstance(input, dict):
+            input = input["content"]
         return self.tokenizer.encode(input, add_special_tokens=add_special_tokens)
 
     def get_tokens(self, input: str) -> List[str]:
