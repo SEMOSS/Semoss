@@ -82,7 +82,6 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 		return output;
 	}
-
 	
 	public static Object getThemeData(String tableName, GenRowFilters filters) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);

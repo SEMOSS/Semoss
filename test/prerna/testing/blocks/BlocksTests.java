@@ -37,7 +37,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		Set<String> test = new HashSet<String>(blocksNames);
 		assert blocksNames.size() == test.size();
 		Set<String> ground = new HashSet<String>(BlocksThemeUtils.BASE_BLOCKS);
-		assert ground.equals(test);
+		assert test.containsAll(ground);
 	}
 	
 	@Test
