@@ -43,7 +43,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			"Requirement Diagram", "Git Diagram", "C4 Diagram", "Mindmap", "Timeline", "Sankey", "XY Chart",
 			"Block Diagram"));
 
-	private static final String BLOCK_QUERY = "INSERT INTO BLOCKS_TEMPLATE (ID, NAME, SECTION, IMAGE, HOVER_IMAGE, BLOCK_JSON, CLASSIFICATION, IS_DELETABLE, DATE_ADDED, IS_LATEST)"
+	private static final String BLOCK_QUERY = "INSERT INTO BLOCKS_TEMPLATE (ID, NAME, SECTION, IMAGE, HOVER_IMAGE, BLOCK_JSON, CLASSIFICATION, IS_DELETABLE, DATE_ADDED, IS_LATEST) "
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private BlocksThemeUtils() {
@@ -126,6 +126,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "ID", "==",
 						blockId, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "IS_LATEST", "==", 1));
 
 		List<Map<String, Object>> retVal = null;
 		try {
