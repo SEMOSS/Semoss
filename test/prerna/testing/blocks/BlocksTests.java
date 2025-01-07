@@ -26,6 +26,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestUtils;
 import prerna.theme.BlocksThemeUtils;
+import prerna.theme.ThemeDbTable;
 
 // Tests the Blocks reactors as well as some of the utils
 
@@ -60,9 +61,9 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		String outputId = nm.getValue().toString();
 		
-		String editPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", outputId, "tableName", "BLOCKS_TEMPLATE");
-		NounMetadata editNm = ApiSemossTestUtils.processPixel(editPixel);
-		Object name = ((HashMap<String, Object>) editNm.getValue()).get("NAME");
+		String checkPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", outputId, "tableName", "BLOCKS_TEMPLATE");
+		NounMetadata checkNm = ApiSemossTestUtils.processPixel(checkPixel);
+		Object name = ((HashMap<String, Object>) checkNm.getValue()).get("NAME");
 		assertEquals("Test Block", name);
 		
 		return outputId;
@@ -116,6 +117,15 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		String checkPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", outputId, "tableName", "BLOCKS_TEMPLATE");
 		NounMetadata checkNm = ApiSemossTestUtils.processPixel(checkPixel);
 		assertEquals(new HashMap<>(), checkNm.getValue());
+		
+		String filter = ApiSemossTestUtils.buildFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "IS_LATEST", "==", 0);
+		String checkExistsPixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), filter);
+		NounMetadata checkExistsNm = ApiSemossTestUtils.processPixel(checkExistsPixel);
+		assertNotEquals(new HashMap<>(), checkExistsNm.getValue());
+		List<Object> output = (List<Object>) checkExistsNm.getValue();
+		assert output.size() == 1;
+		Map<String, Object> element = (Map<String, Object>) output.get(0);
+		assertEquals(outputId, element.get("ID"));
 	}
 
 	@Test
@@ -129,14 +139,18 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		String checkPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", outputId, "tableName", "BLOCKS_TEMPLATE");
 		NounMetadata checkNm = ApiSemossTestUtils.processPixel(checkPixel);
 		assertEquals(new HashMap<>(), checkNm.getValue());
+		
+		String filter = ApiSemossTestUtils.buildFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "IS_LATEST", "==", 0);
+		String checkExistsPixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), filter);
+		NounMetadata checkExistsNm = ApiSemossTestUtils.processPixel(checkExistsPixel);
+		assertEquals(new HashMap<>(), checkExistsNm.getValue());
 	}
 	
 	@Test
 	public void listThemeData() {
-		String filter = ApiSemossTestUtils.buildFilter("BLOCKS_TEMPLATE__ID", "==", "BT002");
+		String filter = ApiSemossTestUtils.buildFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "ID", "==", "BT002");
 		String pixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), filter);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertNotEquals(PixelDataType.ERROR, nm.getValue());
 		assertNotEquals(new HashMap<>(), nm.getValue());
 		List<Object> output = (List<Object>) nm.getValue();
 		assert output.size() == 1;
