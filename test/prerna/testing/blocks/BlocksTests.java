@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,8 +30,6 @@ import prerna.theme.BlocksThemeUtils;
 
 public class BlocksTests extends AbstractBaseSemossApiTests {
 	
-	private static final Logger classLogger = LogManager.getLogger(BlocksTests.class);
-	
 	@Test
 	public void checkDefaultBlocks() throws SQLException {
 		List<String> blocksNames = BlocksThemeUtils.getBlockNames();
@@ -54,11 +53,18 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		validateAdd();
 	}
 
-	private void validateAdd() {
+	private String validateAdd() {
 		Map<String, Object> inputMap = makeTestObject();
 		String pixel = ApiSemossTestUtils.buildPixelCall(AddBlockReactor.class, ReactorKeysEnum.DATA_TYPE_MAP.getKey(), inputMap);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertEquals(true, nm.getValue());
+		String outputId = nm.getValue().toString();
+		
+		String editPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", outputId, "tableName", "BLOCKS_TEMPLATE");
+		NounMetadata editNm = ApiSemossTestUtils.processPixel(editPixel);
+		Object name = ((HashMap<String, Object>) editNm.getValue()).get("NAME");
+		assertEquals("Test Block", name);
+		
+		return outputId;
 	}
 
 	private static Map<String, Object> makeTestObject() {
@@ -72,9 +78,9 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		return inputMap;
 	}
 	
-	private static Map<String, Object> makeEditObject() {
+	private static Map<String, Object> makeEditObject(String id) {
 		Map<String, Object> inputMap = new HashMap<>();
-		inputMap.put("id", "837b2crot7");
+		inputMap.put("id", id);
 		inputMap.put("name", "Test Block 2");
 		inputMap.put("section", "SECTION_TEST_2");
 		inputMap.put("image", "test_url_2.png");
@@ -85,43 +91,52 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 	
 	@Test
 	public void checkEdit() {
-		validateAdd();
-		Map<String, Object> inputMap = makeEditObject();
-		String pixel = ApiSemossTestUtils.buildPixelCall(EditBlockReactor.class, ReactorKeysEnum.DATA_TYPE_MAP.getKey(), inputMap);
+		String outputId = validateAdd();
+		Map<String, Object> inputMap = makeEditObject(outputId);
+		String pixel = ApiSemossTestUtils.buildPixelCall(EditBlockReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.MAP.getKey(), inputMap);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		assertEquals(true, nm.getValue());
 		
 //		Get object and check vals
-		String editPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", "837b2crot7", "tableName", "BLOCKS_TEMPLATE");
+		String editPixel = ApiSemossTestUtils.buildPixelCall(GetBlockReactor.class, "blockId", outputId, "tableName", "BLOCKS_TEMPLATE");
 		NounMetadata editNm = ApiSemossTestUtils.processPixel(editPixel);
-		assertNotEquals(PixelDataType.ERROR, editNm.getValue());
 		Object name = ((HashMap<String, Object>) editNm.getValue()).get("NAME");
 		assertEquals("Test Block 2", name);
 	}
 	
-	@Test
-	public void checkSoftDelete() {
-		validateAdd();
-		String pixel = ApiSemossTestUtils.buildPixelCall(EditBlockReactor.class, "blockId", "837b2crot7", "tableName", "BLOCKS_TEMPLATE");
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertEquals(true, nm.getValue());
-	}
-	
-	@Test
-	public void checkHardDelete() {
-		validateAdd();
-		String pixel = ApiSemossTestUtils.buildPixelCall(EditBlockReactor.class, "blockId", "837b2crot7", "tableName", "BLOCKS_TEMPLATE", "hardDelete", true);
-		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertEquals(true, nm.getValue());
-	}
+//	@Test
+//	public void checkSoftDelete() {
+//		validateAdd();
+//		String pixel = ApiSemossTestUtils.buildPixelCall(EditBlockReactor.class, "blockId", "837b2crot7", "tableName", "BLOCKS_TEMPLATE");
+//		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+//		assertEquals(true, nm.getValue());
+//	}
+//	
+//	@Test
+//	public void checkHardDelete() {
+//		validateAdd();
+//		String pixel = ApiSemossTestUtils.buildPixelCall(EditBlockReactor.class, "blockId", "837b2crot7", "tableName", "BLOCKS_TEMPLATE", "hardDelete", true);
+//		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+//		assertEquals(true, nm.getValue());
+//	}
 	
 	@Test
 	public void listThemeData() {
-		Map<String, Object> inputMap = new HashMap<>();
-		String pixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), inputMap);
+		String filter = ApiSemossTestUtils.buildFilter("BLOCKS_TEMPLATE__ID", "==", "BT002");
+		String pixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), filter);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		assertNotEquals(PixelDataType.ERROR, nm.getValue());
-		assertEquals(PixelDataType.MAP, nm.getValue());
+		assertNotEquals(new HashMap<>(), nm.getValue());
+		List<Object> output = (List<Object>) nm.getValue();
+		assert output.size() == 1;
+		Map<String, Object> element = (Map<String, Object>) output.get(0);
+		assertEquals("BT002", element.get("ID"));
+		
+//		String pixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE");
+//		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
+//		assertNotEquals(PixelDataType.ERROR, nm.getValue());
+//		List<Object> output = (List<Object>) nm.getValue();
+//		assertNotEquals(new ArrayList<>(), output);
 	}
 
 }

@@ -63,7 +63,7 @@ public class ApiSemossTestEngineUtils {
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
-			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {"BLOCKS_TEMPLATE"})),
+//			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {"BLOCKS_TEMPLATE"})),
 			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})));
 
 	static void checkDatabasePropMapping() {
@@ -201,6 +201,8 @@ public class ApiSemossTestEngineUtils {
 		Triple<String, String, String> lmdConnDetails = getTestDatabaseConnection(Constants.LOCAL_MASTER_DB);
 		connectAndClearLocalMaster(lmdConnDetails);
 
+		Triple<String, String, String> themeConnDetails = getTestDatabaseConnection(Constants.THEMING_DB);
+		connectAndClearThemeDb(themeConnDetails);
 
 		try {
 			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
@@ -209,6 +211,59 @@ public class ApiSemossTestEngineUtils {
 			fail("Could not add Default Native Admin user");
 		}
 	}
+	
+	private static void connectAndClearThemeDb(Triple<String, String, String> connectionDetails) {
+		PreparedStatement ps = null;
+		Statement st = null;
+		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
+				connectionDetails.getRight())) {
+			assertTrue(connectionDetails.getLeft().contains("testfolder"));
+
+			ps = conn
+					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
+			ps.execute();
+			ResultSet rs = ps.getResultSet();
+			List<String> al = new ArrayList<>();
+			while (rs.next()) {
+				al.add(rs.getString(1));
+			}
+			ps.close();
+
+			List<String> manualDelete = Arrays.asList("BLOCKS_TEMPLATE");
+			al.removeAll(manualDelete);
+			// delete * from databases
+			st = conn.createStatement();
+			for (String x : al) {
+				st.addBatch("delete from " + x);
+			}
+			
+//			manual delete statement
+			st.addBatch("delete from BLOCKS_TEMPLATE where IS_DELETABLE = 1");
+
+			st.executeBatch();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("could not clear core dbs");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (st != null) {
+				try {
+					st.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 
 	private static void connectAndClearLocalMaster(Triple<String, String, String> connectionDetails) {
 		PreparedStatement ps = null;

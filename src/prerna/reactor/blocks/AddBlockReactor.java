@@ -41,13 +41,13 @@ public class AddBlockReactor extends AbstractReactor {
 
 		organizeKeys();
 		Map<String, Object> blockDetails = getBlockDetails();
-		BlocksThemeUtils.addBlock(blockDetails);
-		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
+		String blockId = BlocksThemeUtils.addBlock(blockDetails);
+		NounMetadata nm = new NounMetadata(blockId, PixelDataType.CONST_STRING);
 		return nm;
 	}
 
 	private Map<String, Object> getBlockDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATA_TYPE_MAP.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

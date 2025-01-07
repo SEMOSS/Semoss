@@ -197,12 +197,13 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	
 	// add block function
-	public static void addBlock(Map<String, Object> blockDetails) {
+	public static String addBlock(Map<String, Object> blockDetails) {
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
 		String blockId = UUID.randomUUID().toString();
+		blockDetails.put("id", blockId);
 		validateBlockDetails(blockDetails);
 		insertBlock(blockDetails, allowClob, blockId);
-
+		return blockId;
 	}
 
 	
