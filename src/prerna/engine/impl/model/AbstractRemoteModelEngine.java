@@ -340,6 +340,24 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 		return implementingEngineClass.embeddingsCall(stringsToEmbed, insight, parameters);
 	}
+	
+	@Override
+	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+		try {
+			checkModelUp();
+		} catch(Exception e) {
+			classLogger.error("Error deploying model", e);
+		}
+		String modelUrl = getModelUrl();
+		classLogger.info("Adding cluster address to parameters: {}", modelUrl);
+		if (parameters != null) {
+		    parameters.put("base_url", modelUrl);
+		} else {
+		    parameters = new HashMap<>();
+		    parameters.put("base_url", modelUrl);
+		}
+		return implementingEngineClass.imageEmbeddingsCall(imagesToEmbed, insight, parameters);
+	}
 
 	@Override
 	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
