@@ -16,7 +16,7 @@ class DatabaseEngine(ServerProxy):
             insight_id = self.insight_id
         # assert insight_id is not None
         #epoc = super().get_next_epoc()
-        epoc = "py_" + self.generate_random_digit_string()
+        epoc ="py_" + "".join(random.choice(string.digits) for _ in range(17))
         fileLoc = super().call(
             epoc=epoc,
             engine_type="database",
@@ -106,7 +106,7 @@ class DatabaseEngine(ServerProxy):
         # assert insight_id is not None
         #epoc = super().get_next_epoc()
         #epoc = "py_" + str (random.randint(1,9999))
-        epoc = "py_" + self.generate_random_digit_string()
+        epoc ="py_" + "".join(random.choice(string.digits) for _ in range(17))
         pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery(commit={commitStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -120,7 +120,3 @@ class DatabaseEngine(ServerProxy):
 
         return pixelReturn
 
-    def generate_random_digit_string(length=17):
-        characters = string.digits
-        random_string = ''.join(random.choice(characters) for _ in range(length))
-        return random_string
