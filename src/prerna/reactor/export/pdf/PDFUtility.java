@@ -1,6 +1,7 @@
 package prerna.reactor.export.pdf;
 
 import java.awt.Color;
+import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -30,6 +31,9 @@ import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecifica
 import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceDictionary;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceEntry;
@@ -38,7 +42,6 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
-import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.jsoup.nodes.Attributes;
@@ -990,27 +993,52 @@ public final class PDFUtility {
 			File f = new File(filePath);
 			pdDoc = PDDocument.load(f);
 
-			PDFRenderer pdfRenderer = new PDFRenderer(pdDoc);
-
-			if (pdfRenderer.renderImage(0) != null) {
-
-			status = true;
-
+			int count = getPDFImagesCount(pdDoc);
+			if (count > 0) {
+				status = true;
 			}
+
 		}
-			catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (pdDoc != null) {
-					try {
-						pdDoc.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+
+		catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			pdDoc.close();
+		}
 
 		return status;
+	}
+
+	public static int getPDFImagesCount(PDDocument document) throws IOException {
+		return getImagesFromPDF(document).size();
+	}
+
+	/*
+	 * get the list of PDF images
+	 */
+	public static List<RenderedImage> getImagesFromPDF(PDDocument document) throws IOException {
+		List<RenderedImage> images = new ArrayList<>();
+		for (PDPage page : document.getPages()) {
+			images.addAll(getImagesFromResources(page.getResources()));
+		}
+
+		return images;
+	}
+
+	private static List<RenderedImage> getImagesFromResources(PDResources resources) throws IOException {
+		List<RenderedImage> images = new ArrayList<>();
+
+		for (COSName xObjectName : resources.getXObjectNames()) {
+			PDXObject xObject = resources.getXObject(xObjectName);
+
+			if (xObject instanceof PDFormXObject) {
+				images.addAll(getImagesFromResources(((PDFormXObject) xObject).getResources()));
+			} else if (xObject instanceof PDImageXObject) {
+				images.add(((PDImageXObject) xObject).getImage());
+			}
+		}
+
+		return images;
 	}
 
 	

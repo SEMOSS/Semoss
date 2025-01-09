@@ -71,6 +71,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String FILTERS_KEY = "filters";
 	public static final String METADATA_FILTERS_KEY = "metaFilters";
 	
+	public static final String CSVPATH = "csvPath";
+	public static final String DOCUMENT = "document";
+	public static final String PARAMETERS = "parameters";
+	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -325,9 +329,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
 							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
-							functionInputs.put("document", document);
-							functionInputs.put("parameters", parameters);
+							functionInputs.put(CSVPATH, extractedFile.getAbsolutePath());
+							functionInputs.put(DOCUMENT, document);
+							functionInputs.put(PARAMETERS, parameters);
 							rowsCreated = (int) functionEngine.execute(functionInputs);
 						} else {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
