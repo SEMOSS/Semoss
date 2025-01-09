@@ -28,6 +28,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -1057,21 +1058,13 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID","ROOM_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID","MODEL_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		qs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
+		String query = "SELECT DISTINCT ROOM.INSIGHT_ID FROM ROOM "
+				+ "INNER JOIN MESSAGE ON ROOM.INSIGHT_ID = MESSAGE.INSIGHT_ID WHERE ROOM.USER_ID IN ('" + userId +"') "
+				+ "AND ROOM.IS_ACTIVE IN (" + true + ") AND MESSAGE.MESSAGE_DATA IS NOT NULL AND ROOM.PROJECT_ID IN ('" + projectId +"')";
 		
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
-		if (projectId != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
