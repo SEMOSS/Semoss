@@ -1058,12 +1058,14 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		String	query = "	SELECT ROOM.INSIGHT_ID AS ROOM_ID,ROOM.ROOM_NAME AS ROOM_NAME,ROOM.ROOM_CONTEXT AS ROOM_CONTEXT,ROOM.AGENT_ID AS MODEL_ID,ROOM.DATE_CREATED AS DATE_CREATED FROM ROOM WHERE ROOM.INSIGHT_ID IN (SELECT DISTINCT ROOM.INSIGHT_ID FROM ROOM INNER JOIN MESSAGE ON ROOM.INSIGHT_ID = MESSAGE.INSIGHT_ID WHERE \r\n" + 
-				"           ROOM.USER_ID = '" + userId + "' \r\n" + 
-				"           AND ROOM.IS_ACTIVE = true \r\n" + 
-				"           AND MESSAGE.MESSAGE_DATA IS NOT NULL \r\n" + 
-				"           AND ROOM.PROJECT_ID = '" + projectId + "'\r\n" + 
-				"   ) ORDER BY ROOM.DATE_CREATED DESC;";
+		String	query = "SELECT ROOM.INSIGHT_ID AS ROOM_ID,ROOM.ROOM_NAME AS ROOM_NAME,ROOM.ROOM_CONTEXT AS ROOM_CONTEXT,ROOM.AGENT_ID AS MODEL_ID,"
+				+ "ROOM.DATE_CREATED AS DATE_CREATED FROM ROOM WHERE ROOM.INSIGHT_ID IN "
+				+ "(SELECT DISTINCT ROOM.INSIGHT_ID FROM ROOM INNER JOIN MESSAGE ON ROOM.INSIGHT_ID = MESSAGE.INSIGHT_ID WHERE " 
+				+ "ROOM.USER_ID = '" + userId + "' " 
+				+ "AND ROOM.IS_ACTIVE = true "
+				+ "AND MESSAGE.MESSAGE_DATA IS NOT NULL " 
+				+ "AND ROOM.PROJECT_ID = '" + projectId + "'" 
+				+ ") ORDER BY ROOM.DATE_CREATED DESC;";
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
