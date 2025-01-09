@@ -92,12 +92,12 @@ public class ModelInferenceLogsUtils {
 	 * @param engine
 	 * @param conn
 	 * @param columnNamesAndTypes
-	 * @throws Exception 
+	 * @throws SQLException 
 	 */
 	private static void executeInitModelInferenceDatabase(
 			IRDBMSEngine engine, 
 			Connection conn,
-			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
+			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
 
 		String database = engine.getDatabase();
 		String schema = engine.getSchema();
