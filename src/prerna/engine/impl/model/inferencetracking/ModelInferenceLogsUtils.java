@@ -92,18 +92,19 @@ public class ModelInferenceLogsUtils {
 	 * @param engine
 	 * @param conn
 	 * @param columnNamesAndTypes
-	 * @throws SQLException
+	 * @throws Exception 
 	 */
 	private static void executeInitModelInferenceDatabase(
 			IRDBMSEngine engine, 
 			Connection conn,
-			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
+			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 
 		String database = engine.getDatabase();
 		String schema = engine.getSchema();
 
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -128,6 +129,19 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		}
+		
+		if(allowIfExistsIndexs) {
+			try {
+				String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
+				classLogger.info("Running sql " + sql);
+				modelInferenceLogsDb.insertData(sql);
+			}
+			catch (Exception e) {
+				classLogger.error(e.getStackTrace());
+			}
+		}
+		
+		
 	}
 	
 	/**
