@@ -32,6 +32,10 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 		organizeKeys();
 		String sourceEngineId = this.keyValue.get(this.keysToGet[0]);
 		String targetEngineId = this.keyValue.get(this.keysToGet[1]);
+		int maxTokens = Integer.parseInt(keyValue.get(this.keysToGet[2]));
+		double maxResponseTime = Double.parseDouble(this.keyValue.get(this.keysToGet[3]));
+		String usageRestriction = this.keyValue.get(this.keysToGet[4]);
+		String usageFrequency = this.keyValue.get(this.keysToGet[5]);
 
 		// must be an editor for both to run this
 		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), sourceEngineId)) {
@@ -43,7 +47,7 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 		
 		// now perform the operation
 		try {
-			SecurityEngineUtils.copyEnginePermissions(sourceEngineId, targetEngineId);
+			SecurityEngineUtils.copyEnginePermissions(sourceEngineId, targetEngineId, maxTokens, maxResponseTime, usageRestriction, usageFrequency);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred copying the engine permissions.  Detailed error: " + e.getMessage());
@@ -51,6 +55,7 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 
 		String sourceDatabase = SecurityEngineUtils.getEngineAliasForId(sourceEngineId);
 		String targetDatabase = SecurityEngineUtils.getEngineAliasForId(targetEngineId);
+		
 
 		return new NounMetadata("Copied permissions from database " 
 				+ sourceDatabase  + "__" + sourceEngineId + " to " + targetDatabase + "__" + targetEngineId, 

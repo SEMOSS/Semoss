@@ -18,8 +18,8 @@ import org.codehaus.plexus.util.FileUtils;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.MountHelper;
 import prerna.util.PortAllocator;
+import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class ClientProcessWrapper {
@@ -37,7 +37,7 @@ public class ClientProcessWrapper {
 	private String serverDirectory;
 	
 	private boolean nativePyServer;
-	private MountHelper chrootMountHelper;
+	private SymlinkHelper chrootSymlinkHelper;
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -55,7 +55,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void createProcessAndClient(boolean nativePyServer,
-			MountHelper chrootMountHelper,
+			SymlinkHelper chrootSymlinkHelper,
 			int port,
 			String venvPath,
 			String serverDirectory, 
@@ -66,7 +66,7 @@ public class ClientProcessWrapper {
 	{
 		synchronized(lockCreate) {
 			this.nativePyServer = nativePyServer;
-			this.chrootMountHelper = chrootMountHelper;
+			this.chrootSymlinkHelper = chrootSymlinkHelper;
 			this.classPath = classPath;
 			this.port = calculatePort(port);
 			this.venvPath = venvPath;
@@ -80,9 +80,9 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if(!serverRunning) {
 				if(nativePyServer) {
-					if(this.chrootMountHelper != null) {
+					if(this.chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(this.chrootMountHelper.getTargetDirName());
+						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
 						// we will be creating a fake semoss home in the chrooted directory
 						// so grabbing the current base folder to mock the same pattern
 						String baseFolderPath = Utility.getBaseFolder();
@@ -100,7 +100,7 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootMountHelper.getTargetDirName(), relative, this.port+"", this.timeout, this.loggerLevel);
+						Object[] ret = Utility.startTCPServerNativePyChroot(this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port+"", this.timeout, this.loggerLevel);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					} else {
@@ -112,9 +112,9 @@ public class ClientProcessWrapper {
 						this.prefix = (String) ret[1];
 					}
 				} else {
-					if(chrootMountHelper != null) {
+					if(chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(chrootMountHelper.getTargetDirName());
+						Path chrootPath = Paths.get(chrootSymlinkHelper.getUserChrootFolder());
 						// we will be creating a fake semoss home in the chrooted directory
 						// so grabbing the current base folder to mock the same pattern
 						String baseFolderPath = Utility.getBaseFolder();
@@ -132,7 +132,7 @@ public class ClientProcessWrapper {
 						}
 						Utility.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 						
-						this.process = Utility.startTCPServerChroot(classPath, this.chrootMountHelper.getTargetDirName(), relative, this.port+"");
+						this.process = Utility.startTCPServerChroot(classPath, this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port+"");
 					} else {
 						// write the log4j file in the server directory
 						Utility.writeLogConfigurationFile(this.serverDirectory);
@@ -275,7 +275,7 @@ public class ClientProcessWrapper {
 	 * @throws Exception
 	 */
 	public void reconnect() throws Exception {
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
 	}
 	
 	/**
@@ -285,7 +285,7 @@ public class ClientProcessWrapper {
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootMountHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug, timeout, loggerLevel);
 	}
 	
 	/**
