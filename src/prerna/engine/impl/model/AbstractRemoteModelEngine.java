@@ -96,7 +96,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 	}
 	
-	protected boolean initiateAndWaitForDeployment(long timeoutMs) throws Exception {
+	public boolean initiateAndWaitForDeployment(long timeoutMs) throws Exception {
 	    if (zkClient.isModelActive(this.engineId)) {
 	        classLogger.info("Model {} is already active", this.engineId);
 	        return true;
