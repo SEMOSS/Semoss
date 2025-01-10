@@ -161,6 +161,60 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    classLogger.error("Timeout waiting for model {} to enter warming state", this.engineId);
 	    return false;
 	}
+	
+	public String shutdownModelRequest() throws Exception {
+	    RemoteModelStateEnum currentState = zkClient.getModelState(this.engineId);
+	    
+	    if (currentState == RemoteModelStateEnum.COLD) {
+	        classLogger.info("Model {} is already cold", this.engineId);
+	        return String.format("Model %s is already cold", this.engineId);
+	    }
+	    
+	    String modelScalerIp = zkClient.getModelScalerIp();
+	    if (modelScalerIp == null) {
+	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
+	        return "Failed to get model scaler IP";
+	    }
+	    
+	    String shutdownUrl;
+	    if (devPortFowarding) {
+	        shutdownUrl = String.format("http://localhost:8000/api/stop?model_id=%s&model=%s", 
+	            this.engineId, this.model);
+	    } else {
+	        shutdownUrl = String.format("http://%s/api/stop?model_id=%s&model=%s", 
+	            modelScalerIp, this.engineId, this.model);
+	    }
+
+	    RequestConfig requestConfig = RequestConfig.custom()
+	            .setConnectTimeout(30000)
+	            .setSocketTimeout(30000)
+	            .build();
+
+	    try (CloseableHttpClient httpClient = HttpClients.custom()
+	            .setDefaultRequestConfig(requestConfig)
+	            .build()) {
+
+	    	HttpPost httpPost = new HttpPost(shutdownUrl);
+
+	        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            if (statusCode != 200) {
+	                String error = String.format("Shutdown request failed with status code: %d", statusCode);
+	                classLogger.error(error);
+	                return error;
+	            }
+
+	            String message = String.format("Successfully initiated shutdown for model %s", this.engineId);
+	            classLogger.info(message);
+	            return message;
+	        }
+	    } catch (Exception e) {
+	        String error = String.format("Error making shutdown request for model %s: %s", 
+	            this.engineId, e.getMessage());
+	        classLogger.error(error, e);
+	        return error;
+	    }
+	}
 
 	protected JSONObject makeModelRequest(JSONObject requestPayload) throws Exception {
 		// Get current state and handle warming/cold states
