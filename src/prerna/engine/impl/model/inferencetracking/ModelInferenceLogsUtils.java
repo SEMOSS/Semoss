@@ -1072,17 +1072,24 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		String	query = "SELECT ROOM.INSIGHT_ID AS ROOM_ID,ROOM.ROOM_NAME AS ROOM_NAME,ROOM.ROOM_CONTEXT AS ROOM_CONTEXT,ROOM.AGENT_ID AS MODEL_ID,"
-				+ "ROOM.DATE_CREATED AS DATE_CREATED FROM ROOM WHERE ROOM.INSIGHT_ID IN "
-				+ "(SELECT DISTINCT ROOM.INSIGHT_ID FROM ROOM INNER JOIN MESSAGE ON ROOM.INSIGHT_ID = MESSAGE.INSIGHT_ID WHERE " 
-				+ "ROOM.USER_ID = '" + userId + "' " 
-				+ "AND ROOM.IS_ACTIVE = true "
-				+ "AND MESSAGE.MESSAGE_DATA IS NOT NULL " 
-				+ "AND ROOM.PROJECT_ID = '" + projectId + "'" 
-				+ ") ORDER BY ROOM.DATE_CREATED DESC;";
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID","ROOM_ID"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
+		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID","MODEL_ID"));
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+		SelectQueryStruct subQs = new SelectQueryStruct();
+		subQs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		subQs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
+
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+		if (projectId != null) {
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__INSIGHT_ID" , "IN", subQs));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
