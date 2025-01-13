@@ -41,7 +41,7 @@ public class ConnectionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(ConnectionUtils.class);
 
-	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs){
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs) {
 		if(rs!=null){
 			try{
 				rs.close();
@@ -51,18 +51,21 @@ public class ConnectionUtils {
 		}
 		if(ps!=null){
 			try{
+				if(engine!=null && engine.isConnectionPooling() && con == null) {
+					con = ps.getConnection();
+				}
 				ps.close();
 			} catch (Exception e){
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(engine!=null && engine.isConnectionPooling()) {
-			if(con!=null){
-				try{
+			try{
+				if(con != null) {
 					con.close();
-				} catch (Exception e){
-					classLogger.error(Constants.STACKTRACE, e);
 				}
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

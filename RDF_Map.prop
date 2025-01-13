@@ -204,6 +204,7 @@ USER_TRACKING_ENABLED	false
 USER_TRACKING_METHOD	GEOIP2
 
 MODEL_INFERENCE_LOGS_ENABLED true
+PROMPT_DB_ENABLED true
 
 ##################################################
 ##################################################
@@ -760,3 +761,9 @@ SQLITE_KEYWORDS ABORT,ACTION,ADD,AFTER,ALL,ALTER,ANALYZE,AND,AS,ASC,ATTACH,AUTOI
 MYSQL_KEYWORDS KEY,VALUES
 
 SQL_SERVER_KEYWORDS GROUP
+
+# Default user model properties
+user_model_max_token=2000  
+user_model_max_response_time=300  
+user_model_usage_restriction=token
+user_model_usage_frequency=WEEK     

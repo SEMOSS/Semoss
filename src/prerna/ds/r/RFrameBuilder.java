@@ -199,21 +199,21 @@ public class RFrameBuilder {
 			// get the fread() notation for that csv file
 			// and read it back in
 			String newFileLoc = Utility.getInsightCacheDir() + "/" + Utility.getRandomString(6) + ".tsv";
-			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				Insight in = this.getRJavaTranslator().getInsight();
-				
-				String insightFolder = this.getRJavaTranslator().getInsight().getInsightFolder();
-				try {
-					FileUtils.forceMkdir(new File(insightFolder));
-					if(in.getUser() != null) {
-						in.getUser().getUserMountHelper().mountFolder(this.getRJavaTranslator().getInsight().getInsightFolder(),this.getRJavaTranslator().getInsight().getInsightFolder(), false);
-					}
-					newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".tsv";
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+//			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+//				Insight in = this.getRJavaTranslator().getInsight();
+//				
+//				String insightFolder = this.getRJavaTranslator().getInsight().getInsightFolder();
+//				try {
+//					FileUtils.forceMkdir(new File(insightFolder));
+//					if(in.getUser() != null) {
+//						in.getUser().getUserSymlinkHelper().mountFolder(this.getRJavaTranslator().getInsight().getInsightFolder(),this.getRJavaTranslator().getInsight().getInsightFolder(), false);
+//					}
+//					newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".tsv";
+//				} catch (IOException e) {
+//					// TODO Auto-generated catch block
+//					logger.error(Constants.STACKTRACE, e);
+//				}
+//			}
 			
 			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t", new IStringExportProcessor() {
 				// for fread - we need to replace all inner quotes with ""
