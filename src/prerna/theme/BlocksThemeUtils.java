@@ -35,7 +35,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	public static final ArrayList<String> BASE_BLOCKS = new ArrayList<String>(Arrays.asList("Audio Player", "Button",
 			"Checkbox", "Input", "Select", "Upload", "Container", "Progress", "Iframe", "PDF Viewer", "Image", "Logs",
-			"Toggle Button", "Link", "Markdown", "HTML", "Text H1 styled", "Text H1", "Text H2", "Text H3", "Text H4",
+			"Toggle Button", "Link", "Markdown", "HTML", "Text H1", "Text H2", "Text H3", "Text H4",
 			"Text H5", "Text H6", "Text P", "Text P Italics", "Compare LLMs", "Mermaid", "Vega", "Grid", "Bar Chart",
 			"Grouped Bar Chart", "Pie Chart", "Radial Plot", "Line Chart", "Area Chart", "Area Chart with Gradient",
 			"Scatter Plot", "General Mermaid", "Class Diagram", "Sequence Diagram", "State Diagram",
@@ -43,8 +43,8 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			"Requirement Diagram", "Git Diagram", "C4 Diagram", "Mindmap", "Timeline", "Sankey", "XY Chart",
 			"Block Diagram"));
 
-	private static final String BLOCK_QUERY = "INSERT INTO BLOCKS_TEMPLATE (ID, NAME, SECTION, IMAGE, HOVER_IMAGE, BLOCK_JSON, CLASSIFICATION, IS_DELETABLE, DATE_ADDED, IS_LATEST) "
-			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	private static final String BLOCK_QUERY = "INSERT INTO BLOCKS_TEMPLATE (ID, NAME, SECTION, IMAGE, HOVER_IMAGE, HOVER_TEXT, BLOCK_JSON, CLASSIFICATION, IS_DELETABLE, DATE_ADDED, IS_LATEST) "
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private BlocksThemeUtils() {
 
@@ -268,6 +268,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("image")).toUpperCase());
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("image")).toUpperCase());
+			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
 			if (allowClob) {
 				Clob toclob = themeDb.getConnection().createClob();
 				toclob.setString(1, String.valueOf(blockDetails.get("block_json")));
