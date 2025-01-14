@@ -855,18 +855,28 @@ public final class HttpHelperUtility {
 	 * Methods for making requests using the access token
 	 */
 
-
-	// makes the call to every resource going forward with the specified keys as get
+	/**
+	 * Makes the call to every resource going forward with the specified keys as get
+	 * @param urlStr
+	 * @param accessToken
+	 * @return
+	 */
 	public static String makeGetCall(String urlStr, String accessToken) {
 		return makeGetCall(urlStr, accessToken, null, true);
 	}
 
-	// makes the call to every resource going forward with the specified keys as get
+	/**
+	 * Makes the call to every resource going forward with the specified keys as get
+	 * @param urlStr
+	 * @param accessToken
+	 * @param params
+	 * @param auth
+	 * @return
+	 */
 	public static String makeGetCall(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
 		if(urlStr == null) {
 			throw new NullPointerException("Must provide the URL");
 		}
-		String retString = null;
 		// fill the params on the get since it is not null
 		if(params != null) {
 			StringBuffer urlBuf = new StringBuffer(urlStr);
@@ -889,6 +899,8 @@ public final class HttpHelperUtility {
 			urlStr = urlBuf.toString();
 		}
 		
+		String retString = null;
+		String responseCode = null;
 		BufferedReader br = null;
 		InputStreamReader isr = null;
 		try {
@@ -905,9 +917,7 @@ public final class HttpHelperUtility {
 		    }
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
-		    String responseCode = String.valueOf(con.getResponseCode());
-		    if (responseCode.startsWith("5") || responseCode.startsWith("4"))
-		    	throw new IllegalArgumentException();
+		   
 		    isr = new InputStreamReader(con.getInputStream(), "UTF-8");
 		    br = new BufferedReader(isr);
 		    StringBuilder str = new StringBuilder();
@@ -916,13 +926,9 @@ public final class HttpHelperUtility {
 		        str.append(line);
 		    }
 		    retString = str.toString();
-		    classLogger.info("Return from " + urlStr + " = " + retString);
-		}
-		catch (IllegalArgumentException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect!");
-		}
-		catch (MalformedURLException e) {
+		    
+		    responseCode = String.valueOf(con.getResponseCode());
+		} catch (MalformedURLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -942,6 +948,11 @@ public final class HttpHelperUtility {
 				}
 			}
 		}
+		
+		classLogger.info("Return from " + urlStr + " with response " + responseCode + " = " + retString);
+	    if (responseCode.startsWith("4") || responseCode.startsWith("5")) {
+	    	throw new IllegalArgumentException(retString);
+	    }
 		
 		return retString;
 	}
