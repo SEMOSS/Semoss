@@ -86,6 +86,13 @@ public class UploadProjectReactor extends AbstractReactor {
 		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
+		
+		if (global && 
+				(AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User can upload a project but cannot make the project public"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
