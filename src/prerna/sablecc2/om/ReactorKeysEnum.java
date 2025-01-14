@@ -98,6 +98,7 @@ public enum ReactorKeysEnum {
 	HEADERS("headers",                                      	"All the headers strings we want to push as part of the header on the excel / powerpoint export"),
 	HEADERS_MAP("headersMap", 									"Map containing key-value pairs to send in the headers of a request"),		
 	HEIGHT("height", 											"The height to use for screenshot capture."),
+	HF_MODEL_ID("hfModelId", 									"The model id for the HF model"),
 	HOST("host",                    	                        "The host URL"),
 	HTML("html",                        	                    "The html"),
 	ID("id", 													"This key can represent the unique id of the insight instance or the unique id of the saved insight relative to the app"),
