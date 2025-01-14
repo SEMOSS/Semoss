@@ -273,7 +273,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)+"")) {
 			if(this.user != null) {
-				this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
+				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
 			}
 		}
 	}
