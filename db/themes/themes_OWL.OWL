@@ -143,6 +143,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">HOVER_IMAGE</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/HOVER_TEXT/BLOCKS_TEMPLATE">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BLOCKS_TEMPLATE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/HOVER_TEXT/BLOCKS_TEMPLATE"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/HOVER_TEXT/BLOCKS_TEMPLATE">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(500)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/HOVER_TEXT/BLOCKS_TEMPLATE"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">HOVER_TEXT</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/BLOCK_JSON/BLOCKS_TEMPLATE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
@@ -214,7 +228,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2024:12:05 13:45:19</TIME>
+	<TIME xmlns="ENGINE:">2025:01:14 11:05:52</TIME>
 </rdf:Description>
 
 </rdf:RDF>
