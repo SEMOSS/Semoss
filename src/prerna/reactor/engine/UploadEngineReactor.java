@@ -83,6 +83,13 @@ public class UploadEngineReactor extends AbstractReactor {
 		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
+		
+		if (global && 
+				(AbstractSecurityUtils.adminOnlyEngineSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User can upload an engine but cannot make the engine global"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// creating a temp folder to unzip the engine folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
