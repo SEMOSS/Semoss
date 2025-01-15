@@ -49,9 +49,7 @@ class OpenAiEmbedder(AbstractEmbedder):
         if "base_url" in kwargs:
             self.client.base_url = kwargs["base_url"]
 
-        image_inputs = self._create_image_payload(images_to_embed)
-
-        response = self._make_openai_image_embedding_call(image_inputs)
+        response = self._make_openai_embedding_call(images_to_embed)
 
         embedded_list = []
         for data in response.data:
@@ -61,23 +59,9 @@ class OpenAiEmbedder(AbstractEmbedder):
             response=embedded_list, prompt_tokens=0, response_tokens=0
         )
 
-    def _create_image_payload(self, images_to_embed: List[str]) -> List[Dict]:
-        payloads = [
-            {"type": "image_url", "image_url": {"url": image}}
-            for image in images_to_embed
-        ]
-
-        return {"input": payloads}
-
     def _make_openai_embedding_call(self, list_of_text: List[str]):
         """Executes the embedding call via the OpenAI API"""
         return self.client.embeddings.create(model=self.model_name, input=list_of_text)
-
-    def _make_openai_image_embedding_call(self, list_of_images: List[str]):
-        """Executes the image embedding call via the OpenAI API"""
-        return self.client.embeddings.create(
-            model=self.model_name, input=list_of_images
-        )
 
     def _get_tokenizer(self, init_args: Dict) -> AbstractTokenizer:
         return OpenAiTokenizer(
