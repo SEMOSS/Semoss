@@ -15,6 +15,8 @@ import prerna.util.Utility;
 
 public class ExecuteFunctionEngineReactor extends AbstractReactor {
 
+	public static final String INSIGHT = "insight";
+	
 	public ExecuteFunctionEngineReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MAP.getKey()};
 	}
@@ -28,6 +30,8 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> parameterValues = getMap();
+		
+		parameterValues.put(INSIGHT, this.insight);
 		
 		IFunctionEngine engine = Utility.getFunctionEngine(engineId);
 		Object execValue = engine.execute(parameterValues);
