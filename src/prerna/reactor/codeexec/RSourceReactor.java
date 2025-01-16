@@ -63,10 +63,10 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		}
 		
 		//if we have a chroot, mount the project for that user.
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
-			//get the app_root folder for the project
-			this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
-		}
+//		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+//			//get the app_root folder for the project
+//			this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+//		}
 
 		// in case your script is using other files
 		// we must load in the ROOT, APP_ROOT, and USER_ROOT

@@ -430,7 +430,8 @@ public abstract class AbstractSecurityUtils {
 					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, 
 					"VARCHAR(255)", INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME, "VARCHAR(255)" };
 			defaultValues = new Object[]{null, null, null, true, false, 
-					null, null, null, null, true, 0, 0.0, null};
+					null, null, null, null, 
+					null, null, null, null};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
 				classLogger.info("Running sql " + sql);

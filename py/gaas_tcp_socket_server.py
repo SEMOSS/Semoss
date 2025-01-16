@@ -4,7 +4,7 @@ import sys
 import socketserver
 import threading
 import asyncio
-
+import os
 from gaas_tcp_server_handler import TCPServerHandler
 
 # logging.basicConfig(level=logging.DEBUG,
@@ -51,8 +51,6 @@ class Server(socketserver.ThreadingTCPServer):
             self.start = sys.argv[1] == 1
 
         # set the current folder to pick up scripts from
-        import sys
-
         sys.path.append(py_folder)
 
         self.server_address = ("localhost", self.port)
@@ -131,15 +129,12 @@ def parse_args():
     parser.add_argument("--port", type=int, default=9999, help="Port number")
     parser.add_argument("--max_count", type=int, default=1, help="Max count")
     parser.add_argument("--py_folder", type=str, default=".", help="Python Folder")
-    parser.add_argument(
-        "--insight_folder", type=str, default=".", help="Insight Folder"
-    )
+    parser.add_argument("--insight_folder", type=str, default=".", help="Insight Folder")
     parser.add_argument("--prefix", type=str, default="", help="Prefix")
     parser.add_argument("--timeout", type=int, default=15, help="Timeout")
     parser.add_argument("--start", type=bool, default=True, help="Start")
-    parser.add_argument(
-        "--logger_level", type=str, default="INFO", help="The level of the logger"
-    )
+    parser.add_argument("--logger_level", type=str, default="INFO", help="The level of the logger")
+    parser.add_argument("--userChrootFolder", type=str, help="Directory to chroot into")
     return parser.parse_args()
 
 
@@ -161,9 +156,23 @@ if __name__ == "__main__":
     else:
         logging_level = logging.DEBUG
 
-    logging.basicConfig(
-        level=logging_level,
-    )
+    logging.basicConfig(level=logging_level)
+
+    # Perform chroot if userChrootFolder is specified
+    if args.userChrootFolder:
+        try:
+            os.chroot(args.userChrootFolder)
+            os.chdir("/")  # Change to root directory within chroot
+            logging.info(f"Chrooted to {args.userChrootFolder} and changed directory to /")
+        except PermissionError:
+            logging.error("Permission denied: You need to run this script as root.")
+            sys.exit(1)
+        except FileNotFoundError:
+            logging.error(f"The specified chroot path {args.userChrootFolder} does not exist.")
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f"An error occurred during chroot: {e}")
+            sys.exit(1)
 
     Server(
         port=args.port,

@@ -201,7 +201,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if(in.getUser() != null) {
-					in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
+					in.getUser().getUserSymlinkHelper().symlinkFolder(insightFolder);
 				}
 				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".json";
 			}
