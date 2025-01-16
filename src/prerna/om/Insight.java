@@ -273,7 +273,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)+"")) {
 			if(this.user != null) {
-				this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
+				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
 			}
 		}
 	}
@@ -1461,32 +1461,18 @@ public class Insight implements Serializable {
 		// sets the context space for the user
 		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
-//			throw new IllegalArgumentException("Already in the context");
 			return true;
 		}
 		if(this.user != null) {
-			String context = null;
-			Map <String, StringBuffer> varMap = this.user.getVarMap();
-			if(!varMap.containsKey(projectId)) {
-				// assume the context is currently the project id
-				// and we will add it and get back the varname that was used
-				// which will then be the actual context that is set
-				context = this.user.addVarMap(projectId); 
+			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+				return false;
 			}
-			if(varMap.containsKey(context)) {
-				this.user.setContext(context);
-				this.contextProjectId = projectId;
-				this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+			this.contextProjectId = projectId;
+			this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+			this.user.setContext(contextProjectId, contextProjectName);
 				
-				contextReinitialized = true;
-				// we need to find a way to serialize the insight here
-				//InsightSerializer is = new InsightSerializer(this);
-				//is.serializeInsight(true); // force it. the context may have changed
-
-				
-				return true;
-			}
-			return false;
+			this.contextReinitialized = true;
+			return true;
 		}
 		// should we allow this if no one is logged in?
 		else {
@@ -1497,7 +1483,6 @@ public class Insight implements Serializable {
 			this.contextProjectId = projectId;
 			return true;
 		}
-		
 	}
 	
 	public CmdExecUtil getCmdUtil() {

@@ -11,6 +11,7 @@ TEMPLATE = "template"
 TEMPLATE_NAME = "template_name"
 FULL_PROMPT = "full_prompt"
 IMAGE_ENCODED = "image_encoded"
+IMAGE_URL = "image_url"
 
 
 @dataclasses.dataclass
@@ -58,6 +59,27 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
 
     response: str = ""
     response_tokens: int = 0
+    prompt_tokens: int = 0
+    warning: str = None
+    tokens: List[str] = None
+    logprobs: List[float] = None
+
+
+class InstructModelEngineResponse(AbstractModelEngineResponse):
+    """
+    A text-generation model engine response object for instruction specific text-generation
+
+    Attributes:
+        response: response from api.
+        responseTokens: response token count.
+        promptTokens: prompt token count.
+        warning: warning message sent back with the response when a param was adjusted at runtime.
+        tokens: the response tokens
+        logprobs: logprob for a given token
+    """
+
+    response: List[str] = []
+    response_tokens = 0
     prompt_tokens: int = 0
     warning: str = None
     tokens: List[str] = None

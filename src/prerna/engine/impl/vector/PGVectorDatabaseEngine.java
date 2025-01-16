@@ -1090,7 +1090,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 		}
 		
-		if(this.keywordGeneratorEngineId != null) {
+		if(this.keywordGeneratorEngineId != null && !this.keywordGeneratorEngineId.trim().isEmpty()) {
 			if(!SecurityEngineUtils.userCanViewEngine(user, this.keywordGeneratorEngineId)) {
 				throw new IllegalArgumentException("Keyword model " + this.keywordGeneratorEngineId + " does not exist or user does not have access to this model");
 			}

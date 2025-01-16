@@ -74,7 +74,7 @@ public class TCPPyTranslator extends PyTranslator {
 	// use this if we want to get the output from an operation
 	// typically useful for model type operations
 	@Override
-	public Object runScript(String script, Insight insight) 
+	public Object runSmssWrapperEval(String script, Insight insight) 
 	{
 		if(method != null)
 		{
@@ -158,8 +158,7 @@ public class TCPPyTranslator extends PyTranslator {
 	@Override
 	protected void executeEmptyPyDirect(String script, Insight in)
 	{
-		
-		runScript(script, in);
+		runSmssWrapperEval(script, in);
 	}
 
 	private PayloadStruct constructPayload(String methodName, Object...objects )

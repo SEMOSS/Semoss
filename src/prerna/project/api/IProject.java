@@ -30,6 +30,7 @@ package prerna.project.api;
 import java.io.Closeable;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -43,6 +44,7 @@ import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
 import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
+import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 
@@ -197,6 +199,14 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	List<File> writeNotebooks();
+	
+	/**
+	 * 
+	 * @param insight
+	 * @param inputReplacements
+	 * @return
+	 */
+	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
 	
 	/**
 	 * Return if an asset

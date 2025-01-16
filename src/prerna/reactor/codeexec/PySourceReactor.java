@@ -66,7 +66,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		//if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			//get the app_root folder for the project
-			this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
 		}
 		
 		File file = new File(path);
@@ -81,7 +81,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
 		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
 		
-		pyt.runScript(this.insight.getUser().getVarMap(), "smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())", this.insight);
+		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())", this.insight);
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));

@@ -472,8 +472,12 @@ public class Constants {
 	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
 	
 	// Model Configurations
+	@Deprecated
 	public static final String MAX_TOKENS = "MAX_TOKENS";
+	@Deprecated
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
+	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
+	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
 	
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -599,6 +603,10 @@ public class Constants {
 	
 	// Theming
 	public static final String THEMING_DB = "themes";
+	
+	// Prompt
+	public static final String PROMPT_DB = "PromptDatabase";
+	public static final String PROMPT_DB_ENABLED = "PROMPT_DB_ENABLED";
 
 	// Quartz Scheduler
 	public static final String SCHEDULER_DB = "scheduler";
@@ -816,6 +824,7 @@ public class Constants {
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
 	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String PROMPT_METAKEYS = "PROMPTMETAKEYS";
 	public static final String METAKEY = "METAKEY";
 	public static final String SINGLE_MULTI = "SINGLEMULTI";
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
@@ -936,4 +945,28 @@ public class Constants {
 	public static final String MAP_EMAIL = "email";
 	public static final String MAP_NAME = "name";
 	public static final String MAP_USERNAME = "username";
+	
+	//UTC ZONE
+  	public static final String UTC_ZONE = "UTC";
+  	
+    // keys for engine restrictions
+ 	public static final String ENGINE_USAGE_RESTRICTION_KEY = "engine_usage_restiction";
+ 	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
+ 	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
+ 	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
+ 	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
+  	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
+  	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
+  	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
+  	// model restriction types
+  	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
+  	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
+
+  	//Exception Message for throttle limit
+  	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
+    public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+    public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
+    public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+  	
+	
 }

@@ -9,6 +9,8 @@ import java.sql.Statement;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,12 +22,14 @@ import org.javatuples.Pair;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -34,6 +38,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
+import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -47,7 +52,13 @@ public class ModelInferenceLogsUtils {
 	
 	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 	
-	private static IRDBMSEngine modelInferenceLogsDb;
+	// Constants for Table 
+	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
+	private static final String AGENT_TABLE_NAME = "AGENT__";
+	private static final String ROOM_TABLE_NAME = "ROOM__";
+	
+	static IRDBMSEngine modelInferenceLogsDb;
+	static boolean initialized = false;
 	
 	/**
 	 * 
@@ -80,7 +91,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engine
 	 * @param conn
 	 * @param columnNamesAndTypes
-	 * @throws SQLException
+	 * @throws SQLException 
 	 */
 	private static void executeInitModelInferenceDatabase(
 			IRDBMSEngine engine, 
@@ -92,6 +103,7 @@ public class ModelInferenceLogsUtils {
 
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -114,6 +126,56 @@ public class ModelInferenceLogsUtils {
 					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
 					executeSql(conn, addColumnSql);
 				}
+			}
+		}
+		
+		if(allowIfExistsIndexs) {
+			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
+			executeSql(conn, sql);
+		} else {
+			if(!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
+				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
+				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
+				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
+				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
+				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
+				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
+				executeSql(conn, sql);
 			}
 		}
 	}
@@ -390,6 +452,172 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	/**
+	 * USAGE HELPER FUNCTIONS  
+	 * 
+	 */
+	
+	/**
+	 * Function returns the number of unique calls (Inputs) per a model 
+	 * 
+	 * @param engineId
+	 * @param offset 
+	 * @param limit 
+	 * @param dateFilter 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+		
+		addLimitAndOffSet(qs, limit, offset);
+		// order descending
+		qs.addOrderBy(MESSAGE_TABLE_NAME + "DATE_CREATED", "DESC");
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * Returns a list of total tokens used per project for engineId passed in 
+	 * @param engineId
+	 * @param dateFilter 
+	 * @param offset 
+	 * @param limit 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
+		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
+		countNumberRequestSelector.setFunction(QueryFunctionHelper.COUNT);
+		countNumberRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(countNumberRequestSelector);
+		
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", ROOM_TABLE_NAME + "AGENT_ID", "left.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * @param qs
+	 * @param limit
+	 * @param offset
+	 */
+	private static void addLimitAndOffSet(SelectQueryStruct qs, String limit, String offset) {
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = ((Number) Double.parseDouble(limit)).longValue();
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = ((Number) Double.parseDouble(offset)).longValue();
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param limit
+	 * @param offset
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset, String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+		
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		addStartDateEndDateFitler(qs, startDate, endDate);
+		
+		addLimitAndOffSet(qs, limit, offset);
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String startDate, String endDate) {
+		if((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();	
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", startDate));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+	}
+
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
+		// First get a list of insightIDs from Room 
+		List<String> insightIdList = getInsightIdListPerProject(projectId);
+		// Second query against message to find number of unique calls? Not sure what we are tracking from projects just yet 
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Unique_Calls");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__INSIGHT_ID", "==", insightIdList));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_TYPE", "==", "INPUT"));
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs).get(0);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static List<String> getInsightIdListPerProject(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		List<String> insightIdList = QueryExecutionUtility.flushToListString(modelInferenceLogsDb, qs);
+		return insightIdList;
+	}
+	
+	
+	/**
 	 * @param user
 	 */
 	public static void doCreateNewUser(User user) {
@@ -576,8 +804,7 @@ public class ModelInferenceLogsUtils {
 	 * @param author
 	 * @return
 	 */
-	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType,
-			String author) {
+	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType, String author) {
 		String agentId = UUID.randomUUID().toString();
 		doCreateNewAgent(agentId, agentName, agentDescription, agentType, author);
 		return agentId;
@@ -590,8 +817,7 @@ public class ModelInferenceLogsUtils {
 	 * @param agentType
 	 * @param author
 	 */
-	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType,
-			 String author) {
+	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType, String author) {
 		String query = "INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, "
 				+ "AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
@@ -782,6 +1008,38 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort) {
+		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param dateSort
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> doRetrieveConversation(String userId, String insightId, String dateSort, Integer limit, Integer offset) {
+		SelectQueryStruct qs = retrieveMessageQS(userId, insightId, dateSort);
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
+		List<Map<String, Object>> response = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		if (dateSort.equals("DESC")) {
+			Collections.reverse(response);
+		}
+		return response;
+	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param insightId
+	 * @param dateSort
+	 * @return
+	 */
+	private static SelectQueryStruct retrieveMessageQS(String userId, String insightId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
@@ -797,7 +1055,7 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		return qs;
 	}
 	
 	/**
@@ -856,14 +1114,18 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID","MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		qs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
 		
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+		SelectQueryStruct subQs = new SelectQueryStruct();
+		subQs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		subQs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		if (projectId != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__INSIGHT_ID" , "IN", subQs));
+		
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
@@ -905,5 +1167,165 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
+
+	/**
+	 * 
+	 * @param restrictionMode
+	 * @param user
+	 * @param currentDateTime
+	 * @param frequency
+	 * @return
+	 */
+	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId, ZonedDateTime currentDateTime, String frequency) {
+		if(restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+		
+		// Initialize the date range map (start and end dates)
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Determine the start and end date based on the given frequency
+		if(frequency.equals("WEEK")) {
+			dates = Utility.getWeekStartEndDate(currentDateTime);
+		} else if(frequency.equals("MONTH")) {
+			// Get start and end date for the current month
+			dates = Utility.getMonthStartEndDate(currentDateTime);
+		} else {
+			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
+			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
+		}
+
+		// Extract start and end dates from the map
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		String sumColumn = null;
+		if(restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		} else if(restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(RESPONSE_TIME) ";
+		}
+		
+		//SQL query to fetch the total tokens or response time
+		String query = "SELECT " + sumColumn + " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setString(psIndex++, engineId);			
+			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
+			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+		
+			rs = ps.executeQuery();
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
+					ps.getConnection(),
+					ps,
+					rs,
+					query,
+					false
+					);
+			
+			if(wrapper.hasNext()) {
+				return (Number) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null , ps, rs);
+		}
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param restrictionMode
+	 * @param user
+	 * @param engineId
+	 * @param currentDateTime
+	 * @param frequency
+	 * @return
+	 */
+	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId, ZonedDateTime currentDateTime, String frequency) {
+		if (restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+		
+		// Step 1: Get the list of Engine IDs with MAXRESPONSETIME or MAXTOKENS for the specific user
+		List<String> engineIdExcludeList = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, engineId);
+		String excludePSString = "";
+		if(engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
+			StringBuilder excludeSB = new StringBuilder("AND AGENT_ID NOT IN (");
+			for(int i = 0; i < engineIdExcludeList.size(); i++) {
+				if(i>0) {
+					excludeSB.append(",");
+				}
+				excludeSB.append("?");
+			}
+			excludeSB.append(")");
+			excludePSString = excludeSB.toString();
+		}
+		
+		// Step 2: Get the date range based on the frequency
+		// Initialize the date range map (start and end dates)
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Determine the start and end date based on the given frequency
+		if (frequency.equals("WEEK")) {
+			dates = Utility.getWeekStartEndDate(currentDateTime);
+		} else if (frequency.equals("MONTH")) {
+			// Get start and end date for the current month
+			dates = Utility.getMonthStartEndDate(currentDateTime);
+		} else {
+			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
+			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
+		}
+		// Extract start and end dates from the map
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		// Step 3: Determine which column to sum (tokens or response time) based on
+		// restrictionMode
+		String sumColumn = null;
+		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(RESPONSE_TIME) ";
+		}
+
+		// Step 4: Get total usage for the user excluding the engines in the
+		// engineIdList
+		String query = "SELECT " + sumColumn
+				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? " + excludePSString;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+        
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
+			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+			if(engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
+				for(String excludeEngineId : engineIdExcludeList) {
+					ps.setString(psIndex++, excludeEngineId);
+				}
+			}
+			rs = ps.executeQuery();
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
+					ps.getConnection(), ps, rs, query, false);
+
+			if (wrapper.hasNext()) {
+				return (Number) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+
+		return null;
+	}
+	
+	
 
 }
