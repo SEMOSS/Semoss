@@ -1432,9 +1432,6 @@ public class ModelInferenceLogsUtils {
 				ps.setString(i + 1, messageIds.get(i));
 			}
 			ps.executeUpdate();
-//			if (!ps.getConnection().getAutoCommit()) {
-//				ps.getConnection().commit();
-//			}
 		} catch (Exception e) {
 			throw e;
 		} 
@@ -1458,9 +1455,6 @@ public class ModelInferenceLogsUtils {
 				ps.setString(i + 1, messageIds.get(i));
 			}
 			ps.executeUpdate();
-//			if (!ps.getConnection().getAutoCommit()) {
-//				ps.getConnection().commit();
-//			}
 		} catch (Exception e) {
 			throw e;
 		} 
@@ -1484,9 +1478,6 @@ public class ModelInferenceLogsUtils {
 				ps.setString(i + 1, roomIds.get(i));
 			}
 			ps.executeUpdate();
-//			if (!ps.getConnection().getAutoCommit()) {
-//				ps.getConnection().commit();
-//			}
 		} catch (Exception e) {
 			throw e;
 		}
