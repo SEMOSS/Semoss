@@ -193,22 +193,26 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 		// fetch size
 		if(this.smssProp.getProperty(Constants.FETCH_SIZE) != null) {
-			String strFetchSize = this.smssProp.getProperty(Constants.FETCH_SIZE);
-			try {
-				this.fetchSize = Integer.parseInt(strFetchSize);
-			} catch(Exception e) {
-				System.out.println("Error occurred trying to parse and get the fetch size");
-				classLogger.error(Constants.STACKTRACE, e);
+			String fetchSizeStr = this.smssProp.getProperty(Constants.FETCH_SIZE);
+			if(!(fetchSizeStr=fetchSizeStr.trim()).isEmpty()) {
+				try {
+					this.fetchSize = Integer.parseInt(fetchSizeStr);
+				} catch(Exception e) {
+					System.out.println("Error occurred trying to parse and get the fetch size");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// connection query timeout
 		if(this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
 			String queryTimeoutStr = this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
-			try {
-				this.queryTimeout = Integer.parseInt(queryTimeoutStr);
-			} catch(Exception e) {
-				System.out.println("Error occurred trying to parse and get the query timeout");
-				classLogger.error(Constants.STACKTRACE, e);
+			if(!(queryTimeoutStr=queryTimeoutStr.trim()).isEmpty()) {
+				try {
+					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
+				} catch(Exception e) {
+					System.out.println("Error occurred trying to parse and get the query timeout");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// auto commit connection 
@@ -223,41 +227,49 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		// leak detection threshold
 		if(this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
 			String leakDetectionStr = this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
-			try {
-				this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
-			} catch(Exception e) {
-				System.out.println("Error occurred trying to parse and get the leak detection threshold");
-				classLogger.error(Constants.STACKTRACE, e);
+			if(!(leakDetectionStr=leakDetectionStr.trim()).isEmpty()) {
+				try {
+					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
+				} catch(Exception e) {
+					System.out.println("Error occurred trying to parse and get the leak detection threshold");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// idle timeout
 		if(this.smssProp.getProperty(Constants.IDLE_TIMEOUT) != null) {
 			String idleTimeoutStr = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-			try {
-				this.idelTimeout = Long.parseLong(idleTimeoutStr);
-			} catch(Exception e) {
-				System.out.println("Error occurred trying to parse and get the idle timeout");
-				classLogger.error(Constants.STACKTRACE, e);
+			if(!(idleTimeoutStr=idleTimeoutStr.trim()).isEmpty()) {
+				try {
+					this.idelTimeout = Long.parseLong(idleTimeoutStr);
+				} catch(Exception e) {
+					System.out.println("Error occurred trying to parse and get the idle timeout");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// pool min size
 		if(this.smssProp.getProperty(Constants.POOL_MIN_SIZE) != null) {
-			String strMinPoolSize = this.smssProp.getProperty(Constants.POOL_MIN_SIZE);
-			try {
-				this.poolMinSize = Integer.parseInt(strMinPoolSize);
-			} catch(Exception e) {
-				System.out.println("Error occurred trying to parse and get the min pool size");
-				classLogger.error(Constants.STACKTRACE, e);
+			String minPoolSizeStr = this.smssProp.getProperty(Constants.POOL_MIN_SIZE);
+			if(!(minPoolSizeStr=minPoolSizeStr.trim()).isEmpty()) {
+				try {
+					this.poolMinSize = Integer.parseInt(minPoolSizeStr);
+				} catch(Exception e) {
+					System.out.println("Error occurred trying to parse and get the min pool size");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// pool max size
 		if(this.smssProp.getProperty(Constants.POOL_MAX_SIZE) != null) {
-			String strMaxPoolSize = this.smssProp.getProperty(Constants.POOL_MAX_SIZE);
-			try {
-				this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
-			} catch(Exception e) {
-				System.out.println("Error occurred trying to parse and get the max pool size");
-				classLogger.error(Constants.STACKTRACE, e);
+			String maxPoolSizeStr = this.smssProp.getProperty(Constants.POOL_MAX_SIZE);
+			if(!(maxPoolSizeStr=maxPoolSizeStr.trim()).isEmpty()) {
+				try {
+					this.poolMaxSize = Integer.parseInt(maxPoolSizeStr);
+				} catch(Exception e) {
+					System.out.println("Error occurred trying to parse and get the max pool size");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
