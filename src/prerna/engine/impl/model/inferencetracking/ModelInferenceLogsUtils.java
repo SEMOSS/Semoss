@@ -1372,7 +1372,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			int index = 1;
 			ps = conn.prepareStatement(query);
-			String cutOffDate = LocalDate.now().minusDays(days).plusDays(1).toString();
+			String cutOffDate = LocalDate.now().minusDays(days).toString();
 			ps.setString(index, cutOffDate);
 			if (ps.execute()) {
 				rs = ps.getResultSet();
