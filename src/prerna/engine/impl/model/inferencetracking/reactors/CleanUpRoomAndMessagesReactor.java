@@ -33,7 +33,7 @@ public class CleanUpRoomAndMessagesReactor extends AbstractReactor {
 		catch (Exception e) {
 			throw new SemossPixelException(e.getMessage());
 		}
-		return new NounMetadata("Completed", PixelDataType.BOOLEAN);
+		return new NounMetadata("Successful", PixelDataType.BOOLEAN);
 	}
 
 	
