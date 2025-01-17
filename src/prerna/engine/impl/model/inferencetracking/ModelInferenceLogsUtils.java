@@ -1329,8 +1329,8 @@ public class ModelInferenceLogsUtils {
 	
 	public static void cleanUpRoomAndMessages(Integer days) throws Exception {
 		Connection conn = modelInferenceLogsDb.getConnection();
+		Boolean autoCommit = conn.getAutoCommit();
 		try {
-			Boolean autoCommit = conn.getAutoCommit();
 			if (autoCommit)
 				conn.setAutoCommit(false);
 			List<String> roomIds = getRoomsForCleanup(days, conn);
@@ -1349,7 +1349,6 @@ public class ModelInferenceLogsUtils {
 			}
 			cleanUpRoom(roomIds, conn);
 			conn.commit();
-			conn.setAutoCommit(autoCommit);
 		}
 		catch (Exception e) {
 			if (!conn.getAutoCommit())
@@ -1358,6 +1357,7 @@ public class ModelInferenceLogsUtils {
 			throw e;
 		}
 		finally {
+			conn.setAutoCommit(autoCommit);
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
 		

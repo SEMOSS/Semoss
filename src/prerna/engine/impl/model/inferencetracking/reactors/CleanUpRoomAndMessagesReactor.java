@@ -26,9 +26,7 @@ public class CleanUpRoomAndMessagesReactor extends AbstractReactor {
 		}
 		Integer days = Integer.parseInt(this.keyValue.get(this.keysToGet[0]));
 		try {
-		if (SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
 			ModelInferenceLogsUtils.cleanUpRoomAndMessages(days);
-		}
 		}
 		catch (Exception e) {
 			throw new SemossPixelException(e.getMessage());
