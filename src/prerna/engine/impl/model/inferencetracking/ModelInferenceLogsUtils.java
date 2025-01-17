@@ -1367,27 +1367,27 @@ public class ModelInferenceLogsUtils {
 
 		String query = "SELECT INSIGHT_ID FROM ROOM WHERE DATE_CREATED <= ?";
 		PreparedStatement ps = null;
+		ResultSet rs = null;
 		List<String> roomIds = new ArrayList<>();
 		try {
 			int index = 1;
 			ps = conn.prepareStatement(query);
-			String cutOffDate = LocalDate.now().minusDays(days).plusDays(1).toString();
+			String cutOffDate = LocalDate.now().minusDays(days).toString();
 			ps.setString(index, cutOffDate);
-			ps.execute();
 			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
+				rs = ps.getResultSet();
 				while (rs.next()) {
-					// Extract the value from the single column (assuming the column index is 1)
 					String value = rs.getString(1);
-
-					// Add the value to the list
 					roomIds.add(value);
 				}
 
 			}
 		} catch (Exception e) {
 			throw e;
-		} 
+		}
+		finally {
+			ConnectionUtils.closeAllConnections(null, ps, rs);
+		}
 		return roomIds;
 
 	}
@@ -1395,14 +1395,14 @@ public class ModelInferenceLogsUtils {
 	public static List<String> getMessageIds(String roomId, Connection conn) throws Exception {
 		String query = "SELECT DISTINCT MESSAGE_ID FROM MESSAGE WHERE INSIGHT_ID = ?";
 		PreparedStatement ps = null;
+		ResultSet rs = null;
 		List<String> messageIds = new ArrayList<>();
 		try {
 			int index = 1;
 			ps = conn.prepareStatement(query);
 			ps.setString(index, roomId);
-			ps.execute();
 			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
+				rs = ps.getResultSet();
 				while (rs.next()) {
 					String value = rs.getString(1);
 					messageIds.add(value);
@@ -1411,7 +1411,10 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			throw e;
-		} 
+		}
+		finally {
+			ConnectionUtils.closeAllConnections(null, ps, rs);
+		}
 		return messageIds;
 	}
 
