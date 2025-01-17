@@ -1,4 +1,4 @@
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.aws;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +52,7 @@ import com.amazonaws.services.comprehend.model.TextSegment;
 import com.amazonaws.services.comprehend.model.ToxicLabels;
 
 import prerna.engine.api.AWSComprehendInsightTypeEnum;
+import prerna.engine.impl.function.AbstractFunctionEngine;
 import prerna.util.Constants;
 
 public class AWSComprehendFunctionEngine extends AbstractFunctionEngine {
@@ -171,6 +173,11 @@ public class AWSComprehendFunctionEngine extends AbstractFunctionEngine {
 		// TODO Auto-generated method stub
 	}
 
+	/**
+	 * 
+	 * @param languageCode
+	 * @return
+	 */
 	public String validateLanguageCode(String languageCode) {
 		String error_invalidLanguageCode = "Invalid language code: ";
 
@@ -187,6 +194,11 @@ public class AWSComprehendFunctionEngine extends AbstractFunctionEngine {
 		return languageCode;
 	}
 
+	/**
+	 * 
+	 * @param insightTypes
+	 * @return
+	 */
 	public List<String> validateInsightTypes(String insightTypes) {
 		List<String> insightTypeEnumList = new ArrayList<String>();
 
