@@ -1365,14 +1365,14 @@ public class ModelInferenceLogsUtils {
 
 	public static List<String> getRoomsForCleanup(Integer days, Connection conn) throws Exception {
 
-		String query = "SELECT INSIGHT_ID FROM ROOM WHERE DATE_CREATED <= ?";
+		String query = "SELECT INSIGHT_ID FROM ROOM WHERE DATE_CREATED < ?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		List<String> roomIds = new ArrayList<>();
 		try {
 			int index = 1;
 			ps = conn.prepareStatement(query);
-			String cutOffDate = LocalDate.now().minusDays(days).toString();
+			String cutOffDate = LocalDate.now().minusDays(days).plusDays(1).toString();
 			ps.setString(index, cutOffDate);
 			if (ps.execute()) {
 				rs = ps.getResultSet();
@@ -1481,6 +1481,7 @@ public class ModelInferenceLogsUtils {
 				ps.setString(i + 1, roomIds.get(i));
 			}
 			ps.executeUpdate();
+			throw new Exception("Test");
 		} catch (Exception e) {
 			throw e;
 		}
