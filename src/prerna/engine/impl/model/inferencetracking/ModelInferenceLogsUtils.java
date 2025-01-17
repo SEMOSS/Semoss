@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1324,6 +1325,172 @@ public class ModelInferenceLogsUtils {
 		}
 
 		return null;
+	}
+	
+	public static void cleanUpRoomAndMessages(Integer days) throws Exception {
+		Connection conn = modelInferenceLogsDb.getConnection();
+		try {
+			Boolean autoCommit = conn.getAutoCommit();
+			if (autoCommit)
+				conn.setAutoCommit(false);
+			List<String> roomIds = getRoomsForCleanup(days, conn);
+			List<String> allMessagesId = new ArrayList<>();
+			if (roomIds != null && roomIds.size() > 0) {
+				for (String roomId : roomIds) {
+					List<String> messageIds = getMessageIds(roomId, conn);
+					allMessagesId.addAll(messageIds);
+
+				}
+			}
+		
+			if(allMessagesId.size() > 0) {
+				cleanUpFeedbacks(allMessagesId, conn);
+				cleanUpMessages(allMessagesId, conn);
+			}
+			cleanUpRoom(roomIds, conn);
+			conn.commit();
+			conn.setAutoCommit(autoCommit);
+		}
+		catch (Exception e) {
+			if (!conn.getAutoCommit())
+				conn.rollback();
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+		finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
+		}
+		
+	}
+
+	public static List<String> getRoomsForCleanup(Integer days, Connection conn) throws Exception {
+
+		String query = "SELECT INSIGHT_ID FROM ROOM WHERE DATE_CREATED <= ?";
+		PreparedStatement ps = null;
+		List<String> roomIds = new ArrayList<>();
+		try {
+			int index = 1;
+			ps = conn.prepareStatement(query);
+			String cutOffDate = LocalDate.now().minusDays(days).plusDays(1).toString();
+			ps.setString(index, cutOffDate);
+			ps.execute();
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				while (rs.next()) {
+					// Extract the value from the single column (assuming the column index is 1)
+					String value = rs.getString(1);
+
+					// Add the value to the list
+					roomIds.add(value);
+				}
+
+			}
+		} catch (Exception e) {
+			throw e;
+		} 
+		return roomIds;
+
+	}
+
+	public static List<String> getMessageIds(String roomId, Connection conn) throws Exception {
+		String query = "SELECT DISTINCT MESSAGE_ID FROM MESSAGE WHERE INSIGHT_ID = ?";
+		PreparedStatement ps = null;
+		List<String> messageIds = new ArrayList<>();
+		try {
+			int index = 1;
+			ps = conn.prepareStatement(query);
+			ps.setString(index, roomId);
+			ps.execute();
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				while (rs.next()) {
+					String value = rs.getString(1);
+					messageIds.add(value);
+				}
+
+			}
+		} catch (Exception e) {
+			throw e;
+		} 
+		return messageIds;
+	}
+
+	public static void cleanUpFeedbacks(List<String> messageIds, Connection conn) throws Exception {
+		PreparedStatement ps = null;
+		try {
+			StringBuilder deleteQuery = new StringBuilder("DELETE FROM feedback WHERE MESSAGE_ID IN (");
+			int size = messageIds.size();
+			for (int i = 0; i < size; i++) {
+				deleteQuery.append("?");
+				if (i < size - 1) {
+					deleteQuery.append(", ");
+				}
+			}
+			deleteQuery.append(")");
+			ps = conn.prepareStatement(deleteQuery.toString());
+			for (int i = 0; i < size; i++) {
+				ps.setString(i + 1, messageIds.get(i));
+			}
+			ps.executeUpdate();
+//			if (!ps.getConnection().getAutoCommit()) {
+//				ps.getConnection().commit();
+//			}
+		} catch (Exception e) {
+			throw e;
+		} 
+
+	}
+
+	public static void cleanUpMessages(List<String> messageIds, Connection conn) throws Exception {
+		PreparedStatement ps = null;
+		try {
+			StringBuilder deleteQuery = new StringBuilder("DELETE FROM MESSAGE WHERE MESSAGE_ID IN (");
+			int size = messageIds.size();
+			for (int i = 0; i < size; i++) {
+				deleteQuery.append("?");
+				if (i < size - 1) {
+					deleteQuery.append(", ");
+				}
+			}
+			deleteQuery.append(")");
+			ps = conn.prepareStatement(deleteQuery.toString());
+			for (int i = 0; i < size; i++) {
+				ps.setString(i + 1, messageIds.get(i));
+			}
+			ps.executeUpdate();
+//			if (!ps.getConnection().getAutoCommit()) {
+//				ps.getConnection().commit();
+//			}
+		} catch (Exception e) {
+			throw e;
+		} 
+	}
+
+	public static void cleanUpRoom(List<String> roomIds, Connection conn) throws Exception {
+		
+		PreparedStatement ps = null;
+		try {
+			StringBuilder deleteQuery = new StringBuilder("DELETE FROM ROOM WHERE INSIGHT_ID IN (");
+			int size = roomIds.size();
+			for (int i = 0; i < size; i++) {
+				deleteQuery.append("?");
+				if (i < size - 1) {
+					deleteQuery.append(", ");
+				}
+			}
+			deleteQuery.append(")");
+			ps = conn.prepareStatement(deleteQuery.toString());
+			for (int i = 0; i < size; i++) {
+				ps.setString(i + 1, roomIds.get(i));
+			}
+			ps.executeUpdate();
+//			if (!ps.getConnection().getAutoCommit()) {
+//				ps.getConnection().commit();
+//			}
+		} catch (Exception e) {
+			throw e;
+		}
+
 	}
 	
 	
