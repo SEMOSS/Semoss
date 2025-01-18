@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.util.Constants;
-import prerna.util.SocialPropertiesUtil;
 
 public class MSGraphAPICall {
 	 
@@ -44,7 +43,7 @@ public class MSGraphAPICall {
 										java.nio.charset.StandardCharsets.UTF_8.toString())
 									+ "&";
 				}
-				uri = SocialPropertiesUtil.getInstance().getProperty("ms_graph_url") + "/v1.0/users?" + searchParam + "$top=999&$count=true";
+				uri = "https://graph.microsoft.com/v1.0/users?" + searchParam + "$top=999&$count=true";
 			} else {
 				uri = nextLink;
 			}
