@@ -16,11 +16,16 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.Vector;
 
 import javax.xml.XMLConstants;
@@ -46,6 +51,7 @@ import org.xeustechnologies.jcl.JarClassLoader;
 import org.xml.sax.InputSource;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -1135,10 +1141,7 @@ public class Project implements IProject {
 	
 	@Override
 	public synchronized List<File> writeNotebooks() {
-		// if not blocks json
-		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
@@ -1163,8 +1166,7 @@ public class Project implements IProject {
 	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
 		// if not blocks json
 		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
@@ -1177,6 +1179,66 @@ public class Project implements IProject {
 		}
 		
 		return null;
+	}
+
+	private File getBlocksF() {
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		return blocksF;
+	}
+	
+	public Map<String, String> getEngineDependenciesIds() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			JsonElement blocks = runner.getBlocksFileJson();
+			Map<String, JsonElement> depsMap = blocks.getAsJsonObject().get("dependencies").getAsJsonObject().asMap();
+			Map<String, String> engineMap = getEngineIdsFromDeps(depsMap);
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+
+	private Map<String, String> getEngineIdsFromDeps(Map<String, JsonElement> depsMap) {
+		Map<String, String> engineMap = new HashMap<>();
+		for (Map.Entry<String, JsonElement> entry : depsMap.entrySet()) {
+			String key = entry.getKey();
+			JsonElement value = entry.getValue();
+			if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
+				String stringValue = value.getAsString();
+				if (isValidEngine(key, stringValue)) {
+					engineMap.put(entry.getKey(), stringValue);
+				}
+			}
+		}
+		return engineMap;
+	}
+	
+	/**
+	 * Current assumptions are that dependency types delimited by type--id, valid engine types are model, database and vector only, and value is a uuid string
+	 * @param key
+	 * @param string
+	 * @return
+	 */
+	private boolean isValidEngine(String key, String value) {
+		String desc = key.split("--")[0];
+		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector"));
+		if (!validTypes.contains(desc)) {
+			return false;
+		}
+	    try {
+	        UUID.fromString(value);
+	        return true;
+	    } catch (IllegalArgumentException e) {
+	        return false;
+	    }
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {

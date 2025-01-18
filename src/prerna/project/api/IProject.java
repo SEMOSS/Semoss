@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import com.google.gson.JsonElement;
+
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
@@ -207,6 +209,12 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
+	
+	/**
+	 * Gets only engine deps listed in the project
+	 * @return
+	 */
+	Map<String, String> getEngineDependenciesIds();
 	
 	/**
 	 * Return if an asset

@@ -46,23 +46,22 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			throw new SemossPixelException("App " + projectId + " is not a blocks project.");
 		}
 		
-		classLogger.info("Project Dependencies: ", project.getProjectProperties());
+		Map<String, String> engineMap = project.getEngineDependenciesIds();
 		
-//		List<String> dependentEngineIds = SecurityProjectUtils.getProjectDependencies(projectId);
-//		for(String depEngineId : dependentEngineIds) {
-//			boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
-//			hasAccess.put(depEngineId, canView);
-//		}
-//		
-//		NounMetadata noun = new NounMetadata(hasAccess, PixelDataType.MAP);
-//		return noun;
+		classLogger.info(engineMap.values());
 		
-		return new NounMetadata(project.getProjectProperties(), PixelDataType.MAP);
+		for (String depEngineId : engineMap.values()) {
+			boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
+			hasAccess.put(depEngineId, canView);
+		}
+		
+		NounMetadata noun = new NounMetadata(hasAccess, PixelDataType.MAP);
+		return noun;
 	}
 	
 	@Override
 	public String getReactorDescription() {
-		return "Return true if the user has access to each engine dependency listed in this project";
+		return "Return true if the user has access to all engine dependencies listed in this project";
 	}
 	
 }
