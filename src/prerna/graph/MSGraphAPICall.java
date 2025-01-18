@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
+import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.util.Constants;
 
 public class MSGraphAPICall {
@@ -43,7 +44,7 @@ public class MSGraphAPICall {
 										java.nio.charset.StandardCharsets.UTF_8.toString())
 									+ "&";
 				}
-				uri = "https://graph.microsoft.com/v1.0/users?" + searchParam + "$top=999&$count=true";
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + searchParam + "$top=999&$count=true";
 			} else {
 				uri = nextLink;
 			}
