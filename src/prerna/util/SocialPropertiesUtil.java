@@ -71,6 +71,14 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
 	}
 	
+	public boolean isNativeRegistrationAllowed() {
+		return SocialPropertiesUtil.processor.isNativeRegistrationAllowed();
+	}
+	
+	public Map<String, String> getLoginDisplayNames() {
+		return SocialPropertiesUtil.processor.getLoginDisplayNames();
+	}
+	
 	public String getProperty(String key) {
 		return SocialPropertiesUtil.processor.getProperty(key);
 	}
@@ -179,7 +187,6 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getImapEmailProps();
 	}
 	
-	
 	public void reloadProps() {
 		SocialPropertiesUtil.processor.reloadProps();
 	}
@@ -191,8 +198,4 @@ public class SocialPropertiesUtil {
 		return ldapAuthenticator;
 	}
 	
-	public Map<String, String> getLoginDisplayNames() {
-		return SocialPropertiesUtil.processor.getLoginDisplayNames();
-	}
-
 }

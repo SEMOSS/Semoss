@@ -110,8 +110,12 @@ public class SocialPropertiesProcessor {
 		}
 
 		// get if registration is allowed
-		boolean registration = Boolean.parseBoolean(socialData.getProperty("native_registration")+"");
-		this.loginsAllowedMap.put("registration", registration);
+		// TODO: delete this once FE pulls value from different location
+		this.loginsAllowedMap.put("registration", isNativeRegistrationAllowed());
+	}
+	
+	public boolean isNativeRegistrationAllowed() {
+		return Boolean.parseBoolean(socialData.getProperty("native_registration")+"");
 	}
 	
 	public void setLoginDisplayNames() {
@@ -137,7 +141,6 @@ public class SocialPropertiesProcessor {
 		for (String provider : allProviders) {
 			this.loginDisplayNameMap.put(provider, provider);
 		}
-
 	}
 	
 	/**
