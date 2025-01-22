@@ -131,9 +131,12 @@ public class SocialPropertiesProcessor {
 			// get provider from prop by split on _
 			String provider = prop.split("_display_name")[0];
 
-			this.loginDisplayNameMap.put(provider, socialData.getProperty(prop));
-			// remove the provider present in social.prop from the allProviders list
-			allProviders.remove(provider);
+			String value = socialData.getProperty(prop);
+			if(value != null && !(value=value.trim()).isEmpty()) {
+				this.loginDisplayNameMap.put(provider, socialData.getProperty(prop));
+				// remove the provider present in social.prop from the allProviders list
+				allProviders.remove(provider);
+			}
 		}
 
 		//loop through the Providers list whom does not have _display_name prop in social.prop file 
