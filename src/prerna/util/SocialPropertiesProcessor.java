@@ -121,7 +121,7 @@ public class SocialPropertiesProcessor {
 	public void setLoginDisplayNames() {
 		this.loginDisplayNameMap = new HashMap<>();
 		// define the allProviders  set
-		Set<String> allProviders = AuthProvider.getSocialPropKeys();
+		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
 
 		// get all _display_name props
 		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_display_name")).collect(Collectors.toSet());
@@ -138,8 +138,8 @@ public class SocialPropertiesProcessor {
 
 		//loop through the Providers list whom does not have _display_name prop in social.prop file 
 		//and set its default display name as provider name
-		for (String provider : allProviders) {
-			this.loginDisplayNameMap.put(provider, provider);
+		for (String provider : allProviders.keySet()) {
+			this.loginDisplayNameMap.put(provider, allProviders.get(provider).getDisplayName());
 		}
 	}
 	
