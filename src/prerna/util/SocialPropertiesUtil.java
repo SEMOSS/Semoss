@@ -191,8 +191,8 @@ public class SocialPropertiesUtil {
 		return ldapAuthenticator;
 	}
 	
-	public Map<String, String> getLoginDisplayName() {
-		return SocialPropertiesUtil.processor.getLoginDisplayName();
+	public Map<String, String> getLoginDisplayNames() {
+		return SocialPropertiesUtil.processor.getLoginDisplayNames();
 	}
 
 }

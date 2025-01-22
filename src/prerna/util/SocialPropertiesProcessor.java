@@ -84,7 +84,7 @@ public class SocialPropertiesProcessor {
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
 		setLoginsAllowed();
-		loginDisplayName();
+		setLoginDisplayNames();
 	}
 	
 	public void setLoginsAllowed() {
@@ -114,10 +114,10 @@ public class SocialPropertiesProcessor {
 		this.loginsAllowedMap.put("registration", registration);
 	}
 	
-	public void loginDisplayName() {
+	public void setLoginDisplayNames() {
 		this.loginDisplayNameMap = new HashMap<>();
-		// define the default provider set
-		Set<String> defaultProviders = AuthProvider.getSocialPropKeys();
+		// define the allProviders  set
+		Set<String> allProviders = AuthProvider.getSocialPropKeys();
 
 		// get all _display_name props
 		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_display_name")).collect(Collectors.toSet());
@@ -128,8 +128,14 @@ public class SocialPropertiesProcessor {
 			String provider = prop.split("_display_name")[0];
 
 			this.loginDisplayNameMap.put(provider, socialData.getProperty(prop));
-			// remove the provider from the defaultProvider list
-			defaultProviders.remove(provider);
+			// remove the provider present in social.prop from the allProviders list
+			allProviders.remove(provider);
+		}
+
+		//loop through the Providers list whom does not have _display_name prop in social.prop file 
+		//and set its default display name as provider name
+		for (String provider : allProviders) {
+			this.loginDisplayNameMap.put(provider, provider);
 		}
 
 	}
@@ -258,7 +264,7 @@ public class SocialPropertiesProcessor {
 		return this.loginsAllowedMap;
 	}
 	
-	public Map<String, String> getLoginDisplayName(){
+	public Map<String, String> getLoginDisplayNames(){
 		return this.loginDisplayNameMap;
 	 }
 	
