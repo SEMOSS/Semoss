@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVenvEngine;
 import prerna.reactor.AbstractReactor;
@@ -28,10 +26,6 @@ public class RemovePackageFromVenvReactor extends AbstractReactor {
 		this.organizeKeys();
 		
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
-		
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Virtual Environment " + engineId + " does not exist or user does not have access to it");
