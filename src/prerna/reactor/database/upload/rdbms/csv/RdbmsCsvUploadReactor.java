@@ -28,7 +28,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
@@ -40,7 +40,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
+public class RdbmsCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 
 	// Need to create a unique id that includes the row number
 	private int rowCounter;

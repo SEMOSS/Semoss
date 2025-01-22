@@ -91,7 +91,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engine
 	 * @param conn
 	 * @param columnNamesAndTypes
-	 * @throws SQLException
+	 * @throws SQLException 
 	 */
 	private static void executeInitModelInferenceDatabase(
 			IRDBMSEngine engine, 
@@ -103,6 +103,7 @@ public class ModelInferenceLogsUtils {
 
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -125,6 +126,56 @@ public class ModelInferenceLogsUtils {
 					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
 					executeSql(conn, addColumnSql);
 				}
+			}
+		}
+		
+		if(allowIfExistsIndexs) {
+			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
+			executeSql(conn, sql);
+		} else {
+			if(!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
+				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
+				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
+				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
+				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
+				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
+				executeSql(conn, sql);
+			}
+			
+			if(!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
+				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
+				executeSql(conn, sql);
 			}
 		}
 	}
@@ -1063,14 +1114,18 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID","MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		qs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
 		
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+		SelectQueryStruct subQs = new SelectQueryStruct();
+		subQs.addSelector(new QueryColumnSelector("ROOM__INSIGHT_ID"));
+		subQs.addRelation("ROOM__INSIGHT_ID", "MESSAGE__INSIGHT_ID", "inner.join");
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		if (projectId != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__INSIGHT_ID" , "IN", subQs));
+		
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}

@@ -1,7 +1,7 @@
 #Base Properties 
 ENGINE	PromptDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
-OWL	db/prompts/prompts_OWL.OWL
+OWL	db/PromptDatabase/PromptDatabase_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	
@@ -11,3 +11,8 @@ USERNAME	sa
 PASSWORD	
 CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
 USE_CONNECTION_POOLING	false
+POOL_MIN_SIZE
+POOL_MAX_SIZE
+AUTO_COMMIT
+
+DATABASE_ZONEID UTC

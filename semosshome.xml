@@ -29,6 +29,8 @@
 				<include>themes.smss</include>
 				<include>UserTrackingDatabase**/*</include>
 				<include>UserTrackingDatabase.smss</include>
+				<include>PromptDatabase**/*</include>
+				<include>PromptDatabase.smss</include>
 			</includes>
 		</fileSet>
 		<fileSet>

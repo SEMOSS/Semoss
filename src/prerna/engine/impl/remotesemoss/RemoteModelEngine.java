@@ -143,6 +143,12 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	@Override
+	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public Object model(Object input, Insight insight, Map<String, Object> parameters) {
