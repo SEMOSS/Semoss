@@ -46,10 +46,11 @@ public class DeleteEngineReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 		if(!isAdmin) {
-			if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
-				throwFunctionalityOnlyExposedForAdminsError();
-			}
 			for (String engineId : engineIds) {
+				if(AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
+					throwFunctionalityOnlyExposedForAdminsError();
+				}
+				
 				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
 					throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
 				}

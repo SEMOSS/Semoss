@@ -3810,11 +3810,26 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can add a database
+	 * Determine if for this instance only the admin can share insight
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDbAdd() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
+	public static boolean getApplicationAdminOnlyInsightShare() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	
+	/**
+	 * Determine if for this instance only the admin can set an insight public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3824,11 +3839,11 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can share insight
+	 * Determine if for this instance only the admin can add a database
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightShare() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+	public static boolean getApplicationAdminOnlyDbAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3892,13 +3907,279 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set an insight public
+	 * Determine if for this instance only the admin can add a model
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightSetPublic() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
+	public static boolean getApplicationAdminOnlyModelAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a model
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set model access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set storage access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set vector access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set function access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function function 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;
