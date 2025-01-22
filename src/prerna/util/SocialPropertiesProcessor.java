@@ -43,6 +43,7 @@ public class SocialPropertiesProcessor {
 	// social properties
 	private Properties socialData = null;
 	private Map<String, Boolean> loginsAllowedMap;
+	private Map<String, String> loginDisplayNameMap;
 	
 	// smtp
 	private Session smtpEmailSession = null;
@@ -83,6 +84,7 @@ public class SocialPropertiesProcessor {
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
 		setLoginsAllowed();
+		loginDisplayName();
 	}
 	
 	public void setLoginsAllowed() {
@@ -110,6 +112,26 @@ public class SocialPropertiesProcessor {
 		// get if registration is allowed
 		boolean registration = Boolean.parseBoolean(socialData.getProperty("native_registration")+"");
 		this.loginsAllowedMap.put("registration", registration);
+	}
+	
+	public void loginDisplayName() {
+		this.loginDisplayNameMap = new HashMap<>();
+		// define the default provider set
+		Set<String> defaultProviders = AuthProvider.getSocialPropKeys();
+
+		// get all _display_name props
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_display_name")).collect(Collectors.toSet());
+		
+		for (String prop : loginProps) {
+			// prop ex. ms_display_name
+			// get provider from prop by split on _
+			String provider = prop.split("_display_name")[0];
+
+			this.loginDisplayNameMap.put(provider, socialData.getProperty(prop));
+			// remove the provider from the defaultProvider list
+			defaultProviders.remove(provider);
+		}
+
 	}
 	
 	/**
@@ -235,6 +257,10 @@ public class SocialPropertiesProcessor {
 	public Map<String, Boolean> getLoginsAllowed() {
 		return this.loginsAllowedMap;
 	}
+	
+	public Map<String, String> getLoginDisplayName(){
+		return this.loginDisplayNameMap;
+	 }
 	
 	public String getProperty(String key) {
 		return this.socialData.getProperty(key);
