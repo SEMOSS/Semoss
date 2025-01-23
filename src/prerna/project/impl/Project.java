@@ -1208,13 +1208,15 @@ public class Project implements IProject {
 
 	private Map<String, String> getEngineIdsFromDeps(Map<String, JsonElement> depsMap) {
 		Map<String, String> engineMap = new HashMap<>();
-		for (Map.Entry<String, JsonElement> entry : depsMap.entrySet()) {
-			String key = entry.getKey();
-			JsonElement value = entry.getValue();
-			if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
-				String stringValue = value.getAsString();
-				if (isValidEngine(key, stringValue)) {
-					engineMap.put(entry.getKey(), stringValue);
+		if (depsMap != null) {
+			for (Map.Entry<String, JsonElement> entry : depsMap.entrySet()) {
+				String key = entry.getKey();
+				JsonElement value = entry.getValue();
+				if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
+					String stringValue = value.getAsString();
+					if (isValidEngine(key, stringValue)) {
+						engineMap.put(entry.getKey(), stringValue);
+					}
 				}
 			}
 		}
@@ -1228,17 +1230,21 @@ public class Project implements IProject {
 	 * @return
 	 */
 	private boolean isValidEngine(String key, String value) {
-		String desc = key.split("--")[0];
-		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector"));
-		if (!validTypes.contains(desc)) {
+		String[] keyParts = key.split("--");
+		if (keyParts.length < 2) {
 			return false;
 		}
-	    try {
-	        UUID.fromString(value);
-	        return true;
-	    } catch (IllegalArgumentException e) {
-	        return false;
-	    }
+		String descriptor = keyParts[0];
+		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector"));
+		if (!validTypes.contains(descriptor)) {
+			return false;
+		}
+		try {
+			UUID.fromString(value);
+			return true;
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {
