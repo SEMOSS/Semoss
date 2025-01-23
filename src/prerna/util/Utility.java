@@ -68,6 +68,7 @@ import java.text.Normalizer.Form;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -3809,11 +3810,26 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can add a database
+	 * Determine if for this instance only the admin can share insight
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDbAdd() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
+	public static boolean getApplicationAdminOnlyInsightShare() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	
+	/**
+	 * Determine if for this instance only the admin can set an insight public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3823,11 +3839,11 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can share insight
+	 * Determine if for this instance only the admin can add a database
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightShare() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+	public static boolean getApplicationAdminOnlyDbAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3891,13 +3907,279 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set an insight public
+	 * Determine if for this instance only the admin can add a model
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightSetPublic() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
+	public static boolean getApplicationAdminOnlyModelAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a model
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set model access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set storage access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set vector access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set function access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function function 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -4072,6 +4354,20 @@ public final class Utility {
 		}
 		
 		return Boolean.parseBoolean(modelInferenceLogs);
+	}
+	
+	/**
+	 * Determine if promptdb logs db is enabled
+	 * @return
+	 */
+	public static boolean isPromptDatabaseEnabled() {
+		String promptDB = Utility.getDIHelperProperty(Constants.PROMPT_DB_ENABLED);
+		if(promptDB == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(promptDB);
 	}
 	
 	/**
@@ -5272,8 +5568,12 @@ public final class Utility {
 			
 		//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 
-			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+		// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
+		// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 
+			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , "/", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel, "--userChrootFolder", chrootDir};
+
+		
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5861,5 +6161,132 @@ public final class Utility {
 		return name.matches(regex);
 	}
 	
+    public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+        	return;
+        }
+        
+    	if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+
+        // Execute the command
+        Process process;
+		try {
+			process = Runtime.getRuntime().exec(command);
+	        // Wait for the process to complete
+	        int exitCode = process.waitFor();
+
+	        if (exitCode != 0) {
+	        	classLogger.info("Failed running - " + command);
+	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+	        } else {
+	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+	        }
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (InterruptedException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+    }
+    
+    public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+            return;
+        }
+
+        if (directory == null) {
+            throw new IllegalArgumentException("Directory cannot be null");
+        }
+
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+        }
+
+        // Construct the chmod command
+        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
+
+        // Use ProcessBuilder to execute the command
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+
+        Process process = processBuilder.start();
+
+        // Capture and log the output
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Replace with your logger
+            }
+        }
+
+        // Wait for the process to complete
+        int exitCode = process.waitFor();
+
+        if (exitCode != 0) {
+            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
+        } else {
+            System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace with your logger
+        }
+    }
+
+/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the week.
+	 */
+	public static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> weekDates = new HashMap<>();
+
+		// Find the start of the week (Sunday)
+		ZonedDateTime start = utcDateTime;
+		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
+			start = start.minusDays(1);
+		}
+
+		// Find the end of the week (Saturday)
+		ZonedDateTime end = utcDateTime;
+		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
+			end = end.plusDays(1);
+		}
+		// Convert ZonedDateTime to LocalDateTime
+		weekDates.put("start", start);
+		weekDates.put("end", end);
+
+		return weekDates;
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the month.
+	 */
+	public static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the month by setting the day to 1.
+		dates.put("start", utcDateTime.withDayOfMonth(1));
+		// Find the end of the month by setting the day to the last day of the month.
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
+
+		return dates;
+	}
 
 }

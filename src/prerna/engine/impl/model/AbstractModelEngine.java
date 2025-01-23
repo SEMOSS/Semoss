@@ -100,7 +100,17 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
 
 	@Override
-	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {		
+	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+		/*
+		 * We will check if there are any restrictions for the user's current token usage
+		 * There might be a value set on the user-engine permission which takes priority 
+		 * or if there is none
+		 * there might be a value set on the user for all their model engine usage
+		 */
+
+		// do we have any usage restriction on the user
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
+		
 		if(parameters == null) {
 			parameters = new HashMap<String, Object>();
 		}
@@ -109,7 +119,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		ZonedDateTime inputTime = ZonedDateTime.now();
 		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, insight, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
-				
 		askModelResponse.setMessageId(UUID.randomUUID().toString());
 		askModelResponse.setRoomId(insight.getInsightId());
 		
@@ -130,7 +139,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			));
 			inferenceRecorder.start();
 		}
-
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime, outputTime);
+		
 		return askModelResponse;
 	}
 	
@@ -147,6 +159,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	@Override
 	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
+		// do we have any usage restriction on the user
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
+
 		if(parameters == null) {
 			parameters = new HashMap<String, Object>();
 		}
@@ -177,6 +192,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			));
 			inferenceRecorder.start();
 		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, instructModelResponse, inputTime, outputTime);
  		
 		return instructModelResponse;
 	}
@@ -193,14 +211,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 
 	@Override
 	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight, Map <String, Object> parameters) {		
-		classLogger.info("Making embeddings call on engine " + this.engineId);
+		// do we have any usage restriction on the user
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
 		EmbeddingsModelEngineResponse embeddingsResponse = embeddingsCall(stringsToEmbed, insight, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
-		classLogger.info("Embeddings Received from engine " + this.engineId);
-	
 		if (inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
@@ -219,6 +236,52 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			));
 			inferenceRecorder.start();
 		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime, outputTime);
+ 		
+		return embeddingsResponse;
+	}
+	
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
+	 * @param stringsToEmbed
+	 * @param insight
+	 * @param parameters
+	 * @return
+	 */
+	protected abstract EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters);
+	
+	@Override
+	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters) {		
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
+
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		EmbeddingsModelEngineResponse embeddingsResponse = imageEmbeddingsCall(imagesToEmbed, insight, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+
+		if (inferenceLogsEnbaled) {
+			String messageId = UUID.randomUUID().toString();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId, 
+					/*messageMethod*/"embeddings", 
+					/*engine*/this, 
+					/*insight*/insight, 
+					/*context*/null,
+					/*prompt*/null,
+					/*fullPrompt*/imagesToEmbed,
+					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/"",
+					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime, outputTime);
  		
 		return embeddingsResponse;
 	}

@@ -54,6 +54,9 @@ public class ApiSemossTestEngineUtils {
 			"engines.txt");
 	private static List<String> CORE_DBS = null;
 
+	
+	private static List<String> CURRENT_NAMES = new ArrayList<>();
+	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
 	private static List<String> IDS_TO_AVOID = null;
 
 	// DBs to clear, tables to avoid
@@ -293,7 +296,9 @@ public class ApiSemossTestEngineUtils {
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
-				st.addBatch("DELETE FROM " + x);
+				if (!DO_NOT_CLEAR_LIST.contains(x)) {
+					st.addBatch("DELETE FROM " + x);
+				}
 			}
 			st.executeBatch();
 
@@ -355,7 +360,11 @@ public class ApiSemossTestEngineUtils {
 			if (Files.isDirectory(p)) {
 				Files.walk(p).sorted().map(Path::toFile).forEach(File::delete);
 				if (Files.exists(p)) {
-					Files.delete(p);
+					try {
+						Files.delete(p);
+					} catch(IOException e) {
+						// ignore
+					}
 				}
 			} else {
 				Files.delete(p);

@@ -253,7 +253,7 @@ public class PyTranslator {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight != null) {
 				if (this.insight.getUser() != null) {
-					this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+					this.insight.getUser().getUserSymlinkHelper().symlinkFolder(pyTemp);
 				}
 			}
 		}
@@ -349,7 +349,7 @@ public class PyTranslator {
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(pyTemp);
 			}
 		}
 
@@ -526,7 +526,7 @@ public class PyTranslator {
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(insightRootPath, insightRootPath, false);
+				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(insightRootPath);
 			}
 		}
 
@@ -849,7 +849,7 @@ public class PyTranslator {
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(pyTemp);
 			}
 		}
 

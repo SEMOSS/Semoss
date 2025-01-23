@@ -550,6 +550,40 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		}
 	}
 	
+	/**
+	 * This method allows me to perform the execution of a query on a given connection
+	 * @param conn
+	 * @param query
+	 * @throws Exception 
+	 */
+	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn, Statement stmt, ResultSet rs, String query, boolean closeIfFail) throws Exception {
+		String engineId = database.getEngineId();
+		User user = ThreadStore.getUser();
+		UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, engineId);
+		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
+		try {
+			wrapper.query = query;
+			wrapper.conn = conn;
+			wrapper.stmt = stmt;
+			wrapper.rs = rs;
+			wrapper.setVariables();
+			return wrapper;
+		} catch(Exception e) {
+			queryT.setFailed();
+			logger.error(Constants.STACKTRACE, e);
+			if(closeIfFail) {
+				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
+			} else {
+				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
+			}
+			throw e;
+		} finally {
+			if(queryT != null) {
+				new Thread(queryT).start();
+			}
+		}
+	}
+	
 	@Override
 	public boolean flushable() {
 		return false;

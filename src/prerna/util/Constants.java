@@ -567,8 +567,6 @@ public class Constants {
 
 	// old values in web.xml
 	@Deprecated
-	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
-	@Deprecated
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
 	// reduce operations to only admins
@@ -577,11 +575,37 @@ public class Constants {
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_PROJECT_SET_DISCOVERABLE = "ADMIN_ONLY_PROJECT_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
 	public static final String ADMIN_ONLY_DB_DELETE = "ADMIN_ONLY_DB_DELETE";
 	public static final String ADMIN_ONLY_DB_ADD_ACCESS	= "ADMIN_ONLY_DB_ADD_ACCESS";
 	public static final String ADMIN_ONLY_DB_SET_PUBLIC = "ADMIN_ONLY_DB_SET_PUBLIC";
 	public static final String ADMIN_ONLY_DB_SET_DISCOVERABLE = "ADMIN_ONLY_DB_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_MODEL_ADD = "ADMIN_ONLY_MODEL_ADD";
+	public static final String ADMIN_ONLY_MODEL_DELETE = "ADMIN_ONLY_MODEL_DELETE";
+	public static final String ADMIN_ONLY_MODEL_ADD_ACCESS	= "ADMIN_ONLY_MODEL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_MODEL_SET_PUBLIC = "ADMIN_ONLY_MODEL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_MODEL_SET_DISCOVERABLE = "ADMIN_ONLY_MODEL_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_STORAGE_ADD = "ADMIN_ONLY_STORAGE_ADD";
+	public static final String ADMIN_ONLY_STORAGE_DELETE = "ADMIN_ONLY_STORAGE_DELETE";
+	public static final String ADMIN_ONLY_STORAGE_ADD_ACCESS	= "ADMIN_ONLY_STORAGE_ADD_ACCESS";
+	public static final String ADMIN_ONLY_STORAGE_SET_PUBLIC = "ADMIN_ONLY_STORAGE_SET_PUBLIC";
+	public static final String ADMIN_ONLY_STORAGE_SET_DISCOVERABLE = "ADMIN_ONLY_STORAGE_SET_DISCOVERABLE";
+	
+	public static final String ADMIN_ONLY_VECTOR_ADD = "ADMIN_ONLY_VECTOR_ADD";
+	public static final String ADMIN_ONLY_VECTOR_DELETE = "ADMIN_ONLY_VECTOR_DELETE";
+	public static final String ADMIN_ONLY_VECTOR_ADD_ACCESS	= "ADMIN_ONLY_VECTOR_ADD_ACCESS";
+	public static final String ADMIN_ONLY_VECTOR_SET_PUBLIC = "ADMIN_ONLY_VECTOR_SET_PUBLIC";
+	public static final String ADMIN_ONLY_VECTOR_SET_DISCOVERABLE = "ADMIN_ONLY_VECTOR_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_FUNCTION_ADD = "ADMIN_ONLY_FUNCTION_ADD";
+	public static final String ADMIN_ONLY_FUNCTION_DELETE = "ADMIN_ONLY_FUNCTION_DELETE";
+	public static final String ADMIN_ONLY_FUNCTION_ADD_ACCESS	= "ADMIN_ONLY_FUNCTION_ADD_ACCESS";
+	public static final String ADMIN_ONLY_FUNCTION_SET_PUBLIC = "ADMIN_ONLY_FUNCTION_SET_PUBLIC";
+	public static final String ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE = "ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
@@ -603,6 +627,10 @@ public class Constants {
 	
 	// Theming
 	public static final String THEMING_DB = "themes";
+	
+	// Prompt
+	public static final String PROMPT_DB = "PromptDatabase";
+	public static final String PROMPT_DB_ENABLED = "PROMPT_DB_ENABLED";
 
 	// Quartz Scheduler
 	public static final String SCHEDULER_DB = "scheduler";
@@ -820,6 +848,7 @@ public class Constants {
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
 	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String PROMPT_METAKEYS = "PROMPTMETAKEYS";
 	public static final String METAKEY = "METAKEY";
 	public static final String SINGLE_MULTI = "SINGLEMULTI";
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
@@ -940,4 +969,28 @@ public class Constants {
 	public static final String MAP_EMAIL = "email";
 	public static final String MAP_NAME = "name";
 	public static final String MAP_USERNAME = "username";
+	
+	//UTC ZONE
+  	public static final String UTC_ZONE = "UTC";
+  	
+    // keys for engine restrictions
+ 	public static final String ENGINE_USAGE_RESTRICTION_KEY = "engine_usage_restiction";
+ 	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
+ 	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
+ 	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
+ 	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
+  	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
+  	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
+  	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
+  	// model restriction types
+  	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
+  	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
+
+  	//Exception Message for throttle limit
+  	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
+    public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+    public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
+    public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+  	
+	
 }

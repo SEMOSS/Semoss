@@ -14,9 +14,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class MountHelper {
+public class MountHelperLegacy {
 
-	private static final Logger classLogger = LogManager.getLogger(MountHelper.class);
+	private static final Logger classLogger = LogManager.getLogger(MountHelperLegacy.class);
 
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
@@ -91,7 +91,7 @@ public class MountHelper {
 	//		
 	//	}
 
-	public MountHelper(String targetDirName) {
+	public MountHelperLegacy(String targetDirName) {
 		// String baseMountPath = DIHelper.getInstance().getProperty("CHROOT_DIR");
 
 		// this.targetDirName = baseMountPath + FILE_SEPARATOR + targetDirName;

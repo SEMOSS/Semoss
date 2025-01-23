@@ -43,6 +43,7 @@ public class SocialPropertiesProcessor {
 	// social properties
 	private Properties socialData = null;
 	private Map<String, Boolean> loginsAllowedMap;
+	private Map<String, String> loginDisplayNameMap;
 	
 	// smtp
 	private Session smtpEmailSession = null;
@@ -83,6 +84,7 @@ public class SocialPropertiesProcessor {
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
 		setLoginsAllowed();
+		setLoginDisplayNames();
 	}
 	
 	public void setLoginsAllowed() {
@@ -108,8 +110,40 @@ public class SocialPropertiesProcessor {
 		}
 
 		// get if registration is allowed
-		boolean registration = Boolean.parseBoolean(socialData.getProperty("native_registration")+"");
-		this.loginsAllowedMap.put("registration", registration);
+		// TODO: delete this once FE pulls value from different location
+		this.loginsAllowedMap.put("registration", isNativeRegistrationAllowed());
+	}
+	
+	public boolean isNativeRegistrationAllowed() {
+		return Boolean.parseBoolean(socialData.getProperty("native_registration")+"");
+	}
+	
+	public void setLoginDisplayNames() {
+		this.loginDisplayNameMap = new HashMap<>();
+		// define the allProviders  set
+		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
+
+		// get all _display_name props
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_display_name")).collect(Collectors.toSet());
+		
+		for (String prop : loginProps) {
+			// prop ex. ms_display_name
+			// get provider from prop by split on _
+			String provider = prop.split("_display_name")[0];
+
+			String value = socialData.getProperty(prop);
+			if(value != null && !(value=value.trim()).isEmpty()) {
+				this.loginDisplayNameMap.put(provider, socialData.getProperty(prop));
+				// remove the provider present in social.prop from the allProviders list
+				allProviders.remove(provider);
+			}
+		}
+
+		//loop through the Providers list whom does not have _display_name prop in social.prop file 
+		//and set its default display name as provider name
+		for (String provider : allProviders.keySet()) {
+			this.loginDisplayNameMap.put(provider, allProviders.get(provider).getDisplayName());
+		}
 	}
 	
 	/**
@@ -235,6 +269,10 @@ public class SocialPropertiesProcessor {
 	public Map<String, Boolean> getLoginsAllowed() {
 		return this.loginsAllowedMap;
 	}
+	
+	public Map<String, String> getLoginDisplayNames(){
+		return this.loginDisplayNameMap;
+	 }
 	
 	public String getProperty(String key) {
 		return this.socialData.getProperty(key);

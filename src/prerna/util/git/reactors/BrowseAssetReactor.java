@@ -59,7 +59,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 				//if we have a chroot, mount the project for that user.
 				if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 					//get the app_root folder for the project
-					this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+					this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
 				}
 			} catch(IllegalArgumentException e) {
 				// ignore
