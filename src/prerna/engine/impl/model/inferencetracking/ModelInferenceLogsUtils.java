@@ -81,6 +81,10 @@ public class ModelInferenceLogsUtils {
 			if (primaryKeysAdded) {
 				addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
 			}
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
