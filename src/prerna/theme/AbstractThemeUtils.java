@@ -99,14 +99,14 @@ public abstract class AbstractThemeUtils {
 			// insert default blocks
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 					new Object[] {
-					    "BT001", "Audio Player", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Audio_Player_Active.png", "C:/workspace/Semoss/images/blocks/base/Audio_Player_Hover.png", "Play back audio responses or other files", 
+					    "BT001", "Audio Player", "SECTION_INPUT", null, null, "Play back audio responses or other files", 
 				"{widget: 'audio-player', data: {label: 'Audio Player', autoplay: false, controls: true, loop: false, source: ''}, listeners: {}, slots: {}}", "DEFAULT", false, Utility.getCurrentSqlTimestampUTC(), true
 					})
 				);
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT002", "Button", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Button_Active.png", "C:/workspace/Semoss/images/blocks/base/Button_Hover.png", "Creates a click event", 
+				        "BT002", "Button", "SECTION_INPUT", null, null, "Creates a click event", 
 				"{widget: 'button', data: {style: {}, label: 'Submit', loading: false, disabled: false, variant: 'contained', color: 'primary'}, listeners: {onClick: []}, slots: {}}", "DEFAULT", 
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -114,7 +114,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT003", "Checkbox", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Checkbox_Active.png", "C:/workspace/Semoss/images/blocks/base/Checkbox_Hover.png", "Add a checkbox for user  selection", 
+				        "BT003", "Checkbox", "SECTION_INPUT", null, null, "Add a checkbox for user  selection", 
 				"{widget: 'checkbox', data: {style: {padding: 'none'}, label: 'Example Checkbox', required: false, disabled: false, value: false}, listeners: {onChange: []}, slots: {}}", "DEFAULT", 
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -123,7 +123,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT004", "Input", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Text_Box_Active.png", "C:/workspace/Semoss/images/blocks/base/Text_Box_Hover.png", "Add an input box for typing  text", 
+				        "BT004", "Input", "SECTION_INPUT", null, null, "Add an input box for typing  text", 
 				"{widget: 'input', data: {style: {width: '100%', padding: '4px'}, value: '', label: 'Example Input', hint: '', type: 'text', rows: 1, multiline: false, disabled: false, required: false, loading: false}, listeners: {onChange: []}, slots: {content: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -131,7 +131,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT005", "Select", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Select_Active.png", "C:/workspace/Semoss/images/blocks/base/Select_Hover.png", "Choose an option from a dropdown list", 
+				        "BT005", "Select", "SECTION_INPUT", null, null, "Choose an option from a dropdown list", 
 				"{widget: 'select', data: {style: {padding: '4px'}, value: '', label: 'Example Select Input', hint: '', options: [], required: false, disabled: false, loading: false}, listeners: {onChange: []}, slots: {content: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -139,7 +139,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT006", "Upload", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Upload_Active.png", "C:/workspace/Semoss/images/blocks/base/Upload_Hover.png", "Upload files like documents or images", 
+				        "BT006", "Upload", "SECTION_INPUT", null, null, "Upload files like documents or images", 
 				"{widget: 'upload', data: {style: {width: '100%', padding: '4px'}, value: '', label: 'Example Input', hint: '', loading: false, disabled: false, required: false}, listeners: {onChange: []}, slots: {content: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -147,7 +147,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT007", "Container", "SECTION_LAYOUT", "C:/workspace/Semoss/images/blocks/base/Container_Active.png", "C:/workspace/Semoss/images/blocks/base/Container_Hover.png", "Create a layout element for custom design", 
+				        "BT007", "Container", "SECTION_LAYOUT", null, null, "Create a layout element for custom design", 
 				"{widget: 'container', data: {style: {display: 'flex', flexDirection: 'column', padding: '4px', gap: '8px', flexWrap: 'wrap'}}, listeners: {}, slots: {children: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -155,7 +155,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT008", "Progress", "SECTION_PROGRESS", "C:/workspace/Semoss/images/blocks/base/Progress_Active.png", "C:/workspace/Semoss/images/blocks/base/Progress_Hover.png", "Display progress tracking or status", 
+				        "BT008", "Progress", "SECTION_PROGRESS", null, null, "Display progress tracking or status", 
 				"{widget: 'progress', data: {type: 'linear', value: 50, includeLabel: true, size: '300px'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -163,7 +163,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT009", "Iframe", "SECTION_ELEMENT", "C:/workspace/Semoss/images/blocks/base/Iframe_Active.png", "C:/workspace/Semoss/images/blocks/base/Iframe_Hover.png", "Embed a webpage using a source link", 
+				        "BT009", "Iframe", "SECTION_ELEMENT", null, null, "Embed a webpage using a source link", 
 				"{widget: 'iframe', data: {style: {}, src: '', title: '', enableFrameInteractions: true}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -171,7 +171,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT010", "PDF Viewer", "SECTION_ELEMENT", "C:/workspace/Semoss/images/blocks/base/PDF_Active.png", "C:/workspace/Semoss/images/blocks/base/PDF_Hover.png", "Embed a PDF for viewing", 
+				        "BT010", "PDF Viewer", "SECTION_ELEMENT", null, null, "Embed a PDF for viewing", 
 				"{widget: 'pdfViewer', data: {style: {width: '100%', height: '82%', padding: '8px'}, selectedPdf: null}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -179,7 +179,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT011", "Image", "SECTION_ELEMENT", "C:/workspace/Semoss/images/blocks/base/Image_Active.png", "C:/workspace/Semoss/images/blocks/base/Image_Hover.png", "Add an image to your layout", 
+				        "BT011", "Image", "SECTION_ELEMENT", null, null, "Add an image to your layout", 
 				"{widget: 'image', data: {style: {display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '200px', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center'}, src: '', title: ''}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -187,7 +187,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT012", "Logs", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Logs_Active.png", "C:/workspace/Semoss/images/blocks/base/Logs_Hover.png", "Display logs for tracking  events or data", 
+				        "BT012", "Logs", "SECTION_TEXT", null, null, "Display logs for tracking  events or data", 
 				"{widget: 'logs', data: {style: {}, queryId: ''}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -195,7 +195,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT013", "Toggle Button", "SECTION_INPUT", "C:/workspace/Semoss/images/blocks/base/Toggle_Active.png", "C:/workspace/Semoss/images/blocks/base/Toggle_Hover.png", "Switch between multiple options", 
+				        "BT013", "Toggle Button", "SECTION_INPUT", null, null, "Switch between multiple options", 
 				"{widget: 'toggle-button', data: {disabled: false, color: 'primary', size: 'small', options: [{display: 'on', value: 'on'}, {display: 'off', value: 'off'}], value: null, mandatory: true, multiple: false}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -203,7 +203,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT014", "Link", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Link_Active.png", "C:/workspace/Semoss/images/blocks/base/Link_Hover.png", "Access a webpage through a clickable URL", 
+				        "BT014", "Link", "SECTION_TEXT", null, null, "Access a webpage through a clickable URL", 
 				"{widget: 'link', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, href: '', text: 'Insert text'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -211,7 +211,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT015", "Markdown", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Markdown_Active.png", "C:/workspace/Semoss/images/blocks/base/Markdown_Hover.png", "Show text in markdown format", 
+				        "BT015", "Markdown", "SECTION_TEXT", null, null, "Show text in markdown format", 
 				"{widget: 'markdown', data: {style: {padding: '4px'}, markdown: '**Hello world**'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -219,7 +219,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT016", "HTML", "SECTION_ELEMENT", "C:/workspace/Semoss/images/blocks/base/HTML_Active.png", "C:/workspace/Semoss/images/blocks/base/HTML_Hover.png", "Write custom HTML manually or with AI assistance", 
+				        "BT016", "HTML", "SECTION_ELEMENT", null, null, "Write custom HTML manually or with AI assistance", 
 				"{widget: 'html', data: {style: {padding: '4px'}, html: '<html>\\r\\n <style>\\r\\n html {\\r\\n font-family: Roboto;\\r\\n text-align: center;\\r\\n overflow: hidden;\\r\\n}\\r\\n </style>\\r\\n <body>\\r\\n <h2>HTML Block</h2>\\r\\n </body>\\r\\n</html>'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -227,7 +227,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT018", "Text H1", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/H1_Active.png", "C:/workspace/Semoss/images/blocks/base/H1_Hover.png", "Display text in header 1", 
+				        "BT018", "Text H1", "SECTION_TEXT", null, null, "Display text in header 1", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h1'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -235,7 +235,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT019", "Text H2", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/H2_Active.png", "C:/workspace/Semoss/images/blocks/base/H2_Hover.png", "Display text in header 2",
+				        "BT019", "Text H2", "SECTION_TEXT", null, null, "Display text in header 2",
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h2'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -243,7 +243,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT020", "Text H3", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/H3_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "Display text in header 3",
+				        "BT020", "Text H3", "SECTION_TEXT", null, null, "Display text in header 3",
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h3'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -252,7 +252,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 					    new Object[] {
-					        "BT021", "Text H4", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "Display text in header 4", 
+					        "BT021", "Text H4", "SECTION_TEXT", null, null, "Display text in header 4", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h4'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -260,7 +260,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT022", "Text H5", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png","Display text in header 5", 
+				        "BT022", "Text H5", "SECTION_TEXT", null, null,"Display text in header 5", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h5'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -268,7 +268,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT023", "Text H6", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "Display text in header 6", 
+				        "BT023", "Text H6", "SECTION_TEXT", null, null, "Display text in header 6", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h6'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -276,7 +276,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT024", "Text P", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "Display text in a regular paragraph style", 
+				        "BT024", "Text P", "SECTION_TEXT", null, null, "Display text in a regular paragraph style", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -284,7 +284,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT025", "Text P Italics", "SECTION_TEXT", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png",  null,
+				        "BT025", "Text P Italics", "SECTION_TEXT" null, null,  null,
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis', fontStyle: 'italic'}, text: 'Hello world', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -292,7 +292,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT026", "Compare LLMs", "SECTION_COMPARE_LLMS", "C:/workspace/Semoss/images/blocks/base/Compare_LLM_Active.png", "C:/workspace/Semoss/images/blocks/base/Compare_LLM_Hover.png", "Compare large language models against the same context", 
+				        "BT026", "Compare LLMs", "SECTION_COMPARE_LLMS", null, null, "Compare large language models against the same context", 
 				"{widget: 'llmComparison', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: '', variants: {}}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -300,7 +300,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] { // TODO: change hover image once updated
-				        "BT027", "Mermaid", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/MermaidJs_Active.png", "C:/workspace/Semoss/images/blocks/base/MermaidJs_Active.png",  null,
+				        "BT027", "Mermaid", "SECTION_MERMAID", null, null,  null,
 				"{widget: 'mermaid', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Query', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -309,7 +309,7 @@ public abstract class AbstractThemeUtils {
 				// Insert visualization blocks
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT028", "Vega", "SECTION_GENERAL_VISUALIZATION", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT028", "Vega", "SECTION_GENERAL_VISUALIZATION", null, null, null,
 				"{widget: 'vega', data: {specJson: '', variation: undefined}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -317,7 +317,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT029", "Grid", "SECTION_GENERAL_VISUALIZATION", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT029", "Grid", "SECTION_GENERAL_VISUALIZATION", null, null, null,
 				"{widget: 'grid', data: {frame: {name: ''}, columns: [], view: {pagination: true}}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -325,7 +325,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT030", "Bar Chart", "SECTION_BAR_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT030", "Bar Chart", "SECTION_BAR_CHART", null, null, null,
 				"{widget: 'vega', data: {variation: 'bar-chart', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Bar Chart', width: 300, height: 300, data: {values: [{a: 'A', b: 28}, {a: 'B', b: 55}, {a: 'C', b: 43}, {a: 'D', b: 91}, {a: 'E', b: 81}, {a: 'F', b: 53}, {a: 'G', b: 19}, {a: 'H', b: 87}, {a: 'I', b: 52}]}, mark: 'bar', encoding: {x: {field: 'a', type: 'ordinal'}, y: {field: 'b', type: 'quantitative'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -333,7 +333,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT031", "Grouped Bar Chart", "SECTION_BAR_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT031", "Grouped Bar Chart", "SECTION_BAR_CHART", null, null, null,
 				"{widget: 'vega', data: {variation: 'grouped-bar-chart', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Grouped Bar Chart', width: 300, height: 300, data: {values: [{category: 'A', group: 'x', value: 0.1}, {category: 'A', group: 'y', value: 0.6}, {category: 'A', group: 'z', value: 0.9}, {category: 'B', group: 'x', value: 0.7}, {category: 'B', group: 'y', value: 0.2}, {category: 'B', group: 'z', value: 1.1}, {category: 'C', group: 'x', value: 0.6}, {category: 'C', group: 'y', value: 0.1}, {category: 'C', group: 'z', value: 0.2}]}, mark: 'bar', encoding: {x: {field: 'category'}, y: {field: 'value', type: 'quantitative'}, xOffset: {field: 'group'}, color: {field: 'group'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -341,7 +341,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT032", "Pie Chart", "SECTION_PIE_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT032", "Pie Chart", "SECTION_PIE_CHART", null, null, null,
 				"{widget: 'vega', data: {variation: 'pie-chart', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Pie Chart', width: 300, height: 300, description: 'A simple pie chart with embedded data.', data: {values: [{category: 1, value: 4}, {category: 2, value: 6}, {category: 3, value: 10}, {category: 4, value: 3}, {category: 5, value: 7}, {category: 6, value: 8}]}, mark: 'arc', encoding: {theta: {field: 'value', type: 'quantitative'}, color: {field: 'category', type: 'nominal'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -349,7 +349,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT033", "Radial Plot", "SECTION_PIE_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT033", "Radial Plot", "SECTION_PIE_CHART", null, null, null,
 				"{widget: 'vega', data: {variation: 'radial-plot', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Radial Plot', width: 300, height: 300, description: 'A simple radial chart with embedded data.', data: {values: [12, 23, 47, 6, 52, 19]}, layer: [{mark: {type: 'arc', innerRadius: 20, stroke: '#fff'}}, {mark: {type: 'text', radiusOffset: 10}, encoding: {text: {field: 'data', type: 'quantitative'}}}], encoding: {theta: {field: 'data', type: 'quantitative', stack: true}, radius: {field: 'data', scale: {type: 'sqrt', zero: true, rangeMin: 20}}, color: {field: 'data', type: 'nominal', legend: null}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -357,7 +357,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT034", "Line Chart", "SECTION_LINE_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT034", "Line Chart", "SECTION_LINE_CHART", null, null, null,
 				"{widget: 'vega', data: {variation: 'line-chart', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Line Chart', width: 300, height: 300, data: {values: [{a: 'A', b: 28}, {a: 'B', b: 55, predicted: false}, {a: 'D', b: 91, predicted: false}, {a: 'E', b: 81, predicted: false}, {a: 'E', b: 81, predicted: true}, {a: 'G', b: 19, predicted: true}, {a: 'H', b: 87, predicted: true}]}, mark: 'line', encoding: {x: {field: 'a', type: 'ordinal'}, y: {field: 'b', type: 'quantitative'}, strokeDash: {field: 'predicted', type: 'nominal'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -366,7 +366,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT035", "Area Chart", "SECTION_AREA_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT035", "Area Chart", "SECTION_AREA_CHART", null, null, null,
 			    "{widget: 'vega', data: {variation: 'area-chart', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Area Chart', width: 300, height: 300, data: {values: [{a: 'A', b: 28}, {a: 'B', b: 55}, {a: 'D', b: 91}, {a: 'E', b: 81}, {a: 'E', b: 81}, {a: 'G', b: 19}, {a: 'H', b: 87}]}, mark: 'area', encoding: {x: {field: 'a'}, y: {aggregate: 'sum', field: 'b', title: 'count'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 			        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -374,7 +374,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT036", "Area Chart with Gradient", "SECTION_AREA_CHART", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT036", "Area Chart with Gradient", "SECTION_AREA_CHART", null, null, null,
 				"{widget: 'vega', data: {variation: 'area-chart-with-gradient', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Area Chart with Gradient', width: 300, height: 300, description: 'Simple area chart with gradient.', data: {values: [{a: 'A', b: 28}, {a: 'B', b: 55}, {a: 'D', b: 91}, {a: 'E', b: 81}, {a: 'E', b: 81}, {a: 'G', b: 19}, {a: 'H', b: 87}]}, mark: {type: 'area', line: {color: 'darkgreen'}, color: {x1: 1, y1: 1, x2: 1, y2: 0, gradient: 'linear', stops: [{offset: 0, color: 'white'}, {offset: 1, color: 'darkgreen'}]}}, encoding: {x: {field: 'a'}, y: {aggregate: 'sum', field: 'b', title: 'count'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -382,7 +382,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT037", "Scatter Plot", "SECTION_SCATTER_PLOTS", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT037", "Scatter Plot", "SECTION_SCATTER_PLOTS", null, null, null,
 				"{widget: 'vega', data: {variation: 'scatter-plot', specJson: JSON.stringify({$schema: 'https://vega.github.io/schema/vega-lite/v5.json', title: 'Scatter Plot', width: 300, height: 300, description: 'A scatterplot.', data: {values: [{a: 10, b: 28}, {a: 20, b: 55}, {a: 30, b: 91}, {a: 40, b: 81}, {a: 50, b: 81}, {a: 60, b: 19}, {a: 70, b: 87}]}, mark: 'point', encoding: {x: {field: 'a', type: 'quantitative'}, y: {field: 'b', type: 'quantitative'}}}), null, 2}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -390,7 +390,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT038", "General Mermaid", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT038", "General Mermaid", "SECTION_MERMAID", null, null, null,
 				"{widget: 'mermaid', data: {text: GENERAL_MERMAID}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -398,7 +398,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT039", "Class Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT039", "Class Diagram", "SECTION_MERMAID", null, null, null,
 				"{widget: 'mermaid', data: {text: CLASS_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -406,7 +406,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT040", "Sequence Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT040", "Sequence Diagram", "SECTION_MERMAID", null, null, null,
 				"{widget: 'mermaid', data: {text: SEQUENCE_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -414,7 +414,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT041", "State Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT041", "State Diagram", "SECTION_MERMAID", null, null, null,
 				"{widget: 'mermaid', data: {text: STATE_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -422,7 +422,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT042", "Entity Relationship Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT042", "Entity Relationship Diagram", "SECTION_MERMAID", null, null, null,
 				"{widget: 'mermaid', data: {text: ENTITY_RELATIONSHIP_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -430,7 +430,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT043", "User Journey", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT043", "User Journey", "SECTION_MERMAID", null, null, null,
 			    "{widget: 'mermaid', data: {text: USER_JOURNEY}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -438,7 +438,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT044", "Gantt", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT044", "Gantt", "SECTION_MERMAID", null, null, null,
 			    "{widget: 'mermaid', data: {text: GANTT}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -446,7 +446,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT045", "Pie Chart", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT045", "Pie Chart", "SECTION_MERMAID", null, null, null,
 			    "{widget: 'mermaid', data: {text: PIE_CHART}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -455,7 +455,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT046", "Quadrant Chart", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT046", "Quadrant Chart", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: QUADRANT_CHART}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -463,7 +463,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT047", "Requirement Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT047", "Requirement Diagram", "SECTION_MERMAID",  null, null, null,
 		        "{widget: 'mermaid', data: {text: REQUIREMENT_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -471,7 +471,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT048", "Git Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT048", "Git Diagram", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: GIT_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -479,7 +479,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT049", "C4 Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT049", "C4 Diagram", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: C4_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -487,7 +487,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT050", "Mindmap", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT050", "Mindmap", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: MINDMAP}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -495,7 +495,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT051", "Timeline", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT051", "Timeline", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: TIMELINE}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -503,7 +503,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT052", "Sankey", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT052", "Sankey", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: SANKEY}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -511,7 +511,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT053", "XY Chart", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT053", "XY Chart", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: XY_Chart}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -519,7 +519,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT054", "Block Diagram", "SECTION_MERMAID", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", "C:/workspace/Semoss/images/blocks/base/Default_Block_Active.png", null,
+				        "BT054", "Block Diagram", "SECTION_MERMAID", null, null, null,
 		        "{widget: 'mermaid', data: {text: BLOCK_DIAGRAM}, listeners: {}, slots: {}}", "VISUALIZATION",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
