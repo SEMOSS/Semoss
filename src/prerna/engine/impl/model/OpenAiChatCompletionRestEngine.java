@@ -423,6 +423,11 @@ public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
                protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters) {
                               return new EmbeddingsModelEngineResponse(null, null, null);
                }
+               
+               @Override
+               protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+                              return new EmbeddingsModelEngineResponse(null, null, null);
+               }
  
                @Override
                protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {

@@ -91,7 +91,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyDatabaseAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 

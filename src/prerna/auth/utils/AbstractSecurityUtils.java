@@ -66,6 +66,30 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyDatabaseSetPublic = false;
 	static boolean adminOnlyDatabaseSetDiscoverable = false;
 
+	static boolean adminOnlyModelAdd = false;
+	static boolean adminOnlyModelDelete = false;
+	static boolean adminOnlyModelAddAccess = false;
+	static boolean adminOnlyModelSetPublic = false;
+	static boolean adminOnlyModelSetDiscoverable = false;
+	
+	static boolean adminOnlyStorageAdd = false;
+	static boolean adminOnlyStorageDelete = false;
+	static boolean adminOnlyStorageAddAccess = false;
+	static boolean adminOnlyStorageSetPublic = false;
+	static boolean adminOnlyStorageSetDiscoverable = false;
+	
+	static boolean adminOnlyVectorAdd = false;
+	static boolean adminOnlyVectorDelete = false;
+	static boolean adminOnlyVectorAddAccess = false;
+	static boolean adminOnlyVectorSetPublic = false;
+	static boolean adminOnlyVectorSetDiscoverable = false;
+
+	static boolean adminOnlyFunctionAdd = false;
+	static boolean adminOnlyFunctionDelete = false;
+	static boolean adminOnlyFunctionAddAccess = false;
+	static boolean adminOnlyFunctionSetPublic = false;
+	static boolean adminOnlyFunctionSetDiscoverable = false;
+	
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
 
@@ -121,13 +145,37 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
 		adminOnlyProjectSetDiscoverable = Utility.getApplicationAdminOnlyProjectSetDiscoverable();
-		
+
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
 		adminOnlyDatabaseAddAccess = Utility.getApplicationAdminOnlyDbAddAccess();
 		adminOnlyDatabaseSetPublic = Utility.getApplicationAdminOnlyDbSetPublic();
 		adminOnlyDatabaseSetDiscoverable = Utility.getApplicationAdminOnlyDbSetDiscoverable();
+		
+		adminOnlyModelAdd = Utility.getApplicationAdminOnlyModelAdd();
+		adminOnlyModelDelete = Utility.getApplicationAdminOnlyModelDelete();
+		adminOnlyModelAddAccess = Utility.getApplicationAdminOnlyModelAddAccess();
+		adminOnlyModelSetPublic = Utility.getApplicationAdminOnlyModelSetPublic();
+		adminOnlyModelSetDiscoverable = Utility.getApplicationAdminOnlyModelSetDiscoverable();
 
+		adminOnlyStorageAdd = Utility.getApplicationAdminOnlyStorageAdd();
+		adminOnlyStorageDelete = Utility.getApplicationAdminOnlyStorageDelete();
+		adminOnlyStorageAddAccess = Utility.getApplicationAdminOnlyStorageAddAccess();
+		adminOnlyStorageSetPublic = Utility.getApplicationAdminOnlyStorageSetPublic();
+		adminOnlyStorageSetDiscoverable = Utility.getApplicationAdminOnlyStorageSetDiscoverable();
+
+		adminOnlyVectorAdd = Utility.getApplicationAdminOnlyVectorAdd();
+		adminOnlyVectorDelete = Utility.getApplicationAdminOnlyVectorDelete();
+		adminOnlyVectorAddAccess = Utility.getApplicationAdminOnlyVectorAddAccess();
+		adminOnlyVectorSetPublic = Utility.getApplicationAdminOnlyVectorSetPublic();
+		adminOnlyVectorSetDiscoverable = Utility.getApplicationAdminOnlyVectorSetDiscoverable();
+
+		adminOnlyFunctionAdd = Utility.getApplicationAdminOnlyFunctionAdd();
+		adminOnlyFunctionDelete = Utility.getApplicationAdminOnlyFunctionDelete();
+		adminOnlyFunctionAddAccess = Utility.getApplicationAdminOnlyFunctionAddAccess();
+		adminOnlyFunctionSetPublic = Utility.getApplicationAdminOnlyFunctionSetPublic();
+		adminOnlyFunctionSetDiscoverable = Utility.getApplicationAdminOnlyFunctionSetDiscoverable();
+		
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 
@@ -171,24 +219,104 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectSetDiscoverable;
 	}
 	
-	public static boolean adminOnlyEngineAdd() {
+	public static boolean adminOnlyDatabaseAdd() {
 		return adminOnlyDatabaseAdd;
 	}
 
-	public static boolean adminOnlyEngineDelete() {
+	public static boolean adminOnlyDatabaseDelete() {
 		return adminOnlyDatabaseDelete;
 	}
 
-	public static boolean adminOnlyEngineAddAccess() {
+	public static boolean adminOnlyDatabaseAddAccess() {
 		return adminOnlyDatabaseAddAccess;
 	}
 
-	public static boolean adminOnlyEngineSetPublic() {
+	public static boolean adminOnlyDatabaseSetPublic() {
 		return adminOnlyDatabaseSetPublic;
 	}
 
-	public static boolean adminOnlyEngineSetDiscoverable() {
+	public static boolean adminOnlyDatabaseSetDiscoverable() {
 		return adminOnlyDatabaseSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyModelAdd() {
+		return adminOnlyModelAdd;
+	}
+
+	public static boolean adminOnlyModelDelete() {
+		return adminOnlyModelDelete;
+	}
+
+	public static boolean adminOnlyModelAddAccess() {
+		return adminOnlyModelAddAccess;
+	}
+
+	public static boolean adminOnlyModelSetPublic() {
+		return adminOnlyModelSetPublic;
+	}
+
+	public static boolean adminOnlyModelSetDiscoverable() {
+		return adminOnlyModelSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyStorageAdd() {
+		return adminOnlyStorageAdd;
+	}
+
+	public static boolean adminOnlyStorageDelete() {
+		return adminOnlyStorageDelete;
+	}
+
+	public static boolean adminOnlyStorageAddAccess() {
+		return adminOnlyStorageAddAccess;
+	}
+
+	public static boolean adminOnlyStorageSetPublic() {
+		return adminOnlyStorageSetPublic;
+	}
+
+	public static boolean adminOnlyStorageSetDiscoverable() {
+		return adminOnlyStorageSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyVectorAdd() {
+		return adminOnlyVectorAdd;
+	}
+
+	public static boolean adminOnlyVectorDelete() {
+		return adminOnlyVectorDelete;
+	}
+
+	public static boolean adminOnlyVectorAddAccess() {
+		return adminOnlyVectorAddAccess;
+	}
+
+	public static boolean adminOnlyVectorSetPublic() {
+		return adminOnlyVectorSetPublic;
+	}
+
+	public static boolean adminOnlyVectorSetDiscoverable() {
+		return adminOnlyVectorSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyFunctionAdd() {
+		return adminOnlyFunctionAdd;
+	}
+
+	public static boolean adminOnlyFunctionDelete() {
+		return adminOnlyFunctionDelete;
+	}
+
+	public static boolean adminOnlyFunctionAddAccess() {
+		return adminOnlyFunctionAddAccess;
+	}
+
+	public static boolean adminOnlyFunctionSetPublic() {
+		return adminOnlyFunctionSetPublic;
+	}
+
+	public static boolean adminOnlyFunctionSetDiscoverable() {
+		return adminOnlyFunctionSetDiscoverable;
 	}
 
 	public static boolean adminOnlyInsightSetPublic() {
@@ -203,6 +331,106 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyInsightShare;
 	}
 
+	public static boolean adminOnlyEngineAdd(String engineId) {
+		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseAdd;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelAdd;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageAdd;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorAdd;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionAdd;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineDelete(String engineId) {
+		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseDelete;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelDelete;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageDelete;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorDelete;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionDelete;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineAddAccess(String engineId) {
+		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseAddAccess;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelAddAccess;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageAddAccess;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorAddAccess;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionAddAccess;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineSetPublic(String engineId) {
+		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseSetPublic;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelSetPublic;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageSetPublic;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorSetPublic;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionSetPublic;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineSetDiscoverable(String engineId) {
+		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineSetDiscoverable(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionSetDiscoverable;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
 	public static void initialize() throws Exception {
 		String database = securityDb.getDatabase();
 		String schema = securityDb.getSchema();

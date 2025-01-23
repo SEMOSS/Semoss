@@ -30,9 +30,9 @@ import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public abstract class AbstractUploadFileReactor extends AbstractReactor {
+public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractUploadFileReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatabaseUploadFileReactor.class);
 	
 	/**
 	 * Every reactor that extends this needs to define its own inputs
@@ -86,7 +86,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 		
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyDatabaseAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 

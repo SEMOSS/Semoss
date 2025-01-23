@@ -104,7 +104,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 		
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyDatabaseAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 

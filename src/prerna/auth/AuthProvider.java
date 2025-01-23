@@ -1,7 +1,9 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import prerna.io.connector.GenericTokenFiller;
@@ -13,55 +15,61 @@ import prerna.io.connector.okta.OktaTokenFiller;
 
 public enum AuthProvider implements Serializable {
 
-	GOOGLE("GOOGLE", true, GoogleTokenFiller.class.getName()), 
-	GOOGLE_MAP("GOOGLE_MAP", true, null),
-	GITHUB("GITHUB", true, GithubTokenFiller.class.getName()),
-	GITLAB("GITLAB", true, GitLabTokenFiller.class.getName()),
+	GOOGLE("GOOGLE", "Google", true, GoogleTokenFiller.class.getName()), 
+	GOOGLE_MAP("GOOGLE_MAP", "GoogleMap", true, null),
+	GITHUB("GITHUB", "GitHub", true, GithubTokenFiller.class.getName()),
+	GITLAB("GITLAB", "GitLab", true, GitLabTokenFiller.class.getName()),
 	//TODO: build out custom endpoint in UserResource
-	KEYCLOAK("KEYCLOAK", true, GenericTokenFiller.class.getName()),
-	MS("MS", true, MicrosoftTokenFiller.class.getName()), // this is azure graph
-	SALESFORCE("SALESFORCE", true, null), 
-	SITEMINDER("SITEMINDER", true, null),
-	SURVEYMONKEY("SURVEYMONKEY", true, null),
-	ADFS("ADFS", true, null),
-	OKTA("OKTA", true, OktaTokenFiller.class.getName()),
+	KEYCLOAK("KEYCLOAK", "Keycloak", true, GenericTokenFiller.class.getName()),
+	MS("MS", "Microsoft", true, MicrosoftTokenFiller.class.getName()), // this is azure graph
+	SALESFORCE("SALESFORCE", "Salesforce", true, null), 
+	SITEMINDER("SITEMINDER", "SiteMinder", true, null),
+	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, null),
+	ADFS("ADFS", "ADFS", true, null),
+	OKTA("OKTA", "Okta", true, OktaTokenFiller.class.getName()),
 
 	// native login
-	NATIVE("NATIVE", false, null),
+	NATIVE("NATIVE", "Native", false, null),
 	// saml
-	SAML("SAML", false, null),
+	SAML("SAML", "SAML", false, null),
 	// using ldap
-	ACTIVE_DIRECTORY("ACTIVE_DIRECTORY", false, null),
+	ACTIVE_DIRECTORY("ACTIVE_DIRECTORY", "Active Directory", false, null),
 	// linOTP
-	LINOTP("LINOTP", false, null),
+	LINOTP("LINOTP", "LinOTP", false, null),
 	
 	// this one is kinda special ...
-	CAC("CAC", false, null),
-	WINDOWS_USER("WINDOWS_USER", false, null),
-	API_USER("API_USER", false, null),
+	CAC("CAC", "CAC", false, null),
+	WINDOWS_USER("WINDOWS_USER", "Windows NLTM", false, null),
+	API_USER("API_USER", "API Login", false, null),
 	
 	// these are not used as much ...
-	TWITTER("TWITTER", true, null),
-	DROPBOX("DROPBOX", true, null),
-	PRODUCT_HUNT("PRODUCT_HUNT", true, null),
-	IN("IN", true, null),
+	TWITTER("TWITTER", "Twitter", true, null),
+	DROPBOX("DROPBOX", "Dropbox", true, null),
+	PRODUCT_HUNT("PRODUCT_HUNT", "Product Hunt", true, null),
+	LINKEDIN("LINKEDIN", "LinkedIn", true, null),
 
 	// catch all for other OAuth
-	GENERIC("GENERIC", true, GenericTokenFiller.class.getName()),
+	GENERIC("GENERIC", "Generic", true, GenericTokenFiller.class.getName()),
 	;
 
 	private String label;
+	private String displayName;
 	private boolean isOAuth;
 	private String tokenFillerClass;
 	
-	AuthProvider(String label, boolean isOAuth, String tokenFillerClass) {
+	AuthProvider(String label, String displayName, boolean isOAuth, String tokenFillerClass) {
 		this.label = label;
+		this.displayName = displayName;
 		this.isOAuth = isOAuth;
 		this.tokenFillerClass = tokenFillerClass;
 	}
 	
 	public String getLabel() {
 		return label;
+	}
+	
+	public String getDisplayName() {
+		return displayName;
 	}
 	
 	public boolean isOAuth() {
@@ -100,6 +108,15 @@ public enum AuthProvider implements Serializable {
 		Set<String> vals = new HashSet<>();
 		for(AuthProvider auth : AuthProvider.values()) {
 			vals.add(auth.name().toLowerCase());
+		}
+		
+		return vals;
+	}
+	
+	public static Map<String, AuthProvider> getSocialPropKeysToEnum() {
+		Map<String, AuthProvider> vals = new HashMap<>();
+		for(AuthProvider auth : AuthProvider.values()) {
+			vals.put(auth.name().toLowerCase(), auth);
 		}
 		
 		return vals;
