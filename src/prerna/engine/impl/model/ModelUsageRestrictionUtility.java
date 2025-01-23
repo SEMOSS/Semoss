@@ -44,6 +44,10 @@ public final class ModelUsageRestrictionUtility {
 			Number currentUsage = null;
 			// engine specific restriction
 			if(engineLvlModelUsageRestriction != null && !engineLvlModelUsageRestriction.isEmpty()) {
+				if(!Utility.isModelInferenceLogsEnabled()) {
+					throw new IllegalArgumentException("Model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
+				}
+				
 				if(Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
 					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime, engineLvlModelUsageFrequency);
 					
@@ -72,6 +76,10 @@ public final class ModelUsageRestrictionUtility {
 			}
 			// user general restriction
 			else if(userLvlModelUsageRestriction != null && !userLvlModelUsageRestriction.isEmpty()) {
+				if(!Utility.isModelInferenceLogsEnabled()) {
+					throw new IllegalArgumentException("User model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
+				}
+				
 				if(Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
 					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime, userLvlModelUsageFrequency);
