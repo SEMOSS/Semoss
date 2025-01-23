@@ -21,14 +21,14 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
+public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 
 	private CSVFileHelper helper;
 

@@ -63,7 +63,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyModelAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 

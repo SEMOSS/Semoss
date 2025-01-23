@@ -139,6 +139,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
+	public static IEngine.CATALOG_TYPE getEngineTyp(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		List<Object[]> results = QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+		if(results == null || results.isEmpty()) {
+			throw new IllegalArgumentException("Could not find engine with id " + engineId);
+		}
+		Object[] result = results.get(0);
+		return IEngine.CATALOG_TYPE.valueOf(result[0]+"");
+	}
+	
+	/**
+	 * This returns ENGINETYPE as the enum IEngine.CATALOG_TYPE and not the String format it is stored in
+	 * @param engineId
+	 * @return
+	 */
 	public static Object[] getEngineTypeAndSubtype(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));

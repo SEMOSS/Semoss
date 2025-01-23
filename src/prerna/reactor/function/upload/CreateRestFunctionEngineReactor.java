@@ -65,7 +65,7 @@ public class CreateRestFunctionEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
