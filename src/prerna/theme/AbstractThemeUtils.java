@@ -284,7 +284,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT025", "Text P Italics", "SECTION_TEXT" null, null,  null,
+				        "BT025", "Text P Italics", "SECTION_TEXT", null, null,  null,
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis', fontStyle: 'italic'}, text: 'Hello world', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
