@@ -28,5 +28,11 @@ public interface INotebookRunner {
 	 * @return
 	 */
 	NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements);
+	
+	/**
+	 * Gets only engine deps listed in the blocks.json file in the project
+	 * @return
+	 */
+	Map<String, String> getBlocksEngineDependencies();
 
 }

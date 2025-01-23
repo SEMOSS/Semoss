@@ -1195,56 +1195,13 @@ public class Project implements IProject {
 		
 		try {
 			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
-			JsonElement blocks = runner.getBlocksFileJson();
-			Map<String, JsonElement> depsMap = blocks.getAsJsonObject().get("dependencies").getAsJsonObject().asMap();
-			Map<String, String> engineMap = getEngineIdsFromDeps(depsMap);
+			Map<String, String> engineMap = runner.getBlocksEngineDependencies();
 			return engineMap;
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
-	}
-
-	private Map<String, String> getEngineIdsFromDeps(Map<String, JsonElement> depsMap) {
-		Map<String, String> engineMap = new HashMap<>();
-		if (depsMap != null) {
-			for (Map.Entry<String, JsonElement> entry : depsMap.entrySet()) {
-				String key = entry.getKey();
-				JsonElement value = entry.getValue();
-				if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
-					String stringValue = value.getAsString();
-					if (isValidEngine(key, stringValue)) {
-						engineMap.put(entry.getKey(), stringValue);
-					}
-				}
-			}
-		}
-		return engineMap;
-	}
-	
-	/**
-	 * Current assumptions are that dependency types delimited by type--id, valid engine types are model, database and vector only, and value is a uuid string
-	 * @param key
-	 * @param string
-	 * @return
-	 */
-	private boolean isValidEngine(String key, String value) {
-		String[] keyParts = key.split("--");
-		if (keyParts.length < 2) {
-			return false;
-		}
-		String descriptor = keyParts[0];
-		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector"));
-		if (!validTypes.contains(descriptor)) {
-			return false;
-		}
-		try {
-			UUID.fromString(value);
-			return true;
-		} catch (IllegalArgumentException e) {
-			return false;
-		}
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {

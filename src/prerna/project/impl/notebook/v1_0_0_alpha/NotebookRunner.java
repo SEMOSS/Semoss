@@ -1,12 +1,14 @@
 package prerna.project.impl.notebook.v1_0_0_alpha;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -184,6 +186,55 @@ public class NotebookRunner implements INotebookRunner {
 			pixel = pixel.replace("{{"+replaceKey+"}}", replacements.get(replaceKey));
 		}
 		return pixel;
+	}
+
+	@Override
+	public Map<String, String> getBlocksEngineDependencies() {
+		JsonElement blocks = this.getBlocksFileJson();
+		Map<String, JsonElement> depsMap = blocks.getAsJsonObject().get("dependencies").getAsJsonObject().asMap();
+		Map<String, String> engineMap = getEngineIdsFromDepsField(depsMap);
+		return engineMap;
+	}
+	
+	private Map<String, String> getEngineIdsFromDepsField(Map<String, JsonElement> depsMap) {
+		Map<String, String> engineMap = new HashMap<>();
+		if (depsMap != null) {
+			for (Map.Entry<String, JsonElement> entry : depsMap.entrySet()) {
+				String key = entry.getKey();
+				JsonElement value = entry.getValue();
+				if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
+					String stringValue = value.getAsString();
+					if (isValidEngine(key, stringValue)) {
+						engineMap.put(key, stringValue);
+					}
+				}
+			}
+		}
+		return engineMap;
+	}
+	
+	/**
+	 * Current assumptions are that dependency types delimited by type--id, valid engine types are model, database and vector only, and value is a uuid string
+	 * @param key
+	 * @param string
+	 * @return
+	 */
+	private boolean isValidEngine(String key, String value) {
+		String[] keyParts = key.split("--");
+		if (keyParts.length < 2) {
+			return false;
+		}
+		String descriptor = keyParts[0];
+		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector"));
+		if (!validTypes.contains(descriptor)) {
+			return false;
+		}
+		try {
+			UUID.fromString(value);
+			return true;
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
 	}
 
 }
