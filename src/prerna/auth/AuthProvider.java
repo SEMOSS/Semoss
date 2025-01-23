@@ -121,5 +121,14 @@ public enum AuthProvider implements Serializable {
 		
 		return vals;
 	}
+	
+	public static Map<String, Boolean> getOAuthLoginProviders() {
+		Map<String, Boolean> vals = new HashMap<>();
+		for(AuthProvider auth : AuthProvider.values()) {
+			vals.put(auth.name().toLowerCase(), auth.isOAuth);
+		}
+		
+		return vals;
+	}
 
 }
