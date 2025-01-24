@@ -230,11 +230,6 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	}
 
 	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
-	}
-
-	@Override
 	public boolean holdsFileLocks() {
 		return false;
 	}

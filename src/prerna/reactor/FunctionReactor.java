@@ -1,7 +1,7 @@
 package prerna.reactor;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IReactorEngine;
+import prerna.engine.api.IReactorFunctionEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -21,7 +21,7 @@ public class FunctionReactor extends AbstractReactor {
 		
 		IEngine engine = Utility.getReactorEngine(engineId);
 		NounMetadata retData = null;
-		if(engine instanceof IReactorEngine)
+		if(engine instanceof IReactorFunctionEngine)
 		{
 			System.err.println("Got the reactor engine");
 			IReactor engine2 = (IReactor)engine;

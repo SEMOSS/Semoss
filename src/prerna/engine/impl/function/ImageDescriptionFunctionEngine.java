@@ -268,4 +268,8 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "IMAGE_PROCESSING";
+	}
 }

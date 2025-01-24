@@ -257,4 +257,8 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "REST";
+	}
 }

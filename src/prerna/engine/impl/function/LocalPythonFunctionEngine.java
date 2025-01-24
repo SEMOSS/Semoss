@@ -179,4 +179,9 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 			this.cpw.shutdown(true);
 		}
 	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "PYTHON_SCRIPT";
+	}
 }
