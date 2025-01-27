@@ -143,7 +143,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		String filter = ApiSemossTestUtils.buildFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "IS_LATEST", "==", 0);
 		String checkExistsPixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), filter);
 		NounMetadata checkExistsNm = ApiSemossTestUtils.processPixel(checkExistsPixel);
-		assertEquals(new HashMap<>(), checkExistsNm.getValue());
+		assertEquals(new ArrayList<>(), checkExistsNm.getValue());
 	}
 	
 	@Test
