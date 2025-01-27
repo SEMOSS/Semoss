@@ -83,7 +83,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		return output;
 	}
 	
-	public static Object getThemeData(String tableName, GenRowFilters filters) throws SQLException {
+	public static List<Map<String, Object>> getThemeData(String tableName, GenRowFilters filters) throws SQLException {
 		ThemeDbTable table = ThemeDbTable.valueOf(tableName);
 		validateThemeDbTable(table);
 
@@ -107,7 +107,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 
 		if (retVal == null || retVal.isEmpty()) {
-			return new HashMap<>();
+			return new ArrayList<>();
 		}
 
 		return retVal;

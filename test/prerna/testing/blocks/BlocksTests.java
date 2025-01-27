@@ -151,7 +151,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 		String filter = ApiSemossTestUtils.buildFilter(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTablePrefix() + "ID", "==", "BT002");
 		String pixel = ApiSemossTestUtils.buildPixelCall(ListThemeDataReactor.class, "tableName", "BLOCKS_TEMPLATE", ReactorKeysEnum.FILTERS.getKey(), filter);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
-		assertNotEquals(new HashMap<>(), nm.getValue());
+		assertNotEquals(new ArrayList<>(), nm.getValue());
 		List<Object> output = (List<Object>) nm.getValue();
 		assert output.size() == 1;
 		Map<String, Object> element = (Map<String, Object>) output.get(0);
