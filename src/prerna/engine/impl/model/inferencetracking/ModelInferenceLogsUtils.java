@@ -81,6 +81,10 @@ public class ModelInferenceLogsUtils {
 			if (primaryKeysAdded) {
 				addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
 			}
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
@@ -148,32 +152,32 @@ public class ModelInferenceLogsUtils {
 			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
 			executeSql(conn, sql);
 		} else {
-			if(queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
+			if(!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 				executeSql(conn, sql);
 			}
 			
-			if(queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
+			if(!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
 				executeSql(conn, sql);
 			}
 			
-			if(queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
+			if(!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
 				executeSql(conn, sql);
 			}
 			
-			if(queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
+			if(!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
 				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
 				executeSql(conn, sql);
 			}
 			
-			if(queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
+			if(!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
 				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
 				executeSql(conn, sql);
 			}
 			
-			if(queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
+			if(!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
 				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
 				executeSql(conn, sql);
 			}
@@ -1184,12 +1188,13 @@ public class ModelInferenceLogsUtils {
 		// Initialize the date range map (start and end dates)
 		Map<String, ZonedDateTime> dates = new HashMap<>();
 		// Determine the start and end date based on the given frequency
-		if(frequency.equals("WEEK")) {
+		if(frequency.equalsIgnoreCase("WEEK")) {
 			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if(frequency.equals("MONTH")) {
+		} else if(frequency.equalsIgnoreCase("MONTH")) {
 			// Get start and end date for the current month
 			dates = Utility.getMonthStartEndDate(currentDateTime);
 		} else {
+			// assume they want daily
 			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
 			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
 		}
@@ -1227,7 +1232,14 @@ public class ModelInferenceLogsUtils {
 					);
 			
 			if(wrapper.hasNext()) {
-				return (Number) wrapper.next().getValues()[0];
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				// if this is null
+				// that means there are no logs currently for this model
+				// we will treat this as 0 usage
+				if(retNum == null) {
+					return 0;
+				}
+				return retNum;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1315,7 +1327,14 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection(), ps, rs, query, false);
 
 			if (wrapper.hasNext()) {
-				return (Number) wrapper.next().getValues()[0];
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				// if this is null
+				// that means there are no logs currently for this model
+				// we will treat this as 0 usage
+				if(retNum == null) {
+					return 0;
+				}
+				return retNum;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

@@ -8,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -39,9 +38,6 @@ public class CloseEngineReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 		if(!isAdmin) {
-			if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
-				throwFunctionalityOnlyExposedForAdminsError();
-			}
 			for (String engineId : engineIds) {
 				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
 					throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
@@ -52,9 +48,8 @@ public class CloseEngineReactor extends AbstractReactor {
 				if(!isOwner) {
 					throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
 				}
-			} 
+			}
 		}
-		
 		
 		// once all are good, we can close
 		for (String engineId : engineIds) {

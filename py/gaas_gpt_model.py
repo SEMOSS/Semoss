@@ -178,23 +178,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-        # model_response = super().call(
-        #     epoc=epoc,
-        #     engine_type="Model",
-        #     engine_id=self.engine_id,
-        #     method_name="instruct",
-        #     method_args=[task, context, insight_id, param_dict],
-        #     method_arg_types=[
-        #         "java.lang.String",
-        #         "java.lang.String",
-        #         "prerna.om.Insight",
-        #         "java.util.Map",
-        #     ],
-        #     insight_id=insight_id,
-        # )
-
-        # return model_response
-
     def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
         """This method is responsible to get message history back from the model logs database.
 
@@ -249,6 +232,33 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             engine_id=self.engine_id,
             method_name="embeddings",
             method_args=[strings_to_embed, insight_id, param_dict],
+            method_arg_types=["java.util.List", "prerna.om.Insight", "java.util.Map"],
+            insight_id=insight_id,
+        )
+
+        return model_response
+
+    def image_embeddings(
+        self,
+        images_to_embed: List[str],
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ) -> List[Dict]:
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        if isinstance(images_to_embed, str):
+            images_to_embed = [images_to_embed]
+
+        assert isinstance(images_to_embed, list)
+
+        epoc = super().get_next_epoc()
+        model_response = super().call(
+            epoc=epoc,
+            engine_type="Model",
+            engine_id=self.engine_id,
+            method_name="imageEmbeddings",
+            method_args=[images_to_embed, insight_id, param_dict],
             method_arg_types=["java.util.List", "prerna.om.Insight", "java.util.Map"],
             insight_id=insight_id,
         )
@@ -557,6 +567,15 @@ class ModelEngine(AbstractModelEngine):
         **kwargs,
     ) -> Dict:
         return self.model_engine.embeddings(**kwargs)
+
+    def image_embeddings(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ) -> Dict:
+        return self.model_engine.image_embeddings(**kwargs)
 
     def model(
         self,

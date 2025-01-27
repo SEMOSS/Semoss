@@ -30,7 +30,7 @@ import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -45,7 +45,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
+public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReactor {
 
 	/*
 	 * There are quite a few things that we need
