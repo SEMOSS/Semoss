@@ -1310,7 +1310,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
 			ps.setTimestamp(parameterIndex++, startDate);
-			ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			if (verifiedEndDate != null) {
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();

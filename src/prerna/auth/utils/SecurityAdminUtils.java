@@ -1732,7 +1732,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				}
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				ps.addBatch();
 			}
 			ps.executeBatch();
