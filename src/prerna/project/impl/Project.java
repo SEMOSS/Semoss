@@ -1697,7 +1697,7 @@ public class Project implements IProject {
 	 * 
 	 * @return
 	 */
-	public TCPPyTranslator getProjectPyTranslator() {
+	public TCPPyTranslator getProjectPyTranslator(Insight insight) {
 		if(this.cpw.getSocketClient() == null) {
 			createProjectTcpServer(-1);
 		} else if( !this.cpw.getSocketClient().isConnected()) {
@@ -1711,6 +1711,7 @@ public class Project implements IProject {
 		}
 		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
 		pyJavaTranslator.setSocketClient(this.cpw.getSocketClient());
+		pyJavaTranslator.setInsight(insight);
 		return pyJavaTranslator;
 	}
 	
