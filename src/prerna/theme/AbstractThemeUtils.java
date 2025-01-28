@@ -99,14 +99,14 @@ public abstract class AbstractThemeUtils {
 			// insert default blocks
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 					new Object[] {
-						"BT001", "Audio Player", "Input", "Audio_Player_Active.png", "Audio_Player_Hover.png", "Play back audio responses or other files", 
+						"BT001", "Audio Player", "Input", "AUDIO_PLAYER_ACTIVE", "AUDIO_PLAYER_HOVER", "Play back audio responses or other files", 
 				"{widget: 'audio-player', data: {label: 'Audio Player', autoplay: false, controls: true, loop: false, source: ''}, listeners: {}, slots: {}}", "DEFAULT", false, Utility.getCurrentSqlTimestampUTC(), true
 					})
 				);
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT002", "Button", "Input", "Button_Active.png", "Button_Hover.png", "Creates a click event", 
+				        "BT002", "Button", "Input", "BUTTON_ACTIVE", "BUTTON_HOVER", "Creates a click event", 
 				"{widget: 'button', data: {style: {}, label: 'Submit', loading: false, disabled: false, variant: 'contained', color: 'primary'}, listeners: {onClick: []}, slots: {}}", "DEFAULT", 
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -114,7 +114,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT003", "Checkbox", "Input", "Checkbox_Active.png", "Checkbox_Hover.png", "Add a checkbox for user  selection", 
+				        "BT003", "Checkbox", "Input", "CHECKBOX_ACTIVE", "CHECKBOX_HOVER", "Add a checkbox for user  selection", 
 				"{widget: 'checkbox', data: {style: {padding: 'none'}, label: 'Example Checkbox', required: false, disabled: false, value: false}, listeners: {onChange: []}, slots: {}}", "DEFAULT", 
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -123,7 +123,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT004", "Input", "Input", null, null, "Add an input box for typing  text", 
+				        "BT004", "Input", "Input", "AUDO_INPUT_ACTIVE", "AUDO_INPUT_HOVER", "Add an input box for typing  text", 
 				"{widget: 'input', data: {style: {width: '100%', padding: '4px'}, value: '', label: 'Example Input', hint: '', type: 'text', rows: 1, multiline: false, disabled: false, required: false, loading: false}, listeners: {onChange: []}, slots: {content: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -131,7 +131,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT005", "Select", "Input", "Select_Active.png", "Select_Hover.png", "Choose an option from a dropdown list", 
+				        "BT005", "Select", "Input", "SELECT_ACTIVE", "SELECT_HOVER", "Choose an option from a dropdown list", 
 				"{widget: 'select', data: {style: {padding: '4px'}, value: '', label: 'Example Select Input', hint: '', options: [], required: false, disabled: false, loading: false}, listeners: {onChange: []}, slots: {content: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -139,7 +139,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT006", "Upload", "Input", "Upload_Active.png", "Upload_Hover.png", "Upload files like documents or images", 
+				        "BT006", "Upload", "Input", "UPLOAD_ACTIVE", "UPLOAD_HOVER", "Upload files like documents or images", 
 				"{widget: 'upload', data: {style: {width: '100%', padding: '4px'}, value: '', label: 'Example Input', hint: '', loading: false, disabled: false, required: false}, listeners: {onChange: []}, slots: {content: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -147,7 +147,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT007", "Container", "Layout", "Container_Active.png", "Container_Hover.png", "Create a layout element for custom design", 
+				        "BT007", "Container", "Layout", "CONTAINER_ACTIVE", "CONTAINER_HOVER", "Create a layout element for custom design", 
 				"{widget: 'container', data: {style: {display: 'flex', flexDirection: 'column', padding: '4px', gap: '8px', flexWrap: 'wrap'}}, listeners: {}, slots: {children: []}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -155,7 +155,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT008", "Progress", "Progress", "Progress_Active.png", "Progress_Hover.png", "Display progress tracking or status", 
+				        "BT008", "Progress", "Progress", "PROGRESS_ACTIVE", "PROGRESS_HOVER", "Display progress tracking or status", 
 				"{widget: 'progress', data: {type: 'linear', value: 50, includeLabel: true, size: '300px'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -163,7 +163,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT009", "Iframe", "Element", "Iframe_Active.png", "Iframe_Hover.png", "Embed a webpage using a source link", 
+				        "BT009", "Iframe", "Element", "IFRAME_ACTIVE", "IFRAME_HOVER", "Embed a webpage using a source link", 
 				"{widget: 'iframe', data: {style: {}, src: '', title: '', enableFrameInteractions: true}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -171,7 +171,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT010", "PDF Viewer", "Element", "PDF_Active.png", "PDF_Hover.png", "Embed a PDF for viewing", 
+				        "BT010", "PDF Viewer", "Element", "PDF_ACTIVE", "PDF_HOVER", "Embed a PDF for viewing", 
 				"{widget: 'pdfViewer', data: {style: {width: '100%', height: '82%', padding: '8px'}, selectedPdf: null}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -179,7 +179,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT011", "Image", "Element", "Image_Active.png", "Image_Hover.png", "Add an image to your layout", 
+				        "BT011", "Image", "Element", "IMAGE_ACTIVE", "IMAGE_HOVER", "Add an image to your layout", 
 				"{widget: 'image', data: {style: {display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '200px', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center'}, src: '', title: ''}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -187,7 +187,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT012", "Logs", "Text", "Logs_Active.png", "Logs_Hover.png", "Display logs for tracking  events or data", 
+				        "BT012", "Logs", "Text", "LOGS_ACTIVE", "LOGS_HOVER", "Display logs for tracking  events or data", 
 				"{widget: 'logs', data: {style: {}, queryId: ''}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -195,7 +195,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT013", "Toggle Button", "Input", "Toggle_Active.png", "Toggle_Hover.png", "Switch between multiple options", 
+				        "BT013", "Toggle Button", "Input", "TOGGLE_ACTIVE", "TOGGLE_HOVER", "Switch between multiple options", 
 				"{widget: 'toggle-button', data: {disabled: false, color: 'primary', size: 'small', options: [{display: 'on', value: 'on'}, {display: 'off', value: 'off'}], value: null, mandatory: true, multiple: false}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -203,7 +203,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT014", "Link", "Text", "Link_Active.png", "Link_hover.png", "Access a webpage through a clickable URL", 
+				        "BT014", "Link", "Text", "LINK_ACTIVE", "LINK_HOVER", "Access a webpage through a clickable URL", 
 				"{widget: 'link', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, href: '', text: 'Insert text'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -211,7 +211,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT015", "Markdown", "Text", "Markdown_Active.png", "Markdown_Hover.png", "Show text in markdown format", 
+				        "BT015", "Markdown", "Text", "MARKDOWN_ACTIVE", "MARKDOWN_HOVER", "Show text in markdown format", 
 				"{widget: 'markdown', data: {style: {padding: '4px'}, markdown: '**Hello world**'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -219,7 +219,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT016", "HTML", "Element", "HTML_Active.png", "HTML_Hover.png", "Write custom HTML manually or with AI assistance", 
+				        "BT016", "HTML", "Element", "HTML_ACTIVE", "HTML_HOVER", "Write custom HTML manually or with AI assistance", 
 				"{widget: 'html', data: {style: {padding: '4px'}, html: '<html>\\r\\n <style>\\r\\n html {\\r\\n font-family: Roboto;\\r\\n text-align: center;\\r\\n overflow: hidden;\\r\\n}\\r\\n </style>\\r\\n <body>\\r\\n <h2>HTML Block</h2>\\r\\n </body>\\r\\n</html>'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -227,7 +227,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT018", "Text H1", "Text", "H1_Active.png", "H1_Hover.png", "Display text in header 1", 
+				        "BT018", "Text H1", "Text", "H1_ACTIVE", "H1_HOVER", "Display text in header 1", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h1'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -235,7 +235,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT019", "Text H2", "Text", "H2_Active.png", "H2_Hover.png", "Display text in header 2",
+				        "BT019", "Text H2", "Text", "H2_ACTIVE", "H2_HOVER", "Display text in header 2",
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h2'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -243,7 +243,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT020", "Text H3", "Text", "H3_Active.png", "H3_Hover.png", "Display text in header 3",
+				        "BT020", "Text H3", "Text", "H3_ACTIVE", "H3_HOVER", "Display text in header 3",
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h3'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -252,7 +252,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 					    new Object[] {
-					        "BT021", "Text H4", "Text", "H4_Active.png", "H4_Hover.png", "Display text in header 4", 
+					        "BT021", "Text H4", "Text", "H4_ACTIVE", "H4_HOVER", "Display text in header 4", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h4'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -260,7 +260,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT022", "Text H5", "Text", "H5_Active.png", "H5_Hover.png","Display text in header 5", 
+				        "BT022", "Text H5", "Text", "H5_ACTIVE", "H5_HOVER","Display text in header 5", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h5'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -268,7 +268,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT023", "Text H6", "Text", "H6_Active.png", "H6_Hover.png", "Display text in header 6", 
+				        "BT023", "Text H6", "Text", "H6_ACTIVE", "H6_HOVER", "Display text in header 6", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'h6'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -276,7 +276,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT024", "Text P", "Text", "Paragraph_Active.png", "Paragraph_Hover.png", "Display text in a regular paragraph style", 
+				        "BT024", "Text P", "Text", "PARAGRAPH_ACTIVE", "PARAGRAPH_HOVER", "Display text in a regular paragraph style", 
 				"{widget: 'text', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Hello world', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -292,7 +292,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] {
-				        "BT026", "Compare LLMs", "Compare LLMs", "Compare_LLM_Active.png", "Compare_LLM_Hover.png", "Compare large language models against the same context", 
+				        "BT026", "Compare LLMs", "Compare LLMs", "COMPARE_LLM_ACTIVE", "COMPARE_LLM_HOVER", "Compare large language models against the same context", 
 				"{widget: 'llmComparison', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: '', variants: {}}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
@@ -300,7 +300,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] { // TODO: change hover image once updated
-				        "BT027", "Mermaid", "Mermaid", "Mermaids_Active.png", null,  null,
+				        "BT027", "Mermaid", "Mermaid", "MERMAIDJS_ACTIVE", null,  null,
 				"{widget: 'mermaid', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Query', variant: 'p'}, listeners: {}, slots: {}}", "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
