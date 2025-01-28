@@ -21,7 +21,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -35,7 +35,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class RdbmsUploadTableDataReactor extends AbstractUploadFileReactor {
+public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadTableDataReactor.class);
 	

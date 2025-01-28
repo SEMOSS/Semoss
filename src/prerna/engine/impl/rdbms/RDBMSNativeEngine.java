@@ -217,7 +217,10 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 		// auto commit connection 
 		if(this.smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
-			this.autoCommit = Boolean.parseBoolean(this.smssProp.getProperty(Constants.AUTO_COMMIT)+"");
+			String autoCommitStr = this.smssProp.getProperty(Constants.AUTO_COMMIT);
+			if(!(autoCommitStr=autoCommitStr.trim()).isEmpty()) {
+				this.autoCommit = Boolean.parseBoolean(autoCommitStr);
+			}
 		}
 		// connection transaction type
 		if(this.smssProp.getProperty(Constants.TRANSACTION_TYPE) != null) {

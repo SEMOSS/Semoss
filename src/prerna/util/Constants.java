@@ -567,8 +567,6 @@ public class Constants {
 
 	// old values in web.xml
 	@Deprecated
-	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
-	@Deprecated
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
 	// reduce operations to only admins
@@ -577,11 +575,37 @@ public class Constants {
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_PROJECT_SET_DISCOVERABLE = "ADMIN_ONLY_PROJECT_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
 	public static final String ADMIN_ONLY_DB_DELETE = "ADMIN_ONLY_DB_DELETE";
 	public static final String ADMIN_ONLY_DB_ADD_ACCESS	= "ADMIN_ONLY_DB_ADD_ACCESS";
 	public static final String ADMIN_ONLY_DB_SET_PUBLIC = "ADMIN_ONLY_DB_SET_PUBLIC";
 	public static final String ADMIN_ONLY_DB_SET_DISCOVERABLE = "ADMIN_ONLY_DB_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_MODEL_ADD = "ADMIN_ONLY_MODEL_ADD";
+	public static final String ADMIN_ONLY_MODEL_DELETE = "ADMIN_ONLY_MODEL_DELETE";
+	public static final String ADMIN_ONLY_MODEL_ADD_ACCESS	= "ADMIN_ONLY_MODEL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_MODEL_SET_PUBLIC = "ADMIN_ONLY_MODEL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_MODEL_SET_DISCOVERABLE = "ADMIN_ONLY_MODEL_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_STORAGE_ADD = "ADMIN_ONLY_STORAGE_ADD";
+	public static final String ADMIN_ONLY_STORAGE_DELETE = "ADMIN_ONLY_STORAGE_DELETE";
+	public static final String ADMIN_ONLY_STORAGE_ADD_ACCESS	= "ADMIN_ONLY_STORAGE_ADD_ACCESS";
+	public static final String ADMIN_ONLY_STORAGE_SET_PUBLIC = "ADMIN_ONLY_STORAGE_SET_PUBLIC";
+	public static final String ADMIN_ONLY_STORAGE_SET_DISCOVERABLE = "ADMIN_ONLY_STORAGE_SET_DISCOVERABLE";
+	
+	public static final String ADMIN_ONLY_VECTOR_ADD = "ADMIN_ONLY_VECTOR_ADD";
+	public static final String ADMIN_ONLY_VECTOR_DELETE = "ADMIN_ONLY_VECTOR_DELETE";
+	public static final String ADMIN_ONLY_VECTOR_ADD_ACCESS	= "ADMIN_ONLY_VECTOR_ADD_ACCESS";
+	public static final String ADMIN_ONLY_VECTOR_SET_PUBLIC = "ADMIN_ONLY_VECTOR_SET_PUBLIC";
+	public static final String ADMIN_ONLY_VECTOR_SET_DISCOVERABLE = "ADMIN_ONLY_VECTOR_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_FUNCTION_ADD = "ADMIN_ONLY_FUNCTION_ADD";
+	public static final String ADMIN_ONLY_FUNCTION_DELETE = "ADMIN_ONLY_FUNCTION_DELETE";
+	public static final String ADMIN_ONLY_FUNCTION_ADD_ACCESS	= "ADMIN_ONLY_FUNCTION_ADD_ACCESS";
+	public static final String ADMIN_ONLY_FUNCTION_SET_PUBLIC = "ADMIN_ONLY_FUNCTION_SET_PUBLIC";
+	public static final String ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE = "ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";

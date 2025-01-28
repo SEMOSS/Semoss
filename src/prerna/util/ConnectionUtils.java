@@ -136,6 +136,10 @@ public class ConnectionUtils {
 		closeAllConnections(con, null, null);
 	}
 
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con){
+		closeAllConnectionsIfPooling(engine, con, null, null);
+	}
+
 	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps){
 		closeAllConnectionsIfPooling(engine, ps, null);
 	}

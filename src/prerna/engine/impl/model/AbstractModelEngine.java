@@ -246,6 +246,49 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	/**
 	 * This is an abstract method for the implementation class such that tracking occurs
 	 * 
+	 * @param stringsToEmbed
+	 * @param insight
+	 * @param parameters
+	 * @return
+	 */
+	protected abstract EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters);
+	
+	@Override
+	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters) {		
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), this.engineId);
+
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		EmbeddingsModelEngineResponse embeddingsResponse = imageEmbeddingsCall(imagesToEmbed, insight, parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+
+		if (inferenceLogsEnbaled) {
+			String messageId = UUID.randomUUID().toString();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId, 
+					/*messageMethod*/"embeddings", 
+					/*engine*/this, 
+					/*insight*/insight, 
+					/*context*/null,
+					/*prompt*/null,
+					/*fullPrompt*/imagesToEmbed,
+					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/"",
+					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime, outputTime);
+ 		
+		return embeddingsResponse;
+	}
+	
+	/**
+	 * This is an abstract method for the implementation class such that tracking occurs
+	 * 
 	 * @param input
 	 * @param insight
 	 * @param parameters
