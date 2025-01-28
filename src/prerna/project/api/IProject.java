@@ -286,7 +286,8 @@ public interface IProject extends IEngine, Closeable {
 	 * 
 	 * @return
 	 */
-	TCPPyTranslator getProjectPyTranslator();
+	
+	TCPPyTranslator getProjectPyTranslator(Insight insight);
 	
 	/**
 	 * 
