@@ -1,5 +1,6 @@
 package prerna.theme;
 
+import java.lang.reflect.Type;
 import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -13,6 +14,10 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -109,8 +114,23 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		if (retVal == null || retVal.isEmpty()) {
 			return new ArrayList<>();
 		}
+		
+		List<Map<String, Object>> actualRetVal = retVal.stream()
+			    .map((map) -> {
+			        convertBlockJsonStringToJSONObject(map);
+			        return map;
+			    })
+			    .collect(Collectors.toList());
 
-		return retVal;
+
+		return actualRetVal;
+	}
+	
+	private static void convertBlockJsonStringToJSONObject(Map<String, Object> map) {
+		String blockJson = (String) map.get("BLOCK_JSON");
+		Gson gson = new Gson();
+		Type type = new TypeToken<Map<String, Object>>(){}.getType();
+		map.put("BLOCK_JSON", gson.fromJson(blockJson, type));
 	}
 
 	
