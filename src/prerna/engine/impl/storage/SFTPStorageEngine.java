@@ -24,6 +24,7 @@ import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
 import prerna.engine.api.StorageTypeEnum;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 
 public class SFTPStorageEngine extends AbstractStorageEngine {
@@ -67,6 +68,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		sshClient.authPassword(username, password);
 		
 		sftpClient = sshClient.newSFTPClient();
+		classLogger.info("Successfully connected to SFTP Storage Engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 	}
 
 	@Override
