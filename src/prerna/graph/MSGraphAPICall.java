@@ -5,19 +5,12 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
-import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 
 public class MSGraphAPICall {
@@ -42,59 +35,43 @@ public class MSGraphAPICall {
 			accessToken = systemAccessToken;
 		}
 
-		CloseableHttpClient httpClient = null;
-		HttpResponse response = null;
-		HttpEntity entity = null;
-		try {
-			httpClient = HttpClients.createDefault();
-
-			String uri = "";
-			if(nextLink == null) {
-				String searchParam = "";
-				if(searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty()) {
-					searchParam = "$search=" + 
-							URLEncoder.encode("\"displayName:" + searchTerm 
-									+ "\" OR \"mail:" + searchTerm
-									+ "\" OR \"userPrincipalName:" + searchTerm + "\"", 
-									java.nio.charset.StandardCharsets.UTF_8.toString())
-					+ "&";
-				}
-				if (groupId == null || groupId.isEmpty()) {
-					uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API  + "/v1.0/users?" + searchParam + "$orderby=displayName&$top=999&$count=true";
-				} else {
-					uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API  + "/v1.0/groups/" + groupId + "/members/microsoft.graph.user?" + searchParam + "$orderby=displayName&$top=999&$count=true";
-				}
+		String uri = "";
+		if(nextLink == null) {
+			String searchParam = "";
+			if(searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty()) {
+				searchParam = "$search=" + 
+						URLEncoder.encode("\"displayName:" + searchTerm 
+								+ "\" OR \"mail:" + searchTerm
+								+ "\" OR \"userPrincipalName:" + searchTerm + "\"", 
+								java.nio.charset.StandardCharsets.UTF_8.toString())
+				+ "&";
+			}
+			if (groupId == null || groupId.isEmpty()) {
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API  + "/v1.0/users?" 
+						+ searchParam 
+						+ "$orderby=displayName&"
+						+ "$top=999&"
+						+ "$count=true&"
+						+ "$select=displayName,id,mail,userType,givenName,surname&"
+						+ "$filter=(userType eq 'Member')";
 			} else {
-				uri = nextLink;
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API  + "/v1.0/groups/" + groupId + "/members/microsoft.graph.user?" 
+						+ searchParam 
+						+ "$orderby=displayName&"
+						+ "$top=999&"
+						+ "$count=true";
 			}
-
-			HttpGet httpGet = new HttpGet(uri);
-			// Set headers
-			httpGet.setHeader("Authorization", "Bearer " + accessToken.getAccess_token());
-			httpGet.setHeader("Accept", "application/json");
-			httpGet.setHeader("ConsistencyLevel", "eventual");
-
-			// Execute the request
-			response = httpClient.execute(httpGet);
-			entity = response.getEntity();
-			String jsonResponse = EntityUtils.toString(entity);
-			return jsonResponse;
-		} finally {
-			if(entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+		} else {
+			uri = nextLink;
 		}
+		
+		Map<String, String> headerMap = new HashMap<>();
+		headerMap.put("Authorization", "Bearer " + accessToken.getAccess_token());
+		headerMap.put("Accept", "application/json");
+		headerMap.put("ConsistencyLevel", "eventual");
+		
+		String jsonResponse = HttpHelperUtility.getRequest(uri, headerMap, null, null, null);
+		return jsonResponse;
 	}
 
 
