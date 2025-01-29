@@ -1,6 +1,7 @@
 package prerna.project.impl.notebook.v1_0_0_alpha;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +18,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import prerna.om.Insight;
-import prerna.project.impl.notebook.INotebookRunner;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
@@ -25,7 +26,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.gson.GsonUtility;
 
-public class NotebookRunner implements INotebookRunner {
+public class NotebookHelper implements INotebookHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
 
@@ -186,4 +187,28 @@ public class NotebookRunner implements INotebookRunner {
 		return pixel;
 	}
 
+	@Override
+	public Map<String, String> getBlocksEngineDependencies() {
+		Map<String, String> engineMap = new HashMap<>();
+		
+		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector", "storage", "function"));
+
+		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		for(String varName : variables.keySet()) {
+			JsonObject varMap = variables.get(varName).getAsJsonObject();
+			if(varMap.has("type")) {
+				String type = varMap.get("type").getAsString();
+				if(validTypes.contains(type)) {
+					String value = INotebookHelper.UNDEFINED_VALUE;
+					if(varMap.has("value")) {
+						value = varMap.get("value").getAsString();
+					}
+					engineMap.put(varName, value);
+				}
+			}
+		}
+		
+		return engineMap;
+	}
+	
 }

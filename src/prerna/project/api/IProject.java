@@ -209,6 +209,12 @@ public interface IProject extends IEngine, Closeable {
 	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
 	
 	/**
+	 * Gets only engine deps listed in the project
+	 * @return	Map of the variable name to the engine id
+	 */
+	Map<String, String> getEngineDependencies();
+	
+	/**
 	 * Return if an asset
 	 * @return
 	 */

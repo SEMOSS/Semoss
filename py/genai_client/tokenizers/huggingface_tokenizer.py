@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from transformers import AutoTokenizer
 from .abstract_tokenizer import AbstractTokenizer
 from .model_limits_config import get_model_limits
@@ -102,26 +102,59 @@ class HuggingfaceTokenizer(AbstractTokenizer):
         # Fallback if the tokenizer does not have the apply_chat_template method
         return "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
 
-    def count_tokens(self, input: str) -> int:
-        """Use the model tokenizer to get the number of tokens"""
+    def count_tokens(self, input: Union[List[Dict], str]) -> int:
+        """Use the model tokenizer to get the number of tokens, including image tokens"""
         input_tokens_ids = self.get_tokens_ids(input=input)
-        return len(input_tokens_ids)
+        token_count = len(input_tokens_ids)
 
-    def get_tokens_ids(self, input: str, add_special_tokens: bool = False) -> List[int]:
+        # Add tokens for images if present
         if isinstance(input, list):
-            input = " ".join(
-                [
-                    message.get("content") or message.get("text")
-                    for message in input
-                    if "content" in message or "text" in message
-                ]
-            )
-        elif isinstance(input, dict):
-            input = input["content"]
-        return self.tokenizer.encode(input, add_special_tokens=add_special_tokens)
+            for message in input:
+                if isinstance(message, dict):
+                    content = message.get("content")
+                    if isinstance(content, list):
+                        for item in content:
+                            if (
+                                isinstance(item, dict)
+                                and item.get("type") == "image_url"
+                            ):
+                                # This is rather arbitrary but its a conservative estimate
+                                token_count += 1000
 
-    def get_tokens(self, input: str) -> List[str]:
-        return self.tokenizer.tokenize(input)
+        return token_count
+
+    def get_tokens_ids(self, input: Union[List[Dict], str]) -> List[int]:
+        if isinstance(input, list):
+            contents = []
+            for message in input:
+                if isinstance(message, dict):
+                    content = message.get("content") or message.get("text")
+                    if isinstance(content, list):
+                        text_contents = []
+                        for item in content:
+                            if isinstance(item, dict):
+                                if item.get("type") == "text":
+                                    text_contents.append(item.get("text", ""))
+                        content = " ".join(text_contents) if text_contents else ""
+                    contents.append(content)
+            input = " ".join([str(c) for c in contents if c is not None])
+        elif isinstance(input, dict):
+            content = input.get("content") or input.get("text")
+            if isinstance(content, list):
+                text_contents = []
+                for item in content:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        text_contents.append(item.get("text", ""))
+                input = " ".join(text_contents) if text_contents else ""
+            else:
+                input = content
+
+        return self.tokenizer.encode(str(input) if input is not None else "")
+
+    def get_tokens(self, input: Union[List[Dict], str]) -> List[str]:
+        return [
+            self.tokenizer.decode([tokenId]) for tokenId in self.get_tokens_ids(input)
+        ]
 
     def get_max_token_length(self) -> int:
         if self.max_tokens == None:
