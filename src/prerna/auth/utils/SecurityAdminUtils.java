@@ -191,6 +191,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGERESTRICTION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGEFREQUENCY"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
 		if(hasSearchTerm) {
