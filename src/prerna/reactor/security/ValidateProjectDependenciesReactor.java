@@ -1,7 +1,6 @@
 package prerna.reactor.security;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,12 +11,10 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.project.ExecuteAppNotebookReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 public class ValidateProjectDependenciesReactor extends AbstractReactor {
@@ -39,7 +36,6 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		
-		Map<String, Boolean> hasAccess = new HashMap<>();
 		IProject project = Utility.getProject(projectId);
 		IProject.PROJECT_TYPE ptype = project.getProjectType();
 		if (!ptype.equals(IProject.PROJECT_TYPE.BLOCKS)) {
@@ -48,8 +44,7 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 		
 		Map<String, String> engineMap = project.getEngineDependenciesIds();
 		
-		classLogger.info(engineMap.values());
-		
+		Map<String, Boolean> hasAccess = new HashMap<>();
 		for (String depEngineId : engineMap.values()) {
 			boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
 			hasAccess.put(depEngineId, canView);

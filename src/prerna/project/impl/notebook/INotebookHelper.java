@@ -7,7 +7,7 @@ import com.google.gson.JsonElement;
 import prerna.om.Insight;
 import prerna.sablecc2.NotebookExecution;
 
-public interface INotebookRunner {
+public interface INotebookHelper {
 
 	/**
 	 * 

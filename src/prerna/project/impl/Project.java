@@ -16,16 +16,11 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.Vector;
 
 import javax.xml.XMLConstants;
@@ -51,7 +46,6 @@ import org.xeustechnologies.jcl.JarClassLoader;
 import org.xml.sax.InputSource;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -72,7 +66,7 @@ import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.project.impl.notebook.INotebookRunner;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.project.impl.notebook.NotebookRunnerFactory;
 import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -1162,6 +1156,7 @@ public class Project implements IProject {
 		
 		return null;
 	}
+	
 	@Override
 	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
 		// if not blocks json
@@ -1172,8 +1167,8 @@ public class Project implements IProject {
 		}
 		
 		try {
-			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
-			return runner.executeNotebook(insight, inputReplacements);
+			INotebookHelper helper = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			return helper.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -1181,12 +1176,7 @@ public class Project implements IProject {
 		return null;
 	}
 
-	private File getBlocksF() {
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
-		return blocksF;
-	}
-	
+	@Override
 	public Map<String, String> getEngineDependenciesIds() {
 		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
@@ -1194,14 +1184,20 @@ public class Project implements IProject {
 		}
 		
 		try {
-			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
-			Map<String, String> engineMap = runner.getBlocksEngineDependencies();
+			INotebookHelper helper = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			Map<String, String> engineMap = helper.getBlocksEngineDependencies();
 			return engineMap;
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
+	}
+	
+	private File getBlocksF() {
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		return blocksF;
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {

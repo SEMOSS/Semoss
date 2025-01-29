@@ -17,7 +17,7 @@ public class NotebookRunnerFactory {
 	 * @return
 	 * @throws IOException
 	 */
-	public static INotebookRunner getNotebookRunner(File projectBlocksF) throws IOException {
+	public static INotebookHelper getNotebookRunner(File projectBlocksF) throws IOException {
 		JsonObject blocksFileJson = null;
 		try (Reader fileReader = new FileReader(projectBlocksF)) {
 			blocksFileJson = JsonParser.parseReader(fileReader).getAsJsonObject();
@@ -29,16 +29,16 @@ public class NotebookRunnerFactory {
 			version = versionBlock.getAsString();
 		}
 		
-		INotebookRunner runner = null;
+		INotebookHelper helper = null;
 		if(version == null) {
-			runner = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookRunner();
+			helper = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookHelper();
 		} else {
 			// only really have one, but this is to build out in the future
-			runner = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookRunner();
+			helper = new prerna.project.impl.notebook.v1_0_0_alpha.NotebookHelper();
 		}
 		
-		runner.setBlocksFileJson(blocksFileJson);
+		helper.setBlocksFileJson(blocksFileJson);
 		
-		return runner;
+		return helper;
 	}
 }

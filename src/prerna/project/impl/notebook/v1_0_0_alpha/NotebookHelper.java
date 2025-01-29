@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +18,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import prerna.om.Insight;
-import prerna.project.impl.notebook.INotebookRunner;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
@@ -27,7 +26,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.gson.GsonUtility;
 
-public class NotebookRunner implements INotebookRunner {
+public class NotebookHelper implements INotebookHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
 
@@ -190,51 +189,24 @@ public class NotebookRunner implements INotebookRunner {
 
 	@Override
 	public Map<String, String> getBlocksEngineDependencies() {
-		JsonElement blocks = this.getBlocksFileJson();
-		Map<String, JsonElement> depsMap = blocks.getAsJsonObject().get("dependencies").getAsJsonObject().asMap();
-		Map<String, String> engineMap = getEngineIdsFromDepsField(depsMap);
-		return engineMap;
-	}
-	
-	private Map<String, String> getEngineIdsFromDepsField(Map<String, JsonElement> depsMap) {
 		Map<String, String> engineMap = new HashMap<>();
-		if (depsMap != null) {
-			for (Map.Entry<String, JsonElement> entry : depsMap.entrySet()) {
-				String key = entry.getKey();
-				JsonElement value = entry.getValue();
-				if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
-					String stringValue = value.getAsString();
-					if (isValidEngine(key, stringValue)) {
-						engineMap.put(key, stringValue);
-					}
+		
+		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector", "storage", "function"));
+
+		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		for(String varName : variables.keySet()) {
+			JsonObject varMap = variables.get(varName).getAsJsonObject();
+			if(varMap.has("value") && varMap.has("type")) {
+				String type = varMap.get("type").getAsString();
+				String value = varMap.get("value").getAsString();
+				
+				if(validTypes.contains(type)) {
+					engineMap.put(varName, value);
 				}
 			}
 		}
+		
 		return engineMap;
 	}
 	
-	/**
-	 * Current assumptions are that dependency types delimited by type--id, valid engine types are model, database and vector only, and value is a uuid string
-	 * @param key
-	 * @param string
-	 * @return
-	 */
-	private boolean isValidEngine(String key, String value) {
-		String[] keyParts = key.split("--");
-		if (keyParts.length < 2) {
-			return false;
-		}
-		String descriptor = keyParts[0];
-		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector"));
-		if (!validTypes.contains(descriptor)) {
-			return false;
-		}
-		try {
-			UUID.fromString(value);
-			return true;
-		} catch (IllegalArgumentException e) {
-			return false;
-		}
-	}
-
 }
