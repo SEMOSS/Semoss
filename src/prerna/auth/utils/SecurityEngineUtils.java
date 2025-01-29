@@ -671,7 +671,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getEngineUsers(User user, String engineId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this engine");
+			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
 		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
@@ -687,7 +687,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static long getEngineUsersCount(User user, String engineId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this engine");
+			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
 		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
@@ -1211,7 +1211,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
 			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
-				throw new IllegalArgumentException("As a non-owner, you cannot remove access of an owner.");
+				throw new IllegalAccessException("As a non-owner, you cannot remove access of an owner.");
 			}
 		}
 		
@@ -1518,10 +1518,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param isPublic
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static boolean setEngineName(User user, String engineId, String newEngineName) {
+	public static boolean setEngineName(User user, String engineId, String newEngineName) throws IllegalAccessException {
 		if(!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
 		}
 		
 		PreparedStatement ps = null;
@@ -1842,7 +1843,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		 * Security check to make sure that the user can view the application provided. 
 		 */
 		if (!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this engine");
+			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
 		
 		/*
