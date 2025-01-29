@@ -66,8 +66,8 @@ import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.project.impl.notebook.INotebookRunner;
-import prerna.project.impl.notebook.NotebookRunnerFactory;
+import prerna.project.impl.notebook.INotebookHelper;
+import prerna.project.impl.notebook.NotebookHelperFactory;
 import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
@@ -1135,10 +1135,7 @@ public class Project implements IProject {
 	
 	@Override
 	public synchronized List<File> writeNotebooks() {
-		// if not blocks json
-		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
@@ -1159,24 +1156,48 @@ public class Project implements IProject {
 		
 		return null;
 	}
+	
 	@Override
 	public NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements) {
 		// if not blocks json
 		// then ignore for now
-		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
-		File blocksF = new File(blocksFilePath);
+		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
 		
 		try {
-			INotebookRunner runner = NotebookRunnerFactory.getNotebookRunner(blocksF);
-			return runner.executeNotebook(insight, inputReplacements);
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			return helper.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
+	}
+
+	@Override
+	public Map<String, String> getEngineDependencies() {
+		File blocksF = getBlocksF();
+		if(!blocksF.exists() || !blocksF.isFile()) {
+			return null;
+		}
+		
+		try {
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
+			Map<String, String> engineMap = helper.getBlocksEngineDependencies();
+			return engineMap;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	private File getBlocksF() {
+		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
+		File blocksF = new File(blocksFilePath);
+		return blocksF;
 	}
 	
 	private void rewritePortalIndexHtml(String indexHtmlPath) {
