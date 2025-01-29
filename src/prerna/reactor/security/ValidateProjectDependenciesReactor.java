@@ -10,6 +10,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -48,8 +49,10 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 		Map<String, Boolean> eIdToAccess = new HashMap<>();
 		for (String varName : engineMap.keySet()) {
 			String engineId = engineMap.get(varName);
-			boolean canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
-			
+			boolean canView = false;
+			if(!engineId.equals(INotebookHelper.UNDEFINED_VALUE)) {
+				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
+			}
 			varToAccess.put(varName, canView);
 			eIdToAccess.put(engineId, canView);
 		}

@@ -196,11 +196,13 @@ public class NotebookHelper implements INotebookHelper {
 		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
 		for(String varName : variables.keySet()) {
 			JsonObject varMap = variables.get(varName).getAsJsonObject();
-			if(varMap.has("value") && varMap.has("type")) {
+			if(varMap.has("type")) {
 				String type = varMap.get("type").getAsString();
-				String value = varMap.get("value").getAsString();
-				
 				if(validTypes.contains(type)) {
+					String value = INotebookHelper.UNDEFINED_VALUE;
+					if(varMap.has("value")) {
+						value = varMap.get("value").getAsString();
+					}
 					engineMap.put(varName, value);
 				}
 			}

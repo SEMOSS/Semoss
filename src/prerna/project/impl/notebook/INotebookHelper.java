@@ -9,6 +9,8 @@ import prerna.sablecc2.NotebookExecution;
 
 public interface INotebookHelper {
 
+	String UNDEFINED_VALUE = "undefined";
+	
 	/**
 	 * 
 	 * @return
