@@ -42,15 +42,22 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			throw new SemossPixelException("App " + projectId + " is not a blocks project.");
 		}
 		
-		Map<String, String> engineMap = project.getEngineDependenciesIds();
+		Map<String, String> engineMap = project.getEngineDependencies();
 		
-		Map<String, Boolean> hasAccess = new HashMap<>();
-		for (String depEngineId : engineMap.values()) {
-			boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
-			hasAccess.put(depEngineId, canView);
+		Map<String, Boolean> varToAccess = new HashMap<>();
+		Map<String, Boolean> eIdToAccess = new HashMap<>();
+		for (String varName : engineMap.keySet()) {
+			String engineId = engineMap.get(varName);
+			boolean canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
+			
+			varToAccess.put(varName, canView);
+			eIdToAccess.put(engineId, canView);
 		}
 		
-		NounMetadata noun = new NounMetadata(hasAccess, PixelDataType.MAP);
+		Map<String, Map<String, Boolean>> validationMap = new HashMap<>();
+		validationMap.put("engine", eIdToAccess);
+		validationMap.put("vars", varToAccess);
+		NounMetadata noun = new NounMetadata(validationMap, PixelDataType.MAP);
 		return noun;
 	}
 	

@@ -1745,7 +1745,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineIds
 	 */
-	public static void updateProjectDependencies(User user, String projectId, List<String> dependentEngineIds) {
+	public static void updateProjectDependencies(User user, String projectId, Collection<String> dependentEngineIds) {
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;

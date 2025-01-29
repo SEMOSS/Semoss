@@ -67,7 +67,7 @@ import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
 import prerna.project.impl.notebook.INotebookHelper;
-import prerna.project.impl.notebook.NotebookRunnerFactory;
+import prerna.project.impl.notebook.NotebookHelperFactory;
 import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
@@ -1167,7 +1167,7 @@ public class Project implements IProject {
 		}
 		
 		try {
-			INotebookHelper helper = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
 			return helper.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1177,14 +1177,14 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public Map<String, String> getEngineDependenciesIds() {
+	public Map<String, String> getEngineDependencies() {
 		File blocksF = getBlocksF();
 		if(!blocksF.exists() || !blocksF.isFile()) {
 			return null;
 		}
 		
 		try {
-			INotebookHelper helper = NotebookRunnerFactory.getNotebookRunner(blocksF);
+			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
 			Map<String, String> engineMap = helper.getBlocksEngineDependencies();
 			return engineMap;
 		} catch (IOException e) {

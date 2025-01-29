@@ -31,7 +31,7 @@ public interface INotebookHelper {
 	
 	/**
 	 * Gets only engine deps listed in the blocks.json file in the project
-	 * @return
+	 * @return	Map of the variable name to the engine id
 	 */
 	Map<String, String> getBlocksEngineDependencies();
 

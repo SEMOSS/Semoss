@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import com.google.gson.JsonElement;
-
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
@@ -212,9 +210,9 @@ public interface IProject extends IEngine, Closeable {
 	
 	/**
 	 * Gets only engine deps listed in the project
-	 * @return
+	 * @return	Map of the variable name to the engine id
 	 */
-	Map<String, String> getEngineDependenciesIds();
+	Map<String, String> getEngineDependencies();
 	
 	/**
 	 * Return if an asset

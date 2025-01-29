@@ -93,6 +93,10 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			SecurityProjectUtils.setPortalPublish(user, projectId);
 		}
 		
+		// auto save the engine dependencies as well
+		Map<String, String> engineDependencies = project.getEngineDependencies();
+		SecurityProjectUtils.updateProjectDependencies(user, projectId, engineDependencies.values());
+		
 		return new NounMetadata(true, PixelDataType.MAP);
 	}
 	

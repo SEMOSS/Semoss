@@ -9,7 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public class NotebookRunnerFactory {
+public class NotebookHelperFactory {
 
 	/**
 	 * 
@@ -17,7 +17,7 @@ public class NotebookRunnerFactory {
 	 * @return
 	 * @throws IOException
 	 */
-	public static INotebookHelper getNotebookRunner(File projectBlocksF) throws IOException {
+	public static INotebookHelper getNotebookHelper(File projectBlocksF) throws IOException {
 		JsonObject blocksFileJson = null;
 		try (Reader fileReader = new FileReader(projectBlocksF)) {
 			blocksFileJson = JsonParser.parseReader(fileReader).getAsJsonObject();
