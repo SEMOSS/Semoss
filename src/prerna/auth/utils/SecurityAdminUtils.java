@@ -636,12 +636,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public boolean editUser(Map<String, Object> userInfo) {
-		
-		//TODO: need to update for usage restriction
-		//TODO: need to update for usage restriction
-		//TODO: need to update for usage restriction
-		//TODO: need to update for usage restriction
-
 		// input fields
 		String userId = userInfo.get("id") != null ? userInfo.get("id").toString() : "";
 		if (userId == null || userId.isEmpty()) {
@@ -3785,6 +3779,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		
 		return 0;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public Object[] getAdminUserIdAndType() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return null;
 	}
 	
 	/**
