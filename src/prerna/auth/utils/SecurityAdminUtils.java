@@ -179,30 +179,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllUsers(String searchTerm, long limit, long offset) throws IllegalArgumentException {
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 
+		final String SMSS_USER_PREFIX = "SMSS_USER__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGERESTRICTION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGEFREQUENCY"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"ID", "id"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"NAME", "name"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"ADMIN", "admin"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"PUBLISHER", "publisher"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"EXPORTER", "EXPORTER"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"PHONE", "phone"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"PHONEEXTENSION", "phoneextension"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"COUNTRYCODE", "ountrycode"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELUSAGERESTRICTION", "model_usage_restriction"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELMAXTOKENS", "model_max_tokens"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELMAXRESPONSETIME", "model_max_response_time"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX+"MODELUSAGEFREQUENCY", "model_usage_frequency"));
+		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX+"NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX+"TYPE"));
 		if(hasSearchTerm) {
 			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX+"EMAIL", "?like", searchTerm));
 			qs.addExplicitFilter(or);
 		}
 		if(limit > 0) {
@@ -647,10 +648,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String phone = userInfo.get("phone") != null ? userInfo.get("phone").toString() : "";
 		String phoneExtension = userInfo.get("phoneextension") != null ? userInfo.get("phoneextension").toString() : "";
 		String countryCode = userInfo.get("countrycode") != null ? userInfo.get("countrycode").toString() : "";
-		String modelMaxTokens = userInfo.get("modelMaxTokens") != null ? userInfo.get("modelMaxTokens").toString() : "";
-		String modelMaxResponseTime = userInfo.get("modelMaxResponseTime") != null ? userInfo.get("modelMaxResponseTime").toString() : "";
-		String modelUsageFrequency = userInfo.get("modelUsageFrequency") != null ? userInfo.get("modelUsageFrequency").toString() : "";
-		String modelUsageRestriction = userInfo.get("modelUsageRestriction") != null ? userInfo.get("modelUsageRestriction").toString() : "";
+		String modelUsageRestriction = userInfo.get("model_usage_restriction") != null ? userInfo.get("model_usage_restriction").toString() : "";
+		String modelUsageFrequency = userInfo.get("model_usage_frequency") != null ? userInfo.get("model_usage_frequency").toString() : "";
+		Integer modelMaxTokens = userInfo.get("model_max_tokens") != null ? ((Number) userInfo.get("model_max_tokens")).intValue() : null;
+		Double modelMaxResponseTime = userInfo.get("model_max_response_time") != null ? ((Number) userInfo.get("model_max_response_time")).doubleValue() : null;
 		// modified fields
 		String newUserId = (String) userInfo.get("newId");
 		if (newUserId != null && newUserId.trim().isEmpty()) {
@@ -815,11 +816,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			columns.add("COUNTRYCODE");
 			columnValues.add(countryCode);
 		}
-		if (modelMaxTokens != null && !modelMaxTokens.isEmpty()) {
+		if (modelMaxTokens != null) {
 			columns.add("MODELMAXTOKENS");
 			columnValues.add(modelMaxTokens);
 		}
-		if (modelMaxResponseTime != null && !modelMaxResponseTime.isEmpty()) {
+		if (modelMaxResponseTime != null) {
 			columns.add("MODELMAXRESPONSETIME");
 			columnValues.add(modelMaxResponseTime);
 		}
@@ -898,11 +899,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (countryCode != null && !countryCode.isEmpty()) {
 				editUserPs.setString(i++, countryCode);
 			}
-			if (modelMaxTokens != null && !modelMaxTokens.isEmpty()) {
-				editUserPs.setString(i++, modelMaxTokens);
+			if (modelMaxTokens != null) {
+				editUserPs.setInt(i++, modelMaxTokens);
 			}
-			if (modelMaxResponseTime != null && !modelMaxResponseTime.isEmpty()) {
-				editUserPs.setString(i++, modelMaxResponseTime);
+			if (modelMaxResponseTime != null) {
+				editUserPs.setDouble(i++, modelMaxResponseTime);
 			}
 			if (modelUsageFrequency != null && !modelUsageFrequency.isEmpty()) {
 				editUserPs.setString(i++, modelUsageFrequency);
