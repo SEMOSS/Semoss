@@ -157,7 +157,7 @@ if __name__ == "__main__":
         logging_level = logging.DEBUG
 
     logging.basicConfig(level=logging_level)
-
+    os.environ.clear()
     # Perform chroot if userChrootFolder is specified
     if args.userChrootFolder:
         try:
