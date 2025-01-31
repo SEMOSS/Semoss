@@ -659,7 +659,7 @@ public class User implements Serializable {
 				this.cpw.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to user server");
+				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 			}
 		}
 		
