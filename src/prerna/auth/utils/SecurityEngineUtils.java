@@ -864,28 +864,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") 
-						&& thisPermissionMap.get("usageRestriction") != null
+				if(thisPermissionMap.get("usageRestriction") != null
 						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") 
-						&& thisPermissionMap.get("usageFrequency") != null
+				if(thisPermissionMap.get("usageFrequency") != null
 						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")
-						&& thisPermissionMap.get("maxTokens") != null) {
+				if(thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")
-						&& thisPermissionMap.get("maxResponseTime") != null) {
+				if(thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -1073,28 +1069,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") 
-						&& thisPermissionMap.get("usageRestriction") != null
+				if(thisPermissionMap.get("usageRestriction") != null
 						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") 
-						&& thisPermissionMap.get("usageRestriction") != null
+				if(thisPermissionMap.get("usageRestriction") != null
 						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")
-						&& thisPermissionMap.get("maxTokens") != null) {
+				if(thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")
-						&& thisPermissionMap.get("maxResponseTime") != null) {
+				if(thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
