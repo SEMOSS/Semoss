@@ -1600,7 +1600,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1652,22 +1652,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") && !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+				if(thisPermissionMap.containsKey("usageRestriction") 
+						&& thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") && !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+				if(thisPermissionMap.containsKey("usageFrequency") 
+						&& thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")) {
+				if(thisPermissionMap.containsKey("maxTokens")
+						&& thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")) {
+				if(thisPermissionMap.containsKey("maxResponseTime")
+						&& thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -1681,7 +1687,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred setting the permissions for this engine");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1739,7 +1745,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1793,7 +1799,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this insight. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1841,7 +1847,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2378,7 +2384,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -2437,22 +2443,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") && !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+				if(thisPermissionMap.containsKey("usageRestriction") 
+						&& thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") && !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+				if(thisPermissionMap.containsKey("usageFrequency") 
+						&& thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")) {
+				if(thisPermissionMap.containsKey("maxTokens")
+						&& thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")) {
+				if(thisPermissionMap.containsKey("maxResponseTime")
+						&& thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -2469,7 +2481,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2519,7 +2531,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2585,7 +2597,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -2650,7 +2662,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
