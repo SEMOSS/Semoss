@@ -197,6 +197,9 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param listReturnVector
 	 */
 	private void executeDelete(String url, Map<String, String> headersMap, List<Map<String, String>> listReturnVector) {
+		if(listReturnVector == null || listReturnVector.isEmpty()) {
+			return;
+		}
 		JsonArray idsJsonArray = new JsonArray();
 		for (Map<String, String> v : listReturnVector) {
 			idsJsonArray.add(v.get("id"));
