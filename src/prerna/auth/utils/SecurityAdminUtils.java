@@ -642,30 +642,42 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (userId == null || userId.isEmpty()) {
 			throw new NullPointerException("Must provide a unique and non-empty user id");
 		}
-		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
-		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
 		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
+		if (type == null || type.isEmpty()) {
+			throw new NullPointerException("Must provide the user type");
+		}
+		// only relevant for native type
+		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
+		// other values
+		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
+		String email = userInfo.get("email") != null ? userInfo.get("email").toString().trim().toLowerCase() : "";
+		String username = userInfo.get("username") != null ? userInfo.get("username").toString() : "";
+		// no one uses these... oh well
 		String phone = userInfo.get("phone") != null ? userInfo.get("phone").toString() : "";
 		String phoneExtension = userInfo.get("phoneextension") != null ? userInfo.get("phoneextension").toString() : "";
 		String countryCode = userInfo.get("countrycode") != null ? userInfo.get("countrycode").toString() : "";
-		String modelUsageRestriction = userInfo.get("model_usage_restriction") != null ? userInfo.get("model_usage_restriction").toString() : "";
-		String modelUsageFrequency = userInfo.get("model_usage_frequency") != null ? userInfo.get("model_usage_frequency").toString() : "";
-		Integer modelMaxTokens = userInfo.get("model_max_tokens") != null ? ((Number) userInfo.get("model_max_tokens")).intValue() : null;
-		Double modelMaxResponseTime = userInfo.get("model_max_response_time") != null ? ((Number) userInfo.get("model_max_response_time")).doubleValue() : null;
-		// modified fields
-		String newUserId = (String) userInfo.get("newId");
-		if (newUserId != null && newUserId.trim().isEmpty()) {
-			newUserId = null;
+		// model restrictions
+		String modelUsageRestriction = userInfo.get("model_usage_restriction") != null ? userInfo.get("model_usage_restriction").toString() : null;
+		String modelUsageFrequency = userInfo.get("model_usage_frequency") != null ? userInfo.get("model_usage_frequency").toString() : null;
+		Integer modelMaxTokens = null;
+		if(userInfo.get("model_max_tokens") != null) {
+			try {
+				modelMaxTokens = ((Number) userInfo.get("model_max_tokens")).intValue();
+			} catch(ClassCastException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("model_max_tokens must be a valid integer value");
+			}
 		}
-		String newUsername = (String) userInfo.get("newUsername");
-		if (newUsername != null && newUsername.trim().isEmpty()) {
-			newUsername = null;
+		Double modelMaxResponseTime = null;
+		if(userInfo.get("model_max_response_time") != null) {
+			try {
+				modelMaxResponseTime = ((Number) userInfo.get("model_max_response_time")).doubleValue();
+			} catch(ClassCastException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("model_max_response_time must be a valid double value");
+			}
 		}
-		String newEmail = (String) userInfo.get("newEmail");
-		// always lower case emails
-		if (newEmail != null) {
-			newEmail = newEmail.toLowerCase();
-		}
+		// the boolean values
 		Boolean adminChange = null;
 		if (userInfo.containsKey("admin")) {
 			if (userInfo.get("admin") instanceof Number) {
@@ -674,7 +686,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				adminChange = Boolean.parseBoolean(userInfo.get("admin") + "");
 			}
 		}
-
 		Boolean publisherChange = null;
 		if (userInfo.containsKey("publisher")) {
 			if (userInfo.get("publisher") instanceof Number) {
@@ -683,7 +694,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				publisherChange = Boolean.parseBoolean(userInfo.get("publisher") + "");
 			}
 		}
-
 		Boolean exporterChange = Boolean.TRUE;
 		if (userInfo.containsKey("exporter")) {
 			if (userInfo.get("exporter") instanceof Number) {
@@ -706,63 +716,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
 		}
 		if (isNative) {
-			// username and id must match for native
-			// so they should be updated together and have the same value
-			if (!((newUsername != null && newUserId != null) || (newUsername == null && newUserId == null))) {
-				throw new IllegalArgumentException(
-						"For native users, the id and the username must be updated together and have the same value");
+			// username cannot be changed and must match the userid
+			if(!userId.equals(username)) {
+				throw new IllegalArgumentException("For native users, the id and the username must match and cannot be udpated");
 			}
-			if (newUserId != null && newUserId.isEmpty()) {
-				throw new IllegalArgumentException(
-						"For native users, the id and the username must be updated together and have the same value");
-			}
-			if (newUserId != null && !newUserId.equalsIgnoreCase(newUsername)) {
-				throw new IllegalArgumentException(
-						"For native users, the id and the username must be updated together and have the same value");
-			}
-		}
-		// if we are updating the user id
-		// make sure the new id does not exist
-		if (newUserId != null) {
-			if (SecurityQueryUtils.checkUserExist(newUserId)) {
-				throw new IllegalArgumentException("The new user id already exists. Please enter a unique user id.");
-			}
+		} else {
+			password = null;
 		}
 
-		/**
-		 * validate and add the columns we wish to update to list
-		 */
-		List<String> columns = new ArrayList<String>();
-		List<Object> columnValues = new ArrayList<Object>();
-
-		if (newUserId != null) {
-			columns.add("ID");
-			columnValues.add(newUserId);
-		}
-
+		boolean updatePassword = isNative && password != null && !password.isEmpty();
+		
+		// grab and validate all these errors together...
+		// TODO: should combine with the above errors as well
 		String error = "";
-		if (newEmail != null && !newEmail.isEmpty()) {
+		if (email != null && !email.isEmpty()) {
 			try {
-				validEmail(newEmail, true);
+				validEmail(email, false);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-			columns.add("EMAIL");
-			columnValues.add(newEmail);
 		}
-		if (newUsername != null && !newUsername.isEmpty()) {
-			boolean usernameExists = SecurityQueryUtils.checkUsernameExist(newUsername);
-			if (usernameExists) {
-				throw new IllegalArgumentException("The username already exists");
-			}
-
-			columns.add("USERNAME");
-			columnValues.add(newUsername);
-		}
-		if (isNative 
-				&& password != null 
-				&& !password.isEmpty()) {
+		if (updatePassword) {
 			try {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
@@ -771,32 +746,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 			if (error.isEmpty()) {
 				newSalt = SecurityQueryUtils.generateSalt();
-				columns.add("PASSWORD");
-				columnValues.add(newSalt);
 				newHashPass = SecurityQueryUtils.hash(password, newSalt);
-				columns.add("SALT");
-				columnValues.add(newHashPass);
 			}
-		}
-		if (name != null && !name.isEmpty()) {
-			columns.add("NAME");
-			columnValues.add(name);
-		}
-		if (type != null && !type.isEmpty()) {
-			columns.add("TYPE");
-			columnValues.add(type);
-		}
-		if (adminChange != null) {
-			columns.add("ADMIN");
-			columnValues.add(adminChange);
-		}
-		if (publisherChange != null) {
-			columns.add("PUBLISHER");
-			columnValues.add(publisherChange);
-		}
-		if (exporterChange != null) {
-			columns.add("EXPORTER");
-			columnValues.add(exporterChange);
 		}
 		if (phone != null && !phone.isEmpty()) {
 			try {
@@ -805,32 +756,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
 			}
-			columns.add("PHONE");
-			columnValues.add(phone);
-		}
-		if (phoneExtension != null && !phoneExtension.isEmpty()) {
-			columns.add("PHONEEXTENSION");
-			columnValues.add(phoneExtension);
-		}
-		if (countryCode != null && !countryCode.isEmpty()) {
-			columns.add("COUNTRYCODE");
-			columnValues.add(countryCode);
-		}
-		if (modelMaxTokens != null) {
-			columns.add("MODELMAXTOKENS");
-			columnValues.add(modelMaxTokens);
-		}
-		if (modelMaxResponseTime != null) {
-			columns.add("MODELMAXRESPONSETIME");
-			columnValues.add(modelMaxResponseTime);
-		}
-		if (modelUsageFrequency != null && !modelUsageFrequency.isEmpty()) {
-			columns.add("MODELUSAGEFREQUENCY");
-			columnValues.add(modelUsageFrequency);
-		}
-		if (modelUsageRestriction != null && !modelUsageRestriction.isEmpty()) {
-			columns.add("MODELUSAGERESTRICTION");
-			columnValues.add(modelUsageRestriction);
 		}
 
 		if (error != null && !error.isEmpty()) {
@@ -840,79 +765,65 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		/**
 		 * Create ps and add updated rows to ps and values 
 		 */
+		
+		String[] whereCol = { "ID" , "TYPE" };
+		String[] columnsToUpdate = null;
+		if(updatePassword) {
+			columnsToUpdate = new String[] {"EMAIL", "USERNAME", "NAME", 
+					"ADMIN", "PUBLISHER", "EXPORTER", 
+					"PHONE", "PHONEEXTENSION", "COUNTRYCODE", 
+					"MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME", "MODELUSAGEFREQUENCY",
+					"PASSWORD", "SALT"};
+		} else {
+			columnsToUpdate = new String[] {"EMAIL", "USERNAME", "NAME", 
+					"ADMIN", "PUBLISHER", "EXPORTER", 
+					"PHONE", "PHONEEXTENSION", "COUNTRYCODE", 
+					"MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME", "MODELUSAGEFREQUENCY"};
+		}
 
-		String[] colToUpdate = columns.toArray(new String[0]);
-		String[] whereCol = { "ID" };
-		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", colToUpdate, whereCol);
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", columnsToUpdate, whereCol);
 		PreparedStatement editUserPs = null;
 		try {
 			editUserPs = securityDb.getPreparedStatement(editUserQuery);
 			int i = 1;
-			if (newUserId != null && !newUserId.isEmpty()) {
-				editUserPs.setString(i++, newUserId);
+			editUserPs.setString(i++, email);
+			editUserPs.setString(i++, username);
+			editUserPs.setString(i++, name);
+			editUserPs.setBoolean(i++, adminChange);
+			editUserPs.setBoolean(i++, publisherChange);
+			editUserPs.setBoolean(i++, exporterChange);
+			editUserPs.setString(i++, phone);
+			editUserPs.setString(i++, phoneExtension);
+			editUserPs.setString(i++, countryCode);
+			
+			if (modelUsageRestriction == null || (modelUsageRestriction=modelUsageRestriction.trim()).isEmpty()) {
+				editUserPs.setNull(i++, java.sql.Types.VARCHAR);
+			} else {
+				editUserPs.setString(i++, modelUsageRestriction);
 			}
-			if(newEmail != null && !newEmail.isEmpty()) {
-				editUserPs.setString(i++, newEmail);
-			}
-			if (newUsername != null && !newUsername.isEmpty()) {
-				editUserPs.setString(i++, newUsername);
-			}
-			if (newHashPass != null && !newHashPass.isEmpty()) {
-				editUserPs.setString(i++, newHashPass);
-			}
-			if (newSalt != null && !newSalt.isEmpty()) {
-				editUserPs.setString(i++, newSalt);
-			}
-			if (name != null && !name.isEmpty()) {
-				editUserPs.setString(i++, name);
-			}
-			if (type != null && !type.isEmpty()) {
-				editUserPs.setString(i++, type);
-			}
-			if (adminChange != null) {
-				if(adminChange) {
-					editUserPs.setBoolean(i++, true);
-				} else {
-					editUserPs.setBoolean(i++, false);
-				}
-			}
-			if (publisherChange != null) {
-				if(publisherChange) {
-					editUserPs.setBoolean(i++, true);
-				} else {
-					editUserPs.setBoolean(i++, false);
-				}
-			}
-			if (exporterChange != null) {
-				if(exporterChange) {
-					editUserPs.setBoolean(i++, true);
-				} else {
-					editUserPs.setBoolean(i++, false);
-				}
-			}
-			if (phone != null && !phone.isEmpty()) {
-				editUserPs.setString(i++, phone);
-			}
-			if (phoneExtension != null && !phoneExtension.isEmpty()) {
-				editUserPs.setString(i++, phoneExtension);
-			}
-			if (countryCode != null && !countryCode.isEmpty()) {
-				editUserPs.setString(i++, countryCode);
-			}
-			if (modelMaxTokens != null) {
+			if (modelMaxTokens == null) {
+				editUserPs.setNull(i++, java.sql.Types.INTEGER);
+			} else {
 				editUserPs.setInt(i++, modelMaxTokens);
 			}
-			if (modelMaxResponseTime != null) {
+			if (modelMaxResponseTime == null) {
+				editUserPs.setNull(i++, java.sql.Types.DOUBLE);
+			} else {
 				editUserPs.setDouble(i++, modelMaxResponseTime);
 			}
-			if (modelUsageFrequency != null && !modelUsageFrequency.isEmpty()) {
+			if (modelUsageFrequency == null || (modelUsageFrequency=modelUsageFrequency.trim()).isEmpty()) {
+				editUserPs.setNull(i++, java.sql.Types.VARCHAR);
+			} else {
 				editUserPs.setString(i++, modelUsageFrequency);
 			}
-			if (modelUsageRestriction != null && !modelUsageRestriction.isEmpty()) {
-				editUserPs.setString(i++, modelUsageRestriction);
+			// we have these to update as well for native
+			if(updatePassword) {
+				editUserPs.setString(i++, newHashPass);
+				editUserPs.setString(i++, newSalt);
 			}
 			// Where 
 			editUserPs.setString(i++, userId);
+			editUserPs.setString(i++, type);
 			editUserPs.execute();
 			if (!editUserPs.getConnection().getAutoCommit()) {
 				editUserPs.getConnection().commit();
@@ -926,36 +837,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		/**
-		 * HMM what to do about this one Should i update?
+		 * HMM what to do about this one should i update?
 		 */
-		if (isNative) {
-			if (newUserId != null && !userId.equals(newUserId)) {
-				// need to update the password history
-				String updateQuery = "UPDATE PASSWORD_HISTORY SET USERID=? WHERE USERID=? and TYPE=?";
-				PreparedStatement ps = null;
-				try {
-					ps = securityDb.getPreparedStatement(updateQuery);
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, type);
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-			if (newHashPass != null && newSalt != null) {
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-				try {
-					SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+		if (updatePassword) {
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+			try {
+				SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return true;
@@ -1600,7 +1489,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1652,22 +1541,24 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") && !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") && !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")) {
+				if(thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")) {
+				if(thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -1681,7 +1572,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred setting the permissions for this engine");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1739,7 +1630,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1793,7 +1684,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this insight. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1841,7 +1732,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2378,7 +2269,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -2437,22 +2328,24 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") && !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") && !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")) {
+				if(thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")) {
+				if(thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -2469,7 +2362,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2519,7 +2412,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2585,7 +2478,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -2650,7 +2543,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
