@@ -813,18 +813,29 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		pyt = new TCPPyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		String[] commands = getServerStartCommands();
-		// replace the vars
-		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			String resolvedString = substitutor.replace(commands[commandIndex]);
-			commands[commandIndex] = resolvedString;
+		try {
+			String[] commands = getServerStartCommands();
+			// replace the vars
+			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+				String resolvedString = substitutor.replace(commands[commandIndex]);
+				commands[commandIndex] = resolvedString;
+			}
+			pyt.runEmptyPy(commands);
+			
+			// for debugging...
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " ptyhon process with commands >>> " + String.join("\n", commands));
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if(this.cpw != null) {
+				classLogger.warn("Able to start the python process for the vector database " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				this.cpw.shutdown(false);
+			}
+			throw e;
 		}
-		pyt.runEmptyPy(commands);
-		
-		// for debugging...
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-							+ " ptyhon process with commands >>> " + String.join("\n", commands));
 	}
 
 	private void checkSocketStatus() {
@@ -871,6 +882,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 		
 		File indexFilesFolder = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
+		// store the actual files we are extracting from
+		// since we move this into the vector folder
+		// we need to delete them if they fail
+		// TODO: potentially look at loading these from insight and only pushing to the 
+		// vector db catalog on success
+		Set<File> fileToExtractFrom = new HashSet<File>();
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
@@ -899,7 +916,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 
 			// move the documents from insight into documents folder
-			Set<File> fileToExtractFrom = new HashSet<File>();
 			for (String fileName : filePaths) {
 				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
@@ -1005,6 +1021,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					copyFilesToCloudThread.start();
 				}
 			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			// delete files moved into vector db documents folder
+			for (File document : fileToExtractFrom) {
+				document.delete();
+			}
+			throw e;
 		} finally {
 			cleanUpAddDocument(indexFilesFolder);
 		}
