@@ -21,6 +21,35 @@ class InterpreterError(Exception):
 # all of the util functions go here
 
 
+def test_file_encoding(file_path):
+    """
+    Detects the encoding of a file using chardet by reading the first 4096 bytes.
+
+    Args:
+        file_path (str): The path to the file.
+
+    Returns:
+        str: The detected encoding, or None if detection fails.
+    """
+    import chardet
+
+    try:
+        with open(file_path, "rb") as f:
+            raw_data = f.read(-1)
+            if not raw_data:
+                return None  # Handle empty file case
+            result = chardet.detect(raw_data)
+            return result["encoding"]
+    except:
+        import ntpath
+
+        logger.info(
+            "Unable to determine the encoding type for file "
+            + ntpath.basename(file_path)
+        )
+        return None
+
+
 def getfunctions(file):
     import inspect
 
@@ -98,13 +127,13 @@ def runwrapper(file, output, error, g):
     global executorExceptionCallback
 
     foundErr = None
-    with open(output, "w", buffering=1) as ofile, open(
-        error, "w", buffering=1
-    ) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(
-        ofile
-    ), open(
-        file, "r"
-    ) as datafile:
+    with (
+        open(output, "w", buffering=1) as ofile,
+        open(error, "w", buffering=1) as efile,
+        contextlib.redirect_stdout(ofile),
+        contextlib.redirect_stderr(ofile),
+        open(file, "r") as datafile,
+    ):
         try:
             exec(datafile.read(), g)
         except SyntaxError as err:
@@ -157,13 +186,13 @@ def runwrappereval(file, output, error, g):
     import traceback
 
     foundErr = None
-    with open(output, "w", buffering=1) as ofile, open(
-        error, "w", buffering=1
-    ) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(
-        ofile
-    ), open(
-        file, "r"
-    ) as datafile:
+    with (
+        open(output, "w", buffering=1) as ofile,
+        open(error, "w", buffering=1) as efile,
+        contextlib.redirect_stdout(ofile),
+        contextlib.redirect_stderr(ofile),
+        open(file, "r") as datafile,
+    ):
         command = datafile.read()
         try:
             output_obj = eval(command, g)
@@ -238,9 +267,12 @@ def runwrappereval_return(command, output, error, g):
     import traceback
 
     foundErr = None
-    with open(output, "w", buffering=1) as ofile, open(
-        error, "w", buffering=1
-    ) as efile, contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
+    with (
+        open(output, "w", buffering=1) as ofile,
+        open(error, "w", buffering=1) as efile,
+        contextlib.redirect_stdout(ofile),
+        contextlib.redirect_stderr(ofile),
+    ):
         from tqdm import tqdm
 
         with tqdm(total=100) as pbar:
@@ -807,6 +839,7 @@ def chat_guanaco_code(
 def convert_pdf_to_text(document_location):
     import PyPDF2
     import pathlib
+    import os
 
     inputFile = pathlib.Path(document_location)
     if not inputFile.exists():
@@ -917,13 +950,15 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     except Exception as e:
         pass
     if search is not None:
-      sys.path.append(search)
-    spec = importlib.util.spec_from_file_location(module_name, file_path, submodule_search_locations=search)
+        sys.path.append(search)
+    spec = importlib.util.spec_from_file_location(
+        module_name, file_path, submodule_search_locations=search
+    )
     module = importlib.util.module_from_spec(spec)
     # sys.modules[module_name] = module
     spec.loader.exec_module(module)
     # reset the path
     if search is not None:
-      sys.path.remove(search)
+        sys.path.remove(search)
     return module
     # import module_name
