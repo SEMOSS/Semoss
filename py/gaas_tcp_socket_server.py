@@ -78,15 +78,15 @@ class Server(socketserver.ThreadingTCPServer):
         # We have to do this after the socketserver.ThreadingTCPServer
         # Since we need environment variables (OS specific details) to connect to a port
         # Lets get a list of environment variables we may want to preserve from PY_SOCKET_ENV_VARS
-        env_vars_to_preserve = os.environ.get("PY_SOCKET_ENV_VARS", "").split(",")        
-        # Store the values of the environment variables you want to keep
-        preserved_env_vars = {var: os.environ.get(var) for var in env_vars_to_preserve if var}
-        # Clear all environment variables
-        os.environ.clear()
-        # Restore the preserved environment variables
-        for var, value in preserved_env_vars.items():
-            if value is not None:
-                os.environ[var] = value
+        # env_vars_to_preserve = os.environ.get("PY_SOCKET_ENV_VARS", "").split(",")
+        # # Store the values of the environment variables you want to keep
+        # preserved_env_vars = {var: os.environ.get(var) for var in env_vars_to_preserve if var}
+        # # Clear all environment variables
+        # os.environ.clear()
+        # # Restore the preserved environment variables
+        # for var, value in preserved_env_vars.items():
+        #     if value is not None:
+        #         os.environ[var] = value
 
         if start:
             self.serve_forever()
