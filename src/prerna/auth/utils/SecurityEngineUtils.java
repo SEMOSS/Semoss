@@ -671,7 +671,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getEngineUsers(User user, String engineId, String searchParam, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this engine");
+			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
 		return SecurityUserEngineUtils.getEngineUsers(engineId, searchParam, permission, limit, offset);
 	}
@@ -687,7 +687,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static long getEngineUsersCount(User user, String engineId, String searchParam, String permission) throws IllegalAccessException {
 		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this engine");
+			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
 		boolean hasSearchParam = searchParam != null && !(searchParam=searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
@@ -798,7 +798,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -864,22 +864,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") && !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") && !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageFrequency") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")) {
+				if(thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")) {
+				if(thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -893,6 +895,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred adding the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -912,7 +915,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static void editEngineUserPermission(User user, String existingUserId, String engineId, String newPermission, String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) throws IllegalAccessException {
-		
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -989,7 +991,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1067,22 +1069,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 				
 				// engine usage restrictions
-				if(thisPermissionMap.containsKey("usageRestriction") && !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageRestriction")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("usageFrequency") && !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
+				if(thisPermissionMap.get("usageRestriction") != null
+						&& !((String)thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
 					ps.setString(parameterIndex++, ((String)thisPermissionMap.get("usageFrequency")).trim());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if(thisPermissionMap.containsKey("maxTokens")) {
+				if(thisPermissionMap.get("maxTokens") != null) {
 					ps.setInt(parameterIndex++, ((Number)thisPermissionMap.get("maxTokens")).intValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				if(thisPermissionMap.containsKey("maxResponseTime")) {
+				if(thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number)thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -1098,6 +1102,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine. Detailed error message = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
@@ -1211,7 +1216,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
 			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
-				throw new IllegalArgumentException("As a non-owner, you cannot remove access of an owner.");
+				throw new IllegalAccessException("As a non-owner, you cannot remove access of an owner.");
 			}
 		}
 		
@@ -1518,10 +1523,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param isPublic
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static boolean setEngineName(User user, String engineId, String newEngineName) {
+	public static boolean setEngineName(User user, String engineId, String newEngineName) throws IllegalAccessException {
 		if(!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
 		}
 		
 		PreparedStatement ps = null;
@@ -1842,7 +1848,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		 * Security check to make sure that the user can view the application provided. 
 		 */
 		if (!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this engine");
+			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
 		
 		/*

@@ -46,7 +46,7 @@ public class SocketClient implements Runnable, Closeable {
     private boolean connected = false;
     private AtomicInteger count = new AtomicInteger(0);
     private long averageMillis = 200;
-    private boolean killall = false; // use this if the server is dead or it has crashed
+    private boolean killAll = false; // use this if the server is dead or it has crashed
     private User user;
 	
     private Socket clientSocket = null;
@@ -76,7 +76,7 @@ public class SocketClient implements Runnable, Closeable {
     	closeStream(this.is);
     	closeStream(this.clientSocket);
     	this.connected = false;
-    	this.killall = true;
+    	this.killAll = true;
     }
 
     @Override
@@ -123,7 +123,7 @@ public class SocketClient implements Runnable, Closeable {
 	            //logger.info("First command.. Prime" + executeCommand("2+2"));
 	            connected = true;
 	            ready = true;
-	            killall = false;
+	            killAll = false;
 	            synchronized(this)
 	            {
 	            	this.notifyAll();
@@ -142,11 +142,12 @@ public class SocketClient implements Runnable, Closeable {
 	    	}
     	}
     	
-    	if(attempt > 6) {
+    	if(attempt >= 6) {
             classLogger.info("CLIENT Connection Failed !!!!!!!");
-            ready = true; // come out of the loop
-            synchronized(this)
-            {
+            killAll = true;
+            connected = false;
+            ready = false;
+            synchronized(this) {
             	this.notifyAll();
             }
             throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
@@ -155,7 +156,7 @@ public class SocketClient implements Runnable, Closeable {
     
     public Object executeCommand(PayloadStruct ps)
     {
-    	if(killall) {
+    	if(killAll) {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     	}
     	
@@ -187,7 +188,7 @@ public class SocketClient implements Runnable, Closeable {
     		if(!ps.response) // this is a response to something the socket has asked
     		{
 				int pollNum = 1; // 1 second
-				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
+				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killAll)
 				{
 					//logger.info("Checking to see if there was a response");
 					try
@@ -375,27 +376,34 @@ public class SocketClient implements Runnable, Closeable {
     	return this.user;
     }
     
-    /**
-     * 
-     * @return
-     */
-    public boolean isConnected() {
-    	return this.connected;
-    }
-    
-    /**
-     * 
-     * @return
-     */
-    public boolean isReady() {
-    	return this.ready;
-    }
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isConnected() {
+		return this.connected;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isKillAll() {
+		return killAll;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isReady() {
+		return this.ready;
+	}
     
 
     public void addInsight2Insight(String insightId, Insight insight)
     {
     	insightMap.put(insightId, insight);
     }
-
     
 }
