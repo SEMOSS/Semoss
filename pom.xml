@@ -2228,7 +2228,7 @@
 		<dependency>
 		    <groupId>com.hierynomus</groupId>
 		    <artifactId>sshj</artifactId>
-		    <version>0.35.0</version>
+		    <version>0.39.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
 		<dependency>
