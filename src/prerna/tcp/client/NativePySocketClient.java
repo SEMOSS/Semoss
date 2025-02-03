@@ -316,6 +316,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								String insightId = ps.insightId;
 								Insight insight = insightMap.get(insightId);
 								String pixelOp = (String) ps.payload[0];
+								if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
+									pixelOp+=";";
+								}
 								PixelRunner pixelRunner = insight.runPixel(pixelOp);
 								StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner);
 								streamedOutput.write(output);
