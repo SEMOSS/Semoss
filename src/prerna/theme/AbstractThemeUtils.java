@@ -301,7 +301,7 @@ public abstract class AbstractThemeUtils {
 				
 				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TEMPLATE.getThemeDbTableName(), blocksTemplateColNames, blocksTemplateTypes,
 				    new Object[] { // TODO: change hover image once updated
-				        "BT027", "Mermaid", "Mermaid", "MERMAIDJS_ACTIVE", null,  null,
+				        "BT027", "Mermaid", "Mermaid", "MERMAIDJS_ACTIVE", "MERMAIDJS_HOVER",  null,
 				        new JSONObject("{widget: 'mermaid', data: {style: {padding: '4px', whiteSpace: 'pre-line', textOverflow: 'ellipsis'}, text: 'Query', variant: 'p'}, listeners: {}, slots: {}}"), "DEFAULT",
 				        false, Utility.getCurrentSqlTimestampUTC(), true
 				    })
