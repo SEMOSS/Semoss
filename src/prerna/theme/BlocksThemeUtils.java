@@ -18,6 +18,7 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.MalformedJsonException;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -26,6 +27,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -127,10 +129,14 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 	
 	private static void convertBlockJsonStringToJSONObject(Map<String, Object> map) {
-		String blockJson = (String) map.get("BLOCK_JSON");
-		Gson gson = new Gson();
-		Type type = new TypeToken<Map<String, Object>>(){}.getType();
-		map.put("BLOCK_JSON", gson.fromJson(blockJson, type));
+		try {
+			String blockJson = (String) map.get("BLOCK_JSON");
+			Gson gson = new Gson();
+			Type type = new TypeToken<Map<String, Object>>(){}.getType();
+			map.put("BLOCK_JSON", gson.fromJson(blockJson, type));
+		} catch (Exception e) {
+			throw new SemossPixelException(e);
+		}
 	}
 
 	
