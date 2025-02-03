@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -77,6 +78,10 @@ public class SocialPropertiesUtil {
 	
 	public Map<String, String> getLoginDisplayNames() {
 		return SocialPropertiesUtil.processor.getLoginDisplayNames();
+	}
+	
+	public ArrayList<Map<String, Object>> getAvailableProviders() {
+		return SocialPropertiesUtil.processor.getAvailableProviders();
 	}
 	
 	public String getProperty(String key) {
