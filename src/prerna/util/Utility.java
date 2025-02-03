@@ -5571,7 +5571,7 @@ public final class Utility {
 		// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
 		// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
 
-			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , "/", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel, "--userChrootFolder", chrootDir};
+			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , "/", "env" ,"-i", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel, "--userChrootFolder", chrootDir};
 
 		
 			// need to make sure we are not windows cause ulimit will not work
