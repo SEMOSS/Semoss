@@ -180,6 +180,7 @@ if __name__ == "__main__":
             os.chroot(args.userChrootFolder)
             os.chdir("/")  # Change to root directory within chroot
             logging.info(f"Chrooted to {args.userChrootFolder} and changed directory to /")
+            os.environ.clear()
         except PermissionError:
             logging.error("Permission denied: You need to run this script as root.")
             sys.exit(1)
