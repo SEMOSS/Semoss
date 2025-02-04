@@ -992,5 +992,10 @@ public class Constants {
     public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
     public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
   	
-	
+	//External Permission Management
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "external_user_Default_permission";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_EMAIL_ID = "in_EmailID";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "external_url";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_USERNAME= "external_user_username";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_PASSWORD = "external_user_password";
 }
