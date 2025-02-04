@@ -84,6 +84,10 @@ public class ExternalAuthorizationHelper {
 	 * @return
 	 */
 	private static List<Map<String, Object>> transformApiResponse(User user, String apiResponse) {
+		final String ENGINEID_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID);
+		final String ENGINENAME_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME);
+		final String ENGINETYPE_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE);
+		
 		List<Map<String, Object>> enginePermissions = new ArrayList<>();
 		try {
 			// Parse and Manipulate JSON Response
@@ -92,10 +96,10 @@ public class ExternalAuthorizationHelper {
 			Iterator<String> fieldNames = rootNode.fieldNames();
 			String firstKey = fieldNames.next();
 			JsonNode detailNode = rootNode.path(firstKey);
-
 			for (JsonNode detail : detailNode) {
 				Map<String, Object> permissionMap = new HashMap<>();
-				String targetSystem = detail.path("targetSystem").asText();
+				
+				String targetSystem = detail.path(ENGINETYPE_KEY).asText();
 				RdbmsTypeEnum engineSubType = RdbmsTypeEnum.getEnumFromString(targetSystem);
 				if (engineSubType != null) {
 					permissionMap.put("engineSubType", engineSubType);
@@ -105,8 +109,8 @@ public class ExternalAuthorizationHelper {
 					// ignoring
 					continue;
 				}
-				permissionMap.put("engineId", detail.path("dataCollectionId").asText());
-				permissionMap.put("engineName", detail.path("dataCollectionName").asText());
+				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
+				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
 
 				String defaultPermission = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION);
 				if(defaultPermission == null || (defaultPermission=defaultPermission.trim()).isEmpty()) {
