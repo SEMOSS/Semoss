@@ -155,16 +155,16 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 		
-        // 2 smss properties for custom document processing
+        // smss properties for custom document processing
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
         	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
         }
-        
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
         	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
         }

@@ -28,6 +28,8 @@ public class VectorDatabaseCSVTable {
 	private int maxKeywords = 12;
 	private int percentile = 0;
 	
+	private File file;
+	
     public VectorDatabaseCSVTable() {
         this.rows = new ArrayList<>();
     }
@@ -93,6 +95,7 @@ public class VectorDatabaseCSVTable {
     
     public static VectorDatabaseCSVTable initCSVTable(File file) throws IOException {
     	VectorDatabaseCSVTable csvTable = new VectorDatabaseCSVTable();
+    	csvTable.file = file;
     	
     	final String STR_DT = SemossDataType.STRING.toString();
     	final String INT_DT = SemossDataType.INT.toString();
