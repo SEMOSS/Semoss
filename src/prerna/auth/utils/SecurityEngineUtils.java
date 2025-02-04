@@ -7,11 +7,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -20,14 +18,10 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
-import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-import org.json.JSONObject;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
 import prerna.auth.AccessPermissionEnum;
@@ -53,14 +47,12 @@ import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.security.HttpHelperUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RdbmsTypeEnum;
 
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
@@ -573,6 +565,27 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Validate if the given engineId exists in the database.
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static boolean engineExists(String engineId) {
+		String query = "SELECT EXISTS (SELECT 1 FROM ENGINE WHERE ENGINEID = ?)";
+		try (PreparedStatement ps = securityDb.getPreparedStatement(query)) {
+			ps.setString(1, engineId);
+			try (ResultSet rs = ps.executeQuery()) {
+				if (rs.next()) {
+					return rs.getInt(1) > 0;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return false;
 	}
 	
 	/**
@@ -3011,41 +3024,41 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		PreparedStatement deletePs = null;
 		PreparedStatement insertPs = null;
 		try {
-			for (Map<String, Object> permissionMap : enginePermissions) {
-				String engineId = (String) permissionMap.get("engineId");
-				String permission = (String) permissionMap.get("permission");
-				String engineName = (String) permissionMap.get("engineName");
-				Object engineSubTypeValue = permissionMap.get("engineSubType");
-				String engineSubType = engineSubTypeValue != null ? engineSubTypeValue.toString() : null;
-
-				// Step 1: Delete existing permissions for the engine
-				String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
-				deletePs = securityDb.getPreparedStatement(deleteQuery);
-				deletePs.setString(1, userDetails.getValue0());
-				deletePs.addBatch();
-				deletePs.executeBatch();
-
-				if (!deletePs.getConnection().getAutoCommit()) {
-					deletePs.getConnection().commit();
+			// Step 1: Delete existing permissions for the engine
+			String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
+			deletePs = securityDb.getPreparedStatement(deleteQuery);
+			deletePs.setString(1, userDetails.getValue0());
+			deletePs.execute();
+			if (!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+			
+			if(enginePermissions != null && !enginePermissions.isEmpty()) {
+				// loop through to add the new permissions
+				for (Map<String, Object> permissionMap : enginePermissions) {
+					String engineId = (String) permissionMap.get("engineId");
+					String permission = (String) permissionMap.get("permission");
+					String engineName = (String) permissionMap.get("engineName");
+					String engineSubType = (String) permissionMap.get("engineSubType");
+	
+					// Step 2: Validate EngineId exist in Engine table or not
+					boolean engineExists = engineExists(engineId);
+					if (!engineExists) {
+						addEngine(engineId, engineName, IEngine.CATALOG_TYPE.DATABASE, engineSubType, "", false, null);
+					}
+					
+					Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
+					// Step 3: Insert new permissions
+					String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
+					insertPs = securityDb.getPreparedStatement(insertQuery);
+					insertPs.setString(1, userDetails.getValue0());
+					insertPs.setInt(2, AccessPermissionEnum.getIdByPermission(permission));
+					insertPs.setString(3, engineId);
+					insertPs.setTimestamp(4, currentTimestamp);
+					insertPs.addBatch();
 				}
-
-				// Step 2: Validate EngineId exist in Engine table or not
-				boolean engineExists = validateEngineId(engineId);
-				if (!engineExists) {
-					insertEngine(engineName, engineId, engineSubType);
-				}
-				// Step 3: Insert new permissions
-				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
-				insertPs = securityDb.getPreparedStatement(insertQuery);
-				Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
-
-				insertPs.setString(1, userDetails.getValue0());
-				insertPs.setInt(2, AccessPermissionEnum.getIdByPermission("permission"));
-				insertPs.setString(3, engineId);
-				insertPs.setTimestamp(4, currentTimestamp);
-				insertPs.addBatch();
+				
 				insertPs.executeBatch();
-
 				if (!insertPs.getConnection().getAutoCommit()) {
 					insertPs.getConnection().commit();
 				}
@@ -3058,136 +3071,4 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Validate if the given engineId exists in the database.
-	 * 
-	 * @param engineId
-	 * @return
-	 */
-	private static boolean validateEngineId(String engineId) {
-		String query = "SELECT EXISTS (SELECT 1 FROM ENGINE WHERE ENGINEID = ?)";
-		try (PreparedStatement ps = securityDb.getPreparedStatement(query)) {
-			ps.setString(1, engineId);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					return rs.getInt(1) > 0;
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		return false;
-	}
-
-	/**
-	 * Insert a new engine entry into the ENGINE table.
-	 * 
-	 * @param engineId
-	 */
-	private static void insertEngine(String engineName, String engineId, Object engineSubType) {
-		String insertEngineQuery = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, DATECREATED, ENGINESUBTYPE) VALUES (?, ?, ?, ?)";
-		try (PreparedStatement ps = securityDb.getPreparedStatement(insertEngineQuery)) {
-			ps.setString(1, engineName);
-			ps.setString(2, engineId);
-			ps.setTimestamp(3, Utility.getCurrentSqlTimestampUTC());
-			ps.setObject(4, engineSubType);
-			ps.executeUpdate();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	/**
-	 * 
-	 * @param emailId
-	 * @return
-	 * @throws Exception
-	 */
-	public static String getClientApiJsonResponse(String emailId) throws Exception {
-		DIHelper prop = DIHelper.getInstance();
-
-		String url = prop.getProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_URL);
-
-		JSONObject requestBody = new JSONObject();
-		requestBody.put(Constants.EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_EMAIL_ID, emailId);
-
-		String username = prop.getProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_USERNAME);
-		String password = prop.getProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_PASSWORD);
-		String basicAuth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
-
-		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put("Authorization", "Basic " + basicAuth);
-		headersMap.put("Accept", "application/json");
-		headersMap.put("Content-Type", "application/json");
-
-		return HttpHelperUtility.postRequestStringBody(url, headersMap, requestBody.toString(),
-				ContentType.APPLICATION_JSON, null, null, null);
-	}
-
-	/**
-	 * 
-	 * @param apiResponse
-	 * @return
-	 */
-	public static List<Map<String, Object>> transformApiResponse(String apiResponse) {
-		List<Map<String, Object>> enginePermissions = new ArrayList<>();
-		try {
-			DIHelper prop = DIHelper.getInstance();
-			// Parse and Manipulate JSON Response
-			ObjectMapper mapper = new ObjectMapper();
-			JsonNode rootNode = mapper.readTree(apiResponse);
-			Iterator<String> fieldNames = rootNode.fieldNames();
-			String firstKey = fieldNames.next();
-			JsonNode detailNode = rootNode.path(firstKey);
-
-			for (JsonNode detail : detailNode) {
-				Map<String, Object> permissionMap = new HashMap<>();
-				String targetSystem = detail.path("targetSystem").asText();
-				RdbmsTypeEnum engineSubType = RdbmsTypeEnum.getEnumFromString(targetSystem);
-				if (engineSubType != null) {
-					permissionMap.put("engineSubType", engineSubType);
-				} else {
-					classLogger.warn("engine sub type not found for targetSystem : " + targetSystem);
-				}
-				permissionMap.put("engineId", detail.path("dataCollectionId").asText());
-				permissionMap.put("engineName", detail.path("dataCollectionName").asText());
-
-				String defaultPermission = prop
-						.getProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION);
-				permissionMap.put("permission", defaultPermission);
-
-				enginePermissions.add(permissionMap);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		return enginePermissions;
-	}
-
-	/**
-	 * 
-	 * @param user
-	 */
-	public static void updateEnginePermissionsBasedOnApiCall(User user) {
-		try {
-			//get the logged in  user emailId
-			String emailId = user.getAccessToken(user.getLogins().get(0)).getEmail();
-			classLogger.info("logged in user email id : " + emailId);
-
-			//Call client API to get api Response
-			String apiResponse = getClientApiJsonResponse(emailId);
-
-			//Transform api response
-			List<Map<String, Object>> enginePermissions = transformApiResponse(apiResponse);
-
-			//update permissions for engine
-			updateEngineUserPermissions(user, enginePermissions);
-			classLogger.info("engine permissions update for : USERID =" + User.getSingleLogginName(user));
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating the engine permissions");
-		}
-
-	}
 }

@@ -993,9 +993,11 @@ public class Constants {
     public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
   	
 	//External Permission Management
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "external_user_Default_permission";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_EMAIL_ID = "in_EmailID";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "external_url";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_USERNAME= "external_user_username";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_USERATTRIBUTE_PASSWORD = "external_user_password";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME= "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY = "EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY";
+
 }

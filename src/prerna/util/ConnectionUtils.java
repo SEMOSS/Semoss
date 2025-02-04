@@ -160,52 +160,28 @@ public class ConnectionUtils {
 		}
 	}
 
-	public static void closeAllDbConnectionsIfPooling(IRDBMSEngine engine, Statement deletePs, Statement insertPs) {
-		closeAllDbConnectionsIfPooling(engine, deletePs, insertPs, null);
-	}
-
-	public static void closeAllDbConnectionsIfPooling(IRDBMSEngine engine, Statement deletePs, Statement insertPs,
-			ResultSet rs) {
-		if (rs != null) {
-			try {
-				rs.close();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		if (deletePs != null) {
-			try {
-				deletePs.close();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		if (engine != null && engine.isConnectionPooling()) {
-			try {
-				if (deletePs != null && deletePs.getConnection() != null) {
-					deletePs.getConnection().close();
+	/**
+	 * 
+	 * @param engine
+	 * @param statements
+	 */
+	public static void closeAllDbConnectionsIfPooling(IRDBMSEngine engine, Statement... statements) {
+		if(statements != null) {
+			for(Statement stmt : statements) {
+				if(stmt != null) {
+					try {
+						stmt.close();
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+					if (engine != null && engine.isConnectionPooling()) {
+						try {
+							stmt.getConnection().close();
+						} catch (Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
 				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		if (insertPs != null) {
-			try {
-				insertPs.close();
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		if (engine != null && engine.isConnectionPooling()) {
-			try {
-				if (insertPs != null && insertPs.getConnection() != null) {
-					insertPs.getConnection().close();
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
