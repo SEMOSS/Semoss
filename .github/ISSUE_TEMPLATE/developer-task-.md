@@ -1,9 +1,10 @@
 ---
-name: 'Developer Task '
-about: For issues linked in the community repo
-title: "[TASK]"
+name: Developer Task
+about: For specific tasks to work on
+title: ""
 labels: ''
 assignees: ''
+type: task
 
 ---
 
@@ -19,6 +20,6 @@ Is there any relevant code or ui feature that the developer should know about wh
 
 This issue references. . .
 
-### Tasks
+### Requirements
 
-What are more specific tasks that a developer needs to take to consider this issue resolved.
+What are more specific requirements that a developer needs to take to consider this issue resolved.
