@@ -81,7 +81,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private int contentOverlap = 0;
 	
 	private String defaultChunkUnit;
-	private String defaultIndexClass;
+//	protected String defaultExtractionMethod;
 	
     protected boolean customDocumentProcessor = false;
     protected String customDocumentProcessorFunctionID = null;
@@ -93,6 +93,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String vectorTableName = null;
 	private String vectorTableMetadataName = null;
 	private File schemaFolder;
+	
+	// our paradigm for how we store files
+	private String defaultIndexClass;
 	private	List<String> indexClasses;
 
 	// python server
@@ -125,17 +128,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			this.vectorTableMetadataName = this.vectorTableName + "_METADATA";
 		}
 		
-		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
-		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
-
-		// This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
-		this.schemaFolder = new File(engineDir, "schema");
-		if(!this.schemaFolder.exists()) {
-			this.schemaFolder.mkdirs();
-		}
-
-		this.indexClasses = new ArrayList<>();
-		
 		Connection conn = null;
 		try {
 			conn = getConnection();
@@ -165,10 +157,39 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 		}
 		
+//		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
+		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
+		
+        // smss properties for custom document processing
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
+        	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
+        }
+        if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
+        	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
+        }
+        
+		// highest directory (first layer inside vector db base folder)
+		String engineDir = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId, this.engineName);
+		this.pyDirectoryBasePath = new File(Utility.normalizePath(engineDir + DIR_SEPARATOR + "py" + DIR_SEPARATOR));
+		
+		// second layer - This holds all the different "tables". The reason we want this is to easily and quickly grab the sub folders
+		this.schemaFolder = new File(engineDir, "schema");
+		if(!this.schemaFolder.exists()) {
+			this.schemaFolder.mkdirs();
+		}
+		
+		// third layer - All the separate tables,classes, or searchers that can be added to this db
+		this.indexClasses = new ArrayList<>();
+        for (File file : this.schemaFolder.listFiles()) {
+            if (file.isDirectory() && !file.getName().equals("temp")) {
+            	this.indexClasses.add(file.getName());
+            }
+        }
 	}
 	
 	/**
@@ -850,8 +871,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			verifyModelProps();
 		}
 		
-		this.removeDocument(filePaths, parameters);
-
+		try {
+			this.removeDocument(filePaths, parameters);
+		} catch(Exception ignore) {
+			// we are only removing just in case
+			// if something doesn't exist, just ignore the exception
+		}
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
@@ -872,9 +897,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.CHUNK_UNIT.getKey());
 		}
 
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
-			chunkUnit = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
-		}
+//		String extractionMethod = this.defaultExtractionMethod;
+//		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey())) {
+//			extractionMethod = (String) parameters.get(VectorDatabaseParamOptionsEnum.EXTRACTION_METHOD.getKey());
+//		}
 		
 		Insight insight = getInsight(parameters.get(AbstractVectorDatabaseEngine.INSIGHT));
 		if (insight == null) {
