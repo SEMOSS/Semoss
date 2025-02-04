@@ -2,7 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -25,7 +25,7 @@ public class SocialPropertiesUtil {
 	private static String socialPropFile = null;
 	
 	public SocialPropertiesUtil() {
-		SocialPropertiesUtil.socialPropFile = DIHelper.getInstance().getProperty(Constants.SOCIAL);
+		SocialPropertiesUtil.socialPropFile = Utility.getDIHelperProperty(Constants.SOCIAL);
 		if(SocialPropertiesUtil.socialPropFile != null) {
 			File f = new File(SocialPropertiesUtil.socialPropFile);
 			if (!f.exists()) {
@@ -76,11 +76,7 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.isNativeRegistrationAllowed();
 	}
 	
-	public Map<String, String> getLoginDisplayNames() {
-		return SocialPropertiesUtil.processor.getLoginDisplayNames();
-	}
-	
-	public ArrayList<Map<String, Object>> getAvailableProviders() {
+	public List<Map<String, Object>> getAvailableProviders() {
 		return SocialPropertiesUtil.processor.getAvailableProviders();
 	}
 	

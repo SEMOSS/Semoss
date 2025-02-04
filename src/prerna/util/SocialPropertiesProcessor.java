@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -44,8 +45,7 @@ public class SocialPropertiesProcessor {
 	// social properties
 	private Properties socialData = null;
 	private Map<String, Boolean> loginsAllowedMap;
-	private Map<String, String> loginDisplayNameMap;
-	private ArrayList<Map<String, Object>> availableProviders = new ArrayList<Map<String, Object>>();
+	private List<Map<String, Object>> availableProviders;
 
 	// smtp
 	private Session smtpEmailSession = null;
@@ -87,7 +87,6 @@ public class SocialPropertiesProcessor {
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
 		setLoginsAllowed();
-		setLoginDisplayNames();
 		setAvailableProviders();
 	}
 
@@ -124,82 +123,41 @@ public class SocialPropertiesProcessor {
 		return Boolean.parseBoolean(socialData.getProperty("native_registration") + "");
 	}
 
-	public void setLoginDisplayNames() {
-		this.loginDisplayNameMap = new HashMap<>();
-		// define the allProviders set
-		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
-
-		// get all _display_name props
-		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_display_name"))
-				.collect(Collectors.toSet());
-
-		for (String prop : loginProps) {
-			// prop ex. ms_display_name
-			// get provider from prop by split on _
-			String provider = prop.split("_display_name")[0];
-
-			String value = socialData.getProperty(prop);
-			if (value != null && !(value = value.trim()).isEmpty()) {
-				this.loginDisplayNameMap.put(provider, socialData.getProperty(prop));
-				// remove the provider present in social.prop from the allProviders list
-				allProviders.remove(provider);
-			}
-		}
-
-		// loop through the Providers list whom does not have _display_name prop in
-		// social.prop file
-		// and set its default display name as provider name
-		for (String provider : allProviders.keySet()) {
-			this.loginDisplayNameMap.put(provider, allProviders.get(provider).getDisplayName());
-		}
-	}
-
 	/**
 	 * Get a list of providers from the social.properties
 	 */
 	public void setAvailableProviders() {
 		this.availableProviders = new ArrayList<Map<String, Object>>();
 
-		// get all of the props
-		Set<String> props = socialData.stringPropertyNames().stream().collect(Collectors.toSet());
-
-		for (String prop : props) {
-			// check if it is a login prop
-			if (prop.endsWith("_login")) {
-				// prop ex. ms_login
-
-				// check if it allowed
-				Boolean isAllowed = Boolean.parseBoolean(socialData.getProperty(prop));
-				if(!isAllowed) {
-					continue;
-				}
-				
-				// get provider from prop by split on _
-				String provider = prop.split("_login")[0];
-
-				// get the name if it exists
-				String name = provider;
-				if (props.contains(provider + "_display_name")) {
-					String value = socialData.getProperty(provider + "_display_name");
-					if (value != null && !(value = value.trim()).isEmpty()) {
-						name = value;
-					}
-				}
-				
-				// check if it is oauth
-				Boolean isOauth = true;
-				if (provider.equals("native") || provider.equals("ldap") || provider.equals("LinOTP")) {
-					isOauth = false;
-				}
-
-				Map<String, Object> providerMap = new HashMap<String, Object>();
-
-				providerMap.put("name", name);
-				providerMap.put("provider", provider);
-				providerMap.put("isOauth", isOauth);
-
-				this.availableProviders.add(providerMap);
+		// define the allProviders set
+		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
+		
+		// get all _login props
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_login")).collect(Collectors.toSet());
+		for (String prop : loginProps) {
+			// check if it allowed
+			Boolean isAllowed = Boolean.parseBoolean(socialData.getProperty(prop));
+			if(!isAllowed) {
+				continue;
 			}
+			
+			// get provider from prop by split on _
+			String provider = prop.split("_login")[0];
+
+			// get the name if it exists
+			String name = allProviders.get(provider).getDisplayName();
+			if (socialData.get(provider + "_display_name") != null) {
+				String value = socialData.getProperty(provider + "_display_name");
+				if (value != null && !(value = value.trim()).isEmpty()) {
+					name = value;
+				}
+			}
+			
+			Map<String, Object> providerMap = new HashMap<>();
+			providerMap.put("name", name);
+			providerMap.put("provider", provider);
+			providerMap.put("isOauth", allProviders.get(provider).isOAuth());
+			this.availableProviders.add(providerMap);
 		}
 	}
 
@@ -338,11 +296,7 @@ public class SocialPropertiesProcessor {
 		return this.loginsAllowedMap;
 	}
 
-	public Map<String, String> getLoginDisplayNames() {
-		return this.loginDisplayNameMap;
-	}
-	
-	public ArrayList<Map<String, Object>> getAvailableProviders() {
+	public List<Map<String, Object>> getAvailableProviders() {
 		return this.availableProviders;
 	}
 
