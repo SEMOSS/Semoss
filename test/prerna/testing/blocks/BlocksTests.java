@@ -57,7 +57,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 
 	private String validateAdd() {
 		Map<String, Object> inputMap = makeTestObject();
-		String pixel = ApiSemossTestUtils.buildPixelCall(AddBlockReactor.class, ReactorKeysEnum.DATA_TYPE_MAP.getKey(), inputMap);
+		String pixel = ApiSemossTestUtils.buildPixelCall(AddBlockReactor.class, ReactorKeysEnum.DATA_TYPE_MAP.getKey(), inputMap, "tableName", "BLOCKS_TEMPLATE");
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		String outputId = nm.getValue().toString();
 		

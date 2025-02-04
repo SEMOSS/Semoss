@@ -17,8 +17,8 @@ import prerna.theme.BlocksThemeUtils;
 public class AddBlockReactor extends AbstractReactor {
 
 	public AddBlockReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATA_TYPE_MAP.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATA_TYPE_MAP.getKey(), "tableName" };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -41,7 +41,8 @@ public class AddBlockReactor extends AbstractReactor {
 
 		organizeKeys();
 		Map<String, Object> blockDetails = getBlockDetails();
-		String blockId = BlocksThemeUtils.addBlock(blockDetails);
+		String tableName = this.keyValue.get("tableName");
+		String blockId = BlocksThemeUtils.addBlock(blockDetails, tableName);
 		NounMetadata nm = new NounMetadata(blockId, PixelDataType.CONST_STRING);
 		return nm;
 	}
