@@ -28,6 +28,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PythonVariableValidator;
+import prerna.util.Settings;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -89,6 +91,14 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			modelType = ModelTypeEnum.getEnumFromName(modelTypeStr);
 		} catch(Exception e) {
 			throw new IllegalArgumentException("Invalid model type " + modelTypeStr);
+		}
+		
+		if(modelDetails.containsKey(Settings.VAR_NAME)) {
+			// need to validate this is alphanumeric underscore and does not start with a number
+			String varName = modelDetails.get(Settings.VAR_NAME);
+			if(!PythonVariableValidator.isValidPythonVariableName(varName)) {
+				throw new IllegalArgumentException("The variable '"+varName+"' is not a valid variable name. It must be alphanumeric underscore, cannot start with a digit, and cannot be a reserved word.");
+			}
 		}
 		
 		String modelId = UUID.randomUUID().toString();

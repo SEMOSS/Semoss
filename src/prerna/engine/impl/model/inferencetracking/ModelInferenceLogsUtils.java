@@ -81,6 +81,10 @@ public class ModelInferenceLogsUtils {
 			if (primaryKeysAdded) {
 				addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
 			}
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
 		}
@@ -1184,12 +1188,13 @@ public class ModelInferenceLogsUtils {
 		// Initialize the date range map (start and end dates)
 		Map<String, ZonedDateTime> dates = new HashMap<>();
 		// Determine the start and end date based on the given frequency
-		if(frequency.equals("WEEK")) {
+		if(frequency.equalsIgnoreCase("WEEK")) {
 			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if(frequency.equals("MONTH")) {
+		} else if(frequency.equalsIgnoreCase("MONTH")) {
 			// Get start and end date for the current month
 			dates = Utility.getMonthStartEndDate(currentDateTime);
 		} else {
+			// assume they want daily
 			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
 			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
 		}
@@ -1217,17 +1222,18 @@ public class ModelInferenceLogsUtils {
 			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
 			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
 		
-			rs = ps.executeQuery();
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
-					ps.getConnection(),
-					ps,
-					rs,
-					query,
-					false
-					);
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
 			
 			if(wrapper.hasNext()) {
-				return (Number) wrapper.next().getValues()[0];
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				// if this is null
+				// that means there are no logs currently for this model
+				// we will treat this as 0 usage
+				if(retNum == null) {
+					return 0;
+				}
+				return retNum;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1310,12 +1316,19 @@ public class ModelInferenceLogsUtils {
 					ps.setString(psIndex++, excludeEngineId);
 				}
 			}
-			rs = ps.executeQuery();
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
-					ps.getConnection(), ps, rs, query, false);
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
 
 			if (wrapper.hasNext()) {
-				return (Number) wrapper.next().getValues()[0];
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				// if this is null
+				// that means there are no logs currently for this model
+				// we will treat this as 0 usage
+				if(retNum == null) {
+					return 0;
+				}
+				return retNum;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

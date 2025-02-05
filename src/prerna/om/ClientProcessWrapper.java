@@ -150,21 +150,30 @@ public class ClientProcessWrapper {
 				this.socketClient.connect("127.0.0.1", this.port, false);
 				Thread t = new Thread(socketClient);
 				t.start();
-				while(!socketClient.isReady())
-				{
-					synchronized(socketClient)
-					{
-						try 
-						{
+				while(!socketClient.isReady()) {
+					// since this is in a while loop
+					// the socket client might have notified us
+					// however, the isReady is false
+					// because the socket couldn't connect
+					// so we also set the killAll
+					// and break out of this loop
+					// since the loop is also in a sync block
+					// it causes an infinite wait and the reconnect server logic doesn't work
+					if(socketClient.isKillAll()) {
+						throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+					}
+					synchronized(socketClient) {
+						try {
 							socketClient.wait();
-							classLogger.info("Setting the socket client ");
 						} catch (InterruptedException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
+				classLogger.info("Setting the socket client ");
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
+				throw e;
 			}
 		}
 	}
@@ -182,8 +191,8 @@ public class ClientProcessWrapper {
 		        	if(cleanUpFolder) {
 		        		this.socketClient.stopPyServe();
 		        		classLogger.info("Sucessfully stopped the process");
-		        		int attempt = 1;
-		        		while(!result) {
+		        		int attempt = 0;
+		        		while(!result && attempt <= 10) {
 		        			try {
 		        				FileUtils.deleteDirectory(this.serverDirectory);
 				        		classLogger.info("Sucessfully cleaned up the directory");
@@ -257,17 +266,19 @@ public class ClientProcessWrapper {
 	    		}
 			}
 		}
-		if(this.port > 0) {
-			if(!PortAllocator.isPortAvailable(this.port)) {
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-            	classLogger.warn("Assigning new port...");
-				this.port = -1;
-			}
-		}
+		// always assign a new port
+		this.port = -1;
+//		if(this.port > 0) {
+//			if(!PortAllocator.isPortAvailable(this.port)) {
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
+//            	classLogger.warn("Assigning new port...");
+//				this.port = -1;
+//			}
+//		}
 	}
 	
 	/**

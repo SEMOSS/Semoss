@@ -11,9 +11,10 @@ from ..constants import EmbeddingsModelEngineResponse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class BedrockEmbedder(AbstractEmbedder):
     def __init__(
-        self,    
+        self,
         model_name: str = None,
         modelId: str = None,
         access_key=None,
@@ -22,7 +23,7 @@ class BedrockEmbedder(AbstractEmbedder):
         cohere_input_type: str = None,
         **kwargs,
     ) -> None:
-        self.kwargs = kwargs       
+        self.kwargs = kwargs
         if model_name:
             self.model_name = model_name
         elif modelId:
@@ -46,46 +47,55 @@ class BedrockEmbedder(AbstractEmbedder):
 
         super().__init__(
             model_name=self.model_name,
-            **kwargs, 
-        )   
-    
-    def embeddings_call(self, strings_to_embed: List[str], prefix: str = "") -> EmbeddingsModelEngineResponse:  
+            **kwargs,
+        )
+
+    def embeddings_call(
+        self, strings_to_embed: List[str], prefix: str = ""
+    ) -> EmbeddingsModelEngineResponse:
         embeddings_list = []
-        embeddings = []      
+        embeddings = []
 
         for text in strings_to_embed:
             json_obj = self.createJsonObjForModel(text)
             request = json.dumps(json_obj)
-        
-            try:   
+
+            try:
                 response = self.client.invoke_model(
                     modelId=self.model_name, body=request
                 )
-                response_body = json.loads(response['body'].read()) 
-                
+                response_body = json.loads(response["body"].read())
+
                 # Determine the correct key for embeddings
                 if "amazon.titan-embed-text" in self.model_name:
                     embedding_array = response_body.get("embedding")
                 elif "cohere.embed" in self.model_name:
-                    embedding_array = response_body.get("embeddings")[0] # we are only sending in 1 at a time in the for loop
+                    embedding_array = response_body.get("embeddings")[
+                        0
+                    ]  # we are only sending in 1 at a time in the for loop
                 else:
                     raise ValueError(f"Unsupported model name: {self.model_name}")
 
                 if embedding_array:
                     embeddings_list = [float(value) for value in embedding_array]
                     embeddings.append(embeddings_list)
-                
+
                 model_engine_response = EmbeddingsModelEngineResponse(
                     response=embeddings,
                     prompt_tokens=response_body.get("inputTextTokenCount"),
-                    response_tokens=0
+                    response_tokens=0,
                 )
 
             except requests.RequestException as e:
                 logger.error(f"An error occurred in bedrock embedding: {e}")
-        
+
         return model_engine_response
-    
+
+    def image_embeddings_call(
+        self, images_to_embed: List[str], **kwargs
+    ) -> EmbeddingsModelEngineResponse:
+        raise NotImplementedError("This model does not support image embeddings.")
+
     def createJsonObjForModel(self, text):
         if "amazon.titan-embed-text" in self.model_name:
             return {"inputText": text}
@@ -95,6 +105,6 @@ class BedrockEmbedder(AbstractEmbedder):
             return json_obj
         else:
             raise ValueError(f"Unsupported model name: {self.model_name}")
-        
+
     def _get_tokenizer(self, init_args):
         return None

@@ -547,8 +547,8 @@ public class PyTranslator {
 		ErrorSenderThread est = new ErrorSenderThread();
 		if (in != null) {
 			est.setInsight(in);
-			est.start();
 			est.setFile(outputPath);
+			est.start();
 		}
 
 		String output = null;
@@ -635,8 +635,7 @@ public class PyTranslator {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error in writing Py script for execution.");
 		} finally {
-
-			// Cleanup
+			// cleanup
 			preScriptFile.delete();
 			scriptFile.delete();
 		}
