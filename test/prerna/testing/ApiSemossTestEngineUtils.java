@@ -91,12 +91,12 @@ public class ApiSemossTestEngineUtils {
 	}
 
 	public static void addDBStartupTasks(List<Callable<Void>> tasks) {
-		tasks.add(() -> initializePrompt());
 		tasks.add(() -> initializeLocalMaster());
 		tasks.add(() -> initializeSecurity());
 		tasks.add(() -> initializeScheduler());
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
+		tasks.add(() -> initializePrompt());
 	}
 
 	private static Void initializeLocalMaster() throws IOException, Exception {
