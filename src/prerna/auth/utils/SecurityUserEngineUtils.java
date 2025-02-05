@@ -520,6 +520,11 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY", "permission_granted_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBYTYPE", "permission_granted_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
+		// usage restriction
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USAGERESTRICTION", "usage_restriction"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", "max_tokens"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", "max_response_time"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USAGEFREQUENCY", "usage_frequency"));
 		// filter to the engine
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (hasSearchParam) {

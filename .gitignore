@@ -48,6 +48,10 @@ __pycache__/
 .AppleDouble
 .LSOverride
 
+# config files
+RDF_Map.prop
+social.properties
+
 # local engines
 project/**
 user/**
