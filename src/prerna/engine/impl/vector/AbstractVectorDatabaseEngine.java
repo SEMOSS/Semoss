@@ -28,8 +28,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -108,7 +108,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected ClientProcessWrapper cpw = null;
 	// python server
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
@@ -745,7 +745,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		try {

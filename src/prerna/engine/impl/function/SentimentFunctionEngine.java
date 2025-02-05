@@ -10,8 +10,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.internal.LinkedTreeMap;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,7 +27,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 
 	private static final Logger classLogger = LogManager.getLogger(SentimentFunctionEngine.class);
 
-	TCPPyTranslator pyt = null;
+	PyTranslator pyt = null;
 	NativePySocketClient socketClient = null;
 	Process p = null;
 	String port = null;
@@ -143,7 +143,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		connectClient();
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(socketClient);
 		pyt.runEmptyPy(commands);	
 		

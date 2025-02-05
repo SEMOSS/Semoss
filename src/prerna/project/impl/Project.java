@@ -52,7 +52,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -1693,7 +1693,7 @@ public class Project implements IProject {
 	 * 
 	 * @return
 	 */
-	public TCPPyTranslator getProjectPyTranslator(Insight insight) {
+	public PyTranslator getProjectPyTranslator(Insight insight) {
 		if(this.cpw.getSocketClient() == null) {
 			createProjectTcpServer(-1);
 		} else if( !this.cpw.getSocketClient().isConnected()) {
@@ -1705,7 +1705,7 @@ public class Project implements IProject {
 				throw new IllegalArgumentException("Failed to start TCP Server for Project = " + SmssUtilities.getUniqueName(this.projectName, this.projectId));
 			}
 		}
-		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+		PyTranslator pyJavaTranslator = new PyTranslator();
 		pyJavaTranslator.setSocketClient(this.cpw.getSocketClient());
 		pyJavaTranslator.setInsight(insight);
 		return pyJavaTranslator;

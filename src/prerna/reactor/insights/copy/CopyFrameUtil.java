@@ -62,8 +62,6 @@ public class CopyFrameUtil {
 				// set the metadata
 				newFrame.setMetaData(newMetadata);
 				PandasFrame dt = (PandasFrame) newFrame;
-
-				dt.setJep( insightContext.getPy() );
 				dt.setTranslator( insightContext.getPyTranslator() );
 				if(limit > 0) {
 					dt.runScript(newName + " = " + oldName + "[:" + limit + "].copy(deep=True)");

@@ -530,7 +530,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 		byte[] epocBytes = ByteBuffer.allocate(20).put(epoc.getBytes(StandardCharsets.UTF_8)).array();
 
-
 		// pack both of these
 		byte[] finalByte = new byte[psBytes.length + lenBytes.length + epocBytes.length];
 
@@ -545,9 +544,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			finalByte[lenIndex + lenBytes.length + epocBytes.length] = psBytes[lenIndex];
 
 		return finalByte;
-
 	}
-
 
 	private void writeEmptyPayload()
 	{
@@ -556,7 +553,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		ps.methodName = "EMPTYEMPTYEMPTY";
 		writePayload(ps);
 	}
-
 
 	public void writeReleaseAllPayload()
 	{

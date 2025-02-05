@@ -34,8 +34,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -99,7 +99,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private	List<String> indexClasses;
 
 	// python server
-	private TCPPyTranslator pyt = null;
+	private PyTranslator pyt = null;
 	private File pyDirectoryBasePath;
 	private ClientProcessWrapper cpw = null;
 	
@@ -831,7 +831,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		try {

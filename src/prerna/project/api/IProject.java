@@ -36,7 +36,7 @@ import java.util.Vector;
 
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
@@ -293,7 +293,7 @@ public interface IProject extends IEngine, Closeable {
 	 * @return
 	 */
 	
-	TCPPyTranslator getProjectPyTranslator(Insight insight);
+	PyTranslator getProjectPyTranslator(Insight insight);
 	
 	/**
 	 * 

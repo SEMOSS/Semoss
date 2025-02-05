@@ -37,7 +37,7 @@ import org.apache.zookeeper.data.Stat;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.PortAllocator;
@@ -87,7 +87,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 	public static final String SERVER_PATH = "/server";
 	String workingDirectoryBasePath = null;
 	NativePySocketClient socketClient = null;
-	TCPPyTranslator pyt = null;
+	PyTranslator pyt = null;
 	Process process = null;
 	String workingDirectory = null;
 	String prefix = null;
@@ -245,7 +245,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener
 			// start a base python
 			
 			socketClient = connect2Py(null);
-			pyt = new TCPPyTranslator();
+			pyt = new PyTranslator();
 			pyt.setSocketClient(socketClient);
 			
 			// publish this node ? - do we even need to ?
