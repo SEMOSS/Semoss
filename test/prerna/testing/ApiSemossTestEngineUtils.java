@@ -65,7 +65,9 @@ public class ApiSemossTestEngineUtils {
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
 			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {})),
-			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})));
+			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})),
+			Pair.of(Constants.PROMPT_DB, Arrays.asList(new String[] {}))
+			);
 
 	static void checkDatabasePropMapping() {
 		assertEquals(ApiTestsSemossConstants.LMD_SMSS,
@@ -133,29 +135,6 @@ public class ApiSemossTestEngineUtils {
 		doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
 		AbstractPromptUtils.loadPromptDatabase();
 		return null;
-	}
-
-	private static void initializeSemossDatabases() throws Exception {
-		doInitializeSemossDB(Constants.LOCAL_MASTER_DB, "databaseNewMaster.mv.db");
-		MasterDatabaseUtility.initLocalMaster();
-
-		doInitializeSemossDB(Constants.SECURITY_DB, "database.mv.db");
-//		SecurityOwlCreator soc = new SecurityOwlCreator((RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB));
-//		soc.remakeOwl();
-		AbstractSecurityUtils.loadSecurityDatabase();
-
-		doInitializeSemossDB(Constants.SCHEDULER_DB, "database.mv.db");
-		// error when initializing
-		// TODO: fix this later
-		// SchedulerDatabaseUtility.startServer();
-
-		doInitializeSemossDB(Constants.THEMING_DB, "database.mv.db");
-		AbstractThemeUtils.loadThemingDatabase();
-
-		doInitializeSemossDB(Constants.USER_TRACKING_DB, "databaseNewUserTracking.mv.db");
-		UserTrackingUtils.initUserTrackerDatabase();
-
-		createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
 	}
 
 	public static void createUser(String userUserName, String email, String type, boolean isAdmin) throws SQLException {
