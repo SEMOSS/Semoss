@@ -37,6 +37,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.prompt.AbstractPromptUtils;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -93,6 +94,7 @@ public class ApiSemossTestEngineUtils {
 		tasks.add(() -> initializeScheduler());
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
+		tasks.add(() -> initializePrompt());
 	}
 
 	private static Void initializeLocalMaster() throws IOException, Exception {
@@ -124,6 +126,12 @@ public class ApiSemossTestEngineUtils {
 		// error when initializing
 		// TODO: fix this later
 		// SchedulerDatabaseUtility.startServer();
+		return null;
+	}
+	
+	private static Void initializePrompt() throws Exception {
+		doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
+		AbstractPromptUtils.loadPromptDatabase();
 		return null;
 	}
 
