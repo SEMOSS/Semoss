@@ -53,12 +53,13 @@ RDF_Map.prop
 social.properties
 
 # local engines
-project/**
-user/**
 db/**
-model/**
 function/**
+guardrail/**
+model/**
+project/**
 storage/**
+user/**
 vector/**
 *.mv.db
 # Don't track anything but CSV_Insights folder
