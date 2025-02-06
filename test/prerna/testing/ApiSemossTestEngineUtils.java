@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -59,6 +61,8 @@ public class ApiSemossTestEngineUtils {
 	private static List<String> CURRENT_NAMES = new ArrayList<>();
 	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
 	private static List<String> IDS_TO_AVOID = null;
+	
+	private static Logger logger = LogManager.getLogger(ApiSemossTestEngineUtils.class);
 
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
@@ -320,7 +324,10 @@ public class ApiSemossTestEngineUtils {
 	private static Triple<String, String, String> getTestDatabaseConnection(String db) {
 		String dbPath = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
 		Properties props = Utility.loadProperties(dbPath);
+		logger.info("Test dbPath: {}", dbPath);
+		logger.info("Props: {}", props);
 		String connection = props.getProperty(Constants.CONNECTION_URL);
+		logger.info("Connection String url: ", connection);
 		connection = connection.replaceAll("@BaseFolder@",
 				ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'));
 		connection = connection.replaceAll("@ENGINE@", db);
