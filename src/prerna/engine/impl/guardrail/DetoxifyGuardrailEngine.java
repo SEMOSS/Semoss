@@ -3,6 +3,7 @@ package prerna.engine.impl.guardrail;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -94,9 +95,12 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			}
 		}
 		
+		Map<String, Object> retValue = new HashMap<>();
+		retValue.put("threshold", threshold);
+		retValue.put("return", value);
 		// we do not manipulate the prompt
 		// so return as is
-		return new GuardrailNounMetadata(pass, prompt, value);
+		return new GuardrailNounMetadata(pass, prompt, retValue);
 	}
 
 	private void checkSocketStatus() {
