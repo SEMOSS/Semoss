@@ -77,6 +77,8 @@ testfolder/storage/**
 testfolder/vector/**
 testfolder/InsightCache/
 testfolder/mailpit/mailpit.log
+testfolder/RDF_Map.prop
+testfolder/db/themes/themes_OWL.OWL
 
 # test resources
 test/resources/RDF_MAP.prop
@@ -89,4 +91,4 @@ py/log.txt
 
 # Python .env
 py/.env
-testfolder/RDF_Map.prop
+
