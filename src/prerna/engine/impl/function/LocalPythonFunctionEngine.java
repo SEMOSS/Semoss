@@ -10,8 +10,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.om.ClientProcessWrapper;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -28,7 +28,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 	private String pythonFileName;
 	private String engineDirectoryPath = null;
 	
-	private TCPPyTranslator pyt = null;
+	private PyTranslator pyt = null;
 	private File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -121,7 +121,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		String execCommand = "import sys\n" 

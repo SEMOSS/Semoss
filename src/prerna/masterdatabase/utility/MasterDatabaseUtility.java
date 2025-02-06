@@ -60,6 +60,10 @@ public class MasterDatabaseUtility {
 		try {
 			conn = database.makeConnection();
 			executeInitLocalMaster(database, conn);
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} catch(SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;

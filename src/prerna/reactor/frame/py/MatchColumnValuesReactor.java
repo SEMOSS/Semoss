@@ -31,7 +31,6 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 		
 		PandasFrame returnTable = new PandasFrame(matchesTable);
 		returnTable.setTranslator(this.insight.getPyTranslator());
-		returnTable.setJep(frame.getJep());
 		returnTable.getTranslator().runEmptyPy(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
 		returnTable = (PandasFrame) recreateMetadata(returnTable, false);
 

@@ -567,8 +567,6 @@ public class Constants {
 
 	// old values in web.xml
 	@Deprecated
-	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
-	@Deprecated
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
 	// reduce operations to only admins
@@ -577,11 +575,37 @@ public class Constants {
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_PROJECT_SET_DISCOVERABLE = "ADMIN_ONLY_PROJECT_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
 	public static final String ADMIN_ONLY_DB_DELETE = "ADMIN_ONLY_DB_DELETE";
 	public static final String ADMIN_ONLY_DB_ADD_ACCESS	= "ADMIN_ONLY_DB_ADD_ACCESS";
 	public static final String ADMIN_ONLY_DB_SET_PUBLIC = "ADMIN_ONLY_DB_SET_PUBLIC";
 	public static final String ADMIN_ONLY_DB_SET_DISCOVERABLE = "ADMIN_ONLY_DB_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_MODEL_ADD = "ADMIN_ONLY_MODEL_ADD";
+	public static final String ADMIN_ONLY_MODEL_DELETE = "ADMIN_ONLY_MODEL_DELETE";
+	public static final String ADMIN_ONLY_MODEL_ADD_ACCESS	= "ADMIN_ONLY_MODEL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_MODEL_SET_PUBLIC = "ADMIN_ONLY_MODEL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_MODEL_SET_DISCOVERABLE = "ADMIN_ONLY_MODEL_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_STORAGE_ADD = "ADMIN_ONLY_STORAGE_ADD";
+	public static final String ADMIN_ONLY_STORAGE_DELETE = "ADMIN_ONLY_STORAGE_DELETE";
+	public static final String ADMIN_ONLY_STORAGE_ADD_ACCESS	= "ADMIN_ONLY_STORAGE_ADD_ACCESS";
+	public static final String ADMIN_ONLY_STORAGE_SET_PUBLIC = "ADMIN_ONLY_STORAGE_SET_PUBLIC";
+	public static final String ADMIN_ONLY_STORAGE_SET_DISCOVERABLE = "ADMIN_ONLY_STORAGE_SET_DISCOVERABLE";
+	
+	public static final String ADMIN_ONLY_VECTOR_ADD = "ADMIN_ONLY_VECTOR_ADD";
+	public static final String ADMIN_ONLY_VECTOR_DELETE = "ADMIN_ONLY_VECTOR_DELETE";
+	public static final String ADMIN_ONLY_VECTOR_ADD_ACCESS	= "ADMIN_ONLY_VECTOR_ADD_ACCESS";
+	public static final String ADMIN_ONLY_VECTOR_SET_PUBLIC = "ADMIN_ONLY_VECTOR_SET_PUBLIC";
+	public static final String ADMIN_ONLY_VECTOR_SET_DISCOVERABLE = "ADMIN_ONLY_VECTOR_SET_DISCOVERABLE";
+
+	public static final String ADMIN_ONLY_FUNCTION_ADD = "ADMIN_ONLY_FUNCTION_ADD";
+	public static final String ADMIN_ONLY_FUNCTION_DELETE = "ADMIN_ONLY_FUNCTION_DELETE";
+	public static final String ADMIN_ONLY_FUNCTION_ADD_ACCESS	= "ADMIN_ONLY_FUNCTION_ADD_ACCESS";
+	public static final String ADMIN_ONLY_FUNCTION_SET_PUBLIC = "ADMIN_ONLY_FUNCTION_SET_PUBLIC";
+	public static final String ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE = "ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
@@ -968,5 +992,15 @@ public class Constants {
     public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
     public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
   	
-	
+	//External Permission Management
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME= "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY = "EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE";
+
 }

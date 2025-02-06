@@ -185,7 +185,6 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
-import prerna.tcp.client.SocketClient;
 import prerna.tcp.workers.EngineSocketWrapper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -3810,11 +3809,26 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can add a database
+	 * Determine if for this instance only the admin can share insight
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDbAdd() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
+	public static boolean getApplicationAdminOnlyInsightShare() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	
+	/**
+	 * Determine if for this instance only the admin can set an insight public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3824,11 +3838,11 @@ public final class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can share insight
+	 * Determine if for this instance only the admin can add a database
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightShare() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+	public static boolean getApplicationAdminOnlyDbAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3892,13 +3906,279 @@ public final class Utility {
 		
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set an insight public
+	 * Determine if for this instance only the admin can add a model
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyInsightSetPublic() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
+	public static boolean getApplicationAdminOnlyModelAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a model
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set model access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a model discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyModelSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a storage
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set storage access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a storage discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyStorageSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a vector
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set vector access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a vector discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyVectorSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a function
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set function access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a function function 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -4826,6 +5106,7 @@ public final class Utility {
 			if (java == null) {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
+			java = java.trim();
 			if(!java.endsWith("bin")) {
 				//seems like for graal
 				java = java + "/bin/java";
@@ -4843,6 +5124,7 @@ public final class Utility {
 			if (jep == null) {
 				jep = System.getenv(Constants.LD_LIBRARY_PATH);
 			}
+			jep = jep.trim();;
 			// account for spaces in the path to jep
 			if (jep.contains(" ")) {
 				jep = "\"" + jep + "\"";
@@ -4877,11 +5159,11 @@ public final class Utility {
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
-			
+
 			String memory = "";
 			if(xms != null && xmx != null)
 				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
+
 			commands[2] = memory + " -cp";
 
 			//commands[2] = "-cp";
@@ -4899,7 +5181,7 @@ public final class Utility {
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
+			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
@@ -4969,6 +5251,7 @@ public final class Utility {
 			if (java == null) {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
+			java = java.trim();
 			if(!java.endsWith("bin")) {
 				//seems like for graal
 				java = java + "/bin/java";
@@ -4986,6 +5269,7 @@ public final class Utility {
 			if (jep == null) {
 				jep = System.getenv(Constants.LD_LIBRARY_PATH);
 			}
+			jep = jep.trim();
 			// account for spaces in the path to jep
 			if (jep.contains(" ")) {
 				jep = "\"" + jep + "\"";
@@ -5020,11 +5304,11 @@ public final class Utility {
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
-			
+
 			String memory = "";
 			if(xms != null && xmx != null)
 				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
+
 			commands[2] = memory + " -cp";
 
 			commands[3] = specificPath;
@@ -5041,7 +5325,7 @@ public final class Utility {
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
+			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
@@ -5099,7 +5383,7 @@ public final class Utility {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
-		
+
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
 		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
@@ -5107,7 +5391,6 @@ public final class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			
 			// only try to find the base python if one was not passed in
 			if (py == null || py.isEmpty()) {
 				py = System.getenv(Settings.PYTHONHOME);
@@ -5124,56 +5407,63 @@ public final class Utility {
 					throw new NullPointerException("Must define python home");
 				}
 			}
-			
+			py = py.trim();
 			// append the executable
 			if (SystemUtils.IS_OS_WINDOWS) {
 				py = py + "/python.exe";
 			} else {
 				py = py + "/bin/python3";
 			}
-			
+
 			py = py.replace("\\", "/");
-			
+
 			classLogger.info("The python executable being used is: " + py);
 
 			// check to see if the py folder is there
 			// if not go into base folder
 			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null
 					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			
+							: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
+			pyBase = pyBase.trim();
 			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
 			pyBase = pyBase.replace("\\", "/");
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
-			
+
 			String outputFile = finalDir + "/console.txt";
-			
+
 			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-					
-			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-			
+			String[] baseCommand = new String[] {
+					py, gaasServer, 
+					"--port", port, 
+					"--max_count", "1", 
+					"--py_folder", pyBase, 
+					"--insight_folder", finalDir, 
+					"--prefix", prefix, 
+					"--timeout", timeout, 
+					"--logger_level", loggerLevel
+					};
+
 			String[] commands;
-		
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-			    commands = new String[baseCommand.length + 3];
-			    commands[0] = "sudo";
-			    commands[1] = "-u";
-			    commands[2] = pythonUser;
-			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
-			    
-			    File pythonProcessFolder = new File(finalDir);
-			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-			    	pythonProcessFolder.setReadable(true, false);  
-			    	pythonProcessFolder.setWritable(true, false); 
-			    	pythonProcessFolder.setExecutable(true, false); 
-			    }	
+				commands = new String[baseCommand.length + 3];
+				commands[0] = "sudo";
+				commands[1] = "-u";
+				commands[2] = pythonUser;
+				System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+
+				File pythonProcessFolder = new File(finalDir);
+				if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+					pythonProcessFolder.setReadable(true, false);  
+					pythonProcessFolder.setWritable(true, false); 
+					pythonProcessFolder.setExecutable(true, false); 
+				}	
 			} else {
-			    commands = baseCommand;
+				commands = baseCommand;
 			}
-			
+
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5184,7 +5474,7 @@ public final class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
-			
+
 			// do I need this ?
 			//String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5202,21 +5492,21 @@ public final class Utility {
 			if (!p.isAlive()) {
 				// if it crashed here, then the outputFile will contain the error. Read file and send error back
 				// it should not contain anything else since we are trying to start the server here
-	        	BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 				StringBuilder errorMsg = new StringBuilder();
-	            String line;
-	            while ((line = reader.readLine()) != null ) {
-	                // get the runtime error
-	            	if (line.startsWith("Traceback")) {
-	            		errorMsg.append(line).append("\n");
-	            		while ((line = reader.readLine()) != null ) {
-	            			errorMsg.append(line).append("\n");
-	            		}
-	            	}
-	            }
-	            reader.close();
-	            if (!errorMsg.toString().isEmpty())
-	            	throw new IllegalStateException(errorMsg.toString());
+				String line;
+				while ((line = reader.readLine()) != null ) {
+					// get the runtime error
+					if (line.startsWith("Traceback")) {
+						errorMsg.append(line).append("\n");
+						while ((line = reader.readLine()) != null ) {
+							errorMsg.append(line).append("\n");
+						}
+					}
+				}
+				reader.close();
+				if (!errorMsg.toString().isEmpty())
+					throw new IllegalStateException(errorMsg.toString());
 			}
 			thisProcess = p;
 
@@ -5232,13 +5522,13 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-	
+
 	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String timeout, String loggerLevel ) {
 		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
-		
+
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
 		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
@@ -5259,18 +5549,19 @@ public final class Utility {
 			if(py == null) {
 				throw new NullPointerException("Must define python home");
 			}
-			
+			py = py.trim();
 			if (SystemUtils.IS_OS_WINDOWS) {
 				py = py + "/python.exe";
 			} else {
 				py = py + "/bin/python3";
 			}
-			
+
 			py = py.replace("\\", "/");
 
 			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null 
 					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);			
+							: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
+			pyBase = pyBase.trim();
 			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
 
 			pyBase = pyBase.replace("\\", "/");
@@ -5278,21 +5569,29 @@ public final class Utility {
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
-			
+
 			String outputFile =chrootDir + finalDir + "/console.txt";
-			
-			//String timeout = "15";
-//			if(otherProps!= null && otherProps.length > 0)
-//				timeout = otherProps[0];
-			
-		//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 
-		// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
-		// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
+			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
+			// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			String[] commands = new String[] {
+					"fakechroot", "fakeroot", 
+					"chroot", 
+					"--userspec=1001:1001", "/", 
+					"env" ,"-i", 
+					py, gaasServer, 
+					"--port", port, 
+					"--max_count", "1", 
+					"--py_folder", pyBase, 
+					"--insight_folder", finalDir, 
+					"--prefix", prefix, 
+					"--timeout", timeout, 
+					"--logger_level", loggerLevel, 
+					"--userChrootFolder", chrootDir
+					};
 
-			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , "/", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel, "--userChrootFolder", chrootDir};
 
-		
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5303,7 +5602,7 @@ public final class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
-			
+
 			// do I need this ?
 			//String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5332,41 +5631,7 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-	
-	/**
-	 * 
-	 * @param pyClientClass
-	 * @param port
-	 * @return
-	 */
-	public static SocketClient startTCPClient(String pyClient, String port) {
-		SocketClient tcpClient = null;
-		try {
-			tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
-			tcpClient.connect("127.0.0.1", Integer.parseInt(port), false);
-			//nc.run(); - you cannot do this because then the client goes into listener mode
-			Thread t = new Thread(tcpClient);
-			t.start();
-			while(!tcpClient.isReady())
-			{
-				synchronized(tcpClient)
-				{
-					try 
-					{
-						tcpClient.wait();
-						classLogger.info("Setting the socket client ");
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		return tcpClient;
-	}
-	
+
 	public static Process startRMIServer(String cp, String insightFolder, String port) {
 		// this basically starts a java process
 		// the string is an identifier for this process
@@ -5428,11 +5693,11 @@ public final class Utility {
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
-			
+
 			String memory = "";
 			if(xms != null && xmx != null)
 				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
+
 			commands[2] = memory + " -cp";
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
@@ -5448,7 +5713,7 @@ public final class Utility {
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
+			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";

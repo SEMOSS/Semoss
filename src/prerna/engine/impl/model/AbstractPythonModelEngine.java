@@ -14,8 +14,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -44,7 +44,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	protected String workingDirectory;
 	protected String workingDirectoryBasePath = null;
 	
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -144,25 +144,36 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		
-		// execute all the basic commands
-		String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
-		// break the commands seperated by ;
-		String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-		// replace the Vars
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			commands[commandIndex] = fillVars(commands[commandIndex]);
+		try {
+			// execute all the basic commands
+			String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
+			// break the commands seperated by ;
+			String [] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+			// replace the Vars
+			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+				commands[commandIndex] = fillVars(commands[commandIndex]);
+			}
+			pyt.runEmptyPy(commands);
+			// for debugging...
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " ptyhon process with commands >>> " + String.join("\n", commands));	
+			
+			// run a prefix command
+			setPrefix();
+			
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if(this.cpw != null) {
+				classLogger.warn("Able to start the python process for the python model engine " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				this.cpw.shutdown(false);
+			}
+			throw e;
 		}
-		pyt.runEmptyPy(commands);
-		// for debugging...
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-							+ " ptyhon process with commands >>> " + String.join("\n", commands));	
-		
-		// run a prefix command
-		setPrefix();
 	}
 	
 	/**
@@ -317,6 +328,41 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		StringBuilder callMaker = new StringBuilder();
 		callMaker.append(varName)
 				 .append(".embeddings(strings_to_embed = ")
+				 .append(pythonListAsString);
+				 
+		if(this.prefix != null) {
+			callMaker.append(", prefix='").append(this.prefix).append("'");
+		}
+		
+		if(parameters != null && !parameters.isEmpty()) {
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",")
+				         .append(key)
+				         .append("=")
+						 .append(PyUtils.determineStringType(value));
+			}
+		}
+			
+		callMaker.append(")");
+		
+		Object responseObject = pyt.runSmssWrapperEval(callMaker.toString(), insight);
+		EmbeddingsModelEngineResponse embeddingsResponse = EmbeddingsModelEngineResponse.fromObject(responseObject);
+		return embeddingsResponse;
+	}
+	
+	
+	@Override
+	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+		checkSocketStatus();
+			 	
+		String pythonListAsString = PyUtils.determineStringType(imagesToEmbed);
+		
+		StringBuilder callMaker = new StringBuilder();
+		callMaker.append(varName)
+				 .append(".image_embeddings(images_to_embed = ")
 				 .append(pythonListAsString);
 				 
 		if(this.prefix != null) {

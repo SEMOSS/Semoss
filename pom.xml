@@ -313,7 +313,7 @@
 		<dependency>
 		    <groupId>org.apache.tomcat</groupId>
 		    <artifactId>tomcat-catalina</artifactId>
-		    <version>9.0.88</version>
+		    <version>9.0.98</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -1720,11 +1720,6 @@
 		    <artifactId>trino-jdbc</artifactId>
 		    <version>439</version>
 		</dependency>
-		<dependency>
-			<groupId>black.ninia</groupId>
-			<artifactId>jep</artifactId>
-			<version>3.9.0</version>
-		</dependency>
 		<!-- Tinker DataStax -->
 		<dependency>
 			<groupId>com.datastax.dse</groupId>
@@ -2228,7 +2223,7 @@
 		<dependency>
 		    <groupId>com.hierynomus</groupId>
 		    <artifactId>sshj</artifactId>
-		    <version>0.35.0</version>
+		    <version>0.39.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
 		<dependency>
@@ -2246,7 +2241,7 @@
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<version>1.14.1</version>
+			<version>1.15.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common -->
 	    <dependency>

@@ -144,7 +144,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 
 			// generate the script
 			makePivotFrame = PandasSyntaxHelper.getCsvFileRead(PandasFrame.PANDAS_IMPORT_VAR, PandasFrame.NUMPY_IMPORT_VAR, 
-					outputFile, pivotFrameName, ",", "\"", "\\\\", pyt.getCurEncoding(), typesMap);
+					outputFile, pivotFrameName, ",", "\"", "\\\\", null, typesMap, -1);
 		}
 		
 		// so this is going to come in as vectors

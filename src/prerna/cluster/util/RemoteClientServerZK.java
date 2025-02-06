@@ -1,6 +1,7 @@
 package prerna.cluster.util;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,8 @@ import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -501,29 +504,157 @@ public class RemoteClientServerZK {
 		}
 	}
 
-	/**
-	 * Gets a list of all active model IDs
-	 * @return List of active model IDs
-	 */
-	public List<String> getActiveModels() {
-		try {
-			return client.getChildren().forPath(ACTIVE_PATH);
-		} catch (Exception e) {
-			classLogger.error("Error getting active models", e);
-			return new ArrayList<>();
-		}
+	public class RemoteModelInfo {
+	    private final String id;
+	    private final String name;
+	    private final RemoteModelStateEnum state;
+
+	    public RemoteModelInfo(String id, String name, RemoteModelStateEnum state) {
+	        this.id = id;
+	        this.name = name;
+	        this.state = state;
+	    }
+
+	    // Getters
+	    public String getId() { return id; }
+	    public String getName() { return name; }
+	    public RemoteModelStateEnum getState() { return state; }
 	}
 
 	/**
-	 * Gets a list of all warming model IDs
-	 * @return List of warming model IDs
+	 * Gets a list of all active models with their associated information
+	 * @return List of ModelInfo objects containing model details
 	 */
-	public List<String> getWarmingModels() {
-		try {
-			return client.getChildren().forPath(WARMING_PATH);
-		} catch (Exception e) {
-			classLogger.error("Error getting warming models", e);
-			return new ArrayList<>();
-		}
+	public List<RemoteModelInfo> getActiveModels() {
+	    List<RemoteModelInfo> activeModels = new ArrayList<>();
+	    
+	    try {
+	        List<String> activeModelIds = client.getChildren().forPath(ACTIVE_PATH);
+	        
+	        for (String modelId : activeModelIds) {
+	            String name = modelNames.get(modelId);
+	            RemoteModelStateEnum state = modelStates.getOrDefault(modelId, RemoteModelStateEnum.COLD);
+	            
+	            if (name != null) {
+	                activeModels.add(new RemoteModelInfo(
+	                    modelId,
+	                    name,
+	                    state
+	                ));
+	            } else {
+	                classLogger.warn("Incomplete data for active model {}: name={}", modelId, name);
+	                    
+	                String fullPath = ACTIVE_PATH + "/" + modelId;
+	                byte[] data = client.getData().forPath(fullPath);
+	                if (data != null && data.length > 0) {
+	                    String rawData = new String(data, "UTF-8");
+	                    JSONObject jsonData = new JSONObject(rawData);
+	                    
+	                    name = jsonData.getString("model_name");
+	                    
+	                    activeModels.add(new RemoteModelInfo(
+	                        modelId,
+	                        name,
+	                        state
+	                    ));
+	                    
+	                    modelNames.put(modelId, name);
+	                }
+	            }
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error getting active models with details", e);
+	    }
+	    
+	    return activeModels;
+	}
+
+	/**
+	 * Gets a list of all warming models with their associated information
+	 * @return List of RemoteModelInfo objects containing model details
+	 */
+	public List<RemoteModelInfo> getWarmingModels() {
+	    List<RemoteModelInfo> warmingModels = new ArrayList<>();
+	    
+	    try {
+	        List<String> warmingModelIds = client.getChildren().forPath(WARMING_PATH);
+	        
+	        for (String modelId : warmingModelIds) {
+	            String name = modelNames.get(modelId);
+	            RemoteModelStateEnum state = modelStates.getOrDefault(modelId, RemoteModelStateEnum.WARMING);
+	            
+	            warmingModels.add(new RemoteModelInfo(
+	                modelId,
+	                name != null ? name : "Warming...",
+	                state
+	            ));
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error getting warming models with details", e);
+	    }
+	    
+	    return warmingModels;
+	}
+	
+	public Map<String, Object> canItRun(String hfModelId) throws Exception {
+	    String modelScalerIp = getModelScalerIp();
+	    if (modelScalerIp == null) {
+	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
+	        throw new RuntimeException("Failed to get model scaler IP");
+	    }
+	    
+	    String canItRunUrl;
+	    if (devPortFowarding) {
+	        canItRunUrl = "http://localhost:8000/api/can-it-run";
+	    } else {
+	        canItRunUrl = String.format("http://%s/api/can-it-run", modelScalerIp);
+	    }
+
+	    RequestConfig requestConfig = RequestConfig.custom()
+	            .setConnectTimeout(5000)
+	            .setSocketTimeout(5000)
+	            .build();
+
+	    try (CloseableHttpClient httpClient = HttpClients.custom()
+	            .setDefaultRequestConfig(requestConfig)
+	            .build()) {
+
+	        HttpPost httpPost = new HttpPost(canItRunUrl);
+	        httpPost.setHeader("Content-Type", "application/json");
+
+	        JSONObject requestBody = new JSONObject();
+	        requestBody.put("model_id", hfModelId);
+
+	        StringEntity entity = new StringEntity(requestBody.toString());
+	        httpPost.setEntity(entity);
+
+	        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            HttpEntity responseEntity = response.getEntity();
+	            String responseString = EntityUtils.toString(responseEntity);
+
+	            if (statusCode == 200) {
+	                JSONObject jsonResponse = new JSONObject(responseString);
+	                
+	                Map<String, Object> result = new HashMap<>();
+	                for (String key : jsonResponse.keySet()) {
+	                    result.put(key, jsonResponse.get(key));
+	                }
+	                
+	                classLogger.info("Successfully checked compatibility for model: {} - Can run: {}", 
+	                    hfModelId, result.get("can_run"));
+	                return result;
+	            } else {
+	                JSONObject errorResponse = new JSONObject(responseString);
+	                String errorMessage = errorResponse.getJSONObject("detail").getString("message");
+	                classLogger.error("Error checking model compatibility: {} (Status: {})", 
+	                    errorMessage, statusCode);
+	                throw new RuntimeException("Failed to check model compatibility: " + errorMessage);
+	            }
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Error making request to model scaler: {}", e.getMessage(), e);
+	        throw new RuntimeException("Failed to check model compatibility", e);
+	    }
 	}
 }

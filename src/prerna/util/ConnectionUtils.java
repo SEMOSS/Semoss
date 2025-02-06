@@ -136,6 +136,10 @@ public class ConnectionUtils {
 		closeAllConnections(con, null, null);
 	}
 
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con){
+		closeAllConnectionsIfPooling(engine, con, null, null);
+	}
+
 	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps){
 		closeAllConnectionsIfPooling(engine, ps, null);
 	}
@@ -156,4 +160,29 @@ public class ConnectionUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param engine
+	 * @param statements
+	 */
+	public static void closeAllDbConnectionsIfPooling(IRDBMSEngine engine, Statement... statements) {
+		if(statements != null) {
+			for(Statement stmt : statements) {
+				if(stmt != null) {
+					try {
+						stmt.close();
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+					if (engine != null && engine.isConnectionPooling()) {
+						try {
+							stmt.getConnection().close();
+						} catch (Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+			}
+		}
+	}
 }

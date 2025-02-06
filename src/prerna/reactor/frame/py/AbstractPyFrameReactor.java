@@ -32,7 +32,6 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		// I am just going to try to recreate the frame here
 		if(override) {
 			newFrame = new PandasFrame(frameName);
-			newFrame.setJep(frame.getJep());
 			newFrame.setTranslator(insight.getPyTranslator());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), frameName);
 			//newFrame.runScript(makeWrapper);
@@ -94,8 +93,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		return smssDT.toString();
 	}	
 	
-	public boolean smartSync(PyTranslator pyt)
-	{
+	public boolean smartSync(PyTranslator pyt) {
 		// at this point try to see if something has changed and if so
 		// trigger smart sync
 		boolean frameChanged = false;
@@ -108,8 +106,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 			frameChanged = sync.equalsIgnoreCase("true");
 			//changing this to always on
 			//frameChanged = true;
-			if(frameChanged)
-			{
+			if(frameChanged) {
 				System.err.println("sync > " + sync);
 				recreateMetadata((PandasFrame)insight.getCurFrame(), true);	
 			}

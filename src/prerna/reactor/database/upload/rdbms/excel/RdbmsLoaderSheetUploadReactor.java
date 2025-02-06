@@ -31,7 +31,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -46,7 +46,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
+public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(RdbmsLoaderSheetUploadReactor.class);
 

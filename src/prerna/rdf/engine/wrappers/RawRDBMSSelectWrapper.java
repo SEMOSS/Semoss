@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLDataException;
@@ -552,21 +553,31 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	
 	/**
 	 * This method allows me to perform the execution of a query on a given connection
+	 * @param database
 	 * @param conn
+	 * @param stmt
 	 * @param query
-	 * @throws Exception 
+	 * @param closeIfFail
+	 * @return
+	 * @throws Exception
 	 */
-	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn, Statement stmt, ResultSet rs, String query, boolean closeIfFail) throws Exception {
+	public static RawRDBMSSelectWrapper directExecutionPreparedStatement(IRDBMSEngine database, Connection conn, PreparedStatement stmt, String query, boolean closeIfFail) throws Exception {
 		String engineId = database.getEngineId();
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, engineId);
 		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
 		try {
 			wrapper.query = query;
+			queryT.setQuery(wrapper.query);
 			wrapper.conn = conn;
 			wrapper.stmt = stmt;
-			wrapper.rs = rs;
+			// set the start time
+			queryT.setStartTimeNow();
+			wrapper.rs = stmt.executeQuery();
 			wrapper.setVariables();
+			// set the end time
+			queryT.setEndTimeNow();
+						
 			return wrapper;
 		} catch(Exception e) {
 			queryT.setFailed();
