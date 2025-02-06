@@ -31,10 +31,10 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactorFunctionEngine.class);
 
-	private String engineId;
-	private String engineName;
+	protected String engineId;
+	protected String engineName;
 	
-	private String smssFilePath;
+	protected String smssFilePath;
 	protected Properties smssProp;
 	
 	protected String functionName;
@@ -44,6 +44,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		// TODO: flush the key value pair into the nounstore
 		return execute();
 	}
 
@@ -67,13 +68,6 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 			}
 		}
 		
-		if(!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
-			throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
-		}
-		if(!smssProp.containsKey(IFunctionEngine.DESCRIPTION_KEY)) {
-			throw new IllegalArgumentException("Must have key " + IFunctionEngine.DESCRIPTION_KEY + " in SMSS");
-		}
-
 		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
 		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
 		
