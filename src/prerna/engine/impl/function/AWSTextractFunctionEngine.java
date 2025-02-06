@@ -295,6 +295,11 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
 
-	}	
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "AWS";
+	}
 
 }

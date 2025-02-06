@@ -787,6 +787,15 @@ public class PixelStreamUtility {
 			ps.flush();
 		}
 		
+		// json object
+		else if(nounT == PixelDataType.JSON_OBJECT) {
+			ps.print("\"output\":");
+			ps.print(noun.getValue().toString());
+			ps.print(",\"operationType\":");
+			ps.print(gson.toJson(noun.getOpType()));
+			ps.flush();
+		}
+		
 		// everything else is simple
 		else {
 			ps.print("\"output\":");

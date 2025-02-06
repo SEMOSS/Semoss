@@ -24,7 +24,7 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Fucntion Engine " + engineId + " does not exist or user does not have access to this function");
+			throw new IllegalArgumentException("Function Engine " + engineId + " does not exist or user does not have access to this function");
 		}
 		
 		Map<String, Object> parameterValues = getMap();
