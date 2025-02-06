@@ -131,9 +131,15 @@ public class ApiSemossTestEngineUtils {
 		return null;
 	}
 	
-	private static Void initializePrompt() throws Exception {
-		doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
-		AbstractPromptUtils.loadPromptDatabase();
+	public static Void initializePrompt() throws Exception {
+		try {
+			doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
+			AbstractPromptUtils.loadPromptDatabase();
+		} catch (Exception e) {
+			// Weird behavior, but NPE on first try, successful load on second
+			// Can't debug because it works first try when debugging 
+			AbstractPromptUtils.loadPromptDatabase();
+		}
 		return null;
 	}
 
