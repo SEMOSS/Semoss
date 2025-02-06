@@ -20,6 +20,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public class CloseEngineReactor extends AbstractReactor {
@@ -53,13 +54,15 @@ public class CloseEngineReactor extends AbstractReactor {
 		
 		// once all are good, we can close
 		for (String engineId : engineIds) {
-			classLogger.info("Shutting down engine: " + engineId);
+			classLogger.info("Attempting to close engine: " + engineId);
 			// we may have the alias
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			IEngine engine = Utility.getEngine(engineId);
 			try {
-				classLogger.info("Attempting to close engine: " + engineId);
+				classLogger.info("Shutting down engine: " + engineId);
 				engine.close();
+				UploadUtilities.removeEngineFromDIHelper(engineId);
+				classLogger.info("Shut down engine: " + engineId);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
