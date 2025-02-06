@@ -385,6 +385,7 @@ public class Constants {
 	public static final String MODEL_FOLDER = "model";
 	public static final String FUNCTION_FOLDER = "function";
 	public static final String VECTOR_FOLDER = "vector";
+	public static final String GUARDRAIL_FOLDER = "guardrail";
 	public static final String VENV_FOLDER = "venv";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
