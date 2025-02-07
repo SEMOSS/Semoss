@@ -30,16 +30,9 @@ class ServerProxy:
         method_args: Optional[List[Any]] = [],
         method_arg_types: Optional[List[str]] = [],
         insight_id: Optional[str] = None,
-        operation: str = "ENGINE",
+        operation: str = "REACTOR",
     ):
         """
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-
-
         This method in responsible for:
             - converting the args into a PayloadStruct
             - adds itself to the monitor block

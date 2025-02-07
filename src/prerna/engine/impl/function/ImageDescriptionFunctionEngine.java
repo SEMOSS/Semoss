@@ -3,6 +3,7 @@ package prerna.engine.impl.function;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -47,7 +48,6 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-
 		String csvFilePath = (String) parameterValues.get("csvPath");
 		File file = (File) parameterValues.get("document");
 		Map<String, Object> vectorParmaters = (Map<String, Object>) parameterValues.get("parameters");
@@ -158,7 +158,6 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
 				}
 				classLogger.info("Completed Processing file : " + file.getAbsolutePath());
-
 			}
 		} finally {
 			writer.close();
@@ -247,12 +246,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 			updatedLines.add(String.join(",", cells)); // join cells back into a line
 		}
 
-		Files.write(Paths.get(csvFilePath), updatedLines);
-	}
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
+		Files.write(Paths.get(csvFilePath), updatedLines, StandardCharsets.UTF_8);
 	}
 
 	/**
@@ -271,5 +265,10 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return "IMAGE_PROCESSING";
+	}
+	
+	@Override
+	public void close() throws IOException {
+		// nothing to do
 	}
 }

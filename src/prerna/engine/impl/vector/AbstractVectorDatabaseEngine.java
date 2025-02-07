@@ -297,7 +297,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
-				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				String documentName = FilenameUtils.getBaseName(document.getName());
 				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
