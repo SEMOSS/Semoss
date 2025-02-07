@@ -205,7 +205,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			            classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
 						// std out no questions
-						if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
+						if(ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null && !ps.response)
 						{
 							//classLogger.info(ps.payload[0]);
 							//classLogger.info("Standard output");
@@ -251,7 +251,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						// this is done through interim and operations
 						// partial stdout
 						// i.e. response is true and it is being sent as a stdout
-						else if(ps.response && ps.operation == ps.operation.STDOUT)
+						else if(ps.response && ps.operation == PayloadStruct.OPERATION.STDOUT)
 						{
 							//classLogger.info("Partial Response from the py");
 							// need to return output here
@@ -320,21 +320,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							}
 							outputAssimilator = new StringBuilder("");
 							partialAssimilator = new StringBuilder("");
-
-						}
-						// this is a request
-						else if(ps.operation == ps.operation.ENGINE)
-						{
-							//classLogger.info("reverse request for data");
-							// this is a request we need to process
-							// need a way here to also push the payload classes
-							// will come to it in a bit
-							// clean up the payload struct a little
-							ps = convertPayloadClasses(ps);
-							processEngineRequest(ps);
 						}
 						// this is a request for a reactor
-						else if(ps.operation == ps.operation.REACTOR) {
+						else if(ps.operation == PayloadStruct.OPERATION.REACTOR) {
 							final PayloadStruct finalPs = ps;
 							// I'm creating a new thread to run the pixel
 						    new Thread(() -> {
@@ -366,6 +354,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						            }
 						        }
 						    }).start();
+						}
+						// this is a request
+						else if(ps.operation == PayloadStruct.OPERATION.ENGINE)
+						{
+							//classLogger.info("reverse request for data");
+							// this is a request we need to process
+							// need a way here to also push the payload classes
+							// will come to it in a bit
+							// clean up the payload struct a little
+							ps = convertPayloadClasses(ps);
+							processEngineRequest(ps);
 						}
 						// unhandled pieces.. nothing we can do here.. just give the response back
 						// so we dont choke the thread
@@ -529,7 +528,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 				{
 					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
-
 				}
 			}
 
@@ -594,18 +592,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	}
 
-
-	private void writeEmptyPayload()
-	{
-		PayloadStruct ps = new PayloadStruct();
-		ps.epoc=Utility.getRandomString(8);
-		ps.methodName = "EMPTYEMPTYEMPTY";
-		writePayload(ps);
-	}
-
-
-	public void writeReleaseAllPayload()
-	{
+	public void writeReleaseAllPayload() {
 		PayloadStruct ps = new PayloadStruct();
 		ps.epoc=Utility.getRandomString(8);
 		ps.methodName = "RELEASE_ALL";
@@ -613,11 +600,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 
-	/**
-	 * Logout of py server
-	 */
-	@Override
-	public boolean stopPyServe() {
+    /**
+     * 
+     * @return
+     */
+    public boolean stopServer() {
 		try {
 			if(isConnected()) {
 				ExecutorService executor = Executors.newSingleThreadExecutor();

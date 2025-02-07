@@ -107,7 +107,6 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 			//changing this to always on
 			//frameChanged = true;
 			if(frameChanged) {
-				System.err.println("sync > " + sync);
 				recreateMetadata((PandasFrame)insight.getCurFrame(), true);	
 			}
 		}	
