@@ -189,7 +189,7 @@ public class ClientProcessWrapper {
 		        Callable<Boolean> callableTask = () -> {
 		        	boolean result = false;
 		        	if(cleanUpFolder) {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		int attempt = 0;
 		        		while(!result && attempt <= 10) {
@@ -208,7 +208,7 @@ public class ClientProcessWrapper {
 		        			}
 		        		}
 		        	} else {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		result = true;
 		        	}

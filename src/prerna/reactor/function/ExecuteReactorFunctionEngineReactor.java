@@ -1,17 +1,17 @@
 package prerna.reactor.function;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetFunctionEngineDefintionReactor extends AbstractReactor {
+public class ExecuteReactorFunctionEngineReactor extends AbstractReactor {
 
-	public GetFunctionEngineDefintionReactor() {
+	public ExecuteReactorFunctionEngineReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int [] {1};
 	}
 	
 	@Override
@@ -22,12 +22,13 @@ public class GetFunctionEngineDefintionReactor extends AbstractReactor {
 			throw new IllegalArgumentException(getUnableToAccessError(engineId));
 		}
 		
-		IFunctionEngine engine = Utility.getFunctionEngine(engineId);
-		return new NounMetadata(engine.getFunctionDefintionJson(), PixelDataType.JSON_OBJECT);
+		IReactorFunctionEngine reactorFunctionEngine = Utility.getReactorEngine(engineId);
+		reactorFunctionEngine.setNounStore(getNounStore());
+		return reactorFunctionEngine.execute();
 	}
 	
 	String getUnableToAccessError(String engineId) {
-		return "Function Engine " + engineId + " does not exist or user does not have access to this function";
+		return "Reactor Function Engine " + engineId + " does not exist or user does not have access to this function";
 	}
-	
+
 }
