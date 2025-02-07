@@ -59,7 +59,7 @@ public class SocketServerHandler implements Runnable {
 	private RConnection retCon = null;
 
 	private Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
-	public Map <String, Insight> insightMap = new HashMap<String, Insight>();
+	private Map <String, Insight> insightMap = new HashMap<String, Insight>();
 	private Map <String, Project> projectMap = new HashMap<String, Project>();
 	private Map <String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
 	
