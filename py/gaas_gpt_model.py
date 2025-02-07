@@ -94,7 +94,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
-            return output["output"]
+            # prior to reactor we were returning this in an array
+            # keeping for backward compatibility 
+            return [output["output"]]
 
         return pixelReturn
 
@@ -233,7 +235,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
-            return output["output"]
+            # prior to reactor we were returning this in an array
+            # keeping for backward compatibility 
+            return [output["output"]]
 
         return pixelReturn
 
