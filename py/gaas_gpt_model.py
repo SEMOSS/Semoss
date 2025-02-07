@@ -95,7 +95,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
             # prior to reactor we were returning this in an array
-            # keeping for backward compatibility 
+            # keeping for backward compatibility
             return [output["output"]]
 
         return pixelReturn
@@ -236,7 +236,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
             # prior to reactor we were returning this in an array
-            # keeping for backward compatibility 
+            # keeping for backward compatibility
             return [output["output"]]
 
         return pixelReturn
@@ -282,7 +282,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f"Model(input={input}, paramValues={param_dict});"
+        pixel = f'Model("{input}");'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
