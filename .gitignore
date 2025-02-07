@@ -70,16 +70,17 @@ InsightCache/CSV_Insights/*
 !InsightCache/CSV_Insights/.gitkeep
 
 # test folder stuff
-testfolder/project/**
-testfolder/user/**
 testfolder/db/**
+testfolder/function/**
+testfolder/guardrail/**
 testfolder/model/**
+testfolder/project/**
 testfolder/storage/**
+testfolder/user/**
 testfolder/vector/**
 testfolder/InsightCache/
 testfolder/mailpit/mailpit.log
 testfolder/RDF_Map.prop
-testfolder/db/themes/themes_OWL.OWL
 
 # test resources
 test/resources/RDF_MAP.prop
