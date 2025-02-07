@@ -111,8 +111,7 @@ public final class UploadUtilities {
 	 * When making new engine and errors or deleting engine
 	 * @param erroredEngineId
 	 */
-	public static void removeEngineFromDIHelper(String erroredEngineId) {
-		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
+	public static void removeEngineExcludingSMSSFromDIHelper(String erroredEngineId) {
 		// in case this is a db and there is an OWL file
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.OWL);
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId);
@@ -121,6 +120,16 @@ public final class UploadUtilities {
 		engineIds = engineIds.replace(";"+erroredEngineId, "");
 		engineIds = engineIds.replace(erroredEngineId+";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+	}
+	
+	/**
+	 * Used to update DIHelper
+	 * When making new engine and errors or deleting engine
+	 * @param erroredEngineId
+	 */
+	public static void removeEngineFromDIHelper(String erroredEngineId) {
+		removeEngineExcludingSMSSFromDIHelper(erroredEngineId);
+		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
 	}
 	
 	/**

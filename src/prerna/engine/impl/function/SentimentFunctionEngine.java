@@ -1,17 +1,16 @@
 package prerna.engine.impl.function;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.internal.LinkedTreeMap;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,26 +22,24 @@ import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
+public class SentimentFunctionEngine extends AbstractReactorFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(SentimentFunctionEngine.class);
 
-	TCPPyTranslator pyt = null;
-	NativePySocketClient socketClient = null;
-	Process p = null;
-	String port = null;
-	String workingDirectory;
-	String prefix = null;
-	String workingDirectoryBasePath = null;
-	File cacheFolder;
-	String varName = null;
+	private PyTranslator pyt = null;
+	private NativePySocketClient socketClient = null;
+	private Process p = null;
+	private String port = null;
+	private String workingDirectory;
+	private String prefix = null;
+	private String workingDirectoryBasePath = null;
+	private File cacheFolder;
+	private String varName = null;
 	
-	public SentimentFunctionEngine()
-	{
+	public SentimentFunctionEngine() {
 		this.keysToGet = new String[] {ReactorKeysEnum.INPUT.getKey(), ReactorKeysEnum.MIN.getKey(), ReactorKeysEnum.MAX.getKey()};
 		this.keyRequired = new int[] {1, 0, 0};
 	}
-	
 	
 	@Override
 	public NounMetadata execute() {
@@ -60,7 +57,6 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 			inputs.append("'").append(inputStrings.get(inputIndex)).append("'");
 		}
 		inputs.append("]");
-		
 		
 		StringBuilder cmd = new StringBuilder(varName).append(".execute(input_arr=" + inputs + ")");
 		List output = (List)pyt.runScript(cmd.toString());
@@ -92,13 +88,6 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
-	
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
 	
 	@Override
 	public void open(String smssFilePath) throws Exception 
@@ -143,7 +132,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 		connectClient();
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(socketClient);
 		pyt.runEmptyPy(commands);	
 		
@@ -202,7 +191,7 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 	}
 	
 	private List<String> getInput() {
-		List<String> columns = new Vector<String>();
+		List<String> columns = new ArrayList<>();
 
 		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
@@ -223,6 +212,5 @@ public class SentimentFunctionEngine extends AbstractFunctionEngine2 {
 
 		return columns;
 	}
-
 
 }

@@ -19,8 +19,6 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.rosuda.REngine.Rserve.RConnection;
 
-import prerna.ds.py.PyExecutorThread;
-import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.om.Insight;
 import prerna.project.impl.Project;
@@ -58,13 +56,10 @@ public class SocketServerHandler implements Runnable {
 	InputStream is = null;
 	String mainFolder = null;
 
-	private PyExecutorThread pt = null;
-	private PyTranslator pyt = null;
-	
 	private RConnection retCon = null;
 
 	private Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
-	public Map <String, Insight> insightMap = new HashMap<String, Insight>();
+	private Map <String, Insight> insightMap = new HashMap<String, Insight>();
 	private Map <String, Project> projectMap = new HashMap<String, Project>();
 	private Map <String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
 	
@@ -79,15 +74,6 @@ public class SocketServerHandler implements Runnable {
 		SocketServerHandler.classLogger = classLogger;
 	}
 	
-	public void setPyExecutorThread(PyExecutorThread pt)
-	{
-		this.pt = pt;
-		this.pyt = new PyTranslator();
-		pyt.setPy(pt);
-		// also start the error thread
-		//startErrorThread();
-	}
-			
 	// this is where the processing happens
 	public PayloadStruct getFinalOutput(PayloadStruct ps)
 	{
@@ -146,30 +132,6 @@ public class SocketServerHandler implements Runnable {
 				}
 				return ps;
 			}
-			if(ps.operation == PayloadStruct.OPERATION.PYTHON)
-			{
-				// get the py translator for the first time
-				getPyTranslator();
-
-				try {
-					
-					Method method = findPyMethod(ps.methodName, ps.payloadClasses);
-					
-					Object output = runMethodPy(method, ps.payload);
-					Object [] retObject = new Object[1];
-					retObject[0] = output;
-					ps.payload = retObject;
-					ps.processed = true;
-					//ps.operation = ps.operation.PYTHON;
-					// remove this item
-				} catch(Exception ex) {
-					//classLogger.error(Constants.STACKTRACE, ex);
-					classLogger.error(Constants.STACKTRACE, ex);
-					//System.err.println("Method.. " + ps.methodName);
-					ps.ex = ExceptionUtils.getStackTrace(ex);						
-				}
-				return ps;
-			}
 			else if(ps.operation == PayloadStruct.OPERATION.CHROME)
 			{
 				try {
@@ -215,9 +177,9 @@ public class SocketServerHandler implements Runnable {
 			{
 				try {
 					Insight output = (Insight)ps.payload[0];
-					output.setPyTranslator(pyt);
-					if(output.getREnv() != null)
+					if(output.getREnv() != null) {
 						output.setRJavaTranslator(rtMap.get(output.getREnv()));
+					}
 					ps.payload = new Object[] {"Set insight successfully"};
 					ps.payloadClasses = new Class[] {String.class};
 					ps.processed = true;
@@ -504,17 +466,12 @@ public class SocketServerHandler implements Runnable {
 			{
 				classLogger.info("Starting shutdown " );
 				Iterator <String> envKeys = rtMap.keySet().iterator();
-				while(envKeys.hasNext())
-				{
+				while(envKeys.hasNext()) {
 					String env = envKeys.next();
 					AbstractRJavaTranslator rt = rtMap.get(env);            	
 					if(rt != null) {
 						rt.endR();
 					}
-				}
-				if(this.pt != null) {
-					this.pt.killThread();
-					processCommand("'logout now'"); // this should trigger it and kill it
 				}
 	
 				// we should also close all the dbs that were opened
@@ -553,27 +510,6 @@ public class SocketServerHandler implements Runnable {
 		System.exit(1);
 	}
 	
-    // process the command
-    public Object processCommand(String command)
-    {
-    	// this should be basically be just straight up runscript
-    	classLogger.info("Running the new version");
-		this.pt.command = new String[] {command};
-		Object monitor = this.pt.getMonitor();
-		Object response = null;
-		synchronized(monitor) {
-			try {
-				monitor.notify();
-				monitor.wait(4000); // need a better way.. what happens if it takes more than 4000 seconds ?
-				response = this.pt.response.get(command);
-			} catch (Exception ex) {
-				classLogger.debug(ex);
-				response = ex.getMessage();
-			}
-		}
-		return response;
-    }
-    
     public Method findRMethod(AbstractRJavaTranslator rt, String methodName, Class [] arguments)
     {
     	Method retMethod = null;
@@ -667,51 +603,6 @@ public class SocketServerHandler implements Runnable {
     	return retMethod;
     }
 
-    
-    public Method findPyMethod(String methodName, Class [] arguments)
-    {
-    	Method retMethod = null;
-    	
-    	try {
-			if(arguments != null)
-			{
-				try
-				{
-					retMethod = pyt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
-				}
-				catch(Exception ex)
-				{
-					//classLogger.error(Constants.STACKTRACE, ex);
-				}
-				if(retMethod == null) {
-					retMethod = pyt.getClass().getDeclaredMethod(methodName, arguments);
-				}
-			}
-			else
-			{
-				try
-				{
-					retMethod = pyt.getClass().getSuperclass().getDeclaredMethod(methodName);				
-				}
-				catch(Exception ex)
-				{
-					//classLogger.error(Constants.STACKTRACE, ex);
-				}
-				if(retMethod == null) {
-					retMethod = pyt.getClass().getDeclaredMethod(methodName);
-				}
-			}
-			//classLogger.info("Found the method " + retMethod);
-		} catch (NoSuchMethodException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (SecurityException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-    	return retMethod;
-    }
-
     public Method findChromeMethod(String methodName, Class [] arguments)
     {
     	Method retMethod = null;
@@ -759,18 +650,6 @@ public class SocketServerHandler implements Runnable {
     	}
     }
 
-    public Object runMethodPy(Method method, Object [] arguments) throws Exception
-    {
-    	try {
-	    	Object retObject = null;
-			retObject = method.invoke(pyt, arguments);
-	    	return retObject;
-    	} catch(InvocationTargetException e) {
-    		throw (Exception) e.getCause();
-    	}
-    }
-    
-
     public Object runMethodChrome(Method method, Object [] arguments) throws Exception
     {
     	Object retObject = null;
@@ -813,29 +692,6 @@ public class SocketServerHandler implements Runnable {
     	}
     	return rtMap.get(env);
     }
-
-	public void getPyTranslator()
-	{
-		if(this.pt== null)
-		{
-			pt = new PyExecutorThread();
-			//pt.getJep();
-			pt.start();
-			
-			while(!pt.isReady())
-			{
-				try {
-					// sleep until we get the py
-					Thread.sleep(200);
-				} catch (InterruptedException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			classLogger.info("PyThread Started");
-			setPyExecutorThread(this.pt);
-//			System.err.println("Got the py thread");
-		}
-	}	
 
 	public void setOutputStream(OutputStream os)
 	{

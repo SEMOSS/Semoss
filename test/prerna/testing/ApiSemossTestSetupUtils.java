@@ -27,6 +27,7 @@ public class ApiSemossTestSetupUtils {
 		try {
 			es.invokeAll(tasks);
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw e;
 		} finally {
 			es.shutdown();
