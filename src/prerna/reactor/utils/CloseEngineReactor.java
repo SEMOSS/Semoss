@@ -61,7 +61,7 @@ public class CloseEngineReactor extends AbstractReactor {
 			try {
 				classLogger.info("Shutting down engine: " + engineId);
 				engine.close();
-				UploadUtilities.removeEngineFromDIHelper(engineId);
+				UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
 				classLogger.info("Shut down engine: " + engineId);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
