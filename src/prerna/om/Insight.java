@@ -449,9 +449,11 @@ public class Insight implements Serializable {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
-				if(sessionId == null) {
-					sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
-				}
+				if(sessionId == null && 
+					(this.varStore != null && this.varStore.get(JobReactor.SESSION_KEY) != null) )
+						{
+							sessionId = (String) this.varStore.get(JobReactor.SESSION_KEY).getValue();
+						}
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 				this.insightFolder = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId 
 						+ DIR_SEPARATOR + this.insightId;

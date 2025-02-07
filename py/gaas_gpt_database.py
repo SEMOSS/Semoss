@@ -17,7 +17,7 @@ class DatabaseEngine(ServerProxy):
         # assert insight_id is not None
         #epoc = super().get_next_epoc()
         epoc ="py_" + "".join(random.choice(string.digits) for _ in range(17))
-        fileLoc = super().call(
+        fileLoc = super().callEngine(
             epoc=epoc,
             engine_type="database",
             engine_id=self.engine_id,
