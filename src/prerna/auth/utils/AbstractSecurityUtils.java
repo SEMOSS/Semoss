@@ -1878,8 +1878,8 @@ public abstract class AbstractSecurityUtils {
 							if(numrows < 6) {
 								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
 								int order = 0;
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"data classification", "multi", order++, "select-box", "CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED"}));
