@@ -84,7 +84,10 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'LLM(engine="{self.engine_id}", command="{question}", context="{context}", paramValues={param_dict});'
+        optionalContext = f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
+        optionalParamDict = f',paramValues=[{param_dict}]' if (param_dict is not None) else ""
+
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
