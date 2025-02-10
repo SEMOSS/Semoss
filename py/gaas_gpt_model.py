@@ -84,8 +84,12 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        optionalContext = f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
-        optionalParamDict = f',paramValues=[{param_dict}]' if (param_dict is not None) else ""
+        optionalContext = (
+            f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
+        )
+        optionalParamDict = (
+            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+        )
 
         pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
 
@@ -228,7 +232,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}, paramValues={param_dict});'
+        optionalParamDict = (
+            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+        )
+
+        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -260,7 +268,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}, paramValues={param_dict});'
+        optionalParamDict = (
+            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+        )
+
+        pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
