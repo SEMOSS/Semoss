@@ -4127,4 +4127,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToString(securityDb, qs);
 	}
 
+	public Long getAllUsersCount() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+        return QueryExecutionUtility.flushToLong(securityDb, qs);
+
+	}
+
 }
