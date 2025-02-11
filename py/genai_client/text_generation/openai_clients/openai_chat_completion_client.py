@@ -111,7 +111,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         params = {structured_param_name: param_value, **kwargs}
         return self._get_structured_output_response(params)
 
-    def inference_call(self, prefix: str, **kwargs) -> str:
+    def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int]:
         final_query = ""
         response_tokens = None
         # For Remote Client Server Models
@@ -144,19 +144,21 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                         print(prefix + response, end="")
         else:
             if "function_call" in kwargs.keys():
-                tools_call=openai_response.choices[0].message.tool_calls
-                toolResult=[]
+                tools_call = openai_response.choices[0].message.tool_calls
+                toolResult = []
                 for tool_call in tools_call:
-                    toolResult.append({
-                        "function_name": tool_call.function.name,
-                        "function_arguments": tool_call.function.arguments
-                    })
-                final_query=toolResult
+                    toolResult.append(
+                        {
+                            "function_name": tool_call.function.name,
+                            "function_arguments": tool_call.function.arguments,
+                        }
+                    )
+                final_query = toolResult
                 # final_query = openai_response.choices[0].message.function_call.arguments
-                response_tokens=openai_response.usage.completion_tokens
+                response_tokens = openai_response.usage.completion_tokens
             else:
                 final_query = openai_response.choices[0].message.content
-                response_tokens=openai_response.usage.completion_tokens
+                response_tokens = openai_response.usage.completion_tokens
 
         return final_query, response_tokens
 
