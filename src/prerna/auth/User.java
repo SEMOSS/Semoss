@@ -23,10 +23,8 @@ import org.javatuples.Pair;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
@@ -37,9 +35,9 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.MountHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
+import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class User implements Serializable {
@@ -62,11 +60,16 @@ public class User implements Serializable {
 	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
+	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
 	private transient PyTranslator pyt = null;
-	
-	private transient MountHelper mountHelper = null;
-	private String mountTuple = null;
+	private transient Process pyProcess = null;
+
+	// r
+	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
+	private transient Process rProcess = null;
+
+	private transient SymlinkHelper symlinkHelper = null;
+	private String chrootPath = null;
 
 	// keeping this for a later time when personal experimental stuff
 	private transient ClassLoader customLoader = null;
@@ -91,9 +94,6 @@ public class User implements Serializable {
 	public transient CopyObject cp = null;
 	private transient CmdExecUtil cmdUtil = null;
 	
-	private transient Process rProcess = null;
-	private transient Process pyProcess = null;
-	
 	private int rPort = -1;
 	private int pyPort = -1;
 	
@@ -107,6 +107,9 @@ public class User implements Serializable {
 	// this is what will distinguish between output vs. stdout
 	public String prefix = "";
 	
+	// this is a unique identifier for this user instance
+	private String userEpoch = null;
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -116,6 +119,7 @@ public class User implements Serializable {
 		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
+		this.userEpoch = UUID.randomUUID().toString();
 	}
 	
 	/**
@@ -309,6 +313,10 @@ public class User implements Serializable {
 		return this.assetProjectMap;
 	}
 	
+	public String getUserEpoch() {
+		return userEpoch;
+	}
+
 	////////////////////////////////////////////////////////////////////////
 
 	public IRUserConnection getRcon() {
@@ -607,7 +615,7 @@ public class User implements Serializable {
 	 * @return
 	 */
 	public ClientProcessWrapper getClientProcessWrapper() {
-		return this.cpw;
+		return this.pythonCPW;
 	}
 	
 	/**
@@ -637,28 +645,28 @@ public class User implements Serializable {
 	 */
 	public SocketClient getSocketClient(boolean create, int port, String venvEngineId) {
 		if(!create) {
-			if(this.cpw == null) {
+			if(this.pythonCPW == null) {
 				return null;
 			}
-			return this.cpw.getSocketClient();
+			return this.pythonCPW.getSocketClient();
 		}
-		if(this.cpw == null || this.cpw.getSocketClient() == null) {
+		if(this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
 			startSocketServerAndClient(-1, venvEngineId);
-			this.cpw.getSocketClient().setUser(this);
-		} else if(!this.cpw.getSocketClient().isConnected()) {
-			this.cpw.shutdown(false);
+			this.pythonCPW.getSocketClient().setUser(this);
+		} else if(!this.pythonCPW.getSocketClient().isConnected()) {
+			this.pythonCPW.shutdown(false);
 			try {
-				this.cpw.reconnect();
+				this.pythonCPW.reconnect();
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Unable to connect to user server");
+				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 			}
 		}
 		
 		// invalidate the serialization map
 		this.insightSerializedMap.clear();
 
-		return this.cpw.getSocketClient();
+		return this.pythonCPW.getSocketClient();
 	}
 
 	public void addExternalMount(String name, IStorageMount mountHelper)
@@ -701,52 +709,21 @@ public class User implements Serializable {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
-		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
-				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(this.pyt == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
-				if (!useNettyPy) {
-					PyExecutorThread jepThread = null;
-					if (jepThread == null) {
-						jepThread = PyUtils.getInstance().getJep();
-						this.pyt = new PyTranslator();
-						this.pyt.setPy(jepThread);
-						long logSleeper = 1;
-						while(!jepThread.isReady())
-						{
-							try 
-							{
-								// wait for it to start
-								//using this.wait because its recommended vs sleep
-								this.wait(logSleeper*1000);
-								//Thread.sleep(logSleeper*1000);
-								logSleeper++;
-							} catch (InterruptedException e) 
-							{
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
-						classLogger.info("Jep Start is Complete");
-					}
-				}
-				// check to see if the py translator needs to be set ?
-				// check to see if the py translator needs to be set ?
-				else {
-					SocketClient sc = getSocketClient(create, -1, venvEngineId);
-					if(sc != null) {
-						TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
-						pyJavaTranslator.setSocketClient(sc);
-						this.pyt = pyJavaTranslator;
-					}
+				SocketClient sc = getSocketClient(create, -1, venvEngineId);
+				if(sc != null) {
+					PyTranslator pyJavaTranslator = new PyTranslator();
+					pyJavaTranslator.setSocketClient(sc);
+					this.pyt = pyJavaTranslator;
 				}
 			}
 		}
-		else if(useNettyPy) 
-		{
+		else {
 			SocketClient sc = getSocketClient(create, -1, venvEngineId);
 			if(sc != null) {
-				TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+				PyTranslator pyJavaTranslator = new PyTranslator();
 				pyJavaTranslator.setSocketClient(sc);
 				this.pyt = pyJavaTranslator;
 			}
@@ -775,37 +752,37 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-	    if (this.cpw.getSocketClient() == null) {
+	    if (this.pythonCPW.getSocketClient() == null) {
 	        this.getPyTranslator();
 	    }
 	    if (cmdUtil != null) {
-	        if (this.cpw.getSocketClient() != null && !this.cpw.getSocketClient().isConnected()) {
-	            cmdUtil.setTcpClient(this.cpw.getSocketClient());
+	        if (this.pythonCPW.getSocketClient() != null && !this.pythonCPW.getSocketClient().isConnected()) {
+	            cmdUtil.setTcpClient(this.pythonCPW.getSocketClient());
 	        }
 	    }
 	    return this.cmdUtil;
 	}
 	
-	public MountHelper getUserMountHelper() {
+	public SymlinkHelper getUserSymlinkHelper() {
 		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if(mountHelper == null) {		
+			if(symlinkHelper == null) {		
 				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-				String baseMountPath = Utility.getDIHelperProperty("CHROOT_DIR");
-				mountTuple = baseMountPath + DIR_SEPARATOR + uniqueUserName;
+				String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
+				chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				mountHelper = new MountHelper(mountTuple);
+				symlinkHelper = new SymlinkHelper(chrootPath);
 			}
-			return mountHelper;
+			return symlinkHelper;
 		} else {
 			throw new IllegalArgumentException("Mounting + Chroot is set to false for this instance");
 		}
 	}
 	
 	public void startSocketServerAndClient(int port, String venvEngineId) {
-		if(this.cpw == null) {
-			this.cpw = new ClientProcessWrapper();
+		if(this.pythonCPW == null) {
+			this.pythonCPW = new ClientProcessWrapper();
 		}
-		if(this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+		if(this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
 			boolean nativePyServer = false;
 			// defined in rdf map
 			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
@@ -843,12 +820,12 @@ public class User implements Serializable {
 
 			if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
-				this.mountHelper = getUserMountHelper();
+				this.symlinkHelper = getUserSymlinkHelper();
 				
 				// we do not define the Server Directory here - because it will dynamically generate in the chroot location
 				try {
 					// TODO update once venv with chroot is enabled
-					this.cpw.createProcessAndClient(nativePyServer, this.mountHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
+					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null, customClassPath, debug, "-1", loggerLevel);
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");
@@ -871,7 +848,7 @@ public class User implements Serializable {
 				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-					this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
+					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel);				
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to connect to user server");

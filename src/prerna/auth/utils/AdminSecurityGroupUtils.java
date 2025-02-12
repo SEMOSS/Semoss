@@ -103,8 +103,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param description
 	 * @throws Exception
 	 */
-	public void addGroup(User user, String groupId, String groupType, String description, boolean isCustomGroup)
-			throws Exception {
+	public void addGroup(User user, String groupId, String groupType, String description, boolean isCustomGroup) throws Exception {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
@@ -160,6 +160,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public void deleteGroupAndPropagate(String groupId, String groupType) throws Exception {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
@@ -236,6 +237,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
 			String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+		curGroupType = curGroupType == null ? curGroupType : curGroupType.toUpperCase();
+		newGroupType = newGroupType == null ? newGroupType : newGroupType.toUpperCase();
+
 		if(!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
@@ -459,8 +463,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__IS_CUSTOM_GROUP"));
-		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERID"));
-		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERIDTYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERID", "CREATED_BY_USERID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERIDTYPE", "CREATED_BY_USERIDTYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
@@ -645,6 +649,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -699,6 +704,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void editGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission, String endDate) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		int curPermission = groupProjectPermission(groupId, groupType, projectId);
 		if(curPermission == -1) {
 			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to project " + projectId + " to edit");
@@ -760,6 +766,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 */
 	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		int curPermission = groupProjectPermission(groupId, groupType, projectId);
 		if(curPermission == -1) {
 			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to project " + projectId + " to remove");
@@ -802,6 +809,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getProjectsForGroup(String groupId, String groupType, String searchTerm, long limit, long offset, boolean onlyApps) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -876,6 +884,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -915,6 +924,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, long limit, long offset, boolean onlyApps) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -989,6 +999,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1039,6 +1050,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1094,6 +1106,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 */
 	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission, String endDate) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if(curPermission == -1) {
 			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to edit");
@@ -1155,6 +1168,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if(curPermission == -1) {
 			throw new IllegalArgumentException("Group " + groupId + " does not currently have access to engine " + engineId + " to remove");
@@ -1197,6 +1211,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit, long offset) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1259,6 +1274,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumEnginesForGroup(String groupId, String groupType, String searchTerm) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1294,6 +1310,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAvailableEnginesForGroup(String groupId, String groupType, String searchTerm, long limit, long offset) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1356,6 +1373,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumAvailableEnginesForGroup(String groupId, String groupType, String searchTerm) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		if(!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1437,6 +1455,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public boolean groupExists(String groupId, String groupType) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
@@ -1542,6 +1561,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public int groupProjectPermission(String groupId, String groupType, String projectId) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupId));
@@ -1576,6 +1596,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public int groupEnginePermission(String groupId, String groupType, String engineId) {
+		groupType = groupType == null ? groupType : groupType.toUpperCase();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));

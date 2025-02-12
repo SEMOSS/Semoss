@@ -84,22 +84,28 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        model_response = super().call(
+        optionalContext = (
+            f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
+        )
+        optionalParamDict = (
+            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+        )
+
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
+
+        pixelReturn = super().callReactor(
             epoc=epoc,
-            engine_type="Model",
-            engine_id=self.engine_id,
-            method_name="ask",
-            method_args=[question, context, insight_id, param_dict],
-            method_arg_types=[
-                "java.lang.String",
-                "java.lang.String",
-                "prerna.om.Insight",
-                "java.util.Map",
-            ],
+            pixel=pixel,
             insight_id=insight_id,
         )
 
-        return model_response
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            # prior to reactor we were returning this in an array
+            # keeping for backward compatibility
+            return [output["output"]]
+
+        return pixelReturn
 
     def ner(
         self,
@@ -114,9 +120,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, mask_entities={mask_entities});'
+        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, maskEntities={mask_entities});'
 
-        print(f"Pixel: {pixel}")
         pixelReturn = super().callReactor(
             epoc=epoc,
             pixel=pixel,
@@ -178,26 +183,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-        # model_response = super().call(
-        #     epoc=epoc,
-        #     engine_type="Model",
-        #     engine_id=self.engine_id,
-        #     method_name="instruct",
-        #     method_args=[task, context, insight_id, param_dict],
-        #     method_arg_types=[
-        #         "java.lang.String",
-        #         "java.lang.String",
-        #         "prerna.om.Insight",
-        #         "java.util.Map",
-        #     ],
-        #     insight_id=insight_id,
-        # )
-
-        # return model_response
-
-
-
-
     def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
         """This method is responsible to get message history back from the model logs database.
 
@@ -231,7 +216,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-
     def embeddings(
         self,
         strings_to_embed: List[str],
@@ -247,17 +231,60 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         assert isinstance(strings_to_embed, list)
 
         epoc = super().get_next_epoc()
-        model_response = super().call(
+
+        optionalParamDict = (
+            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+        )
+
+        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
+
+        pixelReturn = super().callReactor(
             epoc=epoc,
-            engine_type="Model",
-            engine_id=self.engine_id,
-            method_name="embeddings",
-            method_args=[strings_to_embed, insight_id, param_dict],
-            method_arg_types=["java.util.List", "prerna.om.Insight", "java.util.Map"],
+            pixel=pixel,
             insight_id=insight_id,
         )
 
-        return model_response
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            # prior to reactor we were returning this in an array
+            # keeping for backward compatibility
+            return [output["output"]]
+
+        return pixelReturn
+
+    def image_embeddings(
+        self,
+        images_to_embed: List[str],
+        param_dict: Optional[Dict] = None,
+        insight_id: Optional[str] = None,
+    ) -> List[Dict]:
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        if isinstance(images_to_embed, str):
+            images_to_embed = [images_to_embed]
+
+        assert isinstance(images_to_embed, list)
+
+        epoc = super().get_next_epoc()
+
+        optionalParamDict = (
+            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+        )
+
+        pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}{optionalParamDict});'
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
 
     def model(
         self,
@@ -269,32 +296,20 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             insight_id = self.insight_id
 
         epoc = super().get_next_epoc()
-        model_response = super().call(
+
+        pixel = f'Model("{input}");'
+
+        pixelReturn = super().callReactor(
             epoc=epoc,
-            engine_type="Model",
-            engine_id=self.engine_id,
-            method_name="model",
-            method_args=[input, insight_id, param_dict],
-            method_arg_types=["java.lang.Object", "prerna.om.Insight", "java.util.Map"],
+            pixel=pixel,
             insight_id=insight_id,
         )
 
-        return model_response
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
 
-    def get_model_type(self, insight_id: Optional[str] = None):
-        if insight_id is None:
-            insight_id = self.insight_id
-
-        epoc = super().get_next_epoc()
-        return super().call(
-            epoc=epoc,
-            engine_type="Model",
-            engine_id=self.engine_id,
-            method_name="getModelType",
-            method_args=[],
-            method_arg_types=[],
-            insight_id=insight_id,
-        )
+        return pixelReturn
 
     # this is a little bit of get out of jail free card
     def do_call(self, method_name: str, input: Any, **kwargs) -> Any:
@@ -372,11 +387,6 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
     ):
         return self.pipe(input)
 
-    def get_model_type(
-        self,
-    ):
-        return self.pipeline_type
-
     # this is a little bit of get out of jail free card
     def do_call(self, method_name: str, input: Any, **kwargs) -> Any:
         call_maker = getattr(self, method_name, None)
@@ -387,7 +397,7 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
 
     def get_model_engine_id(self) -> str:
         return self.engine_id
-    
+
 
 class LocalModelEngine(AbstractModelEngine):
 
@@ -440,10 +450,6 @@ class LocalModelEngine(AbstractModelEngine):
 
     def model(self, **kwargs):
         return [self.local_model_engine.model(**kwargs)]
-
-    def get_model_type(self, **kwargs):
-        # TODO add model type in python as well
-        return ["TEXT_GENERATION"]
 
     def do_call(self, method_name: str, input: Any, **kwargs) -> Any:
         call_maker = getattr(self, method_name, None)
@@ -562,6 +568,15 @@ class ModelEngine(AbstractModelEngine):
     ) -> Dict:
         return self.model_engine.embeddings(**kwargs)
 
+    def image_embeddings(
+        self,
+        insight_id: Optional[
+            str
+        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
+        **kwargs,
+    ) -> Dict:
+        return self.model_engine.image_embeddings(**kwargs)
+
     def model(
         self,
         insight_id: Optional[
@@ -579,9 +594,6 @@ class ModelEngine(AbstractModelEngine):
         **kwargs,
     ):
         return self.model_engine.ner(**kwargs)
-
-    def get_model_type(self, **kwargs):
-        return self.model_engine.get_model_type(**kwargs)
 
     def do_call(self, **kwargs: Any) -> Any:
         return self.model_engine.embeddings(**kwargs)
@@ -635,7 +647,7 @@ class ModelEngine(AbstractModelEngine):
                 data = {
                     "engine_id": model_engine.get_model_engine_id(),
                     "model_engine": model_engine,
-                    "model_type": model_engine.get_model_type()[0],
+                    "model_type": model_engine,
                 }
 
                 super().__init__(**data)

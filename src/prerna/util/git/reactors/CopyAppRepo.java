@@ -11,6 +11,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -67,7 +68,13 @@ public class CopyAppRepo extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 		
-		if(AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		/*
+		 * TODO
+		 * This code is very legacy and hard coded for only databases 
+		 * Should look into removing this or updating for any engine
+		 */
+		
+		if(AbstractSecurityUtils.adminOnlyEngineAdd(IEngine.CATALOG_TYPE.DATABASE) && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 		

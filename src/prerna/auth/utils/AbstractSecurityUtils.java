@@ -66,6 +66,30 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyDatabaseSetPublic = false;
 	static boolean adminOnlyDatabaseSetDiscoverable = false;
 
+	static boolean adminOnlyModelAdd = false;
+	static boolean adminOnlyModelDelete = false;
+	static boolean adminOnlyModelAddAccess = false;
+	static boolean adminOnlyModelSetPublic = false;
+	static boolean adminOnlyModelSetDiscoverable = false;
+	
+	static boolean adminOnlyStorageAdd = false;
+	static boolean adminOnlyStorageDelete = false;
+	static boolean adminOnlyStorageAddAccess = false;
+	static boolean adminOnlyStorageSetPublic = false;
+	static boolean adminOnlyStorageSetDiscoverable = false;
+	
+	static boolean adminOnlyVectorAdd = false;
+	static boolean adminOnlyVectorDelete = false;
+	static boolean adminOnlyVectorAddAccess = false;
+	static boolean adminOnlyVectorSetPublic = false;
+	static boolean adminOnlyVectorSetDiscoverable = false;
+
+	static boolean adminOnlyFunctionAdd = false;
+	static boolean adminOnlyFunctionDelete = false;
+	static boolean adminOnlyFunctionAddAccess = false;
+	static boolean adminOnlyFunctionSetPublic = false;
+	static boolean adminOnlyFunctionSetDiscoverable = false;
+	
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
 
@@ -121,13 +145,37 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
 		adminOnlyProjectSetDiscoverable = Utility.getApplicationAdminOnlyProjectSetDiscoverable();
-		
+
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
 		adminOnlyDatabaseAddAccess = Utility.getApplicationAdminOnlyDbAddAccess();
 		adminOnlyDatabaseSetPublic = Utility.getApplicationAdminOnlyDbSetPublic();
 		adminOnlyDatabaseSetDiscoverable = Utility.getApplicationAdminOnlyDbSetDiscoverable();
+		
+		adminOnlyModelAdd = Utility.getApplicationAdminOnlyModelAdd();
+		adminOnlyModelDelete = Utility.getApplicationAdminOnlyModelDelete();
+		adminOnlyModelAddAccess = Utility.getApplicationAdminOnlyModelAddAccess();
+		adminOnlyModelSetPublic = Utility.getApplicationAdminOnlyModelSetPublic();
+		adminOnlyModelSetDiscoverable = Utility.getApplicationAdminOnlyModelSetDiscoverable();
 
+		adminOnlyStorageAdd = Utility.getApplicationAdminOnlyStorageAdd();
+		adminOnlyStorageDelete = Utility.getApplicationAdminOnlyStorageDelete();
+		adminOnlyStorageAddAccess = Utility.getApplicationAdminOnlyStorageAddAccess();
+		adminOnlyStorageSetPublic = Utility.getApplicationAdminOnlyStorageSetPublic();
+		adminOnlyStorageSetDiscoverable = Utility.getApplicationAdminOnlyStorageSetDiscoverable();
+
+		adminOnlyVectorAdd = Utility.getApplicationAdminOnlyVectorAdd();
+		adminOnlyVectorDelete = Utility.getApplicationAdminOnlyVectorDelete();
+		adminOnlyVectorAddAccess = Utility.getApplicationAdminOnlyVectorAddAccess();
+		adminOnlyVectorSetPublic = Utility.getApplicationAdminOnlyVectorSetPublic();
+		adminOnlyVectorSetDiscoverable = Utility.getApplicationAdminOnlyVectorSetDiscoverable();
+
+		adminOnlyFunctionAdd = Utility.getApplicationAdminOnlyFunctionAdd();
+		adminOnlyFunctionDelete = Utility.getApplicationAdminOnlyFunctionDelete();
+		adminOnlyFunctionAddAccess = Utility.getApplicationAdminOnlyFunctionAddAccess();
+		adminOnlyFunctionSetPublic = Utility.getApplicationAdminOnlyFunctionSetPublic();
+		adminOnlyFunctionSetDiscoverable = Utility.getApplicationAdminOnlyFunctionSetDiscoverable();
+		
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 
@@ -171,24 +219,104 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectSetDiscoverable;
 	}
 	
-	public static boolean adminOnlyEngineAdd() {
+	public static boolean adminOnlyDatabaseAdd() {
 		return adminOnlyDatabaseAdd;
 	}
 
-	public static boolean adminOnlyEngineDelete() {
+	public static boolean adminOnlyDatabaseDelete() {
 		return adminOnlyDatabaseDelete;
 	}
 
-	public static boolean adminOnlyEngineAddAccess() {
+	public static boolean adminOnlyDatabaseAddAccess() {
 		return adminOnlyDatabaseAddAccess;
 	}
 
-	public static boolean adminOnlyEngineSetPublic() {
+	public static boolean adminOnlyDatabaseSetPublic() {
 		return adminOnlyDatabaseSetPublic;
 	}
 
-	public static boolean adminOnlyEngineSetDiscoverable() {
+	public static boolean adminOnlyDatabaseSetDiscoverable() {
 		return adminOnlyDatabaseSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyModelAdd() {
+		return adminOnlyModelAdd;
+	}
+
+	public static boolean adminOnlyModelDelete() {
+		return adminOnlyModelDelete;
+	}
+
+	public static boolean adminOnlyModelAddAccess() {
+		return adminOnlyModelAddAccess;
+	}
+
+	public static boolean adminOnlyModelSetPublic() {
+		return adminOnlyModelSetPublic;
+	}
+
+	public static boolean adminOnlyModelSetDiscoverable() {
+		return adminOnlyModelSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyStorageAdd() {
+		return adminOnlyStorageAdd;
+	}
+
+	public static boolean adminOnlyStorageDelete() {
+		return adminOnlyStorageDelete;
+	}
+
+	public static boolean adminOnlyStorageAddAccess() {
+		return adminOnlyStorageAddAccess;
+	}
+
+	public static boolean adminOnlyStorageSetPublic() {
+		return adminOnlyStorageSetPublic;
+	}
+
+	public static boolean adminOnlyStorageSetDiscoverable() {
+		return adminOnlyStorageSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyVectorAdd() {
+		return adminOnlyVectorAdd;
+	}
+
+	public static boolean adminOnlyVectorDelete() {
+		return adminOnlyVectorDelete;
+	}
+
+	public static boolean adminOnlyVectorAddAccess() {
+		return adminOnlyVectorAddAccess;
+	}
+
+	public static boolean adminOnlyVectorSetPublic() {
+		return adminOnlyVectorSetPublic;
+	}
+
+	public static boolean adminOnlyVectorSetDiscoverable() {
+		return adminOnlyVectorSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyFunctionAdd() {
+		return adminOnlyFunctionAdd;
+	}
+
+	public static boolean adminOnlyFunctionDelete() {
+		return adminOnlyFunctionDelete;
+	}
+
+	public static boolean adminOnlyFunctionAddAccess() {
+		return adminOnlyFunctionAddAccess;
+	}
+
+	public static boolean adminOnlyFunctionSetPublic() {
+		return adminOnlyFunctionSetPublic;
+	}
+
+	public static boolean adminOnlyFunctionSetDiscoverable() {
+		return adminOnlyFunctionSetDiscoverable;
 	}
 
 	public static boolean adminOnlyInsightSetPublic() {
@@ -203,6 +331,106 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyInsightShare;
 	}
 
+	public static boolean adminOnlyEngineAdd(String engineId) {
+		return adminOnlyEngineAdd(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseAdd;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelAdd;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageAdd;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorAdd;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionAdd;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineDelete(String engineId) {
+		return adminOnlyEngineDelete(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseDelete;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelDelete;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageDelete;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorDelete;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionDelete;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineAddAccess(String engineId) {
+		return adminOnlyEngineAddAccess(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseAddAccess;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelAddAccess;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageAddAccess;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorAddAccess;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionAddAccess;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineSetPublic(String engineId) {
+		return adminOnlyEngineSetPublic(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseSetPublic;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelSetPublic;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageSetPublic;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorSetPublic;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionSetPublic;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
+	public static boolean adminOnlyEngineSetDiscoverable(String engineId) {
+		return adminOnlyEngineSetDiscoverable(SecurityEngineUtils.getEngineTyp(engineId));
+	}
+	
+	public static boolean adminOnlyEngineSetDiscoverable(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return adminOnlyDatabaseSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return adminOnlyModelSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return adminOnlyStorageSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+			return adminOnlyVectorSetDiscoverable;
+		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+			return adminOnlyFunctionSetDiscoverable;
+		}
+		
+		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
+	}
+	
 	public static void initialize() throws Exception {
 		String database = securityDb.getDatabase();
 		String schema = securityDb.getSchema();
@@ -221,6 +449,8 @@ public abstract class AbstractSecurityUtils {
 			final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 			final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 			final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+			final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
+			final String DOBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 	
 			// 2021-08-06
 			// on h2 when you renmae a column it doens't update/change anything on the index name
@@ -393,7 +623,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			colNames = new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -422,10 +652,13 @@ public abstract class AbstractSecurityUtils {
 	
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE", 
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", 
+					"USAGERESTRICTION", "MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY" };
+			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, 
+					"VARCHAR(255)", INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME, "VARCHAR(255)" };
 			defaultValues = new Object[]{null, null, null, true, false, 
+					null, null, null, null, 
 					null, null, null, null};
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
@@ -621,7 +854,7 @@ public abstract class AbstractSecurityUtils {
 			// PROJECTMETA
 			// check if column exists
 			colNames = new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECTMETA", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -652,7 +885,7 @@ public abstract class AbstractSecurityUtils {
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE", 
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
+			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			defaultValues = new Object[]{null, null, null, true, false, 
 					null, null, null, null};
@@ -867,7 +1100,7 @@ public abstract class AbstractSecurityUtils {
 			colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", 
 					"CACHEABLE", "CACHEMINUTES", "CACHECRON", "CACHEDON", "CACHEENCRYPT", "RECIPE", "SCHEMANAME" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", 
-					BOOLEAN_DATATYPE_NAME, "INT", "VARCHAR(25)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME, "VARCHAR(255)" };
+					BOOLEAN_DATATYPE_NAME, INTEGER_DATATYPE_NAME, "VARCHAR(25)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME, "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 			} else {
@@ -927,7 +1160,7 @@ public abstract class AbstractSecurityUtils {
 			// USERINSIGHTPERMISSION
 			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE", 
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME, 
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			defaultValues = new Object[]{null, null, null, null, false, 
 					null, null, null, null};
@@ -990,7 +1223,7 @@ public abstract class AbstractSecurityUtils {
 	
 			// INSIGHTMETA
 			colNames = new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
 			} else {
@@ -1063,10 +1296,12 @@ public abstract class AbstractSecurityUtils {
 			// SMSS_USER
 			colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
 					"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", 
-					"LOCKED", "PHONE", "PHONEEXTENSION", "COUNTRYCODE" };
+					"LOCKED", "PHONE", "PHONEEXTENSION", "COUNTRYCODE", 
+					"MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME", "MODELUSAGEFREQUENCY" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+					"VARCHAR(255)", INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME,"VARCHAR(255)" };
 			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 			// but some rdbms types (postgres) does not allow it
 			// so i am going ahead and moving over user to smss_user
@@ -1200,7 +1435,7 @@ public abstract class AbstractSecurityUtils {
 			// GROUP ENGINE PERMISSION
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
 			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
 			} else {
@@ -1228,7 +1463,7 @@ public abstract class AbstractSecurityUtils {
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
 			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
 			} else {
@@ -1255,7 +1490,7 @@ public abstract class AbstractSecurityUtils {
 	
 			// GROUP INSIGHT PERMISSION
 			colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION", "DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
 			} else {
@@ -1294,7 +1529,7 @@ public abstract class AbstractSecurityUtils {
 			// ENGINEACCESSREQUEST 
 			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "REQUEST_REASON",
 					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", INTEGER_DATATYPE_NAME, CLOB_DATATYPE_NAME,
 					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEACCESSREQUEST ", colNames, types));
@@ -1323,7 +1558,7 @@ public abstract class AbstractSecurityUtils {
 			// PROJECTACCESSREQUEST 
 			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "REQUEST_REASON",
 					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", INTEGER_DATATYPE_NAME, CLOB_DATATYPE_NAME,
 					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTACCESSREQUEST ", colNames, types));
@@ -1352,7 +1587,7 @@ public abstract class AbstractSecurityUtils {
 			// INSIGHTACCESSREQUEST 
 			colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "REQUEST_REASON",
 					"APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP", "SUBMITTED_BY_USERID", "SUBMITTED_BY_TYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", CLOB_DATATYPE_NAME,
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, CLOB_DATATYPE_NAME,
 					"VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTACCESSREQUEST ", colNames, types));
@@ -1411,7 +1646,7 @@ public abstract class AbstractSecurityUtils {
 	
 			// PERMISSION
 			colNames = new String[] { "ID", "NAME" };
-			types = new String[] { "INT", "VARCHAR(255)" };
+			types = new String[] { INTEGER_DATATYPE_NAME, "VARCHAR(255)" };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PERMISSION", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -1473,8 +1708,8 @@ public abstract class AbstractSecurityUtils {
 			// PASSWORD RULES
 			colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
 					"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT", "DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING" };
-			types = new String[] { "INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT", "INT", "INT" };
+			types = new String[] { INTEGER_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					INTEGER_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
 			if(allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PASSWORD_RULES", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -1518,11 +1753,11 @@ public abstract class AbstractSecurityUtils {
 				// ... but sometimes it is not -_- i.e. postgres always lowercases
 				List<String> passwordRulesCols = queryUtil.getTableColumns(conn, "PASSWORD_RULES", database, schema);
 				if(!passwordRulesCols.contains("DAYS_TO_LOCK") && !passwordRulesCols.contains("days_to_lock")) {
-					String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
+					String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK", INTEGER_DATATYPE_NAME);
 					securityDb.insertData(addColumnSql);
 				}
 				if(!passwordRulesCols.contains("DAYS_TO_LOCK_WARNING") && !passwordRulesCols.contains("days_to_lock_warning")) {
-					String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK_WARNING", "INT");
+					String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK_WARNING", INTEGER_DATATYPE_NAME);
 					securityDb.insertData(addColumnSql);
 				}
 			}
@@ -1605,7 +1840,7 @@ public abstract class AbstractSecurityUtils {
 			for(String tableName : metaKeyTableNames) {
 				// all have the same columns and default values
 				colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES"};
-				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "VARCHAR(500)"};
+				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(500)"};
 				defaultValues = new Object[]{null, null, null, true, false};
 				if(allowIfExistsTable) {
 					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
@@ -1643,8 +1878,8 @@ public abstract class AbstractSecurityUtils {
 							if(numrows < 6) {
 								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
 								int order = 0;
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea", null}));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead", null}));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"data classification", "multi", order++, "select-box", "CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED"}));

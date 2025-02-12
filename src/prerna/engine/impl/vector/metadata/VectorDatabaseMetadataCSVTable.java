@@ -23,6 +23,7 @@ public class VectorDatabaseMetadataCSVTable {
 	public static final String TIMESTAMP_VAL = "Timestamp_Value";
 
     public List<VectorDatabaseMetadataCSVRow> rows;
+	private File file;
 	
     public VectorDatabaseMetadataCSVTable() {
         this.rows = new ArrayList<>();
@@ -39,6 +40,7 @@ public class VectorDatabaseMetadataCSVTable {
     
     public static VectorDatabaseMetadataCSVTable initCSVTable(File file) throws IOException {
     	VectorDatabaseMetadataCSVTable csvTable = new VectorDatabaseMetadataCSVTable();
+    	csvTable.file = file;
     	
     	final String STR_DT = SemossDataType.STRING.toString();
     	final String INT_DT = SemossDataType.INT.toString();

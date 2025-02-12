@@ -15,6 +15,9 @@ import java.util.UUID;
 
 import javax.crypto.Cipher;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
@@ -44,10 +47,6 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class PandasFrame extends AbstractTableDataFrame {
 
@@ -68,7 +67,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	// gets all the commands in one fell swoop 
 	List <String> commands = new ArrayList<>();
 	
-	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
 	private String originalWrapperFrameName = null;
 	private PyTranslator pyt = null;
@@ -140,14 +138,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return this.wrapperFrameName;
 	}
 	
-	public void setJep(PyExecutorThread py) {
-		this.py = py;
-	}
-
-	public PyExecutorThread getJep() {
-		return this.py ;
-	}
-	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
 		// we really need another way to get the data types....
 		Map<String, SemossDataType> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
@@ -170,13 +160,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		boolean loaded = false;
 		long limit = -1;
 		if(it instanceof CsvFileIterator) {
-			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
-			if(csvQs.getLimit() == -1 || csvQs.getLimit() > 10_000) {
-				addRowsViaCsvIterator((CsvFileIterator) it, tableName);
-				loaded = true;
-			} else {
-				limit = csvQs.getLimit();
- 			}
+			addRowsViaCsvIterator((CsvFileIterator) it, tableName);
+			loaded = true;
 		}
 		
 		// just flush the excel to a grid through the iterator
@@ -201,7 +186,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if(in.getUser() != null) {
-					in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
+					in.getUser().getUserSymlinkHelper().symlinkFolder(insightFolder);
 				}
 				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".json";
 			}
@@ -291,15 +276,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 		String fileLocation = it.getFileLocation();
 		Map<String, String> temp = qs.getColumnTypes();
-		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
-				fileLocation, tableName, qs.getDelimiter() + "", "\"", "\\\\", pyt.getCurEncoding(), qs.getColumnTypes());
-
 		// apply limit for import
 		long limit = qs.getLimit();
-		if (limit > -1) {
-			String rowLimits = String.valueOf(limit);
-			loadS = loadS + "[:" + rowLimits + "]";
-		}
+		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
+				fileLocation, tableName, qs.getDelimiter() + "", "\"", "\\\\", null, qs.getColumnTypes(), limit);
 				
 		// run import of packages and df
 		pyt.runEmptyPy(importPandasS, importNumpyS, loadS);
@@ -965,25 +945,15 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
+		// this will get set when we open the cf
+		setName(this.frameName);
 		// set the wrapper frame name once the frame name is set
 		this.wrapperFrameName = getWrapperName();
-				
-		// load the pandas library
-		/*pyt.runScript(PANDAS_IMPORT_STRING);
-		// load the frame
-		pyt.runScript("import pickle");
-		pyt.runScript(PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName));
-		pyt.runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
-
-		*/
-		
-		String [] commands = new String[]{PANDAS_IMPORT_STRING, "import pickle", 
+		String [] commands = new String[]{PANDAS_IMPORT_STRING, "import pickle", "import smssutil",
 							PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), 
 							this.frameName),PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName)};
 
-		
 		pyt.runEmptyPy(commands);
-		
 	}
 
 	@Override

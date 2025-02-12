@@ -73,24 +73,30 @@ public class RSingleton {
 				rLibs = Utility.getDIHelperProperty(R_LIBS);
 			}
 			
+			// we like to keep our paths unix based
 			rHome = rHome.replace("\\", "/");
-			rLibs = rLibs.replace("\\", "/");
 
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
 				throw new IllegalArgumentException("rHome does not exist or is not a directory");
 			}
+			String rExe = rHome + "/bin/R";
+			
+			// if we dont have a rLibs, lets assume its in rhome
 			if(rLibs == null) {
 				rLibs = rHome + "/library";
+			} else {
+				rLibs = rLibs.replace("\\", "/");
 			}
-			rHome = rHome + "/bin/R";
-			classLogger.info("R_HOME for process is " + rHome);
+			
+			classLogger.info("R_HOME for the process is " + rHome);
+			classLogger.info("R_EXE for the process is " + rExe);
 			
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder(rHome, "CMD", rLibs+RSERVE_LOC, "--vanilla", "--RS-port", port + "");
+				pb = new ProcessBuilder(rExe, "CMD", rLibs+RSERVE_LOC, "--vanilla", "--RS-port", port + "");
 			} else {
-				pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
+				pb = new ProcessBuilder(rExe, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
 			}
 			
 			Process process = pb.start();

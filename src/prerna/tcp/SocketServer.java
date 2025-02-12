@@ -21,7 +21,9 @@ public class SocketServer implements Runnable {
 	
 	// basically a process which works by looking for commands in TCP space
 	private static final String CLASS_NAME = SocketServer.class.getName();
-
+	private static boolean multi = false; // allow multiple threads at the same time
+	public static boolean testMode = false;
+	
 	private static Logger classLogger = null;
 
 	private Properties prop = null; // this is basically reference to the RDF Map
@@ -33,14 +35,12 @@ public class SocketServer implements Runnable {
 	private ServerSocket serverSocket = null;
 	
 	private InputStream is = null;
-	Object crash = new Object();
 	
 	private SocketServerHandler ssh = new SocketServerHandler();
 	private String baseFolder = null;
-		
-	private static boolean multi = false; // allow multiple threads at the same time
-	public static boolean testMode = false;
 	
+	public Object crash = new Object();
+
 	public static void main(String [] args) throws Exception {
 		// arg1 - the directory where commands would be thrown
 		// arg2 - access to the rdf map to load
@@ -55,8 +55,8 @@ public class SocketServer implements Runnable {
 		
 		if(args == null || args.length == 0) {
 			args = new String[5];
-			args[0] = "C:\\workspace\\Semoss_Dev\\InsightCache\\z1";
-			args[1] = "C:\\workspace\\Semoss_Dev\\RDF_Map.prop";;
+			args[0] = "C:/workspace/Semoss/InsightCache/z1";
+			args[1] = "C:/workspace/Semoss/RDF_Map.prop";;
 			args[2] = "9999";
 			args[3] = "r";
 			args[4] = "mixed";
@@ -84,7 +84,6 @@ public class SocketServer implements Runnable {
 			fis = new FileInputStream(Utility.normalizePath(log4JPropFile));
 			new ConfigurationSource(fis);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fis != null) {

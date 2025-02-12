@@ -2,8 +2,7 @@ package prerna.ds.py;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.nio.charset.Charset;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -17,8 +16,9 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.ErrorSenderThread;
-import prerna.tcp.client.NativePySocketClient;
+import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -27,25 +27,15 @@ public class PyTranslator {
 
 	private static final Logger classLogger = LogManager.getLogger(PyTranslator.class);
 
-	// this will start to become the main interfacing class for everything related
-	// to python
-	// this is the equivalent of doing RTranslator on the R end
-
-	// this is the default all of the pandas stuff would use
-
-	// sets the insight
-	protected Insight insight = null;
+	public static final String METHOD_DELIMITER = "$$##";
+	public static String curEncoding = null;
 
 	protected Logger logger = null;
+	protected Insight insight = null;
 
-	private PyExecutorThread pt = null;
-	public static String curEncoding = null;
-	public static String NO_OUTPUT = "<e>";
-	public static String NEED_OUTPUT = "<o>";
-
-	Map<Object, Object> responseCache = new HashMap<Object, Object>();
-	String internalLock = "something that the translator will wait on and will be informed by event handler";
-	// TODO need to replace this duplicate code from PandasFrame
+	private SocketClient sc = null;
+	private String method = null;
+	
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -60,8 +50,6 @@ public class PyTranslator {
 	}
 
 	public PyTranslator() {
-		// startDisruptor();
-		// System.out.println("Py Translator created");
 		this.logger = LogManager.getLogger(PyTranslator.class);
 	}
 
@@ -75,16 +63,6 @@ public class PyTranslator {
 	// sets the insight
 	public void setInsight(Insight insight) {
 		this.insight = insight;
-	}
-
-	public void setPy(PyExecutorThread pt) {
-		this.pt = pt;
-		// this.outBuffer = pt.getBuffer();
-	}
-
-	public PyExecutorThread getPy() {
-		return this.pt;
-		// this.outBuffer = pt.getBuffer();
 	}
 
 	/**
@@ -104,7 +82,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<String> getStringList(String script) {
-		ArrayList<String> val = (ArrayList<String>) runScript(script);
+		List<String> val = (List<String>) runScript(script);
 		return val;
 	}
 
@@ -187,60 +165,12 @@ public class PyTranslator {
 		return (String) runScript(script);
 	}
 
-	protected synchronized Hashtable executePyDirect(String... script) {
-		if (this.pt == null)
-			this.pt = insight.getPy();
-
-		Object monitor = pt.getMonitor();
-		synchronized (monitor) {
-			pt.command = script;
-			monitor.notify();
-			try {
-				monitor.wait();
-			} catch (Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-			}
-			logger.info("Completed processing");
-		}
-		return pt.response;
-	}
-
-	protected synchronized void executeEmptyPyDirect(String script, Insight in) {
-		if (this.pt == null)
-			this.pt = insight.getPy();
-
-		Object monitor = pt.getMonitor();
-		Object response = null;
-		synchronized (monitor) {
-			pt.command = new String[] { script };
-			monitor.notify();
-			try {
-				monitor.wait();
-			} catch (Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-			}
-			logger.info("Completed processing");
-
-			response = this.pt.response;
-		}
-
-		Object scriptResponse = ((Hashtable) response).get(script);
-		if (scriptResponse instanceof SemossPixelException) {
-			throw (SemossPixelException) scriptResponse;
-		}
-	}
-
-	public synchronized void runEmptyPy(String... script) {
+	public void runEmptyPy(String... script) {
 		// get the insight folder
 		// create a teamp to write the script file
-		String rootPath = null;
 		String pyTemp = null;
-		String addRootVariable = "";
 		if (this.insight != null) {
-			rootPath = this.insight.getInsightFolder().replace('\\', '/');
-			pyTemp = rootPath + "/py/Temp/";
-			addRootVariable = "ROOT <- '" + rootPath.replace("'", "\\'") + "';";
-			String removeRootVar = "ROOT";
+			pyTemp = this.insight.getInsightFolder().replace('\\', '/') + "/py/Temp/";
 		} else {
 			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
 		}
@@ -253,7 +183,7 @@ public class PyTranslator {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight != null) {
 				if (this.insight.getUser() != null) {
-					this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+					this.insight.getUser().getUserSymlinkHelper().symlinkFolder(pyTemp);
 				}
 			}
 		}
@@ -264,7 +194,7 @@ public class PyTranslator {
 
 		try {
 			String finalScript = convertArrayToString(script);
-			FileUtils.writeStringToFile(scriptFile, finalScript);
+			FileUtils.writeStringToFile(scriptFile, finalScript, Charset.forName("UTF-8"));
 
 			// the wrapper needs to be run now
 			// executePyDirect("runwrapper(" + scriptPath + "," + outPath + "," + outPath +
@@ -273,7 +203,6 @@ public class PyTranslator {
 			// globals())");
 			// changing this to runscript
 			runScript("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
-
 		} catch (IOException e1) {
 			// System.out.println("Error in writing Py script for execution!");
 			classLogger.error(Constants.STACKTRACE, e1);
@@ -283,7 +212,7 @@ public class PyTranslator {
 		}
 	}
 
-	public synchronized String runPyAndReturnOutput(String... inscript) {
+	public String runPyAndReturnOutput(String... inscript) {
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -349,7 +278,7 @@ public class PyTranslator {
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(pyTemp);
 			}
 		}
 
@@ -374,11 +303,10 @@ public class PyTranslator {
 		if (multi) {
 			// Try writing the script to a file
 			try {
-				FileUtils.writeStringToFile(preScriptFile, preScript);
+				FileUtils.writeStringToFile(preScriptFile, preScript, Charset.forName("UTF-8"));
 				// execute all the commands for setting variables etc.
 				executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
-
-				FileUtils.writeStringToFile(scriptFile, script);
+				FileUtils.writeStringToFile(scriptFile, script, Charset.forName("UTF-8"));
 
 				// check packages
 				// checkPackages(script);
@@ -399,7 +327,7 @@ public class PyTranslator {
 
 				// Finally, read the output and return, or throw the appropriate error
 				try {
-					String output = FileUtils.readFileToString(outputFile).trim();
+					String output = FileUtils.readFileToString(outputFile, Charset.forName("UTF-8")).trim();
 					// Error cases
 
 					// clean up the output
@@ -451,13 +379,11 @@ public class PyTranslator {
 		} else {
 			String finalScript = convertArrayToString(inscript);
 			finalScript = finalScript.replace("@", "");
-			Hashtable response = executePyDirect(finalScript);
-
-			Object scriptResponse = response.get(finalScript);
+			Object scriptResponse = runScript(finalScript);
 			if (scriptResponse instanceof SemossPixelException) {
 				throw (SemossPixelException) scriptResponse;
 			} else {
-				return response.get(finalScript) + "";
+				return scriptResponse + "";
 			}
 		}
 	}
@@ -526,7 +452,7 @@ public class PyTranslator {
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(insightRootPath, insightRootPath, false);
+				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(insightRootPath);
 			}
 		}
 
@@ -547,18 +473,15 @@ public class PyTranslator {
 		ErrorSenderThread est = new ErrorSenderThread();
 		if (in != null) {
 			est.setInsight(in);
-			est.start();
 			est.setFile(outputPath);
+			est.start();
 		}
 
 		String output = null;
 		try {
-			FileUtils.writeStringToFile(preScriptFile, preScript);
+			FileUtils.writeStringToFile(preScriptFile, preScript, Charset.forName("UTF-8"));
 			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
-			FileUtils.writeStringToFile(scriptFile, script);
-
-			// check packages
-			// checkPackages(script);
+			FileUtils.writeStringToFile(scriptFile, script, Charset.forName("UTF-8"));
 
 			// Try running the script, which saves the output to a file
 			// TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R
@@ -566,26 +489,16 @@ public class PyTranslator {
 			RuntimeException error = null;
 			try {
 				// Start the error sender thread
-				if (this instanceof TCPPyTranslator
-						&& ((TCPPyTranslator) this).getSocketClient() instanceof NativePySocketClient) {
-					Object pythonReturnObject = runSmssWrapperEval(script, insight);
+				Object pythonReturnObject = runSmssWrapperEval(script, insight);
 
-					if (pythonReturnObject instanceof String) {
-						output = (String) pythonReturnObject;
-					} else {
-						try {
-							output = new Gson().toJson(pythonReturnObject);
-						} catch (Exception e) {
-							output = pythonReturnObject + "";
-						}
-					}
+				if (pythonReturnObject instanceof String) {
+					output = (String) pythonReturnObject;
 				} else {
-					runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath
-							+ "\", globals())");
-					if (in != null) {
-						est.stopSession();
+					try {
+						output = new Gson().toJson(pythonReturnObject);
+					} catch (Exception e) {
+						output = pythonReturnObject + "";
 					}
-					output = FileUtils.readFileToString(outputFile).trim();
 				}
 			} catch (RuntimeException e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -635,15 +548,18 @@ public class PyTranslator {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error in writing Py script for execution.");
 		} finally {
-
-			// Cleanup
+			// cleanup
 			preScriptFile.delete();
 			scriptFile.delete();
 		}
 	}
 
-	// overloading the run script method to pass in the user map
-
+	/**
+	 * 
+	 * @param script
+	 * @param in
+	 * @return
+	 */
 	public String runScript(String script, Insight in) {
 		String removePathVariables = "";
 		String insightRootAssignment = "";
@@ -700,39 +616,6 @@ public class PyTranslator {
 		return output;
 	}
 
-	/**
-	 * Run the script By default return the first script passed in use the Executor
-	 * to grab the specific code portion if running multiple
-	 * 
-	 * @param script
-	 * @return
-	 */
-	public synchronized Object runScript(String script) {
-		this.pt.command = new String[] { script };
-		Object monitor = this.pt.getMonitor();
-		Object response = null;
-		synchronized (monitor) {
-			try {
-				monitor.notify();
-				monitor.wait(4000);
-			} catch (Exception ignored) {
-
-			}
-			/*
-			 * if(script.length == 1) { response = this.pt.response.get(script[0]); } else {
-			 * response = this.pt.response; }
-			 */
-			response = this.pt.response;
-		}
-
-		Object scriptResponse = ((Hashtable) response).get(script);
-		if (scriptResponse instanceof SemossPixelException) {
-			throw (SemossPixelException) scriptResponse;
-		} else {
-			return scriptResponse;
-		}
-	}
-
 	protected String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
 		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
@@ -762,97 +645,121 @@ public class PyTranslator {
 	 */
 	public String[] getColumns(String frameName) {
 		String script = "list(" + frameName + ".columns)";
-		ArrayList<String> colNames = (ArrayList<String>) runScript(script);
+		List<String> colNames = (List<String>) runScript(script);
 		String[] colNamesArray = new String[colNames.size()];
 		colNamesArray = colNames.toArray(colNamesArray);
 		return colNamesArray;
 	}
 
-	// public static void main(String [] args) {
-	// DIHelper helper = DIHelper.getInstance();
-	// Properties prop = new Properties();
-	// try {
-	// prop.load(new
-	// FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
-	// } catch (FileNotFoundException e) {
-	// // TODO Auto-generated catch block
-	// classLogger.error(Constants.STACKTRACE, e);
-	// } catch (IOException e) {
-	// // TODO Auto-generated catch block
-	// classLogger.error(Constants.STACKTRACE, e);
-	// }
-	// helper.setCoreProp(prop);
-	//
-	// PyTranslator py = new PyTranslator();
-	// PyExecutorThread pt = new PyExecutorThread();
-	// pt.start();
-	// py.pt = pt;
-	// String command = "print('Hello World')" +
-	// "\n" +
-	// "print('World Hello')" +
-	// "\n" +
-	// "a = 2" +
-	// "\n" +
-	// "a" +
-	// "\n" +
-	// "if (a ==2):" +
-	// "\n" +
-	// " print('a is 2')";
-	//
-	//
-	// //py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
-	// String output = py.runPyAndReturnOutput(command);
-	// System.out.println("Output >> " + output);
-	// }
-
-	public synchronized Object runSmssWrapperEval(String script, Insight insight) {
-		ErrorSenderThread est = null;
-		String payload = script;
-		if (insight != null) {
-			est = new ErrorSenderThread();
-			est.setInsight(insight);
-
-			// write the file to create
-			// for now let it be
-			String file = Utility.getRandomString(5);
-			makeTempFolder(insight.getInsightFolder());
-			String pyTemp = insight.getInsightFolder() + "/Py/Temp";
-			file = pyTemp + "/" + file;
-			file = file.replace("\\", "/");
-
-			script = script.replace("\"", "'");
-			payload = "smssutil.runwrappereval_return(\"" + script + "\", '" + file + "', '" + file + "', globals())";
-			est.setFile(file);
-			est.start();
-		}
-
-		Object retObject = runScript(payload);
-
-		if (insight != null) {
-			est.stopSession();
-		}
-
-		return retObject;
-
+	/**
+	 * 
+	 * @param sc
+	 */
+	public void setSocketClient(SocketClient sc) {
+		this.sc = sc;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public SocketClient getSocketClient() {
+		return this.sc;
 	}
 
-	public void makeTempFolder(String baseFolder) {
-		String pyTemp = baseFolder + "/Py/Temp";
+	public Object runScript(String script)  {
+		if(method != null) {
+			script = method + METHOD_DELIMITER + script;
+			method = null;
+		}
+		
+		//System.out.println(".");
+//		Object response = nc.executeCommand(script);
+		//Object [] outputObj = (Object [])response;
+		
+		//System.out.println("Command was " + outputObj[0] + "<>" + script + "<>" + outputObj[1]);
+		//System.err.println("Got the response back !!!!! WOO HOO " + response);
+		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 
-		File pyTempF = new File(pyTemp);
-		if (!pyTempF.exists()) {
-			pyTempF.mkdirs();
-			pyTempF.setExecutable(true);
-			pyTempF.setReadable(true);
-			pyTempF.setReadable(true);
+		PayloadStruct ps = constructPayload(methodName, script);
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.payloadClasses = new Class[] {String.class};
+		ps.longRunning = true;
+		if(sc.isConnected()) {
+			ps = (PayloadStruct)sc.executeCommand(ps);
+			if(ps != null && ps.ex != null) {
+				logger.info("Exception " + ps.ex);
+				throw new SemossPixelException(ps.ex);
+			} else {
+				return ps.payload[0];
+			}
+		} else {
+			logger.info("Py engine is not available anymore ");
+        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+	}
+
+	// use this if we want to get the output from an operation
+	// typically useful for model type operations
+	public Object runSmssWrapperEval(String script, Insight insight) {
+		if(method != null) {
+			script = method + METHOD_DELIMITER + script;
+			method = null;
 		}
 
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+
+		PayloadStruct ps = constructPayload(methodName, script);
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.payloadClasses = new Class[] {String.class};
+		ps.longRunning = true;
+		
+		// get error messages
+		if(insight != null) {
+			ps.insightId = insight.getInsightId();
+			if(insight.getUser() != null) {
+				sc.addInsight2Insight(ps.insightId, insight);
 			}
 		}
-
+		
+		
+		if(sc.isConnected()) {
+			ps = (PayloadStruct)sc.executeCommand(ps);
+			if(ps != null && ps.ex != null) {
+				logger.info("Exception " + ps.ex);
+				throw new SemossPixelException(ps.ex);
+			} else {
+				return ps.payload[0];
+			}
+		} else {
+			logger.info("Py engine is not available anymore ");
+        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
 	}
+
+	/**
+	 * 
+	 * @param script
+	 * @param in
+	 */
+	protected void executeEmptyPyDirect(String script, Insight in) {
+		runSmssWrapperEval(script, in);
+	}
+
+	/**
+	 * 
+	 * @param methodName
+	 * @param objects
+	 * @return
+	 */
+	private PayloadStruct constructPayload(String methodName, Object...objects ) {
+		// go through the objects and if they are set to null then make them as string null
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.R;
+		ps.methodName = methodName;
+		ps.payload = objects;
+		
+		return ps;
+	}	
 
 }

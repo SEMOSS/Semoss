@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -24,7 +25,7 @@ public class SocialPropertiesUtil {
 	private static String socialPropFile = null;
 	
 	public SocialPropertiesUtil() {
-		SocialPropertiesUtil.socialPropFile = DIHelper.getInstance().getProperty(Constants.SOCIAL);
+		SocialPropertiesUtil.socialPropFile = Utility.getDIHelperProperty(Constants.SOCIAL);
 		if(SocialPropertiesUtil.socialPropFile != null) {
 			File f = new File(SocialPropertiesUtil.socialPropFile);
 			if (!f.exists()) {
@@ -69,6 +70,14 @@ public class SocialPropertiesUtil {
 	
 	public Map<String, Boolean> getLoginsAllowed() {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
+	}
+	
+	public boolean isNativeRegistrationAllowed() {
+		return SocialPropertiesUtil.processor.isNativeRegistrationAllowed();
+	}
+	
+	public List<Map<String, Object>> getAvailableProviders() {
+		return SocialPropertiesUtil.processor.getAvailableProviders();
 	}
 	
 	public String getProperty(String key) {
@@ -179,7 +188,6 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getImapEmailProps();
 	}
 	
-	
 	public void reloadProps() {
 		SocialPropertiesUtil.processor.reloadProps();
 	}
@@ -190,5 +198,5 @@ public class SocialPropertiesUtil {
 		ldapAuthenticator.load();
 		return ldapAuthenticator;
 	}
-
+	
 }

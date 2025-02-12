@@ -2,6 +2,7 @@ from typing import List, Dict
 from ....constants import (
     FULL_PROMPT,
     IMAGE_ENCODED,
+    IMAGE_URL,
     AskModelEngineResponse,
 )
 
@@ -120,6 +121,14 @@ class Chat:
                 image_url["url"] = (
                     f"data:image/png;base64,{fill_variables.pop(IMAGE_ENCODED)}"
                 )
+                image_payload.append({"type": "image_url", "image_url": image_url})
+                message_payload.append({"role": "user", "content": image_payload})
+        if IMAGE_URL in fill_variables:
+            if question != None and len(question) > 0:
+                image_payload = []
+                image_payload.append({"type": "text", "text": question})
+                image_url = {}
+                image_url["url"] = fill_variables.pop(IMAGE_URL)
                 image_payload.append({"type": "image_url", "image_url": image_url})
                 message_payload.append({"role": "user", "content": image_payload})
         else:

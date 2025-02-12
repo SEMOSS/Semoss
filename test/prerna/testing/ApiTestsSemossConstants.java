@@ -18,7 +18,7 @@ public class ApiTestsSemossConstants {
 	public static final Path TEST_CONFIG_DIRECTORY = Paths.get(TEST_BASE_DIRECTORY, "testconfig");
 
 	public static final Path BASE_RDF_MAP = Paths.get(BASE_DIRECTORY, "RDF_Map.prop");
-	public static final Path TEST_RDF_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "RDF_Map.prop");
+	public static final Path TEST_RDF_MAP = Paths.get(TEST_BASE_DIRECTORY, "RDF_Map.prop");
 
 	public static final String LMD_SMSS = Paths.get(TEST_DB_DIRECTORY, Constants.LOCAL_MASTER_DB + ".smss").toAbsolutePath().toString();
 	public static final String SECURITY_SMSS = Paths.get(TEST_DB_DIRECTORY, Constants.SECURITY_DB + ".smss").toAbsolutePath().toString();
@@ -32,7 +32,8 @@ public class ApiTestsSemossConstants {
 	
 	
 	// constants for email api
-	public static final String EMAIL_BCC = "Bcc";	
+	public static final String EMAIL_BCC = "Bcc";
+	public static final String EMAIL_CC = "Cc";		
 	public static final String EMAIL_TO = "To";	
 	public static final String EMAIL_FROM = "From";	
 	public static final String EMAIL_ADDRESS = "Address";	

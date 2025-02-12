@@ -27,7 +27,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -35,7 +35,7 @@ import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
+public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	
 	protected final String TINKER_DRIVER_TYPE = "tinkerDriver";
 	

@@ -16,12 +16,11 @@ import prerna.util.Utility;
 public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	private SocketClient nc = null;
-	Logger logger = null;
-	String port = null;
-	Insight insight = null;
-	boolean started = false;
-	boolean insightSet = false;
-	
+	private Logger logger = null;
+	private Insight insight = null;
+	private boolean started = false;
+	private boolean insightSet = false;
+
 	/**
 	 * 
 	 * @param nc
@@ -29,10 +28,9 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	public void setClient(SocketClient nc) {
 		this.nc = nc;
 	}
-	
+
 	@Override
 	public void initREnv(String env) {
-		// TODO Auto-generated method stub
 		// need to create the netty client here ?
 		this.env = env;
 		if(nc != null && !started)
@@ -48,7 +46,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				logger.info(ps.ex);
 			}
 		}
-		//return output;
 	}
 
 	@Override
@@ -67,17 +64,11 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			} else if(ps != null) {
 				started = true;
 			}
-			
-//			// set the memory limit
-//			if(started) {
-//				setMemoryLimit();
-//			}
 		}
 	}
 
 	@Override
 	public Object executeR(String rScript) {
-		// TODO Auto-generated method stub
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 		PayloadStruct ps = constructPayload(methodName, rScript);
 		ps.payloadClasses = new Class[] {String.class};
@@ -91,43 +82,39 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			else if(ps != null)
 				logger.info(ps.ex);
 		}
-		
+
 		return null;
 	}
 
 	@Override
 	public void executeEmptyR(String rScript) {
-		// TODO Auto-generated method stub
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-			
 			logger.info(" >>> Running Script " + rScript);
-	
+
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
 			ps.hasReturn = false;
 			ps = (PayloadStruct) nc.executeCommand(ps);
-			
-			
-			if(ps != null  &&  ps.ex!= null)
+
+			if(ps != null  &&  ps.ex!= null) {
 				logger.info(Utility.cleanLogString(ps.ex));
+			}
 		}		
 	}
 
 	@Override
 	public boolean cancelExecution() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public void runR(String rScript) {
-		// TODO Auto-generated method stub
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
 			ps.longRunning = true;
@@ -163,7 +150,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, script);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -184,7 +171,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, script);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -206,7 +193,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, script);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -227,7 +214,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -248,7 +235,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -269,7 +256,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -291,7 +278,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-	
+
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
 			//ps.payload = new Object[] {"2+2"};
@@ -315,7 +302,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
-	
+
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex== null)
 			{
@@ -338,7 +325,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {Insight.class};
-	
+
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex== null)
 			{
@@ -355,7 +342,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void setInsight(Insight insight) {
-		// TODO Auto-generated method stub
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 		if(nc != null && !insightSet)
 		{
@@ -370,46 +356,35 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		this.insight = insight;
-
 	}
-	
+
 	@Override
 	public Insight getInsight() {
 		return this.insight;
-
 	}
 
 	@Override
 	public void setLogger(Logger logger) {
-		// TODO Auto-generated method stub
 		this.logger = logger;
-
 	}
 
 	@Override
 	public void setConnection(RConnection connection) {
-		// TODO Auto-generated method stub
 		// no use
-
 	}
 
 	@Override
 	public void setPort(String port) {
-		// TODO Auto-generated method stub
-		this.port = port;
-		
+		// no use
 	}
 
 	@Override
 	public void endR() {
-		// TODO Auto-generated method stub
 		// dont know what I need to do here but.. 
-		
 	}
 
 	@Override
 	public void stopRProcess() {
-		// TODO Auto-generated method stub
 
 	}	
 
@@ -417,7 +392,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyRDirect(String rScript) {
 		if(nc != null)
 		{
-			// TODO Auto-generated method stub
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
@@ -432,10 +406,9 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	Object executeRDirect(String rScript) {
-		// TODO Auto-generated method stub
 		if(nc != null)
 		{
-	
+
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.payloadClasses = new Class[] {String.class};
@@ -452,7 +425,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
-		// TODO Auto-generated method stub
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -491,7 +463,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
-		// TODO Auto-generated method stub
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -510,7 +481,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		// TODO Auto-generated method stub
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -527,16 +497,15 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		return null;
 	}
 
-	public String[] getColumnTypes(String frameName) 
-	{
+	public String[] getColumnTypes(String frameName) {
 		if(nc != null)
 		{
-			
+
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, frameName);
 			ps.payloadClasses = new Class[] {String.class};
 			ps = (PayloadStruct)nc.executeCommand(ps);
-			
+
 			if(ps != null  &&  ps.ex== null)
 			{
 				String [] retString = (String [])ps.payload[0];
@@ -556,9 +525,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void initREnv() {
-		// TODO Auto-generated method stub
-		if(nc != null && !started)
-		{
+		if(nc != null && !started) {
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, env);
 			ps.payloadClasses = new Class[] {String.class};
@@ -573,19 +540,17 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public boolean isEmpty(String frameName) {
-		// TODO Auto-generated method stub
-		if(nc != null)
-		{
+		if(nc != null) {
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, frameName);
 			ps.payloadClasses = new Class[] {String.class};
 			ps = (PayloadStruct)nc.executeCommand(ps);
-			if(ps != null  &&  ps.ex!= null)
-			{
+			if(ps != null  &&  ps.ex!= null) {
 				logger.info(ps.ex);
 			}
-			else if(ps != null) 
+			else if(ps != null) {
 				return (Boolean)ps.payload[0];
+			}
 		}
 
 		return false;
@@ -593,19 +558,17 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public boolean varExists(String varname) {
-		
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, varname);
 			ps.payloadClasses = new Class[] {String.class};
 			ps = (PayloadStruct)nc.executeCommand(ps);
-			if(ps != null  &&  ps.ex!= null)
-			{
+			if(ps != null  &&  ps.ex!= null) {
 				logger.info(ps.ex);
-			}
-			else if(ps != null)
+			} else if(ps != null) {
 				return (Boolean)ps.payload[0];
+			}
 		}
 		return false;
 	}
@@ -624,12 +587,11 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				logger.info(ps.ex);
 			}
 		}
-		
+
 	}
 
 	@Override
-	public void changeColumnType(String frameName, String columnName, SemossDataType typeToConvert,
-			SemossDataType currentType) {
+	public void changeColumnType(String frameName, String columnName, SemossDataType typeToConvert, SemossDataType currentType) {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -642,14 +604,13 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				logger.info(ps.ex);
 			}
 		}
-		
+
 	}
 
 	@Override
 	public String getColumnType(String frameName, String column) {
 		if(nc != null)
 		{
-			
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, frameName, column);
 			ps.payloadClasses = new Class[] {String.class, String.class};
@@ -672,8 +633,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public void changeColumnType(RDataTable frame, String frameName, String colName, String newType,
-			String dateFormat) {
+	public void changeColumnType(RDataTable frame, String frameName, String colName, String newType, String dateFormat) {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -686,7 +646,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				logger.info(ps.ex);
 			}
 		}
-		
+
 	}
 
 	@Override
@@ -697,12 +657,11 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			PayloadStruct ps = constructPayload(methodName, frameName);
 			ps.payloadClasses = new Class[] {String.class};
 			ps = (PayloadStruct)nc.executeCommand(ps);
-			if(ps != null  &&  ps.ex!= null)
-			{
+			if(ps != null  &&  ps.ex!= null) {
 				logger.info(ps.ex);
-			}
-			else if(ps != null)
+			} else if(ps != null) {
 				return (Integer)ps.payload[0];
+			}
 		}
 		return 0;
 	}
@@ -721,7 +680,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				logger.info(ps.ex);
 			}
 		}
-		
+
 	}
 
 	@Override
@@ -738,7 +697,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				logger.info(Utility.cleanLogString(ps.ex));
 			}
 		}
-		
+
 	}
 
 	@Override
@@ -746,7 +705,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		// we cannot do this I dont think
 		return false;
 	}
-	
+
 	protected void setMemoryLimit() {
 		if(nc != null)
 		{
@@ -762,7 +721,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		}
 	}
 
-	
+
 	private PayloadStruct constructPayload(String methodName, Object...objects )
 	{
 		// go through the objects and if they are set to null then make them as string null
@@ -771,20 +730,8 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		ps.methodName = methodName;
 		ps.payload = objects;
 		ps.env = this.env;
-		
+
 		return ps;
 	}
-	
-
-	
-
-
-//	public static void main(String [] args)
-//	{
-//		TCPRTranslator tr = new TCPRTranslator();
-//		tr.getBoolean("abcd");
-//	}
-
-
 
 }

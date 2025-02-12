@@ -29,10 +29,10 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
 
-	private String engineId;
-	private String engineName;
+	protected String engineId;
+	protected String engineName;
 	
-	private String smssFilePath;
+	protected String smssFilePath;
 	protected Properties smssProp;
 	
 	protected String functionName;
@@ -227,11 +227,6 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	@Override
 	public CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.FUNCTION;
-	}
-
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
 	}
 
 	@Override

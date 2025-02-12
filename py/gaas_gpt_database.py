@@ -1,5 +1,6 @@
 from gaas_server_proxy import ServerProxy
-
+import random
+import string
 
 class DatabaseEngine(ServerProxy):
     def __init__(self, engine_id=None, insight_id=None):
@@ -14,8 +15,9 @@ class DatabaseEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
         # assert insight_id is not None
-        epoc = super().get_next_epoc()
-        fileLoc = super().call(
+        #epoc = super().get_next_epoc()
+        epoc ="py_" + "".join(random.choice(string.digits) for _ in range(17))
+        fileLoc = super().callEngine(
             epoc=epoc,
             engine_type="database",
             engine_id=self.engine_id,
@@ -102,7 +104,9 @@ class DatabaseEngine(ServerProxy):
         commitStr = "true" if commit else "false"
 
         # assert insight_id is not None
-        epoc = super().get_next_epoc()
+        #epoc = super().get_next_epoc()
+        #epoc = "py_" + str (random.randint(1,9999))
+        epoc ="py_" + "".join(random.choice(string.digits) for _ in range(17))
         pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery(commit={commitStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -115,3 +119,4 @@ class DatabaseEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
+
