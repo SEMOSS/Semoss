@@ -1,6 +1,7 @@
 from gaas_server_proxy import ServerProxy
 from typing import Optional
-
+import random
+import string
 
 class Insight(ServerProxy):
     def __init__(self, insight_id=None):
@@ -23,7 +24,8 @@ class Insight(ServerProxy):
             insight_id = self.insight_id
         assert insight_id is not None
 
-        epoc = super().get_next_epoc()
+        #epoc = super().get_next_epoc()
+        epoc ="py_" + "".join(random.choice(string.digits) for _ in range(17))
         pixelReturn = super().callReactor(
             epoc=epoc,
             pixel=pixel,

@@ -14,8 +14,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -44,7 +44,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	protected String workingDirectory;
 	protected String workingDirectoryBasePath = null;
 	
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
 	
@@ -144,7 +144,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		try {

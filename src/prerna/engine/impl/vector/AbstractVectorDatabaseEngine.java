@@ -28,8 +28,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -108,7 +108,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected ClientProcessWrapper cpw = null;
 	// python server
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
@@ -297,7 +297,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
-				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				String documentName = FilenameUtils.getBaseName(document.getName());
 				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
@@ -745,7 +745,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
 		try {
@@ -763,6 +763,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " ptyhon process with commands >>> " + String.join("\n", commands));
 		} catch(Exception e) {
+			// set the model props to false
+			// incase those values were incorrect
+			modelPropsLoaded = false;
 			classLogger.error(Constants.STACKTRACE, e);
 			if(this.cpw != null) {
 				classLogger.warn("Able to start the python process for the vector database " 

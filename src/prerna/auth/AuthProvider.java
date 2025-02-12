@@ -33,7 +33,7 @@ public enum AuthProvider implements Serializable {
 	// saml
 	SAML("SAML", "SAML", false, null),
 	// using ldap
-	ACTIVE_DIRECTORY("ACTIVE_DIRECTORY", "Active Directory", false, null),
+	LDAP("LDAP", "Active Directory", false, null),
 	// linOTP
 	LINOTP("LINOTP", "LinOTP", false, null),
 	

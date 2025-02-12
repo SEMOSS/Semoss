@@ -1720,11 +1720,6 @@
 		    <artifactId>trino-jdbc</artifactId>
 		    <version>439</version>
 		</dependency>
-		<dependency>
-			<groupId>black.ninia</groupId>
-			<artifactId>jep</artifactId>
-			<version>3.9.0</version>
-		</dependency>
 		<!-- Tinker DataStax -->
 		<dependency>
 			<groupId>com.datastax.dse</groupId>
@@ -2222,7 +2217,7 @@
 		<dependency>
 		  <groupId>com.databricks</groupId>
 		  <artifactId>databricks-jdbc</artifactId>
-		  <version>2.6.38</version>
+		  <version>2.7.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.hierynomus/sshj -->
 		<dependency>

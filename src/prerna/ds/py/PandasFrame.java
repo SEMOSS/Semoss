@@ -67,7 +67,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	// gets all the commands in one fell swoop 
 	List <String> commands = new ArrayList<>();
 	
-	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
 	private String originalWrapperFrameName = null;
 	private PyTranslator pyt = null;
@@ -137,14 +136,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	public String getWrapperName() {
 		return this.wrapperFrameName;
-	}
-	
-	public void setJep(PyExecutorThread py) {
-		this.py = py;
-	}
-
-	public PyExecutorThread getJep() {
-		return this.py ;
 	}
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
@@ -954,6 +945,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
+		// this will get set when we open the cf
+		setName(this.frameName);
 		// set the wrapper frame name once the frame name is set
 		this.wrapperFrameName = getWrapperName();
 		String [] commands = new String[]{PANDAS_IMPORT_STRING, "import pickle", "import smssutil",
@@ -961,7 +954,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 							this.frameName),PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName)};
 
 		pyt.runEmptyPy(commands);
-		
 	}
 
 	@Override

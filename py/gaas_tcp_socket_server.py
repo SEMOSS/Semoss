@@ -200,3 +200,6 @@ if __name__ == "__main__":
         timeout=args.timeout,
         start=args.start,
     )
+
+if __name__ == "__main__":
+    Server(port=9999, start=True)

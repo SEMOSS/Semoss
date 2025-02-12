@@ -30,16 +30,9 @@ class ServerProxy:
         method_args: Optional[List[Any]] = [],
         method_arg_types: Optional[List[str]] = [],
         insight_id: Optional[str] = None,
-        operation: str = "ENGINE",
+        operation: str = "REACTOR",
     ):
         """
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-        NEED TO UPDATE THIS FOR IF WE ARE RUNNING A REACTOR VS. ENGINE
-
-
         This method in responsible for:
             - converting the args into a PayloadStruct
             - adds itself to the monitor block
@@ -95,6 +88,46 @@ class ServerProxy:
         # once it gets the response removes it from the monitors
         self.condition.release()
 
+    def callReactor(self, epoc: str, pixel: str, insight_id: Optional[str] = None):
+        """
+        This method is responsible for initiating a pixel call communication with the server using a separate thread, which calls the `comm` method.
+
+        Args:
+            epoc (`str`): The epoc ID for the payload struct.
+            pixel (`str`): The pixel being executed to tomcat
+            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+
+        Returns:
+            `List[Dict]`: A list that contains the response from the Tomcat server engine.
+        """
+        orig_payload = getattr(self.server.thread_local, "payload", None)
+
+        # Setting the thread-local storage for the new thread
+        def set_thread_local_payload():
+            self.server.thread_local.payload = orig_payload
+            self.comm(
+                epoc=epoc,
+                engine_type=None,
+                engine_id=None,
+                method_name=None,
+                method_args=[pixel],
+                method_arg_types=None,
+                insight_id=insight_id,
+                operation="REACTOR",
+            )
+
+        thread = threading.Thread(target=set_thread_local_payload)
+        thread.start()  # start the thread
+        thread.join()  # wait for it to finish
+
+        new_payload_struct = self.server.monitors.pop(epoc)
+
+        if "ex" in new_payload_struct:
+            # if exception, convert exception and give back
+            raise Exception(new_payload_struct["ex"])
+        else:
+            return new_payload_struct["payload"]
+
     def callEngine(
         self,
         epoc: str,
@@ -148,118 +181,3 @@ class ServerProxy:
         else:
             return new_payload_struct["payload"]
 
-    def call(
-        self,
-        epoc: str,
-        engine_type: str,
-        engine_id: str,
-        method_name: str = "None",
-        method_args: Optional[List[Any]] = [],
-        method_arg_types: Optional[List[str]] = [],
-        insight_id: Optional[str] = None,
-    ):
-        """
-        This method is deprecated!
-        Please use callEngine instead
-        """
-        return self.callEngine(
-            epoc,
-            engine_type,
-            engine_id,
-            method_name,
-            method_args,
-            method_arg_types,
-            insight_id,
-        )
-
-    def callReactor(self, epoc: str, pixel: str, insight_id: Optional[str] = None):
-        """
-        This method is responsible for initiating a pixel call communication with the server using a separate thread, which calls the `comm` method.
-
-        Args:
-            epoc (`str`): The epoc ID for the payload struct.
-            pixel (`str`): The pixel being executed to tomcat
-            insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
-
-        Returns:
-            `List[Dict]`: A list that contains the response from the Tomcat server engine.
-        """
-        orig_payload = getattr(self.server.thread_local, "payload", None)
-
-        # Setting the thread-local storage for the new thread
-        def set_thread_local_payload():
-            self.server.thread_local.payload = orig_payload
-            self.comm(
-                epoc=epoc,
-                engine_type=None,
-                engine_id=None,
-                method_name=None,
-                method_args=[pixel],
-                method_arg_types=None,
-                insight_id=insight_id,
-                operation="REACTOR",
-            )
-
-        thread = threading.Thread(target=set_thread_local_payload)
-        thread.start()  # start the thread
-        thread.join()  # wait for it to finish
-
-        new_payload_struct = self.server.monitors.pop(epoc)
-
-        if "ex" in new_payload_struct:
-            # if exception, convert exception and give back
-            raise Exception(new_payload_struct["ex"])
-        else:
-            return new_payload_struct["payload"]
-
-    def test(self):
-        epoc = self.get_next_epoc()
-        orig_payload = getattr(self.server.thread_local, "payload", None)
-
-        def set_thread_local_payload():
-            self.server.thread_local.payload = orig_payload
-            self.comm(
-                epoc=epoc,
-                engine_type="ENGINE",
-                engine_id="hello",
-                method_name="method1",
-                method_args=["cat", "bat", None],
-                method_arg_types=[
-                    "java.lang.String",
-                    "java.lang.String",
-                    "java.lang.String",
-                ],
-            )
-
-        thread = threading.Thread(target=set_thread_local_payload)
-        thread.start()
-        thread.join()
-
-        new_payload_struct = self.server.monitors.pop(epoc)
-
-        # if exception
-        if "ex" in new_payload_struct:
-            return new_payload_struct["ex"]
-        else:
-            # if we get to the point for json pickle we can do that
-            # new_payload_struct = self.process_payload(new_payload_struct)
-            return new_payload_struct["payload"]
-
-    def process_payload(self, payload_struct):
-        # try to see if the types are pickle
-        # if so unpickle it
-        import jsonpickle as jp
-
-        payload_data = None
-        if "payload" in payload_struct:
-            payload_data = payload_struct["payload"]
-        if payload_data is not None and isinstance(payload_data, list):
-            for data in payload_data:
-                index = payload_data.index(data)
-                try:
-                    orig_obj = data
-                    obj = jp.loads(orig_obj)
-                    payload_struct["payload"][index] = obj
-                except Exception as e:
-                    pass
-        return payload_struct
