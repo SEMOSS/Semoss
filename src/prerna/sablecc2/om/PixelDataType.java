@@ -92,6 +92,7 @@ public enum PixelDataType {
 	PROJECT_AUTHORIZATION_HEADER("PROJECT_AUTHORIZATION_HEADER", ReactorKeysEnum.HEADERS_MAP),
 	
 	PIXEL_OBJECT("PIXEL_OBJECT", null),
+	JSON_OBJECT("JSON_OBJECT", null),
 	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE", null),
 	
 	// running cached and new insights

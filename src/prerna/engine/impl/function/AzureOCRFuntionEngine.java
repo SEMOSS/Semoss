@@ -27,6 +27,7 @@ import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.polling.SyncPoller;
 
+import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.engine.impl.vector.VectorDatabaseUtils;
@@ -41,40 +42,36 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AzureOCRFuntionEngine.class);
 
-	private String engineId = null;
-	private String engineName = null;
-	private String connectionUrl;
-	private String apiKey;
-	DocumentAnalysisClient documentAnalysisClient = null;
-	List<String> output = null;
-
-	public static final String URL = "URL";
-	public static final String API_KEY = "API_KEY";
-	public static final String PARAMETERS = "parameters";
-	public static final String CSVPATH = "csvPath";
-	public static final String DOC = "document";
-	public static final String PDFENDS = ".pdf";
-	public static final String CSVROWS = "rowsInCSV";
-	public static final String IMAGEMAP = "imageMap";
-	public static final String PREBUILT_READ = "prebuilt-read";
+	private static final String URL = "URL";
+	private static final String API_KEY = "API_KEY";
+	private static final String PARAMETERS = "parameters";
+	private static final String CSVPATH = "csvPath";
+	private static final String DOC = "document";
+	private static final String PDFENDS = ".pdf";
+	private static final String CSVROWS = "rowsInCSV";
+	private static final String IMAGEMAP = "imageMap";
+	private static final String PREBUILT_READ = "prebuilt-read";
 
 	// Log messages
-	public static final String PDF_EXIST = "Pdf Exist";
-	public static final String IMAGE_EXIST = "Image Exist";
-	public static final String TEXT_EXIST = "Text Exist";
-	public static final String ACCESSKEY_MSG = "Must pass in an access key";
-	public static final String SECRETKEY_MSG = "Must pass in an secret key";
-	public static final String OCRSTART_MSG = "Starting ocr function engine";
-	public static final String OCREND_VECTOR_MSG = "Ending ocr function engine for vector db";
-	public static final String OCREND_MSG = "Ending ocr function engine for app";
-	public static final String IOEXCEPTION_MSG = "IOException from ocr function engine";
+	private static final String PDF_EXIST = "Pdf Exist";
+	private static final String IMAGE_EXIST = "Image Exist";
+	private static final String TEXT_EXIST = "Text Exist";
+	private static final String ACCESSKEY_MSG = "Must pass in an access key";
+	private static final String SECRETKEY_MSG = "Must pass in an secret key";
+	private static final String OCRSTART_MSG = "Starting ocr function engine";
+	private static final String OCREND_VECTOR_MSG = "Ending ocr function engine for vector db";
+	private static final String OCREND_MSG = "Ending ocr function engine for app";
+	private static final String IOEXCEPTION_MSG = "IOException from ocr function engine";
+
+	private String connectionUrl;
+	private String apiKey;
+	private DocumentAnalysisClient documentAnalysisClient = null;
+	private List<String> output = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 
-		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
-		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 		this.connectionUrl = smssProp.getProperty(URL);
 		this.apiKey = smssProp.getProperty(API_KEY);
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
@@ -95,7 +92,6 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-
 		classLogger.info(OCRSTART_MSG);
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 		StringBuffer extractedTextForeachLine = new StringBuffer();
@@ -104,7 +100,7 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 		Map<String, Object> result = null;
 		int rowsCreated = 0;
 		File document = null;
-		Insight insight = new Insight();
+		Insight insight = null;
 		Map<String, Object> vectorParmaters = (Map<String, Object>) parameterValues.get(PARAMETERS);
 		String csvFilePath = (String) parameterValues.get(CSVPATH);
 		boolean isCallFromVectorDB = false;
@@ -226,13 +222,11 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 					// TODO : Image PPT processor
 
 				} else if (mimeType.equalsIgnoreCase("application/pdf")) {
-
 					ImagePDFProcessor pdf = new ImagePDFProcessor(file.getAbsolutePath(), writer);
 					pdf.readTextfromPdf(csvFileName, file, this.output);
 					processedList.add(file.getAbsolutePath());
 
 				} else if (mimeType.equalsIgnoreCase("text/plain")) {
-
 					// TODO : Image text processor
 
 				} else {
@@ -255,12 +249,6 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 		return result;
 	}
 
-	@Override
-	public void close() throws IOException {
-		classLogger.info("Closing the connection");
-
-	}
-
 	/**
 	 * 
 	 * @param insightObj
@@ -273,4 +261,15 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 			return (Insight) insightObj;
 		}
 	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return FunctionTypeEnum.AZURE_OCR.name();
+	}
+	
+	@Override
+	public void close() throws IOException {
+		// nothing to do
+	}
+
 }

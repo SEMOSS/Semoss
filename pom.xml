@@ -1955,7 +1955,7 @@
 		<dependency>
 		    <groupId>net.snowflake</groupId>
 		    <artifactId>snowflake-jdbc</artifactId>
-		    <version>3.15.0</version>
+		    <version>3.22.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.clickhouse/clickhouse-jdbc -->
 		<dependency>
@@ -2217,7 +2217,7 @@
 		<dependency>
 		  <groupId>com.databricks</groupId>
 		  <artifactId>databricks-jdbc</artifactId>
-		  <version>2.6.38</version>
+		  <version>2.7.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.hierynomus/sshj -->
 		<dependency>

@@ -50,6 +50,10 @@
 			<outputDirectory>vector</outputDirectory>
 		</fileSet>
 		<fileSet>
+			<directory>guardrail</directory>
+			<outputDirectory>guardrail</outputDirectory>
+		</fileSet>
+		<fileSet>
 			<directory>venv</directory>
 			<outputDirectory>venv</outputDirectory>
 		</fileSet>

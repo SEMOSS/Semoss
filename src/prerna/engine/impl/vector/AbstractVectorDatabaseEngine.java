@@ -301,7 +301,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
-				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				String documentName = FilenameUtils.getBaseName(document.getName());
 				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
@@ -767,6 +767,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 								+ " ptyhon process with commands >>> " + String.join("\n", commands));
 		} catch(Exception e) {
+			// set the model props to false
+			// incase those values were incorrect
+			modelPropsLoaded = false;
 			classLogger.error(Constants.STACKTRACE, e);
 			if(this.cpw != null) {
 				classLogger.warn("Able to start the python process for the vector database " 

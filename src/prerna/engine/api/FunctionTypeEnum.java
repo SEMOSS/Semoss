@@ -1,10 +1,10 @@
 package prerna.engine.api;
 
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
+import prerna.engine.impl.function.AzureOCRFuntionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
-import prerna.engine.impl.function.AzureOCRFuntionEngine;
 
 public enum FunctionTypeEnum {
 
@@ -12,7 +12,7 @@ public enum FunctionTypeEnum {
 	REST("REST", RESTFunctionEngine.class.getName()),
 	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
-	AZUREOCR("AZUREOCR", AzureOCRFuntionEngine.class.getName());
+	AZURE_OCR("AZURE_OCR", AzureOCRFuntionEngine.class.getName());
 
 	private String functionName;
 	private String functionClass;
