@@ -64,7 +64,7 @@ public class ImagePDFProcessor {
 				// Combine text and image placeholders
 				String combinedContent = combineTextAndImages(text, imageIds);
 
-				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent, "");
+				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -158,7 +158,7 @@ public class ImagePDFProcessor {
 				pdfStripper.setStartPage(pageIndex);
 				pdfStripper.setEndPage(pageIndex);
 				System.out.println(result.get(pageIndex) + ":" + pageIndex);
-				writer.writeRow(source, pageIndex + "", result.get(pageIndex), "");
+				writer.writeRow(source, pageIndex + "", result.get(pageIndex));
 
 			}
 		}

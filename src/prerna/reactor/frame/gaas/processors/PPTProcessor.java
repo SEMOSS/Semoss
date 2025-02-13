@@ -99,11 +99,9 @@ public class PPTProcessor {
 	private void processSlides(XMLSlideShow ppt) {
 //      CoreProperties props = ppt.getProperties().getCoreProperties();
 //      String title = props.getTitle();
-		
 		String source = getSource(this.filePath);
         int count = 1;
         for (XSLFSlide slide: ppt.getSlides()) {
-        	//System.out.println("Processing Slide..." + count);
         	StringBuilder slideText = new StringBuilder();
         	
         	List<XSLFShape> shapes = slide.getShapes();
@@ -124,15 +122,12 @@ public class PPTProcessor {
 	                    XSLFTextShape txShape = (XSLFTextShape) shape;
 	                    for (XSLFTextParagraph xslfParagraph : txShape.getTextParagraphs()) {
 	                    	String text = xslfParagraph.getText();
-	                        //System.out.println(text);
 	                        slideText.append(text);
 	                    }
 	                }
 	            }
         	}
-        	this.writer.writeRow(source, count+"", slideText.toString(), "");
-        	
-        	//System.out.println("----------------------------");
+        	this.writer.writeRow(source, count+"", slideText.toString());
         	count++;
         }	 
 	}
@@ -166,7 +161,7 @@ public class PPTProcessor {
 				}
 			}
 
-			this.writer.writeRow(source, count + "", slideText.toString(), "");
+			this.writer.writeRow(source, count + "", slideText.toString());
 			count++;
 		}
 	}
