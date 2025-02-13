@@ -57,7 +57,10 @@ public class FileAnalyzer {
         }
 		
 		if(mimeType != null) {
-			if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+			if(mimeType.equals("application/zip")) {
+				// zip
+				return false;
+			} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 							|| mimeType.equalsIgnoreCase("application/msword")
 							|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
