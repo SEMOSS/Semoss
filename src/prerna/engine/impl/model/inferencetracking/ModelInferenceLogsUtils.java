@@ -1223,14 +1223,8 @@ public class ModelInferenceLogsUtils {
 			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
 			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
 		
-			rs = ps.executeQuery();
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
-					ps.getConnection(),
-					ps,
-					rs,
-					query,
-					false
-					);
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
 			
 			if(wrapper.hasNext()) {
 				Number retNum = (Number) wrapper.next().getValues()[0];
@@ -1323,9 +1317,9 @@ public class ModelInferenceLogsUtils {
 					ps.setString(psIndex++, excludeEngineId);
 				}
 			}
-			rs = ps.executeQuery();
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(modelInferenceLogsDb,
-					ps.getConnection(), ps, rs, query, false);
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
 
 			if (wrapper.hasNext()) {
 				Number retNum = (Number) wrapper.next().getValues()[0];

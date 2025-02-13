@@ -27,7 +27,6 @@ import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -40,13 +39,13 @@ public class SocketClient implements Runnable, Closeable {
     private int PORT = -1;
     private boolean SSL = false;
     
-    Map requestMap = new HashMap();
-    Map responseMap = new HashMap();
+    Map<String, PayloadStruct> requestMap = new HashMap<>();
+    Map<String, PayloadStruct> responseMap = new HashMap<>();
     private boolean ready = false;
     private boolean connected = false;
     private AtomicInteger count = new AtomicInteger(0);
     private long averageMillis = 200;
-    private boolean killall = false; // use this if the server is dead or it has crashed
+    private boolean killAll = false; // use this if the server is dead or it has crashed
     private User user;
 	
     private Socket clientSocket = null;
@@ -76,7 +75,7 @@ public class SocketClient implements Runnable, Closeable {
     	closeStream(this.is);
     	closeStream(this.clientSocket);
     	this.connected = false;
-    	this.killall = true;
+    	this.killAll = true;
     }
 
     @Override
@@ -85,8 +84,8 @@ public class SocketClient implements Runnable, Closeable {
         // Configure SSL.git
     	int attempt = 1;
     	int SLEEP_TIME = 800;
-    	if(DIHelper.getInstance().getProperty("SLEEP_TIME") != null) {
-    		SLEEP_TIME = Integer.parseInt(DIHelper.getInstance().getProperty("SLEEP_TIME"));
+    	if(Utility.getDIHelperProperty("SLEEP_TIME") != null) {
+    		SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
     	}
     	
     	classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
@@ -103,7 +102,7 @@ public class SocketClient implements Runnable, Closeable {
 		        }
 		
 		        // Configure the client.
-				boolean blocking = DIHelper.getInstance().getProperty(Settings.BLOCKING) != null && DIHelper.getInstance().getProperty(Settings.BLOCKING).equalsIgnoreCase("true");
+				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null && Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 		        	
 	    		clientSocket =  new Socket(this.HOST, this.PORT);
 	    		
@@ -123,7 +122,7 @@ public class SocketClient implements Runnable, Closeable {
 	            //logger.info("First command.. Prime" + executeCommand("2+2"));
 	            connected = true;
 	            ready = true;
-	            killall = false;
+	            killAll = false;
 	            synchronized(this)
 	            {
 	            	this.notifyAll();
@@ -142,11 +141,12 @@ public class SocketClient implements Runnable, Closeable {
 	    	}
     	}
     	
-    	if(attempt > 6) {
+    	if(attempt >= 6) {
             classLogger.info("CLIENT Connection Failed !!!!!!!");
-            ready = true; // come out of the loop
-            synchronized(this)
-            {
+            killAll = true;
+            connected = false;
+            ready = false;
+            synchronized(this) {
             	this.notifyAll();
             }
             throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
@@ -155,7 +155,7 @@ public class SocketClient implements Runnable, Closeable {
     
     public Object executeCommand(PayloadStruct ps)
     {
-    	if(killall) {
+    	if(killAll) {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     	}
     	
@@ -187,7 +187,7 @@ public class SocketClient implements Runnable, Closeable {
     		if(!ps.response) // this is a response to something the socket has asked
     		{
 				int pollNum = 1; // 1 second
-				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
+				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killAll)
 				{
 					//logger.info("Checking to see if there was a response");
 					try
@@ -255,10 +255,9 @@ public class SocketClient implements Runnable, Closeable {
 
     /**
      * 
-     * @param dir
      * @return
      */
-    public boolean stopPyServe() {
+    public boolean stopServer() {
 		try {
     		if(isConnected()) {
     			ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -294,7 +293,6 @@ public class SocketClient implements Runnable, Closeable {
     		// always call close on the IO
     		close();
     	}
-		
     }
 
     /**
@@ -375,27 +373,34 @@ public class SocketClient implements Runnable, Closeable {
     	return this.user;
     }
     
-    /**
-     * 
-     * @return
-     */
-    public boolean isConnected() {
-    	return this.connected;
-    }
-    
-    /**
-     * 
-     * @return
-     */
-    public boolean isReady() {
-    	return this.ready;
-    }
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isConnected() {
+		return this.connected;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isKillAll() {
+		return killAll;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isReady() {
+		return this.ready;
+	}
     
 
     public void addInsight2Insight(String insightId, Insight insight)
     {
     	insightMap.put(insightId, insight);
     }
-
     
 }

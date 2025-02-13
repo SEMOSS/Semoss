@@ -50,10 +50,6 @@ public class GetUserInfoReactor extends AbstractReactor {
 				// add the entire map
 				returnMap.put(providerName, providerMap);
 			}
-			
-			//TODO: remove this once FE is ready
-			//confusing structure since keys are assumed to be login methods
-			returnMap.put("userEpoch", user.getUserEpoch());
 		} else {
 			returnMap.put("No User", "User is not logged in");
 		}

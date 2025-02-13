@@ -25,7 +25,7 @@ class Server(socketserver.ThreadingTCPServer):
         insight_folder=".",
         prefix="",
         timeout=15,
-        start=False,
+        start=True,
         blocking=False,
         logger_level: str = "INFO",
     ):
@@ -70,7 +70,23 @@ class Server(socketserver.ThreadingTCPServer):
             print(f"Setting timeout to .. {timeout}")
             self.socket.settimeout(None)
 
+        # The timeout_val is inherited from the parent and needs to be set
+        # Our timeout variable above is not picked up and used by it
         self.timeout_val = timeout
+
+        # This logic is to hide the environment variables 
+        # We have to do this after the socketserver.ThreadingTCPServer
+        # Since we need environment variables (OS specific details) to connect to a port
+        # Lets get a list of environment variables we may want to preserve from PY_SOCKET_ENV_VARS
+        # env_vars_to_preserve = os.environ.get("PY_SOCKET_ENV_VARS", "").split(",")
+        # # Store the values of the environment variables you want to keep
+        # preserved_env_vars = {var: os.environ.get(var) for var in env_vars_to_preserve if var}
+        # # Clear all environment variables
+        # os.environ.clear()
+        # # Restore the preserved environment variables
+        # for var, value in preserved_env_vars.items():
+        #     if value is not None:
+        #         os.environ[var] = value
 
         if start:
             self.serve_forever()
@@ -157,13 +173,14 @@ if __name__ == "__main__":
         logging_level = logging.DEBUG
 
     logging.basicConfig(level=logging_level)
-
+    
     # Perform chroot if userChrootFolder is specified
     if args.userChrootFolder:
         try:
             os.chroot(args.userChrootFolder)
             os.chdir("/")  # Change to root directory within chroot
             logging.info(f"Chrooted to {args.userChrootFolder} and changed directory to /")
+            os.environ.clear()
         except PermissionError:
             logging.error("Permission denied: You need to run this script as root.")
             sys.exit(1)
@@ -183,3 +200,6 @@ if __name__ == "__main__":
         timeout=args.timeout,
         start=args.start,
     )
+
+if __name__ == "__main__":
+    Server(port=9999, start=True)

@@ -3,7 +3,6 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
@@ -120,7 +119,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			provider = AuthProvider.valueOf(type);
 			if(provider != AuthProvider.NATIVE 
 					&& provider != AuthProvider.LINOTP 
-					&& provider != AuthProvider.ACTIVE_DIRECTORY) {
+					&& provider != AuthProvider.LDAP) {
 				throw new IllegalArgumentException("Cannot reset password for type = '" + type + "'");
 			}
 		} catch(Exception e) {
@@ -219,7 +218,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		String userId = getUserIdFromEmail(email, provider.toString());
 		if(provider == AuthProvider.NATIVE) {
 			SecurityNativeUserUtils.performResetPassword(userId, newPassword);
-		} else if(provider == AuthProvider.ACTIVE_DIRECTORY || provider == AuthProvider.LINOTP) {
+		} else if(provider == AuthProvider.LDAP || provider == AuthProvider.LINOTP) {
 			ILdapAuthenticator authenticator = SocialPropertiesUtil.getInstance().getLdapAuthenticator();
 			authenticator.updateForgottenPassword(userId, newPassword);
 		} else {

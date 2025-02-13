@@ -78,33 +78,6 @@ public class PyUtils {
 		return pyEnabled;
 	}
 	
-	/**
-	 * Get a new JEP thread
-	 * @return
-	 */
-	public PyExecutorThread getJep() {
-		classLogger.info(">>>STARTING PYTHON THREAD FOR USER<<<");
-		PyExecutorThread py = new PyExecutorThread();
-		py.start();
-		return py;
-	}
-	
-	/**
-	 * Kill a current JEP thread
-	 * @param py
-	 */
-	public void killPyThread(PyExecutorThread py) {
-		if(py != null) {
-			classLogger.info(">>>>>> KILLING THREAD FOR USER <<<<<");
-			py.killThread();
-			Object monitor = py.getMonitor();
-			synchronized(monitor) {
-				monitor.notify();
-			}
-			classLogger.info(">>>>>> COMPLETE <<<<<");
-		}
-	}
-	
 	// this is good for python dictionaries but also for making sure we can easily construct 
 	// the logs into model inference python list, since everything is python at this point.
     public static String constructPyDictFromMap(Map<String,Object> theMap) {

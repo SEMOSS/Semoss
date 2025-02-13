@@ -538,10 +538,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param admin
 	 * @param publisher
 	 * @param exporter
+	 * @param modelMaxResponseTime 
+	 * @param modelMaxTokens 
+	 * @param modelUsageFrequency 
+	 * @param modelUsageRestriction 
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean registerUser(String id, String name, String email, String password, String type, String phone, String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter) throws IllegalArgumentException {
+	public static boolean registerUser(String id, String name, String email, String password, String type, 
+			String phone, String phoneextension, String countrycode, 
+			boolean admin, boolean publisher, boolean exporter, 
+			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens, Double modelMaxResponseTime) throws IllegalArgumentException {
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
 		if(isExistingUser) {
 			return false;
@@ -594,8 +601,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		
 		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, "
-				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, ADMIN, PUBLISHER, EXPORTER, DATECREATED) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, "
+				+ "ADMIN, PUBLISHER, EXPORTER, "
+				+ "MODELUSAGERESTRICTION, MODELUSAGEFREQUENCY, MODELMAXTOKENS, MODELMAXRESPONSETIME, "
+				+ "DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?,"
+				+ "?,?,?,"
+				+ "?,?,?,"
+				+ "?,?,?,?,"
+				+ "?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -613,9 +627,31 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, admin);
 			ps.setBoolean(parameterIndex++, publisher);
 			ps.setBoolean(parameterIndex++, exporter);
+			if(modelUsageRestriction != null && !(modelUsageRestriction=modelUsageRestriction.trim()).isEmpty()) {
+				ps.setString(parameterIndex++, modelUsageRestriction);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			if(modelUsageFrequency != null && !(modelUsageFrequency=modelUsageFrequency.trim()).isEmpty()) {
+				ps.setString(parameterIndex++, modelUsageFrequency);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			if(modelMaxTokens != null && modelMaxTokens>0) {
+				ps.setInt(parameterIndex++, modelMaxTokens);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			}
+			if(modelMaxResponseTime != null && modelMaxResponseTime>0) {
+				ps.setDouble(parameterIndex++, modelMaxResponseTime);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+			}
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
-			ps.getConnection().commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {

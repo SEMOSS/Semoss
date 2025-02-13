@@ -9,31 +9,37 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
 
-public class UnlockDatabasesReactor extends AbstractReactor {
+public class UnlockEngineReactor extends AbstractReactor {
 
-	public UnlockDatabasesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+	public UnlockEngineReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 		
 		boolean retBool = false;
 		// this method checks if you are an admin
 		ConcurrentMap<String, ReentrantLock> locks = EngineSyncUtility.getAllLocks(this.insight.getUser());
-		if(databaseId == null) {
+		if(engineId == null) {
 			// unlock any current locks in use
 			for(String key : locks.keySet()) {
-				locks.get(key).unlock();
+				ReentrantLock thisLock = locks.get(key);
+				if(thisLock != null) {
+					thisLock.unlock();
+				}
 			}
 			locks.clear();
 			retBool = true;
 		} else {
-			ReentrantLock lock = locks.remove(databaseId);
-			lock.unlock();
-			retBool = true;
+			ReentrantLock lock = locks.remove(engineId);
+			if(lock != null) {
+				lock.unlock();
+				retBool = true;
+			}
+			retBool = false;
 		}
 		
 		return new NounMetadata(retBool, PixelDataType.BOOLEAN);
