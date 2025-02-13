@@ -38,9 +38,9 @@ import prerna.reactor.frame.gaas.processors.ImagePDFProcessor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 
-public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
+public class AzureDocumentIntelligenceFuntionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AzureOCRFuntionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AzureDocumentIntelligenceFuntionEngine.class);
 
 	private static final String URL = "URL";
 	private static final String API_KEY = "API_KEY";
@@ -264,7 +264,7 @@ public class AzureOCRFuntionEngine extends AbstractFunctionEngine {
 	
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.AZURE_OCR.name();
+		return FunctionTypeEnum.AZURE_DOCUMENT_INTELLIGENCE.name();
 	}
 	
 	@Override
