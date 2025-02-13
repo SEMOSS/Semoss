@@ -10,8 +10,18 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 
 public class FileAnalyzer {
+	
+	private static final Logger classLogger = LogManager.getLogger(FileAnalyzer.class);
 
 	private static final List<Charset> COMMON_ENCODINGS = Arrays.asList(
 			StandardCharsets.UTF_8,
@@ -32,6 +42,41 @@ public class FileAnalyzer {
 	 * @throws IOException
 	 */
 	public boolean isTextContent() throws IOException {
+		String filetype = FilenameUtils.getExtension(item.getName());
+		String mimeType = null;
+		
+		TikaConfig config = TikaConfig.getDefaultConfig();
+		Detector detector = config.getDetector();
+		Metadata metadata = new Metadata();
+		metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, item.getName());
+		
+		try (TikaInputStream stream = TikaInputStream.get(this.item.getInputStream())) {
+			mimeType = detector.detect(stream, metadata).toString();
+		} catch (IOException e) {
+			classLogger.error(Constants.ERROR_MESSAGE, e);
+        }
+		
+		if(mimeType != null) {
+			if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+							|| mimeType.equalsIgnoreCase("application/msword")
+							|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
+							&& (filetype.equals("doc") || filetype.equals("docx")))) {
+				// document
+				return false;
+			} else if (mimeType
+					.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+							|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
+							&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
+				// powerpoint
+				return false;
+			} else if (mimeType.equalsIgnoreCase("application/pdf")) {
+				// pdf
+				return false;
+			}
+		}
+		
 		for (Charset charset : COMMON_ENCODINGS) {
 			try (InputStream is = item.getInputStream(); 
 					InputStreamReader isr = new InputStreamReader(is, charset);
