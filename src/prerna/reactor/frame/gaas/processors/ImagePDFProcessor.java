@@ -60,11 +60,11 @@ public class ImagePDFProcessor {
 				// Extract images
 				PDPage page = document.getPage(pageIndex);
 				List<String> imageIds = extractImages(page);
-			    classLogger.debug("Found {} images in {} on page {}", imageIds.size(), this.fileName, pageIndex);
+				classLogger.debug("Found {} images in {} on page {}", imageIds.size(), this.fileName, pageIndex);
 				// Combine text and image placeholders
 				String combinedContent = combineTextAndImages(text, imageIds);
 
-				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent, "");
+				writer.writeRow(source, String.valueOf(pageIndex + 1), combinedContent);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -145,9 +145,23 @@ public class ImagePDFProcessor {
 		return imageMap;
 	}
 
+	public void readTextfromPdf(String csvFileName, File file, List<String> result) throws IOException {
+		PDFTextStripper pdfStripper = new PDFTextStripper();
+		String source = null;
+		File file2 = new File(file.getAbsolutePath());
+		if(file.exists()) {
+			source = file2.getName();
+		}
 
+		if(result.size()>0) {
+			for (int pageIndex = 0; pageIndex < result.size(); pageIndex++) {
+				pdfStripper.setStartPage(pageIndex);
+				pdfStripper.setEndPage(pageIndex);
+				System.out.println(result.get(pageIndex) + ":" + pageIndex);
+				writer.writeRow(source, pageIndex + "", result.get(pageIndex));
+
+			}
+		}
+	}
 
 }
-
-
-

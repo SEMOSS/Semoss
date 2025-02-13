@@ -2311,10 +2311,15 @@
 		    <version>1.0-alpha2</version>
 		</dependency>
 		<dependency>
-      		<groupId>com.microsoft.playwright</groupId>
+        <groupId>com.azure</groupId>
+			  <artifactId>azure-ai-formrecognizer</artifactId>
+			  <version>4.1.9</version>
+		</dependency>
+    <dependency>
+      	<groupId>com.microsoft.playwright</groupId>
 	      <artifactId>playwright</artifactId>
 	      <version>1.48.0</version>
-	    </dependency>
+	  </dependency>
 
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
