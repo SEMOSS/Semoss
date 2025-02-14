@@ -57,17 +57,17 @@ public class SymlinkHelper {
 	}	
 	
 	public void symlinkFolder(String sourceDirName) {
-	    classLogger.info("Making symlink for folder " + sourceDirName);
+	    classLogger.debug("Making symlink for folder " + sourceDirName);
 	    // Convert the source directory and user chroot folder to Path objects
 	    sourceDirName = Utility.normalizePath(sourceDirName);
 	    Path sourceDir = Paths.get(sourceDirName);
 	    Path userChrootPath = Paths.get(userChrootFolder);
 
-	    classLogger.info("User chroot path is " + userChrootFolder);
+	    classLogger.debug("User chroot path is " + userChrootFolder);
 
 	    // Construct the path for the symbolic link
 	    Path symlinkPath = userChrootPath.resolve(sourceDirName.substring(1)); // Remove leading slash
-	    classLogger.info("Full symlink path is " + symlinkPath);
+	    classLogger.debug("Full symlink path is " + symlinkPath);
 
 	    try {
 	        // Check if the source directory exists
@@ -80,7 +80,7 @@ public class SymlinkHelper {
 
 	        // Check if the symlink already exists
 	        if (Files.exists(symlinkPath)) {
-	            classLogger.info("Symbolic link already exists at: " + symlinkPath);
+	            classLogger.debug("Symbolic link already exists at: " + symlinkPath);
 	            // Optionally, delete the existing symlink
 	            // Files.delete(symlinkPath);
 	        } else {
