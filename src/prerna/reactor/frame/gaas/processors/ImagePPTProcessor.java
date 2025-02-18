@@ -1,24 +1,28 @@
 package prerna.reactor.frame.gaas.processors;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.UUID;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import javax.imageio.ImageIO;
 import java.util.Base64;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.poi.xslf.usermodel.*;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFShape;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.XSLFTextShape;
+
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
@@ -86,7 +90,7 @@ public class ImagePPTProcessor {
 			imageMap.put(imageId, base64Image);
 			
 			// Write to CSV
-			this.writer.writeRow(source,  String.valueOf(slideCount), imageId, "");
+			this.writer.writeRow(source, String.valueOf(slideCount), imageId);
 			
 			slideCount++;
 			graphics.dispose();

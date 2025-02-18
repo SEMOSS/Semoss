@@ -113,7 +113,7 @@ public class ImageDocProcessor {
 			
 			String text = paragraphText.toString().trim();
 			if (!text.isEmpty()) {
-				writer.writeRow(source, String.valueOf(count), text, String.valueOf(pageNo));
+				writer.writeRow(source, String.valueOf(pageNo), text);
 			}
 			
 			if (paragraph.isPageBreak()) {
@@ -150,7 +150,7 @@ public class ImageDocProcessor {
 				} else {
 					values = processor;
 					StringBuilder rowOut = getRow(headers, values);
-					writer.writeRow(source, count + "", rowOut + "", pageNo + "'");
+					writer.writeRow(source, String.valueOf(pageNo), rowOut.toString());
 				}
 			}
 			headerProcessed = false;

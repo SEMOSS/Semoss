@@ -33,7 +33,7 @@ public class TextFileProcessor {
 
         // for a text document there is only ever one page / divider
         String pageIndex = "1";
-        this.writer.writeRow(source, pageIndex, fileContent, "");
+        this.writer.writeRow(source, pageIndex, fileContent);
 	}
 	
 	/**
