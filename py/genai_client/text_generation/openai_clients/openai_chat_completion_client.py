@@ -127,9 +127,9 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
-        # If function_call is True in kwargs, set stream to False
-        kwargs["function_call"]= kwargs.get("function_call", False)
-        if kwargs["function_call"]:
+        # If tool_choice is True in kwargs, set stream to False
+        kwargs["tool_choice"]= kwargs.get("tool_choice", None)
+        if kwargs["tool_choice"]:
             kwargs["stream"] = False
 
         if self.model_name == "o1-preview" or self.model_name == "o1-mini":
@@ -139,7 +139,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs
         )
-        if kwargs["function_call"]:
+        if kwargs["tool_choice"]:
             tools_call=openai_response.choices[0].message.tool_calls
             toolResult=[]
             if tools_call:  # Check if tools_call is not empty               
