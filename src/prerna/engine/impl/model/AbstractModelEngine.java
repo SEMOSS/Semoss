@@ -133,7 +133,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*fullPrompt*/fullPrompt,
 					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
 					/*inputTime*/inputTime, 
-					/*response*/askModelResponse.getResponse(),
+					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
 			));

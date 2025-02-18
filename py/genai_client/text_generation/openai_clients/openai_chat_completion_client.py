@@ -127,6 +127,11 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         kwargs["stream"] = kwargs.get("stream", True)
 
+        # If function_call is True in kwargs, set stream to False
+        kwargs["function_call"]= kwargs.get("function_call", False)
+        if kwargs["function_call"]:
+            kwargs["stream"] = False
+
         if self.model_name == "o1-preview" or self.model_name == "o1-mini":
             max_tokens = kwargs.pop("max_tokens")
             kwargs["max_completion_tokens"] = max_tokens
@@ -134,29 +139,31 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         openai_response = self.client.chat.completions.create(
             model=self.model_name, **kwargs
         )
-
-        if kwargs["stream"]:
-            for chunk in openai_response:
-                if chunk.choices and (len(chunk.choices) > 0):
-                    response = chunk.choices[0].delta.content
-                    if response != None:
-                        final_query += response
-                        print(prefix + response, end="")
-        else:
-            if "function_call" in kwargs.keys():
-                tools_call=openai_response.choices[0].message.tool_calls
-                toolResult=[]
+        if kwargs["function_call"]:
+            tools_call=openai_response.choices[0].message.tool_calls
+            toolResult=[]
+            if tools_call:  # Check if tools_call is not empty               
                 for tool_call in tools_call:
                     toolResult.append({
                         "function_name": tool_call.function.name,
                         "function_arguments": tool_call.function.arguments
                     })
                 final_query=toolResult
-                # final_query = openai_response.choices[0].message.function_call.arguments
-                response_tokens=openai_response.usage.completion_tokens
+            # final_query = openai_response.choices[0].message.function_call.arguments
             else:
                 final_query = openai_response.choices[0].message.content
-                response_tokens=openai_response.usage.completion_tokens
+            response_tokens = openai_response.usage.completion_tokens
+        else:
+            if kwargs["stream"]:
+                for chunk in openai_response:
+                    if chunk.choices and (len(chunk.choices) > 0):
+                        response = chunk.choices[0].delta.content
+                        if response != None:
+                            final_query += response
+                            print(prefix + response, end="")
+            else:
+                final_query = openai_response.choices[0].message.content
+                response_tokens = openai_response.usage.completion_tokens
 
         return final_query, response_tokens
 
