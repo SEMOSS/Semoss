@@ -3,6 +3,8 @@ package prerna.testing;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -126,7 +128,13 @@ public class ApiSemossTestUtils {
 			if (key.equalsIgnoreCase("sort") || key.equalsIgnoreCase("filters")) {
 				call += args[i+1].toString();
 			} else {
-				call += convertMapToPixelInput(args[i + 1]);
+				if (args[i + 1] == null) {
+					call += "[]";
+				} else if (args[i + 1] instanceof Map) {
+					call += "[" + convertMapToPixelInput(args[i + 1]) + "]";
+				} else {
+					call += convertMapToPixelInput(args[i + 1]);
+				}
 			}
 		}
 
