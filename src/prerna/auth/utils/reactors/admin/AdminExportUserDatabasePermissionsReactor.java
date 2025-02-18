@@ -1,7 +1,10 @@
 package prerna.auth.utils.reactors.admin;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +34,8 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 	private static final Logger classLogger = LogManager.getLogger(AdminExportUserDatabasePermissionsReactor.class);
 
 	private static final String CLASS_NAME = AdminExportUserDatabasePermissionsReactor.class.getName();
+	
+	private FileSystem fs = FileSystems.getDefault();
 
 	public AdminExportUserDatabasePermissionsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
@@ -91,9 +96,10 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 			if (this.fileLocation == null) {
 				String insightFolder = this.insight.getInsightFolder();
 				{
-					File f = new File(Utility.normalizePath(insightFolder));
-					if(!f.exists()) {
-						f.mkdirs();
+					String path = Utility.normalizePath(insightFolder);
+					Path p = fs.getPath(path);
+					if (Files.notExists(p)) {
+						Files.createDirectories(p);
 					}
 				}
 				this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
@@ -125,6 +131,10 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 				}
 			}
 		}
+	}
+	
+	public void setFileSystem(FileSystem fs) {
+		this.fs = fs;
 	}
 
 }
