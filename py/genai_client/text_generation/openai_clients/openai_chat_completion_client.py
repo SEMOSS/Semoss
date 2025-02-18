@@ -111,7 +111,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         params = {structured_param_name: param_value, **kwargs}
         return self._get_structured_output_response(params)
 
-    def inference_call(self, prefix: str, **kwargs) -> str:
+    def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int]:
         final_query = ""
         response_tokens = None
         # For Remote Client Server Models
