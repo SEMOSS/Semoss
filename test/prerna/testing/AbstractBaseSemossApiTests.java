@@ -32,6 +32,7 @@ public abstract class AbstractBaseSemossApiTests {
 			// moved this to the before because its hard to delete databases before each
 			// test due to database being in use
 			ApiSemossTestInsightUtils.initializeInsight();
+			ApiSemossTestUserUtils.clearUserDirectory();
 
 			ApiSemossTestSetupUtils.setup(true);
 
@@ -72,5 +73,5 @@ public abstract class AbstractBaseSemossApiTests {
 
 		ApiSemossTestInsightUtils.clearInsightCacheDifferently();
 	}
-
+	
 }
