@@ -196,8 +196,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, engineName);
 			}
 			ps.setString(parameterIndex++, engineType.toString());
-			ps.setString(parameterIndex++, engineSubType);
-			ps.setString(parameterIndex++, engineCost);
+			if(engineSubType == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, engineSubType);
+			}
+			if(engineCost == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, engineCost);
+			}
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
 			if(user != null) {
@@ -3019,7 +3027,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param enginePermissions
 	 * @throws Exception
 	 */
-	public static void updateEngineUserPermissions(User user, List<Map<String, Object>> enginePermissions) throws Exception {
+	public static List<Map<String, Object>> updateEngineUserPermissions(User user, List<Map<String, Object>> enginePermissions) throws Exception {
+		List<Map<String, Object>> newEngines = new ArrayList<>();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		PreparedStatement deletePs = null;
 		PreparedStatement insertPs = null;
@@ -3034,20 +3043,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 			
 			if(enginePermissions != null && !enginePermissions.isEmpty()) {
+				Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
 				// loop through to add the new permissions
 				for (Map<String, Object> permissionMap : enginePermissions) {
 					String engineId = (String) permissionMap.get("engineId");
-					String permission = (String) permissionMap.get("permission");
 					String engineName = (String) permissionMap.get("engineName");
+					IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) permissionMap.get("engineType");
 					String engineSubType = (String) permissionMap.get("engineSubType");
-	
+					String permission = (String) permissionMap.get("permission");
+					
 					// Step 2: Validate EngineId exist in Engine table or not
 					boolean engineExists = engineExists(engineId);
 					if (!engineExists) {
-						addEngine(engineId, engineName, IEngine.CATALOG_TYPE.DATABASE, engineSubType, "", false, null);
+						newEngines.add(permissionMap);
+						addEngine(engineId, engineName, engineType, engineSubType, "", false, null);
 					}
 					
-					Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
 					// Step 3: Insert new permissions
 					String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
 					insertPs = securityDb.getPreparedStatement(insertQuery);
@@ -3063,6 +3074,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					insertPs.getConnection().commit();
 				}
 			}
+			
+			return newEngines;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");

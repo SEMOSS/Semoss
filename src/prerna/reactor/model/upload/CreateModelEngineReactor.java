@@ -79,10 +79,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		}
 		
 		//String modelName = getModelName();
-		Map<String, String> modelDetails = getModelDetails();
+		Map<String, Object> modelDetails = getModelDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
-		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_TYPE);
+		String modelTypeStr = (String) modelDetails.get(IModelEngine.MODEL_TYPE);
 		if(modelTypeStr == null || (modelTypeStr=modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
 		}
@@ -95,7 +95,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		
 		if(modelDetails.containsKey(Settings.VAR_NAME)) {
 			// need to validate this is alphanumeric underscore and does not start with a number
-			String varName = modelDetails.get(Settings.VAR_NAME);
+			String varName = (String) modelDetails.get(Settings.VAR_NAME);
 			if(!PythonVariableValidator.isValidPythonVariableName(varName)) {
 				throw new IllegalArgumentException("The variable '"+varName+"' is not a valid variable name. It must be alphanumeric underscore, cannot start with a digit, and cannot be a reserved word.");
 			}
@@ -197,18 +197,18 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getModelDetails() {
+	private Map<String, Object> getModelDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, String>) mapNouns.get(0).getValue();
+				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
 		
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, String>) mapNouns.get(0).getValue();
+			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 		
 		throw new NullPointerException("Must define the properties for the new model engine");

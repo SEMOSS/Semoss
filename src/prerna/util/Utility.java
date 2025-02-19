@@ -2348,6 +2348,9 @@ public final class Utility {
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(prop);
+		if(owlFile == null) {
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+		}
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
 		// 4) perform the necessary additions if the time stamps do not equal
