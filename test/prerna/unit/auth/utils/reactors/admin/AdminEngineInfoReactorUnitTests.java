@@ -2,16 +2,21 @@ package prerna.unit.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -20,7 +25,6 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.reactors.admin.AdminEngineInfoReactor;
 import prerna.om.Insight;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminEngineInfoReactorUnitTests {
 
@@ -77,14 +81,24 @@ public class AdminEngineInfoReactorUnitTests {
         keyvalues.put("engine", "test");
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 			MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
-			SecurityAdminUtils s = new SecurityAdminUtils();
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("test");
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 			
-			when(s.getAllEngineSettings(Arrays.asList("test"), null, null, null, null, null)).thenReturn(null);
+			List<Map<String, Object>> baseInfo = new ArrayList<>();
+			when(s.getAllEngineSettings(any(List.class),  eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			
+			
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
 			assertEquals("Could not find any engine data", e.getMessage());
+			
+			ArgumentCaptor<List<String>> listCaptor = ArgumentCaptor.forClass(List.class);
+			verify(s, times(1)).getAllEngineSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null), eq(null));
+			assertEquals(1, listCaptor.getValue().size());
+			assertTrue(listCaptor.getValue().contains("testid"));
+			
+			squ.verify(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test"), times(1));
 		}
 	}
 	
