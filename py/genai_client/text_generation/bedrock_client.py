@@ -10,13 +10,8 @@ from ..constants import (
     AskModelEngineResponse,
 )
 
-# from langchain_community.llms import Bedrock
-from langchain_aws.llms import BedrockLLM
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
 from langchain_text_splitters import CharacterTextSplitter
 
 logging.basicConfig(level=logging.INFO)
@@ -87,74 +82,6 @@ class BedrockClient(AbstractTextGenerationClient):
         }
 
         return inference_config
-
-    def summarize(self, **kwargs):
-        client = self._get_client()
-        model_engine_response = AskModelEngineResponse()
-        llm = BedrockLLM(model_id=self.modelId, region_name="us-east-1", client=client)
-
-        csv_path = kwargs["file_path"]
-        loader = CSVLoader(
-            file_path=csv_path,
-            csv_args={
-                "delimiter": ",",
-                "quotechar": '"',
-            },
-        )
-        docs = loader.load()
-        map_template = """The following is a set of documents
-            {docs}
-            Based on this list of docs, please identify the main themes 
-            Helpful Answer:"""
-        map_prompt = PromptTemplate.from_template(map_template)
-        map_chain = LLMChain(llm=llm, prompt=map_prompt)
-
-        reduce_template = """The following is set of summaries:
-            {docs}
-            Take these and distill it into a final, consolidated summary of the main themes. 
-            Helpful Answer:"""
-        reduce_prompt = PromptTemplate.from_template(reduce_template)
-
-        reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-
-        # Combine documents into a string
-        combine_documents_chain = StuffDocumentsChain(
-            llm_chain=reduce_chain, document_variable_name="docs"
-        )
-
-        # Combines and iteratively reduces the mapped documents
-        reduce_documents_chain = ReduceDocumentsChain(
-            # Final chain called
-            combine_documents_chain=combine_documents_chain,
-            # If documents exceed context limit
-            collapse_documents_chain=combine_documents_chain,
-            # For Titan this could possibly be set to 8k
-            token_max=4000,
-        )
-
-        # Combining documents by mapping a chain over them, then combining results
-        map_reduce_chain = MapReduceDocumentsChain(
-            llm_chain=map_chain,
-            reduce_documents_chain=reduce_documents_chain,
-            document_variable_name="docs",
-            return_intermediate_steps=False,
-        )
-
-        text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=1000, chunk_overlap=0
-        )
-        split_docs = text_splitter.split_documents(docs)
-
-        summary_results = map_reduce_chain.invoke(split_docs)
-
-        final_response = summary_results["output_text"]
-        model_engine_response.response_tokens = self.tokenizer.count_tokens(
-            final_response
-        )
-        # model_engine_response.prompt_tokens = self.tokenizer.count_tokens(summary_results["input_documents"][0])
-        model_engine_response.response = final_response
-
-        return model_engine_response
 
     def _prepare_message_payload(
         self, question, context, template_name, history, **kwargs
