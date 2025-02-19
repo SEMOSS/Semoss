@@ -136,9 +136,12 @@ public class ExternalAuthorizationHelper {
 		if(ENGINENAME_KEY == null || ENGINENAME_KEY.isEmpty()) {
 			throw new IllegalArgumentException("Must have a valid value for " + Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME);
 		}
+		final String JMES_PATH_EXPRESSION = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH);
+		if(JMES_PATH_EXPRESSION == null || JMES_PATH_EXPRESSION.isEmpty()) {
+			throw new IllegalArgumentException("Must have a valid value for " + Constants.EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH);
+		}
 		final String ENGINETYPE_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE);
 		final String ENGINESUBTYPE_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE);
-		final String JMES_PATH_EXPRESSION = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH);
 		
 		List<Map<String, Object>> enginePermissions = new ArrayList<>();
 		try {
