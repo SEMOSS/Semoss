@@ -2,7 +2,6 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -582,16 +581,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean engineExists(String engineId) {
-		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID = ?";
-		try (PreparedStatement ps = securityDb.getPreparedStatement(query)) {
-			ps.setString(1, engineId);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					return true;
-				}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		return false;
 	}
