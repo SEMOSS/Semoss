@@ -1,19 +1,23 @@
-package prerna.testing.auth.utils.reactors.admin;
+package prerna.unit.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.reactors.admin.AdminEngineInfoReactor;
 import prerna.om.Insight;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -69,25 +73,55 @@ public class AdminEngineInfoReactorUnitTests {
 	
 	@Test
 	void testBaseInfoNull() {
-		
+		Map<String, String> keyvalues = reactor.keyValue;
+        keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+			MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("test");
+			
+			when(s.getAllEngineSettings(Arrays.asList("test"), null, null, null, null, null)).thenReturn(null);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Could not find any engine data", e.getMessage());
+		}
 	}
 	
 	
 	@Test
 	void testBaseInfoEmpty() {
-		
+		Map<String, String> keyvalues = reactor.keyValue;
+        keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);	
+		MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+			SecurityAdminUtils s = new SecurityAdminUtils();
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("");
+			
+			//List<Map<String, Object>> testBaseInfo = mock(List.class);
+			//sau.when(() -> SecurityAdminUtils.getAllEngineSettings(Arrays.asList("test"), null, null, null, null, null)).thenReturn(null);
+			//when(testBaseInfo.getAllEngineSettings(Arrays.asList("test"), null, null, null, null, null)).thenReturn(null);
+			
+			
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Could not find any engine data", e.getMessage());
+		}
 	}
 	
 	
 	@Test
 	void testEngineInfo() {
 		Map<String, String> keyvalues = reactor.keyValue;
-		keyvalues.put("engine", "");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+			MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
 			SecurityAdminUtils s = new SecurityAdminUtils();
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("");
 			
-			NounMetadata nm = reactor.execute();
+
+			//NounMetadata nm = reactor.execute();
 			// asserts
 			// verifications
 		}	
