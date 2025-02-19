@@ -582,12 +582,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean engineExists(String engineId) {
-		String query = "SELECT EXISTS (SELECT 1 FROM ENGINE WHERE ENGINEID = ?)";
+		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID = ?";
 		try (PreparedStatement ps = securityDb.getPreparedStatement(query)) {
 			ps.setString(1, engineId);
 			try (ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
-					return rs.getInt(1) > 0;
+					return true;
 				}
 			}
 		} catch (Exception e) {
