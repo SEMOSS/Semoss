@@ -1,24 +1,30 @@
 package prerna.auth.utils;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
+import prerna.util.BeanFiller;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -29,8 +35,9 @@ public class ExternalAuthorizationHelper {
 	/**
 	 * 
 	 * @param user
+	 * @throws Exception 
 	 */
-	public static void updateEnginePermissionsBasedOnApiCall(User user) {
+	public static void updateEnginePermissionsBasedOnApiCall(User user) throws Exception {
 		try {
 			//get the logged in  user emailId
 			String emailId = user.getAccessToken(user.getLogins().get(0)).getEmail();
@@ -42,12 +49,35 @@ public class ExternalAuthorizationHelper {
 			//Transform api response
 			List<Map<String, Object>> enginePermissions = transformApiResponse(user, apiResponse);
 
-			//update permissions for engine
-			SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			//Update permissions for engine
+			List<Map<String, Object>> newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
 			classLogger.info("Engine permissions update for userid = " + User.getSingleLogginName(user));
+			
+			//Create SMSS for this engine
+			for(Map<String, Object> newE : newEngines) {
+				String engineId = (String) newE.get("engineId");
+				String engineName = (String) newE.get("engineName");
+				IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) newE.get("engineType");
+				String engineSubType = (String) newE.get("engineSubType");
+				
+				// TODO: need to expand on logic for the class to initialize
+				String engineClass = null;
+				if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
+					engineClass = RDBMSNativeEngine.class.getName();
+				}
+				
+				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, null);
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+				FileUtils.copyFile(tempSmss, smssFile);
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+				tempSmss.delete();
+				
+				ClusterUtil.pushEngine(engineId);
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while updating the engine permissions");
+			throw e;
 		}
 	}
 	
@@ -84,40 +114,83 @@ public class ExternalAuthorizationHelper {
 	 * @return
 	 */
 	private static List<Map<String, Object>> transformApiResponse(User user, String apiResponse) {
+		String defaultPermission = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION);
+		if(defaultPermission == null || (defaultPermission=defaultPermission.trim()).isEmpty()) {
+			defaultPermission = AccessPermissionEnum.READ_ONLY.getPermission();
+		}
+		IEngine.CATALOG_TYPE defaultEType = null;
+		String defaultETypeStr = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE);
+		if(defaultETypeStr != null && !(defaultETypeStr=defaultETypeStr.trim()).isEmpty()) {
+			try {
+				defaultEType = IEngine.CATALOG_TYPE.valueOf(defaultETypeStr);
+			} catch(Exception e) {
+				classLogger.warn("Invalid "+ Constants.EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE + " value = " + defaultEType);
+			}
+		}
+		
 		final String ENGINEID_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID);
+		if(ENGINEID_KEY == null || ENGINEID_KEY.isEmpty()) {
+			throw new IllegalArgumentException("Must have a valid value for " + Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID);
+		}
 		final String ENGINENAME_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME);
+		if(ENGINENAME_KEY == null || ENGINENAME_KEY.isEmpty()) {
+			throw new IllegalArgumentException("Must have a valid value for " + Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME);
+		}
+		final String JMES_PATH_EXPRESSION = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH);
+		if(JMES_PATH_EXPRESSION == null || JMES_PATH_EXPRESSION.isEmpty()) {
+			throw new IllegalArgumentException("Must have a valid value for " + Constants.EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH);
+		}
 		final String ENGINETYPE_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE);
+		final String ENGINESUBTYPE_KEY = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE);
 		
 		List<Map<String, Object>> enginePermissions = new ArrayList<>();
 		try {
 			// Parse and Manipulate JSON Response
-			ObjectMapper mapper = new ObjectMapper();
-			JsonNode rootNode = mapper.readTree(apiResponse);
-			Iterator<String> fieldNames = rootNode.fieldNames();
-			String firstKey = fieldNames.next();
-			JsonNode detailNode = rootNode.path(firstKey);
-			for (JsonNode detail : detailNode) {
+			JsonNode parsedJsonNode = BeanFiller.getJmesResult(apiResponse, JMES_PATH_EXPRESSION);
+			if(parsedJsonNode == null) {
+				throw new IllegalArgumentException("Unable to process api response = " + apiResponse + " to determine user permissions");
+			}
+			for (JsonNode detail : parsedJsonNode) {
 				Map<String, Object> permissionMap = new HashMap<>();
 				
-				String targetSystem = detail.path(ENGINETYPE_KEY).asText();
-				RdbmsTypeEnum engineSubType = RdbmsTypeEnum.getEnumFromString(targetSystem);
-				if (engineSubType != null) {
-					permissionMap.put("engineSubType", engineSubType);
-				} else {
-					classLogger.warn("Engine sub type not found for targetSystem : " + targetSystem 
-							+ " which was returned for user " + User.getSingleLogginName(user));
-					// ignoring
-					continue;
-				}
+				// these are mandatory
 				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
 				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
-
-				String defaultPermission = Utility.getDIHelperProperty(Constants.EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION);
-				if(defaultPermission == null || (defaultPermission=defaultPermission.trim()).isEmpty()) {
-					defaultPermission = AccessPermissionEnum.READ_ONLY.getPermission();
+				
+				IEngine.CATALOG_TYPE engineType = null;
+				if(ENGINETYPE_KEY != null && !ENGINETYPE_KEY.isEmpty() && detail.has(ENGINETYPE_KEY)) {
+					String engineTypeStr = detail.path(ENGINETYPE_KEY).asText();
+					try {
+						engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr);
+					} catch(Exception e) {
+						classLogger.warn("Engine type not found for value : " + engineTypeStr 
+								+ " which was returned for user " + User.getSingleLogginName(user));
+					}
 				}
-				permissionMap.put("permission", defaultPermission);
+				if(engineType == null) {
+					engineType = defaultEType;
+				}
+				permissionMap.put("engineType", engineType);
 
+				String engineSubType = null;
+				if(ENGINESUBTYPE_KEY != null && !ENGINESUBTYPE_KEY.isEmpty() && detail.has(ENGINESUBTYPE_KEY)) {
+					String engineSubTypeStr = detail.path(ENGINESUBTYPE_KEY).asText();
+					if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
+						RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromString(engineSubTypeStr);
+						if (rdbmsType != null) {
+							engineSubType = rdbmsType.getLabel();
+						} else {
+							classLogger.warn("Engine sub type not found for value : " + engineSubTypeStr 
+									+ " which was returned for user " + User.getSingleLogginName(user));
+						}
+					} else {
+						// TODO: add future validation for other engine types ...
+						engineSubType = engineSubTypeStr;
+					}
+				}
+				permissionMap.put("engineSubType", engineSubType);
+				
+				permissionMap.put("permission", defaultPermission);
 				enginePermissions.add(permissionMap);
 			}
 		} catch (Exception e) {
