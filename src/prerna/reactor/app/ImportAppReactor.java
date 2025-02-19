@@ -2,7 +2,6 @@ package prerna.reactor.app;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,14 +12,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.project.UploadProjectAppReactor;
-import prerna.reactor.project.UploadProjectReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.UploadInputUtility;
 import prerna.util.ZipUtils;
 
 public class ImportAppReactor extends AbstractReactor {
@@ -51,14 +47,13 @@ public class ImportAppReactor extends AbstractReactor {
 		String randomTempUnzipFolderPath = parentDirectory + randomIdAsDir;
 		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
 		
-		Map<String, List<String>> filesAdded = new HashMap<>();
 		File[] fileList = null;
 		boolean error = false;
 		boolean unzipped = false;
 		
 		try {
 			logger.info(step + ") Unzipping project");
-			filesAdded = ZipUtils.unzip(zipFilePath, randomTempUnzipFolderPath);
+			ZipUtils.unzip(zipFilePath, randomTempUnzipFolderPath);
 			fileList = randomTempUnzipF.listFiles();
 			logger.info(step + ") Done");
 			step++;
@@ -67,16 +62,16 @@ public class ImportAppReactor extends AbstractReactor {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Error occurred while unzipping the files", false);
-		}  finally {
+		} finally {
 			if (unzipped) {
 				cleanUpFolders(fileList[0]);
 				logger.info(step + ")assets deleted");
 			}
 		}
-		
-		boolean ImportResult = false;
-		return new NounMetadata(ImportResult, PixelDataType.BOOLEAN); 
+		return new NounMetadata(unzipped, PixelDataType.BOOLEAN); 
 	}
+	
+	
 	private void cleanUpFolders(File... fileToDelete) {
 		for(File f : fileToDelete) {
 			if(f != null && f.exists()) {
