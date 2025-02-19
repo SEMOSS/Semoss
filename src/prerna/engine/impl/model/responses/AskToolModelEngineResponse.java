@@ -10,7 +10,8 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<Map<Strin
     private static final long serialVersionUID = 1L;
 
     public AskToolModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
-        super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+    	super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+    	this.messageType=TOOL;
     }
 
     // Additional methods specific to tool responses can be added here
@@ -22,13 +23,9 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<Map<Strin
     }
 
 	@Override
-	public String getStringResponse() {
-//		Gson gson = new Gson(); 
-//		String json = gson.toJson(this.getResponse());
-//		
+	public String getStringResponse() {	
 		JSONObject jsonObject = new JSONObject(this.getResponse());
 		return jsonObject.toString();
-		//return json;
 	}
     
  

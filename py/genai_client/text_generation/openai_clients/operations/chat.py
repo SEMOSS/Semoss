@@ -65,7 +65,7 @@ class Chat:
         # Add the message payload as a kwarg
         kwargs["messages"] = prompt
 
-        model_engine_response.response, model_engine_response.response_tokens = self.client.inference_call(
+        model_engine_response.response, model_engine_response.response_tokens, model_engine_response.messageType = self.client.inference_call(
             prefix=prefix, **kwargs
         )
 

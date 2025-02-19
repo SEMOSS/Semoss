@@ -262,7 +262,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			inputMap.put(ROLE, "user");
 			inputMap.put(MESSAGE_CONTENT, question);
 			outputMap.put(ROLE, "assistant");
-			outputMap.put(MESSAGE_CONTENT, response.getResponse());
+			outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
 	        
 			if (chatHistory.containsKey(insight.getInsightId())) {
 		        chatHistory.get(insight.getInsightId()).add(inputMap);

@@ -9,10 +9,14 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
     public static final String MESSAGE_ID = "messageId";
     public static final String ROOM_ID = "roomId";
+    public static final String MESSAGE_TYPE = "messageType";
+    public static final String CHAT = "CHAT";
+    public static final String TOOL = "TOOL";
 
     private String messageId;
     private String roomId;
-
+    protected String messageType = CHAT;
+    
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
@@ -38,10 +42,11 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Map<String, Object> responseMap = super.toMap();
         responseMap.put(MESSAGE_ID, this.messageId);
         responseMap.put(ROOM_ID, this.roomId);
+        responseMap.put(MESSAGE_TYPE, this.messageType);
         return responseMap;
     }
 
-    // Factory method to create the appropriate response type
+ // Factory method to create the appropriate response type
     @SuppressWarnings("unchecked")
     public static AskModelEngineResponse<?> fromMap(Object responseObject) {
         Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
@@ -50,20 +55,43 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
 
-        if (response instanceof List) {
-            List<?> responseList = (List<?>) response;
-            //TODO here i am only handling one tool object to process
-            if (!responseList.isEmpty() && responseList.get(0) instanceof Map) {
-                return new AskToolModelEngineResponse((Map<String, Object>) responseList.get(0), tokensInPrompt, tokensInResponse);
+        // Set default messageType
+        String messageType = CHAT;
+
+        // Check if MESSAGE_TYPE is present and valid
+        Object messageTypeObject = modelResponse.get(MESSAGE_TYPE);
+        if (messageTypeObject != null) {
+            if (messageTypeObject instanceof String) {
+                messageType = (String) messageTypeObject;
             } else {
-                throw new IllegalArgumentException("Unsupported response type of type list");
+                throw new IllegalArgumentException("MESSAGE_TYPE is not a String");
             }
-        } else if (response instanceof String) {
-            return new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse);
+        }
+
+        // Adjust logic based on messageType
+        if (TOOL.equals(messageType)) {
+            if (response instanceof List) {
+                List<?> responseList = (List<?>) response;
+                // Handle one tool object to process
+                if (!responseList.isEmpty() && responseList.get(0) instanceof Map) {
+                    return new AskToolModelEngineResponse((Map<String, Object>) responseList.get(0), tokensInPrompt, tokensInResponse);
+                } else {
+                    throw new IllegalArgumentException("Tool list is empty or not valid");
+                }
+            } else {
+                throw new IllegalArgumentException("Expected a List response for Tool messageType");
+            }
+        } else if (CHAT.equals(messageType)) {
+            if (response instanceof String) {
+                return new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse);
+            } else {
+                throw new IllegalArgumentException("Expected a String response for Chat messageType");
+            }
         } else {
-            throw new IllegalArgumentException("Unsupported response type");
+            throw new IllegalArgumentException("Unsupported message type: " + messageType);
         }
     }
+
     
 	@SuppressWarnings("unchecked")
 	public static AskModelEngineResponse fromObject(Object responseObject) {

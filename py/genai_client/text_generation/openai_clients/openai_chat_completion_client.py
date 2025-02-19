@@ -111,9 +111,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         params = {structured_param_name: param_value, **kwargs}
         return self._get_structured_output_response(params)
 
-    def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int]:
+    def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int, str]:
         final_query = ""
         response_tokens = None
+        messageType = "CHAT"
         # For Remote Client Server Models
         if "base_url" in kwargs.keys():
             base_url = kwargs.pop("base_url")
@@ -145,10 +146,12 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             if tools_call:  # Check if tools_call is not empty               
                 for tool_call in tools_call:
                     toolResult.append({
+                        "id": tool_call.id,
                         "function_name": tool_call.function.name,
                         "function_arguments": tool_call.function.arguments
                     })
                 final_query=toolResult
+                messageType = "TOOL"
             # final_query = openai_response.choices[0].message.function_call.arguments
             else:
                 final_query = openai_response.choices[0].message.content
@@ -165,7 +168,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 final_query = openai_response.choices[0].message.content
                 response_tokens = openai_response.usage.completion_tokens
 
-        return final_query, response_tokens
+        return final_query, response_tokens, messageType
 
     def check_token_limits(
         self,
