@@ -1,7 +1,10 @@
 package prerna.testing;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
 
@@ -94,6 +97,48 @@ public class ApiSemossTestUtils {
 		return ret;
 	}
 	
+	public static void processPixelWithError(String pixel, String error) {
+		PixelRunner pr = new PixelRunner();
+
+		boolean errorChecked = false;
+		try {
+			classLogger.info(pixel);
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
+
+			NounMetadata ret = pr.getResults().get(0);
+			assertEquals(PixelDataType.ERROR, ret.getNounType(),
+					"Was not ERROR, return was: " + convertMapToPixelInput(ret.getValue()));
+			PixelDataType nounType = ret.getNounType();
+			assertTrue(nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX);
+			if (error != null) {
+				assertEquals(error, ret.getValue().toString());
+				errorChecked = true;
+			} else {
+				assertNull(ret.getValue());
+			}
+		} catch (SemossPixelException spe) {
+			assertEquals(error, spe.getMessage());
+			errorChecked = true;
+		}
+		
+		if (!errorChecked) {
+			fail("Expected Error: " + error + " did not occur");
+		}
+
+	}
+
+	public static void processPixelWithException(String pixel, String error) {
+		PixelRunner pr = new PixelRunner();
+
+		classLogger.info(pixel);
+		try {
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
+			fail();
+		} catch (SemossPixelException e) {
+			assertEquals(e.getMessage(), error);
+		}
+	}
+	
 	public static String buildPixelChain(PixelChain... chains) {
 		String call = "";
 		boolean first = true;
@@ -115,8 +160,21 @@ public class ApiSemossTestUtils {
 		return call;
 	}
 	
+	public static String buildPixelCall(Class<?> cl, Object... args) {
+		return buildPixelCall(cl, false, args);
+	}
+	
+	public static String buildPixelCall(String cl, Object... args) {
+		return buildPixelCall(cl, false, args);
+	}
+	
 	public static String buildPixelCall(Class<?> cl, boolean chaining, Object... args) {
 		String call = cl.getSimpleName().replace("Reactor", "");
+		return buildPixelCall(call, chaining, args);
+	}
+	
+	public static String buildPixelCall(String stringClass, boolean chaining, Object... args) {
+		String call = stringClass;
 		call += "(";
 		for (int i = 0; i < args.length; i += 2) {
 			if (i > 0) {
@@ -144,10 +202,6 @@ public class ApiSemossTestUtils {
 			call += ");";
 		}
 		return call;
-	}
-
-	public static String buildPixelCall(Class<?> cl, Object... args) {
-		return buildPixelCall(cl, false, args);
 	}
 	
 	public static void checkNounMetadataError(NounMetadata nm, String errorMessage) {

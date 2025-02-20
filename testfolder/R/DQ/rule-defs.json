@@ -1,0 +1,112 @@
+{
+    "rules" : [
+        {
+            "name": "Blanks/Nulls/NAs",
+            "ruleID": "Blanks/Nulls/NAs",
+            "ruleDescription": "Identifies blank cells",
+            "option": false,
+            "optionType": false,
+            "ruleOptions": false
+        },  
+		{
+            "name": "Character Length",
+            "ruleID": "Character Length",
+            "ruleDescription": "Identifies incorrect character length of cells",
+            "option": true,
+            "optionType": "input",
+            "ruleOptions": false
+        },  
+        {
+            "name": "Date Format",
+            "ruleID": "Date Format",
+            "ruleDescription": "Identifies incorrectly formatted date entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "mm/dd/yyyy (11/27/1995)",
+                    "pixelName": "mm/dd/yyyy"
+                },
+                {
+                    "displayName": "month dd, yyyy (November 27, 1995)",
+                    "pixelName": "month dd, yyyy"
+                },
+                {
+                    "displayName": "day, month dd, yyyy (Monday, November 27, 1995)",
+                    "pixelName": "day, month dd, yyyy"
+                },
+                {
+                    "displayName": "mon dd, yyyy (Nov 27, 1995)",
+                    "pixelName": "mon dd, yyyy"
+                }
+            ]
+        },
+        {
+            "name": "Duplicates",
+            "ruleID": "Duplicates",
+            "ruleDescription": "Identifies all non-unique values",
+            "option": false,
+            "optionType": "n/a",
+            "ruleOptions": [
+                {
+                    "displayName": "n/a",
+                    "pixelName": ""
+                }
+            ]
+        },  
+        {
+            "name": "Email Format",
+            "ruleID": "Email Format",
+            "ruleDescription": "Identifies incorrectly formatted email entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "Valid emails with one (1) .xxx in the address",
+                    "pixelName": "xxxxx@xxxx.xxx"
+                },
+                {
+                    "displayName": "Valid emails with more than one .xxx in the address",
+                    "pixelName": "xxxxx@xxxx.xx.xx"
+                },
+                {
+                    "displayName": "Any valid email address",
+                    "pixelName": "xxxxx@xxxx.xxx(.xx)"
+                }
+            ]
+        },
+        {
+            "name": "Name Format",
+            "ruleID": "Name Format",
+            "ruleDescription": "Identifies incorrectly formatted name entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "last, first (optional middle initial)",
+                    "pixelName": "last, first (m.)"
+                },
+                {
+                    "displayName": "First Last",
+                    "pixelName": "first last"
+                }
+            ]
+        },  
+        {
+            "name": "Regex Input",
+            "ruleID": "Regex Input",
+            "ruleDescription": "Input your own regex",
+            "option": true,
+            "optionType": "input",
+            "ruleOptions": false
+        },
+        {
+            "name": "Validate Values",
+            "ruleID": "Validate Values",
+            "ruleDescription": "Validates the data against an input list",
+            "option": true,
+            "optionType": "input",
+            "ruleOptions": false
+        }
+    ]
+}
