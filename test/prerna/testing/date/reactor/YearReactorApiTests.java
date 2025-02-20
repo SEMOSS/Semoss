@@ -10,7 +10,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestUtils;
 
-public class YearReactorUnitTest extends AbstractBaseSemossApiTests {
+public class YearReactorApiTests extends AbstractBaseSemossApiTests {
     @Test
     public void getYear() {
         String pixel = ApiSemossTestUtils.buildPixelCall(YearReactor.class, "years", "2025");

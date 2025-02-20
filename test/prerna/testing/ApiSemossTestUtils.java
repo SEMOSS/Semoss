@@ -115,8 +115,21 @@ public class ApiSemossTestUtils {
 		return call;
 	}
 	
+	public static String buildPixelCall(Class<?> cl, Object... args) {
+		return buildPixelCall(cl, false, args);
+	}
+	
+	public static String buildPixelCall(String cl, Object... args) {
+		return buildPixelCall(cl, false, args);
+	}
+	
 	public static String buildPixelCall(Class<?> cl, boolean chaining, Object... args) {
 		String call = cl.getSimpleName().replace("Reactor", "");
+		return buildPixelCall(call, chaining, args);
+	}
+	
+	public static String buildPixelCall(String stringClass, boolean chaining, Object... args) {
+		String call = stringClass;
 		call += "(";
 		for (int i = 0; i < args.length; i += 2) {
 			if (i > 0) {
@@ -144,10 +157,6 @@ public class ApiSemossTestUtils {
 			call += ");";
 		}
 		return call;
-	}
-
-	public static String buildPixelCall(Class<?> cl, Object... args) {
-		return buildPixelCall(cl, false, args);
 	}
 	
 	public static void checkNounMetadataError(NounMetadata nm, String errorMessage) {
