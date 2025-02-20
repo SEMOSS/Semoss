@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -14,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -340,7 +342,36 @@ public final class ZipUtils {
 		paths.put("FILE", files);
 		return paths;
 	}
+	
+	public static boolean flattenDir(String folderPath, ZipOutputStream zos) {
+		boolean complete = false;
+		Path flattenFolder = Paths.get(folderPath);
+		if(!Files.exists(flattenFolder) || !Files.isDirectory(flattenFolder)) {
+			return complete;
+		}
+		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(flattenFolder)){
+			for (Path subfolder : directoryStream) {
+				addFolderContentsToZip(flattenFolder, zos, subfolder.getFileName().toString() + "/");
+			}
+		} catch (IOException e){
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return complete;
+	}
 
+	public static void addFolderContentsToZip(Path folder, ZipOutputStream zos, String zipPathPrefix) throws IOException {
+		Files.walkFileTree(folder, new SimpleFileVisitor<Path>( ) {
+			
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				String zipEntryName = zipPathPrefix + file.getFileName().toString();
+				ZipEntry zipEntry = new ZipEntry(zipEntryName);
+				zos.putNextEntry(zipEntry);
+				Files.copy(file, zos);
+				zos.closeEntry();
+				return FileVisitResult.CONTINUE;
+			}
+		});
+	}
 //	public static void main(String[] args) throws FileNotFoundException, IOException {
 //		//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
 //		//		dest = "C:\\Users\\SEMOSS\\workspace";
