@@ -42,7 +42,7 @@ public class PDFProcessor {
 				pdfStripper.setStartPage(pageIndex);
 				pdfStripper.setEndPage(pageIndex);
 				String parsedText = pdfStripper.getText(pdDoc);
-				writer.writeRow(source, pageIndex+"", parsedText, "");
+				writer.writeRow(source, pageIndex+"", parsedText);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);

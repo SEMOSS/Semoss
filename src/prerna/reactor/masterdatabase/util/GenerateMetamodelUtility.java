@@ -26,7 +26,7 @@ import prerna.util.Utility;
 
 public class GenerateMetamodelUtility {
 
-	private static final Logger classLogger = LogManager.getLogger(SmssUtilities.class);
+	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelUtility.class);
 	private static final Gson gson = new GsonBuilder().create();
 	
 	/**

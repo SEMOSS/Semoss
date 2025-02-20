@@ -83,9 +83,8 @@ public class VectorDatabaseCSVWriter {
 	 * @param source
 	 * @param divider
 	 * @param content
-	 * @param misc
 	 */
-	public void writeRow(String source, String divider, String content, String misc)
+	public void writeRow(String source, String divider, String content)
 	{
 		StringBuilder row = new StringBuilder()
 				.append("\"").append(cleanString(source)).append("\"").append(",")
