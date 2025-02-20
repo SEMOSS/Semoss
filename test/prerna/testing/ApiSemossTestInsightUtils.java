@@ -1,8 +1,5 @@
 package prerna.testing;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +7,8 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -17,6 +16,8 @@ import prerna.reactor.insights.save.SaveInsightReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ApiSemossTestInsightUtils {
+
+	private static final Logger LOGGER = LogManager.getLogger(ApiSemossTestInsightUtils.class);
 	
 	private static Path TEST_INSIGHT_CACHE = null;
 	private static Insight INSIGHT = null;
@@ -30,7 +31,7 @@ public class ApiSemossTestInsightUtils {
 	}
 
 	static void initializeInsight() throws IOException {
-		clearInsightCache();
+		clearFullInsightCache();
 		INSIGHT = new Insight();
 		
 		ApiSemossTestUserUtils.setDefaultTestUser();
@@ -42,20 +43,22 @@ public class ApiSemossTestInsightUtils {
 		Files.createDirectories(TEST_INSIGHT_CACHE);
 	}
 
-	static void clearInsightCache() throws IOException {
-		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache", "test");
+	private static void clearFullInsightCache() throws IOException {
+		Path p = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "InsightCache");
 		if (Files.exists(p)) {
 			FileUtils.cleanDirectory(p.toFile());
 		}
 	}
 	
 	static void clearInsightCacheDifferently() {
-		File dir = ApiSemossTestInsightUtils.getInsightCache().toFile();
-    	assertTrue(dir.isDirectory());
-    	File[] files = dir.listFiles();
-    	for (File f : files) {
-    		assertTrue(f.delete(), "Could not delete: " + f.getName());
-    	}
+		if (Files.exists(TEST_INSIGHT_CACHE)) {
+			try {
+				FileUtils.cleanDirectory(TEST_INSIGHT_CACHE.toFile());
+			} catch (IOException e) {
+				LOGGER.error("Could not clear Insight cache", e);
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@SuppressWarnings("unchecked")
