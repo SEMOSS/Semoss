@@ -1,4 +1,4 @@
-package prerna.testing.date;
+package prerna.testing.date.reactor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -10,7 +10,7 @@ import prerna.testing.ApiSemossTestUtils;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.date.SemossMonth;
 
-public class ApiMonthReactorTests extends AbstractBaseSemossApiTests {
+public class MonthReactorApiTests extends AbstractBaseSemossApiTests {
 
     @Test
     public void getMonth() {
