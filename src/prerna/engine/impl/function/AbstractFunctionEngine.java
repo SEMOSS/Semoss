@@ -29,10 +29,10 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
 
-	private String engineId;
-	private String engineName;
+	protected String engineId;
+	protected String engineName;
 	
-	private String smssFilePath;
+	protected String smssFilePath;
 	protected Properties smssProp;
 	
 	protected String functionName;
@@ -55,7 +55,10 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -227,11 +230,6 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	@Override
 	public CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.FUNCTION;
-	}
-
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
 	}
 
 	@Override

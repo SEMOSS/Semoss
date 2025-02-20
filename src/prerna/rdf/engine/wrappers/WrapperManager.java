@@ -87,10 +87,16 @@ public class WrapperManager {
 	}
 
 	public static WrapperManager getInstance() {
-		// cant get lazier than this :)
-		if(manager == null) {
-			manager = new WrapperManager();
+		if(manager != null) {
+			return manager;
 		}
+		
+		synchronized (WrapperManager.class) {
+			if(manager == null) {
+				manager = new WrapperManager();
+			}
+		}
+		
 		return manager;
 	}
 	

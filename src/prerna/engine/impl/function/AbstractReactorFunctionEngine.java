@@ -2,13 +2,11 @@ package prerna.engine.impl.function;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -18,30 +16,38 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IReactorEngine;
+import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IReactorFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public abstract class AbstractFunctionEngine2 extends AbstractReactor implements IReactorEngine {
+public abstract class AbstractReactorFunctionEngine extends AbstractReactor implements IReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine2.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractReactorFunctionEngine.class);
 
-	private String engineId;
-	private String engineName;
+	protected String engineId;
+	protected String engineName;
 	
-	private String smssFilePath;
+	protected String smssFilePath;
 	protected Properties smssProp;
 	
 	protected String functionName;
 	protected String functionDescription;
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
-	protected Map vars = new HashMap();
 	
+	@Override
+	public Object execute(Map<String, Object> parameterValues) {
+		// TODO: flush the key value pair into the nounstore
+		return execute();
+	}
+
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
@@ -51,25 +57,27 @@ public abstract class AbstractFunctionEngine2 extends AbstractReactor implements
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
+		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
+		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 
-		if(!smssProp.containsKey(IReactorEngine.NAME_KEY)) {
-			throw new IllegalArgumentException("Must have key " + IReactorEngine.NAME_KEY + " in SMSS");
-		}
-		if(!smssProp.containsKey(IReactorEngine.DESCRIPTION_KEY)) {
-			throw new IllegalArgumentException("Must have key " + IReactorEngine.DESCRIPTION_KEY + " in SMSS");
-		}
-
-		this.functionName = smssProp.getProperty(IReactorEngine.NAME_KEY);
-		this.functionDescription = smssProp.getProperty(IReactorEngine.DESCRIPTION_KEY);
-		
-		if(smssProp.containsKey(IReactorEngine.PARAMETER_KEY)) {
-			this.parameters = new Gson().fromJson(smssProp.getProperty(IReactorEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if(secretStore != null) {
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
+			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+				this.smssProp.putAll(engineSecrets);
+			}
 		}
 		
-		if(smssProp.containsKey(IReactorEngine.REQUIRED_PARAMETER_KEY)) {
-			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IReactorEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
+		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
+		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
+		
+		if(smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
+			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
 		}
-		this.vars = new HashMap<>(this.smssProp);
+		
+		if(smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
+			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
+		}
 	}
 
 	@Override
@@ -159,6 +167,11 @@ public abstract class AbstractFunctionEngine2 extends AbstractReactor implements
 	}
 
 	@Override
+	public void setFunctionName(String functionName) {
+		this.functionName = functionName;
+	}
+
+	@Override
 	public String getFunctionDescription() {
 		return functionDescription;
 	}
@@ -173,12 +186,21 @@ public abstract class AbstractFunctionEngine2 extends AbstractReactor implements
 		return parameters;
 	}
 
+	@Override
+	public void setParameters(List<FunctionParameter> parameters) {
+		this.parameters = parameters;
+	}
 
 	@Override
 	public List<String> getRequiredParameters() {
 		return this.requiredParameters;
 	}
-		
+	
+	@Override
+	public void setRequiredParameters(List<String> requiredParameters) {
+		this.requiredParameters = requiredParameters;
+	}
+	
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
@@ -210,26 +232,18 @@ public abstract class AbstractFunctionEngine2 extends AbstractReactor implements
 	}
 
 	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
-	}
-
-	@Override
 	public boolean holdsFileLocks() {
 		return false;
 	}
+	
+	@Override
+	public void close() throws IOException {
 
-	//////////////////////////////////////////////////////////////
-	public String fillVars(String input) {
-		StringSubstitutor sub = new StringSubstitutor(vars);
-		String resolvedString = sub.replace(input);
-		return resolvedString;
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "REACTOR";
 	}
 
-	
-	
-	
-	
-	
-	
 }

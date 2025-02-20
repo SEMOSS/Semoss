@@ -160,35 +160,52 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			StringBuilder outputAssimilator = new StringBuilder("");
 			while (!killall) 
 			{
+				classLogger.debug("Starting new read iteration in run() loop");
 				try {
-					byte[] length = new byte[4];
-					is.read(length);
-
-					int size = ByteBuffer.wrap(length).getInt();
+				    String threadName = Thread.currentThread().getName();
+				    long threadId = Thread.currentThread().getId();
+				    classLogger.debug("Socket read thread [{}:{}] attempting to read next message", threadName, threadId);
+				    
+				    byte[] length = new byte[4];
+				    classLogger.debug("Socket read thread [{}:{}] blocking on read()", threadName, threadId);
+				    
+				    // required read to populate the length buffer before wrapping
+				    @SuppressWarnings("unused")  // bytesRead is necessary for proper socket reading
+				    int bytesRead = is.read(length);
+				    
+				    int size = ByteBuffer.wrap(length).getInt();
+				    classLogger.debug("Socket read thread [{}:{}] completed read of size header: {} bytes", threadName, threadId, size);
 					//System.err.println("Incoming data is of size " + size);
 
 					if(size > 0)
 					{
 						byte[] msg = new byte[size];
 						int size_read = 0;
+						classLogger.debug("Starting to read message of size {}", size);
 						while(size_read < size)
 						{
 							int to_read = size - size_read;
 							byte [] newMsg = new byte[to_read];
 							int cur_size = is.read(newMsg);
+			                classLogger.debug("Read chunk of {} bytes, total so far: {}/{}", cur_size, size_read + cur_size, size);
 							System.arraycopy(newMsg, 0, msg, size_read, cur_size);
 							size_read = size_read + cur_size;
 							//System.out.println("incoming size " + size + "  read size.. " + size_read);
 						}
 
 						String message = new String(msg);
+						classLogger.debug("Raw message from Python: {}", message);
 						//System.err.print(message);
 						PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
+			            classLogger.debug("Parsed message - epoc: {}, operation: {}, response: {}, interim: {}", 
+			                    ps.epoc, ps.operation, ps.response, ps.interim);
+
 						PayloadStruct lock = (PayloadStruct) requestMap.get(ps.epoc);
 						classLogger.debug("incoming payload " + ps);
+			            classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
 						// std out no questions
-						if(ps.operation == ps.operation.STDOUT && ps.payload != null && !ps.response)
+						if(ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null && !ps.response)
 						{
 							//classLogger.info(ps.payload[0]);
 							//classLogger.info("Standard output");
@@ -234,7 +251,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						// this is done through interim and operations
 						// partial stdout
 						// i.e. response is true and it is being sent as a stdout
-						else if(ps.response && ps.operation == ps.operation.STDOUT)
+						else if(ps.response && ps.operation == PayloadStruct.OPERATION.STDOUT)
 						{
 							//classLogger.info("Partial Response from the py");
 							// need to return output here
@@ -269,7 +286,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									ps.payload = new String[] {outputAssimilator.toString()};
 							}
 							ps.epoc = ps.epoc.trim();
+			                classLogger.debug("Processing response for epoc: {}", ps.epoc);
 							lock = (PayloadStruct)requestMap.remove(ps.epoc);
+			                classLogger.debug("Found and removed request lock for epoc {}: {}", ps.epoc, lock != null);
+
 
 							// try to convert it into a full object
 							// need to check if it is primitive before converting
@@ -286,19 +306,57 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							}
 							// put it in response
 							responseMap.put(ps.epoc, ps);
+			                classLogger.debug("Added response to responseMap for epoc: {}", ps.epoc);
+
 							if(lock != null)
 							{
 								synchronized(lock)
 								{
+			                        classLogger.debug("About to notify waiters for epoc: {}", ps.epoc);
 									lock.notifyAll();
+			                        classLogger.debug("Notified waiters for epoc: {}", ps.epoc);
+
 								}
 							}
 							outputAssimilator = new StringBuilder("");
 							partialAssimilator = new StringBuilder("");
-
+						}
+						// this is a request for a reactor
+						else if(ps.operation == PayloadStruct.OPERATION.REACTOR) {
+							final PayloadStruct finalPs = ps;
+							// I'm creating a new thread to run the pixel
+						    new Thread(() -> {
+						        classLogger.debug("Starting reactor operation for epoc: {}", finalPs.epoc);
+						        ByteArrayOutputStream output = new ByteArrayOutputStream();
+						        try {
+						            String insightId = finalPs.insightId;
+						            Insight insight = insightMap.get(insightId);
+						            String pixelOp = (String) finalPs.payload[0];
+						            if(!(pixelOp=pixelOp.trim()).endsWith(";")) {
+						                pixelOp+=";";
+						            }
+						            PixelRunner pixelRunner = insight.runPixel(pixelOp);
+						            StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner);
+						            streamedOutput.write(output);
+						            JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
+						            finalPs.payload = new Object[] {json};
+						            finalPs.response = true;
+						            executeCommand(finalPs);
+						        } catch(Exception e) {
+						        	finalPs.response = true;
+						        	finalPs.ex = "An error occurred running the pixel";
+						            executeCommand(finalPs);
+						        } finally {
+						            try {
+						                output.close();
+						            } catch(IOException e) {
+						                classLogger.error(Constants.STACKTRACE, e);
+						            }
+						        }
+						    }).start();
 						}
 						// this is a request
-						else if(ps.operation == ps.operation.ENGINE)
+						else if(ps.operation == PayloadStruct.OPERATION.ENGINE)
 						{
 							//classLogger.info("reverse request for data");
 							// this is a request we need to process
@@ -307,30 +365,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							// clean up the payload struct a little
 							ps = convertPayloadClasses(ps);
 							processEngineRequest(ps);
-						}
-						// this is a request for a reactor
-						else if(ps.operation == ps.operation.REACTOR)
-						{
-							ByteArrayOutputStream output = new ByteArrayOutputStream();
-							try {
-								String insightId = ps.insightId;
-								Insight insight = insightMap.get(insightId);
-								String pixelOp = (String) ps.payload[0];
-								PixelRunner pixelRunner = insight.runPixel(pixelOp);
-								StreamingOutput streamedOutput = PixelStreamUtility.collectPixelData(pixelRunner);
-								streamedOutput.write(output);
-								JsonElement json = JsonParser.parseString(new String(output.toByteArray(),"UTF-8"));
-								ps.payload = new Object[] {json};
-								ps.response = true;
-								executeCommand(ps);
-							} catch(Exception e) {
-								ps.response = true;
-								ps.ex = "An error occurred running the pixel";
-								// return the error
-								executeCommand(ps);
-							} finally {
-								output.close();
-							}
 						}
 						// unhandled pieces.. nothing we can do here.. just give the response back
 						// so we dont choke the thread
@@ -435,6 +469,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	public Object executeCommand(PayloadStruct ps)
 	{
+	    String threadName = Thread.currentThread().getName();
+	    long threadId = Thread.currentThread().getId();
+	    classLogger.debug("Entering executeCommand for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
 		if(killall) {
 			throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
@@ -453,6 +490,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 		synchronized(ps) // going back to single threaded .. earlier it was ps
 		{	
+	        classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
+
 			//if(ps.hasReturn)
 			// put it into request map
 			if(!ps.response) {
@@ -464,16 +503,21 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			// send the message
 			// time to wait = average time * 10
 			// if this is a request wait for it
+		
 			if(!ps.response) // this is a response to something the socket has asked
 			{
 				int pollNum = 1; // 1 second
 				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
 				{
+			        classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})", 
+			                Thread.currentThread().getId(), ps.epoc, pollNum);
 					//classLogger.info("Checking to see if there was a response");
 					try {
+						classLogger.debug("I'm looking for epoc{}", ps.epoc);
 						if(pollNum < 10) {
 							ps.wait(averageMillis);
 						} else { //if(ps.longRunning) // this is to make sure the kill all is being checked
+							classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
 							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
 						}
 						pollNum++;
@@ -484,7 +528,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 				{
 					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
-
 				}
 			}
 
@@ -496,6 +539,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	private void writePayload(PayloadStruct ps)
 	{
+		classLogger.debug("Starting writePayload for epoc: " + ps.epoc);
 		// nulling the classes so they dont screw up json
 		ps.payloadClasses = null;
 		try
@@ -503,8 +547,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			String jsonPS = gson.toJson(ps);
 			byte [] psBytes = pack(jsonPS, ps.epoc);
 			try {
+				classLogger.debug("About to write to output stream for epoc: " + ps.epoc);
 				os.write(psBytes);
+				classLogger.debug("Successfully wrote to output stream for epoc: " + ps.epoc);
 			} catch(IOException ex) {
+				classLogger.info("Failed writing to output stream for epoc: " + ps.epoc, ex);
 				classLogger.error(Constants.STACKTRACE, ex);
 				//crash();
 			}
@@ -545,18 +592,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	}
 
-
-	private void writeEmptyPayload()
-	{
-		PayloadStruct ps = new PayloadStruct();
-		ps.epoc=Utility.getRandomString(8);
-		ps.methodName = "EMPTYEMPTYEMPTY";
-		writePayload(ps);
-	}
-
-
-	public void writeReleaseAllPayload()
-	{
+	public void writeReleaseAllPayload() {
 		PayloadStruct ps = new PayloadStruct();
 		ps.epoc=Utility.getRandomString(8);
 		ps.methodName = "RELEASE_ALL";
@@ -564,11 +600,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 
-	/**
-	 * Logout of py server
-	 */
-	@Override
-	public boolean stopPyServe() {
+    /**
+     * 
+     * @return
+     */
+    public boolean stopServer() {
 		try {
 			if(isConnected()) {
 				ExecutorService executor = Executors.newSingleThreadExecutor();

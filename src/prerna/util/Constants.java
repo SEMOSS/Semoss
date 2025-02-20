@@ -385,6 +385,7 @@ public class Constants {
 	public static final String MODEL_FOLDER = "model";
 	public static final String FUNCTION_FOLDER = "function";
 	public static final String VECTOR_FOLDER = "vector";
+	public static final String GUARDRAIL_FOLDER = "guardrail";
 	public static final String VENV_FOLDER = "venv";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
@@ -992,5 +993,19 @@ public class Constants {
     public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
     public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
   	
-	
+	//External Permission Management
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME= "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY = "EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH = "EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE";
+
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE";
+    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION";
+
 }

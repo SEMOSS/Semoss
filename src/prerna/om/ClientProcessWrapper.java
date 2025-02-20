@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -189,14 +190,19 @@ public class ClientProcessWrapper {
 		        Callable<Boolean> callableTask = () -> {
 		        	boolean result = false;
 		        	if(cleanUpFolder) {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		int attempt = 0;
-		        		while(!result && attempt <= 10) {
+		        		File serverDir = new File(this.serverDirectory);
+		        		while(!result && attempt < 10) {
 		        			try {
-		        				FileUtils.deleteDirectory(this.serverDirectory);
-				        		classLogger.info("Sucessfully cleaned up the directory");
-		        				result = true;
+		        				if(serverDir.exists()) {
+			        				FileUtils.deleteDirectory(this.serverDirectory);
+					        		classLogger.info("Sucessfully cleaned up the directory");
+			        				result = true;
+		        				} else {
+		        					classLogger.info("Server directory does not exist");
+		        				}
 		        			} catch (Exception ignored) {
 		        				classLogger.info("Failed attempt # " + attempt + " to delete the folder " + this.serverDirectory);
 		        				attempt++;
@@ -208,7 +214,7 @@ public class ClientProcessWrapper {
 		        			}
 		        		}
 		        	} else {
-		        		this.socketClient.stopPyServe();
+		        		this.socketClient.stopServer();
 		        		classLogger.info("Sucessfully stopped the process");
 		        		result = true;
 		        	}
@@ -218,7 +224,7 @@ public class ClientProcessWrapper {
 		        Future<Boolean> future = executor.submit(callableTask);
 		        try {
 		        	// dont have the user wait forever...
-		            Boolean result = future.get(70, TimeUnit.SECONDS);
+		            Boolean result = future.get(50, TimeUnit.SECONDS);
 		            if(result) {
 		            	classLogger.info("Successfully shutdown the process");
 		            } else {

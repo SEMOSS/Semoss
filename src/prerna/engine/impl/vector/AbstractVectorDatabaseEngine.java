@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +28,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
@@ -71,6 +72,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 	public static final String FILTERS_KEY = "filters";
 	public static final String METADATA_FILTERS_KEY = "metaFilters";
 	
+	public static final String CSVPATH = "csvPath";
+	public static final String DOCUMENT = "document";
+	public static final String PARAMETERS = "parameters";
+	
 	protected String engineId = null;
 	protected String engineName = null;
 	
@@ -107,7 +112,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 
 	protected ClientProcessWrapper cpw = null;
 	// python server
-	protected TCPPyTranslator pyt = null;
+	protected PyTranslator pyt = null;
 	protected File pyDirectoryBasePath = null;
 	
 	protected File schemaFolder;
@@ -130,7 +135,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -154,16 +162,16 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		
 		this.defaultExtractionMethod = this.smssProp.getProperty(Constants.EXTRACTION_METHOD, "None");
 		this.distanceMethod = this.smssProp.getProperty(Constants.DISTANCE_METHOD, "Cosine Similarity");
+		
 		this.defaultIndexClass = "default";
 		if (this.smssProp.containsKey(Constants.INDEX_CLASSES)) {
 			this.defaultIndexClass = this.smssProp.getProperty(Constants.INDEX_CLASSES);
 		}
 		
-        // 2 smss properties for custom document processing
+        // smss properties for custom document processing
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR)) {
         	this.customDocumentProcessor =  Boolean.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR));
         }
-        
         if (this.smssProp.containsKey(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)) {
         	this.customDocumentProcessorFunctionID = this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID);
         }
@@ -231,6 +239,13 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 		
 		File indexFilesDir = new File(this.schemaFolder + DIR_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
+		
+		// store the actual files we are extracting from
+		// since we move this into the vector folder
+		// we need to delete them if they fail
+		// TODO: potentially look at loading these from insight and only pushing to the 
+		// vector db catalog on success
+		Set<File> fileToExtractFrom = new HashSet<File>();
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
@@ -259,7 +274,6 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 
 			// move the documents from insight into documents folder
-			Set<File> fileToExtractFrom = new HashSet<File>();
 			for (String fileName : filePaths) {
 				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
@@ -290,7 +304,7 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 			
 			// loop through each document and attempt to extract text
 			for (File document : fileToExtractFrom) {
-				String documentName = Utility.normalizePath(document.getName().split("\\.")[0]);
+				String documentName = FilenameUtils.getBaseName(document.getName());
 				File extractedFile = new File(indexFilesDir.getAbsolutePath() + DIR_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR);
 				try {
@@ -325,9 +339,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 							}
 							IFunctionEngine functionEngine = Utility.getFunctionEngine(this.customDocumentProcessorFunctionID);
 							Map<String, Object> functionInputs = new HashMap<>();
-							functionInputs.put("csvPath", extractedFile.getAbsolutePath());
-							functionInputs.put("document", document);
-							functionInputs.put("parameters", parameters);
+							functionInputs.put(CSVPATH, extractedFile.getAbsolutePath());
+							functionInputs.put(DOCUMENT, document);
+							functionInputs.put(PARAMETERS, parameters);
 							rowsCreated = (int) functionEngine.execute(functionInputs);
 						} else {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(), document);
@@ -368,15 +382,33 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 				}
 			}
 			
-			if (extractedFiles.size() > 0) {
-				addEmbeddingFiles(extractedFiles, insight, parameters);
-				
-				if (ClusterUtil.IS_CLUSTER) {
-					// push the actual documents over to the cloud
-					Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-					copyFilesToCloudThread.start();
+			if(extractedFiles.size() == 0) {
+				StringBuilder fileNamesAttemptedUpload = new StringBuilder("[");
+				boolean first = true;
+				for (File document : fileToExtractFrom) {
+					if(!first) {
+						fileNamesAttemptedUpload.append(",");
+					}
+					fileNamesAttemptedUpload.append(FilenameUtils.getName(document.getName()));
 				}
+				fileNamesAttemptedUpload.append("]");
+				throw new IllegalArgumentException("Unable to extract any text from " + fileNamesAttemptedUpload);
 			}
+			
+			addEmbeddingFiles(extractedFiles, insight, parameters);
+			
+			if (ClusterUtil.IS_CLUSTER) {
+				// push the actual documents over to the cloud
+				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
+				copyFilesToCloudThread.start();
+			}
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			// delete files moved into vector db documents folder
+			for (File document : fileToExtractFrom) {
+				document.delete();
+			}
+			throw e;
 		} finally {
 			cleanUpAddDocument(indexFilesDir);
 		}
@@ -386,9 +418,9 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		this.indexClasses.add(indexClass);
 	}
 	
-	protected void cleanUpAddDocument(File indexFilesFolder) {
+	protected void cleanUpAddDocument(File file) {
 		try {
-			FileUtils.forceDelete(indexFilesFolder);
+			FileUtils.forceDelete(file);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -720,22 +752,36 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		}
 
 		// create the py translator
-		pyt = new TCPPyTranslator();
+		pyt = new PyTranslator();
 		pyt.setSocketClient(this.cpw.getSocketClient());
 		
-		// this is engine specific... or can be
-		String[] commands = getServerStartCommands();
-		// replace the vars
-		StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-			String resolvedString = substitutor.replace(commands[commandIndex]);
-			commands[commandIndex] = resolvedString;
+		try {
+			// this is engine specific... or can be
+			String[] commands = getServerStartCommands();
+			// replace the vars
+			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+			for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+				String resolvedString = substitutor.replace(commands[commandIndex]);
+				commands[commandIndex] = resolvedString;
+			}
+			pyt.runEmptyPy(commands);
+			
+			// for debugging...
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+								+ " ptyhon process with commands >>> " + String.join("\n", commands));
+		} catch(Exception e) {
+			// set the model props to false
+			// incase those values were incorrect
+			modelPropsLoaded = false;
+			classLogger.error(Constants.STACKTRACE, e);
+			if(this.cpw != null) {
+				classLogger.warn("Able to start the python process for the vector database " 
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ " but the start script failed.");
+				this.cpw.shutdown(false);
+			}
+			throw e;
 		}
-		pyt.runEmptyPy(commands);
-		
-		// for debugging...
-		classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-							+ " ptyhon process with commands >>> " + String.join("\n", commands));	
 	}
 	
 	/**
@@ -895,19 +941,21 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		return false;
 	}
 	
-	public void setVectorFolderPermissions() {
-	//if we have a python specific user, make sure that user can access the schema folder
-	String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-	if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-		try {
-			Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+	/**
+	 * 
+	 */
+	private void setVectorFolderPermissions() {
+		//if we have a python specific user, make sure that user can access the schema folder
+		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
+		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
+			try {
+				Utility.setOwnerAndGroupPermissionsRecursively(schemaFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (InterruptedException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 	}
+	
 }

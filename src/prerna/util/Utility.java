@@ -162,7 +162,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IReactorEngine;
+import prerna.engine.api.IReactorFunctionEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
@@ -185,7 +185,6 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
-import prerna.tcp.client.SocketClient;
 import prerna.tcp.workers.EngineSocketWrapper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -2349,6 +2348,9 @@ public final class Utility {
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(prop);
+		if(owlFile == null) {
+			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+		}
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
 		// 4) perform the necessary additions if the time stamps do not equal
@@ -2803,7 +2805,7 @@ public final class Utility {
 	 * @param engineId
 	 * @return
 	 */
-	public static IReactorEngine getReactorEngine(String engineId) {
+	public static IReactorFunctionEngine getReactorEngine(String engineId) {
 		return getReactorEngine(engineId, true);
 	}
 	
@@ -2813,8 +2815,8 @@ public final class Utility {
 	 * @param pullIfNeeded
 	 * @return
 	 */
-	public static IReactorEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
-		return (IReactorEngine) baseGetEngine(engineId, pullIfNeeded);
+	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
+		return (IReactorFunctionEngine) baseGetEngine(engineId, pullIfNeeded);
 	}
 	
 	/**
@@ -5107,6 +5109,7 @@ public final class Utility {
 			if (java == null) {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
+			java = java.trim();
 			if(!java.endsWith("bin")) {
 				//seems like for graal
 				java = java + "/bin/java";
@@ -5120,56 +5123,32 @@ public final class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = Utility.getDIHelperProperty(Constants.LD_LIBRARY_PATH);
-			if (jep == null) {
-				jep = System.getenv(Constants.LD_LIBRARY_PATH);
-			}
-			// account for spaces in the path to jep
-			if (jep.contains(" ")) {
-				jep = "\"" + jep + "\"";
-			}
-			jep = jep.replace("\\", "/");
-
-			String pyWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
-				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
+			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
+			if(tcpWorker == null || (tcpWorker=tcpWorker.trim()).isEmpty()) {
+				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
 			String[] commands = null;
 			if (port == null) {
-				commands = new String[7];
+				commands = new String[6];
 			} else {
-				commands = new String[8];
-				commands[7] = port;
+				commands = new String[7];
+				commands[6] = port;
 			}
 			String finalDir = insightFolder.replace("\\", "/");
 			commands[0] = java;
-			// just append all the environment variables
-			// on the windows machine as well
-			if(SystemUtils.IS_OS_WINDOWS) {
-				// since we will wrap quotes around the entire thing as PATH likely has spaces
-				// remove from jep
-				if(jep.startsWith("\"") && jep.endsWith("\"")) {
-					jep = jep.substring(1, jep.length()-1);
-				}
-				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
-			} else {
-				commands[1] = "-Djava.library.path=" + jep;
-			}
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
-			
+
 			String memory = "";
 			if(xms != null && xmx != null)
 				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
-			commands[2] = memory + " -cp";
 
-			//commands[2] = "-cp";
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
-			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
+			commands[1] = memory + " -cp";
+			commands[2] = specificPath;
+			commands[3] = tcpWorker;
+			commands[4] = finalDir;
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5180,7 +5159,7 @@ public final class Utility {
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
+			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
@@ -5250,6 +5229,7 @@ public final class Utility {
 			if (java == null) {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
+			java = java.trim();
 			if(!java.endsWith("bin")) {
 				//seems like for graal
 				java = java + "/bin/java";
@@ -5263,55 +5243,32 @@ public final class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = Utility.getDIHelperProperty(Constants.LD_LIBRARY_PATH);
-			if (jep == null) {
-				jep = System.getenv(Constants.LD_LIBRARY_PATH);
-			}
-			// account for spaces in the path to jep
-			if (jep.contains(" ")) {
-				jep = "\"" + jep + "\"";
-			}
-			jep = jep.replace("\\", "/");
-
-			String pyWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
-				pyWorker = prerna.tcp.SocketServer.class.getName(); // "prerna.tcp.SocketServer";
+			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
+			if(tcpWorker == null || (tcpWorker=tcpWorker.trim()).isEmpty()) {
+				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
 			String[] commands = null;
 			if (port == null) {
-				commands = new String[7];
+				commands = new String[6];
 			} else {
-				commands = new String[8];
-				commands[7] = port;
+				commands = new String[7];
+				commands[6] = port;
 			}
 			String finalDir = insightFolder.replace("\\", "/");
 			commands[0] = java;
-			// just append all the environment variables
-			// on the windows machine as well
-			if(SystemUtils.IS_OS_WINDOWS) {
-				// since we will wrap quotes around the entire thing as PATH likely has spaces
-				// remove from jep
-				if(jep.startsWith("\"") && jep.endsWith("\"")) {
-					jep = jep.substring(1, jep.length()-1);
-				}
-				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
-			} else {
-				commands[1] = "-Djava.library.path=" + jep;
-			}
+
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
-			
 			String memory = "";
-			if(xms != null && xmx != null)
+			if(xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
-			commands[2] = memory + " -cp";
-
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
-			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
+			}
+			commands[1] = memory + " -cp";
+			commands[2] = specificPath;
+			commands[3] = tcpWorker;
+			commands[4] = finalDir;
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5322,7 +5279,7 @@ public final class Utility {
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
+			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
 			// commands[7] = finalDir + "/.log";
@@ -5380,7 +5337,7 @@ public final class Utility {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
-		
+
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
 		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
@@ -5388,7 +5345,6 @@ public final class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			
 			// only try to find the base python if one was not passed in
 			if (py == null || py.isEmpty()) {
 				py = System.getenv(Settings.PYTHONHOME);
@@ -5405,56 +5361,63 @@ public final class Utility {
 					throw new NullPointerException("Must define python home");
 				}
 			}
-			
+			py = py.trim();
 			// append the executable
 			if (SystemUtils.IS_OS_WINDOWS) {
 				py = py + "/python.exe";
 			} else {
 				py = py + "/bin/python3";
 			}
-			
+
 			py = py.replace("\\", "/");
-			
+
 			classLogger.info("The python executable being used is: " + py);
 
 			// check to see if the py folder is there
 			// if not go into base folder
 			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null
 					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
-			
+							: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
+			pyBase = pyBase.trim();
 			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
 			pyBase = pyBase.replace("\\", "/");
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
-			
+
 			String outputFile = finalDir + "/console.txt";
-			
+
 			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-					
-			String[] baseCommand = new String[] {py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-			
+			String[] baseCommand = new String[] {
+					py, gaasServer, 
+					"--port", port, 
+					"--max_count", "1", 
+					"--py_folder", pyBase, 
+					"--insight_folder", finalDir, 
+					"--prefix", prefix, 
+					"--timeout", timeout, 
+					"--logger_level", loggerLevel
+					};
+
 			String[] commands;
-		
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-			    commands = new String[baseCommand.length + 3];
-			    commands[0] = "sudo";
-			    commands[1] = "-u";
-			    commands[2] = pythonUser;
-			    System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
-			    
-			    File pythonProcessFolder = new File(finalDir);
-			    if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-			    	pythonProcessFolder.setReadable(true, false);  
-			    	pythonProcessFolder.setWritable(true, false); 
-			    	pythonProcessFolder.setExecutable(true, false); 
-			    }	
+				commands = new String[baseCommand.length + 3];
+				commands[0] = "sudo";
+				commands[1] = "-u";
+				commands[2] = pythonUser;
+				System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+
+				File pythonProcessFolder = new File(finalDir);
+				if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+					pythonProcessFolder.setReadable(true, false);  
+					pythonProcessFolder.setWritable(true, false); 
+					pythonProcessFolder.setExecutable(true, false); 
+				}	
 			} else {
-			    commands = baseCommand;
+				commands = baseCommand;
 			}
-			
+
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5465,7 +5428,7 @@ public final class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
-			
+
 			// do I need this ?
 			//String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5483,21 +5446,21 @@ public final class Utility {
 			if (!p.isAlive()) {
 				// if it crashed here, then the outputFile will contain the error. Read file and send error back
 				// it should not contain anything else since we are trying to start the server here
-	        	BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 				StringBuilder errorMsg = new StringBuilder();
-	            String line;
-	            while ((line = reader.readLine()) != null ) {
-	                // get the runtime error
-	            	if (line.startsWith("Traceback")) {
-	            		errorMsg.append(line).append("\n");
-	            		while ((line = reader.readLine()) != null ) {
-	            			errorMsg.append(line).append("\n");
-	            		}
-	            	}
-	            }
-	            reader.close();
-	            if (!errorMsg.toString().isEmpty())
-	            	throw new IllegalStateException(errorMsg.toString());
+				String line;
+				while ((line = reader.readLine()) != null ) {
+					// get the runtime error
+					if (line.startsWith("Traceback")) {
+						errorMsg.append(line).append("\n");
+						while ((line = reader.readLine()) != null ) {
+							errorMsg.append(line).append("\n");
+						}
+					}
+				}
+				reader.close();
+				if (!errorMsg.toString().isEmpty())
+					throw new IllegalStateException(errorMsg.toString());
 			}
 			thisProcess = p;
 
@@ -5513,13 +5476,13 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-	
+
 	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String timeout, String loggerLevel ) {
 		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
-		
+
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
 		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
@@ -5540,18 +5503,19 @@ public final class Utility {
 			if(py == null) {
 				throw new NullPointerException("Must define python home");
 			}
-			
+			py = py.trim();
 			if (SystemUtils.IS_OS_WINDOWS) {
 				py = py + "/python.exe";
 			} else {
 				py = py + "/bin/python3";
 			}
-			
+
 			py = py.replace("\\", "/");
 
 			String pyBase = Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER) == null 
 					? Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);			
+							: Utility.getDIHelperProperty(Constants.PY_BASE_FOLDER);
+			pyBase = pyBase.trim();
 			pyBase = pyBase + "/" + Constants.PY_BASE_FOLDER;
 
 			pyBase = pyBase.replace("\\", "/");
@@ -5559,21 +5523,29 @@ public final class Utility {
 
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
-			
+
 			String outputFile =chrootDir + finalDir + "/console.txt";
-			
-			//String timeout = "15";
-//			if(otherProps!= null && otherProps.length > 0)
-//				timeout = otherProps[0];
-			
-		//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 
-		// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
-		// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
+			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
+			// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			String[] commands = new String[] {
+					"fakechroot", "fakeroot", 
+					"chroot", 
+					"--userspec=1001:1001", "/", 
+					"env" ,"-i", 
+					py, gaasServer, 
+					"--port", port, 
+					"--max_count", "1", 
+					"--py_folder", pyBase, 
+					"--insight_folder", finalDir, 
+					"--prefix", prefix, 
+					"--timeout", timeout, 
+					"--logger_level", loggerLevel, 
+					"--userChrootFolder", chrootDir
+					};
 
-			String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , "/", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel, "--userChrootFolder", chrootDir};
 
-		
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
@@ -5584,7 +5556,7 @@ public final class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
-			
+
 			// do I need this ?
 			//String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(commands);
@@ -5613,172 +5585,16 @@ public final class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-	
+
 	/**
 	 * 
-	 * @param pyClientClass
-	 * @param port
+	 * @param commands
+	 * @param dir
 	 * @return
 	 */
-	public static SocketClient startTCPClient(String pyClient, String port) {
-		SocketClient tcpClient = null;
-		try {
-			tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
-			tcpClient.connect("127.0.0.1", Integer.parseInt(port), false);
-			//nc.run(); - you cannot do this because then the client goes into listener mode
-			Thread t = new Thread(tcpClient);
-			t.start();
-			while(!tcpClient.isReady())
-			{
-				synchronized(tcpClient)
-				{
-					try 
-					{
-						tcpClient.wait();
-						classLogger.info("Setting the socket client ");
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		return tcpClient;
-	}
-	
-	public static Process startRMIServer(String cp, String insightFolder, String port) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		Process thisProcess = null;
-		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
-		}
-		String specificPath = getCP(cp, insightFolder);
-		try {
-			String java = System.getenv("JAVA_HOME");
-			if (java == null) {
-				java = Utility.getDIHelperProperty("JAVA_HOME");
-			}
-			if(!java.endsWith("bin")) //seems like for graal
-				java = java + "/bin/java";
-			else
-				java = java + "/java";
-			// account for spaces in the path to java
-			if (java.contains(" ")) {
-				java = "\"" + java + "\"";
-			}
-			// change the \\
-			java = java.replace("\\", "/");
-
-			String jep = Utility.getDIHelperProperty("LD_LIBRARY_PATH");
-			if (jep == null) {
-				jep = System.getenv("LD_LIBRARY_PATH");
-			}
-			// account for spaces in the path to jep
-			if (jep.contains(" ")) {
-				jep = "\"" + jep + "\"";
-			}
-			jep = jep.replace("\\", "/");
-
-			String pyWorker = Utility.getDIHelperProperty("RMI_WORKER");
-			if(pyWorker == null)
-				pyWorker = "prerna.rmi.Server";
-			String[] commands = null;
-			if (port == null)
-				commands = new String[7];
-			else {
-				commands = new String[8];
-				commands[7] = port;
-			}
-			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
-			// just append all the environment variables
-			// on the windows machine as well
-			if(SystemUtils.IS_OS_WINDOWS) {
-				// since we will wrap quotes around the entire thing as PATH likely has spaces
-				// remove from jep
-				if(jep.startsWith("\"") && jep.endsWith("\"")) {
-					jep = jep.substring(1, jep.length()-1);
-				}
-				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
-			} else {
-				commands[1] = "-Djava.library.path=" + jep;
-			}
-			// compose for memory
-			String xms = Utility.getDIHelperProperty("Xms");
-			String xmx = Utility.getDIHelperProperty("Xmx");
-			
-			String memory = "";
-			if(xms != null && xmx != null)
-				memory = "-Xms" + xms + " -Xmx" + xmx;
-			
-			commands[2] = memory + " -cp";
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
-			commands[5] = finalDir;
-			commands[6] = DIHelper.getInstance().getRDFMapFileLocation();
-			// java = "c:/zulu/zulu-8/bin/java";
-			// StringBuilder argList = new StringBuilder(args[0]);
-			// for(int argIndex = 0;argIndex < args.length;argList.append("
-			// ").append(args[argIndex]), argIndex++);
-			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
-					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			*/
-			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			// commands[6] = ">";
-			// commands[7] = finalDir + "/.log";
-
-			classLogger.debug("Trying to create file in .. " + finalDir);
-			File file = new File(finalDir + "/init");
-			file.createNewFile();
-			classLogger.debug("Python start commands ... ");
-			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
-
-			// run it as a process
-			// ProcessBuilder pb = new ProcessBuilder(commands);
-			// ProcessBuilder pb = new
-			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
-			// pb.command(commands);
-
-			String[] starterFile = writeStarterFile(commands, finalDir);
-			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
-			classLogger.info("came out of the waiting for process");
-			Process p = pb.start();
-
-			try {
-				// p.waitFor();
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return thisProcess;
-	}
-
 	public static String[] writeStarterFile(String[] commands, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
-
 
 		String starter = ""; 
 		String[] commandsStarter = null;

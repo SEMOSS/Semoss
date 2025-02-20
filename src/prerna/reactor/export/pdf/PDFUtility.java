@@ -1,6 +1,7 @@
 package prerna.reactor.export.pdf;
 
 import java.awt.Color;
+import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -30,6 +31,9 @@ import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecifica
 import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceDictionary;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceEntry;
@@ -53,7 +57,7 @@ import prerna.util.Constants;
  * 
  */
 public final class PDFUtility {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(PDFUtility.class);
 
 	/**
@@ -66,54 +70,54 @@ public final class PDFUtility {
 		File file = new File(filePath);
 		return PDDocument.load(file);
 	}
-	
+
 	public static void addSignatureBlock(PDDocument document) throws IOException {
 		// Get the last page index of document
-    	int pageNum = document.getNumberOfPages();
-    	PDPage lastPage = document.getPage(pageNum-1);
+		int pageNum = document.getNumberOfPages();
+		PDPage lastPage = document.getPage(pageNum-1);
 
-        // Add a new AcroForm and add that to the document
-        PDAcroForm acroForm = new PDAcroForm(document);
-        document.getDocumentCatalog().setAcroForm(acroForm);
+		// Add a new AcroForm and add that to the document
+		PDAcroForm acroForm = new PDAcroForm(document);
+		document.getDocumentCatalog().setAcroForm(acroForm);
 
-        // Create empty signature field for each rectangle
-    	PDSignatureField signatureField = new PDSignatureField(acroForm);
-    	signatureField.setPartialName("Signature");
-        PDAnnotationWidget widget = signatureField.getWidgets().get(0);
-        PDRectangle rect = new PDRectangle(375, 20, 200, 40);
-        widget.setRectangle(rect);
-        widget.setPage(lastPage);
-        widget.setPrinted(true);
-        lastPage.getAnnotations().add(widget);
-        acroForm.getFields().add(signatureField);
+		// Create empty signature field for each rectangle
+		PDSignatureField signatureField = new PDSignatureField(acroForm);
+		signatureField.setPartialName("Signature");
+		PDAnnotationWidget widget = signatureField.getWidgets().get(0);
+		PDRectangle rect = new PDRectangle(375, 20, 200, 40);
+		widget.setRectangle(rect);
+		widget.setPage(lastPage);
+		widget.setPrinted(true);
+		lastPage.getAnnotations().add(widget);
+		acroForm.getFields().add(signatureField);
 	}
-		
+
 	public static void addSignatureBlock(PDDocument document, FormObject rectPage) throws IOException {
 		PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
-        PDRectangle rect = rectPage.rect;
+		PDRectangle rect = rectPage.rect;
 
 		if (acroForm == null) {
-	        // Add a new AcroForm and add that to the document
+			// Add a new AcroForm and add that to the document
 			acroForm = new PDAcroForm(document);
 		}
-        document.getDocumentCatalog().setAcroForm(acroForm);
-        // Create empty signature field for each rectangle
-    	PDSignatureField signatureField = new PDSignatureField(acroForm);
-    	// Warning - partial name must be unique to each signature field
-    	//signatureField.setPartialName("Signature");
-        PDAnnotationWidget widget = signatureField.getWidgets().get(0);       
+		document.getDocumentCatalog().setAcroForm(acroForm);
+		// Create empty signature field for each rectangle
+		PDSignatureField signatureField = new PDSignatureField(acroForm);
+		// Warning - partial name must be unique to each signature field
+		//signatureField.setPartialName("Signature");
+		PDAnnotationWidget widget = signatureField.getWidgets().get(0);       
 		// Get the sign page index of document
-        int page = rectPage.page;
-        PDPage signPage = document.getPage(page-1);
-        widget.setRectangle(rect);
-        widget.setPage(signPage);
-        widget.setPrinted(true);
-        signPage.getAnnotations().add(widget);
-        acroForm.getFields().add(signatureField);
+		int page = rectPage.page;
+		PDPage signPage = document.getPage(page-1);
+		widget.setRectangle(rect);
+		widget.setPage(signPage);
+		widget.setPrinted(true);
+		signPage.getAnnotations().add(widget);
+		acroForm.getFields().add(signatureField);
 	}
-	
-	
-	
+
+
+
 	/**
 	 * 
 	 * @param document
@@ -123,7 +127,7 @@ public final class PDFUtility {
 		// Get the last page index of document
 		int pageNum = document.getNumberOfPages();
 		PDPage lastPage = document.getPage(pageNum-1);
-		
+
 		PDPageContentStream contentStream = new PDPageContentStream(document, lastPage, AppendMode.APPEND, true);
 		contentStream.beginText();
 		contentStream.setFont(PDType1Font.TIMES_ROMAN, 12);
@@ -133,20 +137,20 @@ public final class PDFUtility {
 		contentStream.endText();
 		contentStream.close();
 	}
-	
-	
+
+
 	public static void createSignatureBlock(String filePath) throws IOException {
 		PDDocument document = createDocument(filePath);
 		try {
 			addSignatureBlock(document);
-            document.save(filePath);
+			document.save(filePath);
 		} finally {
 			if(document != null) {
 				document.close();
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param filePath
@@ -156,51 +160,51 @@ public final class PDFUtility {
 		PDDocument document = createDocument(filePath);
 		try {
 			addSignatureLabel(document, signatureLabel);
-            document.save(filePath);
+			document.save(filePath);
 		} finally {
 			if(document != null) {
 				document.close();
 			}
 		}
 	}
-	
-	
+
+
 	/**
 	 * Identify location of specific string in a document on a specific page
 	 */
 	static List<TextPositionSequence> findSubwords(PDDocument document, int page, List<String> searchTerms) throws IOException
 	{
-	    final List<TextPositionSequence> hits = new ArrayList<TextPositionSequence>();
-	    PDFTextStripper stripper = new PDFTextStripper()
-	    {
-	        @Override
-	        protected void writeString(String text, List<TextPosition> textPositions) throws IOException
-	        {
-	            TextPositionSequence word = new TextPositionSequence(textPositions);
-	            String string = word.toString();
+		final List<TextPositionSequence> hits = new ArrayList<TextPositionSequence>();
+		PDFTextStripper stripper = new PDFTextStripper()
+		{
+			@Override
+			protected void writeString(String text, List<TextPosition> textPositions) throws IOException
+			{
+				TextPositionSequence word = new TextPositionSequence(textPositions);
+				String string = word.toString();
 
-	            int fromIndex = 0;
-	            int index;
-	            
-	            for ( String searchTerm : searchTerms ) {
-		            while ((index = string.indexOf(searchTerm, fromIndex)) > -1)
-		            {
-		                hits.add(word.subSequence(index, index + searchTerm.length()));
-		                fromIndex = index + 1;
-		            }
-	            }
-	            
-	            super.writeString(text, textPositions);
-	        }
-	    };
-	    
-	    stripper.setSortByPosition(true);
-	    stripper.setStartPage(page);
-	    stripper.setEndPage(page);
-	    stripper.getText(document);
-	    return hits;
+				int fromIndex = 0;
+				int index;
+
+				for ( String searchTerm : searchTerms ) {
+					while ((index = string.indexOf(searchTerm, fromIndex)) > -1)
+					{
+						hits.add(word.subSequence(index, index + searchTerm.length()));
+						fromIndex = index + 1;
+					}
+				}
+
+				super.writeString(text, textPositions);
+			}
+		};
+
+		stripper.setSortByPosition(true);
+		stripper.setStartPage(page);
+		stripper.setEndPage(page);
+		stripper.getText(document);
+		return hits;
 	}
-	
+
 	/**
 	 * 
 	 * Object class returned by findWord
@@ -209,92 +213,92 @@ public final class PDFUtility {
 		public PDRectangle rect;
 		public final int page;
 		public String keyword;
-		
-		
+
+
 		public RectanglePage(PDRectangle rect, int page, String keyword) {
 			this.rect = rect;
 			this.page = page;
 			this.keyword = keyword;
 		}
-		
+
 		public void setRectangle(PDRectangle newRect) {
 			this.rect = newRect;
 		}
-		
+
 		public PDRectangle getRectangle() {
 			return this.rect;
 		}
-		
+
 		public void setKeyword(String newKeyword) {
 			this.keyword = newKeyword;
 		}
-		
+
 		public String getKeyword() {
 			return this.keyword;
 		}
-		
+
 	}
-	
+
 	public static class FormObject {
 		public PDRectangle rect;
 		public final int page;
 		public String keyword;
 		public String formType;
-		
+
 		public FormObject(PDRectangle rect, int page, String keyword) {
 			this.rect = rect;
 			this.page = page;
 			this.keyword = keyword;
 		}		
-		
+
 		public FormObject(PDRectangle rect, int page, String keyword, String formType) {
 			this.rect = rect;
 			this.page = page;
 			this.keyword = keyword;
 			this.formType = formType;
 		}
-		
+
 		public void setRectangle(PDRectangle newRect) {
 			this.rect = newRect;
 		}
-		
+
 		public PDRectangle getRectangle() {
 			return this.rect;
 		}
-		
+
 		public void setKeyword(String newKeyword) {
 			this.keyword = newKeyword;
 		}
-		
+
 		public String getKeyword() {
 			return this.keyword;
 		}
-		
+
 	}
-	
+
 	public static class pageLocation {
 		public float xCoord;
 		public float yCoord;
 		public final int page;
 		public String keyword;
-		
+
 		public pageLocation(float xCoord, float yCoord, int page, String keyword) {
 			this.xCoord = xCoord;
 			this.yCoord = yCoord;
 			this.page = page;
 			this.keyword = keyword;
 		}
-		
+
 		public void setKeyword(String newKeyword) {
 			this.keyword = newKeyword;
 		}
-		
+
 		public String getKeyword() {
 			return this.keyword;
 		}
-		
+
 	}
-	
+
 	/**
 	 * 
 	 * Function returns Rectangle and Page to use for placing signature field within PDF
@@ -306,10 +310,10 @@ public final class PDFUtility {
 		float x = 0;
 		float y = 0;
 		int pageFound = 0;
-		
+
 		ArrayList<RectanglePage> ret = new ArrayList();
 	    //System.out.printf("* Looking for '%s'\n", searchTerm);
-	    
+
 		for (int page = 1; page <= document.getNumberOfPages(); page++) {
 	        List<TextPositionSequence> hits = findSubwords(document, page, searchTerms);
 	        for (TextPositionSequence hit : hits) {
@@ -324,8 +328,8 @@ public final class PDFUtility {
 
 	    return ret;
 	}
-	*/
-	
+	 */
+
 	/**
 	 * 
 	 * @param document
@@ -341,104 +345,104 @@ public final class PDFUtility {
 		float x = 0;
 		float y = 0;
 		int pageFound = 0;
-		
-		ArrayList<pageLocation> ret = new ArrayList();
-	    //System.out.printf("* Looking for '%s'\n", searchTerm);
-	    
-		for (int page = 1; page <= document.getNumberOfPages(); page++) {
-	        List<TextPositionSequence> hits = findSubwords(document, page, searchTerms);
-	        for (TextPositionSequence hit : hits) {
-		        x = hit.getX();
-		        y = hit.textPositions.get(0).getPageHeight() - hit.getY();
-		        pageFound = page;
-		        pageLocation addToList = new pageLocation(x, y, pageFound, hit.toString());		        
-		        ret.add(addToList);	        
-	        }
-	    }
 
-	    return ret;
+		ArrayList<pageLocation> ret = new ArrayList();
+		//System.out.printf("* Looking for '%s'\n", searchTerm);
+
+		for (int page = 1; page <= document.getNumberOfPages(); page++) {
+			List<TextPositionSequence> hits = findSubwords(document, page, searchTerms);
+			for (TextPositionSequence hit : hits) {
+				x = hit.getX();
+				y = hit.textPositions.get(0).getPageHeight() - hit.getY();
+				pageFound = page;
+				pageLocation addToList = new pageLocation(x, y, pageFound, hit.toString());		        
+				ret.add(addToList);	        
+			}
+		}
+
+		return ret;
 	}
-	
-	
+
+
 	/**
 	 * 
 	 * Helper class
 	 */
 	public static class TextPositionSequence implements CharSequence
 	{
-	    public TextPositionSequence(List<TextPosition> textPositions)
-	    {
-	        this(textPositions, 0, textPositions.size());
-	    }
+		public TextPositionSequence(List<TextPosition> textPositions)
+		{
+			this(textPositions, 0, textPositions.size());
+		}
 
-	    public TextPositionSequence(List<TextPosition> textPositions, int start, int end)
-	    {
-	        this.textPositions = textPositions;
-	        this.start = start;
-	        this.end = end;
-	    }
+		public TextPositionSequence(List<TextPosition> textPositions, int start, int end)
+		{
+			this.textPositions = textPositions;
+			this.start = start;
+			this.end = end;
+		}
 
-	    @Override
-	    public int length()
-	    {
-	        return end - start;
-	    }
+		@Override
+		public int length()
+		{
+			return end - start;
+		}
 
-	    @Override
-	    public char charAt(int index)
-	    {
-	        TextPosition textPosition = textPositionAt(index);
-	        String text = textPosition.getUnicode();
-	        return text.charAt(0);
-	    }
+		@Override
+		public char charAt(int index)
+		{
+			TextPosition textPosition = textPositionAt(index);
+			String text = textPosition.getUnicode();
+			return text.charAt(0);
+		}
 
-	    @Override
-	    public TextPositionSequence subSequence(int start, int end)
-	    {
-	        return new TextPositionSequence(textPositions, this.start + start, this.start + end);
-	    }
+		@Override
+		public TextPositionSequence subSequence(int start, int end)
+		{
+			return new TextPositionSequence(textPositions, this.start + start, this.start + end);
+		}
 
-	    @Override
-	    public String toString()
-	    {
-	        StringBuilder builder = new StringBuilder(length());
-	        for (int i = 0; i < length(); i++)
-	        {
-	            builder.append(charAt(i));
-	        }
-	        return builder.toString();
-	    }
+		@Override
+		public String toString()
+		{
+			StringBuilder builder = new StringBuilder(length());
+			for (int i = 0; i < length(); i++)
+			{
+				builder.append(charAt(i));
+			}
+			return builder.toString();
+		}
 
-	    public TextPosition textPositionAt(int index)
-	    {
-	        return textPositions.get(start + index);
-	    }
+		public TextPosition textPositionAt(int index)
+		{
+			return textPositions.get(start + index);
+		}
 
-	    public float getX()
-	    {
-	        return textPositions.get(start).getXDirAdj();
-	    }
+		public float getX()
+		{
+			return textPositions.get(start).getXDirAdj();
+		}
 
-	    public float getY()
-	    {
-	        return textPositions.get(start).getYDirAdj();
-	    }
+		public float getY()
+		{
+			return textPositions.get(start).getYDirAdj();
+		}
 
-	    public float getWidth()
-	    {
-	        if (end == start)
-	            return 0;
-	        TextPosition first = textPositions.get(start);
-	        TextPosition last = textPositions.get(end - 1);
-	        return last.getWidthDirAdj() + last.getXDirAdj() - first.getXDirAdj();
-	    }
+		public float getWidth()
+		{
+			if (end == start)
+				return 0;
+			TextPosition first = textPositions.get(start);
+			TextPosition last = textPositions.get(end - 1);
+			return last.getWidthDirAdj() + last.getXDirAdj() - first.getXDirAdj();
+		}
 
-	    final List<TextPosition> textPositions;
-	    final int start, end;
+		final List<TextPosition> textPositions;
+		final int start, end;
 	}
-	
-	
-	
+
+
+
 	/**
 	 * 
 	 * @param document
@@ -451,7 +455,7 @@ public final class PDFUtility {
 				continue;
 			}
 			PDPage thisPage = document.getPage(i);
-			
+
 			PDPageContentStream contentStream = new PDPageContentStream(document, thisPage, AppendMode.APPEND, true);
 			contentStream.beginText();
 			contentStream.setFont(PDType1Font.TIMES_ROMAN, 8);
@@ -462,7 +466,7 @@ public final class PDFUtility {
 			contentStream.close();
 		}
 	}
-	
+
 	public static String parseStyleAttr(String style, String styleAttr) {
 		styleAttr = styleAttr + ":";
 		styleAttr = styleAttr.toLowerCase();
@@ -475,10 +479,10 @@ public final class PDFUtility {
 			attr = attr.replace("px", "");
 			attr = attr.replace("em", "");
 		}
-		
+
 		return attr;
 	}
-	
+
 	/**
 	 * Converts to PDF pts (pts = px * inch / px * pt / inch)
 	 * 
@@ -488,7 +492,7 @@ public final class PDFUtility {
 	public static float convertToPts(float px) {
 		return 72 * px / 96;
 	}
-	
+
 	/**
 	 * Sets the form object location based on page location and element attributes
 	 * 
@@ -513,17 +517,17 @@ public final class PDFUtility {
 		float LLY;
 		int pageNum;
 		ArrayList<FormObject> formObjectList = new ArrayList<FormObject>();
-		
-		
+
+
 		// we are going through this list more than we have page location objects
 		for (Attributes elementAttrs : elementAttributes) {
-			
+
 			formType = (String) elementAttrs.get("smss-type");
 			if (formType.equals("")) {			
 				formType = "textbox";
 			}
-					
-		
+
+
 			try {
 				heightS = (String) elementAttrs.get("smss-height");
 				heightSize = Float.parseFloat(heightS);
@@ -538,10 +542,10 @@ public final class PDFUtility {
 				} else {
 					heightSize = 53;
 				}
-				
+
 			}
-			
-			
+
+
 			try {
 				widthS = (String) elementAttrs.get("smss-width");
 				widthSize = Float.parseFloat(widthS);
@@ -558,8 +562,8 @@ public final class PDFUtility {
 				}
 
 			}
-			
-			
+
+
 			try {
 				xShiftS = (String) elementAttrs.get("smss-xshift");
 				xShift = Float.parseFloat(xShiftS);
@@ -575,8 +579,8 @@ public final class PDFUtility {
 					xShift = 0;
 				}
 			}
-			
-			
+
+
 			try {
 				yShiftS = (String) elementAttrs.get("smss-yshift");
 				yShift = Float.parseFloat(yShiftS);
@@ -592,13 +596,13 @@ public final class PDFUtility {
 					yShift = 0;
 				}
 			}
-			
+
 			// Convert to PDF pts (pts = px * inch / px * pt / inch)
-//			heightSize = 72 * heightSize / 96;
-//			widthSize = 72 * widthSize / 96;
-//			xShift = 72 * xShift / 96;
-//			yShift = 72 * yShift / 96;
-			
+			//			heightSize = 72 * heightSize / 96;
+			//			widthSize = 72 * widthSize / 96;
+			//			xShift = 72 * xShift / 96;
+			//			yShift = 72 * yShift / 96;
+
 			heightSize = convertToPts(heightSize);
 			widthSize = convertToPts(widthSize);
 			xShift = convertToPts(xShift);
@@ -608,24 +612,24 @@ public final class PDFUtility {
 			LLX = pageLocationList.get(index).xCoord;
 			LLY = pageLocationList.get(index).yCoord;
 			pageNum = pageLocationList.get(index).page;
-			
+
 			keyword = (String) elementAttrs.get("smss-value");
 			if (keyword.equals("")) {			
 				keyword = formType + String.valueOf(index);
 			}
-			
+
 			//formObjectList.add(new FormObject(new PDRectangle(LLX, LLY, widthSize, heightSize), pageNum, keyword));
-			
+
 			formObjectList.add(new FormObject(new PDRectangle(LLX + xShift, LLY + yShift, widthSize, heightSize), pageNum, keyword, formType));
-			
+
 			//System.out.println("Attributes in set form: x: " + (LLX + xShift)  + ", y: " + (LLY + yShift)  + ", pageNum: " + pageNum  + ", keyword: " + keyword + ", formType: "  + formType + ", heightSize: " + heightSize + ", widthSize: " + widthSize + ", xshift: " + xShift + ", yshift: " + yShift);
-			
+
 			index++;
 		}
 		return formObjectList;
 	}
-	
-	
+
+
 	/**
 	public static ArrayList<FormObject> setFormObjectLocation(List<String> widthHeightStyle, List<pageLocation> pageLocationList) throws IOException {
 		String heightS;
@@ -643,16 +647,16 @@ public final class PDFUtility {
 		float LLY;
 		int pageNum;
 		ArrayList<FormObject> formObjectList = new ArrayList<FormObject>();
-		
+
 		for (String styleAttr : widthHeightStyle) {
-			
+
 			heightS = parseStyleAttr(styleAttr, "height");
 			heightSize = Float.parseFloat(heightS);
 			widthS = parseStyleAttr(styleAttr, "width");
 			widthSize = Float.parseFloat(widthS);
 			xShiftS = parseStyleAttr(styleAttr, "xshift");
 			yShiftS = parseStyleAttr(styleAttr, "yshift");
-			
+
 			if (!xShiftS.equals("")) {
 				xShift = Float.parseFloat(xShiftS);
 			} else {
@@ -663,7 +667,7 @@ public final class PDFUtility {
 			} else {
 				yShift = 0;
 			}
-			
+
 			// Convert to PDF pts (pts = px * inch / px * pt / inch)
 			heightSize = 72 * heightSize / 96;
 			widthSize = 72 * widthSize / 96;
@@ -676,22 +680,22 @@ public final class PDFUtility {
 			LLY = pageLocationList.get(index).yCoord;
 			pageNum = pageLocationList.get(index).page;
 			keyword = parseStyleAttr(styleAttr, "defaultValue");
-			
+
 			if (keyword.equals("")) {			
 				keyword = formType + String.valueOf(index);
 			}
-			
+
 			//formObjectList.add(new FormObject(new PDRectangle(LLX, LLY, widthSize, heightSize), pageNum, keyword));
-			
+
 			formObjectList.add(new FormObject(new PDRectangle(LLX + xShift, LLY + yShift, widthSize, heightSize), pageNum, keyword, formType));
-			
+
 			index++;
 		}
 		return formObjectList;
 	}
-	*/
-	
-	
+	 */
+
+
 	/**
 	 * 
 	 * Parse height and width from style attribute and adjust size of corresponding rectangle
@@ -711,36 +715,36 @@ public final class PDFUtility {
 		float LLX;
 		float LLY;
 		for (String styleAttr : widthHeightStyle) {
-			
+
 			heightS = styleAttr.substring(styleAttr.lastIndexOf("height:") + 7).trim();
 			heightS = heightS.substring(0, heightS.indexOf(";"));
 			heightS = heightS.replace("px", "");
-			
+
 			heightSize = Float.parseFloat(heightS);
 
 			widthS = styleAttr.substring(styleAttr.lastIndexOf("width:") + 6).trim();
 			widthS = widthS.substring(0, widthS.indexOf(";"));
 			widthS = widthS.replace("px", "");
-			
+
 			widthSize = Float.parseFloat(widthS);						
-			
+
 			// Convert to PDF pts (pts = px * inch / px * pt / inch)
 
 			heightSize = 72 * heightSize / 96;
 			widthSize = 72 * widthSize / 96;
-			
+
 			LLX = rectPageList.get(index).rect.getLowerLeftX();
 			LLY = rectPageList.get(index).rect.getLowerLeftY();
-			
+
 			// Reset the rectangle based on new dimensions
-			
+
 			// Need a way to ensure that the element actually matches the signature label - maybe we use ids?
 			rectPageList.get(index).setRectangle(new PDRectangle(LLX, LLY, widthSize, heightSize));
-			
+
 			index++;
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param rectPageList
@@ -754,48 +758,48 @@ public final class PDFUtility {
 	 *  Could also consider passing the x, y shift as px values in the style attr
 	 */
 	public static void adjustChecboxSizes(List<RectanglePage> rectPageList) throws IOException {
-		
+
 		int index = 0;
 		float LLX;
 		float LLY;
-		
+
 		for (RectanglePage rp : rectPageList ) {	
 			LLX = rectPageList.get(index).rect.getLowerLeftX();
 			LLY = rectPageList.get(index).rect.getLowerLeftY();
-			
+
 			rectPageList.get(index).setRectangle(new PDRectangle(LLX + 80, LLY + 40, 9, 9));
 
 			String newKeyword = rectPageList.get(index).getKeyword() + String.valueOf(index);
 			rectPageList.get(index).setKeyword(newKeyword);
-			
+
 			index++;
 		}
 	}
-	
-	
-	
+
+
+
 	public static void adjustTextboxSizes(List<RectanglePage> rectPageList) throws IOException {
-		
+
 		int index = 0;
 		float LLX;
 		float LLY;
-				
+
 		for (RectanglePage rp : rectPageList ) {	
 			LLX = rectPageList.get(index).rect.getLowerLeftX();
 			LLY = rectPageList.get(index).rect.getLowerLeftY();
-			
+
 			rectPageList.get(index).setRectangle(new PDRectangle(LLX, LLY - 5, 470, 40));
 
 			String newKeyword = "Name, Title; Organization";
 			rectPageList.get(index).setKeyword(newKeyword);
-			
+
 			index++;
 		}
-		
+
 	}
-	
-	
-	
+
+
+
 	/**
 	 * 
 	 * Add files in a directory as attachments to an existing PDF
@@ -803,107 +807,107 @@ public final class PDFUtility {
 	 * 
 	 */
 	public static void attachFiles(PDDocument document, File filedir) throws IOException  {
-	      PDEmbeddedFilesNameTreeNode efTree = new PDEmbeddedFilesNameTreeNode();
-		  Collection<File> files = FileUtils.listFiles(filedir, null, true);
-		  InputStream is;
-		  PDComplexFileSpecification fs;
-		  PDEmbeddedFile ef;
-		  Map efMap = new HashMap();
-		  List<PDEmbeddedFile> filesToEmbed = new ArrayList<>();
+		PDEmbeddedFilesNameTreeNode efTree = new PDEmbeddedFilesNameTreeNode();
+		Collection<File> files = FileUtils.listFiles(filedir, null, true);
+		InputStream is;
+		PDComplexFileSpecification fs;
+		PDEmbeddedFile ef;
+		Map efMap = new HashMap();
+		List<PDEmbeddedFile> filesToEmbed = new ArrayList<>();
 
-			for (File file2 : files) {
-				fs = new PDComplexFileSpecification();
-				fs.setFile(file2.getName());
-				try {
-					is = new FileInputStream(file2.getAbsolutePath());
-				} catch (FileNotFoundException e) {
-					classLogger.error("Error finding file with path: {}", file2.getAbsolutePath());
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new FileNotFoundException("Could not find file. See logs for more details.");
-				}
-				ef = new PDEmbeddedFile(document, is);
-				filesToEmbed.add(ef);
-
-				// set some of the attributes of the embedded file
-				ef.setSubtype("test/plain");
-				ef.setCreationDate(new GregorianCalendar());
-				fs.setEmbeddedFile(ef);
-
-				efMap.put(file2.getName(), fs);
+		for (File file2 : files) {
+			fs = new PDComplexFileSpecification();
+			fs.setFile(file2.getName());
+			try {
+				is = new FileInputStream(file2.getAbsolutePath());
+			} catch (FileNotFoundException e) {
+				classLogger.error("Error finding file with path: {}", file2.getAbsolutePath());
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new FileNotFoundException("Could not find file. See logs for more details.");
 			}
-		  
-		  efTree.setNames( efMap );
-		  PDDocumentNameDictionary names = new PDDocumentNameDictionary( document.getDocumentCatalog() );
-		  names.setEmbeddedFiles( efTree );
-		  document.getDocumentCatalog().setNames( names );
+			ef = new PDEmbeddedFile(document, is);
+			filesToEmbed.add(ef);
+
+			// set some of the attributes of the embedded file
+			ef.setSubtype("test/plain");
+			ef.setCreationDate(new GregorianCalendar());
+			fs.setEmbeddedFile(ef);
+
+			efMap.put(file2.getName(), fs);
+		}
+
+		efTree.setNames( efMap );
+		PDDocumentNameDictionary names = new PDDocumentNameDictionary( document.getDocumentCatalog() );
+		names.setEmbeddedFiles( efTree );
+		document.getDocumentCatalog().setNames( names );
 	}
-	
-	
-	
+
+
+
 	public static void addTextField(PDDocument document, FormObject rectPage) throws IOException {
 		int pageNum = rectPage.page;
-    	PDPage page = document.getPage(pageNum-1);
-    	PDRectangle rect = rectPage.rect;
-    	PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
+		PDPage page = document.getPage(pageNum-1);
+		PDRectangle rect = rectPage.rect;
+		PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
 		if (acroForm == null) {
-	        // Add a new AcroForm and add that to the document
+			// Add a new AcroForm and add that to the document
 			acroForm = new PDAcroForm(document);
 		}
 		document.getDocumentCatalog().setAcroForm(acroForm);
-		
+
 		PDAppearanceStream pdAppearanceStream = new PDAppearanceStream(document);
-		
+
 		COSDictionary normalAppearances = new COSDictionary();
 		PDAppearanceDictionary pdAppearanceDictionary = new PDAppearanceDictionary();
 		pdAppearanceDictionary.setNormalAppearance(new PDAppearanceEntry(normalAppearances));
 		pdAppearanceDictionary.setDownAppearance(new PDAppearanceEntry(normalAppearances));
-		
+
 		pdAppearanceStream.setBBox(rect);
 		normalAppearances.setItem("Yes", pdAppearanceStream);
-		
+
 		PDPageContentStream contentStream = new PDPageContentStream(document, page, AppendMode.APPEND, false);
-        contentStream.addRect(rect.getLowerLeftX(), rect.getLowerLeftY(), rect.getWidth(), rect.getHeight());
-        contentStream.setLineWidth(1);
-        contentStream.setNonStrokingColor(Color.WHITE);
-        contentStream.setStrokingColor(Color.BLACK);
-        contentStream.stroke();
-        contentStream.close();
-		
-        PDTextField textBox = new PDTextField(acroForm);
+		contentStream.addRect(rect.getLowerLeftX(), rect.getLowerLeftY(), rect.getWidth(), rect.getHeight());
+		contentStream.setLineWidth(1);
+		contentStream.setNonStrokingColor(Color.WHITE);
+		contentStream.setStrokingColor(Color.BLACK);
+		contentStream.stroke();
+		contentStream.close();
+
+		PDTextField textBox = new PDTextField(acroForm);
 		acroForm.getFields().add(textBox);
 		textBox.setPartialName(rectPage.keyword);
 		textBox.setFieldFlags(4);
 		textBox.setMultiline(true);
-		
+
 		PDFont font = PDType1Font.HELVETICA;
 		PDResources resources = new PDResources();
 		resources.put(COSName.getPDFName("Helv"), font);
 		acroForm.setDefaultResources(resources);
-		
+
 		String defaultAppearance = "/Helv 12 Tf 0 0 0 rg";
 		textBox.setDefaultAppearance(defaultAppearance);
 
 		List<PDAnnotationWidget> widgets = textBox.getWidgets();
 		for (PDAnnotationWidget pdAnnotationWidget : widgets)
 		{
-		    pdAnnotationWidget.setRectangle(rect);
-		    pdAnnotationWidget.setPage(page);
-		    page.getAnnotations().add(pdAnnotationWidget);
+			pdAnnotationWidget.setRectangle(rect);
+			pdAnnotationWidget.setPage(page);
+			page.getAnnotations().add(pdAnnotationWidget);
 
-		    pdAnnotationWidget.setAppearance(pdAppearanceDictionary);
+			pdAnnotationWidget.setAppearance(pdAppearanceDictionary);
 		}
 		textBox.setValue(rectPage.getKeyword());
 	}
-	
-	
-	
+
+
+
 	public static void addCheckbox(PDDocument document, FormObject rectPage) throws IOException {
 		int pageNum = rectPage.page;
-    	PDPage page = document.getPage(pageNum-1);
-    	PDRectangle rect = rectPage.rect;
-    	PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
+		PDPage page = document.getPage(pageNum-1);
+		PDRectangle rect = rectPage.rect;
+		PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
 		if (acroForm == null) {
-	        // Add a new AcroForm and add that to the document
+			// Add a new AcroForm and add that to the document
 			acroForm = new PDAcroForm(document);
 		}
 		document.getDocumentCatalog().setAcroForm(acroForm);
@@ -918,11 +922,11 @@ public final class PDFUtility {
 		try (PDPageContentStream pdPageContentStream = new PDPageContentStream(document, pdAppearanceStream))
 		{
 			float fontSize = Float.min(rect.getWidth(), rect.getHeight()) - 2;
-		    pdPageContentStream.setFont(PDType1Font.ZAPF_DINGBATS, fontSize);
-		    pdPageContentStream.beginText();
-		    pdPageContentStream.newLineAtOffset(3, 4);
-		    pdPageContentStream.showText("\u2714");
-		    pdPageContentStream.endText();
+			pdPageContentStream.setFont(PDType1Font.ZAPF_DINGBATS, fontSize);
+			pdPageContentStream.beginText();
+			pdPageContentStream.newLineAtOffset(3, 4);
+			pdPageContentStream.showText("\u2714");
+			pdPageContentStream.endText();
 		}
 		pdAppearanceStream.setBBox(new PDRectangle(rect.getWidth(), rect.getHeight()));
 		normalAppearances.setItem("Yes", pdAppearanceStream);
@@ -931,22 +935,22 @@ public final class PDFUtility {
 		pdAppearanceStream.setResources(new PDResources());
 		try (PDPageContentStream pdPageContentStream = new PDPageContentStream(document, pdAppearanceStream))
 		{
-		    pdPageContentStream.setFont(PDType1Font.ZAPF_DINGBATS, 14.5f);
-		    pdPageContentStream.beginText();
-		    pdPageContentStream.newLineAtOffset(3, 4);
-		    pdPageContentStream.showText(" ");
-		    pdPageContentStream.endText();
+			pdPageContentStream.setFont(PDType1Font.ZAPF_DINGBATS, 14.5f);
+			pdPageContentStream.beginText();
+			pdPageContentStream.newLineAtOffset(3, 4);
+			pdPageContentStream.showText(" ");
+			pdPageContentStream.endText();
 		}
 		pdAppearanceStream.setBBox(new PDRectangle(rect.getWidth(), rect.getHeight()));
 		normalAppearances.setItem("Off", pdAppearanceStream);
-		
+
 		PDPageContentStream contentStream = new PDPageContentStream(document, page, AppendMode.APPEND, false);
-        contentStream.addRect(rect.getLowerLeftX(), rect.getLowerLeftY(), rect.getWidth(), rect.getHeight());
-        contentStream.setLineWidth(1);
-        contentStream.setNonStrokingColor(Color.WHITE);
-        contentStream.setStrokingColor(Color.BLACK);
-        contentStream.stroke();
-        contentStream.close();
+		contentStream.addRect(rect.getLowerLeftX(), rect.getLowerLeftY(), rect.getWidth(), rect.getHeight());
+		contentStream.setLineWidth(1);
+		contentStream.setNonStrokingColor(Color.WHITE);
+		contentStream.setStrokingColor(Color.BLACK);
+		contentStream.stroke();
+		contentStream.close();
 
 		PDCheckBox checkBox = new PDCheckBox(acroForm);
 		acroForm.getFields().add(checkBox);
@@ -956,30 +960,82 @@ public final class PDFUtility {
 		List<PDAnnotationWidget> widgets = checkBox.getWidgets();
 		for (PDAnnotationWidget pdAnnotationWidget : widgets)
 		{
-		    pdAnnotationWidget.setRectangle(rect);
-		    pdAnnotationWidget.setPage(page);
-		    page.getAnnotations().add(pdAnnotationWidget);
+			pdAnnotationWidget.setRectangle(rect);
+			pdAnnotationWidget.setPage(page);
+			page.getAnnotations().add(pdAnnotationWidget);
 
-		    pdAnnotationWidget.setAppearance(pdAppearanceDictionary);
+			pdAnnotationWidget.setAppearance(pdAppearanceDictionary);
 		}
 		checkBox.unCheck();
 	}
-	
-	
+
+
 
 	public static void addPDFObjects(PDDocument document, ArrayList<FormObject> formObjectList) throws IOException {
 		for (FormObject fo : formObjectList ) {
 			if (fo.formType.equals("signature")) {
 				//System.out.println("Trying to add signature");
-			    addSignatureBlock(document, fo);
+				addSignatureBlock(document, fo);
 			} else if (fo.formType.equals("checkbox")) {
 				//System.out.println("Trying to add check");
-			    addCheckbox(document, fo);
+				addCheckbox(document, fo);
 			} else if (fo.formType.equals("textbox")) {
 				//System.out.println("Trying to add textbox");
 				addTextField(document, fo);
 			}
 		}
 	}
-	
+
+	public static boolean validatePDImages(String filePath) throws IOException {
+		boolean status = false;
+		PDDocument pdDoc = null;
+		try {
+			File f = new File(filePath);
+			pdDoc = PDDocument.load(f);
+			int count = getPDFImagesCount(pdDoc);
+			if (count > 0) {
+				status = true;
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			pdDoc.close();
+		}
+
+		return status;
+	}
+
+	public static int getPDFImagesCount(PDDocument document) throws IOException {
+		return getImagesFromPDF(document).size();
+	}
+
+	/*
+	 * get the list of PDF images
+	 */
+	public static List<RenderedImage> getImagesFromPDF(PDDocument document) throws IOException {
+		List<RenderedImage> images = new ArrayList<>();
+		for (PDPage page : document.getPages()) {
+			images.addAll(getImagesFromResources(page.getResources()));
+		}
+
+		return images;
+	}
+
+	private static List<RenderedImage> getImagesFromResources(PDResources resources) throws IOException {
+		List<RenderedImage> images = new ArrayList<>();
+
+		for (COSName xObjectName : resources.getXObjectNames()) {
+			PDXObject xObject = resources.getXObject(xObjectName);
+
+			if (xObject instanceof PDFormXObject) {
+				images.addAll(getImagesFromResources(((PDFormXObject) xObject).getResources()));
+			} else if (xObject instanceof PDImageXObject) {
+				images.add(((PDImageXObject) xObject).getImage());
+			}
+		}
+
+		return images;
+	}
+
+
 }

@@ -195,8 +195,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, engineName);
 			}
 			ps.setString(parameterIndex++, engineType.toString());
-			ps.setString(parameterIndex++, engineSubType);
-			ps.setString(parameterIndex++, engineCost);
+			if(engineSubType == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, engineSubType);
+			}
+			if(engineCost == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);			
+			} else {
+				ps.setString(parameterIndex++, engineCost);
+			}
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
 			if(user != null) {
@@ -564,6 +572,36 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Validate if the given engineId exists in the database.
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static boolean engineExists(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -2988,4 +3026,70 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	    return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
+	
+	/**
+	 * Updates the permissions for a user on specific engines by replacing existing
+	 * permissions.
+	 *
+	 * @param user
+	 * @param enginePermissions
+	 * @throws Exception
+	 */
+	public static List<Map<String, Object>> updateEngineUserPermissions(User user, List<Map<String, Object>> enginePermissions) throws Exception {
+		List<Map<String, Object>> newEngines = new ArrayList<>();
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		PreparedStatement deletePs = null;
+		PreparedStatement insertPs = null;
+		try {
+			// Step 1: Delete existing permissions for the engine
+			String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
+			deletePs = securityDb.getPreparedStatement(deleteQuery);
+			deletePs.setString(1, userDetails.getValue0());
+			deletePs.execute();
+			if (!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+			
+			if(enginePermissions != null && !enginePermissions.isEmpty()) {
+				Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
+				// loop through to add the new permissions
+				for (Map<String, Object> permissionMap : enginePermissions) {
+					String engineId = (String) permissionMap.get("engineId");
+					String engineName = (String) permissionMap.get("engineName");
+					IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) permissionMap.get("engineType");
+					String engineSubType = (String) permissionMap.get("engineSubType");
+					String permission = (String) permissionMap.get("permission");
+					
+					// Step 2: Validate EngineId exist in Engine table or not
+					boolean engineExists = engineExists(engineId);
+					if (!engineExists) {
+						newEngines.add(permissionMap);
+						addEngine(engineId, engineName, engineType, engineSubType, "", false, null);
+					}
+					
+					// Step 3: Insert new permissions
+					String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
+					insertPs = securityDb.getPreparedStatement(insertQuery);
+					insertPs.setString(1, userDetails.getValue0());
+					insertPs.setInt(2, AccessPermissionEnum.getIdByPermission(permission));
+					insertPs.setString(3, engineId);
+					insertPs.setTimestamp(4, currentTimestamp);
+					insertPs.addBatch();
+				}
+				
+				insertPs.executeBatch();
+				if (!insertPs.getConnection().getAutoCommit()) {
+					insertPs.getConnection().commit();
+				}
+			}
+			
+			return newEngines;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
+		} finally {
+			ConnectionUtils.closeAllDbConnectionsIfPooling(securityDb, deletePs, insertPs);
+		}
+	}
+
 }

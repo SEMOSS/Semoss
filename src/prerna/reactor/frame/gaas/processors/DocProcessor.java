@@ -109,7 +109,7 @@ public class DocProcessor {
 		for (XWPFParagraph paragraph : document.getParagraphs()) {
 			String text = paragraph.getText();
 			if (text != null) {
-				this.writer.writeRow(source, count + "", text, pageNo + "");
+				this.writer.writeRow(source, pageNo + "", text);
 				//System.err.println(text);
 			}
 			if (paragraph.isPageBreak()) {
@@ -159,7 +159,7 @@ public class DocProcessor {
 				{
 					values = processor;
 					StringBuilder rowOut = getRow(headers, values);
-					this.writer.writeRow(source, count + "", rowOut+"", pageNo + "");
+					this.writer.writeRow(source, pageNo + "", rowOut+"");
 				}
 			}
 			//System.err.println("=========");
@@ -237,7 +237,7 @@ public class DocProcessor {
 						pageNo++;
 					}
 
-					this.writer.writeRow(source, String.valueOf(count), paragraph, String.valueOf(pageNo));
+					this.writer.writeRow(source, String.valueOf(pageNo), paragraph);
 				}
 
 				count++;
@@ -275,7 +275,7 @@ public class DocProcessor {
 					headerProcessed = true;
 				} else {
 					StringBuilder rowOut = getRow(headers, processor);
-					this.writer.writeRow(source, String.valueOf(count), rowOut.toString(), String.valueOf(pageNo));
+					this.writer.writeRow(source, String.valueOf(pageNo), rowOut.toString());
 				}
 			}
 			count++;

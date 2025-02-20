@@ -1,6 +1,6 @@
 package prerna.engine.impl.function;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,19 +16,17 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class TopicFunctionEngine extends AbstractFunctionEngine2 {
+public class TopicFunctionEngine extends AbstractReactorFunctionEngine {
 
 	// allow a particular topic or not
 	
 	private static final Logger classLogger = LogManager.getLogger(TopicFunctionEngine.class);
-	String llmEngine = null;
+	private String llmEngine = null;
 	
-	public TopicFunctionEngine()
-	{
+	public TopicFunctionEngine() {
 		this.keysToGet = new String[] {ReactorKeysEnum.INPUT.getKey(), ReactorKeysEnum.TOPIC_MAP.getKey()};
 		this.keyRequired = new int[] {1, 1};
 	}
-	
 	
 	@Override
 	public NounMetadata execute() {
@@ -80,18 +78,8 @@ public class TopicFunctionEngine extends AbstractFunctionEngine2 {
 		return approved;
 	}
 	
-
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	
-	
 	private List<String> getInput() {
-		List<String> columns = new Vector<String>();
+		List<String> columns = new ArrayList<>();
 
 		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
@@ -127,7 +115,5 @@ public class TopicFunctionEngine extends AbstractFunctionEngine2 {
         }
         return null;
     }
-
-
 
 }
