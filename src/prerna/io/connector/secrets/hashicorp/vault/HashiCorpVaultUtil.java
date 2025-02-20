@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import com.bettercloud.vault.SslConfig;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
-import com.bettercloud.vault.VaultException;
 import com.bettercloud.vault.json.JsonArray;
 import com.bettercloud.vault.json.JsonValue;
 import com.google.common.primitives.Bytes;
@@ -50,11 +49,11 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	private Vault vault;
 	private VaultConfig config;
 
-	private HashiCorpVaultUtil() throws VaultException {
+	private HashiCorpVaultUtil() throws Exception {
 		createVault();
 	}
 	
-	private void createVault() throws VaultException {
+	private void createVault() throws Exception {
 		this.config = new VaultConfig()
 				.address(getInput(VAULT_ADDR))			// Defaults to "VAULT_ADDR" environment variable
 				.token(getInput(VAULT_TOKEN))			// Defaults to "VAULT_TOKEN" environment variable
@@ -75,7 +74,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 				if(instance == null) {
 					try {
 						instance = new HashiCorpVaultUtil();
-					} catch (VaultException e) {
+					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
@@ -115,7 +114,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
 			return new HashMap<String, Object>(this.vault.logical().read(getPathForEngine(eType, secretPath)).getData());
-		} catch (VaultException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -128,7 +127,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
 			return new HashMap<String, Object>(this.vault.logical().read(getInsightPath(secretPath, insightId)).getData());
-		} catch (VaultException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -153,7 +152,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			cacheData.put(ISecrets.SALT, salt);
 			cacheData.put(ISecrets.IV, Bytes.toArray(iv));
 			return cacheData;
-		} catch (VaultException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -174,7 +173,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		try {
 			this.vault.logical().write(getPathForEngine(eType, secretPath), nameValuePairs);
 			return true;
-		} catch (VaultException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
@@ -195,7 +194,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		try {
 			this.vault.logical().write(getInsightPath(secretPath, insightId), nameValuePairs);
 			return true;
-		} catch (VaultException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
@@ -214,7 +213,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		try {
 			this.vault.logical().write(getInsightPath(secretPath, insightId + "/" + ISecrets.INSIGHT_ENCRYPTION_NAME), nameValuePairs);
 			return true;
-		} catch (VaultException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
@@ -271,7 +270,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
-//	public static void main(String[] args) throws VaultException, ParseException, IOException {
+//	public static void main(String[] args) throws Exception, ParseException, IOException {
 //		TestUtilityMethods.loadDIHelper();
 //		
 //		HashiCorpVaultUtil instance = HashiCorpVaultUtil.getInstance();
