@@ -1,11 +1,13 @@
 package prerna.testing.utility;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
 import prerna.project.api.IProject;
 import prerna.reactor.project.CreateProjectReactor;
+import prerna.reactor.security.SetProjectMetadataReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -23,5 +25,12 @@ public class TestProjectUtils {
 		assertEquals(PixelDataType.UPLOAD_RETURN_MAP, nm.getNounType());
 		Map<String, Object> retMap = (Map<String, Object>) nm.getValue();
 		return retMap.get("project_id").toString();
+	}
+	
+	public static void setProjectMetadata(String projectId, Map<String, Object> metaMap) {
+		String addMetaPixel = ApiSemossTestUtils.buildPixelCall(SetProjectMetadataReactor.class, ReactorKeysEnum.PROJECT.getKey(),
+				projectId, "meta", metaMap, ReactorKeysEnum.ENCODED.getKey(), false, ReactorKeysEnum.JSON_CLEANUP.getKey(), false);
+		NounMetadata metaPixelCall = ApiSemossTestUtils.processPixel(addMetaPixel);
+		assertTrue(Boolean.valueOf(metaPixelCall.getValue().toString()));
 	}
 }
