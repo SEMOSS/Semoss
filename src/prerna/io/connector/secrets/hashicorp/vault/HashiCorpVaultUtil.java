@@ -93,7 +93,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	 */
 	private String getPathForEngine(IEngine.CATALOG_TYPE eType, String enginePath) {
 		String base = getBaseForEngine(eType);
-		if(base != null) {
+		if(base != null && !(base=base.trim()).isEmpty()) {
 			return base + "/" + enginePath;
 		}
 		return enginePath;
