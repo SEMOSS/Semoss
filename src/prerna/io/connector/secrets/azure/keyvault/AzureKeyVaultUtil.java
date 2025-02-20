@@ -7,7 +7,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.exception.ResourceNotFoundException;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
@@ -112,7 +111,7 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 	 */
 	private String getPathForEngine(IEngine.CATALOG_TYPE eType, String enginePath) {
 		String base = getBaseForEngine(eType);
-		if(base != null) {
+		if(base != null && !(base=base.trim()).isEmpty()) {
 			return base + "-" + enginePath;
 		}
 		return enginePath;
@@ -144,7 +143,7 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Invalid format for secret storage. Must be a valid string representation of a map");
 			}
-		} catch(ResourceNotFoundException e) {
+		} catch(Exception e) {
 			classLogger.warn(Constants.STACKTRACE, e);
 			return new HashMap<>();
 		}
@@ -166,7 +165,7 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Invalid format for secret storage. Must be a valid string representation of a map");
 			}
-		} catch(ResourceNotFoundException e) {
+		} catch(Exception e) {
 			classLogger.warn(Constants.STACKTRACE, e);
 			return new HashMap<>();
 		}
@@ -188,7 +187,7 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Invalid format for secret storage. Must be a valid string representation of a map");
 			}
-		} catch(ResourceNotFoundException e) {
+		} catch(Exception e) {
 			classLogger.warn(Constants.STACKTRACE, e);
 			return new HashMap<>();
 		}
