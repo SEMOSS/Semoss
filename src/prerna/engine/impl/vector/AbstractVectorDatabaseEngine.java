@@ -135,7 +135,10 @@ public abstract class AbstractVectorDatabaseEngine implements IVectorDatabaseEng
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 		if(secretStore != null) {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+			if(engineSecrets == null || engineSecrets.isEmpty()) {
+				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
