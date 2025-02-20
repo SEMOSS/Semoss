@@ -1,4 +1,4 @@
-package prerna.testing.date;
+package prerna.testing.date.reactor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -10,7 +10,7 @@ import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.date.SemossDay;
 
 
-public class ApiDayReactorTests extends AbstractBaseSemossApiTests{
+public class DayReactorApiTests extends AbstractBaseSemossApiTests{
 	
 	@Test
 	public void getDay() {
